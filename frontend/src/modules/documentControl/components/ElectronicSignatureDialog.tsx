@@ -19,6 +19,8 @@ import LockIcon from "@mui/icons-material/Lock";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface ElectronicSignatureDialogProps {
   open: boolean;
@@ -31,6 +33,7 @@ interface ElectronicSignatureDialogProps {
   signerUsername: string;
   signerRole?: string;
   meaning?: string;
+  meaningTranslation?: string;
 }
 
 export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps> = ({
@@ -42,9 +45,12 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
   revisionNumber,
   signerFullName,
   signerUsername,
-  signerRole = "Designated Approver",
-  meaning = "Approved"
+  signerRole,
+  meaning = "Approved",
+  meaningTranslation
 }) => {
+  const { t } = useTranslation("documentControl");
+  const resolvedSignerRole = signerRole ?? t("approval.designatedApproverRole");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -53,7 +59,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
   const handleSign = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!password) {
-      setError("Password re-authentication is required to apply electronic signature.");
+      setError(t("signatureDialog.passwordRequired"));
       return;
     }
 
@@ -63,13 +69,8 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
       await onConfirm(password);
       setPassword("");
       onClose();
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.errors?.[0] ||
-        err.message ||
-        "Electronic signature authentication failed.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("signatureDialog.authFailed")));
     } finally {
       setSigning(false);
     }
@@ -89,7 +90,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <VerifiedUserIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            21 CFR Part 11 Electronic Signature
+            {t("signatureDialog.title")}
           </Typography>
         </Box>
       </DialogTitle>
@@ -113,13 +114,10 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
               borderColor: (theme) => theme.custom.status.inconclusive.border}}
           >
             <Typography variant="caption" sx={{ fontWeight: 600, display: "block" }}>
-              21 CFR Part 11 Statutory Notice:
+              {t("signatureDialog.statutoryTitle")}
             </Typography>
             <Typography variant="caption">
-              By executing this digital signature ceremony with your authenticated credentials,
-              you certify under 21 CFR Part 11 that you have reviewed and approve this controlled
-              document revision. This electronic signature carries the full legal weight and binding
-              effect of a handwritten signature.
+              {t("signatureDialog.statutoryBody")}
             </Typography>
           </Alert>
 
@@ -135,25 +133,25 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
                 display: "block",
                 mb: 1
               }}>
-              Signature Attribution Record
+              {t("signatureDialog.attributionTitle")}
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Document Code:</Typography>
+                }}>{t("signatureDialog.documentCode")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{documentCode}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Revision Number:</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>Rev {revisionNumber}</Typography>
+                }}>{t("signatureDialog.revisionNumber")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("common.rev", { number: revisionNumber })}</Typography>
               </Box>
               <Box sx={{ gridColumn: "span 2" }}>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Document Title:</Typography>
+                }}>{t("signatureDialog.documentTitle")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>{documentTitle}</Typography>
               </Box>
             </Box>
@@ -162,27 +160,27 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Signer Name:</Typography>
+                }}>{t("signatureDialog.signerName")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{signerFullName}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Username:</Typography>
+                }}>{t("signatureDialog.username")}</Typography>
                 <Typography variant="body2">{signerUsername}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Signer Role:</Typography>
-                <Typography variant="body2">{signerRole}</Typography>
+                }}>{t("signatureDialog.signerRole")}</Typography>
+                <Typography variant="body2">{resolvedSignerRole}</Typography>
               </Box>
               <Box>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Signature Meaning:</Typography>
+                }}>{t("signatureDialog.signatureMeaning")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: "success.main" }}>
-                  {meaning}
+                  {meaningTranslation && meaningTranslation !== meaning ? `${meaning} (${meaningTranslation})` : meaning}
                 </Typography>
               </Box>
             </Box>
@@ -190,7 +188,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
 
           {/* Password Re-Entry Field */}
           <TextField
-            label="Re-enter Your Password to Authenticate"
+            label={t("signatureDialog.passwordLabel")}
             type={showPassword ? "text" : "password"}
             required
             fullWidth
@@ -198,14 +196,14 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={signing}
-            placeholder="Account password"
-            helperText="Per 21 CFR §11.200, individual password confirmation is required at the time of each signing ceremony."
+            placeholder={t("signatureDialog.passwordPlaceholder")}
+            helperText={t("signatureDialog.passwordHelper")}
             slotProps={{
               input: {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      aria-label="toggle password visibility"
+                      aria-label={t("signatureDialog.togglePasswordAria")}
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                     >
@@ -220,7 +218,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
 
         <DialogActions sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider" }}>
           <Button onClick={handleClose} disabled={signing}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -229,7 +227,7 @@ export const ElectronicSignatureDialog: React.FC<ElectronicSignatureDialogProps>
             disabled={signing || !password.trim()}
             startIcon={signing ? <CircularProgress size={16} color="inherit" /> : <LockIcon />}
           >
-            {signing ? "Authenticating & Signing..." : "Sign & Approve"}
+            {signing ? t("signatureDialog.signing") : t("signatureDialog.submit")}
           </Button>
         </DialogActions>
       </form>

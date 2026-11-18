@@ -17,6 +17,9 @@ import PersonAddOutlinedIcon from "@mui/icons-material/PersonAddOutlined";
 import { documentControlService } from "../services/documentControlService";
 import { apiClient } from "../../../services/apiClient";
 import type { AssignmentRole, CreateAssignmentRequest } from "../types/documentControlTypes";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface AssignmentDialogProps {
   open: boolean;
@@ -35,6 +38,10 @@ interface UserDirectoryOption {
   isActive?: boolean;
 }
 
+interface FallbackUserOption extends UserDirectoryOption {
+  role?: { name?: string };
+}
+
 export function AssignmentDialog({
   open,
   onClose,
@@ -42,6 +49,7 @@ export function AssignmentDialog({
   documentMasterId,
   companyDocumentCode
 }: AssignmentDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [selectedUser, setSelectedUser] = useState<UserDirectoryOption | null>(null);
   const [assignmentRole, setAssignmentRole] = useState<AssignmentRole>("Author");
   const [users, setUsers] = useState<UserDirectoryOption[]>([]);
@@ -80,7 +88,7 @@ export function AssignmentDialog({
     } catch {
       try {
         const fallbackRes = await apiClient.get("/users");
-        const fallbackList: any[] = fallbackRes.data?.data || fallbackRes.data || [];
+        const fallbackList: FallbackUserOption[] = fallbackRes.data?.data || fallbackRes.data || [];
         setUsers(
           fallbackList.filter((u) => u.isActive !== false).map((u) => ({
             id: u.id,
@@ -92,7 +100,7 @@ export function AssignmentDialog({
           }))
         );
       } catch {
-        setError("Failed to load active personnel directory.");
+        setError(t("assignmentDialog.loadError"));
       }
     } finally {
       setLoadingUsers(false);
@@ -101,7 +109,7 @@ export function AssignmentDialog({
 
   const handleSave = async () => {
     if (!selectedUser || !selectedUser.id || selectedUser.id <= 0) {
-      setError("Please select a target personnel.");
+      setError(t("assignmentDialog.selectPersonnelError"));
       return;
     }
 
@@ -118,9 +126,8 @@ export function AssignmentDialog({
       setSelectedUser(null);
       onSuccess();
       onClose();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to add assignment.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("assignmentDialog.addError")));
     } finally {
       setLoading(false);
     }
@@ -139,7 +146,7 @@ export function AssignmentDialog({
       <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
         <PersonAddOutlinedIcon color="primary" />
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Add Role Assignment
+          {t("assignmentDialog.title")}
         </Typography>
       </DialogTitle>
 
@@ -147,23 +154,28 @@ export function AssignmentDialog({
         <Typography variant="caption" sx={{
           color: "text.secondary"
         }}>
-          Document: <strong>{companyDocumentCode}</strong>
+          <Trans
+            i18nKey="assignmentDialog.documentLine"
+            ns="documentControl"
+            values={{ code: companyDocumentCode }}
+            components={{ strong: <strong /> }}
+          />
         </Typography>
 
         {error && <Alert severity="error">{error}</Alert>}
 
         <TextField
           select
-          label="Assignment Role *"
+          label={t("assignmentDialog.roleLabel")}
           value={assignmentRole}
           onChange={(e) => setAssignmentRole(e.target.value as AssignmentRole)}
           disabled={loading}
           fullWidth
         >
-          <MenuItem value="Author">Author (Can edit draft & upload files)</MenuItem>
-          <MenuItem value="TechnicalReviewer">Technical Reviewer</MenuItem>
-          <MenuItem value="Approver">Approver</MenuItem>
-          <MenuItem value="Owner">Co-Owner</MenuItem>
+          <MenuItem value="Author">{t("assignmentDialog.roles.Author")}</MenuItem>
+          <MenuItem value="TechnicalReviewer">{t("assignmentDialog.roles.TechnicalReviewer")}</MenuItem>
+          <MenuItem value="Approver">{t("assignmentDialog.roles.Approver")}</MenuItem>
+          <MenuItem value="Owner">{t("assignmentDialog.roles.Owner")}</MenuItem>
         </TextField>
 
         <Autocomplete
@@ -179,8 +191,8 @@ export function AssignmentDialog({
           renderInput={(params) => (
             <TextField
               {...params}
-              label="Select Personnel *"
-              placeholder="Search by name, username, or title..."
+              label={t("assignmentDialog.selectPersonnelLabel")}
+              placeholder={t("assignmentDialog.searchPlaceholder")}
               fullWidth
               slotProps={{
                 ...params.slotProps,
@@ -210,7 +222,7 @@ export function AssignmentDialog({
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                {option.jobTitle || "Personnel"} &bull; {option.roleName || "Staff"}
+                {option.jobTitle || t("assignmentDialog.personnelFallback")} &bull; {option.roleName || t("assignmentDialog.staffFallback")}
               </Typography>
             </Box>
           )}
@@ -224,12 +236,17 @@ export function AssignmentDialog({
                 color: "text.secondary",
                 display: "block"
               }}>
-              Selected Personnel: <strong>{selectedUser.fullName}</strong> ({selectedUser.username})
+              <Trans
+                i18nKey="assignmentDialog.selectedLine"
+                ns="documentControl"
+                values={{ name: selectedUser.fullName, username: selectedUser.username }}
+                components={{ strong: <strong /> }}
+              />
             </Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
             }}>
-              Role/Title: {selectedUser.jobTitle || "N/A"} &bull; System Role: {selectedUser.roleName || "Staff"}
+              {t("assignmentDialog.roleTitleLine", { jobTitle: selectedUser.jobTitle || t("common.na"), roleName: selectedUser.roleName || t("assignmentDialog.staffFallback") })}
             </Typography>
           </Box>
         )}
@@ -237,7 +254,7 @@ export function AssignmentDialog({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={loading} color="inherit">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -245,7 +262,7 @@ export function AssignmentDialog({
           disabled={loading || !selectedUser}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {loading ? "Assigning..." : "Assign Role"}
+          {loading ? t("assignmentDialog.assigning") : t("assignmentDialog.submit")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -19,6 +19,8 @@ import { documentApprovalService } from "../services/documentApprovalService";
 import { apiClient } from "../../../services/apiClient";
 import type { DocumentApprovalTaskDto } from "../types/documentControlTypes";
 import { DateField } from "../../../components/DateField";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface AssignApproverDialogProps {
   open: boolean;
@@ -48,6 +50,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
   authorUserId,
   reviewerUserIds
 }) => {
+  const { t } = useTranslation("documentControl");
   const [approverUserId, setApproverUserId] = useState<number | "">("");
   const [submissionNotes, setSubmissionNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -79,8 +82,8 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
         (u) => u.id !== authorUserId && !reviewerUserIds.includes(u.id)
       );
       setUsers(eligible);
-    } catch (err: any) {
-      setError("Failed to load user list for approver selection.");
+    } catch (_err: unknown) {
+      setError(t("assignApprover.loadError"));
     } finally {
       setLoading(false);
     }
@@ -88,7 +91,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
 
   const handleAssign = async () => {
     if (!approverUserId) {
-      setError("Please select a designated approver.");
+      setError(t("assignApprover.selectError"));
       return;
     }
 
@@ -105,13 +108,8 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
       });
       onAssigned(task);
       onClose();
-    } catch (err: any) {
-      const msg =
-        err.response?.data?.message ||
-        err.response?.data?.errors?.[0] ||
-        err.message ||
-        "Failed to create approval task.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("assignApprover.createError")));
     } finally {
       setSubmitting(false);
     }
@@ -120,7 +118,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700 }}>
-        Assign Approver: {companyDocumentCode} Rev {revisionNumber}
+        {t("assignApprover.title", { code: companyDocumentCode, rev: revisionNumber })}
       </DialogTitle>
 
       <DialogContent dividers>
@@ -132,12 +130,10 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
 
         <Alert severity="info" sx={{ mb: 2.5 }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Segregation of Duties (SoD) Active:
+            {t("assignApprover.sodTitle")}
           </Typography>
           <Typography variant="caption">
-            The Author and all participating Technical Reviewers are strictly
-            disqualified from approving this revision. System Administrators
-            are non-exempt.
+            {t("assignApprover.sodBody")}
           </Typography>
         </Alert>
 
@@ -148,11 +144,11 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <FormControl fullWidth size="small" required>
-              <InputLabel id="approver-select-label">Designated Approver</InputLabel>
+              <InputLabel id="approver-select-label">{t("assignApprover.approverLabel")}</InputLabel>
               <Select
                 labelId="approver-select-label"
                 value={approverUserId}
-                label="Designated Approver"
+                label={t("assignApprover.approverLabel")}
                 onChange={(e) => setApproverUserId(e.target.value as number)}
               >
                 {users.map((u) => (
@@ -164,28 +160,28 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
             </FormControl>
 
             <DateField
-              label="Target Effective Date (Optional)"
+              label={t("assignApprover.targetEffectiveDateLabel")}
               value={targetEffectiveDate}
               onChange={(v) => setTargetEffectiveDate(v)}
-              helperText="If set to a future date, document will be approved in Future Effective state until activation."
+              helperText={t("assignApprover.targetEffectiveDateHelper")}
               fullWidth
             />
 
             <DateField
-              label="Approval Due Date (Optional)"
+              label={t("assignApprover.dueDateLabel")}
               value={dueDate}
               onChange={(v) => setDueDate(v)}
               fullWidth
             />
 
             <TextField
-              label="Submission Notes for Approver (Optional)"
+              label={t("assignApprover.notesLabel")}
               multiline
               rows={3}
               size="small"
               value={submissionNotes}
               onChange={(e) => setSubmissionNotes(e.target.value)}
-              placeholder="Provide background context or rationale for this approval request..."
+              placeholder={t("assignApprover.notesPlaceholder")}
               fullWidth
             />
           </Box>
@@ -194,7 +190,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={submitting}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -202,7 +198,7 @@ export const AssignApproverDialog: React.FC<AssignApproverDialogProps> = ({
           onClick={handleAssign}
           disabled={submitting || loading || !approverUserId}
         >
-          {submitting ? "Assigning..." : "Assign & Route for Approval"}
+          {submitting ? t("assignApprover.assigning") : t("assignApprover.submit")}
         </Button>
       </DialogActions>
     </Dialog>

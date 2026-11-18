@@ -5,6 +5,7 @@ import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { actionAvailabilityService } from "../../../services/actionAvailabilityService";
 import { documentApprovalService } from "../services/documentApprovalService";
 import type { ApprovalDossierDto } from "../types/documentControlTypes";
+import { i18n } from "../../../i18n";
 import { ApprovalWorkspaceDialog } from "./ApprovalWorkspaceDialog";
 
 // Network boundaries only.
@@ -70,7 +71,10 @@ beforeEach(() => {
   vi.mocked(documentApprovalService.getApprovalDossier).mockReset();
   vi.mocked(documentApprovalService.executeApprovalDecision).mockReset();
 });
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage("en");
+});
 
 describe("ApprovalWorkspaceDialog gated approval", () => {
   it("the author sees Approve Revision disabled with the server's sentence", async () => {
@@ -117,5 +121,17 @@ describe("ApprovalWorkspaceDialog gated approval", () => {
       decisionNotes: "Section 3 is unclear.",
       effectiveDate: undefined
     }));
+  });
+
+  it("renders workspace title and tabs in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["documentControl"]);
+    vi.mocked(documentApprovalService.getApprovalDossier).mockResolvedValue(dossier());
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([{ action: "document.approve", allowed: true, reason: null }]);
+
+    mount();
+
+    expect(await screen.findByText(/مساحة عمل الاعتماد/)).toBeTruthy();
+    expect(screen.getByRole("tab", { name: /ضوابط القرار/ })).toBeTruthy();
   });
 });

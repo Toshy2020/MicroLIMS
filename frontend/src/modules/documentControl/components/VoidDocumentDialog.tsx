@@ -13,6 +13,9 @@ import {
 } from "@mui/material";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import { documentControlService } from "../services/documentControlService";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface VoidDocumentDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ export function VoidDocumentDialog({
   companyDocumentCode,
   documentTitle
 }: VoidDocumentDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,9 +52,8 @@ export function VoidDocumentDialog({
       setReason("");
       onSuccess();
       onClose();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to void Document Master.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("voidDocument.voidError")));
     } finally {
       setLoading(false);
     }
@@ -69,21 +72,36 @@ export function VoidDocumentDialog({
       <DialogTitle sx={{ pb: 1, display: "flex", alignItems: "center", gap: 1 }}>
         <WarningAmberOutlinedIcon color="error" />
         <Typography variant="h6" sx={{ fontWeight: 700, color: "error.main" }}>
-          VOID DOCUMENT MASTER
+          {t("voidDocument.title")}
         </Typography>
       </DialogTitle>
 
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <Alert severity="warning">
-          <strong>Quality Governance Action:</strong> Voiding permanently removes this Document Master from the active register and marks it as Void. It releases the Company Code <code>{companyDocumentCode}</code> for controlled reuse. The document and its complete revision history remain permanently preserved in the immutable audit trail.
+          <Trans
+            i18nKey="voidDocument.warning"
+            ns="documentControl"
+            values={{ code: companyDocumentCode }}
+            components={{ strong: <strong />, code: <code /> }}
+          />
         </Alert>
 
         <Box sx={{ p: 1.5, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography variant="body2">
-            Document Code: <strong>{companyDocumentCode}</strong>
+            <Trans
+              i18nKey="voidDocument.codeLine"
+              ns="documentControl"
+              values={{ code: companyDocumentCode }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
           <Typography variant="body2">
-            Title: <strong>{documentTitle}</strong>
+            <Trans
+              i18nKey="voidDocument.titleLine"
+              ns="documentControl"
+              values={{ title: documentTitle }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
         </Box>
 
@@ -91,26 +109,26 @@ export function VoidDocumentDialog({
 
         <Box>
           <Typography variant="caption" sx={{ fontWeight: 700, mb: 0.5, display: "block" }}>
-            Mandatory Void Reason (minimum 10 characters required) *
+            {t("voidDocument.reasonLabel")}
           </Typography>
           <TextField
             multiline
             rows={3}
             fullWidth
-            placeholder="State the regulatory / administrative justification for voiding this document..."
+            placeholder={t("voidDocument.reasonPlaceholder")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             disabled={loading}
-            helperText={`${reason.trim().length}/10 characters minimum`}
+            helperText={t("voidDocument.charsHelper", { count: reason.trim().length })}
             error={reason.length > 0 && !isValid}
-            slotProps={{ htmlInput: { "aria-label": "State the regulatory / administrative justification for voiding this document" } }}
+            slotProps={{ htmlInput: { "aria-label": t("voidDocument.reasonAria") } }}
           />
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={loading} color="inherit">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleVoid}
@@ -119,7 +137,7 @@ export function VoidDocumentDialog({
           disabled={!isValid || loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {loading ? "Voiding Record..." : "Confirm Void Record"}
+          {loading ? t("voidDocument.voiding") : t("voidDocument.submit")}
         </Button>
       </DialogActions>
     </Dialog>

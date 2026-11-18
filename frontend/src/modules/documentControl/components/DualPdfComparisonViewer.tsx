@@ -23,6 +23,8 @@ import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { toast } from "sonner";
 import { compactChipStrongSx, compactChipSx, documentCodeSx } from "../documentControlStyles";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 export interface DualPdfComparisonViewerProps {
   open: boolean;
@@ -55,6 +57,7 @@ export function DualPdfComparisonViewer({
   documentTitle,
   canDownload = true
 }: DualPdfComparisonViewerProps) {
+  const { t } = useTranslation("documentControl");
   // Left PDF (Effective)
   const [loadingEffective, setLoadingEffective] = useState(false);
   const [effectivePdfUrl, setEffectivePdfUrl] = useState<string | null>(null);
@@ -95,11 +98,10 @@ export function DualPdfComparisonViewer({
           setEffectivePdfUrl(url);
           setLoadingEffective(false);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           if (!active) return;
           setLoadingEffective(false);
-          const errMsg = err.response?.data?.message || err.message || "Failed to load effective PDF.";
-          setEffectiveError(errMsg);
+          setEffectiveError(serverMessage(err) ?? getErrorMessage(err, t("dualPdf.effectiveLoadError")));
         });
     } else {
       setEffectivePdfUrl(null);
@@ -117,11 +119,10 @@ export function DualPdfComparisonViewer({
           setProposedPdfUrl(url);
           setLoadingProposed(false);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           if (!active) return;
           setLoadingProposed(false);
-          const errMsg = err.response?.data?.message || err.message || "Failed to load proposed revision PDF.";
-          setProposedError(errMsg);
+          setProposedError(serverMessage(err) ?? getErrorMessage(err, t("dualPdf.proposedLoadError")));
         });
     } else {
       setProposedPdfUrl(null);
@@ -144,9 +145,8 @@ export function DualPdfComparisonViewer({
     setDownloading(true);
     try {
       await documentControlService.downloadFile(fileId, fallbackName);
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.message || "Download failed.";
-      toast.error(errMsg);
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("dualPdf.downloadError")));
     } finally {
       setDownloading(false);
     }
@@ -176,10 +176,10 @@ export function DualPdfComparisonViewer({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
               <CompareArrowsIcon color="primary" />
               <Typography variant="caption" sx={{ fontWeight: 800, color: "primary.main", letterSpacing: 1.2 }}>
-                SIDE-BY-SIDE REVISION INSPECTION (DC-URS-067)
+                {t("dualPdf.headerTag")}
               </Typography>
               <Chip
-                label="TECHNICAL REVIEW WORKSPACE"
+                label={t("dualPdf.workspaceChip")}
                 size="small"
                 color="secondary"
                 variant="outlined"
@@ -190,7 +190,7 @@ export function DualPdfComparisonViewer({
               {companyDocumentCode}: {documentTitle}
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small" aria-label="close">
+          <IconButton onClick={onClose} size="small" aria-label={t("dualPdf.closeAria")}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -227,15 +227,15 @@ export function DualPdfComparisonViewer({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <StatusBadge status="Effective" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark" }}>
-                  Current Effective SOP (Rev {effectiveRevisionNumber})
+                  {t("dualPdf.currentEffectiveTitle", { rev: effectiveRevisionNumber })}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 {effectiveSha256 && (
-                  <Tooltip title={`SHA-256: ${effectiveSha256}`}>
+                  <Tooltip title={t("dualPdf.shaTooltip", { sha: effectiveSha256 })}>
                     <Chip
                       icon={<SecurityIcon style={{ fontSize: 14 }} />}
-                      label={`SHA-256: ${effectiveSha256.substring(0, 8)}...`}
+                      label={t("dualPdf.shaChip", { sha: effectiveSha256.substring(0, 8) })}
                       size="small"
                       color="success"
                       variant="outlined"
@@ -257,7 +257,7 @@ export function DualPdfComparisonViewer({
                     disabled={loadingEffective || downloading}
                     sx={compactChipSx}
                   >
-                    Download
+                    {t("dualPdf.download")}
                   </Button>
                 )}
               </Box>
@@ -271,7 +271,7 @@ export function DualPdfComparisonViewer({
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
-                    Verifying SHA-256 and loading effective PDF...
+                    {t("dualPdf.loadingEffective")}
                   </Typography>
                 </Box>
               )}
@@ -280,7 +280,7 @@ export function DualPdfComparisonViewer({
                 <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                   <Alert severity="warning" sx={{ maxWidth: 450 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Effective PDF Notice
+                      {t("dualPdf.effectiveNoticeTitle")}
                     </Typography>
                     {effectiveError}
                   </Alert>
@@ -291,9 +291,9 @@ export function DualPdfComparisonViewer({
                 <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                   <Alert severity="info" sx={{ maxWidth: 450 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Initial Revision Sequence #1
+                      {t("dualPdf.initialSequenceTitle")}
                     </Typography>
-                    This document is sequence #1; no prior effective revision exists for comparative inspection.
+                    {t("dualPdf.initialSequenceBody")}
                   </Alert>
                 </Box>
               )}
@@ -301,7 +301,7 @@ export function DualPdfComparisonViewer({
               {!loadingEffective && !effectiveError && effectivePdfUrl && (
                 <iframe
                   src={`${effectivePdfUrl}#toolbar=0`}
-                  title={`Effective Rev ${effectiveRevisionNumber}`}
+                  title={t("dualPdf.effectiveIframeTitle", { rev: effectiveRevisionNumber })}
                   width="100%"
                   height="100%"
                   style={{ border: "none" }}
@@ -337,15 +337,15 @@ export function DualPdfComparisonViewer({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <StatusBadge status="InReview" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "info.light" : "primary.dark" }}>
-                  Proposed Revision Under Review (Rev {proposedRevisionNumber})
+                  {t("dualPdf.proposedTitle", { rev: proposedRevisionNumber })}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 {proposedSha256 && (
-                  <Tooltip title={`SHA-256: ${proposedSha256}`}>
+                  <Tooltip title={t("dualPdf.shaTooltip", { sha: proposedSha256 })}>
                     <Chip
                       icon={<SecurityIcon style={{ fontSize: 14 }} />}
-                      label={`SHA-256: ${proposedSha256.substring(0, 8)}...`}
+                      label={t("dualPdf.shaChip", { sha: proposedSha256.substring(0, 8) })}
                       size="small"
                       color="primary"
                       variant="outlined"
@@ -367,7 +367,7 @@ export function DualPdfComparisonViewer({
                     disabled={loadingProposed || downloading}
                     sx={compactChipSx}
                   >
-                    Download
+                    {t("dualPdf.download")}
                   </Button>
                 )}
               </Box>
@@ -381,7 +381,7 @@ export function DualPdfComparisonViewer({
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
-                    Verifying SHA-256 and loading proposed revision PDF...
+                    {t("dualPdf.loadingProposed")}
                   </Typography>
                 </Box>
               )}
@@ -390,7 +390,7 @@ export function DualPdfComparisonViewer({
                 <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                   <Alert severity="error" sx={{ maxWidth: 450 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Proposed Revision PDF Error
+                      {t("dualPdf.proposedErrorTitle")}
                     </Typography>
                     {proposedError}
                   </Alert>
@@ -401,9 +401,9 @@ export function DualPdfComparisonViewer({
                 <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
                   <Alert severity="warning" sx={{ maxWidth: 450 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Missing Controlled PDF
+                      {t("dualPdf.missingProposedTitle")}
                     </Typography>
-                    No controlled PDF is currently attached to proposed revision {proposedRevisionNumber}.
+                    {t("dualPdf.missingProposedBody", { rev: proposedRevisionNumber })}
                   </Alert>
                 </Box>
               )}
@@ -411,7 +411,7 @@ export function DualPdfComparisonViewer({
               {!loadingProposed && !proposedError && proposedPdfUrl && (
                 <iframe
                   src={`${proposedPdfUrl}#toolbar=0`}
-                  title={`Proposed Rev ${proposedRevisionNumber}`}
+                  title={t("dualPdf.proposedIframeTitle", { rev: proposedRevisionNumber })}
                   width="100%"
                   height="100%"
                   style={{ border: "none" }}
@@ -428,11 +428,11 @@ export function DualPdfComparisonViewer({
           <Typography variant="caption" sx={{
             color: "text.secondary"
           }}>
-            MicroLIMS Controlled Dual Inspection Workspace • Cryptographic Integrity Verified
+            {t("dualPdf.footer")}
           </Typography>
         </Box>
         <Button onClick={onClose} variant="contained" size="small">
-          Done Inspecting
+          {t("dualPdf.done")}
         </Button>
       </DialogActions>
     </Dialog>

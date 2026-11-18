@@ -21,7 +21,10 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import { documentControlService } from "../services/documentControlService";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { MIN_LABEL_FONT_SIZE, compactChipStrongSx, compactChipSx } from "../documentControlStyles";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 export interface ControlledPdfViewerProps {
   open: boolean;
@@ -61,6 +64,7 @@ export function ControlledPdfViewer({
   isAcknowledged = false,
   canAcknowledge = false
 }: ControlledPdfViewerProps) {
+  const { t } = useTranslation("documentControl");
   const [loading, setLoading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +99,13 @@ export function ControlledPdfViewer({
         setPdfUrl(url);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (!active) return;
         setLoading(false);
-        const errMsg = err.response?.data?.message || err.message || "Failed to load document file.";
+        const errMsg = serverMessage(err) ?? getErrorMessage(err, t("pdfViewer.loadError"));
         if (errMsg.toLowerCase().includes("integrity")) {
           setIsIntegrityError(true);
-          setError("CRITICAL INTEGRITY FAILURE: The document cryptographic SHA-256 signature does not match the stored file content. Delivery has been blocked.");
+          setError(t("pdfViewer.integrityError"));
         } else {
           setError(errMsg);
         }
@@ -120,9 +124,8 @@ export function ControlledPdfViewer({
     setDownloading(true);
     try {
       await documentControlService.downloadFile(fileId, fileName || `${companyDocumentCode}_rev${revisionNumber}.pdf`);
-    } catch (err: any) {
-      const errMsg = err.response?.data?.message || err.message || "Download failed.";
-      toast.error(errMsg);
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("pdfViewer.downloadError")));
     } finally {
       setDownloading(false);
     }
@@ -147,14 +150,14 @@ export function ControlledPdfViewer({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
               <SecurityIcon color="primary" fontSize="small" />
               <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", letterSpacing: 1 }}>
-                CONTROLLED DOCUMENT VIEWER
+                {t("pdfViewer.viewerTag")}
               </Typography>
-              <Chip label="OFFICIAL COPY" size="small" color="primary" variant="outlined" sx={compactChipSx} />
+              <Chip label={t("pdfViewer.officialCopy")} size="small" color="primary" variant="outlined" sx={compactChipSx} />
               <StatusBadge status={revisionStatus} />
               {isSupersededOrObsolete && (
                 <Chip
                   icon={<WarningAmberIcon />}
-                  label="HISTORICAL REVISION, NOT CURRENT EFFECTIVE"
+                  label={t("pdfViewer.historicalWarning")}
                   size="small"
                   color="warning"
                   sx={compactChipStrongSx}
@@ -167,12 +170,17 @@ export function ControlledPdfViewer({
             <Typography variant="caption" sx={{
               color: "text.secondary"
             }}>
-              MicroLIMS ID: <strong>{microLimsDocumentId}</strong> | Revision: <strong>{revisionNumber}</strong>
-              {assignmentId ? ` | Assignment ID: #${assignmentId}` : ""}
+              <Trans
+                i18nKey="pdfViewer.metaLine"
+                ns="documentControl"
+                values={{ id: microLimsDocumentId, rev: revisionNumber }}
+                components={{ strong: <strong /> }}
+              />
+              {assignmentId ? t("pdfViewer.assignmentSuffix", { id: assignmentId }) : ""}
             </Typography>
           </Box>
           <Button onClick={onClose} color="inherit" size="small" startIcon={<CloseIcon />}>
-            Close
+            {t("pdfViewer.close")}
           </Button>
         </Box>
 
@@ -188,15 +196,12 @@ export function ControlledPdfViewer({
                     fontWeight: "bold",
                     color: "text.secondary"
                   }}>
-                  {/* Exact label mandated by ML-DC-FRS-1C-001 §2:133 - scroll
-                      progress is informational and must never be presented as
-                      satisfying the acknowledgement obligation. */}
-                  Reading Progress {localProgress}%. Informational Only. Formal Acknowledgement Required
+                  {t("pdfViewer.readingProgress", { percent: localProgress })}
                 </Typography>
                 {isAcknowledged && (
                   <Chip
                     icon={<VerifiedUserIcon />}
-                    label="Acknowledged"
+                    label={t("pdfViewer.acknowledged")}
                     size="small"
                     color="success"
                     sx={compactChipSx}
@@ -211,7 +216,7 @@ export function ControlledPdfViewer({
                     sx={{ py: 0.2, px: 1, fontSize: MIN_LABEL_FONT_SIZE, minWidth: 0 }}
                     onClick={() => handleMarkProgress(50)}
                   >
-                    50%
+                    {t("pdfViewer.percent50")}
                   </Button>
                   <Button
                     size="small"
@@ -219,7 +224,7 @@ export function ControlledPdfViewer({
                     sx={{ py: 0.2, px: 1, fontSize: MIN_LABEL_FONT_SIZE, minWidth: 0 }}
                     onClick={() => handleMarkProgress(100)}
                   >
-                    100% Read
+                    {t("pdfViewer.percent100Read")}
                   </Button>
                 </Box>
               )}
@@ -241,7 +246,7 @@ export function ControlledPdfViewer({
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              Verifying cryptographic SHA-256 signature and loading PDF...
+              {t("pdfViewer.loading")}
             </Typography>
           </Box>
         )}
@@ -250,7 +255,7 @@ export function ControlledPdfViewer({
           <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
             <Alert severity={isIntegrityError ? "error" : "warning"} sx={{ maxWidth: 600 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-                {isIntegrityError ? "Security & Data Integrity Violation" : "Document Delivery Error"}
+                {isIntegrityError ? t("pdfViewer.integrityTitle") : t("pdfViewer.deliveryErrorTitle")}
               </Typography>
               {error}
             </Alert>
@@ -272,7 +277,7 @@ export function ControlledPdfViewer({
         <Typography variant="caption" sx={{
           color: "text.secondary"
         }}>
-          MicroLIMS Document Control | Server-Verified SHA-256 Integrity
+          {t("pdfViewer.footer")}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {canDownload && (
@@ -283,7 +288,7 @@ export function ControlledPdfViewer({
               onClick={handleDownload}
               disabled={loading || !!error || downloading}
             >
-              {downloading ? "Downloading..." : "Download Controlled Copy"}
+              {downloading ? t("pdfViewer.downloading") : t("pdfViewer.downloadCopy")}
             </Button>
           )}
 
@@ -296,7 +301,7 @@ export function ControlledPdfViewer({
               onClick={onAcknowledgeClick}
               disabled={!canAcknowledge}
             >
-              Acknowledge Training
+              {t("pdfViewer.acknowledgeTraining")}
             </Button>
           )}
 

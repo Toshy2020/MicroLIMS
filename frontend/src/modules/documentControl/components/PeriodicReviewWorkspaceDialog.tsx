@@ -1,5 +1,8 @@
 import { compactChipStrongSx } from "../documentControlStyles";
 import { useState, useEffect } from "react";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import {
   Dialog,
   DialogTitle,
@@ -57,6 +60,7 @@ export function PeriodicReviewWorkspaceDialog({
   onSuccess,
   onTriggerCreateRevision
 }: PeriodicReviewWorkspaceDialogProps) {
+  const { t } = useTranslation("documentControl");
   const { userId } = useAuth();
   const theme = useTheme();
   const [loading, setLoading] = useState(false);
@@ -99,8 +103,8 @@ export function PeriodicReviewWorkspaceDialog({
     try {
       const data = await periodicReviewService.getWorkspace(id);
       setWorkspace(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load review workspace.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("periodicReview.loadError")));
     } finally {
       setLoading(false);
     }
@@ -120,8 +124,8 @@ export function PeriodicReviewWorkspaceDialog({
       setSectionNumber("");
       setNoteText("");
       await loadWorkspace(taskId);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to add review note.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("periodicReview.addNoteError")));
     } finally {
       setSubmittingFinding(false);
     }
@@ -133,14 +137,14 @@ export function PeriodicReviewWorkspaceDialog({
     try {
       await periodicReviewService.resolveFinding(taskId, findingId);
       await loadWorkspace(taskId);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to resolve finding.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("periodicReview.resolveError")));
     }
   };
 
   const handleCompleteReview = async () => {
     if (!taskId || !reviewSummary.trim() || reviewSummary.trim().length < 10) {
-      setError("A review summary of at least 10 characters is mandatory.");
+      setError(t("periodicReview.summaryMandatoryError"));
       return;
     }
 
@@ -160,8 +164,8 @@ export function PeriodicReviewWorkspaceDialog({
       } else {
         onClose();
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to complete periodic review.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("periodicReview.completeError")));
     } finally {
       setSubmittingDecision(false);
     }
@@ -180,16 +184,16 @@ export function PeriodicReviewWorkspaceDialog({
             <AutoModeIcon color="primary" />
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
-                Periodic Review Workspace
+                {t("periodicReview.title")}
               </Typography>
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                {workspace?.master.companyDocumentCode}: {workspace?.master.title} (Rev {workspace?.revision.revisionNumber})
+                {t("periodicReview.subtitle", { code: workspace?.master.companyDocumentCode, title: workspace?.master.title, rev: workspace?.revision.revisionNumber })}
               </Typography>
             </Box>
           </Box>
-          <IconButton aria-label="Close periodic review workspace" onClick={onClose} size="small">
+          <IconButton aria-label={t("periodicReview.closeAria")} onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -209,7 +213,7 @@ export function PeriodicReviewWorkspaceDialog({
 
           {isAuthor && !isCompleted && (
             <Alert severity="warning" sx={{ mb: 2 }}>
-              Segregation of Duties Enforcement: You are the author of Revision {workspace?.revision.revisionNumber}. You cannot record notes or complete this periodic review.
+              {t("periodicReview.sodWarning", { rev: workspace?.revision.revisionNumber })}
             </Alert>
           )}
 
@@ -224,7 +228,7 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>MicroLIMS ID</Typography>
+                      }}>{t("periodicReview.meta.microLimsId")}</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>{workspace.master.microLimsDocumentId}</Typography>
                   </Box>
                   <Box>
@@ -233,8 +237,8 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Effective Revision</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Rev {workspace.revision.revisionNumber}</Typography>
+                      }}>{t("periodicReview.meta.effectiveRevision")}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>{t("common.rev", { number: workspace.revision.revisionNumber })}</Typography>
                   </Box>
                   <Box>
                     <Typography
@@ -242,12 +246,12 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Review Due Date</Typography>
+                      }}>{t("periodicReview.meta.reviewDueDate")}</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: workspace.task.isOverdue ? "error.main" : "text.primary" }}>
                         {formatLabCalendarDate(workspace.task.scheduledDueDate)}
                       </Typography>
-                      {workspace.task.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
+                      {workspace.task.isOverdue && <Chip label={t("periodicReview.meta.overdue")} color="error" size="small" sx={compactChipStrongSx} />}
                     </Box>
                   </Box>
                   <Box>
@@ -256,8 +260,8 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Review Cycle</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{workspace.task.reviewCycleMonths} Months</Typography>
+                      }}>{t("periodicReview.meta.reviewCycle")}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("common.months", { count: workspace.task.reviewCycleMonths })}</Typography>
                   </Box>
                   <Box>
                     <Typography
@@ -265,8 +269,8 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Assigned Reviewer</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{workspace.task.assignedReviewerFullName || "Unassigned"}</Typography>
+                      }}>{t("periodicReview.meta.assignedReviewer")}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{workspace.task.assignedReviewerFullName || t("periodicReview.meta.unassigned")}</Typography>
                   </Box>
                   <Box>
                     <Typography
@@ -274,7 +278,7 @@ export function PeriodicReviewWorkspaceDialog({
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Status</Typography>
+                      }}>{t("periodicReview.meta.status")}</Typography>
                     <Chip
                       label={workspace.task.status}
                       color={workspace.task.status === "Completed" ? "success" : workspace.task.status === "InProgress" ? "info" : "default"}
@@ -291,12 +295,12 @@ export function PeriodicReviewWorkspaceDialog({
                   <PictureAsPdfIcon color="error" sx={{ fontSize: 36 }} />
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Controlled Effective PDF
+                      {t("periodicReview.pdfBar.title")}
                     </Typography>
                     <Typography variant="caption" sx={{
                       color: "text.secondary"
                     }}>
-                      {workspace.controlledPdf ? `${workspace.controlledPdf.fileName} (SHA-256 Verified)` : "No active controlled PDF attached"}
+                      {workspace.controlledPdf ? t("periodicReview.pdfBar.verified", { fileName: workspace.controlledPdf.fileName }) : t("periodicReview.pdfBar.none")}
                     </Typography>
                   </Box>
                 </Box>
@@ -307,16 +311,16 @@ export function PeriodicReviewWorkspaceDialog({
                     startIcon={<PictureAsPdfIcon />}
                     onClick={() => setPdfOpen(true)}
                   >
-                    Inspect Controlled PDF
+                    {t("periodicReview.pdfBar.inspectButton")}
                   </Button>
                 )}
               </Paper>
 
               {/* Tabs for Findings vs Review History */}
               <Tabs value={currentTab} onChange={(_, val) => setCurrentTab(val)}>
-                <Tab label={`Review Notes & Findings (${workspace.findings.length})`} />
-                <Tab label={`Independent Review History (${workspace.historicalReviews.length})`} />
-                {!isCompleted && !isAuthor && <Tab label="Outcome & Decision" />}
+                <Tab label={t("periodicReview.tabs.notesAndFindings", { count: workspace.findings.length })} />
+                <Tab label={t("periodicReview.tabs.historicalReviews", { count: workspace.historicalReviews.length })} />
+                {!isCompleted && !isAuthor && <Tab label={t("periodicReview.tabs.outcomeAndDecision")} />}
               </Tabs>
 
               {/* Tab 0: Notes & Findings */}
@@ -325,28 +329,28 @@ export function PeriodicReviewWorkspaceDialog({
                   {!isCompleted && !isAuthor && (
                     <Paper variant="outlined" sx={{ p: 2 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-                        Record Page / Section Specific Review Finding
+                        {t("periodicReview.findings.recordTitle")}
                       </Typography>
                       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "120px 140px 1fr auto" }, gap: 1.5, alignItems: "flex-start" }}>
                         <TextField
                           size="small"
-                          label="Page #"
+                          label={t("periodicReview.findings.pageLabel")}
                           type="number"
                           value={pageNumber}
                           onChange={(e) => setPageNumber(e.target.value)}
                         />
                         <TextField
                           size="small"
-                          label="Section #"
+                          label={t("periodicReview.findings.sectionLabel")}
                           value={sectionNumber}
                           onChange={(e) => setSectionNumber(e.target.value)}
                         />
                         <TextField
                           size="small"
-                          label="Review Note / Observation *"
+                          label={t("periodicReview.findings.noteLabel")}
                           value={noteText}
                           onChange={(e) => setNoteText(e.target.value)}
-                          placeholder="Document observations, required updates, or verified points..."
+                          placeholder={t("periodicReview.findings.notePlaceholder")}
                         />
                         <Button
                           variant="outlined"
@@ -355,7 +359,7 @@ export function PeriodicReviewWorkspaceDialog({
                           onClick={handleAddFinding}
                           sx={{ height: 40 }}
                         >
-                          Add Note
+                          {t("periodicReview.findings.addNote")}
                         </Button>
                       </Box>
                     </Paper>
@@ -365,12 +369,12 @@ export function PeriodicReviewWorkspaceDialog({
                     <Table size="small">
                       <TableHead sx={tableHeadSx(theme)}>
                         <TableRow>
-                          <TableCell sx={{ fontWeight: 700, width: 90 }}>Page #</TableCell>
-                          <TableCell sx={{ fontWeight: 700, width: 110 }}>Section</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Note / Observation</TableCell>
-                          <TableCell sx={{ fontWeight: 700, width: 140 }}>Recorded By</TableCell>
-                          <TableCell sx={{ fontWeight: 700, width: 110 }}>Status</TableCell>
-                          {!isCompleted && !isAuthor && <TableCell sx={{ fontWeight: 700, width: 90 }} align="right">Action</TableCell>}
+                          <TableCell sx={{ fontWeight: 700, width: 90 }}>{t("periodicReview.findings.columns.page")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, width: 110 }}>{t("periodicReview.findings.columns.section")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.findings.columns.note")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, width: 140 }}>{t("periodicReview.findings.columns.recordedBy")}</TableCell>
+                          <TableCell sx={{ fontWeight: 700, width: 110 }}>{t("periodicReview.findings.columns.status")}</TableCell>
+                          {!isCompleted && !isAuthor && <TableCell sx={{ fontWeight: 700, width: 90 }} align="right">{t("periodicReview.findings.columns.action")}</TableCell>}
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -397,8 +401,8 @@ export function PeriodicReviewWorkspaceDialog({
                             {!isCompleted && !isAuthor && (
                               <TableCell align="right">
                                 {f.status === "Open" && (
-                                  <Tooltip title="Mark Resolved">
-                                    <IconButton aria-label="Mark finding resolved" size="small" color="success" onClick={() => handleResolveFinding(f.id)}>
+                                  <Tooltip title={t("periodicReview.findings.markResolvedTooltip")}>
+                                    <IconButton aria-label={t("periodicReview.findings.markResolvedAria")} size="small" color="success" onClick={() => handleResolveFinding(f.id)}>
                                       <DoneIcon fontSize="small" />
                                     </IconButton>
                                   </Tooltip>
@@ -410,7 +414,7 @@ export function PeriodicReviewWorkspaceDialog({
                         {workspace.findings.length === 0 && (
                           <TableRow>
                             <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                              No review notes or findings recorded yet.
+                              {t("periodicReview.findings.empty")}
                             </TableCell>
                           </TableRow>
                         )}
@@ -426,19 +430,19 @@ export function PeriodicReviewWorkspaceDialog({
                   <Table size="small">
                     <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Review Date</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Outcome</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Reviewer</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Summary & Notes</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Findings</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.reviewDate")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.revision")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.outcome")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.reviewer")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.summaryNotes")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("periodicReview.history.columns.findings")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {workspace.historicalReviews.map((h) => (
                         <TableRow key={h.id} hover>
                           <TableCell>{h.completedAt ? formatDateTimeWithTimeZone(h.completedAt) : new Date(h.createdAt).toLocaleDateString()}</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Rev {h.revisionNumber}</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>{t("common.rev", { number: h.revisionNumber })}</TableCell>
                           <TableCell>
                             <Chip
                               label={h.outcome || h.status}
@@ -448,13 +452,13 @@ export function PeriodicReviewWorkspaceDialog({
                           </TableCell>
                           <TableCell>{h.completedByFullName || h.assignedReviewerFullName || "—"}</TableCell>
                           <TableCell sx={{ maxWidth: 300 }}>{h.reviewSummary || "—"}</TableCell>
-                          <TableCell>{h.totalFindingsCount} notes</TableCell>
+                          <TableCell>{t("periodicReview.history.notesCount", { count: h.totalFindingsCount })}</TableCell>
                         </TableRow>
                       ))}
                       {workspace.historicalReviews.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                            No prior periodic reviews recorded for this document master.
+                            {t("periodicReview.history.empty")}
                           </TableCell>
                         </TableRow>
                       )}
@@ -467,52 +471,66 @@ export function PeriodicReviewWorkspaceDialog({
               {currentTab === 2 && !isCompleted && !isAuthor && (
                 <Paper variant="outlined" sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
                   <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    Select Periodic Review Outcome
+                    {t("periodicReview.decision.title")}
                   </Typography>
 
                   <TextField
                     select
-                    label="Decision Outcome *"
+                    label={t("periodicReview.decision.outcomeLabel")}
                     value={outcome}
                     onChange={(e) => setOutcome(e.target.value as PeriodicReviewOutcome)}
                     sx={{ maxWidth: 350 }}
                   >
                     <MenuItem value="RemainsValid">
-                      <strong>Remains Valid</strong>: No changes required; advances next review date
+                      <Trans i18nKey="periodicReview.decision.remainsValidOption" ns="documentControl" components={{ strong: <strong /> }} />
                     </MenuItem>
                     <MenuItem value="RevisionRequired">
-                      <strong>Revision Required</strong>: Findings transferred into new revision
+                      <Trans i18nKey="periodicReview.decision.revisionRequiredOption" ns="documentControl" components={{ strong: <strong /> }} />
                     </MenuItem>
                     <MenuItem value="ObsolescenceRecommended">
-                      <strong>Obsolescence Recommended</strong>: Route to quality approval workflow
+                      <Trans i18nKey="periodicReview.decision.obsolescenceOption" ns="documentControl" components={{ strong: <strong /> }} />
                     </MenuItem>
                   </TextField>
 
                   {outcome === "RemainsValid" && (
                     <Alert severity="info">
-                      <strong>Remains Valid Impact:</strong> Current effective revision will be preserved. No new revision will be created. The Next Review Date will be advanced by <strong>{workspace.task.reviewCycleMonths} months</strong>.
+                      <Trans
+                        i18nKey="periodicReview.decision.remainsValidImpact"
+                        ns="documentControl"
+                        values={{ months: workspace.task.reviewCycleMonths }}
+                        components={{ strong: <strong /> }}
+                      />
                     </Alert>
                   )}
 
                   {outcome === "RevisionRequired" && (
                     <Alert severity="warning">
-                      <strong>Revision Required Impact:</strong> Closes this review task and enables creating a new draft revision linked directly to this review. All {workspace.findings.length} findings will be preserved for transfer into change items.
+                      <Trans
+                        i18nKey="periodicReview.decision.revisionRequiredImpact"
+                        ns="documentControl"
+                        values={{ count: workspace.findings.length }}
+                        components={{ strong: <strong /> }}
+                      />
                     </Alert>
                   )}
 
                   {outcome === "ObsolescenceRecommended" && (
                     <Alert severity="error">
-                      <strong>Obsolescence Recommended Impact:</strong> Does NOT directly obsolete the document. Creates an Obsolescence Approval task routed to Quality Assurance and Document Controller for formal sign-off.
+                      <Trans
+                        i18nKey="periodicReview.decision.obsolescenceImpact"
+                        ns="documentControl"
+                        components={{ strong: <strong /> }}
+                      />
                     </Alert>
                   )}
 
                   <TextField
                     multiline
                     rows={4}
-                    label="Review Summary & Conclusion *"
+                    label={t("periodicReview.decision.summaryLabel")}
                     value={reviewSummary}
                     onChange={(e) => setReviewSummary(e.target.value)}
-                    placeholder="Provide a comprehensive summary of the review rationale, regulatory compliance verification, and outcome justification (minimum 10 characters)..."
+                    placeholder={t("periodicReview.decision.summaryPlaceholder")}
                   />
 
                   <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
@@ -522,7 +540,7 @@ export function PeriodicReviewWorkspaceDialog({
                       disabled={submittingDecision || !reviewSummary.trim() || reviewSummary.trim().length < 10}
                       onClick={handleCompleteReview}
                     >
-                      {submittingDecision ? <CircularProgress size={24} /> : "Submit & Complete Review"}
+                      {submittingDecision ? <CircularProgress size={24} /> : t("periodicReview.decision.submit")}
                     </Button>
                   </Box>
                 </Paper>
@@ -533,7 +551,7 @@ export function PeriodicReviewWorkspaceDialog({
 
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} color="inherit">
-            Close Workspace
+            {t("periodicReview.closeWorkspace")}
           </Button>
         </DialogActions>
       </Dialog>

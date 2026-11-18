@@ -4,6 +4,9 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { RevisionLifecycleStrip } from "../components/RevisionLifecycleStrip";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 import {
   Box,
   Menu,
@@ -86,6 +89,7 @@ import { useBreadcrumb } from "../../../components/breadcrumbContext";
 import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 export function DocumentDetailPage() {
+  const { t } = useTranslation("documentControl");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { role, userId } = useAuth();
@@ -98,7 +102,7 @@ export function DocumentDetailPage() {
   const [currentTab, setCurrentTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  useBreadcrumb(document ? [document.companyDocumentCode, document.title].filter(Boolean).join(" ") : error ? "Document unavailable" : null);
+  useBreadcrumb(document ? [document.companyDocumentCode, document.title].filter(Boolean).join(" ") : error ? t("detail.unavailable") : null);
 
   // Dialogs state
   const [pdfViewerOpen, setPdfViewerOpen] = useState(false);
@@ -172,11 +176,11 @@ export function DocumentDetailPage() {
         }
       }
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to load document details."));
+      setError(getErrorMessage(err, t("detail.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, t]);
 
   useEffect(() => {
     fetchDocument();
@@ -199,7 +203,7 @@ export function DocumentDetailPage() {
             color: "text.secondary",
             mt: 2
           }}>
-          Loading document record...
+          {t("detail.loading")}
         </Typography>
       </Box>
     );
@@ -209,9 +213,9 @@ export function DocumentDetailPage() {
     return (
       <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/document-control/library")} sx={{ mb: 2 }}>
-          Back to Library
+          {t("detail.backToLibrary")}
         </Button>
-        <Alert severity="error">{error || "Document not found."}</Alert>
+        <Alert severity="error">{error || t("detail.notFound")}</Alert>
       </Box>
     );
   }
@@ -285,14 +289,14 @@ export function DocumentDetailPage() {
     // Draft: the document is waiting on its author to attach a file, then submit.
     canEditDraft && isDraft && !activePdf && {
       key: "upload",
-      label: "Upload controlled file",
+      label: t("detail.actions.uploadControlledFile"),
       icon: <CloudUploadOutlinedIcon fontSize="small" />,
       onClick: () => setUploadDialogOpen(true),
       lead: true
     },
     canEditDraft && isDraft && activePdf && {
       key: "submit",
-      label: "Submit for technical review",
+      label: t("detail.actions.submitForTechnicalReview"),
       icon: <RateReviewOutlinedIcon fontSize="small" />,
       onClick: () => setSubmitReviewOpen(true),
       lead: true
@@ -300,7 +304,7 @@ export function DocumentDetailPage() {
     // In review: the reviewer's workspace is the next step.
     reviewTasks.length > 0 && {
       key: "review",
-      label: `Open technical review (${reviewTasks[0].status})`,
+      label: t("detail.actions.openTechnicalReview", { status: reviewTasks[0].status }),
       icon: <RateReviewOutlinedIcon fontSize="small" />,
       onClick: () => {
         setSelectedReviewTask(reviewTasks[0]);
@@ -311,14 +315,14 @@ export function DocumentDetailPage() {
     // Awaiting approval: route it to an approver, or open the decision workspace.
     isAwaitingApproval && !hasPendingApprovalTask && canManageDocument && {
       key: "assign-approver",
-      label: "Assign approver",
+      label: t("detail.actions.assignApprover"),
       icon: <AssignmentTurnedInIcon fontSize="small" />,
       onClick: () => setAssignApproverOpen(true),
       lead: true
     },
     isAwaitingApproval && approvalTasks.length > 0 && {
       key: "approval",
-      label: `Open approval workspace (${approvalTasks[0].status})`,
+      label: t("detail.actions.openApprovalWorkspace", { status: approvalTasks[0].status }),
       icon: <FactCheckOutlinedIcon fontSize="small" />,
       onClick: () => {
         setSelectedApprovalTaskId(approvalTasks[0].id);
@@ -329,7 +333,7 @@ export function DocumentDetailPage() {
     // Effective: the only forward move is a new revision.
     canCreateRevision && {
       key: "create-revision",
-      label: "Create revision",
+      label: t("detail.actions.createRevision"),
       icon: <AutorenewOutlinedIcon fontSize="small" />,
       onClick: () => setCreateRevisionOpen(true),
       lead: true
@@ -337,39 +341,39 @@ export function DocumentDetailPage() {
     // Supporting draft work - available, but never the headline.
     canEditDraft && {
       key: "edit-metadata",
-      label: "Edit metadata",
+      label: t("detail.actions.editMetadata"),
       icon: <EditOutlinedIcon fontSize="small" />,
       onClick: () => setEditMetadataOpen(true)
     },
     canEditDraft && isDraft && activePdf && {
       key: "replace",
-      label: "Replace controlled file",
+      label: t("detail.actions.replaceControlledFile"),
       icon: <CloudUploadOutlinedIcon fontSize="small" />,
       onClick: () => setUploadDialogOpen(true)
     },
     canEditDraft && isDraft && {
       key: "change-items",
-      label: "Change items",
+      label: t("detail.actions.changeItems"),
       icon: <FormatListBulletedOutlinedIcon fontSize="small" />,
       onClick: () => setChangeItemsOpen(true)
     },
     canEditDraft && isDraft && {
       key: "impact",
-      label: "Impact assessment",
+      label: t("detail.actions.impactAssessment"),
       icon: <FactCheckOutlinedIcon fontSize="small" />,
       onClick: () => setImpactAssessmentOpen(true)
     },
     // Destructive, and deliberately last.
     canEditDraft && isDraft && {
       key: "cancel-draft",
-      label: "Cancel draft revision",
+      label: t("detail.actions.cancelDraftRevision"),
       icon: <CancelOutlinedIcon fontSize="small" />,
       onClick: () => setCancelDraftOpen(true),
       danger: true
     },
     canVoid && {
       key: "void",
-      label: "Void document master",
+      label: t("detail.actions.voidDocumentMaster"),
       icon: <BlockOutlinedIcon fontSize="small" />,
       onClick: () => setVoidDialogOpen(true),
       danger: true
@@ -396,7 +400,7 @@ export function DocumentDetailPage() {
     try {
       await documentControlService.downloadFile(fileId, fileName);
     } catch (err: unknown) {
-      toast.error("Download failed: " + getErrorMessage(err, "unknown error"));
+      toast.error(t("detail.files.downloadFailed", { error: getErrorMessage(err, t("common.unknownError")) }));
     }
   };
 
@@ -408,10 +412,10 @@ export function DocumentDetailPage() {
     if (!assignmentToRemove) return;
     try {
       await documentControlService.removeAssignment(document.id, assignmentToRemove);
-      toast.success("Role assignment removed");
+      toast.success(t("detail.assignments.removedToast"));
       afterOwnAction();
     } catch (err: unknown) {
-      toast.error("Failed to remove assignment: " + getErrorMessage(err, "unknown error"));
+      toast.error(t("detail.assignments.removeFailedToast", { error: getErrorMessage(err, t("common.unknownError")) }));
     } finally {
       setAssignmentToRemove(null);
     }
@@ -428,7 +432,7 @@ export function DocumentDetailPage() {
           onClick={() => navigate("/document-control/library")}
           color="inherit"
         >
-          Document Library
+          {t("detail.documentLibrary")}
         </Button>
       </Box>
 
@@ -445,7 +449,7 @@ export function DocumentDetailPage() {
                 status={document.recordStatus === "Void" ? "Void" : currentRevision?.revisionStatus || "Draft"}
               />
               {document.recordOrigin === "Migrated" && (
-                <Chip label="MIGRATED RECORD" size="small" color="secondary" variant="outlined" />
+                <Chip label={t("detail.migratedRecord")} size="small" color="secondary" variant="outlined" />
               )}
             </Box>
 
@@ -455,16 +459,44 @@ export function DocumentDetailPage() {
 
             <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", color: "text.secondary" }}>
               <Typography variant="caption">
-                MicroLIMS ID: <strong style={{ fontFamily: monospaceFontFamily }}>{document.microLimsDocumentId}</strong>
+                <Trans
+                  i18nKey="detail.microLimsId"
+                  ns="documentControl"
+                  values={{ id: document.microLimsDocumentId }}
+                  components={{ ltr: <strong style={{ fontFamily: monospaceFontFamily }} /> }}
+                />
               </Typography>
               <Typography variant="caption">
-                Department: <strong>{document.departmentName}</strong> ({document.sectionNames && document.sectionNames.length > 0 ? document.sectionNames.join(", ") : document.sectionName})
+                <Trans
+                  i18nKey="detail.department"
+                  ns="documentControl"
+                  values={{
+                    department: document.departmentName,
+                    sections: document.sectionNames && document.sectionNames.length > 0 ? document.sectionNames.join(", ") : document.sectionName
+                  }}
+                  components={{ strong: <strong /> }}
+                />
               </Typography>
               <Typography variant="caption">
-                Current Revision: <strong>{currentRevision?.revisionNumber || "01"}</strong> ({currentRevision?.revisionStatus})
+                <Trans
+                  i18nKey="detail.currentRevision"
+                  ns="documentControl"
+                  values={{
+                    number: currentRevision?.revisionNumber || "01",
+                    status: currentRevision?.revisionStatus
+                  }}
+                  components={{ strong: <strong /> }}
+                />
               </Typography>
               <Typography variant="caption">
-                Owner: <strong>{document.documentOwnerUserName || document.documentOwnerName || "System Owner"}</strong>
+                <Trans
+                  i18nKey="detail.owner"
+                  ns="documentControl"
+                  values={{
+                    owner: document.documentOwnerUserName || document.documentOwnerName || t("common.systemOwner")
+                  }}
+                  components={{ strong: <strong /> }}
+                />
               </Typography>
             </Box>
           </Box>
@@ -491,7 +523,7 @@ export function DocumentDetailPage() {
                   aria-haspopup="menu"
                   aria-expanded={Boolean(actionMenuAnchor)}
                 >
-                  More actions
+                  {t("detail.moreActions")}
                 </Button>
                 <Menu
                   anchorEl={actionMenuAnchor}
@@ -528,11 +560,11 @@ export function DocumentDetailPage() {
                 }}>
                 {isAwaitingApproval
                   ? hasPendingApprovalTask
-                    ? "Waiting on the assigned approver. Only they can record the approval decision."
-                    : "Waiting for an approver to be assigned. The document owner, an assigned author or the Document Controller can route it for approval."
+                    ? t("detail.waiting.approverAssigned")
+                    : t("detail.waiting.approverUnassigned")
                   : currentRevision?.revisionStatus === "InReview"
-                    ? "Waiting on the assigned technical reviewer."
-                    : "No actions are available to you on this document in its current state."}
+                    ? t("detail.waiting.technicalReviewer")
+                    : t("detail.waiting.noActions")}
               </Typography>
             )}
           </Box>
@@ -560,20 +592,41 @@ export function DocumentDetailPage() {
             }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 700, color: (t) => t.palette.mode === "dark" ? "info.light" : "primary.main" }}>
-              Revision {currentRevision.revisionNumber} Scheduled for Automatic Activation (Future Effective)
+              {t("detail.futureEffective.title", { number: currentRevision.revisionNumber })}
             </Typography>
             <Typography variant="caption" sx={{ display: "block" }}>
-              This revision has been approved and signed under 21 CFR Part 11. It is scheduled for automated activation on{" "}
-              <strong>{currentRevision.effectiveDate ? formatLabCalendarDate(currentRevision.effectiveDate) : "the designated target date"}</strong>.
-              The current effective revision remains fully active and authoritative until that time.
+              <Trans
+                i18nKey="detail.futureEffective.body"
+                ns="documentControl"
+                values={{
+                  date: currentRevision.effectiveDate
+                    ? formatLabCalendarDate(currentRevision.effectiveDate)
+                    : t("detail.futureEffective.designatedDate")
+                }}
+                components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+              />
             </Typography>
           </Alert>
         )}
 
         {document.recordStatus === "Void" && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            <strong>RECORD VOIDED:</strong> This Document Master was voided on {formatDateTimeWithTimeZone(document.voidedAt!)} by {document.voidedByUserName}.<br />
-            <strong>Mandatory Justification:</strong> <em>"{document.voidReason}"</em>
+            <Trans
+              i18nKey="detail.voided.banner"
+              ns="documentControl"
+              values={{
+                date: formatDateTimeWithTimeZone(document.voidedAt!),
+                user: document.voidedByUserName
+              }}
+              components={{ strong: <strong /> }}
+            />
+            <br />
+            <Trans
+              i18nKey="detail.voided.justification"
+              ns="documentControl"
+              values={{ reason: document.voidReason }}
+              components={{ strong: <strong />, em: <em /> }}
+            />
           </Alert>
         )}
       </Paper>
@@ -593,12 +646,12 @@ export function DocumentDetailPage() {
               involved and what is in flight", so they are one Workflow tab. The
               audit trail keeps its own place - it is the regulatory record, and a
               reader going to it is doing something different from the others. */}
-          <Tab label="Document" />
-          <Tab label={`Revisions (${document.revisions.length})`} />
+          <Tab label={t("detail.tabs.document")} />
+          <Tab label={t("detail.tabs.revisions", { count: document.revisions.length })} />
           <Tab
-            label={`Workflow (${document.assignments.length + reviewTasks.length + periodicReviewTasks.length})`}
+            label={t("detail.tabs.workflow", { count: document.assignments.length + reviewTasks.length + periodicReviewTasks.length })}
           />
-          <Tab label={`Audit trail (${auditLogs.length})`} />
+          <Tab label={t("detail.tabs.auditTrail", { count: auditLogs.length })} />
         </Tabs>
 
         {/* Tab 0: Overview */}
@@ -609,43 +662,43 @@ export function DocumentDetailPage() {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
-                    Document Governance Properties
+                    {t("detail.overview.governanceProperties")}
                   </Typography>
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Document Classification</Typography>
+                      }}>{t("detail.overview.documentClassification")}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.documentTypeName} ({document.documentTypeCode})</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Confidentiality Level</Typography>
+                      }}>{t("detail.overview.confidentialityLevel")}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.confidentiality}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Department & Section</Typography>
+                      }}>{t("detail.overview.departmentAndSection")}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.departmentName} / {document.sectionNames && document.sectionNames.length > 0 ? document.sectionNames.join(", ") : document.sectionName}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Category</Typography>
+                      }}>{t("detail.overview.category")}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.category || "—"}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Review Cycle</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{currentRevision?.reviewCycleMonths || 24} Months</Typography>
+                      }}>{t("detail.overview.reviewCycle")}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("common.months", { count: currentRevision?.reviewCycleMonths || 24 })}</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Record Origin</Typography>
+                      }}>{t("detail.overview.recordOrigin")}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{document.recordOrigin}</Typography>
                     </Box>
                   </Box>
@@ -653,7 +706,7 @@ export function DocumentDetailPage() {
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
-                    Keywords & Search Tags
+                    {t("detail.overview.keywordsTitle")}
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                     {document.keywords.length > 0 ? (
@@ -661,30 +714,30 @@ export function DocumentDetailPage() {
                     ) : (
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>No keywords assigned.</Typography>
+                      }}>{t("detail.overview.noKeywords")}</Typography>
                     )}
                   </Box>
                 </Box>
 
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.secondary", mb: 1 }}>
-                    Life-Cycle Timestamps & Traceability
+                    {t("detail.overview.lifecycleTitle")}
                   </Typography>
                   <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50", p: 2, borderRadius: 1.5 }}>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Created By</Typography>
+                      }}>{t("detail.overview.createdBy")}</Typography>
                       <Typography variant="body2">{document.createdByUserName} ({formatDateTimeWithTimeZone(document.createdAt)})</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Last Modified By</Typography>
+                      }}>{t("detail.overview.lastModifiedBy")}</Typography>
                       <Typography variant="body2">
                         {document.modifiedByUserName
                           ? `${document.modifiedByUserName} (${formatDateTimeWithTimeZone(document.modifiedAt!)})`
-                          : "None"}
+                          : t("common.none")}
                       </Typography>
                     </Box>
                   </Box>
@@ -700,7 +753,7 @@ export function DocumentDetailPage() {
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Controlled Files on Revision {currentRevision?.revisionNumber}
+                {t("detail.files.title", { number: currentRevision?.revisionNumber })}
               </Typography>
               {canEditDraft && currentRevision?.revisionStatus === "Draft" && (
                 <Button
@@ -709,7 +762,7 @@ export function DocumentDetailPage() {
                   startIcon={<CloudUploadOutlinedIcon />}
                   onClick={() => setUploadDialogOpen(true)}
                 >
-                  Upload or Replace File
+                  {t("detail.files.uploadOrReplace")}
                 </Button>
               )}
             </Box>
@@ -718,14 +771,14 @@ export function DocumentDetailPage() {
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>File Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>File Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Size</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>SHA-256 Checksum</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Uploaded By</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.fileRole")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.fileName")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.size")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.checksum")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.status")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.uploadedBy")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.files.columns.date")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>{t("detail.files.columns.action")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -733,14 +786,14 @@ export function DocumentDetailPage() {
                     <TableRow key={file.id} hover>
                       <TableCell>
                         <Chip
-                          label={file.fileRole === "ControlledPdf" ? "Controlled PDF" : "Source DOCX"}
+                          label={file.fileRole === "ControlledPdf" ? t("detail.files.controlledPdf") : t("detail.files.sourceDocx")}
                           size="small"
                           color={file.fileRole === "ControlledPdf" ? "primary" : "default"}
                           variant="outlined"
                         />
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{file.fileName}</TableCell>
-                      <TableCell>{(file.sizeBytes / 1024).toFixed(1)} KB</TableCell>
+                      <TableCell>{t("detail.files.sizeKb", { size: (file.sizeBytes / 1024).toFixed(1) })}</TableCell>
                       <TableCell sx={documentCodeSx}>
                         <Tooltip title={file.contentSha256}>
                           <span>{file.contentSha256.substring(0, 16)}...</span>
@@ -748,16 +801,16 @@ export function DocumentDetailPage() {
                       </TableCell>
                       <TableCell>
                         {file.isActive ? (
-                          <Chip label="ACTIVE" size="small" color="success" sx={compactChipSx} />
+                          <Chip label={t("common.active")} size="small" color="success" sx={compactChipSx} />
                         ) : (
-                          <Chip label="SUPERSEDED" size="small" color="default" sx={compactChipSx} />
+                          <Chip label={t("common.superseded")} size="small" color="default" sx={compactChipSx} />
                         )}
                       </TableCell>
                       <TableCell>{file.uploadedByUserName}</TableCell>
                       <TableCell>{formatDateTimeWithTimeZone(file.uploadedAt)}</TableCell>
                       <TableCell align="right">
                         {file.fileRole === "ControlledPdf" && (
-                          <IconButton aria-label={`View controlled PDF ${file.fileName}`}
+                          <IconButton aria-label={t("detail.files.viewPdfAria", { name: file.fileName })}
                             size="small"
                             color="error"
                             onClick={() => handleOpenPdfViewer(file.id, file.fileName)}
@@ -765,7 +818,7 @@ export function DocumentDetailPage() {
                             <PictureAsPdfOutlinedIcon fontSize="small" />
                           </IconButton>
                         )}
-                        <IconButton aria-label={`Download ${file.fileName}`}
+                        <IconButton aria-label={t("detail.files.downloadAria", { name: file.fileName })}
                           size="small"
                           onClick={() => handleDownloadFile(file.id, file.fileName)}
                         >
@@ -777,7 +830,7 @@ export function DocumentDetailPage() {
                   {(!currentRevision?.files || currentRevision.files.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No files currently uploaded for this revision.
+                        {t("detail.files.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -791,21 +844,21 @@ export function DocumentDetailPage() {
         {currentTab === 1 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-              Revision History Register
+              {t("detail.revisions.title")}
             </Typography>
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Seq</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Effective Date</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Next Review</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reason for Revision</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Files</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Created By</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.revision")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.seq")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.type")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.status")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.effectiveDate")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.nextReview")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.reasonForRevision")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.files")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.revisions.columns.createdBy")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -827,11 +880,11 @@ export function DocumentDetailPage() {
                         </Typography>
                         {rev.cancelReason && (
                           <Typography variant="caption" color="error">
-                            Cancelled: {rev.cancelReason}
+                            {t("detail.revisions.cancelled", { reason: rev.cancelReason })}
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{rev.files.length} attached</TableCell>
+                      <TableCell>{t("detail.revisions.attachedCount", { count: rev.files.length })}</TableCell>
                       <TableCell>
                         <Typography variant="caption" sx={{
                           display: "block"
@@ -853,7 +906,7 @@ export function DocumentDetailPage() {
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Document Workflow Role Assignments
+                {t("detail.assignments.title")}
               </Typography>
               {canEditDraft && (
                 <Button
@@ -862,7 +915,7 @@ export function DocumentDetailPage() {
                   startIcon={<PersonAddOutlinedIcon />}
                   onClick={() => setAssignmentOpen(true)}
                 >
-                  Add Assignment
+                  {t("detail.assignments.addAssignment")}
                 </Button>
               )}
             </Box>
@@ -871,28 +924,28 @@ export function DocumentDetailPage() {
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assigned Personnel</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Username</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assigned At</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Assigned By</TableCell>
-                    <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.assignments.columns.role")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.assignments.columns.assignedPersonnel")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.assignments.columns.username")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.assignments.columns.assignedAt")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.assignments.columns.assignedBy")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>{t("detail.assignments.columns.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {/* Primary Document Owner */}
                   <TableRow>
                     <TableCell>
-                      <Chip label="Document Owner" size="small" color="primary" />
+                      <Chip label={t("detail.assignments.documentOwner")} size="small" color="primary" />
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>{document.documentOwnerUserName || document.documentOwnerName || "System Owner"}</TableCell>
-                    <TableCell>Primary System Owner</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{document.documentOwnerUserName || document.documentOwnerName || t("common.systemOwner")}</TableCell>
+                    <TableCell>{t("detail.assignments.primarySystemOwner")}</TableCell>
                     <TableCell>{formatDateTimeWithTimeZone(document.createdAt)}</TableCell>
-                    <TableCell>{document.createdByUserName || document.createdByName || "System"}</TableCell>
+                    <TableCell>{document.createdByUserName || document.createdByName || t("common.system")}</TableCell>
                     <TableCell align="right">
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
-                      }}>Primary Owner</Typography>
+                      }}>{t("detail.assignments.primaryOwner")}</Typography>
                     </TableCell>
                   </TableRow>
 
@@ -908,12 +961,12 @@ export function DocumentDetailPage() {
                       <TableCell>{assign.assignedByUserName}</TableCell>
                       <TableCell align="right">
                         {canEditDraft && (
-                          <Tooltip title="Remove this workflow assignment">
+                          <Tooltip title={t("detail.assignments.removeTooltip")}>
                             <IconButton
                               size="small"
                               color="error"
                               onClick={() => handleRemoveAssignment(assign.id)}
-                              aria-label={`Remove ${assign.assignmentRole} assignment for ${assign.userFullName}`}
+                              aria-label={t("detail.assignments.removeAria", { role: assign.assignmentRole, name: assign.userFullName })}
                             >
                               {/* Deactivates and retains the assignment record -
                                   never a delete (DC-URS-184, FS-1a-170). */}
@@ -934,19 +987,19 @@ export function DocumentDetailPage() {
         {currentTab === 3 && (
           <Box sx={{ p: 3 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-              Immutable Audit History for Record {document.microLimsDocumentId}
+              {t("detail.audit.title", { id: document.microLimsDocumentId })}
             </Typography>
 
             <TableContainer component={Paper} variant="outlined">
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700 }}>Timestamp (UTC)</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Action Code</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Actor</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Reason / Justification</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Field Changes</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.timestamp")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.actionCode")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.category")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.actor")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.reason")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>{t("detail.audit.columns.fieldChanges")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -967,7 +1020,7 @@ export function DocumentDetailPage() {
                                 color: "text.secondary",
                                 fontSize: MIN_LABEL_FONT_SIZE
                               }}>
-                              Ctx: {log.sourceContext}
+                              {t("detail.audit.ctx", { context: log.sourceContext })}
                             </Typography>
                           )}
                         </Box>
@@ -989,10 +1042,10 @@ export function DocumentDetailPage() {
                             <PersonOutlineIcon sx={{ fontSize: 16, color: "primary.main" }} />
                           )}
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {log.userName || log.systemProcessName || "System"}
+                            {log.userName || log.systemProcessName || t("common.system")}
                           </Typography>
                           {log.actorType === "System" && (
-                            <Chip label="AUTO" size="small" color="secondary" sx={compactChipStrongSx} />
+                            <Chip label={t("detail.audit.auto")} size="small" color="secondary" sx={compactChipStrongSx} />
                           )}
                         </Box>
                       </TableCell>
@@ -1026,7 +1079,7 @@ export function DocumentDetailPage() {
                   {auditLogs.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No audit events recorded for this record.
+                        {t("detail.audit.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1041,7 +1094,7 @@ export function DocumentDetailPage() {
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Technical Review History & Tasks
+                {t("detail.technicalReview.title")}
               </Typography>
               {currentRevision?.revisionStatus === "Draft" && activePdf && canEditDraft && (
                 <Button
@@ -1050,7 +1103,7 @@ export function DocumentDetailPage() {
                   startIcon={<RateReviewOutlinedIcon />}
                   onClick={() => setSubmitReviewOpen(true)}
                 >
-                  Submit for Review
+                  {t("detail.technicalReview.submitForReview")}
                 </Button>
               )}
             </Box>
@@ -1059,43 +1112,43 @@ export function DocumentDetailPage() {
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Task ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Revision</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Assigned Reviewer</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Assigned Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Findings</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.taskId")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.revision")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.assignedReviewer")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.status")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.assignedDate")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.dueDate")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.technicalReview.columns.findings")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">{t("detail.technicalReview.columns.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {reviewTasks.map((t) => (
-                    <TableRow key={t.id} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>#{t.id}</TableCell>
-                      <TableCell>Rev {t.revisionNumber}</TableCell>
-                      <TableCell>{t.assignedReviewerFullName} ({t.assignedReviewerUsername})</TableCell>
+                  {reviewTasks.map((task) => (
+                    <TableRow key={task.id} hover>
+                      <TableCell sx={{ fontWeight: 600 }}>#{task.id}</TableCell>
+                      <TableCell>{t("common.rev", { number: task.revisionNumber })}</TableCell>
+                      <TableCell>{task.assignedReviewerFullName} ({task.assignedReviewerUsername})</TableCell>
                       <TableCell>
                         <Chip
-                          label={t.status}
+                          label={task.status}
                           size="small"
                           color={
-                            t.status === "Completed"
+                            task.status === "Completed"
                               ? "success"
-                              : t.status === "ReturnedForCorrection"
+                              : task.status === "ReturnedForCorrection"
                               ? "warning"
                               : "primary"
                           }
                         />
                       </TableCell>
-                      <TableCell>{new Date(t.assignedAt).toLocaleDateString()}</TableCell>
-                      <TableCell>{t.dueDate ? formatLabCalendarDate(t.dueDate) : "—"}</TableCell>
+                      <TableCell>{new Date(task.assignedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{task.dueDate ? formatLabCalendarDate(task.dueDate) : "—"}</TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-                          <Chip label={`${t.totalFindingsCount} Total`} size="small" variant="outlined" />
-                          {t.openMandatoryFindingsCount > 0 && (
+                          <Chip label={t("detail.technicalReview.totalFindings", { count: task.totalFindingsCount })} size="small" variant="outlined" />
+                          {task.openMandatoryFindingsCount > 0 && (
                             <Chip
-                              label={`${t.openMandatoryFindingsCount} Open Mandatory`}
+                              label={t("detail.technicalReview.openMandatoryFindings", { count: task.openMandatoryFindingsCount })}
                               size="small"
                               color="error"
                             />
@@ -1112,7 +1165,7 @@ export function DocumentDetailPage() {
                               startIcon={<CompareArrowsIcon />}
                               onClick={() => setDualPdfViewerOpen(true)}
                             >
-                              Dual PDF
+                              {t("detail.technicalReview.dualPdf")}
                             </Button>
                           )}
                           <Button
@@ -1120,11 +1173,11 @@ export function DocumentDetailPage() {
                             variant="outlined"
                             startIcon={<RateReviewOutlinedIcon />}
                             onClick={() => {
-                              setSelectedReviewTask(t);
+                              setSelectedReviewTask(task);
                               setReviewDrawerOpen(true);
                             }}
                           >
-                            Open Review
+                            {t("detail.technicalReview.openReview")}
                           </Button>
                         </Box>
                       </TableCell>
@@ -1133,7 +1186,7 @@ export function DocumentDetailPage() {
                   {reviewTasks.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No technical review tasks initiated for this revision.
+                        {t("detail.technicalReview.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1149,12 +1202,12 @@ export function DocumentDetailPage() {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Independent Periodic Review History
+                  {t("detail.periodicReview.title")}
                 </Typography>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
                 }}>
-                  Complete independent review records preserved across all revisions of this document master
+                  {t("detail.periodicReview.subtitle")}
                 </Typography>
               </Box>
             </Box>
@@ -1163,57 +1216,57 @@ export function DocumentDetailPage() {
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Task ID</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Revision</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Due Date</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Outcome</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Assigned / Completed By</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Findings</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }} align="right">Actions</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.taskId")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.revision")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.dueDate")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.status")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.outcome")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.assignedCompletedBy")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("detail.periodicReview.columns.findings")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="right">{t("detail.periodicReview.columns.actions")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {periodicReviewTasks.map((t) => (
-                    <TableRow key={t.id} hover>
-                      <TableCell sx={{ fontWeight: 700 }}>#{t.id}</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Rev {t.revisionNumber}</TableCell>
+                  {periodicReviewTasks.map((task) => (
+                    <TableRow key={task.id} hover>
+                      <TableCell sx={{ fontWeight: 700 }}>#{task.id}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("common.rev", { number: task.revisionNumber })}</TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                          <span>{formatLabCalendarDate(t.scheduledDueDate)}</span>
-                          {t.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
+                          <span>{formatLabCalendarDate(task.scheduledDueDate)}</span>
+                          {task.isOverdue && <Chip label={t("detail.periodicReview.overdue")} color="error" size="small" sx={compactChipStrongSx} />}
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={t.status}
+                          label={task.status}
                           size="small"
-                          color={t.status === "Completed" ? "success" : t.status === "InProgress" ? "info" : "default"}
+                          color={task.status === "Completed" ? "success" : task.status === "InProgress" ? "info" : "default"}
                         />
                       </TableCell>
                       <TableCell>
-                        {t.outcome ? (
+                        {task.outcome ? (
                           <Chip
-                            label={t.outcome}
+                            label={task.outcome}
                             size="small"
-                            color={t.outcome === "RemainsValid" ? "success" : t.outcome === "RevisionRequired" ? "warning" : "default"}
+                            color={task.outcome === "RemainsValid" ? "success" : task.outcome === "RevisionRequired" ? "warning" : "default"}
                           />
                         ) : "—"}
                       </TableCell>
                       <TableCell>
-                        {t.completedByFullName || t.assignedReviewerFullName || "—"}
+                        {task.completedByFullName || task.assignedReviewerFullName || "—"}
                       </TableCell>
-                      <TableCell>{t.totalFindingsCount} notes</TableCell>
+                      <TableCell>{t("detail.periodicReview.notesCount", { count: task.totalFindingsCount })}</TableCell>
                       <TableCell align="right">
                         <Button
                           size="small"
                           variant="outlined"
                           onClick={() => {
-                            setSelectedPeriodicReviewTaskId(t.id);
+                            setSelectedPeriodicReviewTaskId(task.id);
                             setPeriodicReviewDialogOpen(true);
                           }}
                         >
-                          Workspace
+                          {t("detail.periodicReview.workspace")}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1221,7 +1274,7 @@ export function DocumentDetailPage() {
                   {periodicReviewTasks.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                        No periodic review tasks recorded for this document master.
+                        {t("detail.periodicReview.empty")}
                       </TableCell>
                     </TableRow>
                   )}
@@ -1417,9 +1470,9 @@ export function DocumentDetailPage() {
 
       <ConfirmationDialog
         open={assignmentToRemove !== null}
-        title="Remove Role Assignment"
-        message="Remove this role assignment from the document? The assignment record is retained and remains visible in the audit trail, as controlled records are never deleted."
-        confirmText="Remove Assignment"
+        title={t("detail.assignments.removeDialogTitle")}
+        message={t("detail.assignments.removeDialogMessage")}
+        confirmText={t("detail.assignments.removeDialogConfirm")}
         destructive
         onConfirm={confirmRemoveAssignment}
         onCancel={() => setAssignmentToRemove(null)}

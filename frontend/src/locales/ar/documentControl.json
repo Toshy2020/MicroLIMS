@@ -332,5 +332,275 @@
       "personnelStatuses": "حالات تدريب الأفراد",
       "due": "الاستحقاق: {{date}}"
     }
+  },
+  "dashboard": {
+    "title": "لوحة معلومات ضبط المستندات",
+    "subtitle": "نظرة عامة على حوكمة المستندات ومؤشرات دورة الحياة وحالة سجلات الجودة",
+    "loadError": "تعذّر تحميل مؤشرات لوحة المعلومات.",
+    "myReadingList": "قائمة القراءة الخاصة بي",
+    "documentLibrary": "مكتبة المستندات",
+    "registerDocument": "تسجيل مستند",
+    "kpis": {
+      "totalDocuments": "إجمالي المستندات",
+      "inSystemCatalog": "في دليل النظام",
+      "effectiveRecords": "السجلات سارية المفعول",
+      "activeAndReleased": "نشط ومُفرَج عنه",
+      "reviewOverdue": "مراجعة متأخرة",
+      "actionRequired": "مطلوب إجراء",
+      "allCurrent": "الكل محدّث",
+      "draftRevisions": "مسودات الإصدارات",
+      "pendingPublication": "بانتظار النشر",
+      "filePending": "ملف معلّق",
+      "noPdfAttached": "لا يوجد PDF مرفق",
+      "voidedMasters": "السجلات الرئيسية المُبطلة",
+      "retiredRecords": "سجلات مُوقَفة"
+    },
+    "recentDocs": {
+      "title": "المستندات المسجلة حديثًا",
+      "viewFullLibrary": "عرض المكتبة الكاملة",
+      "columns": {
+        "companyCode": "رمز الشركة",
+        "title": "العنوان",
+        "type": "النوع",
+        "status": "الحالة",
+        "files": "الملفات",
+        "date": "التاريخ"
+      },
+      "pdfChip": "PDF",
+      "empty": "لم يتم تسجيل أي مستندات بعد."
+    },
+    "recentAudit": {
+      "title": "أحدث أحداث سجل التدقيق",
+      "allEvents": "جميع الأحداث",
+      "byUser": "بواسطة: <strong>{{user}}</strong>",
+      "empty": "لا توجد أحداث تدقيق حديثة."
+    }
+  },
+  "readingList": {
+    "title": "قائمة القراءة الخاصة بي",
+    "subtitle": "تدريب المستندات النشط وإجراءات التشغيل القياسية المُسنَدة إلى {{user}}.",
+    "youFallback": "أنت",
+    "loadError": "تعذّر تحميل مهام القراءة الخاصة بك.",
+    "locateFileError": "تعذّر تحديد ملف المستند المضبوط لهذا الإصدار.",
+    "ackContextError": "تعذّر استرجاع بيان الإقرار القانوني.",
+    "kpis": {
+      "totalAssignments": "إجمالي المهام المُسنَدة",
+      "pendingReading": "بانتظار القراءة / الإقرار",
+      "overdueAssignments": "المهام المتأخرة",
+      "completedAcknowledged": "مكتملة ومُقَرّ بها"
+    },
+    "filters": {
+      "searchPlaceholder": "ابحث بعنوان المستند أو الرمز أو معرّف MicroLIMS...",
+      "clearSearchAria": "مسح البحث",
+      "refreshList": "تحديث القائمة",
+      "tabsAria": "طرق عرض قائمة القراءة"
+    },
+    "tabs": {
+      "pending": "للقراءة",
+      "overdue": "متأخرة",
+      "completed": "مكتملة",
+      "superseded": "مُستبدَلة",
+      "all": "الكل",
+      "labelWithCount": "{{label}} ({{count}})"
+    },
+    "table": {
+      "columns": {
+        "codeAndTitle": "رمز مستند الشركة والعنوان",
+        "revision": "الإصدار",
+        "assignmentType": "نوع الإسناد",
+        "status": "الحالة",
+        "dueDate": "تاريخ الاستحقاق (UTC)",
+        "readingProgress": "تقدّم القراءة",
+        "actions": "الإجراءات"
+      },
+      "loading": "جارٍ تحميل مهام تدريب المستندات الخاصة بك...",
+      "emptyTitle": "لم يتم العثور على مهام تدريب",
+      "emptyFiltered": "لا توجد مهام مطابقة لمعايير التصفية المحددة.",
+      "emptyAll": "ليس لديك أي مهام قراءة مستندات نشطة أو مكتملة.",
+      "microLimsChip": "MicroLIMS: {{id}}",
+      "overdueByDays": "متأخر بـ {{days}} يوم",
+      "supersededRevision": "إصدار مُستبدَل",
+      "daysRemaining_zero": "لا توجد أيام متبقية",
+      "daysRemaining_one": "يوم واحد متبقٍ",
+      "daysRemaining_two": "يومان متبقيان",
+      "daysRemaining_few": "{{count}} أيام متبقية",
+      "daysRemaining_many": "{{count}} يومًا متبقيًا",
+      "daysRemaining_other": "{{count}} يوم متبقٍ",
+      "dueToday": "مستحق اليوم",
+      "ackAt": "إقرار: {{date}}",
+      "completed": "مكتمل",
+      "percentRead": "تمت قراءة {{percent}}%",
+      "readTooltip": "فتح الإصدار المضبوط في عارض PDF",
+      "read": "قراءة",
+      "acknowledgeTooltip": "تسجيل الإقرار القانوني بالقراءة والفهم",
+      "acknowledge": "إقرار"
+    }
+  },
+  "compliance": {
+    "title": "لوحة امتثال التدريب",
+    "subtitle": "مؤشرات الامتثال التنفيذية والتشغيلية وترتيب الأقسام والاستثناءات المتأخرة.",
+    "loadError": "تعذّر تحميل مؤشرات الامتثال.",
+    "refresh": "تحديث",
+    "viewFullMatrix": "عرض المصفوفة الكاملة",
+    "loading": "جارٍ تجميع مؤشرات امتثال التدريب التنظيمية...",
+    "kpis": {
+      "overallRate": "معدل الامتثال الإجمالي",
+      "requiredAssignments": "{{completed}} / {{total}} مهام تدريب مطلوبة",
+      "qualifiedCompleted": "مؤهَّل ومكتمل",
+      "acrossUsersAndDocs": "عبر {{users}} فردًا و{{docs}} مستندًا ساري المفعول",
+      "overdueExceptions": "الاستثناءات المتأخرة",
+      "actionRequiredFilter": "مطلوب إجراء. انقر لتصفية المصفوفة",
+      "supersededGaps": "فجوات الإصدارات المُستبدَلة",
+      "priorRevisionOnly": "مؤهَّل على إصدار سابق فقط"
+    },
+    "deptRanking": {
+      "title": "ترتيب الامتثال حسب القسم الإداري",
+      "subtitle": "تفصيل الامتثال التنظيمي مصنفًا حسب القسم الإداري.",
+      "columns": {
+        "department": "القسم الإداري",
+        "required": "مطلوب",
+        "qualified": "مؤهَّل",
+        "overdue": "متأخر",
+        "complianceRate": "معدل الامتثال"
+      },
+      "empty": "لم تُسجَّل بيانات تدريب للأقسام."
+    },
+    "topOverdue": {
+      "title": "أكثر المستندات تأخرًا",
+      "viewAll": "عرض الكل",
+      "subtitle": "المستندات المضبوطة ذات الحجم الأكبر من مهام القراءة المتأخرة.",
+      "columns": {
+        "codeAndTitle": "رمز المستند والعنوان",
+        "overdue": "متأخر"
+      },
+      "empty": "لا توجد مستندات متأخرة! جميع المهام في موعدها.",
+      "overdueCount": "{{count}} متأخر"
+    }
+  },
+  "library": {
+    "title": "مكتبة المستندات",
+    "subtitle": "المستودع المعتمد للمستندات المضبوطة وإجراءات التشغيل القياسية وسجلات الجودة",
+    "registerNew": "تسجيل مستند جديد",
+    "filtersFailed": "تعذّر تحميل أنواع المستندات والأقسام الإدارية، لذا فإن عوامل التصفية هذه فارغة. أعد تحميل الصفحة للمحاولة مرة أخرى.",
+    "loadError": "تعذّر تحميل مكتبة المستندات.",
+    "noPdfWarning": "لا يوجد ملف PDF مضبوط نشط مرفق حاليًا بهذا الإصدار من المستند.",
+    "loadFileError": "تعذّر تحميل تفاصيل ملف المستند: {{error}}",
+    "filters": {
+      "searchPlaceholder": "ابحث بالرمز أو العنوان أو الكلمات المفتاحية...",
+      "searchAria": "ابحث بالرمز أو العنوان أو الكلمات المفتاحية",
+      "documentType": "نوع المستند",
+      "allTypes": "جميع الأنواع",
+      "department": "القسم الإداري",
+      "allDepartments": "جميع الأقسام",
+      "status": "الحالة",
+      "allStatuses": "جميع الحالات",
+      "showGroupAria": "عرض",
+      "showVoided": "إظهار المُبطل",
+      "reviewOverdueOnly": "المراجعة المتأخرة فقط",
+      "reset": "إعادة تعيين"
+    },
+    "statuses": {
+      "Draft": "مسودة",
+      "InReview": "قيد المراجعة",
+      "AwaitingApproval": "بانتظار الاعتماد",
+      "FutureEffective": "ساري المفعول مستقبلاً",
+      "Effective": "ساري المفعول",
+      "Superseded": "مُستبدَل",
+      "Obsolete": "ملغى الاستخدام",
+      "Cancelled": "ملغى"
+    },
+    "columns": {
+      "companyCode": "رمز الشركة",
+      "microLimsId": "معرّف MicroLIMS",
+      "title": "العنوان",
+      "type": "النوع",
+      "deptSection": "القسم الإداري / المختبري",
+      "owner": "المالك",
+      "rev": "الإصدار",
+      "status": "الحالة",
+      "files": "الملفات",
+      "effectiveDate": "تاريخ السريان"
+    },
+    "voidLabel": "مُبطل",
+    "reviewOverdueChip": "مراجعة متأخرة",
+    "viewPdfTooltip": "عرض PDF المضبوط",
+    "viewPdfAria": "عرض ملف PDF المضبوط لـ {{code}}",
+    "sourceFileTooltip": "ملف مصدري مرفق (.docx)",
+    "pending": "قيد الانتظار",
+    "viewDetailsTooltip": "عرض تفاصيل المستند",
+    "openDetailsAria": "فتح تفاصيل {{code}}",
+    "voidTooltip": "إبطال المستند الرئيسي",
+    "voidAria": "إبطال المستند الرئيسي {{code}}",
+    "emptyTitle": "لا توجد مستندات مضبوطة تطابق عوامل التصفية المحددة",
+    "emptyDescription": "جرّب تعديل معايير البحث أو تسجيل مستند رئيسي جديد."
+  },
+  "audit": {
+    "title": "سجل التدقيق لضبط المستندات",
+    "subtitle": "سجل تدقيق تنظيمي زمني غير قابل للتعديل (إضافة فقط) لإجراءات دورة حياة المستند وتغييرات الإعدادات",
+    "loadError": "تعذّر تحميل سجل التدقيق.",
+    "exportSuccess": "تم تصدير سجل التدقيق بنجاح. (تم تسجيل عملية التصدير في سجل التدقيق وفقًا لـ 21 CFR Part 11).",
+    "exportError": "تعذّر تصدير سجل التدقيق: {{error}}",
+    "exporting": "جارٍ تصدير CSV...",
+    "exportCsv": "تصدير سجل التدقيق (CSV)",
+    "filters": {
+      "searchPlaceholder": "ابحث بمعرّف الحدث أو الإجراء أو السبب أو الكيان...",
+      "searchAria": "ابحث بمعرّف الحدث أو الإجراء أو السبب أو الكيان",
+      "actionCategory": "فئة الإجراء",
+      "allCategories": "جميع الفئات",
+      "categories": {
+        "Document": "مستند",
+        "Workflow": "سير العمل",
+        "Security": "الأمان",
+        "Configuration": "الإعدادات",
+        "System": "النظام"
+      },
+      "dateFrom": "من تاريخ",
+      "dateTo": "إلى تاريخ",
+      "reset": "إعادة تعيين"
+    },
+    "columns": {
+      "timestamp": "الطابع الزمني (UTC)",
+      "eventUid": "معرّف الحدث",
+      "actor": "المنفِّذ",
+      "actionCode": "رمز الإجراء",
+      "category": "الفئة",
+      "recordType": "نوع السجل",
+      "reason": "السبب / الوصف",
+      "fieldChanges": "تغييرات الحقول"
+    },
+    "loading": "جارٍ تحميل سجل التدقيق...",
+    "empty": "لا توجد سجلات تدقيق مطابقة للمعايير المحددة"
+  },
+  "reassignments": {
+    "title": "يتطلب إعادة إسناد",
+    "subtitle": "مسؤوليات المستندات المحتفظ بها من قِبل مستخدمين مُعطَّلين. يُسلَّم كل منها إلى عضو نشط في قسم المستند بإجراء صريح ومُدقَّق.",
+    "loadError": "تعذّر تحميل قائمة إعادة الإسناد.",
+    "emptyQueue": "لا يوجد شيء بانتظار إعادة الإسناد.",
+    "queueSummary": "{{total}} عنصر بانتظار الإجراء، {{overdue}} متأخر. ",
+    "escalationNotice": "العناصر التي تنتظر لأكثر من {{days}} يومًا منذ تعطيل المستخدم تُعلَّم كمتأخرة ويُبلَّغ رؤساء الأقسام في القسم الإداري. لا يُعاد إسناد أي شيء تلقائيًا.",
+    "departmentLabel": "القسم الإداري",
+    "allDepartments": "جميع الأقسام",
+    "loadingAria": "جارٍ التحميل",
+    "tableAria": "المسؤوليات التي تحتاج إلى إعادة إسناد",
+    "columns": {
+      "document": "المستند",
+      "revision": "الإصدار",
+      "roleNeeded": "الدور المطلوب",
+      "heldBy": "محتفظ به بواسطة",
+      "inactiveSince": "غير نشط منذ",
+      "department": "القسم الإداري",
+      "action": "الإجراء"
+    },
+    "unknown": "غير معروف",
+    "daysCount_zero": "0 يوم",
+    "daysCount_one": "يوم واحد",
+    "daysCount_two": "يومان",
+    "daysCount_few": "{{count}} أيام",
+    "daysCount_many": "{{count}} يومًا",
+    "daysCount_other": "{{count}} يوم",
+    "overdue": "متأخر",
+    "reassign": "إعادة إسناد",
+    "emptyTable": "لا توجد مسؤوليات تحتاج إلى إعادة إسناد.",
+    "reassignedToast": "{{code}}: تم إعادة إسناد {{role}} إلى {{user}}."
   }
 }

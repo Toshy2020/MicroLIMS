@@ -328,5 +328,267 @@
       "personnelStatuses": "Personnel Training Statuses",
       "due": "Due: {{date}}"
     }
+  },
+  "dashboard": {
+    "title": "Document Control Dashboard",
+    "subtitle": "Document governance overview, lifecycle metrics, and quality records status",
+    "loadError": "Failed to load dashboard metrics.",
+    "myReadingList": "My Reading List",
+    "documentLibrary": "Document Library",
+    "registerDocument": "Register Document",
+    "kpis": {
+      "totalDocuments": "Total Documents",
+      "inSystemCatalog": "In system catalog",
+      "effectiveRecords": "Effective Records",
+      "activeAndReleased": "Active & released",
+      "reviewOverdue": "Review Overdue",
+      "actionRequired": "Action Required",
+      "allCurrent": "All current",
+      "draftRevisions": "Draft Revisions",
+      "pendingPublication": "Pending publication",
+      "filePending": "File Pending",
+      "noPdfAttached": "No PDF attached",
+      "voidedMasters": "Voided Masters",
+      "retiredRecords": "Retired records"
+    },
+    "recentDocs": {
+      "title": "Recently Registered Documents",
+      "viewFullLibrary": "View Full Library",
+      "columns": {
+        "companyCode": "Company Code",
+        "title": "Title",
+        "type": "Type",
+        "status": "Status",
+        "files": "Files",
+        "date": "Date"
+      },
+      "pdfChip": "PDF",
+      "empty": "No documents registered yet."
+    },
+    "recentAudit": {
+      "title": "Recent Audit Trail Events",
+      "allEvents": "All Events",
+      "byUser": "By: <strong>{{user}}</strong>",
+      "empty": "No recent audit events."
+    }
+  },
+  "readingList": {
+    "title": "My Reading List",
+    "subtitle": "Active document training and standard operating procedures assigned to {{user}}.",
+    "youFallback": "you",
+    "loadError": "Failed to load your reading assignments.",
+    "locateFileError": "Failed to locate controlled document file for this revision.",
+    "ackContextError": "Failed to retrieve legal acknowledgement statement.",
+    "kpis": {
+      "totalAssignments": "TOTAL ASSIGNMENTS",
+      "pendingReading": "PENDING READING / ACKNOWLEDGEMENT",
+      "overdueAssignments": "OVERDUE ASSIGNMENTS",
+      "completedAcknowledged": "COMPLETED & ACKNOWLEDGED"
+    },
+    "filters": {
+      "searchPlaceholder": "Search document title, code, MicroLIMS ID...",
+      "clearSearchAria": "Clear search",
+      "refreshList": "Refresh List",
+      "tabsAria": "Reading list views"
+    },
+    "tabs": {
+      "pending": "To read",
+      "overdue": "Overdue",
+      "completed": "Completed",
+      "superseded": "Superseded",
+      "all": "All",
+      "labelWithCount": "{{label}} ({{count}})"
+    },
+    "table": {
+      "columns": {
+        "codeAndTitle": "Company Document Code & Title",
+        "revision": "Revision",
+        "assignmentType": "Assignment Type",
+        "status": "Status",
+        "dueDate": "Due Date (UTC)",
+        "readingProgress": "Reading Progress",
+        "actions": "Actions"
+      },
+      "loading": "Loading your document training assignments...",
+      "emptyTitle": "No Training Assignments Found",
+      "emptyFiltered": "No assignments matched your selected filter criteria.",
+      "emptyAll": "You have no active or completed document reading assignments.",
+      "microLimsChip": "MicroLIMS: {{id}}",
+      "overdueByDays": "Overdue by {{days}}d",
+      "supersededRevision": "Superseded Revision",
+      "daysRemaining_one": "{{count}} day remaining",
+      "daysRemaining_other": "{{count}} days remaining",
+      "dueToday": "Due today",
+      "ackAt": "Ack: {{date}}",
+      "completed": "Completed",
+      "percentRead": "{{percent}}% Read",
+      "readTooltip": "Open Controlled Revision in PDF Viewer",
+      "read": "Read",
+      "acknowledgeTooltip": "Record Legal Read-and-Understand Acknowledgement",
+      "acknowledge": "Acknowledge"
+    }
+  },
+  "compliance": {
+    "title": "Training Compliance Dashboard",
+    "subtitle": "Executive & operational compliance metrics, departmental ranking, and overdue exceptions.",
+    "loadError": "Failed to load compliance KPIs.",
+    "refresh": "Refresh",
+    "viewFullMatrix": "View Full Matrix",
+    "loading": "Aggregating organizational training compliance metrics...",
+    "kpis": {
+      "overallRate": "OVERALL COMPLIANCE RATE",
+      "requiredAssignments": "{{completed}} / {{total}} required training assignments",
+      "qualifiedCompleted": "QUALIFIED & COMPLETED",
+      "acrossUsersAndDocs": "Across {{users}} personnel & {{docs}} effective documents",
+      "overdueExceptions": "OVERDUE EXCEPTIONS",
+      "actionRequiredFilter": "Action required. Click to filter matrix",
+      "supersededGaps": "SUPERSEDED GAPS",
+      "priorRevisionOnly": "Qualified on prior revision only"
+    },
+    "deptRanking": {
+      "title": "Departmental Compliance Ranking",
+      "subtitle": "Organizational compliance breakdown categorized by department.",
+      "columns": {
+        "department": "Department",
+        "required": "Required",
+        "qualified": "Qualified",
+        "overdue": "Overdue",
+        "complianceRate": "Compliance Rate"
+      },
+      "empty": "No department training data recorded."
+    },
+    "topOverdue": {
+      "title": "Top Overdue Documents",
+      "viewAll": "View All",
+      "subtitle": "Controlled documents with the highest volume of overdue reading assignments.",
+      "columns": {
+        "codeAndTitle": "Document Code & Title",
+        "overdue": "Overdue"
+      },
+      "empty": "Zero overdue documents! All assignments are on schedule.",
+      "overdueCount": "{{count}} Overdue"
+    }
+  },
+  "library": {
+    "title": "Document Library",
+    "subtitle": "Authoritative repository of controlled documents, Standard Operating Procedures, and quality records",
+    "registerNew": "Register New Document",
+    "filtersFailed": "The document types and departments could not be loaded, so those filters are empty. Reload the page to try again.",
+    "loadError": "Failed to load document library.",
+    "noPdfWarning": "No active controlled PDF file is currently attached to this document revision.",
+    "loadFileError": "Failed to load document file details: {{error}}",
+    "filters": {
+      "searchPlaceholder": "Search code, title, or keywords...",
+      "searchAria": "Search code, title, or keywords",
+      "documentType": "Document Type",
+      "allTypes": "All Types",
+      "department": "Department",
+      "allDepartments": "All Departments",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "showGroupAria": "Show",
+      "showVoided": "Show voided",
+      "reviewOverdueOnly": "Review overdue only",
+      "reset": "Reset"
+    },
+    "statuses": {
+      "Draft": "Draft",
+      "InReview": "In Review",
+      "AwaitingApproval": "Awaiting Approval",
+      "FutureEffective": "Future Effective",
+      "Effective": "Effective",
+      "Superseded": "Superseded",
+      "Obsolete": "Obsolete",
+      "Cancelled": "Cancelled"
+    },
+    "columns": {
+      "companyCode": "Company Code",
+      "microLimsId": "MicroLIMS ID",
+      "title": "Title",
+      "type": "Type",
+      "deptSection": "Dept / Section",
+      "owner": "Owner",
+      "rev": "Rev",
+      "status": "Status",
+      "files": "Files",
+      "effectiveDate": "Effective Date"
+    },
+    "voidLabel": "VOID",
+    "reviewOverdueChip": "REVIEW OVERDUE",
+    "viewPdfTooltip": "View Controlled PDF",
+    "viewPdfAria": "View controlled PDF for {{code}}",
+    "sourceFileTooltip": "Source File Attached (.docx)",
+    "pending": "Pending",
+    "viewDetailsTooltip": "View Document Details",
+    "openDetailsAria": "Open details for {{code}}",
+    "voidTooltip": "Void Document Master",
+    "voidAria": "Void document master {{code}}",
+    "emptyTitle": "No controlled documents match the selected filters",
+    "emptyDescription": "Try adjusting your search criteria or register a new document master."
+  },
+  "audit": {
+    "title": "Document Control Audit Trail",
+    "subtitle": "Chronological, append-only regulatory audit log of document life-cycle actions and configuration changes",
+    "loadError": "Failed to load audit trail.",
+    "exportSuccess": "Audit trail exported successfully. (The export operation has been logged in the audit trail per 21 CFR Part 11).",
+    "exportError": "Failed to export audit trail: {{error}}",
+    "exporting": "Exporting CSV...",
+    "exportCsv": "Export Audit Trail (CSV)",
+    "filters": {
+      "searchPlaceholder": "Search Event UID, Action, Reason, Entity...",
+      "searchAria": "Search Event UID, Action, Reason, Entity",
+      "actionCategory": "Action Category",
+      "allCategories": "All Categories",
+      "categories": {
+        "Document": "Document",
+        "Workflow": "Workflow",
+        "Security": "Security",
+        "Configuration": "Configuration",
+        "System": "System"
+      },
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "reset": "Reset"
+    },
+    "columns": {
+      "timestamp": "Timestamp (UTC)",
+      "eventUid": "Event UID",
+      "actor": "Actor",
+      "actionCode": "Action Code",
+      "category": "Category",
+      "recordType": "Record Type",
+      "reason": "Reason / Description",
+      "fieldChanges": "Field Changes"
+    },
+    "loading": "Loading audit trail records...",
+    "empty": "No audit records match the selected criteria"
+  },
+  "reassignments": {
+    "title": "Needs reassignment",
+    "subtitle": "Document responsibilities held by deactivated users. Each one is handed to an active member of the document's department by an explicit, audited act.",
+    "loadError": "Could not load the reassignment queue.",
+    "emptyQueue": "Nothing is waiting for reassignment.",
+    "queueSummary": "{{total}} item(s) waiting, {{overdue}} overdue. ",
+    "escalationNotice": "Items waiting more than {{days}} days since the user was deactivated are flagged overdue and the department's Section Heads are notified. Nothing is reassigned automatically.",
+    "departmentLabel": "Department",
+    "allDepartments": "All departments",
+    "loadingAria": "Loading",
+    "tableAria": "Responsibilities needing reassignment",
+    "columns": {
+      "document": "Document",
+      "revision": "Revision",
+      "roleNeeded": "Role needed",
+      "heldBy": "Held by",
+      "inactiveSince": "Inactive since",
+      "department": "Department",
+      "action": "Action"
+    },
+    "unknown": "Unknown",
+    "daysCount_one": "{{count}} day",
+    "daysCount_other": "{{count}} days",
+    "overdue": "Overdue",
+    "reassign": "Reassign",
+    "emptyTable": "No responsibilities need reassignment.",
+    "reassignedToast": "{{code}}: {{role}} reassigned to {{user}}."
   }
 }

@@ -2,6 +2,7 @@ import { monospaceFontFamily } from "../../../theme/palette";
 import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../../i18n";
 import {
   Box,
   Typography,
@@ -77,6 +78,7 @@ function errorMessage(err: unknown, fallback: string): string {
 }
 
 export function DocumentLibraryPage() {
+  const { t } = useTranslation("documentControl");
   const navigate = useNavigate();
   const { role, permissions } = useAuth();
   const isController = role === "SectionHead";
@@ -185,11 +187,11 @@ export function DocumentLibraryPage() {
       setDocuments(res.items);
       setTotalCount(res.totalCount);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Failed to load document library."));
+      setError(errorMessage(err, t("library.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, parsedTypeId, parsedDeptId, parsedStatus, includeCancelledVoided, showOverdueOnly, sortBy, sortDir, page, pageSize]);
+  }, [searchTerm, parsedTypeId, parsedDeptId, parsedStatus, includeCancelledVoided, showOverdueOnly, sortBy, sortDir, page, pageSize, t]);
 
   useEffect(() => {
     fetchLibrary();
@@ -222,18 +224,18 @@ export function DocumentLibraryPage() {
           status: currentRev.revisionStatus
         });
       } else {
-        toast.warning("No active controlled PDF file is currently attached to this document revision.");
+        toast.warning(t("library.noPdfWarning"));
       }
     } catch (err: unknown) {
-      toast.error("Failed to load document file details: " + errorMessage(err, "Unknown error"));
+      toast.error(t("library.loadFileError", { error: errorMessage(err, t("common.unknownError")) }));
     }
-  }, []);
+  }, [t]);
 
   const columns = useMemo<RegisterColumn<DocumentMasterSummaryDto>[]>(
     () => [
       {
         key: "companyDocumentCode",
-        label: "Company Code",
+        label: t("library.columns.companyCode"),
         nowrap: true,
         sortable: true,
         render: (doc) => (
@@ -254,7 +256,7 @@ export function DocumentLibraryPage() {
       },
       {
         key: "microLimsDocumentId",
-        label: "MicroLIMS ID",
+        label: t("library.columns.microLimsId"),
         nowrap: true,
         sortable: true,
         render: (doc) => (
@@ -265,7 +267,7 @@ export function DocumentLibraryPage() {
       },
       {
         key: "title",
-        label: "Title",
+        label: t("library.columns.title"),
         sortable: true,
         render: (doc) => (
           <Typography
@@ -285,14 +287,14 @@ export function DocumentLibraryPage() {
       },
       {
         key: "documentTypeCode",
-        label: "Type",
+        label: t("library.columns.type"),
         render: (doc) => (
           <Chip label={doc.documentTypeCode} size="small" variant="outlined" sx={compactChipSx} />
         )
       },
       {
         key: "departmentName",
-        label: "Dept / Section",
+        label: t("library.columns.deptSection"),
         render: (doc) => (
           <>
             <Typography
@@ -312,12 +314,12 @@ export function DocumentLibraryPage() {
       },
       {
         key: "documentOwnerUserName",
-        label: "Owner",
+        label: t("library.columns.owner"),
         render: (doc) => <Typography variant="body2">{doc.documentOwnerUserName}</Typography>
       },
       {
         key: "currentRevisionNumber",
-        label: "Rev",
+        label: t("library.columns.rev"),
         align: "center",
         render: (doc) => (
           <Typography variant="body2" sx={{ fontWeight: 700 }}>
@@ -327,29 +329,29 @@ export function DocumentLibraryPage() {
       },
       {
         key: "status",
-        label: "Status",
+        label: t("library.columns.status"),
         render: (doc) =>
           doc.recordStatus === "Void" ? (
-            <StatusBadge status="Void" label="VOID" />
+            <StatusBadge status="Void" label={t("library.voidLabel")} />
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
               <StatusBadge status={documentMasterStatusLabel(doc)} />
               {doc.currentEffectiveRevisionId && doc.nextReviewDate && new Date(doc.nextReviewDate) < new Date() && (
-                <Chip label="REVIEW OVERDUE" color="error" size="small" sx={{ ...compactChipStrongSx, width: "fit-content" }} />
+                <Chip label={t("library.reviewOverdueChip")} color="error" size="small" sx={{ ...compactChipStrongSx, width: "fit-content" }} />
               )}
             </Box>
           )
       },
       {
         key: "files",
-        label: "Files",
+        label: t("library.columns.files"),
         align: "center",
         render: (doc) => (
           <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
             {doc.hasControlledPdf && (
-              <Tooltip title="View Controlled PDF">
+              <Tooltip title={t("library.viewPdfTooltip")}>
                 <IconButton
-                  aria-label={`View controlled PDF for ${doc.companyDocumentCode}`}
+                  aria-label={t("library.viewPdfAria", { code: doc.companyDocumentCode })}
                   size="small"
                   color="error"
                   onClick={() => handleOpenPdf(doc)}
@@ -360,7 +362,7 @@ export function DocumentLibraryPage() {
               </Tooltip>
             )}
             {doc.hasSourceFile && (
-              <Tooltip title="Source File Attached (.docx)">
+              <Tooltip title={t("library.sourceFileTooltip")}>
                 <DescriptionOutlinedIcon fontSize="small" color="primary" sx={{ my: "auto" }} />
               </Tooltip>
             )}
@@ -374,16 +376,16 @@ export function DocumentLibraryPage() {
       },
       {
         key: "effectiveDate",
-        label: "Effective Date",
+        label: t("library.columns.effectiveDate"),
         sortable: true,
         render: (doc) => (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {doc.effectiveDate ? formatLabCalendarDate(doc.effectiveDate) : "Pending"}
+            {doc.effectiveDate ? formatLabCalendarDate(doc.effectiveDate) : t("library.pending")}
           </Typography>
         )
       }
     ],
-    [navigate, handleOpenPdf]
+    [navigate, handleOpenPdf, t]
   );
 
   const hasFilters = Boolean(
@@ -394,8 +396,8 @@ export function DocumentLibraryPage() {
     <Box sx={{ pb: 4 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <PageHeader
-          title="Document Library"
-          subtitle="Authoritative repository of controlled documents, Standard Operating Procedures, and quality records"
+          title={t("library.title")}
+          subtitle={t("library.subtitle")}
         />
         {/* Mirrors CanRegisterDocumentMasterAsync. The server check is the
             control; hiding the button just avoids offering an action that will
@@ -407,14 +409,14 @@ export function DocumentLibraryPage() {
             onClick={() => setRegisterOpen(true)}
             sx={{ fontWeight: 600 }}
           >
-            Register New Document
+            {t("library.registerNew")}
           </Button>
         )}
       </Box>
 
       {filtersFailed && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          The document types and departments could not be loaded, so those filters are empty. Reload the page to try again.
+          {t("library.filtersFailed")}
         </Alert>
       )}
       {error && (
@@ -428,12 +430,12 @@ export function DocumentLibraryPage() {
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
           <TextField
             size="small"
-            placeholder="Search code, title, or keywords..."
+            placeholder={t("library.filters.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearch(e.target.value)}
             sx={{ minWidth: 280, flexGrow: 1 }}
             slotProps={{
-              htmlInput: { "aria-label": "Search code, title, or keywords" },
+              htmlInput: { "aria-label": t("library.filters.searchAria") },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -447,15 +449,15 @@ export function DocumentLibraryPage() {
           <TextField
             select
             size="small"
-            label="Document Type"
-            value={types.some((t) => String(t.id) === selectedType) ? selectedType : ""}
+            label={t("library.filters.documentType")}
+            value={types.some((docType) => String(docType.id) === selectedType) ? selectedType : ""}
             onChange={(e) => setFilter("documentTypeId", e.target.value || null)}
             sx={{ minWidth: 160 }}
           >
-            <MenuItem value="">All Types</MenuItem>
-            {types.map((t) => (
-              <MenuItem key={t.id} value={String(t.id)}>
-                {t.code}: {t.name}
+            <MenuItem value="">{t("library.filters.allTypes")}</MenuItem>
+            {types.map((docType) => (
+              <MenuItem key={docType.id} value={String(docType.id)}>
+                {docType.code}: {docType.name}
               </MenuItem>
             ))}
           </TextField>
@@ -463,12 +465,12 @@ export function DocumentLibraryPage() {
           <TextField
             select
             size="small"
-            label="Department"
+            label={t("library.filters.department")}
             value={departments.some((d) => String(d.id) === selectedDept) ? selectedDept : ""}
             onChange={(e) => setFilter("departmentId", e.target.value || null)}
             sx={{ minWidth: 160 }}
           >
-            <MenuItem value="">All Departments</MenuItem>
+            <MenuItem value="">{t("library.filters.allDepartments")}</MenuItem>
             {departments.map((d) => (
               <MenuItem key={d.id} value={String(d.id)}>
                 {d.code}: {d.name}
@@ -479,30 +481,23 @@ export function DocumentLibraryPage() {
           <TextField
             select
             size="small"
-            label="Status"
+            label={t("library.filters.status")}
             value={parsedStatus ?? ""}
             onChange={(e) => setFilter("revisionStatus", e.target.value || null)}
             sx={{ minWidth: 150 }}
           >
-            {/* The canonical eight revision states, in lifecycle order, exactly
-                as the backend DocumentRevisionStatus enum defines them. This
-                list previously offered "Approved" - a value absent from that
-                enum, so the filter could never match - while omitting
-                AwaitingApproval, FutureEffective and Obsolete entirely. */}
-            <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="Draft">Draft</MenuItem>
-            <MenuItem value="InReview">In Review</MenuItem>
-            <MenuItem value="AwaitingApproval">Awaiting Approval</MenuItem>
-            <MenuItem value="FutureEffective">Future Effective</MenuItem>
-            <MenuItem value="Effective">Effective</MenuItem>
-            <MenuItem value="Superseded">Superseded</MenuItem>
-            <MenuItem value="Obsolete">Obsolete</MenuItem>
-            <MenuItem value="Cancelled">Cancelled</MenuItem>
+            <MenuItem value="">{t("library.filters.allStatuses")}</MenuItem>
+            <MenuItem value="Draft">{t("library.statuses.Draft")}</MenuItem>
+            <MenuItem value="InReview">{t("library.statuses.InReview")}</MenuItem>
+            <MenuItem value="AwaitingApproval">{t("library.statuses.AwaitingApproval")}</MenuItem>
+            <MenuItem value="FutureEffective">{t("library.statuses.FutureEffective")}</MenuItem>
+            <MenuItem value="Effective">{t("library.statuses.Effective")}</MenuItem>
+            <MenuItem value="Superseded">{t("library.statuses.Superseded")}</MenuItem>
+            <MenuItem value="Obsolete">{t("library.statuses.Obsolete")}</MenuItem>
+            <MenuItem value="Cancelled">{t("library.statuses.Cancelled")}</MenuItem>
           </TextField>
 
-          {/* Toggle buttons at the height of the selects beside them, in
-              place of two loose switches that sat lower than the row. */}
-          <Box role="group" aria-label="Show" sx={{ display: "flex", gap: 1 }}>
+          <Box role="group" aria-label={t("library.filters.showGroupAria")} sx={{ display: "flex", gap: 1 }}>
             <ToggleButton
               value="voided"
               size="small"
@@ -510,7 +505,7 @@ export function DocumentLibraryPage() {
               onChange={() => setFilter("showVoided", includeCancelledVoided ? null : "true")}
               sx={{ height: 40, px: 1.5, textTransform: "none", fontSize: 13, whiteSpace: "nowrap" }}
             >
-              Show voided
+              {t("library.filters.showVoided")}
             </ToggleButton>
             <ToggleButton
               value="overdue"
@@ -520,7 +515,7 @@ export function DocumentLibraryPage() {
               onChange={() => setFilter("reviewOverdue", showOverdueOnly ? null : "true")}
               sx={{ height: 40, px: 1.5, textTransform: "none", fontSize: 13, whiteSpace: "nowrap" }}
             >
-              Review overdue only
+              {t("library.filters.reviewOverdueOnly")}
             </ToggleButton>
           </Box>
 
@@ -531,7 +526,7 @@ export function DocumentLibraryPage() {
             onClick={handleClearFilters}
             disabled={!hasFilters}
           >
-            Reset
+            {t("library.filters.reset")}
           </Button>
         </Box>
       </Paper>
@@ -553,12 +548,12 @@ export function DocumentLibraryPage() {
         }}
         rowSx={(doc) => (doc.recordStatus === "Void" ? { bgcolor: "action.hover", opacity: 0.75 } : undefined)}
         trailingCell={{
-          label: "Actions",
+          label: t("common.actions"),
           render: (doc) => (
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 0.5 }}>
-              <Tooltip title="View Document Details">
+              <Tooltip title={t("library.viewDetailsTooltip")}>
                 <IconButton
-                  aria-label={`Open details for ${doc.companyDocumentCode}`}
+                  aria-label={t("library.openDetailsAria", { code: doc.companyDocumentCode })}
                   size="small"
                   onClick={() => navigate(`/document-control/documents/${doc.id}`)}
                 >
@@ -568,9 +563,9 @@ export function DocumentLibraryPage() {
 
               {/* Void Button - Only Document Controller can void and only if never effective */}
               {isController && doc.recordStatus === "Active" && !doc.currentEffectiveRevisionId && (
-                <Tooltip title="Void Document Master">
+                <Tooltip title={t("library.voidTooltip")}>
                   <IconButton
-                    aria-label={`Void document master ${doc.companyDocumentCode}`}
+                    aria-label={t("library.voidAria", { code: doc.companyDocumentCode })}
                     size="small"
                     color="error"
                     onClick={() =>
@@ -590,8 +585,8 @@ export function DocumentLibraryPage() {
           )
         }}
         empty={{
-          title: "No controlled documents match the selected filters",
-          description: "Try adjusting your search criteria or register a new document master."
+          title: t("library.emptyTitle"),
+          description: t("library.emptyDescription")
         }}
       />
 

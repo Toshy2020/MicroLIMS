@@ -1,0 +1,215 @@
+{
+  "shared": {
+    "couldNotCalculate": "تعذّر احتساب القيمة",
+    "noData": "لا توجد بيانات",
+    "tooFew": "عدد السجلات غير كافٍ للحكم"
+  },
+  "tile": {
+    "openRecords": "{{name}}: {{value}}. عرض السجلات",
+    "n": "ن = {{n}}"
+  },
+  "filters": {
+    "from": "من",
+    "to": "إلى",
+    "category": "الفئة",
+    "allCategories": "كل الفئات",
+    "location": "الموقع / الجهة",
+    "allLocations": "كل المواقع",
+    "test": "الاختبار",
+    "allTests": "كل الاختبارات",
+    "definitions": "التعريفات",
+    "profiles": "ملفات سير العمل",
+    "exportPdf": "تصدير PDF",
+    "optionsFailed": "تعذّر تحميل قوائم الفئات والمواقع والاختبارات. أعد تحميل الصفحة للمحاولة مرة أخرى."
+  },
+  "records": {
+    "close": "إغلاق السجلات",
+    "loadError": "تعذّر تحميل السجلات.",
+    "none": "لا توجد سجلات.",
+    "columns": {
+      "controlNo": "رقم التحكم",
+      "test": "الاختبار",
+      "category": "الفئة",
+      "analyst": "المحلل",
+      "event": "الحدث",
+      "value": "القيمة",
+      "inFigure": "كما يظهر في الشكل",
+      "note": "ملاحظة"
+    }
+  },
+  "performance": {
+    "recordsTitle": "{{name}} - السجلات",
+    "testsTitle": "{{name}} - الاختبارات",
+    "analystFallback": "المحلل",
+    "calculated": "حُسبت في <ltr>{{at}}</ltr> لأقسام مختبركم. انقر على أي رقم لعرض السجلات التي يستند إليها.",
+    "retry": "إعادة المحاولة"
+  },
+  "sections": {
+    "flow": "التدفق",
+    "quality": "الجودة",
+    "micro": "الأحياء الدقيقة"
+  },
+  "section": {
+    "stageMedian": "الوسيط {{median}} · P90 {{p90}} · ن = {{n}}",
+    "showRecordsFor": "عرض السجلات لـ {{name}}",
+    "records": "السجلات",
+    "errorDetail": "تعذّر احتساب القيمة: {{message}}",
+    "noData": "لا توجد بيانات في هذه الفترة",
+    "notEnoughPoints": "لا توجد نقاط كافية لرسم اتجاه بعد.",
+    "nonePeriod": "لا شيء في هذه الفترة"
+  },
+  "buckets": {
+    "within50": "ضمن 50% من الهدف",
+    "between": "50-100% من الهدف",
+    "over100": "فوق الهدف"
+  },
+  "aging": {
+    "stage": "المرحلة"
+  },
+  "returns": {
+    "test": "الاختبار",
+    "returns": "المرتجعات"
+  },
+  "definitions": {
+    "title": "التعريفات",
+    "close": "إغلاق التعريفات",
+    "loadError": "تعذّر تحميل التعريفات.",
+    "unit": "الوحدة: {{unit}} · {{direction}}",
+    "fields": {
+      "definition": "التعريف",
+      "clockEvents": "أحداث الساعة",
+      "population": "المجتمع المستهدف",
+      "source": "المصدر"
+    },
+    "inForce": "إصدارات الملفات السارية بتاريخ {{date}}",
+    "noProfiles": "لا توجد إصدارات ملفات سارية بهذا التاريخ، لذلك تعرض المقاييس الموزونة اختباراتها كغير موزونة.",
+    "columns": {
+      "workflowType": "نوع سير العمل",
+      "test": "الاختبار",
+      "workUnits": "وحدات العمل",
+      "target": "الهدف (أيام المحلل)",
+      "effectiveFrom": "نافذ من"
+    },
+    "typeDefault": "الافتراضي للنوع",
+    "inherited": "موروث"
+  },
+  "directions": {
+    "HigherIsBetter": "الأعلى أفضل",
+    "LowerIsBetter": "الأدنى أفضل",
+    "Neutral": "لا يوجد اتجاه أفضل أو أسوأ"
+  },
+  "gaps": {
+    "typesWithoutUnits_zero": "لا توجد أنواع سير عمل بلا وحدات عمل",
+    "typesWithoutUnits_one": "نوع سير عمل واحد بلا وحدات عمل",
+    "typesWithoutUnits_two": "{{count}} نوعان من سير العمل بلا وحدات عمل",
+    "typesWithoutUnits_few": "{{count}} أنواع من سير العمل بلا وحدات عمل",
+    "typesWithoutUnits_many": "{{count}} نوعاً من سير العمل بلا وحدات عمل",
+    "typesWithoutUnits_other": "{{count}} نوع من سير العمل بلا وحدات عمل",
+    "typesWithoutTarget": "{{count}} بلا هدف",
+    "testsNeedConfiguration_zero": "لا توجد اختبارات تحتاج إلى إعداد",
+    "testsNeedConfiguration_one": "اختبار واحد يحتاج إلى إعداد",
+    "testsNeedConfiguration_two": "{{count}} اختبارات تحتاج إلى إعداد",
+    "testsNeedConfiguration_few": "{{count}} اختبارات تحتاج إلى إعداد",
+    "testsNeedConfiguration_many": "{{count}} اختبارات تحتاج إلى إعداد",
+    "testsNeedConfiguration_other": "{{count}} اختبارات تحتاج إلى إعداد"
+  },
+  "profiles": {
+    "intro": "الوحدات: 1 وحدة = ساعة عمل قياسية واحدة للمحلل من العمل اليدوي المباشر. الهدف: أيام مرحلة المحلل. يسري الإصدار من تاريخ سريانه ولا يُعدَّل أبداً؛ لتصحيح خطأ أضف إصداراً جديداً. الاختبارات التي لا ملف لها تبقى غير موزونة، ولا تُحسب أبداً بقيمة 1.0.",
+    "notSet": "غير محدد",
+    "columns": {
+      "workflowType": "نوع سير العمل",
+      "workUnits": "وحدات العمل",
+      "target": "الهدف (أيام)",
+      "lastChange": "آخر تغيير",
+      "status": "الحالة",
+      "test": "الاختبار",
+      "name": "الاسم"
+    },
+    "needsConfigurationOnly": "عرض ما يحتاج إلى إعداد فقط",
+    "showTestsFor": "عرض اختبارات {{name}}",
+    "draftCount_zero": "لا توجد مسودات",
+    "draftCount_one": "مسودة واحدة",
+    "draftCount_two": "مسودتان",
+    "draftCount_few": "{{count}} مسودات",
+    "draftCount_many": "{{count}} مسودة",
+    "draftCount_other": "{{count}} مسودة",
+    "history": "السجل",
+    "addVersion": "إضافة إصدار",
+    "addOverride": "إضافة استثناء",
+    "override": "استثناء",
+    "noTests": "لا توجد اختبارات لعرضها لنوع سير العمل هذا."
+  },
+  "coverage": {
+    "configured": "مُهيّأ",
+    "partial": "جزئي",
+    "needsConfiguration": "يحتاج إلى إعداد"
+  },
+  "dialog": {
+    "reviewAndSign": "مراجعة وتوقيع",
+    "addVersion": "إضافة إصدار",
+    "cancel": "إلغاء",
+    "continueToSign": "المتابعة إلى التوقيع",
+    "close": "إغلاق",
+    "inheritHint": "اترك الحقل فارغاً لوراثته من الافتراضي لنوع سير العمل.",
+    "appliesToAll": "ينطبق على كل اختبار من نوع سير العمل هذا لا يملك استثناءً.",
+    "workUnits": "وحدات العمل",
+    "unitHelp": "1 وحدة = ساعة عمل قياسية واحدة للمحلل من العمل اليدوي المباشر",
+    "targetDays": "أيام المحلل المستهدفة",
+    "targetHelp": "الموعد النهائي لمرحلة المحلل، من الإسناد حتى التقديم للمراجعة",
+    "effectiveFrom": "نافذ من",
+    "effectiveHelp": "لا يمكن أن يكون في الماضي، إلا للإصدار الأول لهذا الملف",
+    "reason": "سبب التغيير",
+    "reasonPlaceholder": "مثال: دراسة توقيت SOP لعام 2026"
+  },
+  "signature": {
+    "meaning": "أنا {{action}} إصدار ملف سير عمل لـ {{scope}}: {{units}} وحدة عمل (1 وحدة = ساعة عمل قياسية واحدة للمحلل)، {{target}} يوم هدف للمحلل، نافذ من {{from}}. السبب: {{reason}}",
+    "signing": "أوقّع",
+    "adding": "أضيف",
+    "scopeTest": "الاختبار {{code}}",
+    "scopeType": "الافتراضي لنوع {{type}}",
+    "inherited": "موروث"
+  },
+  "history": {
+    "title": "السجل: {{scope}}",
+    "defaultScope": "الافتراضي لنوع {{type}}",
+    "close": "إغلاق السجل",
+    "none": "لا توجد إصدارات بعد.",
+    "loadError": "تعذّر تحميل سجل الإصدارات.",
+    "columns": {
+      "effectiveFrom": "نافذ من",
+      "workUnits": "وحدات العمل",
+      "target": "الهدف (أيام)",
+      "status": "الحالة",
+      "reason": "السبب",
+      "by": "بواسطة"
+    },
+    "signed": "موقّع {{date}}",
+    "reviewAndSign": "مراجعة وتوقيع"
+  },
+  "workload": {
+    "title": "العبء العملي",
+    "intro": "مرتبة أبجدياً. انقر على عنوان أي عمود للفرز؛ لا يُحفظ الاختيار. الوحدات تقدير للتخطيط وليست درجة أداء (1 وحدة = ساعة عمل قياسية واحدة للمحلل).",
+    "ownOnly": "تعرض أرقامك الخاصة فقط.",
+    "capacityDefaults": "تفترض السعة توفراً كاملاً والساعات الافتراضية.",
+    "unassigned": "{{count}} اختبارات مفتوحة بلا محلل",
+    "noAnalysts": "لا يوجد محللون لعرضهم لهذا النطاق.",
+    "analyst": "المحلل",
+    "gaps": "الثغرات",
+    "showTestsFor": "عرض اختبارات {{name}}",
+    "unweightedDelivered": "{{count}} اختبارات مُسلَّمة غير موزونة",
+    "unweightedOpen": "{{count}} اختبارات مفتوحة غير موزونة",
+    "onDefaultTarget": "{{count}} اختبارات على الهدف الافتراضي",
+    "checkProfile": "تحقق من الملف",
+    "overCapacity": "فوق السعة",
+    "testsCount": "{{count}} اختبارات",
+    "columns": {
+      "capacityUnits": "السعة (وحدات)",
+      "deliveredUnits": "الوحدات المُسلَّمة",
+      "utilisation": "نسبة الاستخدام",
+      "openUnits": "الوحدات المفتوحة",
+      "forwardLoad": "العبء المستقبلي",
+      "weightedOnTime": "الالتزام بالمواعيد الموزون",
+      "weightedRightFirstTime": "الصحة من المرة الأولى الموزونة"
+    }
+  }
+}

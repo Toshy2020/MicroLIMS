@@ -7,7 +7,8 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { kpiDashboardService } from "../services/kpiDashboardService";
 import type { KpiDefinitions } from "../types/kpiTypes";
-import { DIRECTION_LABEL, formatUnits } from "../utils/kpiFormat";
+import { formatUnits } from "../utils/kpiFormat";
+import { useTranslation } from "../../../i18n";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -28,6 +29,7 @@ interface DefinitionsDrawerProps {
 // Everything here comes from the backend registry, so the text on screen is the
 // text the calculation was written against.
 export function DefinitionsDrawer({ open, onClose, from, to }: DefinitionsDrawerProps) {
+  const { t } = useTranslation("kpi");
   const [data, setData] = useState<KpiDefinitions | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,20 +45,20 @@ export function DefinitionsDrawer({ open, onClose, from, to }: DefinitionsDrawer
         if (live) {
           setData(null);
           const err = e as { response?: { data?: { message?: string } } } | undefined;
-          setError(err?.response?.data?.message ?? "The definitions could not be loaded.");
+          setError(err?.response?.data?.message ?? t("definitions.loadError"));
         }
       })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
-  }, [open, from, to]);
+  }, [open, from, to, t]);
 
   const kpis = [...(data?.kpis ?? [])].sort((a, b) => a.order - b.order);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} slotProps={{ paper: { sx: { width: { xs: "100%", sm: 480 }, p: 2 } } }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography component="h2" sx={{ fontSize: 18, fontWeight: 700 }}>Definitions</Typography>
-        <IconButton aria-label="Close definitions" onClick={onClose}><CloseIcon /></IconButton>
+        <Typography component="h2" sx={{ fontSize: 18, fontWeight: 700 }}>{t("definitions.title")}</Typography>
+        <IconButton aria-label={t("definitions.close")} onClick={onClose}><CloseIcon /></IconButton>
       </Stack>
       {loading && <LinearProgress sx={{ mb: 1 }} />}
       {error && <Alert severity="error">{error}</Alert>}
@@ -66,41 +68,41 @@ export function DefinitionsDrawer({ open, onClose, from, to }: DefinitionsDrawer
             <Box key={k.key} component="section" sx={{ mb: 2 }}>
               <Typography component="h3" sx={{ fontSize: 15, fontWeight: 700 }}>{k.name}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-                Unit: {k.unit} · {DIRECTION_LABEL[k.direction]}
+                {t("definitions.unit", { unit: k.unit, direction: t(`directions.${k.direction}`) })}
               </Typography>
-              <Field label="Definition">{k.definition}</Field>
-              <Field label="Clock events">{k.clockEvents}</Field>
-              <Field label="Population">{k.population}</Field>
-              <Field label="Source">{k.source}</Field>
+              <Field label={t("definitions.fields.definition")}>{k.definition}</Field>
+              <Field label={t("definitions.fields.clockEvents")}>{k.clockEvents}</Field>
+              <Field label={t("definitions.fields.population")}>{k.population}</Field>
+              <Field label={t("definitions.fields.source")}>{k.source}</Field>
               <Divider />
             </Box>
           ))}
 
           <Typography component="h3" sx={{ fontSize: 15, fontWeight: 700, mb: 1 }}>
-            Profile versions in force on {to}
+            {t("definitions.inForce", { date: to })}
           </Typography>
           {data.profilesInForce.length === 0 ? (
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              No effective profile versions on this date, so weighted measures show their tests as unweighted.
+              {t("definitions.noProfiles")}
             </Typography>
           ) : (
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Workflow type</TableCell>
-                  <TableCell>Test</TableCell>
-                  <TableCell align="right">Work units</TableCell>
-                  <TableCell align="right">Target (analyst days)</TableCell>
-                  <TableCell>Effective from</TableCell>
+                  <TableCell>{t("definitions.columns.workflowType")}</TableCell>
+                  <TableCell>{t("definitions.columns.test")}</TableCell>
+                  <TableCell align="right">{t("definitions.columns.workUnits")}</TableCell>
+                  <TableCell align="right">{t("definitions.columns.target")}</TableCell>
+                  <TableCell>{t("definitions.columns.effectiveFrom")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {data.profilesInForce.map((p) => (
                   <TableRow key={p.versionId}>
                     <TableCell>{p.workflowType}</TableCell>
-                    <TableCell>{p.testCode ?? "Type default"}</TableCell>
-                    <TableCell align="right">{p.workUnits == null ? "inherited" : formatUnits(p.workUnits)}</TableCell>
-                    <TableCell align="right">{p.targetAnalystDays == null ? "inherited" : formatUnits(p.targetAnalystDays)}</TableCell>
+                    <TableCell>{p.testCode ?? t("definitions.typeDefault")}</TableCell>
+                    <TableCell align="right">{p.workUnits == null ? t("definitions.inherited") : formatUnits(p.workUnits)}</TableCell>
+                    <TableCell align="right">{p.targetAnalystDays == null ? t("definitions.inherited") : formatUnits(p.targetAnalystDays)}</TableCell>
                     <TableCell>{p.effectiveFrom}</TableCell>
                   </TableRow>
                 ))}

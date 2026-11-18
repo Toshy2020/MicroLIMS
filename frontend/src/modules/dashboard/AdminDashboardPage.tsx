@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { useEffect, useState } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import { PageHeader } from "../../components/PageHeader";
@@ -16,9 +17,13 @@ import type { MenuItem } from "../../routes/menuConfig";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { DashboardSummary, KpiDeltas } from "./types/dashboard";
-import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { useDashboardLab } from "./DashboardLabContext";
+
+// Kept as a key so the translated text is looked up at render, not stored in the effect.
+const SERVICE_ERROR_KEY = "admin.serviceError";
 
 export function AdminDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const lab = useDashboardLab();
 
   const menuItems = useMenuGroups().flatMap((g) => g.items);
@@ -49,7 +54,7 @@ export function AdminDashboardPage() {
         setKpis(kpiData);
       })
       .catch(() => {
-        if (!cancelled) setError("The dashboard service did not respond. Your data has not been changed.");
+        if (!cancelled) setError(SERVICE_ERROR_KEY);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -60,31 +65,31 @@ export function AdminDashboardPage() {
 
   if (!summary) {
     return (
-      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+      <DashboardStateGate loading={loading} error={error === SERVICE_ERROR_KEY ? t(SERVICE_ERROR_KEY) : error} hasData={false} onRetry={reload}>
         {null}
       </DashboardStateGate>
     );
   }
 
   const tiles: SummaryTile[] = [
-    { label: "Total samples", value: kpis?.totalSamples ?? "—", icon: <Inventory2OutlinedIcon /> },
-    { label: "Total tests", value: kpis?.totalTests ?? "—", icon: <ScienceOutlinedIcon /> },
-    { label: "Pending tests", value: summary.pendingTests, icon: <PendingActionsOutlinedIcon />, tone: "info", to: lab.workspace("?status=Active") },
-    { label: "Review queue", value: summary.reviewerQueue, caption: "samples", icon: <RateReviewOutlinedIcon />, tone: "action", to: lab.workspace("?status=UnderReview") },
-    { label: "Approval queue", value: summary.approvalQueue, caption: "samples", icon: <TaskAltOutlinedIcon />, tone: "notDetected", to: lab.workspace("?status=UnderApproval") },
+    { label: t("admin.tiles.totalSamples"), value: kpis?.totalSamples ?? "—", icon: <Inventory2OutlinedIcon /> },
+    { label: t("admin.tiles.totalTests"), value: kpis?.totalTests ?? "—", icon: <ScienceOutlinedIcon /> },
+    { label: t("admin.tiles.pendingTests"), value: summary.pendingTests, icon: <PendingActionsOutlinedIcon />, tone: "info", to: lab.workspace("?status=Active") },
+    { label: t("admin.tiles.reviewQueue"), value: summary.reviewerQueue, caption: t("common.samples"), icon: <RateReviewOutlinedIcon />, tone: "action", to: lab.workspace("?status=UnderReview") },
+    { label: t("admin.tiles.approvalQueue"), value: summary.approvalQueue, caption: t("common.samples"), icon: <TaskAltOutlinedIcon />, tone: "notDetected", to: lab.workspace("?status=UnderApproval") },
     ...(summary.pendingPreparationConfigApproval > 0
-      ? [{ label: "Prep configs pending", value: summary.pendingPreparationConfigApproval, icon: <TuneOutlinedIcon />, tone: "inconclusive" as const, to: "/laboratory-configuration/items" }]
+      ? [{ label: t("admin.tiles.prepConfigs"), value: summary.pendingPreparationConfigApproval, icon: <TuneOutlinedIcon />, tone: "inconclusive" as const, to: "/laboratory-configuration/items" }]
       : []),
-    { label: "Overdue (>24h)", value: summary.delayedTests, icon: <ScheduleOutlinedIcon />, tone: "detected", to: lab.workspace("?urgency=overdue") }
+    { label: t("admin.tiles.overdue"), value: summary.delayedTests, icon: <ScheduleOutlinedIcon />, tone: "detected", to: lab.workspace("?urgency=overdue") }
   ];
 
   return (
     <>
       <PageHeader
-        title="Administrator Command Center"
+        title={t("admin.title")}
         subtitle={lab.code
-          ? `System administration, access control, audit compliance and ${LAB_LABELS[lab.code]} operations.`
-          : "System administration, access control, audit compliance, and laboratory operations."}
+          ? t("admin.subtitleLab", { lab: t(`labName.${lab.code}`) })
+          : t("admin.subtitle")}
       >
         <Button
           variant="outlined"
@@ -92,7 +97,7 @@ export function AdminDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
       </PageHeader>
 
@@ -104,7 +109,7 @@ export function AdminDashboardPage() {
       {tools.length > 0 && (
         <>
           <Typography component="h2" sx={{ fontSize: 16, fontWeight: 700, mb: 1.5 }}>
-            Administration
+            {t("admin.administration")}
           </Typography>
           <Box
             component="ul"

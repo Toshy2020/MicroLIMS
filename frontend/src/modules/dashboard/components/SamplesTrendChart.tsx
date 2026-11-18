@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../i18n";
 import { Paper, Box, Typography, Select, MenuItem, useTheme } from "@mui/material";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { MonthlyTrendPoint } from "../types/dashboard";
@@ -5,6 +6,7 @@ import { MonthlyTrendPoint } from "../types/dashboard";
 export function SamplesTrendChart({ trend, months, onMonthsChange }: {
   trend: MonthlyTrendPoint[] | null; months: number; onMonthsChange: (months: number) => void;
 }) {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const chartPalette = theme.custom.chartPalette;
 
@@ -18,16 +20,16 @@ export function SamplesTrendChart({ trend, months, onMonthsChange }: {
   return (
     <Paper sx={{ p: 2.5, height: 320 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography sx={{ fontWeight: 600 }}>Samples Received Trend</Typography>
+        <Typography sx={{ fontWeight: 600 }}>{t("trend.title")}</Typography>
         <Select
           size="small"
           value={months}
           onChange={(e) => onMonthsChange(Number(e.target.value))}
-          inputProps={{ "aria-label": "Trend period" }}
+          inputProps={{ "aria-label": t("trend.period") }}
         >
-          <MenuItem value={3}>Last 3 months</MenuItem>
-          <MenuItem value={6}>Last 6 months</MenuItem>
-          <MenuItem value={12}>Last 12 months</MenuItem>
+          <MenuItem value={3}>{t("trend.last3")}</MenuItem>
+          <MenuItem value={6}>{t("trend.last6")}</MenuItem>
+          <MenuItem value={12}>{t("trend.last12")}</MenuItem>
         </Select>
       </Box>
       {trend && (
@@ -42,8 +44,8 @@ export function SamplesTrendChart({ trend, months, onMonthsChange }: {
               contentStyle={{ background: theme.palette.background.paper, border: `1px solid ${theme.palette.divider}`, color: theme.palette.text.primary }}
             />
             <Legend />
-            <Bar dataKey="samplesLodged" name="Samples" fill={samplesColor} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="testsLodged" name="Test Requests" fill={testsColor} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="samplesLodged" name={t("trend.samples")} fill={samplesColor} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="testsLodged" name={t("trend.testRequests")} fill={testsColor} radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}

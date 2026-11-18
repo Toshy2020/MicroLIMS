@@ -1,0 +1,96 @@
+{
+  "page": {
+    "title": "تتبع خارج المواصفات",
+    "subtitle": "كل سلسلة تحقيق خارج المواصفات مُجمّعة حسب رقم OOS، تتبع جميع عينات إعادة الاختبار المتفرعة وصولاً إلى العينة الأصلية.",
+    "loadError": "تعذّر تحميل بنود تتبع OOS.",
+    "sectionTitle": "مجموعات تحقيق OOS",
+    "noGroups": "لا توجد سلاسل تحقيق OOS نشطة."
+  },
+  "summary": {
+    "groupCount_zero": "لا توجد مجموعات OOS",
+    "groupCount_one": "مجموعة OOS واحدة",
+    "groupCount_two": "مجموعتا OOS",
+    "groupCount_few": "{{count}} مجموعات OOS",
+    "groupCount_many": "{{count}} مجموعة OOS",
+    "groupCount_other": "{{count}} مجموعة OOS",
+    "retestCount_zero": "لا توجد عينات إعادة الاختبار",
+    "retestCount_one": "عينة إعادة الاختبار واحدة",
+    "retestCount_two": "{{count}} عينات إعادة الاختبار",
+    "retestCount_few": "{{count}} عينات إعادة الاختبار",
+    "retestCount_many": "{{count}} عينات إعادة الاختبار",
+    "retestCount_other": "{{count}} عينات إعادة الاختبار",
+    "groupsAndRetests": "{{groups}} ({{retests}})"
+  },
+  "group": {
+    "collapse": "تصغير مجموعة OOS",
+    "expand": "توسيع مجموعة OOS",
+    "opened": "فُتحت في: <ltr>{{date}}</ltr>",
+    "rootOrigin": "العينة الأصلية (الجذر)",
+    "batch": "الدفعة: <ltr>{{batch}}</ltr>",
+    "reportAttached": "تقرير تحقيق المختبر مرفق",
+    "noReport": "لا يوجد تقرير مرفق",
+    "manageInvestigation": "إدارة التحقيق",
+    "uploadInvestigation": "رفع تقرير التحقيق"
+  },
+  "retests": {
+    "noRetests": "لم تُنشأ بعد أي عينات إعادة الاختبار لسلسلة OOS هذه.",
+    "record": "السجل",
+    "recordTooltip": "فتح التقرير القابل للطباعة لعينة إعادة الاختبار",
+    "batch": "الدفعة: <ltr>{{batch}}</ltr>",
+    "types": {
+      "RetestRetainedSample": "عينة إعادة الاختبار المحتفَظ بها",
+      "NewSampleRequest": "طلب عينة جديدة"
+    },
+    "columns": {
+      "retestSample": "عينة إعادة الاختبار",
+      "parentOrigin": "الأصل / المصدر",
+      "itemPoint": "المادة / النقطة",
+      "retestType": "نوع إعادة الاختبار",
+      "tests": "الاختبار(ات)",
+      "analysts": "المحلل(ون)",
+      "retestStatus": "حالة إعادة الاختبار",
+      "opened": "تاريخ الفتح",
+      "actions": "الإجراءات"
+    }
+  },
+  "docs": {
+    "title": "مستندات تحقيق المختبر: {{code}}",
+    "intro": "تقارير تحقيق المختبر الخاضعة للرقابة والمرفقة بمجموعة OOS <strong><ltr>{{code}}</ltr></strong> (العينة الأصلية: <strong><ltr>{{reference}}</ltr></strong>).",
+    "close": "إغلاق",
+    "uploadInitialTitle": "رفع تقرير التحقيق الأولي",
+    "upload": "رفع",
+    "formatsHint": "PDF أو صورة (JPG وPNG وWEBP وTIFF)، بحد أقصى 25 MB",
+    "note": "تُسجَّل في سجل التدقيق",
+    "statuses": {
+      "current": "حالي",
+      "superseded": "مُستبدَل",
+      "voided": "مُبطل"
+    },
+    "supersededReason": "مُستبدَل: {{reason}}",
+    "voidedReason": "مُبطل: {{reason}}",
+    "empty": "لم يُرفع بعد أي مستند تحقيق لمجموعة OOS هذه.",
+    "download": "تنزيل الملف",
+    "supersedeTooltip": "الاستبدال بتقرير بديل",
+    "columns": {
+      "status": "الحالة",
+      "filename": "اسم الملف",
+      "size": "الحجم",
+      "uploadedBy": "رُفع بواسطة",
+      "date": "التاريخ",
+      "actions": "الإجراءات"
+    }
+  },
+  "supersede": {
+    "title": "استبدال المستند ({{file}})",
+    "info": "سيُوسم المستند الحالي بعلامة <strong>مُستبدَل</strong>. وستحل محله نسخة نشطة جديدة.",
+    "reasonLabel": "سبب الاستبدال *",
+    "cancel": "إلغاء",
+    "action": "استبدال"
+  },
+  "errors": {
+    "loadDocuments": "تعذّر تحميل مستندات التحقيق.",
+    "upload": "تعذّر رفع المستند.",
+    "download": "تعذّر تنزيل محتوى المستند.",
+    "supersede": "تعذّر استبدال المستند."
+  }
+}

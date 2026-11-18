@@ -26,6 +26,7 @@ import {
   type WorkflowProfileVersion
 } from "../types/workflowProfileTypes";
 import { AddProfileVersionDialog } from "./AddProfileVersionDialog";
+import { useTranslation } from "../../../i18n";
 
 interface ProfileHistoryDrawerProps {
   open: boolean;
@@ -40,6 +41,7 @@ const fmt = (n: number | null) => (n === null ? "-" : String(n));
 // Every version of one scope, newest first. A test shows all of its own rows whatever
 // type they were written under (the test may have been re-typed since).
 export function ProfileHistoryDrawer({ open, onClose, workflowType, testCode, onChanged }: ProfileHistoryDrawerProps) {
+  const { t } = useTranslation("kpi");
   const canConfigure = useHasPermission(PERMISSIONS.KPI_CONFIGURE_PROFILES);
   const [rows, setRows] = useState<WorkflowProfileVersion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -52,11 +54,11 @@ export function ProfileHistoryDrawer({ open, onClose, workflowType, testCode, on
     try {
       setRows(await workflowProfileService.list(testCode ? { testCode } : { workflowType, defaultOnly: true }));
     } catch (e) {
-      setError(profileErrorMessage(e, "Could not load the version history."));
+      setError(profileErrorMessage(e, t("history.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [workflowType, testCode]);
+  }, [workflowType, testCode, t]);
 
   useEffect(() => {
     if (open) void load();
@@ -67,8 +69,8 @@ export function ProfileHistoryDrawer({ open, onClose, workflowType, testCode, on
       <Drawer anchor="right" open={open} onClose={onClose}>
         <Box sx={{ width: { xs: "100vw", sm: 720 }, p: 2 }}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-            <Typography variant="h6">History: {testCode ?? `${workflowTypeLabel(workflowType)} default`}</Typography>
-            <IconButton aria-label="Close history" onClick={onClose}>
+            <Typography variant="h6">{t("history.title", { scope: testCode ?? t("history.defaultScope", { type: workflowTypeLabel(workflowType) }) })}</Typography>
+            <IconButton aria-label={t("history.close")} onClick={onClose}>
               <CloseIcon />
             </IconButton>
           </Stack>
@@ -76,19 +78,19 @@ export function ProfileHistoryDrawer({ open, onClose, workflowType, testCode, on
           {error && <Alert severity="error">{error}</Alert>}
           {loading && <CircularProgress size={24} />}
           {!loading && !error && rows.length === 0 && (
-            <Typography color="text.secondary">No versions yet.</Typography>
+            <Typography color="text.secondary">{t("history.none")}</Typography>
           )}
 
           {rows.length > 0 && (
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Effective from</TableCell>
-                  <TableCell align="right">Work units</TableCell>
-                  <TableCell align="right">Target (days)</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Reason</TableCell>
-                  <TableCell>By</TableCell>
+                  <TableCell>{t("history.columns.effectiveFrom")}</TableCell>
+                  <TableCell align="right">{t("history.columns.workUnits")}</TableCell>
+                  <TableCell align="right">{t("history.columns.target")}</TableCell>
+                  <TableCell>{t("history.columns.status")}</TableCell>
+                  <TableCell>{t("history.columns.reason")}</TableCell>
+                  <TableCell>{t("history.columns.by")}</TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
@@ -106,14 +108,14 @@ export function ProfileHistoryDrawer({ open, onClose, workflowType, testCode, on
                       {r.createdByName}
                       {r.signedAt && (
                         <Typography variant="caption" sx={{ display: "block" }} color="text.secondary">
-                          signed {r.signedAt.slice(0, 10)}
+                          {t("history.signed", { date: r.signedAt.slice(0, 10) })}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell>
                       {canConfigure && r.status === "Draft" && (
                         <Button size="small" onClick={() => setSigning(r)}>
-                          Review and sign
+                          {t("history.reviewAndSign")}
                         </Button>
                       )}
                     </TableCell>

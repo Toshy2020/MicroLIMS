@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { useEffect, useState } from "react";
 import { Alert, Grid, Button, Paper, Stack, Typography } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
@@ -15,11 +16,12 @@ import { AnalystWorkSummary } from "./components/AnalystWorkSummary";
 import { IncubationObservationPanel } from "./components/IncubationObservationPanel";
 import { CompletedTodayPanel } from "./components/CompletedTodayPanel";
 import { AnalystPerformancePanel } from "./components/AnalystPerformancePanel";
-import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { useDashboardLab } from "./DashboardLabContext";
 
 export function AnalystDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "Analyst";
+  const displayName = fullName ?? username ?? t("analyst.fallbackName");
   const lab = useDashboardLab();
 
   // useApi already tracks the error; this page used to destructure only
@@ -79,8 +81,8 @@ export function AnalystDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${displayName}`}
-        subtitle={lab.code ? `Your prioritized work in the ${LAB_LABELS[lab.code]} for today.` : "Your prioritized work for today."}
+        title={t("analyst.welcome", { name: displayName })}
+        subtitle={lab.code ? t("analyst.subtitleLab", { lab: t(`labName.${lab.code}`) }) : t("analyst.subtitle")}
       >
         <Button
           variant="outlined"
@@ -88,7 +90,7 @@ export function AnalystDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
         <Button
           component={Link}
@@ -96,7 +98,7 @@ export function AnalystDashboardPage() {
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
         >
-          Open Testing Workspace
+          {t("analyst.workspace")}
         </Button>
       </PageHeader>
 
@@ -106,13 +108,13 @@ export function AnalystDashboardPage() {
           sx={{ mb: 2, borderRadius: 2 }}
           action={
             <Button size="small" color="inherit" onClick={reload} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Retry
+              {t("common.retry")}
             </Button>
           }
         >
           {lab.isPhyschem
-            ? "Some panels could not be loaded, so the throughput figures below may be incomplete."
-            : "Some panels could not be loaded, so the incubation and throughput figures below may be incomplete."}
+            ? t("analyst.partialPhyschem")
+            : t("analyst.partialMicro")}
         </Alert>
       )}
 
@@ -139,7 +141,7 @@ export function AnalystDashboardPage() {
             variant="contained"
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {workSummary?.complete && workSummary.total !== null ? `Open My Work (${workSummary.total})` : "Open My Work"}
+            {workSummary?.complete && workSummary.total !== null ? t("analyst.openMyWorkCount", { n: workSummary.total }) : t("analyst.openMyWork")}
           </Button>
         </Stack>
       </Paper>

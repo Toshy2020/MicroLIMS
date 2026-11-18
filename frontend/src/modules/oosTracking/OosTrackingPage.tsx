@@ -29,6 +29,10 @@ import DownloadOutlinedIcon from "@mui/icons-material/DownloadOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import { Link } from "react-router-dom";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
+import { serverMessage } from "../../utils/errorMessage";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { StatusBadge, CategoryBadge, ToneBadge } from "../../components/StatusBadge";
@@ -43,18 +47,12 @@ import { tableHeadSx } from "../../theme";
 import { FileDropZone } from "../../components/FileDropZone";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
-const RETEST_TYPE_LABELS: Record<string, string> = {
-  RetestRetainedSample: "Retest Retained Sample",
-  NewSampleRequest: "New Sample Request"
-};
-
 const formatDate = (d: string) =>
   formatDateTimeWithTimeZone(d);
 
 // Mirrors MaterialDocumentFileValidator (the server is authoritative) and the
 // 25 MB MaterialDocuments:MaxFileSizeBytes default in appsettings.json.
 const INVESTIGATION_ACCEPT = ".pdf,.jpg,.jpeg,.png,.webp,.tiff";
-const INVESTIGATION_FORMATS_HINT = "PDF or image (JPG, PNG, WEBP, TIFF), up to 25 MB";
 
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -63,6 +61,7 @@ const formatBytes = (bytes: number) => {
 };
 
 export function OosTrackingPage() {
+  const { t } = useTranslation("oosTracking");
   const theme = useTheme();
   const [groups, setGroups] = useState<OosGroup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +76,7 @@ export function OosTrackingPage() {
         setExpandedGroups(new Set(data.map((g) => g.oosGroupCode)));
       })
       .catch((e) =>
-        setError(e?.response?.data?.message ?? "Failed to load OOS tracking items.")
+        setError(serverMessage(e) ?? t("page.loadError"))
       );
   };
 
@@ -98,21 +97,28 @@ export function OosTrackingPage() {
   };
 
   const totalRetestCount = groups?.reduce((acc, g) => acc + g.retestSamples.length, 0) ?? 0;
+  const retestTypeLabels: Record<string, string> = {
+    RetestRetainedSample: t("retests.types.RetestRetainedSample"),
+    NewSampleRequest: t("retests.types.NewSampleRequest")
+  };
 
   return (
     <Box>
       <PageHeader
-        title="Out-of-Specification Tracking"
-        subtitle="Every out-of-specification investigation chain grouped by OOS number, tracing all retest spin-offs back to the original sample."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5, mb: 2 }}>
-        <SectionTitle>OOS Investigation Groups</SectionTitle>
+        <SectionTitle>{t("page.sectionTitle")}</SectionTitle>
         {groups && (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {groups.length === 1 ? "1 OOS Group" : `${groups.length} OOS Groups`} ({totalRetestCount} retest sample{totalRetestCount === 1 ? "" : "s"})
+            {t("summary.groupsAndRetests", {
+              groups: t("summary.groupCount", { count: groups.length }),
+              retests: t("summary.retestCount", { count: totalRetestCount })
+            })}
           </Typography>
         )}
       </Box>
@@ -132,7 +138,7 @@ export function OosTrackingPage() {
           }}
         >
           <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-            No active OOS investigation chains found.
+            {t("page.noGroups")}
           </Typography>
         </Paper>
       ) : (
@@ -169,7 +175,7 @@ export function OosTrackingPage() {
                   onClick={() => toggleGroup(group.oosGroupCode)}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-                    <IconButton aria-label={isExpanded ? "Collapse OOS group" : "Expand OOS group"} aria-expanded={Boolean(isExpanded)} size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
+                    <IconButton aria-label={isExpanded ? t("group.collapse") : t("group.expand")} aria-expanded={Boolean(isExpanded)} size="small" onClick={(e) => { e.stopPropagation(); toggleGroup(group.oosGroupCode); }}>
                       {isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
 
@@ -188,7 +194,7 @@ export function OosTrackingPage() {
                         <CategoryBadge category={group.category} />
                       </Box>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                        Opened: {formatDate(group.openedAt)}
+                        <Trans i18nKey="group.opened" ns="oosTracking" values={{ date: formatDate(group.openedAt) }} components={{ ltr: <Ltr>{null}</Ltr> }} />
                       </Typography>
                     </Box>
 
@@ -196,7 +202,7 @@ export function OosTrackingPage() {
 
                     <Box>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase", fontWeight: 600 }}>
-                        Root / Origin Sample
+                        {t("group.rootOrigin")}
                       </Typography>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace" }}>
@@ -212,7 +218,7 @@ export function OosTrackingPage() {
                       </Typography>
                       {group.batchNumber && (
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          Batch: {group.batchNumber}
+                          <Trans i18nKey="group.batch" ns="oosTracking" values={{ batch: group.batchNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
                         </Typography>
                       )}
                     </Box>
@@ -223,7 +229,7 @@ export function OosTrackingPage() {
                     {group.hasInvestigationDocument ? (
                       <Chip
                         icon={<AttachFileIcon sx={{ fontSize: "16px !important" }} />}
-                        label="Lab Investigation Report Attached"
+                        label={t("group.reportAttached")}
                         color="success"
                         variant="outlined"
                         size="small"
@@ -231,7 +237,7 @@ export function OosTrackingPage() {
                       />
                     ) : (
                       <Chip
-                        label="No Report Attached"
+                        label={t("group.noReport")}
                         variant="outlined"
                         size="small"
                         sx={{ color: "text.secondary", borderColor: "divider", fontSize: 12 }}
@@ -245,7 +251,7 @@ export function OosTrackingPage() {
                       onClick={() => setActiveDocGroup(group)}
                       sx={{ fontSize: 12, textTransform: "none", fontWeight: 600 }}
                     >
-                      {group.hasInvestigationDocument ? "Manage Investigation" : "Upload Investigation"}
+                      {group.hasInvestigationDocument ? t("group.manageInvestigation") : t("group.uploadInvestigation")}
                     </Button>
                   </Box>
                 </Box>
@@ -256,7 +262,7 @@ export function OosTrackingPage() {
                     <Table size="small">
                       <TableHead sx={{ bgcolor: "background.paper" }}>
                         <TableRow>
-                          {["Retest Sample", "Parent / Origin", "Item / Point", "Retest Type", "Test(s)", "Analyst(s)", "Retest Status", "Opened", "Actions"].map((h) => (
+                          {[t("retests.columns.retestSample"), t("retests.columns.parentOrigin"), t("retests.columns.itemPoint"), t("retests.columns.retestType"), t("retests.columns.tests"), t("retests.columns.analysts"), t("retests.columns.retestStatus"), t("retests.columns.opened"), t("retests.columns.actions")].map((h) => (
                             <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
                               {h}
                             </TableCell>
@@ -268,7 +274,7 @@ export function OosTrackingPage() {
                           <TableRow>
                             <TableCell colSpan={9} align="center" sx={{ py: 3 }}>
                               <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-                                No retest samples have been spun off yet for this OOS chain.
+                                {t("retests.noRetests")}
                               </Typography>
                             </TableCell>
                           </TableRow>
@@ -297,7 +303,7 @@ export function OosTrackingPage() {
                                 </Typography>
                                 {retest.batchNumber && (
                                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                                    Batch: {retest.batchNumber}
+                                    <Trans i18nKey="retests.batch" ns="oosTracking" values={{ batch: retest.batchNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
                                   </Typography>
                                 )}
                               </TableCell>
@@ -305,7 +311,7 @@ export function OosTrackingPage() {
                               {/* Retest Type */}
                               <TableCell sx={{ py: 1.25 }}>
                                 <Typography sx={{ fontSize: 12 }}>
-                                  {RETEST_TYPE_LABELS[retest.retestType] ?? retest.retestType}
+                                  {retestTypeLabels[retest.retestType] ?? retest.retestType}
                                 </Typography>
                               </TableCell>
 
@@ -337,7 +343,7 @@ export function OosTrackingPage() {
 
                               {/* Actions */}
                               <TableCell sx={{ py: 1.25 }}>
-                                <Tooltip title="Open the retest sample's printable report">
+                                <Tooltip title={t("retests.recordTooltip")}>
                                   <Button
                                     component={Link}
                                     to={`/samples/${retest.newSampleId}/report`}
@@ -348,7 +354,7 @@ export function OosTrackingPage() {
                                     startIcon={<DescriptionOutlinedIcon fontSize="small" />}
                                     sx={{ px: 1, py: 0.25, fontSize: 12, borderColor: "divider", color: "text.secondary" }}
                                   >
-                                    Record
+                                    {t("retests.record")}
                                   </Button>
                                 </Tooltip>
                               </TableCell>
@@ -388,6 +394,8 @@ interface DocDialogProps {
 }
 
 function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: DocDialogProps) {
+  const { t } = useTranslation("oosTracking");
+  const formatsHint = t("docs.formatsHint");
   const [docs, setDocs] = useState<OosInvestigationDocument[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -410,7 +418,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
         setLoading(false);
       })
       .catch((e) => {
-        setError(e?.response?.data?.message ?? "Failed to load investigation documents.");
+        setError(serverMessage(e) ?? t("errors.loadDocuments"));
         setLoading(false);
       });
   };
@@ -430,8 +438,8 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       setSelectedFile(null);
       loadDocuments();
       onChanged();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to upload document.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? t("errors.upload"));
     } finally {
       setSubmitting(false);
     }
@@ -448,8 +456,8 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to download document content.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? t("errors.download"));
     }
   };
 
@@ -469,8 +477,8 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       setSupersedeReason("");
       loadDocuments();
       onChanged();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to supersede document.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? t("errors.supersede"));
     } finally {
       setSubmitting(false);
     }
@@ -481,11 +489,11 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
   return (
     <FloatingDialog
       open={open}
-      title={`Lab Investigation Documents: ${group.oosGroupCode}`}
+      title={t("docs.title", { code: group.oosGroupCode })}
       onClose={onClose}
       actions={
         <Button onClick={onClose} disabled={submitting}>
-          Close
+          {t("docs.close")}
         </Button>
       }
     >
@@ -494,7 +502,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
 
       <Box sx={{ mb: 2.5 }}>
         <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-          Controlled lab investigation reports attached to OOS group <strong>{group.oosGroupCode}</strong> (Origin Sample: <strong>{group.originReferenceNumber}</strong>).
+          <Trans i18nKey="docs.intro" ns="oosTracking" values={{ code: group.oosGroupCode, reference: group.originReferenceNumber }} components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }} />
         </Typography>
       </Box>
 
@@ -502,20 +510,20 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       {!currentDoc && !loading && (
         <Box sx={{ mb: 3 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-            Upload Initial Investigation Report
+            {t("docs.uploadInitialTitle")}
           </Typography>
           <FileDropZone
             file={selectedFile}
             onFile={setSelectedFile}
             accept={INVESTIGATION_ACCEPT}
-            formatsHint={INVESTIGATION_FORMATS_HINT}
-            note="Recorded in the audit trail"
+            formatsHint={formatsHint}
+            note={t("docs.note")}
             disabled={submitting}
           />
           {selectedFile && (
             <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
               <Button variant="contained" size="small" startIcon={<FileUploadOutlinedIcon />} onClick={handleUpload} disabled={submitting}>
-                Upload
+                {t("docs.upload")}
               </Button>
             </Box>
           )}
@@ -526,14 +534,14 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
       {supersedingDoc && (
         <Paper elevation={0} sx={{ p: 2, mb: 3, border: "1px solid", borderColor: "warning.main", borderRadius: 1.5, bgcolor: "background.paper" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "warning.dark", mb: 1 }}>
-            Supersede Document ({supersedingDoc.originalFileName})
+            {t("supersede.title", { file: supersedingDoc.originalFileName })}
           </Typography>
           <Alert severity="info" sx={{ mb: 1.5, fontSize: 12 }}>
-            The current document will be marked <strong>Superseded</strong>. A new active version will take its place.
+            <Trans i18nKey="supersede.info" ns="oosTracking" components={{ strong: <strong /> }} />
           </Alert>
 
           <TextField
-            label="Reason for Supersession *"
+            label={t("supersede.reasonLabel")}
             size="small"
             fullWidth
             multiline
@@ -547,14 +555,14 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
             file={supersedeFile}
             onFile={setSupersedeFile}
             accept={INVESTIGATION_ACCEPT}
-            formatsHint={INVESTIGATION_FORMATS_HINT}
-            note="Recorded in the audit trail"
+            formatsHint={formatsHint}
+            note={t("docs.note")}
             disabled={submitting}
           />
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mt: 1.5 }}>
             <Box sx={{ ml: "auto", display: "flex", gap: 1 }}>
               <Button size="small" onClick={() => setSupersedingDoc(null)} disabled={submitting}>
-                Cancel
+                {t("supersede.cancel")}
               </Button>
               <Button
                 variant="contained"
@@ -563,7 +571,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                 disabled={!supersedeFile || !supersedeReason.trim() || submitting}
                 onClick={handleSupersede}
               >
-                Supersede
+                {t("supersede.action")}
               </Button>
             </Box>
           </Box>
@@ -575,7 +583,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
         <Table size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
-              {["Status", "Filename", "Size", "Uploaded By", "Date", "Actions"].map((h) => (
+              {[t("docs.columns.status"), t("docs.columns.filename"), t("docs.columns.size"), t("docs.columns.uploadedBy"), t("docs.columns.date"), t("docs.columns.actions")].map((h) => (
                 <TableCell key={h} sx={{ fontWeight: 700, fontSize: 12, color: "text.secondary" }}>
                   {h}
                 </TableCell>
@@ -593,7 +601,7 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography sx={{ color: "text.secondary", fontSize: 13 }}>
-                    No investigation documents uploaded for this OOS group yet.
+                    {t("docs.empty")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -606,25 +614,25 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                   <TableRow key={doc.id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell>
                       {isCurrent && (
-                        <ToneBadge tone="notDetected" label="Current" />
+                        <ToneBadge tone="notDetected" label={t("docs.statuses.current")} />
                       )}
                       {isSuperseded && (
-                        <ToneBadge tone="pending" label="Superseded" />
+                        <ToneBadge tone="pending" label={t("docs.statuses.superseded")} />
                       )}
                       {(!isCurrent && !isSuperseded) && (
-                        <ToneBadge tone="detected" label="Voided" />
+                        <ToneBadge tone="detected" label={t("docs.statuses.voided")} />
                       )}
                     </TableCell>
                     <TableCell>
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{doc.originalFileName}</Typography>
                       {doc.supersessionReason && (
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          Superseded: {doc.supersessionReason}
+                          {t("docs.supersededReason", { reason: doc.supersessionReason })}
                         </Typography>
                       )}
                       {doc.voidReason && (
                         <Typography sx={{ fontSize: 12, color: "error.main" }}>
-                          Voided: {doc.voidReason}
+                          {t("docs.voidedReason", { reason: doc.voidReason })}
                         </Typography>
                       )}
                     </TableCell>
@@ -639,13 +647,13 @@ function OosInvestigationDocumentsDialog({ open, group, onClose, onChanged }: Do
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Tooltip title="Download file">
+                        <Tooltip title={t("docs.download")}>
                           <IconButton size="small" onClick={() => handleDownload(doc)}>
                             <DownloadOutlinedIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         {isCurrent && !supersedingDoc && (
-                          <Tooltip title="Supersede with replacement report">
+                          <Tooltip title={t("docs.supersedeTooltip")}>
                             <IconButton size="small" color="warning" onClick={() => setSupersedingDoc(doc)}>
                               <SwapHorizIcon fontSize="small" />
                             </IconButton>

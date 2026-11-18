@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { Tab, Tabs } from "@mui/material";
@@ -11,12 +12,13 @@ import { ReviewerDashboardPage } from "./ReviewerDashboardPage";
 import { SectionHeadDashboardPage } from "./SectionHeadDashboardPage";
 import { AdminDashboardPage } from "./AdminDashboardPage";
 import { QaDashboardPage } from "./QaDashboardPage";
-import { DashboardLabCode, DashboardLabProvider, LAB_LABELS, makeDashboardLab } from "./DashboardLabContext";
+import { DashboardLabCode, DashboardLabProvider, makeDashboardLab } from "./DashboardLabContext";
 
 // Microbiology first, the same order the workspace redirect uses.
 const LAB_ORDER: DashboardLabCode[] = ["MICRO", "FP"];
 
 export function DashboardPage() {
+  const { t } = useTranslation("dashboard");
   const { role } = useAuth();
   const { codes, physchemAreas, loading } = useMyLabs();
   const readsNoDashboard = !useHasPermission([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW, PERMISSIONS.DASHBOARDS_REVIEW]);
@@ -51,11 +53,11 @@ export function DashboardPage() {
         <Tabs
           value={code}
           onChange={(_, next: DashboardLabCode) => selectLab(next)}
-          aria-label="Laboratory dashboard"
+          aria-label={t("dashboardPage.label")}
           sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
         >
           {labs.map((c) => (
-            <Tab key={c} value={c} label={LAB_LABELS[c]} />
+            <Tab key={c} value={c} label={t(`labName.${c}`)} />
           ))}
         </Tabs>
       )}

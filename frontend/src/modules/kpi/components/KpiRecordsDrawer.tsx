@@ -7,6 +7,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import type { KpiRecordPage } from "../types/kpiTypes";
 import { formatKpiValue } from "../utils/kpiFormat";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 const PAGE_SIZE = 50;
 
@@ -20,6 +21,7 @@ interface KpiRecordsDrawerProps {
 // The records behind one figure. The parent mounts this only while a figure is
 // selected, so choosing another figure starts again on page 1.
 export function KpiRecordsDrawer({ title, onClose, load }: KpiRecordsDrawerProps) {
+  const { t } = useTranslation("kpi");
   const [page, setPage] = useState(0); // 0-based for TablePagination; the server pages from 1
   const [data, setData] = useState<KpiRecordPage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,36 +37,36 @@ export function KpiRecordsDrawer({ title, onClose, load }: KpiRecordsDrawerProps
         if (live) {
           setData(null);
           const err = e as { response?: { data?: { message?: string } } } | undefined;
-          setError(err?.response?.data?.message ?? "The records could not be loaded.");
+          setError(err?.response?.data?.message ?? t("records.loadError"));
         }
       })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
-  }, [load, page]);
+  }, [load, page, t]);
 
   return (
     <Drawer anchor="right" open onClose={onClose} slotProps={{ paper: { sx: { width: { xs: "100%", md: 760 }, p: 2 } } }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
         <Typography component="h2" sx={{ fontSize: 18, fontWeight: 700 }}>{title}</Typography>
-        <IconButton aria-label="Close records" onClick={onClose}><CloseIcon /></IconButton>
+        <IconButton aria-label={t("records.close")} onClick={onClose}><CloseIcon /></IconButton>
       </Stack>
       {loading && <LinearProgress sx={{ mb: 1 }} />}
       {error && <Alert severity="error">{error}</Alert>}
       {data && (data.items.length === 0 ? (
-        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>No records.</Typography>
+        <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("records.none")}</Typography>
       ) : (
         <>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Control no.</TableCell>
-                <TableCell>Test</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Analyst</TableCell>
-                <TableCell>Event</TableCell>
-                <TableCell align="right">Value</TableCell>
-                <TableCell>In the figure as</TableCell>
-                <TableCell>Note</TableCell>
+                <TableCell>{t("records.columns.controlNo")}</TableCell>
+                <TableCell>{t("records.columns.test")}</TableCell>
+                <TableCell>{t("records.columns.category")}</TableCell>
+                <TableCell>{t("records.columns.analyst")}</TableCell>
+                <TableCell>{t("records.columns.event")}</TableCell>
+                <TableCell align="right">{t("records.columns.value")}</TableCell>
+                <TableCell>{t("records.columns.inFigure")}</TableCell>
+                <TableCell>{t("records.columns.note")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

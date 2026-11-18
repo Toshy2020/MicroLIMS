@@ -1,9 +1,11 @@
+import { useTranslation } from "../../../i18n";
 import { Paper, Typography, useTheme } from "@mui/material";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { DistributionSlice } from "../types/dashboard";
 import { statusTone } from "../../../theme/statusTokens";
 
 export function TestOrderStatusDonut({ statusDist }: { statusDist: DistributionSlice[] | null }) {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
 
   // These slices are statuses - Approved / Pending / Rejected - which is the
@@ -20,7 +22,7 @@ export function TestOrderStatusDonut({ statusDist }: { statusDist: DistributionS
 
   return (
     <Paper sx={{ p: 2.5, height: 320 }}>
-      <Typography sx={{ fontWeight: 600, mb: 1 }}>Test Order Status</Typography>
+      <Typography sx={{ fontWeight: 600, mb: 1 }}>{t("donut.title")}</Typography>
       {statusDist && statusDist.length > 0 ? (
         <ResponsiveContainer width="100%" height="85%">
           <PieChart>
@@ -48,7 +50,7 @@ export function TestOrderStatusDonut({ statusDist }: { statusDist: DistributionS
           sx={{
             color: "text.secondary",
             mt: 4
-          }}>No data yet.</Typography>
+          }}>{t("donut.empty")}</Typography>
       )}
     </Paper>
   );

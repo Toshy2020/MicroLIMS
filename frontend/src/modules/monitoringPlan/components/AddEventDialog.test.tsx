@@ -212,29 +212,19 @@ describe("AddEventDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add event" }));
 
     // Warning alert appears
-    expect(
-      await screen.findByText(
-        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
-      )
-    ).toBeTruthy();
+    const dupText = 'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.';
+    const matchDup = (_c: string, el: Element | null) => el?.tagName === "P" && el.textContent === dupText;
+    expect(await screen.findByText(matchDup)).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
 
     // Clicking Back dismisses the alert
     const backBtn = screen.getByRole("button", { name: "Back" });
     fireEvent.click(backBtn);
-    expect(
-      screen.queryByText(
-        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
-      )
-    ).toBeNull();
+    expect(screen.queryByText(matchDup)).toBeNull();
 
     // Trigger duplicate again
     fireEvent.click(screen.getByRole("button", { name: "Add event" }));
-    expect(
-      await screen.findByText(
-        'An event "vendor service visit" (Vendor visit) is already on 2026-10-25.'
-      )
-    ).toBeTruthy();
+    expect(await screen.findByText(matchDup)).toBeTruthy();
 
     // Clicking Add anyway submits with confirmDuplicate: true
     const addAnywayBtn = screen.getByRole("button", { name: "Add anyway" });
@@ -283,7 +273,11 @@ describe("AddEventDialog", () => {
 
     // API error starting with 'A matching event already exists' triggers the duplicate warning alert
     expect(
-      await screen.findByText('An event "Annual Audit" (Vendor visit) is already on 2026-11.')
+      await screen.findByText(
+        (_c, el) =>
+          el?.tagName === "P" &&
+          el.textContent === 'An event "Annual Audit" (Vendor visit) is already on 2026-11.'
+      )
     ).toBeTruthy();
 
     // Click Add anyway

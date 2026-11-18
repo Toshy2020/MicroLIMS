@@ -132,23 +132,25 @@ describe("EquipmentPlanPanel", () => {
 
     render(<EquipmentPlanPanel year={2026} onApproved={vi.fn()} />);
 
+    const matchP = (text: string) => (_c: string, el: Element | null) => el?.tagName === "P" && el.textContent === text;
+
     // Non-interval exceptions are visible directly
-    expect(await screen.findByText("EQ-003 · Calibration: No baseline calibration date entered.")).toBeTruthy();
-    expect(screen.getByText("EQ-004 · Instrument: Instrument EQ-004 is retired.")).toBeTruthy();
+    expect(await screen.findByText(matchP("EQ-003 · Calibration: No baseline calibration date entered."))).toBeTruthy();
+    expect(screen.getByText(matchP("EQ-004 · Instrument: Instrument EQ-004 is retired."))).toBeTruthy();
 
     // Summary line for no-interval exceptions
-    expect(screen.getByText("2 instruments have no calibration or maintenance interval")).toBeTruthy();
+    expect(screen.getByText(matchP("2 instruments have no calibration or maintenance interval"))).toBeTruthy();
 
     // Initially collapsed: EQ-001 and EQ-002 are not visible
-    expect(screen.queryByText("EQ-001 · Instrument: No calibration or maintenance interval configured.")).toBeNull();
+    expect(screen.queryByText(matchP("EQ-001 · Instrument: No calibration or maintenance interval configured."))).toBeNull();
 
     // Click "Show"
     const showToggle = screen.getByRole("button", { name: "Show" });
     fireEvent.click(showToggle);
 
     // Now expanded
-    expect(screen.getByText("EQ-001 · Instrument: No calibration or maintenance interval configured.")).toBeTruthy();
-    expect(screen.getByText("EQ-002 · Instrument: No calibration or maintenance interval configured.")).toBeTruthy();
+    expect(screen.getByText(matchP("EQ-001 · Instrument: No calibration or maintenance interval configured."))).toBeTruthy();
+    expect(screen.getByText(matchP("EQ-002 · Instrument: No calibration or maintenance interval configured."))).toBeTruthy();
     expect(screen.getByRole("button", { name: "Hide" })).toBeTruthy();
   });
 
@@ -171,6 +173,8 @@ describe("EquipmentPlanPanel", () => {
 
     render(<EquipmentPlanPanel year={2026} onApproved={vi.fn()} />);
 
+    const matchP = (text: string) => (_c: string, el: Element | null) => el?.tagName === "P" && el.textContent === text;
+
     // Group header is rendered
     expect(
       await screen.findByText("Possible duplicate instruments (not planned)")
@@ -178,7 +182,7 @@ describe("EquipmentPlanPanel", () => {
 
     // Expanded by default
     expect(
-      screen.getByText("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial).")
+      screen.getByText(matchP("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial)."))
     ).toBeTruthy();
 
     // Has a Hide button
@@ -187,7 +191,7 @@ describe("EquipmentPlanPanel", () => {
 
     // Now hidden
     expect(
-      screen.queryByText("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial).")
+      screen.queryByText(matchP("EQ-DUP-01 · Calibration: Possible duplicate of EQ-001 (same type, model and serial)."))
     ).toBeNull();
     expect(screen.getByRole("button", { name: "Show" })).toBeTruthy();
   });

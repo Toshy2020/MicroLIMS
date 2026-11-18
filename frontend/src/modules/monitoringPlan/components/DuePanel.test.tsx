@@ -26,18 +26,18 @@ describe("DuePanel", () => {
 
   it("opens on this month and keeps the backlog out of it", () => {
     renderPanel();
-    expect(screen.getByText("This month (1)")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "This month (1)" })).toBeTruthy();
     expect(screen.queryByText("Missed on")).toBeNull();
   });
 
   it("lists earlier months once per sampling point with the dates it was missed", () => {
     const onPick = vi.fn();
     renderPanel(onPick);
-    fireEvent.click(screen.getByText("Earlier months (3)"));
+    fireEvent.click(screen.getByRole("button", { name: "Earlier months (3)" }));
 
     expect(screen.getAllByText("SP 206")).toHaveLength(1);
-    expect(screen.getByText("Missed ×2")).toBeTruthy();
-    expect(screen.getByText("Missed ×1")).toBeTruthy();
+    expect(screen.getByText((_c, el) => el?.tagName === "SPAN" && (el.textContent ?? "").endsWith("Missed ×2"))).toBeTruthy();
+    expect(screen.getByText((_c, el) => el?.tagName === "SPAN" && (el.textContent ?? "").endsWith("Missed ×1"))).toBeTruthy();
 
     fireEvent.click(screen.getByText("15 Jan"));
     expect(onPick).toHaveBeenCalledWith(due.items[1]);

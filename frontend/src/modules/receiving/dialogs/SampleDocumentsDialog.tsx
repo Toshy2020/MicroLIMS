@@ -4,8 +4,12 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import BlockIcon from "@mui/icons-material/Block";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { formatLabDate } from "../../../utils/formatDate";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ReceiveService } from "../services/ReceiveService";
@@ -16,8 +20,6 @@ interface Props {
   onClose: () => void;
 }
 
-const errorText = (err: any, fallback: string) => err?.response?.data?.message ?? err?.message ?? fallback;
-
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -27,6 +29,7 @@ function formatBytes(bytes: number): string {
 // The documents attached to one sample (the supplier's CoA). Whether the caller
 // may open them, and which laboratories they cover, is decided by the server.
 export function SampleDocumentsDialog({ sample, onClose }: Props) {
+  const { t } = useTranslation("receiving");
   const { permissions } = useAuth();
   const canChange = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
   // Same permission as voiding the sample itself (Section Head, Supervisor, Administrator).
@@ -44,9 +47,9 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
     setLoading(true);
     ReceiveService.getSampleDocuments(sample.sampleId)
       .then((docs) => { setDocuments(docs); setError(null); })
-      .catch((err) => setError(errorText(err, "Failed to load documents.")))
+      .catch((err) => setError(getErrorMessage(err, t("documents.loadFailed"))))
       .finally(() => setLoading(false));
-  }, [sample.sampleId]);
+  }, [sample.sampleId, t]);
 
   useEffect(load, [load]);
 
@@ -58,7 +61,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
       await ReceiveService.uploadSampleDocument(sample.sampleId, file);
       load();
     } catch (err) {
-      setError(errorText(err, "Upload failed. Please try again."));
+      setError(getErrorMessage(err, t("documents.uploadFailed")));
     } finally {
       setBusy(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -72,7 +75,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
       // The new tab has started loading it by then; free the blob after a minute.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch {
-      toast.error("Failed to retrieve document. Please try again.");
+      toast.error(t("documents.retrieveFailed"));
     }
   };
 
@@ -86,7 +89,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
       setVoidReason("");
       load();
     } catch (err) {
-      setError(errorText(err, "Void operation failed. Please try again."));
+      setError(getErrorMessage(err, t("documents.voidFailed")));
     } finally {
       setBusy(false);
     }
@@ -95,7 +98,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
   return (
     <FloatingDialog
       open
-      title={`Documents - ${sample.referenceNumber}`}
+      title={t("documents.title", { reference: sample.referenceNumber })}
       onClose={() => { if (!busy) onClose(); }}
       maxWidth="sm"
       actions={
@@ -113,13 +116,13 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
                 startIcon={<UploadFileOutlinedIcon />}
                 disabled={busy}
                 onClick={() => fileInput.current?.click()}
-                sx={{ mr: "auto", textTransform: "none", fontWeight: 600 }}
+                sx={{ me: "auto", textTransform: "none", fontWeight: 600 }}
               >
-                Attach supplier CoA
+                {t("documents.attachCoa")}
               </Button>
             </>
           )}
-          <Button onClick={onClose} disabled={busy}>Close</Button>
+          <Button onClick={onClose} disabled={busy}>{t("documents.close")}</Button>
         </>
       }
     >
@@ -129,7 +132,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}><CircularProgress size={20} /></Box>
       ) : documents.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", fontStyle: "italic" }}>
-          No documents have been attached to this sample.
+          {t("documents.empty")}
         </Typography>
       ) : (
         <Stack divider={<Divider />}>
@@ -140,7 +143,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
                   <Typography
                     sx={{ fontSize: 13, fontWeight: 600, color: doc.status === "Voided" ? "text.disabled" : "text.primary", overflowWrap: "anywhere" }}
                   >
-                    {doc.originalFileName}
+                    <Ltr>{doc.originalFileName}</Ltr>
                   </Typography>
                   <Chip
                     label={doc.status}
@@ -151,24 +154,26 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
                   />
                 </Box>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {doc.documentType === "SupplierCoa" ? "Supplier CoA" : "Other"} · {formatBytes(doc.fileSizeBytes)}
+                  {doc.documentType === "SupplierCoa" ? t("documents.supplierCoa") : t("documents.other")} · <Ltr>{formatBytes(doc.fileSizeBytes)}</Ltr>
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Uploaded by {doc.uploadedByName} · {formatLabDate(doc.uploadedAt)}
+                  {t("documents.uploadedBy", { name: doc.uploadedByName, date: formatLabDate(doc.uploadedAt) })}
                 </Typography>
                 {doc.status === "Voided" && doc.voidReason && (
-                  <Typography sx={{ fontSize: 12, color: "error.main" }}>Voided: {doc.voidReason}</Typography>
+                  <Typography sx={{ fontSize: 12, color: "error.main" }}>
+                    {t("documents.voidedReason", { reason: doc.voidReason })}
+                  </Typography>
                 )}
               </Box>
               <Box sx={{ display: "flex", flexShrink: 0 }}>
-                <Tooltip title="View / Download">
-                  <IconButton aria-label="View document" size="small" onClick={() => handleView(doc)} sx={{ color: "primary.main" }}>
+                <Tooltip title={t("documents.viewDownload")}>
+                  <IconButton aria-label={t("documents.viewAria")} size="small" onClick={() => handleView(doc)} sx={{ color: "primary.main" }}>
                     <VisibilityOutlinedIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
                 {canVoid && doc.status === "Current" && (
-                  <Tooltip title="Void">
-                    <IconButton aria-label="Void document" size="small" disabled={busy} onClick={() => setVoidTarget(doc)} sx={{ color: "error.main" }}>
+                  <Tooltip title={t("documents.void")}>
+                    <IconButton aria-label={t("documents.voidAria")} size="small" disabled={busy} onClick={() => setVoidTarget(doc)} sx={{ color: "error.main" }}>
                       <BlockIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -182,10 +187,15 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
       {voidTarget && (
         <Alert severity="warning" sx={{ mt: 2 }} icon={false}>
           <Typography sx={{ fontSize: 12, mb: 1 }}>
-            <strong>{voidTarget.originalFileName}</strong> will be marked Voided. The file and its history are kept.
+            <Trans
+              i18nKey="documents.voidNotice"
+              ns="receiving"
+              values={{ fileName: voidTarget.originalFileName }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
           <TextField
-            label="Reason for voiding *"
+            label={t("documents.voidReasonLabel")}
             size="small"
             fullWidth
             multiline
@@ -194,9 +204,9 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
             onChange={(e) => setVoidReason(e.target.value)}
           />
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1 }}>
-            <Button size="small" disabled={busy} onClick={() => { setVoidTarget(null); setVoidReason(""); }}>Cancel</Button>
+            <Button size="small" disabled={busy} onClick={() => { setVoidTarget(null); setVoidReason(""); }}>{t("documents.cancel")}</Button>
             <Button size="small" color="error" variant="contained" disabled={busy || !voidReason.trim()} onClick={handleVoid}>
-              Void Document
+              {t("documents.voidDocument")}
             </Button>
           </Box>
         </Alert>

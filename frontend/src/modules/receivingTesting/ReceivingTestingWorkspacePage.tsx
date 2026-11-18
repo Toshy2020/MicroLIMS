@@ -53,7 +53,9 @@ import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
 import { SampleRegisterTable, WORKSPACE_REGISTER_DEFAULTS, sampleExportColumns } from "../receiving/components/SampleRegisterTable";
 import { exportRegisterRows } from "../../components/lab/table/exportRows";
-import { useTranslation } from "../../i18n";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { i18n, useTranslation } from "../../i18n";
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "../receiving/dialogs/EditSampleDetailsDialog";
 import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
@@ -119,7 +121,7 @@ interface Props {
 // nothing selected and no explanation. Both lookups below can fail for the
 // same sample, so the toast id keeps it to one message.
 function notifySampleLoadFailed(sampleId: number) {
-  toast.error(`Sample #${sampleId} could not be opened. It may not belong to this laboratory, or the server could not be reached.`, {
+  toast.error(i18n.t("workspace.sampleOpenFailed", { ns: "receiving", sampleId }), {
     id: `workspace-sample-${sampleId}`
   });
 }
@@ -174,22 +176,23 @@ function evaluateWorkspaceDeepLinkOpen(
   action: WorkspaceDeepLinkOpen,
   sample: SampleRecord,
   testOrderId: number | null,
-  permissions: string[]
+  permissions: string[],
+  t: (key: string) => string
 ): DeepLinkEvaluation {
   if (action === "step" || action === "incubation") {
     const foundTest = testOrderId
-      ? sample.assignedTests?.find((t) => t.testOrderId === testOrderId)
+      ? sample.assignedTests?.find((test) => test.testOrderId === testOrderId)
       : undefined;
     if (!foundTest) {
-      return { eligible: false, reason: "The requested test order could not be found on this sample." };
+      return { eligible: false, reason: t("workspace.deepLink.testOrderNotFound") };
     }
     if (CLOSED_SAMPLE_STATUSES.has(sample.status) || isTestPastStep(foundTest)) {
       return {
         eligible: false,
         reason:
           action === "incubation"
-            ? "This test is no longer waiting for an incubation read."
-            : "This test is no longer waiting for this step."
+            ? t("workspace.deepLink.notWaitingIncubation")
+            : t("workspace.deepLink.notWaitingStep")
       };
     }
     if (
@@ -197,15 +200,15 @@ function evaluateWorkspaceDeepLinkOpen(
       foundTest.status === "Pending" &&
       (!foundTest.workflowStatus || foundTest.workflowStatus === "Pending")
     ) {
-      return { eligible: false, reason: "This test is no longer waiting for an incubation read." };
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingIncubation") };
     }
     if (sample.preparationStatus === "NeedsPreparation" && !foundTest.skipsPreparation) {
       return {
         eligible: false,
         reason:
           action === "incubation"
-            ? "This sample must be prepared before performing incubation reads."
-            : "This sample must be prepared before performing test steps."
+            ? t("workspace.deepLink.prepBeforeIncubation")
+            : t("workspace.deepLink.prepBeforeStep")
       };
     }
     return { eligible: true, action, test: foundTest };
@@ -213,34 +216,34 @@ function evaluateWorkspaceDeepLinkOpen(
 
   if (action === "review") {
     if (!permissions.includes(PERMISSIONS.SAMPLES_REVIEW)) {
-      return { eligible: false, reason: "You do not have permission to review this sample." };
+      return { eligible: false, reason: t("workspace.deepLink.noReviewPermission") };
     }
     if (sample.status !== "UnderReview") {
-      return { eligible: false, reason: "This sample is no longer waiting for review." };
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingReview") };
     }
     return { eligible: true, action };
   }
 
   if (action === "approval") {
     if (!permissions.includes(PERMISSIONS.SAMPLES_APPROVE)) {
-      return { eligible: false, reason: "You do not have permission to approve this sample." };
+      return { eligible: false, reason: t("workspace.deepLink.noApprovePermission") };
     }
     if (sample.status !== "UnderApproval") {
-      return { eligible: false, reason: "This sample is no longer waiting for approval." };
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingApproval") };
     }
     return { eligible: true, action };
   }
 
   if (!permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)) {
-    return { eligible: false, reason: "You do not have permission to assign analysts." };
+    return { eligible: false, reason: t("workspace.deepLink.noAssignPermission") };
   }
   if (CLOSED_SAMPLE_STATUSES.has(sample.status)) {
-    return { eligible: false, reason: "Analysts cannot be assigned to a closed sample." };
+    return { eligible: false, reason: t("workspace.deepLink.cannotAssignClosed") };
   }
   if (testOrderId) {
-    const foundTest = sample.assignedTests?.find((t) => t.testOrderId === testOrderId);
+    const foundTest = sample.assignedTests?.find((test) => test.testOrderId === testOrderId);
     if (foundTest && CLOSED_SAMPLE_STATUSES.has(foundTest.status)) {
-      return { eligible: false, reason: "This test is closed and can no longer be assigned." };
+      return { eligible: false, reason: t("workspace.deepLink.testClosedCannotAssign") };
     }
   }
   return { eligible: true, action };
@@ -249,7 +252,8 @@ function evaluateWorkspaceDeepLinkOpen(
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
-  const { t } = useTranslation();
+  const { t } = useTranslation("receiving");
+  const { t: tCommon } = useTranslation("common");
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Core Data State
@@ -259,7 +263,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const [totalCount, setTotalCount] = useState(0);
   const [workloadCounts, setWorkloadCounts] = useState<WorkspaceTileCounts | null>(null);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" | "warning" } | null>(null);
+  const [notification, setNotification] = useState<{ text: ReactNode; severity: "success" | "error" | "info" | "warning" } | null>(null);
 
   // The address holds the filters, sort and page. Links that still use the
   // old parameters are rewritten once, before the first list request, so the
@@ -476,7 +480,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       }
     } catch (err: unknown) {
       setNotification({
-        text: serverMessage(err) || "Failed to load laboratory sample records.",
+        text: serverMessage(err) || t("workspace.loadFailed"),
         severity: "error"
       });
     } finally {
@@ -537,7 +541,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     sample: SampleRecord,
     testOrderId: number | null
   ) => {
-    const result = evaluateWorkspaceDeepLinkOpen(action, sample, testOrderId, permissions);
+    const result = evaluateWorkspaceDeepLinkOpen(action, sample, testOrderId, permissions, t);
     if (!result.eligible) {
       setNotification({ text: result.reason, severity: "warning" });
       return;
@@ -556,7 +560,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     }
 
     handleAssignAnalyst(sample);
-  }, [permissions, handleTestClick, handleViewSummary, handleAssignAnalyst]);
+  }, [permissions, t, handleTestClick, handleViewSummary, handleAssignAnalyst]);
 
   // Deep-Link URL Parameter Processing (Strict Backward Compatibility)
   useEffect(() => {
@@ -595,7 +599,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             setExtraSelectedSample(byTest);
             applyWorkspaceOpenAction(paramOpen, byTest, tId);
           } else {
-            setNotification({ text: "The requested sample could not be found.", severity: "warning" });
+            setNotification({ text: t("workspace.sampleNotFound"), severity: "warning" });
           }
           clearOpenParams();
           return;
@@ -857,19 +861,19 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         try {
           const resolved = selection.allMatching ? (await loadAllMatching()).map((sample) => sample.sampleId) : ids;
           if (resolved.length > MAX_BULK_ASSIGN) {
-            toast.error(`Bulk assignment is limited to ${MAX_BULK_ASSIGN} samples. Narrow your filters.`);
+            toast.error(t("workspace.bulkAssignLimit", { max: MAX_BULK_ASSIGN }));
             return;
           }
           openBulkAssign(resolved);
         } catch (err) {
-          toast.error(getErrorMessage(err, "Could not load the matching samples."));
+          toast.error(getErrorMessage(err, t("workspace.bulkAssignLoadFailed")));
         }
       })();
-    }),
+    }, t("bulkAssign.actionLabel")),
     ...(labelsEnabled
       ? [{
           key: "print-labels",
-          label: "Print labels",
+          label: t("workspace.printLabels"),
           run: async (ids: Array<string | number>) => {
             try {
               const samples = await samplesForBulk(ids.map(Number));
@@ -881,7 +885,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               })));
               setLabelsDialogOpen(true);
             } catch (err) {
-              toast.error(getErrorMessage(err, "Could not load the samples to print labels for."));
+              toast.error(getErrorMessage(err, t("workspace.printLabelsLoadFailed")));
             }
           }
         }]
@@ -899,10 +903,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         getRowId: (sample) => sample.sampleId,
         filters: tableState.state.filters,
         search: tableState.state.search,
-        t
+        t: tCommon
       });
     } catch (err) {
-      toast.error(getErrorMessage(err, "Could not load the selected samples to export."));
+      toast.error(getErrorMessage(err, t("workspace.exportLoadFailed")));
     }
   };
 
@@ -949,7 +953,15 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const handleReceiveSuccess = (created: CreatedSampleRef[]) => {
     const count = created.length;
     setNotification({
-      text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
+      text: (
+        <Trans
+          i18nKey="toast.received"
+          ns="receiving"
+          count={count}
+          values={{ count }}
+          components={{ ltr: <Ltr>{null}</Ltr> }}
+        />
+      ),
       severity: "success"
     });
     loadRecords();
@@ -965,7 +977,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
 
   const handleEditSuccess = () => {
     setNotification({
-      text: "Sample details corrected and signed.",
+      text: t("toast.corrected"),
       severity: "success"
     });
     loadRecords();
@@ -988,8 +1000,21 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-          Laboratory Register ({displayRecords.length}
-          {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
+          {!showSelectedOnly && totalCount > displayRecords.length ? (
+            <Trans
+              i18nKey="workspace.compact.titleOfTotal"
+              ns="receiving"
+              values={{ shown: displayRecords.length, total: totalCount }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            <Trans
+              i18nKey="workspace.compact.title"
+              ns="receiving"
+              values={{ shown: displayRecords.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          )}
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           {headerNote}
@@ -1011,10 +1036,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1 } }]}>
-                <TableCell>Item / Reference</TableCell>
-                <TableCell sx={{ width: 65 }}>Type</TableCell>
-                <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-                <TableCell sx={{ width: 85 }}>Status</TableCell>
+                <TableCell>{t("workspace.compact.columns.item")}</TableCell>
+                <TableCell sx={{ width: 65 }}>{t("workspace.compact.columns.type")}</TableCell>
+                <TableCell sx={{ width: 95 }}>{t("workspace.compact.columns.batchCtrl")}</TableCell>
+                <TableCell sx={{ width: 85 }}>{t("workspace.compact.columns.status")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1035,7 +1060,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               {displayRecords.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                    No matching samples found.
+                    {t("workspace.compact.empty")}
                   </TableCell>
                 </TableRow>
               )}
@@ -1076,11 +1101,11 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           title={
             lab.code === "FP"
               ? lab.area === "rmpm"
-                ? "RM & PM Workspace"
-                : "FP Workspace"
-              : `${lab.name} Workspace`
+                ? t("workspace.titleRmPm")
+                : t("workspace.titleFp")
+              : t("workspace.titleLab", { labName: lab.name })
           }
-          subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
+          subtitle={t("workspace.subtitle")}
         />
 
         <Box sx={{ display: "flex", gap: 1.5, mt: 0.5 }}>
@@ -1098,7 +1123,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
             }}
           >
-            Refresh
+            {t("workspace.refresh")}
           </Button>
 
           <Button
@@ -1112,7 +1137,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               px: 2.5
             }}
           >
-            + New Sample
+            {t("workspace.newSample")}
           </Button>
         </Box>
       </Box>
@@ -1131,16 +1156,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       {workloadFilter && (workloadFilter === "retestInProgress" || workloadFilter === "reviewOverdue" || workloadFilter === "approvalOverdue") && (
         <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Active Workload Filter:
+            {t("workspace.activeWorkloadFilter")}
           </Typography>
           <Chip
-            label={
-              workloadFilter === "retestInProgress"
-                ? "Retests in Progress"
-                : workloadFilter === "reviewOverdue"
-                ? "Overdue Review (>24h)"
-                : "Overdue Approval (>24h)"
-            }
+            label={t(`workspace.workloadChips.${workloadFilter}`)}
             color="primary"
             variant="outlined"
             size="small"
@@ -1217,8 +1236,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           {/* Left Panel: Compact Sample Register with Checkboxes */}
           {renderCompactRegister(
             <>
-              {checkedSampleIds.size} checked
-              {hiddenCheckedCount > 0 ? ` · ${hiddenCheckedCount} hidden` : ""}
+              <Trans i18nKey="workspace.compact.checked" ns="receiving" values={{ count: checkedSampleIds.size }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              {hiddenCheckedCount > 0 && (
+                <Trans i18nKey="workspace.compact.hidden" ns="receiving" values={{ count: hiddenCheckedCount }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              )}
             </>
           )}
 
@@ -1237,21 +1258,25 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               onOpenWorkflow={(sampleId, testOrderId) => {
                 const sample = displayRecords.find((r) => r.sampleId === sampleId) ||
                   (extraSelectedSample?.sampleId === sampleId ? extraSelectedSample : null);
-                const test = sample?.assignedTests?.find((t) => t.testOrderId === testOrderId);
+                const test = sample?.assignedTests?.find((assigned) => assigned.testOrderId === testOrderId);
                 if (sample && test) {
                   handleTestClick(test as unknown as WorkspaceTestOrderSummary, sample as unknown as WorkspaceSampleCard);
                 }
               }}
               onActionComplete={(result) => {
                 setNotification({
-                  text: `${result.succeededCount} test${result.succeededCount === 1 ? "" : "s"} started in incubation.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  text:
+                    t("workspace.incubationStarted", { count: result.succeededCount }) +
+                    (result.skippedCount > 0 ? t("workspace.skippedSuffix", { count: result.skippedCount }) : ""),
                   severity: result.skippedCount > 0 ? "warning" : "success"
                 });
                 loadRecords(true);
               }}
               onPreparationComplete={(result) => {
                 setNotification({
-                  text: `${result.succeededCount} sample${result.succeededCount === 1 ? "" : "s"} prepared and signed.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  text:
+                    t("workspace.samplesPrepared", { count: result.succeededCount }) +
+                    (result.skippedCount > 0 ? t("workspace.skippedSuffix", { count: result.skippedCount }) : ""),
                   severity: result.skippedCount > 0 ? "warning" : "success"
                 });
                 loadRecords(true);
@@ -1270,7 +1295,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           }}
         >
           {/* Left Panel: Compact Sample Register */}
-          {renderCompactRegister("Click a sample to switch")}
+          {renderCompactRegister(t("workspace.compact.clickToSwitch"))}
 
           {/* Right Panel: Selected Sample & Analytical Workflows Panel */}
           <Box
@@ -1308,7 +1333,16 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         <>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-              Laboratory Register {records ? `(${showSelectedOnly ? displayRecords.length : totalCount} ${totalCount === 1 ? "sample" : "samples"})` : ""}
+              {t("workspace.registerTitle")}{" "}
+              {records && (
+                <Trans
+                  i18nKey="workspace.registerCount"
+                  ns="receiving"
+                  count={totalCount}
+                  values={{ count: showSelectedOnly ? displayRecords.length : totalCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              )}
             </Typography>
 
             {viewMode !== "table" && !showSelectedOnly && totalCount > 0 && (
@@ -1432,7 +1466,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         sample={assigningSample}
         onClose={() => setAssigningSample(null)}
         onAssigned={() => {
-          setNotification({ text: "Analyst assignment updated successfully.", severity: "success" });
+          setNotification({ text: t("workspace.analystUpdated"), severity: "success" });
           loadRecords();
         }}
       />
@@ -1511,7 +1545,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onClose={() => setVoidingSample(null)}
         onSuccess={() => {
           setNotification({
-            text: `Sample #${voidingSample?.sampleId} (${voidingSample?.displayName}) has been marked as Voided.`,
+            text: t("workspace.voidedNotification", {
+              sampleId: voidingSample?.sampleId,
+              displayName: voidingSample?.displayName
+            }),
             severity: "success"
           });
           setVoidingSample(null);

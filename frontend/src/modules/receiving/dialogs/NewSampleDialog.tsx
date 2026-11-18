@@ -11,6 +11,10 @@ import {
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
+import { Trans } from "react-i18next";
+import { DirectionalIcon } from "../../../components/DirectionalIcon";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import {
   BatchReceivedSample,
   BatchReceiveRequest,
@@ -84,12 +88,6 @@ function pickReceivingDraft(values: { rows: ReceiveRowItem[] }): Partial<{ rows:
   };
 }
 
-function formatErrorSummary(problemCount: number, failingRowCount: number): string {
-  const p = problemCount === 1 ? "problem" : "problems";
-  const r = failingRowCount === 1 ? "row" : "rows";
-  return `${problemCount} ${p} in ${failingRowCount} ${r}`;
-}
-
 const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem => ({
   id: Math.random().toString(36).substring(2, 9),
   itemId: defaultValues?.itemId ?? "",
@@ -114,6 +112,7 @@ const createEmptyRow = (defaultValues?: Partial<ReceiveRowItem>): ReceiveRowItem
 
 export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, labMode }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [step, setStep] = useState<1 | 2>(1);
   const [category, setCategory] = useState<SampleCategoryKey | null>(null);
   const [rows, setRows] = useState<ReceiveRowItem[]>([createEmptyRow()]);
@@ -150,7 +149,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     formKey: "receiving",
     recordKey: category ?? "none",
     recordVersion: null,
-    title: currentCategoryDef ? `Receive ${currentCategoryDef.label}` : "Receive Sample",
+    title: currentCategoryDef ? t("newSample.draftTitle", { category: t(`categories.${currentCategoryDef.key}.label`) }) : t("newSample.draftTitleFallback"),
     values: { rows },
     pick: pickReceivingDraft,
     enabled: open && step === 2 && category !== null && !receivedByRow
@@ -366,7 +365,10 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
 
     if (failingRows > 0) {
       const topMsgs = Object.values(topLevelErrors);
-      const summary = formatErrorSummary(totalProblems, failingRows);
+      const summary = t("newSample.errorSummary", {
+        problems: t("newSample.problem", { count: totalProblems }),
+        rows: t("newSample.row", { count: failingRows })
+      });
       setErrorMessage(topMsgs.length > 0 ? `${summary}\n${topMsgs.join("\n")}` : summary);
     } else if (Object.keys(topLevelErrors).length > 0) {
       setErrorMessage(Object.values(topLevelErrors).join("\n"));
@@ -382,71 +384,71 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
 
       if (category === "product" || category === "rm" || category === "pm") {
         if (!row.itemId) {
-          errors.itemId = "Item is required";
+          errors.itemId = t("newSample.validation.itemRequired");
           isValid = false;
         } else if (labMode.kind === "choose" && !(row.targetSectionIds && row.targetSectionIds.length > 0)) {
-          errors.targetSectionIds = "Choose at least one laboratory";
+          errors.targetSectionIds = t("newSample.validation.labRequired");
           isValid = false;
         }
 
         if (row.itemId && row.gradeOptions?.length && !row.grade) {
-          errors.grade = "Grade is required";
+          errors.grade = t("newSample.validation.gradeRequired");
           isValid = false;
         }
 
         if (category === "product" && (!row.productionStage || row.productionStage.trim() === "")) {
-          errors.productionStage = "Production Stage is required";
+          errors.productionStage = t("newSample.validation.stageRequired");
           isValid = false;
         }
       } else if (category === "water") {
         if (!row.departmentId) {
-          errors.departmentId = "Department is required";
+          errors.departmentId = t("newSample.validation.departmentRequired");
           isValid = false;
         }
       } else if (category === "em") {
         if (!row.departmentId) {
-          errors.departmentId = "Department is required";
+          errors.departmentId = t("newSample.validation.departmentRequired");
           isValid = false;
         }
       } else if (category === "ac") {
         const isPhyschem = labMode.kind === "fixed" && labMode.code !== "MICRO";
         if (isPhyschem) {
           if (!row.previousProductItemId) {
-            errors.previousProductItemId = "Previous Product is required";
+            errors.previousProductItemId = t("newSample.validation.previousProductRequired");
             isValid = false;
           }
           if (!row.techniques || row.techniques.length === 0) {
-            errors.techniques = "At least one technique is required";
+            errors.techniques = t("newSample.validation.techniqueRequired");
             isValid = false;
           }
         } else {
           if ((!row.previousProductName || row.previousProductName.trim() === "") && !row.previousProductItemId) {
-            errors.previousProductName = "Previous Product is required";
+            errors.previousProductName = t("newSample.validation.previousProductRequired");
             isValid = false;
           }
         }
         if (!row.previousProductBatchNumber || row.previousProductBatchNumber.trim() === "") {
-          errors.previousProductBatchNumber = "Previous Product Batch No. is required";
+          errors.previousProductBatchNumber = t("newSample.validation.previousBatchRequired");
           isValid = false;
         }
         if (!row.machineId) {
-          errors.machineId = "Machine is required";
+          errors.machineId = t("newSample.validation.machineRequired");
           isValid = false;
         }
       }
 
       if (!row.causeOfTestingId) {
-        errors.causeOfTestingId = "Cause of Testing is required";
+        errors.causeOfTestingId = t("newSample.validation.causeRequired");
         isValid = false;
       }
 
       if (!row.sampledBy || row.sampledBy.trim() === "") {
-        errors.sampledBy = "Sampled By is required";
+        errors.sampledBy = t("newSample.validation.sampledByRequired");
         isValid = false;
       }
 
       if (row.mfgDate && row.expDate && row.expDate < row.mfgDate) {
-        errors.expDate = "Expiry Date must be after Manufacturing Date";
+        errors.expDate = t("newSample.validation.expAfterMfg");
         isValid = false;
       }
 
@@ -458,7 +460,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     if (!isValid) {
       applyErrorsAndFocus(rowErrors);
       setErrorMessage((prev) =>
-        prev ? `Please fix validation errors before saving:\n${prev}` : "Please fix validation errors before saving."
+        prev ? `${t("newSample.fixValidation")}\n${prev}` : t("newSample.fixValidationOnly")
       );
     }
 
@@ -569,7 +571,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             try {
               await ReceiveService.uploadSampleDocument(sample.sampleId, file);
             } catch {
-              failedCoas[idx] = "Certificate not attached — retry";
+              failedCoas[idx] = t("newSample.coaRowFailed");
             }
           }
         }
@@ -578,7 +580,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
           setCoaErrorByRow(failedCoas);
           const numbers = sorted.map((s) => s.referenceNumber).join(", ");
           setWarnings([
-            `Samples received (${numbers}), but one or more supplier certificates could not be attached. Retry on the marked row(s) below.`
+            t("newSample.coaFailedWarning", { numbers })
           ]);
           setWarningSnackbarOpen(true);
           return;
@@ -592,7 +594,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       if (Object.keys(rowErrs).length > 0 || Object.keys(fieldErrs).length > 0) {
         applyErrorsAndFocus(rowErrs, fieldErrs);
       } else {
-        setErrorMessage(`Failed to receive samples: ${getErrorMessage(err, "An unexpected error occurred while saving samples.")}`);
+        setErrorMessage(t("newSample.receiveFailed", { message: getErrorMessage(err, t("newSample.unexpectedError")) }));
       }
     } finally {
       setLoading(false);
@@ -617,7 +619,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
     } catch {
       setCoaErrorByRow((prev) => ({
         ...prev,
-        [rowIdx]: "Certificate not attached — retry"
+        [rowIdx]: t("newSample.coaRowFailed")
       }));
     } finally {
       setRetryingCoaRow(null);
@@ -633,19 +635,21 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       paperSx={{ borderRadius: 2.5, p: 0.5 }}
       titleSx={{ pb: 1 }}
       title={
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flex: 1, minWidth: 0, mr: 1 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flex: 1, minWidth: 0, me: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
-              New Sample
+              {t("newSample.title")}
             </Typography>
             <Typography sx={{ fontSize: 13, color: theme.palette.primary.main, fontWeight: 600 }}>
               {step === 1
-                ? "Step 1 of 2: Choose Item Type"
-                : `Step 2 of 2: Enter Sample Details for ${currentCategoryDef?.label || ""}`}
+                ? t("newSample.step1Subtitle")
+                : t("newSample.step2Subtitle", {
+                    category: currentCategoryDef ? t(`categories.${currentCategoryDef.key}.label`) : ""
+                  })}
             </Typography>
           </Box>
           <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-            Step {step} of 2
+            <Trans i18nKey="newSample.stepOf" ns="receiving" values={{ step }} components={{ ltr: <Ltr>{null}</Ltr> }} />
           </Typography>
         </Box>
       }
@@ -653,20 +657,20 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
         step === 1 ? (
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
             <Button onClick={onClose} color="inherit">
-              Cancel
+              {t("newSample.cancel")}
             </Button>
             <Button
               variant="contained"
               color="primary"
               disabled={!category}
               onClick={handleNextStep}
-              endIcon={<ArrowForwardIcon />}
+              endIcon={<DirectionalIcon><ArrowForwardIcon /></DirectionalIcon>}
               sx={{
                 fontWeight: 600,
                 px: 3
               }}
             >
-              Next
+              {t("newSample.next")}
             </Button>
           </Box>
         ) : (
@@ -674,26 +678,26 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
             <Button
               onClick={handlePrevStep}
               disabled={loading}
-              startIcon={<ArrowBackIcon />}
+              startIcon={<DirectionalIcon><ArrowBackIcon /></DirectionalIcon>}
               color="inherit"
             >
-              Back
+              {t("newSample.back")}
             </Button>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
-                Total Samples: {rows.length}
+                <Trans i18nKey="newSample.totalSamples" ns="receiving" values={{ count: rows.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
               </Typography>
               {draftSavedAt && draft.storageAvailable && !receivedByRow && (
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Draft saved on this computer at {formatHm(draftSavedAt)} — not recorded
+                  <Trans i18nKey="newSample.draftSavedAt" ns="receiving" values={{ time: formatHm(draftSavedAt) }} components={{ ltr: <Ltr>{null}</Ltr> }} />
                 </Typography>
               )}
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <Button onClick={onClose} disabled={loading} color="inherit">
-                Cancel
+                {t("newSample.cancel")}
               </Button>
               <Button
                 variant="contained"
@@ -706,7 +710,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
                   px: 3
                 }}
               >
-                {receivedByRow ? "Done" : loading ? "Receiving..." : "Save All Samples"}
+                {receivedByRow ? t("newSample.done") : loading ? t("newSample.receiving") : t("newSample.saveAll")}
               </Button>
             </Box>
           </Box>

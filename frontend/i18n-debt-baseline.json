@@ -1,5 +1,5 @@
 {
-  "total": 10133,
+  "total": 9836,
   "modules": {
     "components": 351,
     "modules/admin": 366,
@@ -21,8 +21,6 @@
     "modules/navigation": 12,
     "modules/notifications": 39,
     "modules/oosTracking": 55,
-    "modules/receiving": 269,
-    "modules/receivingTesting": 28,
     "modules/reports": 532,
     "modules/roles": 72,
     "modules/solutionPreparation": 266,

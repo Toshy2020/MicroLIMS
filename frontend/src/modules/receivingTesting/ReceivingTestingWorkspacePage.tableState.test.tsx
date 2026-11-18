@@ -381,7 +381,7 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     await user.click(within(bar).getByRole("button", { name: "Assign analyst" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Bulk Assign Analyst")).toBeTruthy();
-    expect(within(dialog).getByText("1 sample selected")).toBeTruthy();
+    expect(within(dialog).getByText((_c, el) => el?.tagName === "P" && el.textContent === "1 sample selected")).toBeTruthy();
     expect(ReceiveService.getAssignmentOptions).toHaveBeenCalledWith(91);
   });
 
@@ -396,7 +396,7 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     await user.click(screen.getByRole("button", { name: "Assign analyst" }));
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Bulk Assign Analyst")).toBeTruthy();
-    expect(within(dialog).getByText("2 samples selected")).toBeTruthy();
+    expect(within(dialog).getByText((_c, el) => el?.tagName === "P" && el.textContent === "2 samples selected")).toBeTruthy();
     expect(ReceiveService.getAssignmentOptions).toHaveBeenCalledWith(91);
   });
 

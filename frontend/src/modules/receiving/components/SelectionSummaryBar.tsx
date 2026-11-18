@@ -1,4 +1,6 @@
 import { Button, Chip, Paper, Typography, useTheme } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
 import { useTranslation } from "../../../i18n";
 import LayersIcon from "@mui/icons-material/Layers";
 import CloseIcon from "@mui/icons-material/Close";
@@ -35,7 +37,7 @@ export function SelectionSummaryBar({
   onExport
 }: Props) {
   const theme = useTheme();
-  const { t } = useTranslation();
+  const { t } = useTranslation("receiving");
   if (selectedCount === 0) return null;
 
   const needsMore = selectedCount < 2;
@@ -61,13 +63,19 @@ export function SelectionSummaryBar({
       <LayersIcon sx={{ fontSize: 18, color: theme.custom.status.purple.text }} />
 
       <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.purple.text }}>
-        {selectedCount} {selectedCount === 1 ? "sample" : "samples"} selected
+        <Trans
+          i18nKey="selection.selectedCount"
+          ns="receiving"
+          count={selectedCount}
+          values={{ count: selectedCount }}
+          components={{ ltr: <Ltr>{null}</Ltr> }}
+        />
       </Typography>
 
       {hiddenCount > 0 && !showingSelectedOnly && (
         <Chip
           size="small"
-          label={`${hiddenCount} hidden by current filters`}
+          label={t("selection.hiddenCount", { count: hiddenCount })}
           sx={{
             height: 20,
             fontSize: 12,
@@ -81,10 +89,10 @@ export function SelectionSummaryBar({
 
       <Typography sx={{ fontSize: 12, color: "text.secondary", flex: 1, minWidth: 180 }}>
         {showingSelectedOnly
-          ? "Showing only the selected samples; other filters are paused."
+          ? t("selection.showingSelectedOnly")
           : needsMore
-          ? "Select at least one more to open grouped preparation and incubation setup."
-          : "Grouped actions are available for this selection."}
+          ? t("selection.selectMore")
+          : t("selection.groupedAvailable")}
       </Typography>
 
       {(hiddenCount > 0 || showingSelectedOnly) && (
@@ -95,7 +103,7 @@ export function SelectionSummaryBar({
           onClick={onToggleShowSelectedOnly}
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
         >
-          {showingSelectedOnly ? "Back to filters" : "Show selected only"}
+          {showingSelectedOnly ? t("selection.backToFilters") : t("selection.showSelectedOnly")}
         </Button>
       )}
 
@@ -107,7 +115,7 @@ export function SelectionSummaryBar({
           onClick={onBulkAssign}
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600 }}
         >
-          Assign analyst
+          {t("selection.assignAnalyst")}
         </Button>
       )}
 
@@ -119,7 +127,7 @@ export function SelectionSummaryBar({
           onClick={onExport}
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
         >
-          {t("table.exportSelected")}
+          {t("common:table.exportSelected")}
         </Button>
       )}
 
@@ -130,7 +138,7 @@ export function SelectionSummaryBar({
         onClick={onClear}
         sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
       >
-        Clear selection
+        {t("selection.clearSelection")}
       </Button>
     </Paper>
   );

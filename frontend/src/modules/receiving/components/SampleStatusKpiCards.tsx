@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Box, ButtonBase, Tooltip, Typography, useTheme } from "@mui/material";
 import { StatusTone } from "../../../theme/statusTokens";
+import { useTranslation } from "../../../i18n";
 
 // These tiles used to count sample categories (Product/RM/PM/Water/AC/EM),
 // which duplicated the Item Type dropdown immediately below them. They now
@@ -35,50 +36,17 @@ export type AllWorkloadFilterKey = WorkloadFilterKey | DeepLinkWorkloadFilterKey
 
 interface TileConfig {
   key: WorkloadFilterKey;
-  label: string;
-  hint: string;
   tone: StatusTone;
   assignersOnly?: boolean;
 }
 
 const TILES: TileConfig[] = [
-  {
-    key: "needsPreparation",
-    label: "Needs Preparation",
-    hint: "Preparation not yet signed off",
-    tone: "inconclusive"
-  },
-  {
-    key: "readyToRead",
-    label: "Ready to Read",
-    hint: "Incubation complete, awaiting result entry",
-    tone: "purple"
-  },
-  {
-    key: "awaitingReview",
-    label: "Awaiting Review",
-    hint: "All tests complete, awaiting reviewer",
-    tone: "info"
-  },
-  {
-    key: "overdue",
-    label: "Overdue",
-    hint: "Open more than 24 hours after receipt",
-    tone: "detected"
-  },
-  {
-    key: "mine",
-    label: "Assigned to Me",
-    hint: "Samples with a test assigned to you",
-    tone: "action"
-  },
-  {
-    key: "unassigned",
-    label: "Unassigned",
-    hint: "No analyst assigned yet",
-    tone: "pending",
-    assignersOnly: true
-  }
+  { key: "needsPreparation", tone: "inconclusive" },
+  { key: "readyToRead", tone: "purple" },
+  { key: "awaitingReview", tone: "info" },
+  { key: "overdue", tone: "detected" },
+  { key: "mine", tone: "action" },
+  { key: "unassigned", tone: "pending", assignersOnly: true }
 ];
 
 interface Props {
@@ -97,8 +65,9 @@ interface Props {
 // grey so the eye lands on what needs doing.
 export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, allCount, canAssignAnalyst }: Props) {
   const theme = useTheme();
-  const tiles = useMemo(() => TILES.filter((t) => !t.assignersOnly || canAssignAnalyst), [canAssignAnalyst]);
-  const isTileKey = (k: AllWorkloadFilterKey | null) => tiles.some((t) => t.key === k);
+  const { t } = useTranslation("receiving");
+  const tiles = useMemo(() => TILES.filter((tile) => !tile.assignersOnly || canAssignAnalyst), [canAssignAnalyst]);
+  const isTileKey = (k: AllWorkloadFilterKey | null) => tiles.some((tile) => tile.key === k);
 
   const tab = (key: string, label: string, hint: string, count: number | null, tone: StatusTone | null, active: boolean, onClick: () => void) => {
     const toneText = tone && count ? theme.custom.status[tone].text : undefined;
@@ -116,12 +85,12 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, all
             px: 2,
             pt: 1.25,
             pb: 1,
-            textAlign: "left",
+            textAlign: "start",
             borderBottom: "3px solid",
             borderColor: active ? "primary.main" : "transparent",
-            borderRight: "1px solid",
-            borderRightColor: "divider",
-            "&:last-of-type": { borderRight: "none" },
+            borderInlineEnd: "1px solid",
+            borderInlineEndColor: "divider",
+            "&:last-of-type": { borderInlineEnd: "none" },
             bgcolor: active ? theme.custom.status.purple.bg : "transparent",
             transition: "background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1)",
             "&:hover": { bgcolor: active ? theme.custom.status.purple.bg : "action.hover" },
@@ -148,10 +117,14 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, all
     );
   };
 
+  const allTab = onClear
+    ? tab("all", t("kpi.all.label"), t("kpi.all.hint"), allCount ?? null, null, !activeKey || !isTileKey(activeKey), onClear)
+    : null;
+
   return (
     <Box
       component="nav"
-      aria-label="Work queues"
+      aria-label={t("kpi.navAria")}
       sx={{
         display: "flex",
         overflowX: "auto",
@@ -162,9 +135,17 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, all
         bgcolor: "background.paper"
       }}
     >
-      {onClear && tab("all", "All samples", "Every sample in this laboratory", allCount ?? null, null, !activeKey || !isTileKey(activeKey), onClear)}
-      {tiles.map((t) =>
-        tab(t.key, t.label, t.hint, counts?.[t.key] ?? 0, t.tone, activeKey === t.key, () => onSelect(t.key))
+      {allTab}
+      {tiles.map((tile) =>
+        tab(
+          tile.key,
+          t(`kpi.${tile.key}.label`),
+          t(`kpi.${tile.key}.hint`),
+          counts?.[tile.key] ?? 0,
+          tile.tone,
+          activeKey === tile.key,
+          () => onSelect(tile.key)
+        )
       )}
     </Box>
   );

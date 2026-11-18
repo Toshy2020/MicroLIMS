@@ -7,21 +7,18 @@ import { laboratorySectionService, LaboratorySection } from "../../services/labo
 import { ReceivingTestingWorkspacePage, WorkspaceLab } from "./ReceivingTestingWorkspacePage";
 import { FP_WORKSPACE_PATH, RMPM_WORKSPACE_PATH, firstWorkspacePath } from "../../routes/physchemWorkspacePath";
 import { ReceiveService } from "../receiving/services/ReceiveService";
-
-const LAB_NAMES: Record<WorkspaceLab["code"], string> = {
-  MICRO: "Microbiology Laboratory",
-  FP: "Physicochemical Laboratory"
-};
+import { useTranslation } from "../../i18n";
 
 // Checked in Microbiology-first order wherever "the first lab the user
 // belongs to" matters (design.md §4 lists Microbiology first).
 const LAB_CODES: WorkspaceLab["code"][] = ["MICRO", "FP"];
 
 function NotAMember({ message }: { message: string }) {
+  const { t } = useTranslation("receiving");
   return (
     <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
       <Alert severity="error">
-        <strong>Not a member:</strong> {message}
+        <strong>{t("workspace.notAMemberPrefix")}</strong> {message}
       </Alert>
     </Box>
   );
@@ -39,6 +36,7 @@ interface LabWorkspaceRouteProps {
 // list rather than useMyLabs's own `labs` array, because an administrator
 // doesn't always carry a real membership row for a lab they administer.
 export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
+  const { t } = useTranslation("receiving");
   const { codes, physchemAreas, loading: labsLoading } = useMyLabs();
   const [sections, setSections] = useState<LaboratorySection[] | null>(null);
   const [sectionsFailed, setSectionsFailed] = useState(false);
@@ -63,7 +61,7 @@ export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
   }
 
   if (!codes.includes(code)) {
-    return <NotAMember message={`You are not a member of the ${LAB_NAMES[code]}.`} />;
+    return <NotAMember message={t("workspace.notMemberOfLab", { lab: t(`tracking.labOptions.${code}`) })} />;
   }
 
   if (code === "FP" && area && !physchemAreas.includes(area)) {
@@ -71,8 +69,8 @@ export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
       <NotAMember
         message={
           area === "rmpm"
-            ? "You do not have access to the RM & PM workspace."
-            : "You do not have access to the FP workspace."
+            ? t("workspace.noRmPmAccess")
+            : t("workspace.noFpAccess")
         }
       />
     );
@@ -82,7 +80,7 @@ export function LabWorkspaceRoute({ code, area }: LabWorkspaceRouteProps) {
   if (!section) {
     return (
       <Box sx={{ p: 4, maxWidth: 800, mx: "auto" }}>
-        <Alert severity="error">Unable to load laboratory details. Please refresh the page.</Alert>
+        <Alert severity="error">{t("workspace.labLoadFailed")}</Alert>
       </Box>
     );
   }
@@ -126,6 +124,7 @@ function OtherAreaSampleGuard({ lab, otherPath }: { lab: WorkspaceLab; otherPath
 // preserving the query string so deep links from notifications and
 // dashboards still land on the right sample/filter.
 export function FirstLabWorkspaceRedirect() {
+  const { t } = useTranslation("receiving");
   const { codes, physchemAreas, loading } = useMyLabs();
   const location = useLocation();
 
@@ -133,7 +132,7 @@ export function FirstLabWorkspaceRedirect() {
 
   const target = LAB_CODES.find((c) => codes.includes(c));
   if (!target) {
-    return <NotAMember message="You are not a member of any laboratory workspace." />;
+    return <NotAMember message={t("workspace.noWorkspaceAccess")} />;
   }
 
   const path = target === "MICRO" ? "/microbiology/workspace" : firstWorkspacePath(physchemAreas);

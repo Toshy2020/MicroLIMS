@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "مراقبة الأخطاء",
+    "subtitle": "حوادث تقنية تم التقاطها من التطبيق وواجهة البرمجة وقاعدة البيانات. بيانات تشغيلية فقط، وليست جزءًا من سجل GxP."
+  },
+  "filters": {
+    "severity": "الأهمية",
+    "source": "المصدر",
+    "status": "الحالة",
+    "all": "الكل",
+    "activeFrom": "نشط من",
+    "activeTo": "نشط حتى",
+    "search": "ابحث في الملخص أو معرّف الارتباط",
+    "reset": "إعادة ضبط",
+    "exporting": "جارٍ التصدير...",
+    "exportCsv": "تصدير CSV"
+  },
+  "table": {
+    "severity": "الأهمية",
+    "summary": "الملخص",
+    "sources": "المصادر",
+    "occurrences": "عدد التكرارات",
+    "firstSeen": "أول ظهور",
+    "lastSeen": "آخر ظهور",
+    "status": "الحالة",
+    "collapse": "طيّ",
+    "expand": "توسيع",
+    "empty": "لا توجد حوادث تطابق عوامل التصفية هذه."
+  },
+  "row": {
+    "correlationId": "معرّف الارتباط:",
+    "resolutionNotes": "ملاحظات الحل",
+    "markResolved": "وضع علامة محلول",
+    "resolved": "تم الحل {{date}}",
+    "resolvedBy": " بواسطة {{user}}",
+    "resolvedNotes": " - {{notes}}",
+    "reopen": "إعادة فتح",
+    "overridden": "تم التجاوز من {{severity}}",
+    "override": "تجاوز",
+    "auto": "تلقائي ({{severity}})",
+    "by": "بواسطة {{user}}"
+  },
+  "errors": {
+    "load": "تعذّر تحميل الحوادث.",
+    "export": "تعذّر إنشاء التصدير.",
+    "detail": "تعذّر تحميل تفاصيل الحادث.",
+    "action": "تعذّر إكمال الإجراء."
+  }
+}

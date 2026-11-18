@@ -1,0 +1,49 @@
+{
+  "page": {
+    "title": "Error Monitoring",
+    "subtitle": "Technical incidents captured from the application, the API and the database. Operational data only - this is not part of the GxP record."
+  },
+  "filters": {
+    "severity": "Severity",
+    "source": "Source",
+    "status": "Status",
+    "all": "All",
+    "activeFrom": "Active from",
+    "activeTo": "Active to",
+    "search": "Search summary or correlation id",
+    "reset": "Reset",
+    "exporting": "Exporting...",
+    "exportCsv": "Export CSV"
+  },
+  "table": {
+    "severity": "Severity",
+    "summary": "Summary",
+    "sources": "Sources",
+    "occurrences": "Occurrences",
+    "firstSeen": "First seen",
+    "lastSeen": "Last seen",
+    "status": "Status",
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "empty": "No incidents match these filters."
+  },
+  "row": {
+    "correlationId": "Correlation id:",
+    "resolutionNotes": "Resolution notes",
+    "markResolved": "Mark resolved",
+    "resolved": "Resolved {{date}}",
+    "resolvedBy": " by {{user}}",
+    "resolvedNotes": " - {{notes}}",
+    "reopen": "Reopen",
+    "overridden": "overridden from {{severity}}",
+    "override": "Override",
+    "auto": "Auto ({{severity}})",
+    "by": "by {{user}}"
+  },
+  "errors": {
+    "load": "Could not load incidents.",
+    "export": "The export could not be generated.",
+    "detail": "Could not load incident detail.",
+    "action": "The action could not be completed."
+  }
+}

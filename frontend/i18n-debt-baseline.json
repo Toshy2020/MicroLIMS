@@ -1,5 +1,5 @@
 {
-  "total": 1383,
+  "total": 1350,
   "modules": {
     "components": 129,
     "modules/admin": 13,
@@ -9,7 +9,6 @@
     "modules/dashboard": 13,
     "modules/discussions": 4,
     "modules/documentControl": 6,
-    "modules/errorMonitoring": 33,
     "modules/help": 46,
     "modules/hplcWorkspace": 31,
     "modules/icpWorkspace": 10,

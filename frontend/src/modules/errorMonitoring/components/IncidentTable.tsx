@@ -7,6 +7,7 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { tableHeadSx } from "../../../theme";
+import { useTranslation } from "../../../i18n";
 import type { IncidentListItem } from "../types/errorMonitoringTypes";
 import { SEVERITY_COLORS } from "../types/errorMonitoringTypes";
 import { IncidentRowDetail } from "./IncidentRowDetail";
@@ -27,6 +28,7 @@ export function IncidentTable({
   items, totalCount, page, rowsPerPage, expandedId,
   onToggleExpand, onPageChange, onRowsPerPageChange, onChanged
 }: Props) {
+  const { t } = useTranslation("errorMonitoring");
   return (
     <Paper>
       <TableContainer sx={{ maxHeight: { md: "calc(100vh - 240px)" }, overflowX: "auto" }}>
@@ -34,13 +36,13 @@ export function IncidentTable({
           <TableHead sx={tableHeadSx}>
             <TableRow>
               <TableCell sx={{ width: 48 }} />
-              <TableCell>Severity</TableCell>
-              <TableCell>Summary</TableCell>
-              <TableCell>Sources</TableCell>
-              <TableCell align="right">Occurrences</TableCell>
-              <TableCell>First seen</TableCell>
-              <TableCell>Last seen</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>{t("table.severity")}</TableCell>
+              <TableCell>{t("table.summary")}</TableCell>
+              <TableCell>{t("table.sources")}</TableCell>
+              <TableCell align="right">{t("table.occurrences")}</TableCell>
+              <TableCell>{t("table.firstSeen")}</TableCell>
+              <TableCell>{t("table.lastSeen")}</TableCell>
+              <TableCell>{t("table.status")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -53,7 +55,7 @@ export function IncidentTable({
                       py: 3,
                       textAlign: "center"
                     }}>
-                    No incidents match these filters.
+                    {t("table.empty")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -65,7 +67,7 @@ export function IncidentTable({
                 <Fragment key={incident.id}>
                   <TableRow hover sx={{ cursor: "pointer" }} onClick={() => onToggleExpand(incident.id)}>
                     <TableCell>
-                      <IconButton size="small" aria-label={expanded ? "Collapse" : "Expand"}>
+                      <IconButton size="small" aria-label={expanded ? t("table.collapse") : t("table.expand")}>
                         {expanded ? <KeyboardArrowDownIcon fontSize="small" /> : <KeyboardArrowRightIcon fontSize="small" />}
                       </IconButton>
                     </TableCell>

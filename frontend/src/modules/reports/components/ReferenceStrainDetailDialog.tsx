@@ -14,6 +14,8 @@ import { ReferenceStrainDetail } from "../types/referenceStrainTypes";
 import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
 
 interface ReferenceStrainDetailDialogProps {
   open: boolean;
@@ -36,6 +38,7 @@ function formatDateTime(iso?: string | null): string {
 }
 
 export function ReferenceStrainDetailDialog({ open, onClose, detail }: ReferenceStrainDetailDialogProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
 
   if (!detail) return null;
@@ -52,10 +55,10 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
             <BiocontrolIcon sx={{ color: theme.palette.primary.main }} />
             <Box>
               <Typography sx={{ fontSize: 17, fontWeight: 800, color: theme.palette.primary.main }}>
-                Reference Strain Working Culture Batch Record
+                {t("referenceStrain.detail.title")}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12 }}>
-                Code: <strong>{detail.cryovialCode}</strong> • {detail.strainName} {detail.atccNumber ? `(ATCC ${detail.atccNumber})` : ""}
+                {t("referenceStrain.detail.subtitle")}<strong>{detail.cryovialCode}</strong> • {detail.strainName} {detail.atccNumber ? `(ATCC ${detail.atccNumber})` : ""}
               </Typography>
             </Box>
           </Box>
@@ -72,21 +75,21 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               sx={{ fontWeight: 700 }}
             />
             {detail.isDestroyed && (
-              <Chip label="Destroyed" color="error" variant="outlined" sx={{ fontWeight: 700 }} />
+              <Chip label={t("referenceStrain.detail.destroyed")} color="error" variant="outlined" sx={{ fontWeight: 700 }} />
             )}
           </Stack>
         </Box>
       }
       actions={
         <Button onClick={onClose} variant="outlined" startIcon={<CloseIcon />}>
-          Close
+          {t("referenceStrain.detail.close")}
         </Button>
       }
     >
       {/* Batch Identity & Source Provenance */}
       <Paper sx={{ p: 2, mb: 2.5, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-          1. Batch Identity & Source Provenance
+          {t("referenceStrain.detail.section1")}
         </Typography>
         <Grid container spacing={2}>
           <Grid
@@ -94,13 +97,17 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Strain Organism</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.strainOrganism")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
               {detail.strainName} {detail.atccNumber ? `(ATCC ${detail.atccNumber})` : ""}
             </Typography>
             {detail.strainCode && (
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Strain {detail.strainCode} · {detail.cultureCollection}{detail.strainNumber ? ` ${detail.strainNumber}` : ""}
+                {t("referenceStrain.detail.strainCodeLine", {
+                  code: detail.strainCode,
+                  collection: detail.cultureCollection,
+                  number: detail.strainNumber ? ` ${detail.strainNumber}` : ""
+                })}
               </Typography>
             )}
           </Grid>
@@ -109,9 +116,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Source Microorganism Disc</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.sourceDisc")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {detail.sourceMaterialName} (Batch: {detail.sourceMaterialBatchNumber || "—"})
+              {detail.sourceMaterialName} {t("referenceStrain.detail.batchLabel", { batch: detail.sourceMaterialBatchNumber || "—" })}
             </Typography>
           </Grid>
           <Grid
@@ -119,9 +126,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Disc Receipt Date & Qty</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.discReceipt")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {formatDate(detail.sourceMaterialReceivingDate)} ({detail.sourceMaterialQuantityReceived} received)
+              {formatDate(detail.sourceMaterialReceivingDate)} {t("referenceStrain.detail.receivedCount", { count: detail.sourceMaterialQuantityReceived })}
             </Typography>
           </Grid>
           <Grid
@@ -129,7 +136,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Manufacturer Name</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.manufacturerName")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.manufacturerName || "—"}
             </Typography>
@@ -139,9 +146,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.prepExpiryDate")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {formatDate(detail.preparedAt)} • Exp: {formatDate(detail.expiryDate)}
+              {formatDate(detail.preparedAt)} • {t("referenceStrain.detail.expPrefix", { date: formatDate(detail.expiryDate) })}
             </Typography>
           </Grid>
           <Grid
@@ -149,9 +156,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Vials Prepared / Remaining</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.vialsPreparedRemaining")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: detail.vialsRemaining > 0 ? brandColors.ok : brandColors.err }}>
-              {detail.vialsRemaining} remaining of {detail.numberOfVialsPrepared} prepared
+              {t("referenceStrain.detail.vialsSummary", { remaining: detail.vialsRemaining, prepared: detail.numberOfVialsPrepared })}
             </Typography>
           </Grid>
           <Grid
@@ -159,9 +166,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Storage Condition / Physical Check</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.storagePhysicalCheck")}</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-              {detail.storageCondition || "—"} {detail.physicalCheckConfirmed ? "• Physical check confirmed" : (detail.physicalCheckText ? `(${detail.physicalCheckText})` : "")} {detail.physicalCheckConfirmed && detail.physicalCheckText ? `(Notes: ${detail.physicalCheckText})` : ""}
+              {detail.storageCondition || "—"} {detail.physicalCheckConfirmed ? t("referenceStrain.detail.physicalCheckConfirmed") : (detail.physicalCheckText ? `(${detail.physicalCheckText})` : "")} {detail.physicalCheckConfirmed && detail.physicalCheckText ? t("referenceStrain.detail.notesPrefix", { notes: detail.physicalCheckText }) : ""}
             </Typography>
           </Grid>
           <Grid
@@ -169,7 +176,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.preparedBy")}</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
               {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
@@ -179,9 +186,9 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approved By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.detail.approvedBy")}</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-              {detail.approvedByName ? `${detail.approvedByName} on ${formatDateTime(detail.approvedAt)}` : "Pending Approval"}
+              {detail.approvedByName ? t("referenceStrain.detail.approvedByOn", { name: detail.approvedByName, date: formatDateTime(detail.approvedAt) }) : t("referenceStrain.detail.pendingApproval")}
             </Typography>
           </Grid>
         </Grid>
@@ -192,7 +199,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <FactCheckIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
           <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: theme.palette.primary.main }}>
-            2. Identity Confirmation Panel ({detail.identityConfirmations.length} Entries)
+            {t("referenceStrain.detail.section2", { count: detail.identityConfirmations.length })}
           </Typography>
         </Box>
 
@@ -200,10 +207,10 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Lot (Verified Against)</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Incubator</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Incubation Window</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Purity & Morphology Observation</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.mediaLotVerified")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.incubator")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.incubationWindow")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.purityMorphology")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -224,7 +231,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
               {detail.identityConfirmations.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                    No identity confirmation panel rows recorded for this batch.
+                    {t("referenceStrain.detail.noIdentityConfirmations")}
                   </TableCell>
                 </TableRow>
               )}
@@ -238,7 +245,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <HistoryToggleOffIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
           <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: theme.palette.primary.main }}>
-            3. Thaw History ({detail.thawHistory.length} Events)
+            {t("referenceStrain.detail.section3", { count: detail.thawHistory.length })}
           </Typography>
         </Box>
 
@@ -246,23 +253,23 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Thawed Date & Time</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Thawed By Analyst</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Notes / Qualification Purpose</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.thawedDateTime")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.thawedByAnalyst")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.notesPurpose")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {detail.thawHistory.map((t) => (
-                <TableRow key={t.id} hover>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formatDateTime(t.thawedAt)}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>{t.thawedByName}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>{t.notes || "—"}</TableCell>
+              {detail.thawHistory.map((thaw) => (
+                <TableRow key={thaw.id} hover>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formatDateTime(thaw.thawedAt)}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{thaw.thawedByName}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{thaw.notes || "—"}</TableCell>
                 </TableRow>
               ))}
               {detail.thawHistory.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                    No thaw events recorded yet for this cryovial batch.
+                    {t("referenceStrain.detail.noThawEvents")}
                   </TableCell>
                 </TableRow>
               )}
@@ -276,7 +283,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <AcUnitIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
           <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: theme.palette.primary.main }}>
-            4. Primary Usage Log: Media & GPT Qualification Challenges ({detail.directUsageLog.length} Runs)
+            {t("referenceStrain.detail.section4", { count: detail.directUsageLog.length })}
           </Typography>
         </Box>
 
@@ -284,12 +291,12 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Lot Qualified</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Media Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Evaluation Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Challenge Role</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Outcome</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Read By / Date</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.mediaLotQualified")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.mediaType")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.evaluationType")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.challengeRole")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.outcome")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("referenceStrain.detail.readByDate")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -300,24 +307,24 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>{u.mediaType}</TableCell>
                   <TableCell sx={{ fontSize: 12 }}>{u.evaluationType}</TableCell>
-                  <TableCell sx={{ fontSize: 12 }}>{u.challengeRole || "Standard Challenge"}</TableCell>
+                  <TableCell sx={{ fontSize: 12 }}>{u.challengeRole || t("referenceStrain.detail.standardChallenge")}</TableCell>
                   <TableCell>
                     <Chip
                       size="small"
-                      label={u.outcome || "Pending"}
+                      label={u.outcome || t("referenceStrain.detail.pending")}
                       color={u.outcome === "Conform" ? "success" : u.outcome === "NonConform" ? "error" : "default"}
                       sx={{ fontWeight: 700, fontSize: 12, height: 20 }}
                     />
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {u.readByName ? `${u.readByName} (${formatDateTime(u.readAt)})` : "Pending"}
+                    {u.readByName ? `${u.readByName} (${formatDateTime(u.readAt)})` : t("referenceStrain.detail.pending")}
                   </TableCell>
                 </TableRow>
               ))}
               {detail.directUsageLog.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} sx={{ textAlign: "center", py: 2, color: "text.secondary", fontSize: 12 }}>
-                    This strain batch has not been used in any Media/GPT challenges yet.
+                    {t("referenceStrain.detail.noUsageLog")}
                   </TableCell>
                 </TableRow>
               )}
@@ -332,13 +339,18 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
           <HubIcon sx={{ color: theme.palette.primary.main, fontSize: 24, mt: 0.25 }} />
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 800, color: theme.palette.primary.main, mb: 0.5 }}>
-              Downstream Routine Testing Impact (Secondary Indirect Rollup)
+              {t("referenceStrain.detail.downstreamTitle")}
             </Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
               {detail.indirectUsageSummary}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-              Distinct qualified media lots: <strong>{detail.distinctQualifiedMediaLotsCount}</strong> • Routine test orders that consumed these released lots: <strong>{detail.indirectTestOrdersCount}</strong>
+              <Trans
+                i18nKey="referenceStrain.detail.downstreamStats"
+                ns="reports"
+                values={{ lots: detail.distinctQualifiedMediaLotsCount, orders: detail.indirectTestOrdersCount }}
+                components={{ strong: <strong /> }}
+              />
             </Typography>
           </Box>
         </Box>

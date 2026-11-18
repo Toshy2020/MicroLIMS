@@ -1,11 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { renderInArabic, resetLanguage } from "../../../../i18n/testUtils";
 import { ControlChartTab, presetControlChart } from "./ControlChartTab";
 import { ControlChartService } from "../../services/ControlChartService";
 
 vi.mock("../../../../contexts/AuthContext", () => ({
   useHasPermission: () => true,
-  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" })
+  useAuth: () => ({ fullName: "Head One", username: "head", role: "SectionHead" }),
+  useOptionalAuth: () => null
 }));
 vi.mock("../../services/ReportingService", () => ({
   ReportingService: { getFilterOptions: vi.fn().mockResolvedValue({ testCodes: [], subjectNames: [], categories: [] }) }
@@ -15,7 +17,12 @@ vi.mock("../../services/ControlChartService", () => ({
   ControlChartService: { getChart: vi.fn(() => new Promise(() => {})), getLimitReview: vi.fn(() => new Promise(() => {})) }
 }));
 
-afterEach(() => { cleanup(); vi.clearAllMocks(); sessionStorage.clear(); });
+afterEach(async () => {
+  cleanup();
+  vi.clearAllMocks();
+  sessionStorage.clear();
+  await resetLanguage();
+});
 
 const stored = () => JSON.parse(sessionStorage.getItem("microlims.controlCharts.session") ?? "{}");
 
@@ -38,5 +45,14 @@ describe("ControlChartTab session state", () => {
 
     await waitFor(() => expect(stored().criteria).toMatchObject({ category: "", testCode: "", subjectName: "" }));
     expect(screen.getByText("Choose a sample category and a test to analyse.")).toBeTruthy();
+  });
+
+  it("renders Arabic criteria and tabs when language is Arabic", async () => {
+    await renderInArabic(<ControlChartTab />, ["common", "reports"]);
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(screen.getByText("معايير التحليل")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "خريطة ضبط والقدرة" })).toBeTruthy();
+    expect(screen.getByText("اختر فئة العينة والاختبار للتحليل.")).toBeTruthy();
   });
 });

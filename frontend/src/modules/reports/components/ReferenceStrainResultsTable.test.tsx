@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { renderInArabic, resetLanguage } from "../../../i18n/testUtils";
 import { ReferenceStrainReportService } from "../services/ReferenceStrainReportService";
 import type {
   ReferenceStrainListItem,
@@ -176,5 +177,34 @@ describe("ReferenceStrainResultsTable", () => {
     expect(writtenPdfHtml).toHaveLength(1);
     expect(writtenPdfHtml[0]).toContain("CRYO-SEL-001");
     expect(writtenPdfHtml[0]).not.toContain("CRYO-UNSEL-002");
+  });
+
+  it("renders Arabic title and column headers when language is Arabic", async () => {
+    localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.DATA_EXPORT]));
+    localStorage.setItem("microlims_fullname", "Dr. Ada");
+    await renderInArabic(
+      <MemoryRouter>
+        <AuthProvider>
+          <ReferenceStrainResultsTable
+            results={{ items: [makeStrain({ id: 1, cryovialCode: "CRYO-AR-1" })], totalCount: 1, page: 1, pageSize: 25 }}
+            loading={false}
+            error={null}
+            appliedParams={APPLIED_PARAMS}
+            onPageChange={vi.fn()}
+            onPageSizeChange={vi.fn()}
+            onClearFilters={vi.fn()}
+          />
+        </AuthProvider>
+      </MemoryRouter>,
+      ["common", "reports"]
+    );
+
+    try {
+      expect(document.documentElement.dir).toBe("rtl");
+      expect(screen.getByText("السلالات المرجعية ودفعات مزارع العمل")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "تصدير CSV" })).toBeTruthy();
+    } finally {
+      await resetLanguage();
+    }
   });
 });

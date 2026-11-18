@@ -15,6 +15,7 @@ import { exportMediaGptPdf } from "../utils/exportMediaGptPdf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
 import { useRowSelection } from "../../../components/lab/table/useRowSelection";
+import { useTranslation } from "../../../i18n";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -46,6 +47,7 @@ export function MediaGptResultsTable({
   onPageSizeChange,
   onClearFilters
 }: MediaGptResultsTableProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const { fullName } = useAuth();
   const resetKey = JSON.stringify({
@@ -85,7 +87,7 @@ export function MediaGptResultsTable({
     try {
       await MediaGptReportService.exportCsv(appliedParams);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Export failed.");
+      setExportError(err instanceof Error ? err.message : t("mediaGpt.errors.exportFailed"));
     } finally {
       setExportingCsv(false);
     }
@@ -105,20 +107,20 @@ export function MediaGptResultsTable({
   };
 
   const columns: RegisterColumn<MediaGptListItem>[] = [
-    { key: "lotNumber", label: "Lot Number", render: (r) => (
+    { key: "lotNumber", label: t("mediaGpt.table.columns.lotNumber"), render: (r) => (
       <Box sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{r.lotNumber}</Box>
     ) },
-    { key: "mediaType", label: "Media Type", render: (r) => <Box sx={{ fontWeight: 600 }}>{r.mediaType}</Box> },
-    { key: "preparedAt", label: "Prep Date", render: (r) => formatDate(r.preparedAt) },
-    { key: "expiryDate", label: "Expiry Date", render: (r) => formatDate(r.expiryDate) },
-    { key: "evaluationType", label: "Evaluation", render: (r) => (
+    { key: "mediaType", label: t("mediaGpt.table.columns.mediaType"), render: (r) => <Box sx={{ fontWeight: 600 }}>{r.mediaType}</Box> },
+    { key: "preparedAt", label: t("mediaGpt.table.columns.prepDate"), render: (r) => formatDate(r.preparedAt) },
+    { key: "expiryDate", label: t("mediaGpt.table.columns.expiryDate"), render: (r) => formatDate(r.expiryDate) },
+    { key: "evaluationType", label: t("mediaGpt.table.columns.evaluation"), render: (r) => (
       <Chip
         size="small"
         label={r.evaluationType === "GrowthPromotion" ? "GPT" : r.evaluationType}
         sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
-    { key: "evaluationOutcome", label: "Outcome", render: (r) => {
+    { key: "evaluationOutcome", label: t("mediaGpt.table.columns.outcome"), render: (r) => {
       const isConform = r.evaluationOutcome === "Conform";
       const isNonConform = r.evaluationOutcome === "NonConform";
       return (
@@ -131,13 +133,13 @@ export function MediaGptResultsTable({
           />
           {r.challengeCount > 0 && (
             <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
-              {r.conformedChallengeCount}/{r.challengeCount} Challenges
+              {t("mediaGpt.table.challengesCount", { conformed: r.conformedChallengeCount, total: r.challengeCount })}
             </Typography>
           )}
         </>
       );
     } },
-    { key: "approvalStatus", label: "Approval Status", render: (r) => (
+    { key: "approvalStatus", label: t("mediaGpt.table.columns.approvalStatus"), render: (r) => (
       <>
         <Chip
           size="small"
@@ -147,13 +149,13 @@ export function MediaGptResultsTable({
         />
         {r.isReleasedForUse && (
           <Typography variant="caption" sx={{ display: "block", color: "success.main", fontWeight: 700, fontSize: 12 }}>
-            Released
+            {t("mediaGpt.table.released")}
           </Typography>
         )}
       </>
     ) },
-    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
-    { key: "approvedByName", label: "Approved By", render: (r) => (
+    { key: "preparedByName", label: t("mediaGpt.table.columns.preparedBy"), render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
+    { key: "approvedByName", label: t("mediaGpt.table.columns.approvedBy"), render: (r) => (
       <Box sx={{ fontSize: 12 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
@@ -163,9 +165,9 @@ export function MediaGptResultsTable({
         )}
       </Box>
     ) },
-    { key: "id", label: "Actions", align: "center", render: (r) => (
+    { key: "id", label: t("mediaGpt.table.columns.actions"), align: "center", render: (r) => (
       <Box onClick={(e) => e.stopPropagation()}>
-        <Tooltip title="View Traceability Details">
+        <Tooltip title={t("mediaGpt.table.viewTooltip")}>
           <IconButton size="small" onClick={() => handleViewDetail(r.id)} color="primary">
             <VisibilityIcon fontSize="small" />
           </IconButton>
@@ -180,10 +182,14 @@ export function MediaGptResultsTable({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
           <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main }}>
-            Media Preparation & GPT Records
+            {t("mediaGpt.table.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount.toLocaleString()} lots
+            {t("mediaGpt.table.showing", {
+              from: totalCount === 0 ? 0 : (page - 1) * pageSize + 1,
+              to: Math.min(page * pageSize, totalCount),
+              total: totalCount.toLocaleString()
+            })}
           </Typography>
         </Box>
 
@@ -198,7 +204,7 @@ export function MediaGptResultsTable({
             disabled={exportingCsv || totalCount === 0}
             sx={{ fontWeight: 600 }}
           >
-            {exportingCsv ? "Exporting..." : "Export CSV (Flattened)"}
+            {exportingCsv ? t("mediaGpt.table.exporting") : t("mediaGpt.table.exportCsv")}
           </Button>
           <Button
             size="small"
@@ -209,7 +215,7 @@ export function MediaGptResultsTable({
             disabled={items.length === 0}
             sx={{ fontWeight: 600 }}
           >
-            Print / PDF View {selection.count > 0 ? `(${selection.count})` : ""}
+            {selection.count > 0 ? t("mediaGpt.table.printPdfSelected", { count: selection.count }) : t("mediaGpt.table.printPdf")}
           </Button>
         </Stack>
       </Box>
@@ -234,10 +240,10 @@ export function MediaGptResultsTable({
         onRowClick={(r) => void handleViewDetail(r.id)}
         loading={loading}
         empty={{
-          title: "No media lots matched your filters.",
+          title: t("mediaGpt.table.emptyTitle"),
           action: (
             <Button size="small" variant="text" onClick={onClearFilters}>
-              Clear Filters
+              {t("mediaGpt.table.clearFilters")}
             </Button>
           )
         }}
@@ -247,13 +253,13 @@ export function MediaGptResultsTable({
       {/* Pagination Footer */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Rows per page:</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.table.rowsPerPage")}</Typography>
           <FormControl size="small">
             <Select
               value={pageSize}
               onChange={(e) => onPageSizeChange(Number(e.target.value))}
               sx={{ fontSize: 12, height: 32 }}
-              inputProps={{ "aria-label": "Rows per page" }}
+              inputProps={{ "aria-label": t("mediaGpt.table.rowsPerPage") }}
             >
               {ROWS_PER_PAGE_OPTIONS.map((opt) => (
                 <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
@@ -266,16 +272,16 @@ export function MediaGptResultsTable({
           alignItems: "center"
         }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Page {page} of {totalPages}
+            {t("mediaGpt.table.pageOf", { page, totalPages })}
           </Typography>
-          <IconButton aria-label="Previous page"
+          <IconButton aria-label={t("mediaGpt.table.previousPage")}
             size="small"
             disabled={page <= 1 || loading}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeftIcon />
           </IconButton>
-          <IconButton aria-label="Next page"
+          <IconButton aria-label={t("mediaGpt.table.nextPage")}
             size="small"
             disabled={page >= totalPages || loading}
             onClick={() => onPageChange(page + 1)}

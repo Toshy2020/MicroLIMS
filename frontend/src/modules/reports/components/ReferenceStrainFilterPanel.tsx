@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import { ReferenceStrainFilterOptions, ReferenceStrainSearchParams } from "../types/referenceStrainTypes";
 import { DateField } from "../../../components/DateField";
+import { useTranslation } from "../../../i18n";
 
 interface ReferenceStrainFilterPanelProps {
   filterOptions: ReferenceStrainFilterOptions | null;
@@ -23,16 +24,17 @@ export function ReferenceStrainFilterPanel({
   onReset,
   searchInputRef
 }: ReferenceStrainFilterPanelProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
 
   return (
     <Paper sx={{ p: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-          Reference Strain Filters
+          {t("referenceStrain.filters.title")}
         </Typography>
         <Link component="button" type="button" onClick={onReset} sx={{ fontSize: 13 }} underline="hover">
-          Reset
+          {t("referenceStrain.filters.reset")}
         </Link>
       </Box>
 
@@ -40,22 +42,22 @@ export function ReferenceStrainFilterPanel({
         <TextField
           fullWidth
           size="small"
-          label="Search"
-          placeholder="Code, Organism, ATCC, Batch, Mfr..."
+          label={t("referenceStrain.filters.searchLabel")}
+          placeholder={t("referenceStrain.filters.searchPlaceholder")}
           value={draft.search ?? ""}
           onChange={(e) => onChange({ search: e.target.value || undefined })}
           inputRef={searchInputRef}
         />
 
         <FormControl fullWidth size="small">
-          <InputLabel>Organism / Strain</InputLabel>
+          <InputLabel>{t("referenceStrain.filters.organismStrain")}</InputLabel>
           <Select
-            label="Organism / Strain"
+            label={t("referenceStrain.filters.organismStrain")}
             value={draft.organismId ?? ""}
             onChange={(e) => onChange({ organismId: e.target.value ? Number(e.target.value) : undefined })}
-            inputProps={{ "aria-label": "Organism / Strain" }}
+            inputProps={{ "aria-label": t("referenceStrain.filters.organismStrain") }}
           >
-            <MenuItem value="">All Organisms</MenuItem>
+            <MenuItem value="">{t("referenceStrain.filters.allOrganisms")}</MenuItem>
             {(filterOptions?.organisms ?? []).map((o) => (
               <MenuItem key={o.id} value={o.id}>
                 {o.scientificName} {o.atccNumber ? `(ATCC ${o.atccNumber})` : ""}
@@ -65,48 +67,48 @@ export function ReferenceStrainFilterPanel({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Approval Status</InputLabel>
+          <InputLabel>{t("referenceStrain.filters.approvalStatus")}</InputLabel>
           <Select
-            label="Approval Status"
+            label={t("referenceStrain.filters.approvalStatus")}
             value={draft.approvalStatus ?? ""}
-            onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as any })}
-            inputProps={{ "aria-label": "Approval Status" }}
+            onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as ReferenceStrainSearchParams["approvalStatus"] })}
+            inputProps={{ "aria-label": t("referenceStrain.filters.approvalStatus") }}
           >
-            <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="PendingReview">Pending Review</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
+            <MenuItem value="">{t("referenceStrain.filters.allStatuses")}</MenuItem>
+            <MenuItem value="PendingReview">{t("referenceStrain.filters.pendingReview")}</MenuItem>
+            <MenuItem value="Approved">{t("referenceStrain.filters.approved")}</MenuItem>
+            <MenuItem value="Rejected">{t("referenceStrain.filters.rejected")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Active / Destroyed</InputLabel>
+          <InputLabel>{t("referenceStrain.filters.activeDestroyed")}</InputLabel>
           <Select<"" | "true" | "false">
-            label="Active / Destroyed"
+            label={t("referenceStrain.filters.activeDestroyed")}
             value={draft.isDestroyed === undefined ? "" : draft.isDestroyed ? "true" : "false"}
             onChange={(e) => onChange({ isDestroyed: e.target.value === "" ? undefined : e.target.value === "true" })}
-            inputProps={{ "aria-label": "Active / Destroyed" }}
+            inputProps={{ "aria-label": t("referenceStrain.filters.activeDestroyed") }}
           >
-            <MenuItem value="">All Batches</MenuItem>
-            <MenuItem value="false">Active Only</MenuItem>
-            <MenuItem value="true">Destroyed Only</MenuItem>
+            <MenuItem value="">{t("referenceStrain.filters.allBatches")}</MenuItem>
+            <MenuItem value="false">{t("referenceStrain.filters.activeOnly")}</MenuItem>
+            <MenuItem value="true">{t("referenceStrain.filters.destroyedOnly")}</MenuItem>
           </Select>
         </FormControl>
 
         <Box>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5, fontWeight: 600 }}>
-            Material Receipt Date Range
+            {t("referenceStrain.filters.receiptDateRange")}
           </Typography>
           <Stack direction="row" spacing={1}>
             <DateField
-              label="From"
+              label={t("referenceStrain.filters.from")}
               value={draft.receiptFromDate?.slice(0, 10) ?? ""}
               onChange={(v) => onChange({ receiptFromDate: v ? `${v}T00:00:00.000Z` : undefined })}
               max={draft.receiptToDate?.slice(0, 10)}
               fullWidth
             />
             <DateField
-              label="To"
+              label={t("referenceStrain.filters.to")}
               value={draft.receiptToDate?.slice(0, 10) ?? ""}
               onChange={(v) => onChange({ receiptToDate: v ? `${v}T23:59:59.999Z` : undefined })}
               min={draft.receiptFromDate?.slice(0, 10)}
@@ -117,18 +119,18 @@ export function ReferenceStrainFilterPanel({
 
         <Box>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5, fontWeight: 600 }}>
-            GPT Usage Date Range
+            {t("referenceStrain.filters.gptUsageDateRange")}
           </Typography>
           <Stack direction="row" spacing={1}>
             <DateField
-              label="From"
+              label={t("referenceStrain.filters.from")}
               value={draft.usageFromDate?.slice(0, 10) ?? ""}
               onChange={(v) => onChange({ usageFromDate: v ? `${v}T00:00:00.000Z` : undefined })}
               max={draft.usageToDate?.slice(0, 10)}
               fullWidth
             />
             <DateField
-              label="To"
+              label={t("referenceStrain.filters.to")}
               value={draft.usageToDate?.slice(0, 10) ?? ""}
               onChange={(v) => onChange({ usageToDate: v ? `${v}T23:59:59.999Z` : undefined })}
               min={draft.usageFromDate?.slice(0, 10)}
@@ -145,10 +147,10 @@ export function ReferenceStrainFilterPanel({
             onClick={onSearch}
             sx={{ fontWeight: 700 }}
           >
-            Search Batches
+            {t("referenceStrain.filters.searchBatches")}
           </Button>
           <Button variant="outlined" onClick={onReset} sx={{ fontWeight: 600 }}>
-            Clear
+            {t("referenceStrain.filters.clear")}
           </Button>
         </Stack>
       </Stack>

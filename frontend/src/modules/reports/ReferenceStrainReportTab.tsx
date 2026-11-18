@@ -4,6 +4,7 @@ import { ReferenceStrainFilterPanel } from "./components/ReferenceStrainFilterPa
 import { ReferenceStrainResultsTable } from "./components/ReferenceStrainResultsTable";
 import { ReferenceStrainReportService } from "./services/ReferenceStrainReportService";
 import { LoadErrorAlert } from "../../components/LoadErrorAlert";
+import { useTranslation } from "../../i18n";
 import {
   ReferenceStrainFilterOptions,
   ReferenceStrainSearchParams,
@@ -22,6 +23,7 @@ function baseParams(): ReferenceStrainSearchParams {
 }
 
 export function ReferenceStrainReportTab() {
+  const { t } = useTranslation("reports");
   const [filterOptions, setFilterOptions] = useState<ReferenceStrainFilterOptions | null>(null);
   // Without this a failed load left every filter dropdown empty with no
   // explanation, as if no media, strains or products existed.
@@ -46,9 +48,9 @@ export function ReferenceStrainReportTab() {
 
     ReferenceStrainReportService.search(applied)
       .then(setResults)
-      .catch(() => setError("Could not load Reference Strain batches. Please try again."))
+      .catch(() => setError(t("referenceStrain.errors.loadBatches")))
       .finally(() => setLoading(false));
-  }, [applied]);
+  }, [applied, t]);
 
   const handleSearch = () => setApplied({ ...draft, page: 1 });
   const handleReset = () => {
@@ -61,7 +63,7 @@ export function ReferenceStrainReportTab() {
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px 1fr" }, gap: 2, alignItems: "start" }}>
       <Stack spacing={2}>
         {filterOptionsFailed && (
-          <LoadErrorAlert message="The filter options could not be loaded, so the filter lists are empty. Reload the page to try again." />
+          <LoadErrorAlert message={t("referenceStrain.errors.loadFilterOptions")} />
         )}
         <ReferenceStrainFilterPanel
           filterOptions={filterOptions}

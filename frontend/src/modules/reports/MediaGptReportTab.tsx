@@ -5,6 +5,7 @@ import { MediaGptResultsTable } from "./components/MediaGptResultsTable";
 import { MediaGptSummaryCard } from "./components/MediaGptSummaryCard";
 import { MediaGptReportService } from "./services/MediaGptReportService";
 import { LoadErrorAlert } from "../../components/LoadErrorAlert";
+import { useTranslation } from "../../i18n";
 import {
   MediaGptFilterOptions,
   MediaGptSearchParams,
@@ -32,6 +33,7 @@ function baseParams(fromDate?: string, toDate?: string): MediaGptSearchParams {
 }
 
 export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) {
+  const { t } = useTranslation("reports");
   const [filterOptions, setFilterOptions] = useState<MediaGptFilterOptions | null>(null);
   // Without this a failed load left every filter dropdown empty with no
   // explanation, as if no media, strains or products existed.
@@ -69,9 +71,9 @@ export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) 
         setResults(resData);
         setSummary(sumData);
       })
-      .catch(() => setError("Could not load Media/GPT records. Please try again."))
+      .catch(() => setError(t("mediaGpt.errors.loadRecords")))
       .finally(() => setLoading(false));
-  }, [applied]);
+  }, [applied, t]);
 
   const handleSearch = () => setApplied({ ...draft, page: 1 });
   const handleReset = () => {
@@ -84,7 +86,7 @@ export function MediaGptReportTab({ fromDate, toDate }: MediaGptReportTabProps) 
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px 1fr" }, gap: 2, alignItems: "start" }}>
       <Stack spacing={2}>
         {filterOptionsFailed && (
-          <LoadErrorAlert message="The filter options could not be loaded, so the filter lists are empty. Reload the page to try again." />
+          <LoadErrorAlert message={t("mediaGpt.errors.loadFilterOptions")} />
         )}
         <MediaGptFilterPanel
           filterOptions={filterOptions}

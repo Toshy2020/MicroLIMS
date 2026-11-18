@@ -450,7 +450,7 @@ export function ApprovalSignaturesCard({
                               size="small"
                               label={tOrder.sectionName}
                               variant="outlined"
-                              sx={{ ms: 0.5, height: 20, fontSize: 12 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
                           )}
                           {isTestOrderNonPassing(tOrder) && (
@@ -458,7 +458,7 @@ export function ApprovalSignaturesCard({
                               size="small"
                               label={t("sampleSummary.approval.nonConforming")}
                               color="error"
-                              sx={{ ms: 0.5, height: 20, fontSize: 12 }}
+                              sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
                           )}
                         </Typography>

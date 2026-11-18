@@ -592,7 +592,7 @@ function SampleRegisterTableInner({
             checked={selection.isSelected(sample.sampleId)}
             onChange={() => selection.toggle(sample.sampleId)}
             onClick={(e) => e.stopPropagation()}
-            sx={{ p: 0.25, me: 0.25 }}
+            sx={{ p: 0.25, mr: 0.25 }}
             slotProps={{ input: { "aria-label": checkboxLabel(sample) } }}
           />
         )}

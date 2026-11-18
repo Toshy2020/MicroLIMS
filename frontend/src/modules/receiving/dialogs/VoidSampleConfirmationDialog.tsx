@@ -102,7 +102,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
         actions={
           <>
             {!reason.trim() && (
-              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", me: "auto", ps: 1 }}>
+              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", mr: "auto", pl: 1 }}>
                 {t("voidSample.enterReasonHint")}
               </Typography>
             )}

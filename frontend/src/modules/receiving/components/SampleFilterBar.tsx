@@ -122,7 +122,7 @@ export function SampleFilterBar({
         >
           {t("filterBar.filters")}
           {activeChips.length > 0 && (
-            <Box component="span" sx={{ ms: 0.75, px: 0.75, borderRadius: 999, fontSize: 11, bgcolor: "primary.main", color: "primary.contrastText" }}>
+            <Box component="span" sx={{ ml: 0.75, px: 0.75, borderRadius: 999, fontSize: 11, bgcolor: "primary.main", color: "primary.contrastText" }}>
               {activeChips.length}
             </Box>
           )}

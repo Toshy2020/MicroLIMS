@@ -276,7 +276,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
         actions={
           <>
             {signHint && (
-              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", me: "auto", ps: 1 }}>
+              <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", mr: "auto", pl: 1 }}>
                 {signHint}
               </Typography>
             )}

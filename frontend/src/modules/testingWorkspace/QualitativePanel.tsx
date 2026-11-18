@@ -756,7 +756,7 @@ export function QualitativePanel({
                                     }
                                   }}
                                 >
-                                  <CheckCircleOutlineIcon sx={{ fontSize: 16, me: 0.5 }} />
+                                  <CheckCircleOutlineIcon sx={{ fontSize: 16, mr: 0.5 }} />
                                   {t("qualitative.complies")}
                                 </ToggleButton>
                                 <ToggleButton
@@ -775,7 +775,7 @@ export function QualitativePanel({
                                     }
                                   }}
                                 >
-                                  <HighlightOffIcon sx={{ fontSize: 16, me: 0.5 }} />
+                                  <HighlightOffIcon sx={{ fontSize: 16, mr: 0.5 }} />
                                   {t("qualitative.doesNotComply")}
                                 </ToggleButton>
                               </ToggleButtonGroup>
@@ -870,7 +870,7 @@ export function QualitativePanel({
                           }
                         }}
                       >
-                        <CheckCircleOutlineIcon sx={{ fontSize: 16, me: 0.5 }} />
+                        <CheckCircleOutlineIcon sx={{ fontSize: 16, mr: 0.5 }} />
                         {t("qualitative.complies")}
                       </ToggleButton>
                       <ToggleButton
@@ -889,7 +889,7 @@ export function QualitativePanel({
                           }
                         }}
                       >
-                        <HighlightOffIcon sx={{ fontSize: 16, me: 0.5 }} />
+                        <HighlightOffIcon sx={{ fontSize: 16, mr: 0.5 }} />
                         {t("qualitative.doesNotComply")}
                       </ToggleButton>
                     </ToggleButtonGroup>

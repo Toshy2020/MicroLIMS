@@ -104,7 +104,7 @@ export function FixedMediumRow({ mediaName, label }: { mediaName: string; label?
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 500 }}>{mediaName}</Typography>
       </Box>
-      <Typography variant="caption" title={t("pathogenSteps.layout.assignedInTestMaster")} sx={{ ms: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
+      <Typography variant="caption" title={t("pathogenSteps.layout.assignedInTestMaster")} sx={{ ml: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
         <LockOutlinedIcon sx={{ fontSize: 14 }} /> {t("pathogenSteps.layout.testMaster")}
       </Typography>
     </Box>
@@ -341,7 +341,7 @@ export function ObservationOptions<T extends string>({
               </Box>
             }
             sx={{
-              m: 0, pe: 1.5, alignItems: "flex-start", minHeight: 48,
+              m: 0, pr: 1.5, alignItems: "flex-start", minHeight: 48,
               border: "1px solid", borderRadius: 2,
               borderColor: selected ? "primary.main" : "divider",
               bgcolor: selected ? "action.selected" : "transparent",

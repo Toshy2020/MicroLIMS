@@ -635,7 +635,7 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
       paperSx={{ borderRadius: 2.5, p: 0.5 }}
       titleSx={{ pb: 1 }}
       title={
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flex: 1, minWidth: 0, me: 1 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flex: 1, minWidth: 0, mr: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 20, fontWeight: 700, color: theme.palette.primary.main }}>
               {t("newSample.title")}

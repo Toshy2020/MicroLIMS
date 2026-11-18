@@ -112,7 +112,7 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                sx={{ p: 0.25, me: 0.25 }}
+                sx={{ p: 0.25, mr: 0.25 }}
                 slotProps={{
                   input: {
                     "aria-label": t("tableRow.selectForGroupedAria", { name: sample.displayName, ref: sample.referenceNumber })
@@ -204,7 +204,7 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                sx={{ p: 0.25, me: 0.25 }}
+                sx={{ p: 0.25, mr: 0.25 }}
                 slotProps={{
                   input: {
                     "aria-label": t("tableRow.selectForGroupedAria", { name: sample.displayName, ref: sample.referenceNumber })

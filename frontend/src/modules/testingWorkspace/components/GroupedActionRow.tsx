@@ -416,7 +416,7 @@ export function GroupedActionRow({
               </Box>
 
               {/* Action Buttons */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, ms: "auto" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: "auto" }}>
                 <Button
                   size="small"
                   variant="outlined"

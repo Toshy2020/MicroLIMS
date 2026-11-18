@@ -116,7 +116,7 @@ export function SampleDocumentsDialog({ sample, onClose }: Props) {
                 startIcon={<UploadFileOutlinedIcon />}
                 disabled={busy}
                 onClick={() => fileInput.current?.click()}
-                sx={{ me: "auto", textTransform: "none", fontWeight: 600 }}
+                sx={{ mr: "auto", textTransform: "none", fontWeight: 600 }}
               >
                 {t("documents.attachCoa")}
               </Button>

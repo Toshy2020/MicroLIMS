@@ -95,7 +95,7 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
               {t("pathogenSession.review.primaryObsStepTitle")}
             </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
               {t("pathogenSession.review.observationPrefix")} <strong>{cell.primaryObservation || t("pathogenSession.review.noGrowthRecorded")}</strong>
             </Typography>
           </Box>
@@ -112,7 +112,7 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
                 />
               </Typography>
               {cell.confirmatoryPlates.map((plate) => (
-                <Box key={plate.id} sx={{ ps: 1, mt: 0.25 }}>
+                <Box key={plate.id} sx={{ pl: 1, mt: 0.25 }}>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     <Trans
                       i18nKey="pathogenSession.review.mediumItemLabel"
@@ -123,11 +123,11 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
                     <strong>{plate.observation}</strong>
                   </Typography>
                   {plate.expectedAppearanceSnapshot && (
-                    <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1.25 }}>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
                       {t("pathogenSession.review.expectedPrefix")} <em>{plate.expectedAppearanceSnapshot}</em>
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1.25 }}>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
                     <Trans
                       i18nKey="pathogenSession.review.readAtBy"
                       ns="testingWorkspace"
@@ -143,7 +143,7 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
             </Box>
           ) : (
             <Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1 }}>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
                 <Trans
                   i18nKey="pathogenSession.review.confirmatoryNotRequired"
                   ns="testingWorkspace"
@@ -158,7 +158,7 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
               {t("pathogenSession.review.agreementEvalTitle")}
             </Typography>
-            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, ps: 1, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, pl: 1, fontWeight: 600 }}>
               {cell.resultDisplay?.includes("Detected (+)")
                 ? t("pathogenSession.review.agreementDetected")
                 : cell.resultDisplay?.includes("Not Detected (-)")
@@ -174,7 +174,7 @@ function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
             {t("pathogenSession.review.plateColonyCountTitle")}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: theme.custom.status.info.text, ps: 1, fontWeight: 700 }}>
+          <Typography sx={{ fontSize: 12, color: theme.custom.status.info.text, pl: 1, fontWeight: 700 }}>
             {cell.numericValue !== null ? (
               <Trans
                 i18nKey="pathogenSession.review.cfuValue"

@@ -539,7 +539,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 {summary.sections
                   .filter((sec) => sec.status === "Closed" && sec.canView)
                   .map((sec) => (
-                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 12, color: "text.secondary", ps: 0.5 }}>
+                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 12, color: "text.secondary", pl: 0.5 }}>
                       <Trans
                         i18nKey="sampleSummary.dialog.closedBySection"
                         ns="testingWorkspace"

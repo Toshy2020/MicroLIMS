@@ -657,7 +657,7 @@ export function MultiSampleEntryGrid({
                               return (
                                 <FormControlLabel
                                   key={code}
-                                  sx={{ me: 1.5 }}
+                                  sx={{ mr: 1.5 }}
                                   control={
                                     <Checkbox
                                       size="small"
@@ -886,7 +886,7 @@ export function MultiSampleEntryGrid({
                                     />
                                   }
                                   label={<Typography sx={{ fontSize: 12 }}>{tech}</Typography>}
-                                  sx={{ me: 1 }}
+                                  sx={{ mr: 1 }}
                                 />
                               ))}
                             </FormGroup>

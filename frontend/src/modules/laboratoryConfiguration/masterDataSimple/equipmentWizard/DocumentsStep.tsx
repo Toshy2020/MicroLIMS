@@ -1,6 +1,8 @@
+import type { TFunction } from "i18next";
 import { Autocomplete, Stack, TextField, Typography } from "@mui/material";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { DateField } from "../../../../components/DateField";
+import { i18n, useTranslation } from "../../../../i18n";
 import { assetLabel, type EquipmentWizardLookup } from "./equipmentLookup";
 import type { EquipmentFormModel } from "./equipmentFormModel";
 
@@ -11,13 +13,14 @@ interface DocumentsViewProps {
 }
 
 function DocumentsStepView({ model, set, lookup }: DocumentsViewProps) {
+  const { t } = useTranslation("masterData");
   return (
     <Stack spacing={2}>
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        Calibration and the asset register entry that holds this equipment's serial number and documents.
+        {t("equipmentWizard.documents.intro")}
       </Typography>
       <DateField
-        label="Calibration Due Date"
+        label={t("equipmentWizard.documents.calibrationDueLabel")}
         value={model.calibrationDueDate}
         onChange={(v) => set({ calibrationDueDate: v })}
         size="small"
@@ -33,8 +36,8 @@ function DocumentsStepView({ model, set, lookup }: DocumentsViewProps) {
             {...params}
             size="small"
             name="equipmentInventoryId"
-            label="Asset register entry"
-            placeholder="Select an asset register entry"
+            label={t("equipmentWizard.documents.assetLabel")}
+            placeholder={t("equipmentWizard.documents.assetPlaceholder")}
             fullWidth
           />
         )}
@@ -45,21 +48,25 @@ function DocumentsStepView({ model, set, lookup }: DocumentsViewProps) {
   );
 }
 
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
+
 export function createDocumentsStep(
-  getLookup: () => EquipmentWizardLookup
+  getLookup: () => EquipmentWizardLookup,
+  getT: () => TFunction = defaultT
 ): WizardStep<EquipmentFormModel> {
   return {
     key: "documents",
-    title: "Calibration and documents",
+    title: getT()("equipmentWizard.documents.stepTitle"),
     validate: () => ({}),
     render: ({ model, set }) => <DocumentsStepView model={model} set={set} lookup={getLookup()} />,
     summary: (model) => {
+      const t = getT();
       const asset = getLookup().inventory.find((item) => item.id === model.equipmentInventoryId);
       return [
-        { label: "Calibration Due Date", value: model.calibrationDueDate || "—", field: "calibrationDueDate" },
+        { label: t("equipmentWizard.documents.calibrationDueLabel"), value: model.calibrationDueDate || t("common.dash"), field: "calibrationDueDate" },
         {
-          label: "Asset register entry",
-          value: asset ? assetLabel(asset) : model.equipmentInventoryId != null ? `#${model.equipmentInventoryId}` : "—",
+          label: t("equipmentWizard.documents.assetLabel"),
+          value: asset ? assetLabel(asset) : model.equipmentInventoryId != null ? `#${model.equipmentInventoryId}` : t("common.dash"),
           field: "equipmentInventoryId"
         }
       ];

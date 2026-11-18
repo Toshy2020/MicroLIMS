@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import type { TFunction } from "i18next";
 import {
   Alert,
   FormControl,
@@ -10,7 +12,8 @@ import {
 } from "@mui/material";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
-import { hints } from "../hints";
+import { i18n, useTranslation } from "../../../../i18n";
+import { getEquipmentHints } from "../hints";
 import { MICRO_EQUIPMENT_TYPES, SET_POINT_TYPES, CONNECTION_TYPES, equipmentTypeLabel } from "./equipmentOptions";
 import type { EquipmentWizardLookup } from "./equipmentLookup";
 import { EquipmentFormModel, EquipmentModelContext, validateStep, withEquipmentType } from "./equipmentFormModel";
@@ -35,10 +38,12 @@ function changeType(model: EquipmentFormModel, nextType: string): EquipmentFormM
 }
 
 function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProps) {
+  const { t } = useTranslation("masterData");
+  const hints = useMemo(() => getEquipmentHints(t), [t]);
   const showSection = mode !== "edit" && lookup.mySections.length > 1;
   const nameMissing = Boolean(errors.required) && !model.name.trim();
   const codeMissing = Boolean(errors.required) && !model.code.trim();
-  const typeOptions = MICRO_EQUIPMENT_TYPES.some((t) => t.value === model.type)
+  const typeOptions = MICRO_EQUIPMENT_TYPES.some((mt) => mt.value === model.type)
     ? MICRO_EQUIPMENT_TYPES
     : [...MICRO_EQUIPMENT_TYPES, { value: model.type, label: equipmentTypeLabel(model.type) }];
 
@@ -52,8 +57,8 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
       <TextField
         size="small"
         name="name"
-        label="Equipment Name *"
-        placeholder="e.g. Incubator 01"
+        label={t("equipmentWizard.identity.nameLabel")}
+        placeholder={t("equipmentWizard.identity.namePlaceholder")}
         value={model.name}
         onChange={(e) => set({ name: e.target.value })}
         fullWidth
@@ -64,8 +69,8 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
         <TextField
           size="small"
           name="code"
-          label="Equipment Code *"
-          placeholder="e.g. INC-001"
+          label={t("equipmentWizard.identity.codeLabel")}
+          placeholder={t("equipmentWizard.identity.codePlaceholder")}
           value={model.code}
           onChange={(e) => set({ code: e.target.value })}
           fullWidth
@@ -73,20 +78,20 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
           error={codeMissing}
           slotProps={{ input: { "aria-describedby": hintDescribedBy("equipment-code") } }}
         />
-        <FieldHint id="equipment-code" label="Equipment Code" hint={hints.equipmentCode} />
+        <FieldHint id="equipment-code" label={t("equipmentWizard.identity.codeHintLabel")} hint={hints.equipmentCode} />
       </Stack>
       <FormControl fullWidth required size="small">
-        <InputLabel id="equipment-type-select-label">Equipment Type *</InputLabel>
+        <InputLabel id="equipment-type-select-label">{t("equipmentWizard.identity.typeLabel")}</InputLabel>
         <Select
           labelId="equipment-type-select-label"
-          label="Equipment Type *"
+          label={t("equipmentWizard.identity.typeLabel")}
           name="type"
           value={model.type}
           onChange={(e) => set(changeType(model, e.target.value))}
         >
-          {typeOptions.map((t) => (
-            <MenuItem key={t.value} value={t.value}>
-              {t.label}
+          {typeOptions.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {t(`equipmentTypes.${opt.value}`, { defaultValue: opt.label })}
             </MenuItem>
           ))}
         </Select>
@@ -94,8 +99,8 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
       <TextField
         size="small"
         name="vendor"
-        label="Vendor / Manufacturer"
-        placeholder="e.g. Binder, Memmert"
+        label={t("equipmentWizard.identity.vendorLabel")}
+        placeholder={t("equipmentWizard.identity.vendorPlaceholder")}
         value={model.vendor}
         onChange={(e) => set({ vendor: e.target.value })}
         fullWidth
@@ -104,34 +109,34 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
       {showSection && (
         <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
           <FormControl size="small" fullWidth required sx={{ flex: 1 }} error={Boolean(errors.section)}>
-            <InputLabel id="equipment-section-label">Laboratory Section *</InputLabel>
+            <InputLabel id="equipment-section-label">{t("equipmentWizard.identity.sectionLabel")}</InputLabel>
             <Select<number | "">
               labelId="equipment-section-label"
-              label="Laboratory Section *"
+              label={t("equipmentWizard.identity.sectionLabel")}
               name="section"
               value={model.sectionId}
               onChange={(e) => set({ sectionId: e.target.value === "" ? "" : Number(e.target.value) })}
-              inputProps={{ "aria-label": "Laboratory Section", "aria-describedby": hintDescribedBy("equipment-section") }}
+              inputProps={{ "aria-label": t("equipmentWizard.identity.sectionAria"), "aria-describedby": hintDescribedBy("equipment-section") }}
             >
               <MenuItem value="">
-                <em>Select Laboratory Section…</em>
+                <em>{t("equipmentWizard.identity.sectionPlaceholder")}</em>
               </MenuItem>
               {lookup.mySections.map((s) => (
                 <MenuItem key={s.sectionId} value={s.sectionId}>
-                  {s.sectionName} ({s.departmentName})
+                  {t("equipmentWizard.identity.sectionOption", { name: s.sectionName, department: s.departmentName })}
                 </MenuItem>
               ))}
             </Select>
             {errors.section && <FormHelperText>{errors.section}</FormHelperText>}
           </FormControl>
-          <FieldHint id="equipment-section" label="Laboratory Section" hint={hints.laboratorySection} />
+          <FieldHint id="equipment-section" label={t("equipmentWizard.identity.sectionAria")} hint={hints.laboratorySection} />
         </Stack>
       )}
       <TextField
         size="small"
         name="location"
-        label="Location"
-        placeholder="e.g. Microbiology Lab, Room 101"
+        label={t("equipmentWizard.identity.locationLabel")}
+        placeholder={t("equipmentWizard.identity.locationPlaceholder")}
         value={model.location}
         onChange={(e) => set({ location: e.target.value })}
         fullWidth
@@ -140,30 +145,34 @@ function IdentityStepView({ model, set, errors, mode, lookup }: IdentityViewProp
   );
 }
 
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
+
 export function createIdentityStep(
   getLookup: () => EquipmentWizardLookup,
-  getContext: () => EquipmentModelContext
+  getContext: () => EquipmentModelContext,
+  getT: () => TFunction = defaultT
 ): WizardStep<EquipmentFormModel> {
   return {
     key: "identity",
-    title: "Identity",
-    validate: (model) => validateStep("identity", model, getContext()),
+    title: getT()("equipmentWizard.identity.stepTitle"),
+    validate: (model) => validateStep("identity", model, getContext(), getT()),
     render: ({ model, set, errors, mode }) => (
       <IdentityStepView model={model} set={set} errors={errors} mode={mode} lookup={getLookup()} />
     ),
     summary: (model) => {
+      const t = getT();
       const lookup = getLookup();
       const section = lookup.mySections.find((s) => s.sectionId === model.sectionId);
       const rows = [
-        { label: "Name", value: model.name.trim() || "—", field: "name" },
-        { label: "Code", value: model.code.trim() || "—", field: "code" },
-        { label: "Type", value: equipmentTypeLabel(model.type), field: "type" },
-        { label: "Vendor / Manufacturer", value: model.vendor.trim() || "—", field: "vendor" }
+        { label: t("equipmentWizard.identity.summary.name"), value: model.name.trim() || t("common.dash"), field: "name" },
+        { label: t("equipmentWizard.identity.summary.code"), value: model.code.trim() || t("common.dash"), field: "code" },
+        { label: t("equipmentWizard.identity.summary.type"), value: t(`equipmentTypes.${model.type}`, { defaultValue: equipmentTypeLabel(model.type) }), field: "type" },
+        { label: t("equipmentWizard.identity.summary.vendor"), value: model.vendor.trim() || t("common.dash"), field: "vendor" }
       ];
       if (lookup.mySections.length > 1) {
-        rows.push({ label: "Laboratory Section", value: section?.sectionName ?? "—", field: "section" });
+        rows.push({ label: t("equipmentWizard.identity.summary.section"), value: section?.sectionName ?? t("common.dash"), field: "section" });
       }
-      rows.push({ label: "Location", value: model.location.trim() || "—", field: "location" });
+      rows.push({ label: t("equipmentWizard.identity.summary.location"), value: model.location.trim() || t("common.dash"), field: "location" });
       return rows;
     }
   };

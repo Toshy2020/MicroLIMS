@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
 import type { WizardStep } from "../../../../components/config/useWizard";
+import { useTranslation } from "../../../../i18n";
 import type { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { masterDataUsageService } from "../../../../services/masterDataUsageService";
 import type { EquipmentItem } from "../../../inventory/equipment/types/equipmentTypes";
@@ -86,6 +87,7 @@ function OpenEquipmentWizard({
   onSaved,
   onClose
 }: EquipmentWizardProps) {
+  const { t } = useTranslation("masterData");
   const isEditing = editing !== null;
   const ctx = useMemo<EquipmentModelContext>(
     () => ({ isEditing, sectionCount: mySections.length }),
@@ -96,12 +98,14 @@ function OpenEquipmentWizard({
   lookupRef.current = lookup;
   const ctxRef = useRef(ctx);
   ctxRef.current = ctx;
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const steps = useMemo<WizardStep<EquipmentFormModel>[]>(
     () => [
-      createIdentityStep(() => lookupRef.current, () => ctxRef.current),
-      createTypeSettingsStep(() => ctxRef.current),
-      createDocumentsStep(() => lookupRef.current)
+      createIdentityStep(() => lookupRef.current, () => ctxRef.current, () => tRef.current),
+      createTypeSettingsStep(() => ctxRef.current, () => tRef.current),
+      createDocumentsStep(() => lookupRef.current, () => tRef.current)
     ],
     []
   );
@@ -134,22 +138,22 @@ function OpenEquipmentWizard({
         } else {
           await EquipmentConfigurationService.updateEquipment(editing.id, payload as UpdateEquipmentRequest, editing.version);
         }
-        toast.success("Equipment updated successfully.");
+        toast.success(t("equipmentWizard.updatedToast"));
         await onSaved(null);
         return;
       }
       const created = await EquipmentConfigurationService.createEquipment(payload);
-      toast.success("Equipment created successfully.");
+      toast.success(t("equipmentWizard.createdToast"));
       await onSaved(created?.id ?? null);
     },
-    [editing, onSaved]
+    [editing, onSaved, t]
   );
 
   const title = editing
-    ? `Edit Equipment "${editing.code}"`
+    ? t("equipmentWizard.editTitle", { code: editing.code })
     : copyFrom
-      ? `New Equipment from "${copyFrom.code}"`
-      : "Add Equipment";
+      ? t("equipmentWizard.copyTitle", { code: copyFrom.code })
+      : t("equipmentWizard.addTitle");
   const draftKey = editing
     ? `equipment-edit-${editing.id}`
     : copyFrom

@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type {
   CdsSoftware,
   ConfiguredEquipmentSummary,
@@ -5,6 +7,8 @@ import type {
   EquipmentType,
   UpdateEquipmentRequest
 } from "../services/EquipmentConfigurationService";
+
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
 
 export type EquipmentWizardStep = "identity" | "typeSettings" | "documents";
 
@@ -105,19 +109,20 @@ export const EQUIPMENT_SECTION_MESSAGE = "Laboratory section is required.";
 export function validateStep(
   step: EquipmentWizardStep,
   model: EquipmentFormModel,
-  ctx: EquipmentModelContext
+  ctx: EquipmentModelContext,
+  t: TFunction = defaultT()
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   if (step === "identity") {
     if (!model.name.trim() || !model.code.trim() || !model.type) {
-      errors.required = EQUIPMENT_REQUIRED_MESSAGE;
+      errors.required = t("equipmentWizard.errors.required");
     }
     if (!ctx.isEditing && ctx.sectionCount > 1 && !model.sectionId) {
-      errors.section = EQUIPMENT_SECTION_MESSAGE;
+      errors.section = t("equipmentWizard.errors.sectionRequired");
     }
   } else if (step === "typeSettings") {
     if (model.type === "Hplc" && !model.cdsSoftware) {
-      errors.cdsSoftware = EQUIPMENT_CDS_MESSAGE;
+      errors.cdsSoftware = t("equipmentWizard.errors.cdsRequired");
     }
   }
   return errors;
@@ -125,9 +130,13 @@ export function validateStep(
 
 // The single message the save button shows, in the order the old dialog
 // checked: required fields, then CDS software, then laboratory section.
-export function firstEquipmentError(model: EquipmentFormModel, ctx: EquipmentModelContext): string | null {
-  const identity = validateStep("identity", model, ctx);
-  const settings = validateStep("typeSettings", model, ctx);
+export function firstEquipmentError(
+  model: EquipmentFormModel,
+  ctx: EquipmentModelContext,
+  t: TFunction = defaultT()
+): string | null {
+  const identity = validateStep("identity", model, ctx, t);
+  const settings = validateStep("typeSettings", model, ctx, t);
   return identity.required ?? settings.cdsSoftware ?? identity.section ?? null;
 }
 

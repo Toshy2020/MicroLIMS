@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import {
   Alert,
   FormControl,
@@ -10,6 +11,7 @@ import {
   Typography
 } from "@mui/material";
 import type { WizardStep } from "../../../../components/config/useWizard";
+import { i18n, useTranslation } from "../../../../i18n";
 import {
   CDS_SOFTWARE_OPTIONS,
   CDS_TYPES,
@@ -26,31 +28,32 @@ interface TypeSettingsViewProps {
 }
 
 function TypeSettingsStepView({ model, set, errors }: TypeSettingsViewProps) {
+  const { t } = useTranslation("masterData");
   const hasCds = CDS_TYPES.includes(model.type);
   const hasConnection = CONNECTION_TYPES.includes(model.type);
   const hasSetPoint = SET_POINT_TYPES.includes(model.type);
-  const typeName = equipmentTypeLabel(model.type);
+  const typeName = t(`equipmentTypes.${model.type}`, { defaultValue: equipmentTypeLabel(model.type) });
 
   return (
     <Stack spacing={2}>
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        Settings for a {typeName}.
+        {t("equipmentWizard.typeSettings.intro", { type: typeName })}
       </Typography>
       {!hasCds && !hasConnection && !hasSetPoint && (
-        <Alert severity="info">A {typeName} has no type-specific settings. Continue to the next step.</Alert>
+        <Alert severity="info">{t("equipmentWizard.typeSettings.noSettings", { type: typeName })}</Alert>
       )}
       {hasCds && (
         <FormControl fullWidth required size="small" error={Boolean(errors.cdsSoftware)}>
-          <InputLabel id="cds-software-select-label">CDS Software *</InputLabel>
+          <InputLabel id="cds-software-select-label">{t("equipmentWizard.typeSettings.cdsLabel")}</InputLabel>
           <Select
             labelId="cds-software-select-label"
-            label="CDS Software *"
+            label={t("equipmentWizard.typeSettings.cdsLabel")}
             name="cdsSoftware"
             value={model.cdsSoftware}
             onChange={(e) => set({ cdsSoftware: e.target.value })}
           >
             <MenuItem value="">
-              <em>Select CDS Software…</em>
+              <em>{t("equipmentWizard.typeSettings.cdsPlaceholder")}</em>
             </MenuItem>
             {CDS_SOFTWARE_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>
@@ -65,8 +68,8 @@ function TypeSettingsStepView({ model, set, errors }: TypeSettingsViewProps) {
         <TextField
           size="small"
           name="connectionSettings"
-          label="Connection Settings (optional)"
-          placeholder="e.g. COM3 / 192.168.1.50"
+          label={t("equipmentWizard.typeSettings.connectionLabel")}
+          placeholder={t("equipmentWizard.typeSettings.connectionPlaceholder")}
           value={model.connectionSettings}
           onChange={(e) => set({ connectionSettings: e.target.value })}
           fullWidth
@@ -76,9 +79,9 @@ function TypeSettingsStepView({ model, set, errors }: TypeSettingsViewProps) {
         <TextField
           size="small"
           name="setPointTemperature"
-          label="Set Point Temp (°C)"
+          label={t("equipmentWizard.typeSettings.setPointLabel")}
           type="number"
-          placeholder="e.g. 37.0"
+          placeholder={t("equipmentWizard.typeSettings.setPointPlaceholder")}
           value={model.setPointTemperature}
           onChange={(e) => set({ setPointTemperature: e.target.value })}
           slotProps={{ htmlInput: { step: "0.1" } }}
@@ -89,34 +92,38 @@ function TypeSettingsStepView({ model, set, errors }: TypeSettingsViewProps) {
   );
 }
 
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
+
 export function createTypeSettingsStep(
-  getContext: () => EquipmentModelContext
+  getContext: () => EquipmentModelContext,
+  getT: () => TFunction = defaultT
 ): WizardStep<EquipmentFormModel> {
   return {
     key: "typeSettings",
-    title: "Type settings",
-    validate: (model) => validateStep("typeSettings", model, getContext()),
+    title: getT()("equipmentWizard.typeSettings.stepTitle"),
+    validate: (model) => validateStep("typeSettings", model, getContext(), getT()),
     render: ({ model, set, errors }) => <TypeSettingsStepView model={model} set={set} errors={errors} />,
     summary: (model) => {
+      const t = getT();
       const rows: { label: string; value: string; field: string }[] = [];
       if (CDS_TYPES.includes(model.type)) {
         rows.push({
-          label: "CDS Software",
-          value: CDS_SOFTWARE_OPTIONS.find((o) => o.value === model.cdsSoftware)?.label ?? "—",
+          label: t("equipmentWizard.typeSettings.summary.cdsSoftware"),
+          value: CDS_SOFTWARE_OPTIONS.find((o) => o.value === model.cdsSoftware)?.label ?? t("common.dash"),
           field: "cdsSoftware"
         });
       }
       if (CONNECTION_TYPES.includes(model.type)) {
         rows.push({
-          label: "Connection Settings",
-          value: model.connectionSettings.trim() || "—",
+          label: t("equipmentWizard.typeSettings.summary.connectionSettings"),
+          value: model.connectionSettings.trim() || t("common.dash"),
           field: "connectionSettings"
         });
       }
       if (SET_POINT_TYPES.includes(model.type)) {
         rows.push({
-          label: "Set Point Temp (°C)",
-          value: model.setPointTemperature !== "" ? model.setPointTemperature : "—",
+          label: t("equipmentWizard.typeSettings.summary.setPointTemperature"),
+          value: model.setPointTemperature !== "" ? model.setPointTemperature : t("common.dash"),
           field: "setPointTemperature"
         });
       }

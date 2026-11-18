@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import {
   Dialog,
   DialogTitle,
@@ -38,6 +41,7 @@ export function DraftMetadataDialog({
   onSuccess,
   document
 }: DraftMetadataDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [types, setTypes] = useState<DocumentTypeDto[]>([]);
   const [departments, setDepartments] = useState<DocumentDepartmentDto[]>([]);
   const [sections, setSections] = useState<DocumentSectionDto[]>([]);
@@ -92,13 +96,13 @@ export function DraftMetadataDialog({
           setSections(currentDept.sections || []);
         }
       })
-      .catch((err) => {
-        setError(err.message || "Failed to load master configuration.");
+      .catch((err: unknown) => {
+        setError(serverMessage(err) ?? getErrorMessage(err, t("draftMetadata.loadError")));
       })
       .finally(() => {
         setLoadingConfig(false);
       });
-  }, [open, document]);
+  }, [open, document, t]);
 
   const handleDepartmentChange = (deptId: number) => {
     setDepartmentId(deptId);
@@ -131,11 +135,11 @@ export function DraftMetadataDialog({
 
   const handleSave = async () => {
     if (!companyDocumentCode.trim() || !title.trim()) {
-      setError("Company Document Code and Title are required.");
+      setError(t("draftMetadata.codeTitleRequired"));
       return;
     }
     if (!documentTypeId || !departmentId || !sectionId || !ownerUserId) {
-      setError("Please complete all mandatory selection fields.");
+      setError(t("draftMetadata.fieldsRequired"));
       return;
     }
 
@@ -159,9 +163,8 @@ export function DraftMetadataDialog({
       const updated = await documentControlService.updateDraftMetadata(document.id, request, document.version);
       onSuccess(updated);
       onClose();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to update draft metadata.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("draftMetadata.updateError")));
     } finally {
       setSaving(false);
     }
@@ -173,12 +176,17 @@ export function DraftMetadataDialog({
         <EditNoteOutlinedIcon color="primary" />
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Edit Draft Metadata
+            {t("draftMetadata.title")}
           </Typography>
           <Typography variant="caption" sx={{
             color: "text.secondary"
           }}>
-            MicroLIMS ID: <strong>{document.microLimsDocumentId}</strong> | Revision: <strong>{document.currentRevisionNumber || "01"} (Draft)</strong>
+            <Trans
+              i18nKey="draftMetadata.subtitle"
+              ns="documentControl"
+              values={{ id: document.microLimsDocumentId, rev: document.currentRevisionNumber || "01" }}
+              components={{ strong: <strong /> }}
+            />
           </Typography>
         </Box>
       </DialogTitle>
@@ -193,15 +201,15 @@ export function DraftMetadataDialog({
         ) : (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField
-              label="Company Document Code *"
+              label={t("registerDialog.companyCodeLabel")}
               value={companyDocumentCode}
               onChange={(e) => setCompanyDocumentCode(e.target.value)}
               disabled={saving}
-              helperText="E.g. SOP-QC-001"
+              helperText={t("draftMetadata.codeHelper")}
             />
 
             <TextField
-              label="Document Title *"
+              label={t("registerDialog.titleLabel")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               disabled={saving}
@@ -209,34 +217,34 @@ export function DraftMetadataDialog({
 
             <TextField
               select
-              label="Document Type *"
+              label={t("registerDialog.typeLabel")}
               value={documentTypeId}
               onChange={(e) => setDocumentTypeId(Number(e.target.value))}
               disabled={saving}
             >
-              {types.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.code}: {t.name}
+              {types.map((docType) => (
+                <MenuItem key={docType.id} value={docType.id}>
+                  {docType.code}: {docType.name}
                 </MenuItem>
               ))}
             </TextField>
 
             <TextField
               select
-              label="Confidentiality *"
+              label={t("registerDialog.confidentialityLabel")}
               value={confidentiality}
               onChange={(e) => setConfidentiality(e.target.value as DocumentConfidentiality)}
               disabled={saving}
             >
-              <MenuItem value="Public">Public</MenuItem>
-              <MenuItem value="Internal">Internal</MenuItem>
-              <MenuItem value="Restricted">Restricted</MenuItem>
-              <MenuItem value="Confidential">Confidential</MenuItem>
+              <MenuItem value="Public">{t("registerDialog.confidentialities.Public")}</MenuItem>
+              <MenuItem value="Internal">{t("registerDialog.confidentialities.Internal")}</MenuItem>
+              <MenuItem value="Restricted">{t("registerDialog.confidentialities.Restricted")}</MenuItem>
+              <MenuItem value="Confidential">{t("registerDialog.confidentialities.Confidential")}</MenuItem>
             </TextField>
 
             <TextField
               select
-              label="Department *"
+              label={t("registerDialog.departmentLabel")}
               value={departmentId}
               onChange={(e) => handleDepartmentChange(Number(e.target.value))}
               disabled={saving}
@@ -250,7 +258,7 @@ export function DraftMetadataDialog({
 
             <TextField
               select
-              label="Primary Section *"
+              label={t("registerDialog.primarySectionLabel")}
               value={sectionId}
               onChange={(e) => handlePrimarySectionChange(Number(e.target.value))}
               disabled={saving || sections.length === 0}
@@ -275,39 +283,39 @@ export function DraftMetadataDialog({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Additional Sections"
-                  placeholder={additionalSectionIds.length === 0 ? "Select additional sections..." : undefined}
-                  helperText="Optional laboratory sections this document also applies to"
+                  label={t("registerDialog.additionalSectionsLabel")}
+                  placeholder={additionalSectionIds.length === 0 ? t("registerDialog.additionalSectionsPlaceholder") : undefined}
+                  helperText={t("registerDialog.additionalSectionsHelper")}
                 />
               )}
               sx={{ gridColumn: { xs: "1fr", sm: "1 / -1" } }}
             />
 
             <TextField
-              label="Category"
+              label={t("registerDialog.categoryLabel")}
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               disabled={saving}
-              placeholder="E.g. Testing Procedures, Cleaning, Validation"
+              placeholder={t("draftMetadata.categoryPlaceholder")}
             />
 
             <TextField
-              label="Document Owner User ID *"
+              label={t("registerDialog.ownerIdLabel")}
               type="number"
               value={ownerUserId}
               onChange={(e) => setOwnerUserId(Number(e.target.value))}
               disabled={saving}
-              helperText={`Current: ${document.documentOwnerUserName}`}
+              helperText={t("draftMetadata.currentOwner", { name: document.documentOwnerUserName })}
             />
 
             <Box sx={{ gridColumn: { xs: "1fr", sm: "1 / -1" } }}>
               <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: "block" }}>
-                Keywords & Tags
+                {t("registerDialog.keywordsTitle")}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
                 <TextField
                   size="small"
-                  placeholder="Enter keyword..."
+                  placeholder={t("registerDialog.keywordPlaceholder")}
                   value={keywordInput}
                   onChange={(e) => setKeywordInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -317,10 +325,10 @@ export function DraftMetadataDialog({
                     }
                   }}
                   disabled={saving}
-                  slotProps={{ htmlInput: { "aria-label": "Enter keyword" } }}
+                  slotProps={{ htmlInput: { "aria-label": t("registerDialog.keywordAria") } }}
                 />
                 <Button size="small" variant="outlined" onClick={handleAddKeyword} disabled={saving || !keywordInput.trim()}>
-                  Add Tag
+                  {t("draftMetadata.addTag")}
                 </Button>
               </Box>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -335,7 +343,7 @@ export function DraftMetadataDialog({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={saving} color="inherit">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -343,7 +351,7 @@ export function DraftMetadataDialog({
           disabled={saving || loadingConfig}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {saving ? "Saving Changes..." : "Save Draft Metadata"}
+          {saving ? t("draftMetadata.saving") : t("draftMetadata.submit")}
         </Button>
       </DialogActions>
     </Dialog>

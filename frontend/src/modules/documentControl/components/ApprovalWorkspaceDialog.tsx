@@ -958,6 +958,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
           signerUsername={dossier.task.assignedApproverUsername}
           signerRole={t("approval.designatedApproverRole")}
           meaning={i18n.getFixedT("en", "documentControl")("approval.signatureMeaning")}
+          meaningTranslation={t("approval.signatureMeaning")}
         />
       )}
     </Dialog>

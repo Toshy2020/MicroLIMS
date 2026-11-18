@@ -13,6 +13,7 @@ import { BiologicalWasteService } from "../services/BiologicalWasteService";
 import { serverMessage } from "../../../../utils/errorMessage";
 import { tableHeadSx } from "../../../../theme";
 import type { BiologicalWasteEligible } from "../types/biologicalWasteTypes";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 interface Props {
   open: boolean;
@@ -26,7 +27,7 @@ interface OtherRow {
   unit: string;
 }
 
-const dt = (v: string) => new Date(v).toLocaleString();
+const dt = (v: string) => formatDateTimeWithTimeZone(v);
 
 // "YYYY-MM-DDTHH:mm" in local time, for a datetime-local input.
 const localNow = () => {

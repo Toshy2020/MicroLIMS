@@ -6,6 +6,7 @@ import { brandColors } from "../../theme";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
 import { dueLabel } from "../receiving/components/SampleRegisterTable";
 import { assignedAnalystsLabel } from "../receiving/utils/assignedAnalysts";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface Props {
   samples: SampleCardType[];
@@ -107,7 +108,7 @@ export function SampleCardView({
               </Typography>
 
               {due && sample.dueAt && (
-                <Tooltip title={`Due ${new Date(sample.dueAt).toLocaleString()}`}>
+                <Tooltip title={`Due ${formatDateTimeWithTimeZone(sample.dueAt)}`}>
                   <Typography
                     sx={{
                       display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1.5,

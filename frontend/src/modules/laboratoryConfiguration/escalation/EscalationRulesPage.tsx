@@ -30,7 +30,7 @@ import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { APP_ROUTES } from "../../../routes/routes";
 import { type LaboratorySection, getMySections } from "../../../services/laboratorySectionService";
 import { getErrorMessage } from "../../../utils/errorMessage";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { formatRoleName } from "../../../utils/userDisplay";
 import { EscalationRuleDialog } from "./EscalationRuleDialog";
 import {
@@ -315,12 +315,12 @@ export function EscalationRulesPage() {
                             />
                             {rule.retiredAt ? (
                               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                                Retired {formatLabDateTime(rule.retiredAt)}
+                                Retired {formatDateTimeWithTimeZone(rule.retiredAt)}
                                 {rule.retiredByName ? ` by ${rule.retiredByName}` : ""}
                               </Typography>
                             ) : (
                               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                                Added {formatLabDateTime(rule.createdAt)}
+                                Added {formatDateTimeWithTimeZone(rule.createdAt)}
                               </Typography>
                             )}
                           </TableCell>

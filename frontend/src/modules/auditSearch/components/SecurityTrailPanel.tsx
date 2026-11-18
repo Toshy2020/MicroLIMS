@@ -13,7 +13,7 @@ import {
   TableRow,
   Typography
 } from "@mui/material";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { tableHeadSx } from "../../../theme";
 import { AuditSearchService } from "../services/AuditSearchService";
 import type { LoginHistoryItem, SecurityEventItem } from "../types/auditTypes";
@@ -89,7 +89,7 @@ export function SecurityTrailPanel({ kind }: Props) {
               <TableBody>
                 {events.map((e) => (
                   <TableRow key={e.id} hover>
-                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatLabDateTime(e.occurredAtUtc)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDateTimeWithTimeZone(e.occurredAtUtc)}</TableCell>
                     <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>{e.eventCode}</TableCell>
                     <TableCell>
                       <Chip
@@ -123,7 +123,7 @@ export function SecurityTrailPanel({ kind }: Props) {
               <TableBody>
                 {logins.map((l) => (
                   <TableRow key={l.id} hover>
-                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatLabDateTime(l.timestamp)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDateTimeWithTimeZone(l.timestamp)}</TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{l.username}</TableCell>
                     <TableCell>
                       <Chip

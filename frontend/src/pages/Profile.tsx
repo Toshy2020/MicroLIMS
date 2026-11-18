@@ -9,6 +9,7 @@ import { CurrentUserInfo } from "../modules/authentication/types/authTypes";
 import { NotificationPreferences } from "../modules/notifications/NotificationPreferences";
 import { NotificationMandatoryPanel } from "../modules/notifications/NotificationMandatoryPanel";
 import { formatRoleName } from "../utils/userDisplay";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
@@ -41,8 +42,8 @@ export function ProfilePage() {
         <Field label="Full Name" value={info.fullName} />
         <Field label="User ID" value={info.username} />
         <Field label="Role" value={formatRoleName(info.role, info.roleName)} />
-        <Field label="Last Login" value={info.lastLoginAt ? new Date(info.lastLoginAt).toLocaleString() : "Never"} />
-        <Field label="Password Last Changed" value={info.passwordChangedAt ? new Date(info.passwordChangedAt).toLocaleString() : "Never"} />
+        <Field label="Last Login" value={info.lastLoginAt ? formatDateTimeWithTimeZone(info.lastLoginAt) : "Never"} />
+        <Field label="Password Last Changed" value={info.passwordChangedAt ? formatDateTimeWithTimeZone(info.passwordChangedAt) : "Never"} />
       </Paper>
       <ProfileSecuritySection />
       <NotificationPreferences refreshKey={prefsRefreshKey} />

@@ -17,6 +17,7 @@ import { KpiSection } from "./KpiSection";
 import { KpiTile } from "./KpiTile";
 import { WorkflowProfilesDialog } from "./WorkflowProfilesDialog";
 import { WorkloadTable } from "./WorkloadTable";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 // The sections regroup the registry by topic (spec section 5); the backend's
 // Group says "Headline" for the eight tiles, several of which also trend here.
@@ -100,7 +101,7 @@ export function KpiPerformanceTab() {
       {dash.data && (
         <Box sx={{ opacity: dash.loading ? 0.6 : 1 }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
-            Calculated {new Date(dash.data.generatedAt).toLocaleString()} for your laboratory sections. Click any figure to see the records behind it.
+            Calculated {formatDateTimeWithTimeZone(dash.data.generatedAt)} for your laboratory sections. Click any figure to see the records behind it.
           </Typography>
 
           <Grid container spacing={2} sx={{ mb: 3 }}>

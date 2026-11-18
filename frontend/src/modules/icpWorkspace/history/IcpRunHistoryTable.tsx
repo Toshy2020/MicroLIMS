@@ -5,6 +5,7 @@ import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpRunListItem } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpRunHistoryTableProps {
   historyRuns: IcpRunListItem[];
@@ -29,7 +30,7 @@ export function IcpRunHistoryTable({
       label: "Started At",
       sortable: true,
       sortValue: (hr) => new Date(hr.startedAt).getTime(),
-      render: (hr) => new Date(hr.startedAt).toLocaleString()
+      render: (hr) => formatDateTimeWithTimeZone(hr.startedAt)
     },
     {
       key: "sampleCount",

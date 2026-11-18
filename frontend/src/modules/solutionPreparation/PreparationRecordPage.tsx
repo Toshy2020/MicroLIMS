@@ -23,7 +23,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { solutionTypeLabel } from "./types";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
-import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
 import type { LabelTarget } from "../../services/labelService";
 import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
@@ -230,7 +230,7 @@ export function PreparationRecordPage() {
               {preparation.startedByUserName || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {formatLabDateTime(preparation.startedAt)}
+              {formatDateTimeWithTimeZone(preparation.startedAt)}
             </Typography>
           </Box>
           <Box>
@@ -239,13 +239,13 @@ export function PreparationRecordPage() {
               {preparation.preparedByUserName || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {preparation.preparedAt ? formatLabDateTime(preparation.preparedAt) : "Not yet prepared"}
+              {preparation.preparedAt ? formatDateTimeWithTimeZone(preparation.preparedAt) : "Not yet prepared"}
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Expires At</Typography>
             <Typography variant="body2" sx={{ fontWeight: 700, color: preparation.effectiveStatus === "Expired" ? "error.main" : "text.primary" }}>
-              {preparation.expiresAt ? formatLabDate(preparation.expiresAt) : "—"}
+              {preparation.expiresAt ? formatDateTimeWithTimeZone(preparation.expiresAt) : "—"}
             </Typography>
             {recipe && (
               <Typography variant="caption" sx={{ color: "text.secondary" }}>

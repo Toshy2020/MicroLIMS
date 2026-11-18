@@ -17,6 +17,7 @@ import type { ChallengeFormState, MediaEvaluationChallenge, MediaEvaluationDetai
 import { masterDataOptions, mediaClassLabel, evaluationTypeLabel } from "../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../theme";
 import { ChallengeOrganismSourcePicker } from "./components/ChallengeOrganismSourcePicker";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 const STATUSES = ["Assigned", "InProgress", "Completed"];
 
@@ -204,7 +205,7 @@ export function MediaEvaluationPage() {
                         <Typography variant="body2" sx={{ mb: 1 }}>
                           Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
                           {", "}
-                          {isReadyToRead(c) ? "ready to read" : `earliest reading ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}`}
+                          {isReadyToRead(c) ? "ready to read" : `earliest reading ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}`}
                         </Typography>
                       ) : (
                         <Stack
@@ -241,7 +242,7 @@ export function MediaEvaluationPage() {
                       ) : !isReadyToRead(c) ? (
                         <Alert severity="info" sx={{ mt: 1 }}>
                           {c.incubation
-                            ? `Incubation still in progress - result entry opens at ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}.`
+                            ? `Incubation still in progress - result entry opens at ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}.`
                             : "Record incubation before a result can be entered."}
                         </Alert>
                       ) : (

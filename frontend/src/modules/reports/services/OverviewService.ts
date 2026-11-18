@@ -1,6 +1,7 @@
 import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
 import { chartPalette as defaultChartPalette } from "../../../theme";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 // Exported so other Reports tabs (e.g. the KPI tab's category filter and
 // "Tests by Category" donut) use the same human labels instead of each
@@ -116,13 +117,7 @@ export const OverviewService = {
         testCode: r.testCode,
         testDisplayName: r.testDisplayName || r.testCode,
         dateEntered: r.resultEnteredAt
-          ? new Date(r.resultEnteredAt).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })
+          ? formatDateTimeWithTimeZone(r.resultEnteredAt)
           : "—",
         enteredBy: r.resultEnteredByName || "Analyst",
         sampleStatus: r.sampleStatus as any,

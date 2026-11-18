@@ -7,7 +7,7 @@ import type { RegisterColumn } from "../../components/lab";
 import { StatusBadge } from "../../components/StatusBadge";
 import { monospaceFontFamily } from "../../theme/palette";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
-import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type {
   SolutionType,
   SolutionPreparationStatus,
@@ -107,14 +107,14 @@ export function PreparationListPage() {
       label: "Prepared At",
       sortable: true,
       sortValue: (i) => i.preparedAt ?? "",
-      render: (i) => (i.preparedAt ? formatLabDateTime(i.preparedAt) : "—")
+      render: (i) => (i.preparedAt ? formatDateTimeWithTimeZone(i.preparedAt) : "—")
     },
     {
       key: "expiresAt",
       label: "Expires At",
       sortable: true,
       sortValue: (i) => i.expiresAt ?? "",
-      render: (i) => (i.expiresAt ? formatLabDate(i.expiresAt) : "—")
+      render: (i) => (i.expiresAt ? formatDateTimeWithTimeZone(i.expiresAt) : "—")
     },
     {
       key: "preparedByUserName",

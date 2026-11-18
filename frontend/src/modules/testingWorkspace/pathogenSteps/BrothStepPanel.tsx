@@ -17,11 +17,12 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
 import { Ltr } from "../../../components/Ltr";
-import { activeLanguage, useTranslation } from "../../../i18n";
+import { useTranslation } from "../../../i18n";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import { StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields } from "./StepLayout";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface BrothDraftValues {
   mediaLotId: number | "";
@@ -38,9 +39,6 @@ interface Props {
   current?: CurrentStepResponse;
   onSubmitted: () => void;
 }
-
-const fmtLocale = (d: Date) =>
-  d.toLocaleString(activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined);
 
 // BrothEnrichment/SelectiveBroth: preparation only. The incubation
 // window is server-controlled from Test Master (analyst cannot override
@@ -194,10 +192,10 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
               { label: t("pathogenSteps.broth.incubator"), value: summary.incubatorCode ? <Ltr>{summary.incubatorCode}</Ltr> : t("pathogenSteps.broth.standardIncubator") },
               {
                 label: t("pathogenSteps.broth.started"),
-                value: summary.incubationStartUtc ? <Ltr>{fmtLocale(new Date(summary.incubationStartUtc))}</Ltr> : t("pathogenSteps.broth.recorded")
+                value: summary.incubationStartUtc ? <Ltr>{formatDateTimeWithTimeZone(new Date(summary.incubationStartUtc))}</Ltr> : t("pathogenSteps.broth.recorded")
               },
               { label: t("pathogenSteps.broth.by"), value: <Ltr>{summary.startedByUserName}</Ltr> },
-              ...(summary.minReadyAt ? [{ label: t("pathogenSteps.broth.availableFrom"), value: <Ltr>{fmtLocale(new Date(summary.minReadyAt))}</Ltr> }] : [])
+              ...(summary.minReadyAt ? [{ label: t("pathogenSteps.broth.availableFrom"), value: <Ltr>{formatDateTimeWithTimeZone(new Date(summary.minReadyAt))}</Ltr> }] : [])
             ]}
           />
         </Box>
@@ -269,7 +267,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           siblingOrders: siblings,
           mediaLotLabel: selectedLot?.lotNumber ?? `Lot #${mediaLotId}`,
           incubatorLabel: selectedInc?.code ?? `Incubator #${equipmentId}`,
-          incubationStart: fmtLocale(new Date())
+          incubationStart: formatDateTimeWithTimeZone(new Date())
         });
         return;
       }

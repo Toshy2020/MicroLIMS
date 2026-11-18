@@ -33,6 +33,7 @@ import type {
   AuditActionCategory
 } from "../types/documentControlTypes";
 import { DateField } from "../../../components/DateField";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function DocumentAuditPage() {
   const theme = useTheme();
@@ -238,7 +239,7 @@ export function DocumentAuditPage() {
                   }}
                 >
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {new Date(log.timestamp).toLocaleString()}
+                    {formatDateTimeWithTimeZone(log.timestamp)}
                   </TableCell>
                   <TableCell sx={documentCodeSx}>
                     {log.eventUid ? log.eventUid.substring(0, 16) : `#${log.id}`}

@@ -13,8 +13,9 @@ import {
 } from "./services/AccessReviewService";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import { formatAccessReviewMfaState } from "../../utils/mfaStateDisplay";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
-const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "Never");
+const formatDate = (iso: string | null) => (iso ? formatDateTimeWithTimeZone(iso) : "Never");
 const messageOf = (e: unknown, fallback: string): string => serverMessage(e) ?? getErrorMessage(e, fallback);
 
 type StatusFilter = "All" | "Active" | "Inactive";
@@ -264,7 +265,7 @@ export function AccessReviewPage() {
                       </TableCell>
                       <TableCell>{formatDate(u.lastSuccessfulLogin)}</TableCell>
                       <TableCell>
-                        {u.statusHistory.length === 0 ? "None" : u.statusHistory.map((h) => `${new Date(h.timestamp).toLocaleDateString()} ${h.action}`).join("; ")}
+                        {u.statusHistory.length === 0 ? "None" : u.statusHistory.map((h) => `${formatDateTimeWithTimeZone(h.timestamp)} ${h.action}`).join("; ")}
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>

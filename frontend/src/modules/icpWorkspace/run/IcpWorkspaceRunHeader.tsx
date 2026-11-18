@@ -10,6 +10,7 @@ import { IcpStatusBadge } from "../components/IcpStatusBadge";
 import { IcpElementStatusStrip } from "../components/IcpElementStatusStrip";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpRunDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpWorkspaceRunHeaderProps {
   run: IcpRunDto;
@@ -43,7 +44,7 @@ export function IcpWorkspaceRunHeader({
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             <strong>Run Code:</strong> <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{run.code}</Box> ·{" "}
             <strong>Analyst:</strong> {run.analystUserName ?? "Analyst"} ·{" "}
-            <strong>Started:</strong> {new Date(run.startedAt).toLocaleString()}
+            <strong>Started:</strong> {formatDateTimeWithTimeZone(run.startedAt)}
           </Typography>
         </Box>
 

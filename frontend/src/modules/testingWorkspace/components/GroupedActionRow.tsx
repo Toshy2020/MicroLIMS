@@ -22,6 +22,7 @@ import { ActionableGroup, BatchSelectMediaResponse } from "../types/testWorkflow
 import { StatusBadge } from "../../../components/StatusBadge";
 import { lookupCache, ReleasedMediaItem, IncubatorEquipmentItem } from "../../../services/lookupCache";
 import { TestWorkflowService } from "../services/TestWorkflowService";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface GroupedActionRowProps {
   group: ActionableGroup;
@@ -359,7 +360,7 @@ export function GroupedActionRow({
                     ) : (
                       matchingMedia.map((m) => (
                         <MenuItem key={m.id} value={m.id} sx={{ fontSize: "0.75rem" }}>
-                          {m.lotNumber} ({m.materialName}) · Exp: {new Date(m.expiryDate).toLocaleDateString()}
+                          {m.lotNumber} ({m.materialName}) · Exp: {formatLabCalendarDate(m.expiryDate)}
                         </MenuItem>
                       ))
                     )}

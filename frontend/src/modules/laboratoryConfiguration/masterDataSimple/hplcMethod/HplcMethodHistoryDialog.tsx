@@ -25,6 +25,7 @@ import {
   HplcMethodListItem,
   HplcMethodHistoryEntry
 } from "../services/HplcMethodService";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 export interface HplcMethodHistoryDialogProps {
   open: boolean;
@@ -131,7 +132,7 @@ export function HplcMethodHistoryDialog({
                         ) : null}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap", fontSize: 13 }}>
-                        {new Date(entry.at).toLocaleString()}
+                        {formatDateTimeWithTimeZone(entry.at)}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500, fontSize: 13 }}>{entry.userName}</TableCell>
                       <TableCell>

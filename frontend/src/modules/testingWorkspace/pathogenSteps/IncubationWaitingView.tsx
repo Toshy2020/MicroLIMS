@@ -9,9 +9,10 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { Ltr } from "../../../components/Ltr";
-import { activeLanguage, useTranslation } from "../../../i18n";
+import { useTranslation } from "../../../i18n";
 import { StepActionBar, StepDetailList, IncubationTimeline } from "./StepLayout";
 import { IncubationCountdown } from "./IncubationCountdown";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 // When the minimum incubation ends, as a client timestamp. Prefers the
 // server's remainingMinimumSeconds (immune to a wrong device clock) and
@@ -23,14 +24,7 @@ function minimumDeadline(current: CurrentStepResponse): number | null {
   return lock.minReadyAt ? new Date(lock.minReadyAt).getTime() : null;
 }
 
-const fmt = (d: Date) =>
-  d.toLocaleString(activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined, {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+const fmt = (d: Date) => formatDateTimeWithTimeZone(d);
 
 interface Props {
   testOrderId: number;

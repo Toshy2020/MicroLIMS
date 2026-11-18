@@ -23,6 +23,7 @@ import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
 import { FieldHint, describedByWithHint } from "../../../components/FieldHint";
 import { hints } from "../hints";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -256,7 +257,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               >
                 {mediaLots.map((m: any) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                    {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {formatLabCalendarDate(m.expiryDate)})
                   </MenuItem>
                 ))}
               </TextField>

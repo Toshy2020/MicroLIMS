@@ -40,6 +40,7 @@ import type {
 } from "../types/documentControlTypes";
 import { useAuth } from "../../../contexts/AuthContext";
 import { tableHeadSx } from "../../../theme";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface PeriodicReviewWorkspaceDialogProps {
   open: boolean;
@@ -244,7 +245,7 @@ export function PeriodicReviewWorkspaceDialog({
                       }}>Review Due Date</Typography>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 700, color: workspace.task.isOverdue ? "error.main" : "text.primary" }}>
-                        {new Date(workspace.task.scheduledDueDate).toLocaleDateString()}
+                        {formatLabCalendarDate(workspace.task.scheduledDueDate)}
                       </Typography>
                       {workspace.task.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
                     </Box>
@@ -436,7 +437,7 @@ export function PeriodicReviewWorkspaceDialog({
                     <TableBody>
                       {workspace.historicalReviews.map((h) => (
                         <TableRow key={h.id} hover>
-                          <TableCell>{h.completedAt ? new Date(h.completedAt).toLocaleDateString() : new Date(h.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>{h.completedAt ? formatDateTimeWithTimeZone(h.completedAt) : new Date(h.createdAt).toLocaleDateString()}</TableCell>
                           <TableCell sx={{ fontWeight: 700 }}>Rev {h.revisionNumber}</TableCell>
                           <TableCell>
                             <Chip

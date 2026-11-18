@@ -9,7 +9,7 @@ import { serverIncubationWindow } from "../utils/incubationWindow";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
 import { Ltr } from "../../../components/Ltr";
-import { activeLanguage, useTranslation } from "../../../i18n";
+import { useTranslation } from "../../../i18n";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
@@ -18,6 +18,7 @@ import {
   ExpectedAppearanceNote, ObservationOptions
 } from "./StepLayout";
 import { IncubationWaitingView } from "./IncubationWaitingView";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface SelectivePlatingDraftValues {
   mediaLotId: number | "";
@@ -40,9 +41,6 @@ interface Props {
   current: CurrentStepResponse;
   onSubmitted: () => void;
 }
-
-const fmtLocale = (d: Date) =>
-  d.toLocaleString(activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined);
 
 export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {
   const { t } = useTranslation("testingWorkspace");
@@ -279,9 +277,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
           <Alert severity="success">{t("pathogenSteps.plating.incubationComplete")}</Alert>
           <StepDetailList
             rows={[
-              ...(incubationStartUtc ? [{ label: t("pathogenSteps.plating.started"), value: <Ltr>{fmtLocale(incubationStartUtc)}</Ltr> }] : []),
-              ...(minReadyAt ? [{ label: t("pathogenSteps.plating.readyFrom"), value: <Ltr>{fmtLocale(minReadyAt)}</Ltr> }] : []),
-              ...(expectedEndAt ? [{ label: t("pathogenSteps.plating.readBy"), value: <Ltr>{fmtLocale(expectedEndAt)}</Ltr> }] : [])
+              ...(incubationStartUtc ? [{ label: t("pathogenSteps.plating.started"), value: <Ltr>{formatDateTimeWithTimeZone(incubationStartUtc)}</Ltr> }] : []),
+              ...(minReadyAt ? [{ label: t("pathogenSteps.plating.readyFrom"), value: <Ltr>{formatDateTimeWithTimeZone(minReadyAt)}</Ltr> }] : []),
+              ...(expectedEndAt ? [{ label: t("pathogenSteps.plating.readBy"), value: <Ltr>{formatDateTimeWithTimeZone(expectedEndAt)}</Ltr> }] : [])
             ]}
           />
 

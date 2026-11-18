@@ -7,7 +7,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { Ltr } from "../../components/Ltr";
-import { activeLanguage, useTranslation } from "../../i18n";
+import { useTranslation } from "../../i18n";
 import { StatusBadge } from "../../components/StatusBadge";
 import { statusTone } from "../../theme/statusTokens";
 import { errorsByRow } from "../../utils/fieldErrors";
@@ -46,6 +46,7 @@ import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
 import type { CountPreviewResult, CurrentStepResponse, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
@@ -211,7 +212,6 @@ export function TestWorkflowDialog(props: Props) {
 function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
-  const dateLocale = activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined;
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
   const [current, setCurrent] = useState<WorkflowStepState | null>(null);
@@ -593,7 +593,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
   const countSaveBlockedReason = !isTimeReady
     ? minReadyAt
-      ? t("testWorkflow.cannotSubmitBefore", { time: minReadyAt.toLocaleString(dateLocale) })
+      ? t("testWorkflow.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
       : t("testWorkflow.stepNotReady")
     : dilutionFactorNotConfigured
       ? t("testWorkflow.dfNotConfiguredShort")
@@ -1324,7 +1324,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               <Trans
                 i18nKey="testWorkflow.cannotSubmitBeforeTrans"
                 ns="testingWorkspace"
-                values={{ time: minReadyAt.toLocaleString(dateLocale) }}
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
                 components={{ ltr: <Ltr>{null}</Ltr> }}
               />
             </Alert>
@@ -1366,7 +1366,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               <Trans
                 i18nKey="testWorkflow.cannotSubmitBeforeTrans"
                 ns="testingWorkspace"
-                values={{ time: minReadyAt.toLocaleString(dateLocale) }}
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
                 components={{ ltr: <Ltr>{null}</Ltr> }}
               />
             </Alert>

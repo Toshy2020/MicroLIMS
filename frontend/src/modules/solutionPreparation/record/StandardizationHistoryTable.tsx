@@ -19,7 +19,7 @@ import {
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { tableHeadSx } from "../../../theme";
-import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import type {
   TitrantStandardizationResponse,
   TitrantStandardizationReplicateResponse
@@ -104,7 +104,7 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
   const isPrimary = record.mode === "PrimaryStandard";
 
   const validUntilText = (() => {
-    if (record.validUntil) return formatLabDate(record.validUntil);
+    if (record.validUntil) return formatLabCalendarDate(record.validUntil);
     if (record.passed) return "Before each use";
     return "—";
   })();
@@ -117,7 +117,7 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>
         </TableCell>
-        <TableCell sx={{ fontWeight: 600 }}>{formatLabDateTime(record.standardizedAt)}</TableCell>
+        <TableCell sx={{ fontWeight: 600 }}>{formatDateTimeWithTimeZone(record.standardizedAt)}</TableCell>
         <TableCell>{record.standardizedByUserName || "—"}</TableCell>
         <TableCell>
           <Typography variant="body2" sx={{ fontSize: 13 }}>

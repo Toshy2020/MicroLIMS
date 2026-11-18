@@ -40,6 +40,7 @@ import { clickable } from "../../../../utils/clickable";
 import { useHasPermission } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 import { useTrackRecent } from "../../../navigation/useTrackRecent";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 
 export const ITEM_WORKSPACE_TABS = [
   "overview",
@@ -133,18 +134,12 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+    return formatLabCalendarDate(dateStr);
   };
 
   const formatDateTime = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeWithTimeZone(dateStr);
   };
 
   const specsCount = item.specifications?.length ?? 0;

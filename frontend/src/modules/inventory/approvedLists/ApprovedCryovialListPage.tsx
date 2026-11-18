@@ -28,7 +28,7 @@ import { RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import { useTableState } from "../../../components/lab/table/useTableState";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 import { CryovialService } from "../../laboratoryConfiguration/cryovials/services/CryovialService";
 import { CryovialItem } from "../../laboratoryConfiguration/cryovials/types/cryovialTypes";
 import { ThawVialReasonDialog } from "../../laboratoryConfiguration/cryovials/components/ThawVialReasonDialog";
@@ -321,7 +321,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
             <Typography
               sx={{ fontSize: 12, fontWeight: expiring ? 700 : 500, color: expiring ? action.text : "text.primary" }}
             >
-              {formatLabDate(c.expiryDate)}
+              {formatLabCalendarDate(c.expiryDate)}
             </Typography>
             {expiring && (
               <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>Expiring soon</Typography>
@@ -353,7 +353,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
       label: "Vials Remaining",
       render: (c: CryovialItem) => `${c.vialsRemaining} of ${c.numberOfVialsPrepared}`
     },
-    { label: "Expiry", render: (c: CryovialItem) => formatLabDate(c.expiryDate) },
+    { label: "Expiry", render: (c: CryovialItem) => formatLabCalendarDate(c.expiryDate) },
     {
       label: "Status",
       render: (c: CryovialItem) => (c.vialsRemaining === 0 ? "Depleted" : "Approved")

@@ -42,6 +42,7 @@ import {
 import { PathogenSessionService } from "../services/PathogenSessionService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -617,7 +618,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   >
                     {releasedMedia.map((m: any) => (
                       <MenuItem key={m.id} value={m.id}>
-                        {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                        {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {formatLabCalendarDate(m.expiryDate)})
                       </MenuItem>
                     ))}
                   </TextField>

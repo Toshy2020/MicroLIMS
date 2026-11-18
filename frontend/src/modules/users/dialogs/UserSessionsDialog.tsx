@@ -19,7 +19,7 @@ interface Props {
   onRevoked: (message: string) => void;
 }
 
-const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : "-");
+const fmt = (iso: string | null) => (iso ? formatDateTimeWithTimeZone(iso) : "-");
 
 // Active sign-in sessions (refresh tokens) and trusted computers of one user.
 export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {

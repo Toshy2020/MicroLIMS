@@ -31,6 +31,7 @@ import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { DateField } from "../../components/DateField";
 import { visuallyHidden } from "@mui/utils";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 // Matched on section Code, never Id: Ids are database-assigned and differ
 // between installations. Codes are never renamed, only labels can change
@@ -92,8 +93,7 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
 // one row per sample, its overall status, and each laboratory's own stage.
 export function TrackingBoardPage() {
   const theme = useTheme();
-  const { t, i18n } = useTranslation("receiving");
-  const dateLocale = i18n.language === "ar" ? "ar-u-nu-latn-ca-gregory" : "en-GB";
+  const { t } = useTranslation("receiving");
   const [rows, setRows] = useState<TrackingRow[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -154,7 +154,7 @@ export function TrackingBoardPage() {
 
   const formatReceivedDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString(dateLocale, { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }

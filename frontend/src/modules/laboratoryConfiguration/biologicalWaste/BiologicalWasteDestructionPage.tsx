@@ -10,8 +10,9 @@ import { serverMessage } from "../../../utils/errorMessage";
 import { BiologicalWasteService } from "./services/BiologicalWasteService";
 import { RecordDestructionDialog } from "./components/RecordDestructionDialog";
 import type { BiologicalWasteDestruction, BiologicalWasteEligible } from "./types/biologicalWasteTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
-const dt = (v: string) => new Date(v).toLocaleString();
+const dt = (v: string) => formatDateTimeWithTimeZone(v);
 
 const ITEM_TYPE_LABEL: Record<string, string> = {
   ThawedVial: "Thawed cryovial vial",

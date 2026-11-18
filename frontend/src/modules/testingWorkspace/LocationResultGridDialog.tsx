@@ -12,12 +12,13 @@ import { TableSkeleton } from "../../components/TableSkeleton";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
-import { activeLanguage, useTranslation } from "../../i18n";
+import { useTranslation } from "../../i18n";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { useLocationPaste } from "./useLocationPaste";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface LocationRow {
   id: number;
@@ -94,7 +95,6 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
   const [submitting, setSubmitting] = useState(false);
   const [keptOffline, setKeptOffline] = useKeptOffline();
   const dialogTitle = t("locationGrid.title", { testCode, displayName });
-  const dateLocale = activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined;
 
   const draft = useBenchDraft<EmGridDraftValues>({
     formKey: "em-grid",
@@ -244,7 +244,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
     : !allEntered
       ? t("locationGrid.enterAtLeastOne")
       : !isTimeReady && minReadyAt
-        ? t("locationGrid.cannotSubmitBefore", { time: minReadyAt.toLocaleString(dateLocale) })
+        ? t("locationGrid.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
         : undefined;
 
   const content = (
@@ -344,7 +344,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
               <Trans
                 i18nKey="locationGrid.cannotSubmitBeforeTrans"
                 ns="testingWorkspace"
-                values={{ time: minReadyAt.toLocaleString(dateLocale) }}
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
                 components={{ ltr: <Ltr>{null}</Ltr> }}
               />
             </Alert>

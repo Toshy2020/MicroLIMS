@@ -35,6 +35,7 @@ import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../type
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { useTechnique } from "../useTechnique";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
@@ -47,7 +48,7 @@ const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
   {
     key: "expiresAt",
     label: "Expiry Date",
-    render: (mp) => (mp.expiresAt ? new Date(mp.expiresAt).toLocaleDateString() : "—"),
+    render: (mp) => (mp.expiresAt ? formatDateTimeWithTimeZone(mp.expiresAt) : "—"),
     sortable: true,
     sortValue: (mp) => mp.expiresAt ?? null
   }

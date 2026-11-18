@@ -24,7 +24,7 @@ import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { AddLogEntryDialog } from "./AddLogEntryDialog";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import type {
   MaintenanceEntryType,
   MaintenanceLogEntryResponse
@@ -166,7 +166,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                     }}
                   >
                     <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                      {formatLabDate(entry.performedOn)}
+                      {formatLabCalendarDate(entry.performedOn)}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>
                       <Chip
@@ -194,7 +194,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                       {isVoided ? (
                         <Tooltip
                           title={`Voided by user #${entry.voidedByUserId}: "${entry.voidReason}" at ${
-                            entry.voidedAt ? formatLabDateTime(entry.voidedAt) : ""
+                            entry.voidedAt ? formatDateTimeWithTimeZone(entry.voidedAt) : ""
                           }`}
                         >
                           <Chip
@@ -297,7 +297,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
         {voidTarget && (
           <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.default", borderRadius: 1 }}>
             <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-              {formatLabDate(voidTarget.performedOn)} · {MAINTENANCE_ENTRY_TYPE_LABELS[voidTarget.entryType]}
+              {formatLabCalendarDate(voidTarget.performedOn)} · {MAINTENANCE_ENTRY_TYPE_LABELS[voidTarget.entryType]}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
               {voidTarget.workDone}

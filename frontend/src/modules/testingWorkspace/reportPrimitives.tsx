@@ -1,4 +1,5 @@
 // Shared building blocks for every printable record (sample, media lot,
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../utils/formatDate";
 // cryovial batch) so the three reports stay one visual language rather
 // than drifting apart. Styling lives in reportStyles.ts.
 
@@ -41,10 +42,10 @@ export const humanize = (v: string | null | undefined): string => {
 };
 
 export const dt = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
+  v ? formatDateTimeWithTimeZone(v) : "—";
 
 export const d = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  v ? formatLabCalendarDate(v) : "—";
 
 export interface SignatureLike {
   printedName: string;

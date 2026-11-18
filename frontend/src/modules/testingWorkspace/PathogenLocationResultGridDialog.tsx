@@ -12,12 +12,13 @@ import { TableSkeleton } from "../../components/TableSkeleton";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { useGridNavigation } from "../../components/entry/useGridNavigation";
-import { activeLanguage, useTranslation } from "../../i18n";
+import { useTranslation } from "../../i18n";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../../theme/benchTheme";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface LocationRow {
   id: number;
@@ -56,7 +57,6 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   const { benchMode } = useBenchMode();
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
   const dialogTitle = t("locationGrid.title", { testCode, displayName });
-  const dateLocale = activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined;
 
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [growth, setGrowth] = useState<Record<number, "yes" | "no" | "">>({});
@@ -179,7 +179,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     : !allEntered
       ? t("locationGrid.selectForEvery")
       : !isTimeReady && minReadyAt
-        ? t("locationGrid.cannotSubmitBefore", { time: minReadyAt.toLocaleString(dateLocale) })
+        ? t("locationGrid.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
         : undefined;
 
   const content = (
@@ -305,7 +305,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
               <Trans
                 i18nKey="locationGrid.cannotSubmitBeforeTrans"
                 ns="testingWorkspace"
-                values={{ time: minReadyAt.toLocaleString(dateLocale) }}
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
                 components={{ ltr: <Ltr>{null}</Ltr> }}
               />
             </Alert>

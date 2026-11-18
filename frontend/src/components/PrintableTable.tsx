@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 
 export interface PrintColumn<T> {
   label: string;
@@ -37,7 +38,7 @@ export function PrintableTable<T>({ title, subtitle, columns, rows, getRowId }: 
             MicroLIMS
           </Typography>
           <Typography sx={{ fontSize: "9pt", color: "#6b7280" }}>
-            Printed: {new Date().toLocaleString()}
+            Printed: {formatDateTimeWithTimeZone(new Date())}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: "13pt", fontWeight: 700, color: "#1f2937", mb: 0.25 }}>

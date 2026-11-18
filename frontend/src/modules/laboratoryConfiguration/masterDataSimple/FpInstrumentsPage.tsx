@@ -22,6 +22,7 @@ import { EquipmentConfigurationService } from "./services/EquipmentConfiguration
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import { getSections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { CDS_SOFTWARE_OPTIONS } from "./EquipmentPage";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 // Finished Product (chemistry) instruments. The physical asset - code,
 // serial, manufacturer, CDS version, calibration - lives in the Equipment
@@ -91,7 +92,7 @@ const emptyForm: FormState = { inventoryId: "", name: "", type: "Hplc", cdsSoftw
 
 const typeLabel = (type: string) => FP_INSTRUMENT_TYPES.find((t) => t.value === type)?.label ?? type;
 const cdsLabel = (cds: string | null) => CDS_SOFTWARE_OPTIONS.find((c) => c.value === cds)?.label ?? cds ?? "—";
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "—");
+const formatDate = (d: string | null) => (d ? formatLabCalendarDate(d) : "—");
 
 // Infers the FP instrument type from the Equipment Inventory asset's own
 // (free-text) instrument-type field, so picking e.g. an "AAS" asset doesn't

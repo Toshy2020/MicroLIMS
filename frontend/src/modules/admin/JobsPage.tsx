@@ -7,11 +7,11 @@ import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
 import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
-import { formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { BackgroundJobRun, BackgroundJobRunPage, BackgroundJobService, BackgroundJobStatus } from "./services/BackgroundJobService";
 
-const when = (v: string | null) => (v ? formatLabDateTime(v) : "Never");
+const when = (v: string | null) => (v ? formatDateTimeWithTimeZone(v) : "Never");
 
 function OutcomeChip({ run }: { run: BackgroundJobRun | null }) {
   if (!run) return <Chip size="small" label="No runs yet" />;

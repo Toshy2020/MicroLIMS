@@ -22,7 +22,7 @@ import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { toast } from "sonner";
-import { formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 import { WorkingStandardService } from "../../services/WorkingStandardService";
 import type {
   WorkingStandardDocumentDto,
@@ -125,7 +125,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
                   }
                   secondary={
                     <Typography variant="caption" color="text.secondary">
-                      Uploaded on {formatLabDateTime(doc.uploadedAt)}
+                      Uploaded on {formatDateTimeWithTimeZone(doc.uploadedAt)}
                       {doc.uploadedByUserName && ` by ${doc.uploadedByUserName}`}
                     </Typography>
                   }

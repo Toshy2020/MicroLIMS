@@ -20,6 +20,7 @@ import type {
   RevisionImpactAssessmentDto,
   SaveImpactAssessmentRequest
 } from "../types/documentControlTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface RevisionImpactAssessmentDialogProps {
   open: boolean;
@@ -199,7 +200,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                 borderRadius: 1
               }}>
                 <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark", fontWeight: 600 }}>
-                  Assessment Status: COMPLETE &bull; Last Completed by: {existingAssessment.completedByFullName} ({existingAssessment.completedByUsername}) on {new Date(existingAssessment.completedAt).toLocaleString()}
+                  Assessment Status: COMPLETE &bull; Last Completed by: {existingAssessment.completedByFullName} ({existingAssessment.completedByUsername}) on {formatDateTimeWithTimeZone(existingAssessment.completedAt)}
                 </Typography>
               </Box>
             )}

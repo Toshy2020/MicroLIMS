@@ -47,6 +47,7 @@ import type {
   DocumentNumberingConfigDto,
   ConfigurationSettingDto
 } from "../types/documentControlTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function DocumentConfigurationPage() {
   const theme = useTheme();
@@ -329,7 +330,7 @@ export function DocumentConfigurationPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    Last modified by: {numbering.modifiedByUserName} on {new Date(numbering.modifiedAt).toLocaleString()}
+                    Last modified by: {numbering.modifiedByUserName} on {formatDateTimeWithTimeZone(numbering.modifiedAt)}
                   </Typography>
                 </Paper>
 
@@ -406,7 +407,7 @@ export function DocumentConfigurationPage() {
                             }}>{s.modifiedByUserName || "System"}</Typography>
                             <Typography variant="caption" sx={{
                               color: "text.secondary"
-                            }}>{new Date(s.modifiedAt).toLocaleDateString()}</Typography>
+                            }}>{formatDateTimeWithTimeZone(s.modifiedAt)}</Typography>
                           </TableCell>
                           <TableCell align="right">
                             <IconButton aria-label={`Edit setting ${s.settingKey}`}

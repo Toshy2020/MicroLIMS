@@ -45,6 +45,7 @@ import type { TableState } from "../../../components/lab/table/tableUrlCodec";
 import type { RowSelection } from "../../../components/lab/table/useRowSelection";
 import { useTableState, type UseTableState } from "../../../components/lab/table/useTableState";
 import type { ExportColumn } from "../../../components/lab/table/exportRows";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface SampleRegisterTableProps {
   samples: SampleRecord[];
@@ -300,9 +301,8 @@ function SampleRegisterTableInner({
   onSelectTests
 }: SampleRegisterTableProps & { tableState: UseTableState }) {
   const theme = useTheme();
-  const { t, i18n } = useTranslation("receiving");
+  const { t } = useTranslation("receiving");
   const { t: tCommon } = useTranslation("common");
-  const dateLocale = i18n.language === "ar" ? "ar-u-nu-latn-ca-gregory" : "en-GB";
   const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   // Mirrors the server: only a Section Head or Supervisor chooses a periodic retest's tests.
@@ -429,14 +429,7 @@ function SampleRegisterTableInner({
 
   const formatReceivedDate = (d: string) => {
     try {
-      const date = new Date(d);
-      return date.toLocaleDateString(dateLocale, {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }

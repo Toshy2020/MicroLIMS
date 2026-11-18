@@ -15,6 +15,7 @@ import { TestActionDialog } from "./TestActionDialog";
 import { TestSendOutcome } from "./TestSendOutcome";
 import { IntegrationsService } from "./services/IntegrationsService";
 import { SettingsService, SystemSetting, SystemSettingFixedItem, SystemSettingVersion } from "./services/SettingsService";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 const CATEGORY_TITLES: Record<string, string> = {
   Security: "Security (passwords, lockout, sessions, e-signature)",
@@ -259,7 +260,7 @@ export function SettingsPage() {
                 v{h.version}: {h.previousValue} {"->"} {h.value}
               </Typography>
               <Typography variant="caption" color="text.secondary" component="span" sx={{ display: "block" }}>
-                {h.changedByName ?? `User ${h.changedByUserId}`} on {new Date(h.changedAt).toLocaleString()}
+                {h.changedByName ?? `User ${h.changedByUserId}`} on {formatDateTimeWithTimeZone(h.changedAt)}
                 {h.electronicSignatureId ? " (e-signed)" : ""}
               </Typography>
               <Typography variant="body2">Reason: {h.reason}</Typography>

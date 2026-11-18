@@ -32,7 +32,7 @@ import { RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import { useTableState } from "../../../components/lab/table/useTableState";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabDate, formatLabCalendarDate } from "../../../utils/formatDate";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { UserService, UserRecord } from "../../users/services/UserService";
 import type { MediaLot } from "../../laboratoryConfiguration/mediaEvaluation/types/mediaEvaluationTypes";
@@ -366,7 +366,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
             <Typography
               sx={{ fontSize: 12, fontWeight: expiring ? 700 : 500, color: expiring ? action.text : "text.primary" }}
             >
-              {formatLabDate(m.expiryDate)}
+              {formatLabCalendarDate(m.expiryDate)}
             </Typography>
             {expiring && (
               <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>Expiring soon</Typography>
@@ -404,7 +404,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     { label: "Manufacturer Lot", render: (m: ReleasedMediaRow) => m.manufacturerLot || "—" },
     { label: "Manufacturer", render: (m: ReleasedMediaRow) => m.manufacturerName || m.material?.manufacturerName || "—" },
     { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt) },
-    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabDate(m.expiryDate) },
+    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabCalendarDate(m.expiryDate) },
     {
       label: "Status",
       render: (m: ReleasedMediaRow) => (m.status === "OutOfStock" ? "Out of Stock" : "Released")

@@ -34,7 +34,7 @@ vi.mock("../../masterDataSimple/services/MaterialMasterService", () => ({
 }));
 
 const legacyConfig = {
-  itemId: 1, amount: 10, technique: "PourPlate", diluent: "Peptone", neutralizer: "Tween", approvalStatus: "PendingReview",
+  itemId: 1, amount: 10, technique: "PourPlate", diluent: "Peptone", neutralizer: "Tween", approvalStatus: "PendingReview", createdAt: "2026-11-17T09:41:07Z",
   diluentSource: null, neutralizerSource: null, needsMaterialMapping: true,
 };
 

@@ -25,9 +25,9 @@ export function formatLabDateTime(date: string | Date): string {
  * Formats an instant with its local time zone name (e.g. for MFA due dates and confirmations).
  * The time zone is always shown: regulated timestamps are never displayed without one.
  */
-export function formatDateTimeWithTimeZone(date: string | Date, options: { seconds?: boolean } = {}): string {
+export function formatDateTimeWithTimeZone(date: string | Date, options: { seconds?: boolean; english?: boolean } = {}): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleString(localeTag(), {
+  return d.toLocaleString(options.english ? "en-GB" : localeTag(), {
     day: "2-digit",
     month: "short",
     year: "numeric",

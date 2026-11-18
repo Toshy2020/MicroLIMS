@@ -8,7 +8,7 @@ import {
   InputLabel,
   Paper
 } from "@mui/material";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabDate, formatLabCalendarDate } from "../../../utils/formatDate";
 import type { LotOption, SolutionPreparationListItem } from "../types";
 
 // A primary-standard lot can be picked only when usable and its purity is recorded.
@@ -59,7 +59,7 @@ export function ReplicateRowInputCard({
             >
               {standardLots.map((lot) => (
                 <MenuItem key={lot.materialId} value={lot.materialId} disabled={!isSelectableLot(lot)}>
-                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}){lot.purity != null ? ` · Purity: ${lot.purity}%` : ""}{!lot.usable ? `, ${lot.reason}` : lot.purity == null ? ", No purity - enter it in Materials Stock" : ""}
+                  {lot.batchNumber} (Exp: {lot.expiryDate ? formatLabCalendarDate(lot.expiryDate) : "—"}){lot.purity != null ? ` · Purity: ${lot.purity}%` : ""}{!lot.usable ? `, ${lot.reason}` : lot.purity == null ? ", No purity - enter it in Materials Stock" : ""}
                 </MenuItem>
               ))}
             </Select>

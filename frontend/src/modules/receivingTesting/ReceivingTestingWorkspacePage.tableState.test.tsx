@@ -13,6 +13,7 @@ import { labelService } from "../../services/labelService";
 import { lookupCache } from "../../services/lookupCache";
 import { clientSettingsService } from "../../services/clientSettingsService";
 import { tableViewService, type TableViewDto } from "../../components/lab/table/services/tableViewService";
+import { exportLogService } from "../../components/lab/table/services/exportLogService";
 import { TestWorkflowService } from "../testingWorkspace/services/TestWorkflowService";
 import { SamplePreparationService } from "../testPreparation/services/SamplePreparationService";
 import type { ActionableGroup } from "../testingWorkspace/types/testWorkflowTypes";
@@ -75,6 +76,8 @@ vi.mock("../../services/clientSettingsService", () => ({
   clientSettingsService: { get: vi.fn() }
 }));
 
+// Network boundary: the export log is the audit entry of an export.
+vi.mock("../../components/lab/table/services/exportLogService", () => ({ exportLogService: { log: vi.fn() } }));
 vi.mock("../../components/lab/table/services/tableViewService", () => ({
   tableViewService: { list: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), setDefault: vi.fn() }
 }));
@@ -435,6 +438,42 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     await screen.findByText("Alpha Syrup");
     await check(user, "Alpha Syrup", "FP-0091");
     expect(await screen.findByRole("button", { name: "Export selected" })).toBeTruthy();
+  });
+
+  it("Export selected stays available in the grouped-actions layout (2 or more checked) and is logged with the server", async () => {
+    const user = userEvent.setup();
+    seedPermissions([PERMISSIONS.SAMPLES_ASSIGN_ANALYST, PERMISSIONS.DATA_EXPORT]);
+    vi.mocked(exportLogService.log).mockResolvedValue({
+      exportId: 12, serverTimeUtc: "2026-11-17T10:00:00Z", timeZoneId: "UTC", exportedBy: "Hana Head"
+    });
+    const createUrl = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    renderWorkspace();
+    await screen.findByText("Alpha Syrup");
+    await check(user, "Alpha Syrup", "FP-0091");
+    await check(user, "Gamma Cream", "FP-0093");
+    await screen.findByText("Grouped Actions");
+
+    await user.click(screen.getByRole("button", { name: "Export selected" }));
+
+    await waitFor(() => expect(exportLogService.log).toHaveBeenCalledTimes(1));
+    const logged = vi.mocked(exportLogService.log).mock.calls[0][0];
+    expect(logged.tableKey).toMatch(/^samples\.workspace\./);
+    expect(logged.rowCount).toBe(2);
+    expect([...logged.recordIds].sort()).toEqual(["91", "93"]);
+    expect(createUrl).toHaveBeenCalled();
+    createUrl.mockRestore();
+  });
+
+  it("Export selected is not offered in the grouped-actions layout without the export permission", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await screen.findByText("Alpha Syrup");
+    await check(user, "Alpha Syrup", "FP-0091");
+    await check(user, "Gamma Cream", "FP-0093");
+    await screen.findByText("Grouped Actions");
+    expect(screen.queryByRole("button", { name: "Export selected" })).toBeNull();
   });
 
   it("saved view restores workloadFilter and analyst filter", async () => {

@@ -23,7 +23,6 @@ namespace MicroLIMS.Tests.IntegrationTests;
 public class MyWorkReviewSourcesPostgresTests
 {
     private static readonly DateTime Now = new(2026, 11, 14, 12, 0, 0, DateTimeKind.Utc);
-    private const string PerformedReason = "You performed a test on this sample";
 
     private readonly PostgresTestFixture _fixture;
 
@@ -470,7 +469,7 @@ public class MyWorkReviewSourcesPostgresTests
         Assert.Equal(2, group.Items.Count);          // but it is listed
         var locked = group.Items.Single(i => i.Locked);
         Assert.Equal($"review:{lockedSample}", SampleKey(locked));
-        Assert.Equal(PerformedReason, locked.LockReason);
+        Assert.Equal("You cannot review a sample you tested.", locked.LockReason);
         Assert.Empty(locked.Actions);
         Assert.Equal($"review:{openSample}", SampleKey(group.Items.Single(i => !i.Locked)));
         Assert.Equal(1, (await SummaryAsync(r)).Total);   // nor in the badge
@@ -481,6 +480,7 @@ public class MyWorkReviewSourcesPostgresTests
             var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
                 TestServiceFactory.SampleReview(actDb).CompleteReviewAsync(lockedSample, r, "not-the-password", null, null));
             Assert.Contains("cannot review a sample you tested", ex.Message);
+            Assert.Equal(locked.LockReason, ex.Message);   // My Work and the decision refuse in the same words
         }
 
         await using (var actDb = _fixture.CreateDbContext())
@@ -541,8 +541,8 @@ public class MyWorkReviewSourcesPostgresTests
         Assert.Equal($"approval:{openApproval}", SampleKey(group.Items[0]));
         Assert.Equal("sample-approval", group.Items[0].Target.Type);
         Assert.Equal(MyWorkUrgencyLevel.Overdue, group.Items[0].Urgency);
-        Assert.Equal(PerformedReason, group.Items.Single(i => SampleKey(i) == $"approval:{performed}").LockReason);
-        Assert.True(group.Items.Single(i => SampleKey(i) == $"approval:{reviewedByMe}").Locked);
+        Assert.Equal("You cannot approve a sample you tested.", group.Items.Single(i => SampleKey(i) == $"approval:{performed}").LockReason);
+        Assert.Equal("You cannot approve a sample you reviewed.", group.Items.Single(i => SampleKey(i) == $"approval:{reviewedByMe}").LockReason);
         Assert.Equal(1, (await SummaryAsync(h)).Total);
 
         // The decision endpoint refuses both locked samples, with the matching rule.

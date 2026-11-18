@@ -20,6 +20,7 @@ import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { useRowSelection } from "../../components/lab/table/useRowSelection";
 import { fetchAllPages } from "../../services/fetchAllPages";
 
 // The main Receiving area only offers these three item-based categories
@@ -36,6 +37,9 @@ export function ReceivingPage() {
   const canReceiveOwnLab = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
   const canReceiveAny = canReceive || canReceiveOwnLab;
   const canCorrect = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
+  // Rows are selectable here only to export them; with no export permission the register offers no checkboxes.
+  const canExport = permissions.includes(PERMISSIONS.DATA_EXPORT);
+  const selection = useRowSelection<number>("receiving");
 
   const [samples, setSamples] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -125,6 +129,7 @@ export function ReceivingPage() {
       <SampleRegisterTable
         samples={samples}
         tableKey="samples.receiving"
+        selection={canExport ? selection : undefined}
         legacyColumnsKey="microlims.receivingRegister.columns"
         onTestClick={(_test, sample) => setSummarySampleId(sample.sampleId)}
         onViewSummary={(sample) => setSummarySampleId(sample.sampleId)}

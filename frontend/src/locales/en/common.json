@@ -42,6 +42,7 @@
     "expandColumn": "Expand",
     "actionsColumn": "Actions",
     "exportCsv": "Export CSV",
+    "exportSelected": "Export selected",
     "all": "All",
     "rowsPerPage": "Rows per page:",
     "displayedRows": "{{from}}–{{to}} of {{total}}",

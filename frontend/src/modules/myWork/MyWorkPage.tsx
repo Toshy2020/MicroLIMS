@@ -137,6 +137,9 @@ export function MyWorkPage() {
     for (const g of groups) {
       total += g.count;
       for (const item of g.items) {
+        // A locked item (Segregation of Duties) is listed but is not work the user can act on: the server leaves
+        // it out of the group count, so it stays out of the urgency tiles too.
+        if (item.locked) continue;
         if (item.urgency === "Overdue") overdue += 1;
         else if (item.urgency === "Now") now += 1;
         else if (item.urgency === "Today") today += 1;
@@ -164,6 +167,10 @@ export function MyWorkPage() {
 
   const visibleItemCount = useMemo(
     () => filteredGroups.reduce((acc, g) => acc + g.items.length, 0),
+    [filteredGroups]
+  );
+  const visibleLockedCount = useMemo(
+    () => filteredGroups.reduce((acc, g) => acc + g.items.filter((item) => item.locked).length, 0),
     [filteredGroups]
   );
 
@@ -304,6 +311,17 @@ export function MyWorkPage() {
                 values={{ count: visibleItemCount }}
                 components={{ ltr: <Ltr>{null}</Ltr> }}
               />
+            )}
+            {!(loading && !data) && visibleLockedCount > 0 && (
+              <>
+                {" · "}
+                <Trans
+                  i18nKey="lockedShown"
+                  ns="myWork"
+                  values={{ count: visibleLockedCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              </>
             )}
           </Typography>
         </Stack>

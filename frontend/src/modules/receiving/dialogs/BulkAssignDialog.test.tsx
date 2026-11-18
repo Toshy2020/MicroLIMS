@@ -166,6 +166,35 @@ describe("BulkAssignDialog", () => {
     expect(reasonInput).toBeTruthy();
   });
 
+  it("offers the analysts of the first sample that has any, and says it skipped a voided one", async () => {
+    vi.mocked(ReceiveService.getAssignmentOptions).mockImplementation(async (sampleId) =>
+      sampleId === 101 ? { sampleId: 101, tests: [], users: [] } : { ...options, sampleId }
+    );
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <BulkAssignDialog open sampleIds={[101, 102]} onClose={vi.fn()} />
+      </PinnedLightTheme>
+    );
+
+    expect(await screen.findByText(/1 selected sample has no open test you can assign/i)).toBeTruthy();
+    expect(screen.getByText(/eligible for sample #102/i)).toBeTruthy();
+    await user.click(await screen.findByRole("combobox", { name: /Assign analyst/i }));
+    expect(within(await screen.findByRole("listbox")).getAllByRole("option")).toHaveLength(3);
+  });
+
+  it("explains an empty analyst list when no selected sample has an open test", async () => {
+    vi.mocked(ReceiveService.getAssignmentOptions).mockResolvedValue({ sampleId: 101, tests: [], users: [] });
+    render(
+      <PinnedLightTheme>
+        <BulkAssignDialog open sampleIds={[101]} onClose={vi.fn()} />
+      </PinnedLightTheme>
+    );
+
+    expect(await screen.findByText(/The selected sample has no open test you can assign/i)).toBeTruthy();
+    expect(screen.getByText(/no analyst can be offered/i)).toBeTruthy();
+  });
+
   it("result dialog shows assigned count and each refused row with its reason", async () => {
     const user = userEvent.setup();
     const bulkResult: BulkAssignResult = {

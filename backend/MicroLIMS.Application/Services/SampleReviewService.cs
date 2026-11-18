@@ -238,7 +238,7 @@ public class SampleReviewService
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(reviewerUserId, currentOrders.Select(o => o.Id).ToList(), ct);
         if (performed.Count > 0)
-            return (ActionCheck.No(MessageCodes.SampleCannotReviewTested, "You cannot review a sample you tested."), section);
+            return (ActionCheck.No(MessageCodes.SampleCannotReviewTested, SignoffRefusalSentences.CannotReviewTested), section);
 
         if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
             return (ActionCheck.No("Cannot complete review: one or more tests are not in Ready step."), section);

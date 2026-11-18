@@ -15,8 +15,6 @@ namespace MicroLIMS.Application.Services.MyWork.Sources;
 // widens what a person may read, never what is theirs to decide, so it is not used here.
 internal abstract class SignoffQueueSource
 {
-    public const string PerformedReason = "You performed a test on this sample";
-    public const string ReviewedReason = "You reviewed this sample";
 
     private readonly IMicroLimsDbContext _db;
     private readonly SegregationOfDutiesGuard _guard;
@@ -32,6 +30,9 @@ internal abstract class SignoffQueueSource
     protected abstract string TargetType { get; }
     protected abstract string Verb { get; }
     protected abstract string Action { get; }
+
+    // The lock reason when the caller performed a test of the entry: the decision's own refusal sentence.
+    protected abstract string PerformedReason { get; }
 
     // When the entry entered its current status: the age that drives urgency.
     protected abstract DateTime StatusSince(Sample sample, SampleSectionSignoff? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks);

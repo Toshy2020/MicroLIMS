@@ -51,7 +51,9 @@ import {
 } from "../receiving/components/SampleStatusKpiCards";
 import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar";
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
-import { SampleRegisterTable, WORKSPACE_REGISTER_DEFAULTS } from "../receiving/components/SampleRegisterTable";
+import { SampleRegisterTable, WORKSPACE_REGISTER_DEFAULTS, sampleExportColumns } from "../receiving/components/SampleRegisterTable";
+import { exportRegisterRows } from "../../components/lab/table/exportRows";
+import { useTranslation } from "../../i18n";
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "../receiving/dialogs/EditSampleDetailsDialog";
 import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
@@ -247,6 +249,7 @@ function evaluateWorkspaceDeepLinkOpen(
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Core Data State
@@ -885,6 +888,24 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       : [])
   ];
 
+  // Exports the checked samples with the columns the register shows, logged with the server like the table's own export.
+  const exportSelected = async () => {
+    try {
+      const samples = await samplesForBulk([...checkedSampleIds]);
+      await exportRegisterRows({
+        tableKey,
+        rows: samples,
+        columns: sampleExportColumns(tableState.state.columns),
+        getRowId: (sample) => sample.sampleId,
+        filters: tableState.state.filters,
+        search: tableState.state.search,
+        t
+      });
+    } catch (err) {
+      toast.error(getErrorMessage(err, "Could not load the selected samples to export."));
+    }
+  };
+
   // The full-width table, with its own bulk bar, is what is on screen.
   const tableBulkBarVisible = Boolean(records) && viewMode === "table" && checkedSampleIds.size < 2 && !selectedSample;
 
@@ -1168,6 +1189,11 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST) && !tableBulkBarVisible
               ? () => openBulkAssign(Array.from(checkedSampleIds))
               : undefined
+          }
+          onExport={
+            // The table's own bulk bar offers "Export selected" while the full-width table is showing; the
+            // grouped-actions and single-sample layouts have no table, so the summary bar offers it there.
+            permissions.includes(PERMISSIONS.DATA_EXPORT) && !tableBulkBarVisible ? () => void exportSelected() : undefined
           }
         />
       )}

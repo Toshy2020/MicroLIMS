@@ -546,6 +546,51 @@ describe("SampleRegisterTable row actions (characterisation)", () => {
     expect(h.onTestClick).toHaveBeenLastCalledWith(expect.objectContaining({ testOrderId: 1 }), expect.objectContaining({ sampleId: 6 }));
   });
 
+  it("a Review or Approve the server refuses shows its sentence and does nothing; an allowed one still works", async () => {
+    const user = userEvent.setup();
+    const reviewSentence = "You cannot review a sample you tested.";
+    const approveSentence = "You cannot approve a sample you reviewed.";
+    vi.mocked(actionAvailabilityService.get).mockImplementation(async (_kind, id) =>
+      id === 2
+        ? [{ action: "review.complete", allowed: false, reason: reviewSentence }]
+        : id === 3
+          ? [{ action: "approval.approve", allowed: false, reason: approveSentence }]
+          : [{ action: "review.complete", allowed: true, reason: null }, { action: "approval.approve", allowed: true, reason: null }]
+    );
+    const h = makeHandlers();
+    renderFull([
+      sample({ sampleId: 2, displayName: "RevNo", status: "UnderReview" }),
+      sample({ sampleId: 3, displayName: "ApprNo", status: "UnderApproval" }),
+      sample({ sampleId: 4, displayName: "RevOk", status: "UnderReview" })
+    ], h);
+
+    expect(await within(rowOf("RevNo")).findByText(reviewSentence)).toBeTruthy();
+    expect(await within(rowOf("ApprNo")).findByText(approveSentence)).toBeTruthy();
+    const refusedReview = within(rowOf("RevNo")).getByRole("button", { name: "Review" });
+    expect(refusedReview.getAttribute("aria-disabled")).toBe("true");
+    await user.click(refusedReview);
+    await user.click(within(rowOf("ApprNo")).getByRole("button", { name: "Approve" }));
+    expect(h.onViewSummary).not.toHaveBeenCalled();
+
+    await user.click(within(rowOf("RevOk")).getByRole("button", { name: "Review" }));
+    expect(h.onViewSummary).toHaveBeenCalledWith(expect.objectContaining({ sampleId: 4 }));
+    expect(actionAvailabilityService.get).toHaveBeenCalledWith("sample", 2, undefined, expect.any(AbortSignal));
+  });
+
+  it("offers no assign control on a voided or approved sample, but does on an open one without an analyst", () => {
+    authState.permissions = ["Samples.AssignAnalyst"];
+    localStorage.setItem("microlims.sampleRegister.columns", JSON.stringify(["item", "assignedTo", "sampleStatus"]));
+    const h = makeHandlers();
+    renderFull([
+      sample({ sampleId: 11, displayName: "VoidedOne", status: "Voided", assignedTests: [] }),
+      sample({ sampleId: 12, displayName: "ApprovedOne", status: "Approved", assignedTests: [] }),
+      sample({ sampleId: 13, displayName: "OpenOne", status: "InTesting", assignedTests: [] })
+    ], h);
+    expect(within(rowOf("VoidedOne")).queryByRole("button", { name: /Assign responsible analyst/ })).toBeNull();
+    expect(within(rowOf("ApprovedOne")).queryByRole("button", { name: /Assign responsible analyst/ })).toBeNull();
+    expect(within(rowOf("OpenOne")).getByRole("button", { name: /Assign responsible analyst/ })).toBeTruthy();
+  });
+
   it("Select tests on the next-action cell calls onSelectTests for a Section Head", async () => {
     const user = userEvent.setup();
     authState.permissions = ["Samples.Correct"];

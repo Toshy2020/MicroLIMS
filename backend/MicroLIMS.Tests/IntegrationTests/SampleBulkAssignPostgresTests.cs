@@ -261,6 +261,57 @@ public class SampleBulkAssignPostgresTests
         Assert.Empty(await AuditAsync(closedOrder.Id));
     }
 
+    // The bulk path judges each row with the single path's own check, so what one accepts or refuses the other
+    // does too: a voided sample is refused with the same sentence, a sample under review is assigned by both.
+    [PostgresFact]
+    public async Task BulkAndSingleAssign_AgreeOnVoidedAndUnderReviewSamples()
+    {
+        User head, analyst;
+        Sample voided, voidedForSingle, underReview, underReviewForSingle;
+        TestOrder voidedOrder, underReviewOrder, underReviewSingleOrder;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            head = await NewUserAsync(arrangeDb, "head", RoleType.SectionHead, w.Micro);
+            analyst = await NewUserAsync(arrangeDb, "analyst", RoleType.Analyst, w.Micro);
+            (voided, voidedOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.Voided);
+            (voidedForSingle, _) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.Voided);
+            (underReview, underReviewOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.ResultEntered);
+            (underReviewForSingle, underReviewSingleOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.ResultEntered);
+        }
+
+        BulkAssignResult result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            result = await BuildBulkService(actDb).AssignAsync(
+                new BulkAssignRequest(new[] { voided.Id, underReview.Id }, analyst.Id, null), head.Id);
+        }
+
+        string singleRefusal;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var scope = new UserSectionScopeService(actDb);
+            var clock = new FixedTimeProvider(new DateTimeOffset(Now));
+            var single = new SampleAssignmentService(actDb, new TestingWorkspaceService(actDb, scope, clock), scope, clock);
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => single.AssignAnalystAsync(voidedForSingle.Id, analyst.Id, head.Id));
+            singleRefusal = ex.Message;
+            await single.AssignAnalystAsync(underReviewForSingle.Id, analyst.Id, head.Id);
+        }
+
+        var voidedRow = Assert.Single(result.Rows, r => r.SampleId == voided.Id);
+        Assert.False(voidedRow.Assigned);
+        Assert.Equal(singleRefusal, voidedRow.RefusedReason);
+        Assert.True(Assert.Single(result.Rows, r => r.SampleId == underReview.Id).Assigned);
+
+        Assert.Null((await PersistedAsync(voidedOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(voidedOrder.Id));
+        Assert.Equal(analyst.Id, (await PersistedAsync(underReviewOrder.Id)).AssignedAnalystId);
+        Assert.Equal(analyst.Id, (await PersistedAsync(underReviewSingleOrder.Id)).AssignedAnalystId);
+        var audit = Assert.Single(await AuditAsync(underReviewOrder.Id));
+        Assert.Equal(head.Id, audit.UserId);
+        Assert.Equal("AssignedAnalyst", audit.Action);
+    }
+
     [PostgresFact]
     public async Task SampleInSectionICannotWrite_IsRefused_NotAssigned()
     {

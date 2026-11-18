@@ -11,6 +11,7 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { ReceiveService } from "./services/ReceiveService";
 import type { SampleRecord } from "./types/receivingTypes";
 import { ReceivingPage } from "./ReceivingPage";
+import { exportLogService } from "../../components/lab/table/services/exportLogService";
 
 vi.mock("./services/ReceiveService", () => ({
   ReceiveService: {
@@ -37,6 +38,12 @@ vi.mock("../../services/masterDataOptions", () => ({
     getMachines: vi.fn(),
     getItems: vi.fn()
   }
+}));
+
+// Network boundaries of the table: the export log (the audit entry of an export) and the saved views.
+vi.mock("../../components/lab/table/services/exportLogService", () => ({ exportLogService: { log: vi.fn() } }));
+vi.mock("../../components/lab/table/services/tableViewService", () => ({
+  tableViewService: { list: vi.fn().mockResolvedValue([]), create: vi.fn(), update: vi.fn(), remove: vi.fn(), setDefault: vi.fn() }
 }));
 
 vi.mock("../../services/labelService", () => ({
@@ -192,4 +199,53 @@ describe("ReceivingPage label printing offer", () => {
     });
     expect(screen.queryByText("Print labels")).toBeNull();
   }, 15000);
+});
+
+describe("ReceivingPage export", () => {
+  const rows = (category: string): SampleRecord[] =>
+    category === "RawMaterial" ? [createdSample] : [];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    vi.mocked(ReceiveService.getRecordsPaged).mockImplementation(async (filter) => {
+      const items = rows(filter?.category ?? "");
+      return { items, totalCount: items.length, page: 1, pageSize: 100, totalPages: items.length ? 1 : 0 };
+    });
+    vi.mocked(exportLogService.log).mockResolvedValue({
+      exportId: 77, serverTimeUtc: "2026-11-17T10:00:00Z", timeZoneId: "UTC", exportedBy: "Hana Head"
+    });
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:x");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+    vi.restoreAllMocks();
+  });
+
+  it("lets a user holding Data.Export select rows and export them, logging the export with the server", async () => {
+    const user = userEvent.setup();
+    seedPermissions([PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.DATA_EXPORT]);
+    renderPage();
+
+    await user.click(await screen.findByRole("checkbox", { name: /Select Lactose Monohydrate/ }));
+    await user.click(await screen.findByRole("button", { name: "Export selected" }));
+
+    await waitFor(() => expect(exportLogService.log).toHaveBeenCalledTimes(1));
+    expect(exportLogService.log).toHaveBeenCalledWith(
+      expect.objectContaining({ tableKey: "samples.receiving", rowCount: 1, recordIds: ["501"] })
+    );
+  });
+
+  it("offers no row selection to a user without Data.Export", async () => {
+    seedPermissions([PERMISSIONS.SAMPLES_RECEIVE]);
+    renderPage();
+
+    await screen.findByText("Lactose Monohydrate");
+    expect(screen.queryByRole("checkbox", { name: /Select Lactose Monohydrate/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Export selected" })).toBeNull();
+  });
 });

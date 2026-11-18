@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +8,7 @@ import {
   Typography,
   Tooltip,
   Button,
+  type ButtonProps,
   Checkbox,
   Avatar,
   useTheme
@@ -30,6 +31,8 @@ import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDoc
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 import { useAuth } from "../../../contexts/AuthContext";
+import { GatedAction } from "../../../components/GatedAction";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { PERMISSIONS } from "../../../routes/routes";
 import { isInteractiveElement } from "../../../utils/isInteractiveElement";
 import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
@@ -38,6 +41,7 @@ import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import type { TableState } from "../../../components/lab/table/tableUrlCodec";
 import type { RowSelection } from "../../../components/lab/table/useRowSelection";
 import { useTableState, type UseTableState } from "../../../components/lab/table/useTableState";
+import type { ExportColumn } from "../../../components/lab/table/exportRows";
 
 export interface SampleRegisterTableProps {
   samples: SampleRecord[];
@@ -118,6 +122,35 @@ function parseLegacyColumns(raw: string): string[] | null {
   }
 }
 
+// The register's columns without their cell renderers: what a CSV export of the register carries.
+const SAMPLE_COLUMN_DEFS: ReadonlyArray<{
+  key: RegisterColumnKey;
+  label: string;
+  sortValue?: (s: SampleRecord) => string | number | null | undefined;
+}> = [
+  { key: "item", label: "Item / Reference", sortValue: (s) => s.displayName },
+  { key: "receivedAt", label: "Received At", sortValue: (s) => new Date(s.receivedAt).getTime() },
+  { key: "sampleId", label: "#", sortValue: (s) => s.sampleId },
+  { key: "category", label: "Item Type", sortValue: (s) => s.category },
+  { key: "cause", label: "Cause" },
+  { key: "sampledBy", label: "Sampled By", sortValue: (s) => s.sampledBy },
+  { key: "batchControl", label: "Batch / Control No.", sortValue: (s) => s.batchNumber ?? s.controlNumber },
+  { key: "assignedTo", label: "Assigned To", sortValue: (s) => assignedAnalystsLabel(s.assignedTests) },
+  { key: "sampleStatus", label: "Sample Status", sortValue: (s) => s.status },
+  { key: "due", label: "Due", sortValue: (s) => (s.dueAt ? new Date(s.dueAt).getTime() : null) },
+  { key: "tests", label: "Tests" },
+  { key: "nextAction", label: "Next Action" }
+];
+
+// The export columns for the register columns a user has chosen to show, in their order.
+export function sampleExportColumns(visibleKeys: readonly string[]): ExportColumn<SampleRecord>[] {
+  const byKey = new Map(SAMPLE_COLUMN_DEFS.map((d) => [String(d.key), d]));
+  return visibleKeys
+    .map((key) => byKey.get(key))
+    .filter((d): d is NonNullable<typeof d> => Boolean(d))
+    .map((d) => ({ key: String(d.key), label: d.label, sortValue: d.sortValue }));
+}
+
 const getSampleRowId = (sample: SampleRecord) => sample.sampleId;
 
 const ROW_CELL_SX = { fontSize: 12, color: "text.secondary" } as const;
@@ -135,6 +168,9 @@ export function dueLabel(dueAt: string | null | undefined, isOverdue: boolean | 
 }
 
 const CLOSED_STATUSES = new Set(["Rejected", "Voided", "Cancelled", "RetestRequested"]);
+// A sample in one of these has no open test left, so its analyst can no longer be set or changed (the server
+// refuses with "no open tests you can assign"); the register shows no assign control for it.
+const NO_ASSIGN_STATUSES = new Set([...CLOSED_STATUSES, "Approved"]);
 const effectiveTestStatus = (t: TestOrderSummary) => t.workflowStatus ?? t.status;
 
 // Colour of one test's segment in the progress bar - presentation only,
@@ -152,8 +188,21 @@ const initialsOf = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
 const initialsSx = { fontSize: "10px !important", fontWeight: 700, bgcolor: "primary.main", color: "primary.contrastText" } as const;
 
+// One next-action button gated by the server's answer for its sample. Only rows that offer a gated action mount
+// it, so the register asks about the few samples waiting for review or approval, not about every row.
+function GatedNextAction({ sampleId, action, children }: { sampleId: number; action: string; children: ReactElement<ButtonProps> }) {
+  const availability = useActionAvailability("sample", sampleId);
+  return (
+    <GatedAction action={action} availability={availability}>
+      {children}
+    </GatedAction>
+  );
+}
+
 interface NextAction {
   label: string;
+  // The server-answered action that gates the button (review.complete, approval.approve); a refusal shows its sentence.
+  gate?: string;
   // "wait" renders a passive chip; anything else renders a button.
   kind: "primary" | "secondary" | "wait";
   run?: () => void;
@@ -287,10 +336,10 @@ function SampleRegisterTableInner({
       return { label: "Prepare", kind: "primary", run: () => onPrepareSample(sample) };
     }
     if (sample.status === "UnderReview" || sample.status === "PendingReview") {
-      return { label: "Review", kind: "primary", run: () => onViewSummary(sample) };
+      return { label: "Review", kind: "primary", gate: "review.complete", run: () => onViewSummary(sample) };
     }
     if (sample.status === "UnderApproval") {
-      return { label: "Approve", kind: "primary", run: () => onViewSummary(sample) };
+      return { label: "Approve", kind: "primary", gate: "approval.approve", run: () => onViewSummary(sample) };
     }
     if (sample.status === "Approved") {
       return { label: "View Report", kind: "secondary", run: () => onViewReport(sample) };
@@ -570,8 +619,9 @@ function SampleRegisterTableInner({
         // Each test has its own analyst: "Mona Ali +1" when there are several.
         const assignedAnalystName = assignedAnalystsLabel(sample.assignedTests);
         const analystsByTest = assignedAnalystsByTest(sample.assignedTests);
+        const assignable = isAuthorizedToAssign && Boolean(onAssignAnalyst) && !NO_ASSIGN_STATUSES.has(sample.status);
         if (assignedAnalystName) {
-          return isAuthorizedToAssign && onAssignAnalyst ? (
+          return assignable && onAssignAnalyst ? (
             <Tooltip title={`${analystsByTest}. Click to reassign analysts (Section Head)`}>
               <Chip
                 size="small"
@@ -606,7 +656,7 @@ function SampleRegisterTableInner({
             </Box>
           );
         }
-        return isAuthorizedToAssign && onAssignAnalyst ? (
+        return assignable && onAssignAnalyst ? (
           <Tooltip title="Assign responsible analyst (Section Head)">
             <Button
               size="small"
@@ -689,6 +739,24 @@ function SampleRegisterTableInner({
         if (!nextAction) {
           return <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>;
         }
+        if (nextAction.kind !== "wait" && nextAction.gate) {
+          return (
+            <GatedNextAction sampleId={sample.sampleId} action={nextAction.gate}>
+              <Button
+                size="small"
+                variant="contained"
+                data-no-row-click="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextAction.run?.();
+                }}
+                sx={{ fontSize: 12, fontWeight: 600, textTransform: "none", whiteSpace: "nowrap", minWidth: 110 }}
+              >
+                {nextAction.label}
+              </Button>
+            </GatedNextAction>
+          );
+        }
         return nextAction.kind === "wait" ? (
           <Chip
             size="small"
@@ -741,20 +809,7 @@ function SampleRegisterTableInner({
     render: (sample) => renderCell(key, sample, 0)
   });
 
-  const columns: RegisterColumn<SampleRecord>[] = [
-    column("item", "Item / Reference", (s) => s.displayName),
-    column("receivedAt", "Received At", (s) => new Date(s.receivedAt).getTime()),
-    column("sampleId", "#", (s) => s.sampleId),
-    column("category", "Item Type", (s) => s.category),
-    column("cause", "Cause"),
-    column("sampledBy", "Sampled By", (s) => s.sampledBy),
-    column("batchControl", "Batch / Control No.", (s) => s.batchNumber ?? s.controlNumber),
-    column("assignedTo", "Assigned To", (s) => assignedAnalystsLabel(s.assignedTests)),
-    column("sampleStatus", "Sample Status", (s) => s.status),
-    column("due", "Due", (s) => (s.dueAt ? new Date(s.dueAt).getTime() : null)),
-    column("tests", "Tests"),
-    column("nextAction", "Next Action")
-  ];
+  const columns: RegisterColumn<SampleRecord>[] = SAMPLE_COLUMN_DEFS.map((d) => column(d.key, d.label, d.sortValue));
 
   // Retest children of an expanded sample, each with the same visible columns
   // and the same row behaviour as a row of the table; their own retests follow.

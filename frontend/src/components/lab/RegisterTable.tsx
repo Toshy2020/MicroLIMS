@@ -17,12 +17,9 @@ import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import type { StatusTone } from "../../theme/statusTokens";
-import { getErrorMessage } from "../../utils/errorMessage";
 import { EmptyState } from "./EmptyState";
 import { BulkActionBar, type BulkAction } from "./table/BulkActionBar";
-import { buildCsv, downloadCsv } from "./table/exportCsv";
-import { exportLogService } from "./table/services/exportLogService";
-import { TABLES } from "./table/tableRegistry";
+import { exportRegisterRows, MAX_EXPORT_ROWS } from "./table/exportRows";
 import type { RowSelection } from "./table/useRowSelection";
 import { useTableState, type UseTableState } from "./table/useTableState";
 import { VirtualBody } from "./table/VirtualBody";
@@ -122,7 +119,6 @@ interface RegisterTableProps<T> {
 
 const PAGE_SIZES = [25, 50, 100];
 const SKELETON_ROWS = 5;
-const MAX_EXPORT_ROWS = 5000;
 // Above this many rows on a page the table body scrolls inside a bounded
 // region on desktop, so the column headers stay in view. Shorter pages keep
 // the page itself as the only scroll container (no second scrollbar).
@@ -291,60 +287,15 @@ function RegisterTableInner<T>({
           const exportRows = selection.allMatching
             ? (loadAllMatching ? await loadAllMatching() : rows)
             : rows.filter((r) => selection.selected.has(getRowId(r)));
-          if (exportRows.length > MAX_EXPORT_ROWS) {
-            toast.error(t("table.exportLimit"));
-            return;
-          }
-          const visibleKeys = displayedColumns.map((c) => String(c.key));
-          const visibleLabels = displayedColumns.map((c) => c.label);
-          const recordIds = exportRows.map((r) => String(getRowId(r)));
-          const filters = tableState?.state.filters ?? {};
-          const search = tableState?.state.search ?? "";
-          const filterJson = JSON.stringify({ filters, search });
-
-          let logResult;
-          try {
-            logResult = await exportLogService.log({
-              tableKey,
-              filterJson,
-              columns: visibleKeys,
-              rowCount: exportRows.length,
-              recordIds,
-            });
-          } catch (err) {
-            toast.error(getErrorMessage(err, t("table.exportFailed")));
-            return;
-          }
-
-          const def = TABLES[tableKey];
-          const filterParts = Object.entries(filters)
-            .filter(([, v]) => (Array.isArray(v) ? v.length > 0 : Boolean(v)))
-            .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("|") : v}`);
-          if (search) filterParts.push(`q=${search}`);
-
-          const headerRows: string[][] = [
-            ["Exported by", logResult.exportedBy],
-            ["Exported at", `${logResult.serverTimeUtc} (${logResult.timeZoneId})`],
-            ["List", def?.title ?? tableKey],
-            ["Filters", filterParts.length > 0 ? filterParts.join("; ") : "None"],
-            ["Rows", String(exportRows.length)],
-            ["Export ID", String(logResult.exportId)],
-          ];
-
-          const dataRows = exportRows.map((row) =>
-            displayedColumns.map((col) => {
-              const raw = (row as Record<string, unknown>)[String(col.key)];
-              if (raw !== undefined && raw !== null) return String(raw);
-              if (col.sortValue) {
-                const sv = col.sortValue(row);
-                return sv !== undefined && sv !== null ? String(sv) : "";
-              }
-              return "";
-            })
-          );
-
-          const csv = buildCsv(headerRows, visibleLabels, dataRows);
-          downloadCsv(`${tableKey}-export-${logResult.exportId}.csv`, csv);
+          await exportRegisterRows({
+            tableKey,
+            rows: exportRows,
+            columns: displayedColumns.map((c) => ({ key: String(c.key), label: c.label, sortValue: c.sortValue })),
+            getRowId,
+            filters: tableState?.state.filters ?? {},
+            search: tableState?.state.search ?? "",
+            t
+          });
         },
       });
     }

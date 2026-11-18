@@ -147,7 +147,9 @@ describe("BulkAssignDialog", () => {
       </PinnedLightTheme>
     );
 
-    expect(await screen.findByText(/3 samples selected/i)).toBeTruthy();
+    expect(
+      await screen.findByText((_c, el) => el?.tagName === "P" && /3 samples selected/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
 
     const picker = await screen.findByRole("combobox", { name: /Assign analyst/i });
     await user.click(picker);
@@ -237,8 +239,12 @@ describe("BulkAssignDialog", () => {
       })
     );
 
-    expect(await screen.findByText(/2 assigned/i)).toBeTruthy();
-    expect(screen.getByText(/1 refused/i)).toBeTruthy();
+    expect(
+      await screen.findByText((_c, el) => el?.tagName === "P" && /2 assigned/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
+    expect(
+      screen.getByText((_c, el) => el?.tagName === "P" && /1 refused/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
     expect(screen.getByText("FP1026002")).toBeTruthy();
     expect(screen.getByText("This sample has no open tests you can assign.")).toBeTruthy();
   });
@@ -318,6 +324,8 @@ describe("BulkAssignDialog", () => {
     const assignActionBtn = await screen.findByRole("button", { name: "Assign analyst" });
     await user.click(assignActionBtn);
 
-    expect(await screen.findByText(/2 samples selected/i)).toBeTruthy();
+    expect(
+      await screen.findByText((_c, el) => el?.tagName === "P" && /2 samples selected/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
   });
 });

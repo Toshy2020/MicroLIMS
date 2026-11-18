@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { PasteColumn } from "../../../components/entry/PastePreviewDialog";
 
 // Columns a paste can fill: the text and date cells of the receiving grid.
@@ -13,8 +14,16 @@ export type PasteableKey =
   | "mfgDate"
   | "expDate";
 
-const DATE_HELP = "Use a date as DD/MM/YYYY or YYYY-MM-DD.";
-const DATE_TIME_HELP = "Use a date and time as DD/MM/YYYY HH:mm or YYYY-MM-DD HH:mm.";
+const PASTEABLE_KEYS: ReadonlySet<string> = new Set<PasteableKey>([
+  "previousProductBatchNumber",
+  "sampleQuantity",
+  "sampledBy",
+  "batchNumber",
+  "sampledAt",
+  "controlNumber",
+  "mfgDate",
+  "expDate"
+]);
 
 function toIsoDate(text: string): string | null {
   const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
@@ -44,48 +53,54 @@ function toLocalDateTime(text: string): string | null {
   return `${date}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
-const text = (key: PasteableKey, label: string): PasteColumn => ({ key, label, check: () => null });
+export function getPasteableColumns(t: TFunction<"receiving">): Record<PasteableKey, PasteColumn> {
+  const text = (key: PasteableKey, label: string): PasteColumn => ({ key, label, check: () => null });
+  const dateHelp = t("paste.dateHelp");
+  const dateTimeHelp = t("paste.dateTimeHelp");
 
-export const PASTEABLE_COLUMNS: Record<PasteableKey, PasteColumn> = {
-  previousProductBatchNumber: text("previousProductBatchNumber", "Previous batch number"),
-  sampleQuantity: text("sampleQuantity", "Quantity"),
-  sampledBy: text("sampledBy", "Sampled by"),
-  batchNumber: text("batchNumber", "Batch number"),
-  sampledAt: {
-    key: "sampledAt",
-    label: "Sampled at",
-    check: (v) => (v === "" || toLocalDateTime(v) !== null ? null : DATE_TIME_HELP),
-    normalize: (v) => toLocalDateTime(v) ?? v
-  },
-  controlNumber: text("controlNumber", "Control number"),
-  mfgDate: {
-    key: "mfgDate",
-    label: "Mfg date",
-    check: (v) => (v === "" || toIsoDate(v) !== null ? null : DATE_HELP),
-    normalize: (v) => toIsoDate(v) ?? v
-  },
-  expDate: {
-    key: "expDate",
-    label: "Exp date",
-    check: (v) => (v === "" || toIsoDate(v) !== null ? null : DATE_HELP),
-    normalize: (v) => toIsoDate(v) ?? v
-  }
-};
+  return {
+    previousProductBatchNumber: text("previousProductBatchNumber", t("paste.columns.previousProductBatchNumber")),
+    sampleQuantity: text("sampleQuantity", t("paste.columns.sampleQuantity")),
+    sampledBy: text("sampledBy", t("paste.columns.sampledBy")),
+    batchNumber: text("batchNumber", t("paste.columns.batchNumber")),
+    sampledAt: {
+      key: "sampledAt",
+      label: t("paste.columns.sampledAt"),
+      check: (v) => (v === "" || toLocalDateTime(v) !== null ? null : dateTimeHelp),
+      normalize: (v) => toLocalDateTime(v) ?? v
+    },
+    controlNumber: text("controlNumber", t("paste.columns.controlNumber")),
+    mfgDate: {
+      key: "mfgDate",
+      label: t("paste.columns.mfgDate"),
+      check: (v) => (v === "" || toIsoDate(v) !== null ? null : dateHelp),
+      normalize: (v) => toIsoDate(v) ?? v
+    },
+    expDate: {
+      key: "expDate",
+      label: t("paste.columns.expDate"),
+      check: (v) => (v === "" || toIsoDate(v) !== null ? null : dateHelp),
+      normalize: (v) => toIsoDate(v) ?? v
+    }
+  };
+}
 
 export function isPasteableKey(key: string): key is PasteableKey {
-  return Object.prototype.hasOwnProperty.call(PASTEABLE_COLUMNS, key);
+  return PASTEABLE_KEYS.has(key);
 }
 
 // Names shown in the "not pasted" list for the choice columns.
-export const CHOICE_COLUMN_LABELS: Record<string, string> = {
-  itemId: "Item",
-  targetSectionIds: "Laboratories",
-  grade: "Grade",
-  coaFile: "Supplier CoA",
-  previousProduct: "Previous product",
-  techniques: "Techniques",
-  productionStage: "Production stage",
-  departmentId: "Department",
-  machineId: "Machine",
-  causeOfTestingId: "Cause of testing"
-};
+export function getChoiceColumnLabels(t: TFunction<"receiving">): Record<string, string> {
+  return {
+    itemId: t("paste.choiceColumns.itemId"),
+    targetSectionIds: t("paste.choiceColumns.targetSectionIds"),
+    grade: t("paste.choiceColumns.grade"),
+    coaFile: t("paste.choiceColumns.coaFile"),
+    previousProduct: t("paste.choiceColumns.previousProduct"),
+    techniques: t("paste.choiceColumns.techniques"),
+    productionStage: t("paste.choiceColumns.productionStage"),
+    departmentId: t("paste.choiceColumns.departmentId"),
+    machineId: t("paste.choiceColumns.machineId"),
+    causeOfTestingId: t("paste.choiceColumns.causeOfTestingId")
+  };
+}

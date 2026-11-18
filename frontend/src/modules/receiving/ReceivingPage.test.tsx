@@ -12,6 +12,7 @@ import { ReceiveService } from "./services/ReceiveService";
 import type { SampleRecord } from "./types/receivingTypes";
 import { ReceivingPage } from "./ReceivingPage";
 import { exportLogService } from "../../components/lab/table/services/exportLogService";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 
 vi.mock("./services/ReceiveService", () => ({
   ReceiveService: {
@@ -191,7 +192,11 @@ describe("ReceivingPage label printing offer", () => {
     await receiveRawMaterialSample(user);
 
     expect(
-      await screen.findByText("Successfully received 1 sample. Test orders generated automatically.")
+      await screen.findByText(
+        (_c, el) =>
+          el?.classList.contains("MuiAlert-message") === true &&
+          el.textContent === "Successfully received 1 sample. Test orders generated automatically."
+      )
     ).toBeTruthy();
     await waitFor(() => {
       // Initial load (3 categories) + reload after receipt (3 categories)
@@ -247,5 +252,39 @@ describe("ReceivingPage export", () => {
     await screen.findByText("Lactose Monohydrate");
     expect(screen.queryByRole("checkbox", { name: /Select Lactose Monohydrate/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Export selected" })).toBeNull();
+  });
+});
+
+describe("ReceivingPage in Arabic", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    seedPermissions([PERMISSIONS.SAMPLES_RECEIVE]);
+    vi.mocked(ReceiveService.getRecordsPaged).mockImplementation(async (filter) => {
+      const items = filter?.category === "RawMaterial" ? [createdSample] : [];
+      return { items, totalCount: items.length, page: 1, pageSize: 100, totalPages: items.length ? 1 : 0 };
+    });
+  });
+
+  afterEach(async () => {
+    cleanup();
+    localStorage.clear();
+    await resetLanguage();
+  });
+
+  it("lays the page out right to left and keeps the sample identifier left to right", async () => {
+    await renderInArabic(
+      <AuthProvider>
+        <MemoryRouter>
+          <ReceivingPage />
+        </MemoryRouter>
+      </AuthProvider>,
+      ["common", "receiving"]
+    );
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(await screen.findByRole("heading", { name: "استلام عينة" })).toBeTruthy();
+    const identifier = await screen.findByText("RM-2026-0501");
+    expect(identifier.closest("bdi")?.getAttribute("dir")).toBe("ltr");
   });
 });

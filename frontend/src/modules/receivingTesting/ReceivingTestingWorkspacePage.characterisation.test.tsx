@@ -521,6 +521,11 @@ describe("ReceivingTestingWorkspacePage grouped actions (characterisation)", () 
       "Select Alpha Syrup (FP-0091) for grouped actions",
       "Select Beta Tablet (FP-0092) for grouped actions"
     ]);
-    expect(within(screen.getByText(/Laboratory Register \(/).parentElement as HTMLElement).getByText("2 checked")).toBeTruthy();
+    expect(
+      within(
+        screen.getByText((_c, el) => el?.tagName === "P" && /Laboratory Register \(/.test(el.textContent ?? ""))
+          .parentElement as HTMLElement
+      ).getByText((_c, el) => el?.tagName === "P" && el.textContent === "2 checked")
+    ).toBeTruthy();
   });
 });

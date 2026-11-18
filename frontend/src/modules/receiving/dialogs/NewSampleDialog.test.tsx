@@ -754,7 +754,12 @@ describe("NewSampleDialog — batch receive, cell errors, CoA retry, draft", () 
 
     await waitFor(
       () => {
-        expect(screen.getByText(/Draft saved on this computer at \d{2}:\d{2} — not recorded/)).toBeTruthy();
+        expect(
+          screen.getByText(
+            (_c, el) =>
+              el?.tagName === "P" && /Draft saved on this computer at \d{2}:\d{2} — not recorded/.test(el.textContent ?? "")
+          )
+        ).toBeTruthy();
       },
       { timeout: 2000 }
     );

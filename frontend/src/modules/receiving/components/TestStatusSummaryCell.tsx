@@ -14,8 +14,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import type { TFunction } from "i18next";
+import { Trans } from "react-i18next";
 import { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { StatusBadge, statusColor } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { StatusTone } from "../../../theme/statusTokens";
 
 interface Props {
@@ -29,29 +33,39 @@ interface Props {
 
 // Closed samples: the summary states how the record closed, ahead of any
 // preparation or test-progress wording that would suggest work remains.
-const CLOSED_SAMPLE_SUMMARY: Record<string, { text: string; tone: StatusTone }> = {
-  Rejected: { text: "Rejected", tone: "detected" },
-  Voided: { text: "Voided", tone: "detected" },
-  Cancelled: { text: "Cancelled", tone: "detected" },
-  RetestRequested: { text: "On Hold, Retest", tone: "inconclusive" }
+const CLOSED_SAMPLE_SUMMARY: Record<string, { key: string; tone: StatusTone }> = {
+  Rejected: { key: "testSummary.rejected", tone: "detected" },
+  Voided: { key: "testSummary.voided", tone: "detected" },
+  Cancelled: { key: "testSummary.cancelled", tone: "detected" },
+  RetestRequested: { key: "testSummary.onHoldRetest", tone: "inconclusive" }
 };
 
-function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sampleStatus: string, awaitingTestSelection: boolean): { text: string; tone: StatusTone; isDirectAction: boolean } {
+function getSummaryText(
+  t: TFunction<"receiving">,
+  tests: TestOrderSummary[],
+  preparationStatus: string,
+  sampleStatus: string,
+  awaitingTestSelection: boolean
+): { text: string; tone: StatusTone; isDirectAction: boolean } {
   const closed = CLOSED_SAMPLE_SUMMARY[sampleStatus];
   if (closed) {
-    return { text: closed.text, tone: closed.tone, isDirectAction: false };
+    return { text: t(closed.key), tone: closed.tone, isDirectAction: false };
   }
 
   if (awaitingTestSelection) {
-    return { text: "Awaiting test selection", tone: "inconclusive", isDirectAction: true };
+    return { text: t("testSummary.awaitingTestSelection"), tone: "inconclusive", isDirectAction: true };
   }
 
   if (preparationStatus === "NeedsPreparation") {
-    return { text: "Needs Preparation", tone: "inconclusive", isDirectAction: true };
+    return { text: t("testSummary.needsPreparation"), tone: "inconclusive", isDirectAction: true };
   }
 
   if (sampleStatus === "UnderReview" || sampleStatus === "UnderApproval") {
-    return { text: sampleStatus === "UnderApproval" ? "Under Approval" : "Under Review", tone: "purple", isDirectAction: true };
+    return {
+      text: sampleStatus === "UnderApproval" ? t("testSummary.underApproval") : t("testSummary.underReview"),
+      tone: "purple",
+      isDirectAction: true
+    };
   }
 
   const total = tests.length;
@@ -59,46 +73,47 @@ function getSummaryText(tests: TestOrderSummary[], preparationStatus: string, sa
     return { text: "—", tone: "pending", isDirectAction: false };
   }
 
-  const approved = tests.filter((t) => t.status === "Approved").length;
+  const approved = tests.filter((test) => test.status === "Approved").length;
   const inProgress = tests.filter(
-    (t) => t.status === "InProgress" || t.status === "Running" || t.status === "Incubating"
+    (test) => test.status === "InProgress" || test.status === "Running" || test.status === "Incubating"
   ).length;
-  const underReview = tests.filter((t) => t.status === "UnderReview").length;
-  const underApproval = tests.filter((t) => t.status === "Reviewed").length;
-  const resultEntered = tests.filter((t) => t.status === "ResultEntered").length;
-  const rejected = tests.filter((t) => t.status === "Rejected").length;
-  const waiting = tests.filter((t) => t.status === "Waiting" || t.status === "NotStarted").length;
+  const underReview = tests.filter((test) => test.status === "UnderReview").length;
+  const underApproval = tests.filter((test) => test.status === "Reviewed").length;
+  const resultEntered = tests.filter((test) => test.status === "ResultEntered").length;
+  const rejected = tests.filter((test) => test.status === "Rejected").length;
+  const waiting = tests.filter((test) => test.status === "Waiting" || test.status === "NotStarted").length;
 
   if (approved === total) {
-    return { text: `${total} / ${total} Approved`, tone: "notDetected", isDirectAction: false };
+    return { text: t("testSummary.approvedOfTotal", { approved: total, total }), tone: "notDetected", isDirectAction: false };
   }
 
   if (waiting === total) {
-    return { text: "Not Started", tone: "pending", isDirectAction: false };
+    return { text: t("testSummary.notStarted"), tone: "pending", isDirectAction: false };
   }
 
   if (underApproval === total) {
-    return { text: "Under Approval", tone: "purple", isDirectAction: true };
+    return { text: t("testSummary.underApproval"), tone: "purple", isDirectAction: true };
   }
 
   if (underReview === total) {
-    return { text: "Under Review", tone: "purple", isDirectAction: true };
+    return { text: t("testSummary.underReview"), tone: "purple", isDirectAction: true };
   }
 
   const parts: string[] = [];
-  if (underReview > 0) parts.push(`${underReview} Under Review`);
-  if (underApproval > 0) parts.push(`${underApproval} Under Approval`);
-  if (inProgress > 0) parts.push(`${inProgress} In Progress`);
-  if (resultEntered > 0) parts.push(`${resultEntered} Result Entered`);
-  if (approved > 0 && parts.length === 0) parts.push(`${approved} / ${total} Approved`);
-  if (rejected > 0) parts.push(`${rejected} Rejected`);
-  if (waiting > 0 && parts.length === 0) parts.push(`${waiting} Waiting`);
+  if (underReview > 0) parts.push(t("testSummary.countUnderReview", { count: underReview }));
+  if (underApproval > 0) parts.push(t("testSummary.countUnderApproval", { count: underApproval }));
+  if (inProgress > 0) parts.push(t("testSummary.countInProgress", { count: inProgress }));
+  if (resultEntered > 0) parts.push(t("testSummary.countResultEntered", { count: resultEntered }));
+  if (approved > 0 && parts.length === 0) parts.push(t("testSummary.approvedOfTotal", { approved, total }));
+  if (rejected > 0) parts.push(t("testSummary.countRejected", { count: rejected }));
+  if (waiting > 0 && parts.length === 0) parts.push(t("testSummary.countWaiting", { count: waiting }));
 
-  const summary = parts.slice(0, 2).join(", ") || `${total} Tests`;
+  const summary = parts.slice(0, 2).join(", ") || t("testSummary.countTests", { count: total });
   return { text: summary, tone: "purple", isDirectAction: false };
 }
 
 export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onPrepareSample, onSelectTests }: Props) {
+  const { t } = useTranslation("receiving");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const theme = useTheme();
 
@@ -106,7 +121,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
   // Another laboratory of the sample may still be pending while this one has tests.
   const pendingSelection = Boolean(sample.awaitingTestSelection);
   const awaiting = pendingSelection && tests.length === 0;
-  const summaryInfo = getSummaryText(tests, sample.preparationStatus, sample.status, awaiting);
+  const summaryInfo = getSummaryText(t, tests, sample.preparationStatus, sample.status, awaiting);
 
   const summaryTone = theme.custom.status[summaryInfo.tone];
   const summary = { text: summaryInfo.text, bg: summaryTone.bg, textColor: summaryTone.text, border: summaryTone.border };
@@ -144,9 +159,9 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
     }
   };
 
-  const handleClose = (e?: React.SyntheticEvent | Event | {}) => {
-    if (e && "stopPropagation" in e && typeof (e as any).stopPropagation === "function") {
-      (e as any).stopPropagation();
+  const handleClose = (e?: React.SyntheticEvent | Event | object) => {
+    if (e && "stopPropagation" in e && typeof (e as { stopPropagation?: unknown }).stopPropagation === "function") {
+      (e as { stopPropagation: () => void }).stopPropagation();
     }
     setAnchorEl(null);
   };
@@ -194,7 +209,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
 
       {pendingSelection && tests.length > 0 && (
         <Typography component="span" sx={{ display: "block", fontSize: 11, color: "text.secondary", mt: 0.25 }}>
-          Awaiting test selection (another laboratory)
+          {t("testSummary.awaitingOtherLab")}
         </Typography>
       )}
 
@@ -221,10 +236,10 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
-              Assigned Tests ({tests.length})
+              <Trans i18nKey="testSummary.assignedTestsTitle" ns="receiving" values={{ count: tests.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              {sample.referenceNumber}
+              <Ltr>{sample.referenceNumber}</Ltr>
             </Typography>
           </Box>
 
@@ -234,7 +249,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
             {tests.map((test) => {
               const effectiveStatus = test.workflowStatus ?? test.status;
               const isApproved = effectiveStatus === "Approved" || effectiveStatus === "Completed";
-              const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
+              const unit = sample.category === "EnvironmentalMonitoring" ? t("testSummary.rooms") : t("testSummary.parts");
               const locCount = test.locationCount && test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
               const color = statusColor(effectiveStatus, theme);
 
@@ -261,7 +276,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
                   <ListItemText
                     primary={
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                        {test.testCode}{locCount}
+                        <Ltr>{test.testCode}</Ltr>{locCount}
                       </Typography>
                     }
                   />
@@ -299,7 +314,7 @@ export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onP
               py: 0.5
             }}
           >
-            View All Tests ({tests.length})
+            <Trans i18nKey="testSummary.viewAllTests" ns="receiving" values={{ count: tests.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
           </Button>
         </Popover>
       )}

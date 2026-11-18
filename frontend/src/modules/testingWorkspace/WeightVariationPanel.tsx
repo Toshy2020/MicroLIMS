@@ -18,11 +18,14 @@ import {
   Typography,
   TableContainer
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import {
@@ -84,6 +87,7 @@ export function WeightVariationPanel({
   onRecorded,
   onClose
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -241,7 +245,7 @@ export function WeightVariationPanel({
       setError(
         errorMessage(
           err,
-          "Could not load weight variation test configuration or specifications."
+          t("weightVariation.loadConfigFailed")
         )
       );
     } finally {
@@ -289,22 +293,22 @@ export function WeightVariationPanel({
   const specLimitText =
     spec?.specLimit ||
     (dosageForm === "Tablet"
-      ? "USP <2091>: tablets, limit by average weight"
-      : "USP <2091>: net content 90-110 % of average");
+      ? t("weightVariation.uspTabletLimit")
+      : t("weightVariation.uspCapsuleLimit"));
 
   // Columns for UnitEntryGrid
   const tabletColumns: UnitEntryGridColumn[] = useMemo(
-    () => [{ key: "weightMg", label: "Weight", unit: "mg" }],
-    []
+    () => [{ key: "weightMg", label: t("weightVariation.weightCol"), unit: "mg" }],
+    [t]
   );
 
   const capsuleColumns: UnitEntryGridColumn[] = useMemo(
     () => [
-      { key: "grossMg", label: "Gross", unit: "mg", width: 140 },
-      { key: "shellMg", label: "Shell", unit: "mg", width: 140 },
-      { key: "netMg", label: "Net", unit: "mg", readOnly: true, width: 140 }
+      { key: "grossMg", label: t("weightVariation.grossCol"), unit: "mg", width: 140 },
+      { key: "shellMg", label: t("weightVariation.shellCol"), unit: "mg", width: 140 },
+      { key: "netMg", label: t("weightVariation.netCol"), unit: "mg", readOnly: true, width: 140 }
     ],
-    []
+    [t]
   );
 
   const gridColumns = isCapsule ? capsuleColumns : tabletColumns;
@@ -425,16 +429,16 @@ export function WeightVariationPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 2 required";
+        outcomeText = t("weightVariation.stage2Required");
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = "Complies";
+        outcomeText = t("weightVariation.complies");
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply";
+        outcomeText = t("weightVariation.doesNotComply");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("weightVariation.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -444,7 +448,7 @@ export function WeightVariationPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record weight variation result."));
+      setError(errorMessage(err, t("weightVariation.recordFailed")));
     }
   };
 
@@ -469,16 +473,16 @@ export function WeightVariationPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 2 required";
+        outcomeText = t("weightVariation.stage2Required");
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = "Complies";
+        outcomeText = t("weightVariation.complies");
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply";
+        outcomeText = t("weightVariation.doesNotComply");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("weightVariation.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -488,26 +492,26 @@ export function WeightVariationPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record weight variation stage."));
+      setError(errorMessage(err, t("weightVariation.recordStageFailed")));
     }
   };
 
   // Acceptance criteria text the panel already showed as prose, now in the criteria card.
   const criteriaRows: CriteriaRow[] = spec
     ? [
-        { parameter: "Specification", criterion: specLimitText, source: "Specification" },
+        { parameter: t("weightVariation.specificationParam"), criterion: specLimitText, source: t("weightVariation.sourceSpecification") },
         {
-          parameter: `Stage 1 (${s1UnitsCount} units)`,
+          parameter: t("weightVariation.stage1Param", { count: s1UnitsCount }),
           criterion: !isCapsule
-            ? "Not more than 2 tablets deviate from the average by more than the specified percentage, and none by more than twice that percentage"
-            : "Net content: not more than 2 units deviate from the average by > 10 % and none by > 25 %; 3 to 6 units > 10 % continue to Stage 2",
+            ? t("weightVariation.stage1TabletCriterion")
+            : t("weightVariation.stage1CapsuleCriterion"),
           source: "USP <2091>"
         },
         ...(isCapsule
           ? [
               {
-                parameter: `Stage 2 (${s1UnitsCount + s2UnitsCount} units total)`,
-                criterion: `Not more than 6 of ${s1UnitsCount + s2UnitsCount} units deviate by > 10 % from the overall mean and none by > 25 %`,
+                parameter: t("weightVariation.stage2Param", { total: s1UnitsCount + s2UnitsCount }),
+                criterion: t("weightVariation.stage2CapsuleCriterion", { total: s1UnitsCount + s2UnitsCount }),
                 source: "USP <2091>"
               }
             ]
@@ -520,24 +524,24 @@ export function WeightVariationPanel({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.unitCol")}</TableCell>
             {capsule ? (
               <>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Gross (mg)</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Shell (mg)</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Net (mg)</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.grossMgCol")}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.shellMgCol")}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.netMgCol")}</TableCell>
               </>
             ) : (
-              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Weight (mg)</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.weightMgCol")}</TableCell>
             )}
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Deviation %</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("weightVariation.deviationPctCol")}</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rList.map((r) => (
             <TableRow key={r.id}>
-              <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{t("weightVariation.unitLabel", { index: r.index })}</TableCell>
               {capsule ? (
                 <>
                   <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
@@ -587,7 +591,7 @@ export function WeightVariationPanel({
       <Box sx={{ p: 4, textAlign: "center" }}>
         <CircularProgress size={32} />
         <Typography sx={{ mt: 1, fontSize: 13, color: "text.secondary" }}>
-          Loading weight variation configuration and readings…
+          {t("weightVariation.loading")}
         </Typography>
       </Box>
     );
@@ -604,7 +608,7 @@ export function WeightVariationPanel({
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
     const summaryText =
-      outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+      outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? t("weightVariation.analysisCompleteFallback");
     // Verdict comes only from the server's status field.
     const verdict: Verdict =
       finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
@@ -616,11 +620,11 @@ export function WeightVariationPanel({
         <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <ResultSection title="Analysis summary">
+          <ResultSection title={t("weightVariation.summaryTitle")}>
             <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Specification
+                  {t("weightVariation.specificationLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {specLimitText}
@@ -628,26 +632,26 @@ export function WeightVariationPanel({
               </Box>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Dosage Form
+                  {t("weightVariation.dosageFormLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {dosageForm}
+                  {t(`weightVariation.dosageForm.${dosageForm}`, { defaultValue: dosageForm })}
                 </Typography>
               </Box>
               {activeParam?.reportedDisplay && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Reported Result
+                    {t("weightVariation.reportedResultLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeParam.reportedDisplay}
+                    <Ltr>{activeParam.reportedDisplay}</Ltr>
                   </Typography>
                 </Box>
               )}
               {activeParam?.reportedValue != null && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    {hasCapsuleReadings ? "Mean Net Content" : "Mean Weight"}
+                    {hasCapsuleReadings ? t("weightVariation.meanNetContentLabel") : t("weightVariation.meanWeightLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     <NumericCell value={Number(activeParam.reportedValue)} unit="mg" />
@@ -657,10 +661,10 @@ export function WeightVariationPanel({
               {activeAnalysis.equipmentCode && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Balance
+                    {t("weightVariation.balanceLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeAnalysis.equipmentCode}
+                    <Ltr>{activeAnalysis.equipmentCode}</Ltr>
                   </Typography>
                 </Box>
               )}
@@ -671,14 +675,14 @@ export function WeightVariationPanel({
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {activeAnalysis && readingsByStage.size > 0 && (
-          <ResultSection title="Raw replicate readings">
+          <ResultSection title={t("weightVariation.rawReadingsTitle")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                    Stage {stg} Readings ({rList.length} units)
+                    {t("weightVariation.stageReadingsHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, hasCapsuleReadings, "Stage Criterion")}
+                  {renderReadingsTable(rList, hasCapsuleReadings, t("weightVariation.stageCriterionHeader"))}
                 </Box>
               ))}
             </Stack>
@@ -686,10 +690,10 @@ export function WeightVariationPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
+          <StatusBadge status="ResultRecorded" label={t("weightVariation.resultRecordedPending")} />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
-              Done / Close
+              {t("weightVariation.doneClose")}
             </Button>
           )}
         </Box>
@@ -697,13 +701,15 @@ export function WeightVariationPanel({
     );
   }
 
+  const dosageFormLabel = t(`weightVariation.dosageForm.${dosageForm}`, { defaultValue: dosageForm });
+
   return (
     <Box>
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("weightVariation.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("weightVariation.returnedDefault")}
         </Alert>
       )}
 
@@ -713,7 +719,12 @@ export function WeightVariationPanel({
           sx={{ mb: 2 }}
           onClose={() => setOutcomeBanner(null)}
         >
-          Outcome: <strong>{outcomeBanner.message}</strong>
+          <Trans
+            i18nKey="weightVariation.outcomeBanner"
+            ns="testingWorkspace"
+            values={{ message: outcomeBanner.message }}
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       )}
 
@@ -725,8 +736,7 @@ export function WeightVariationPanel({
 
       {!spec && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          No Weight Variation specification configured for this item and test. Please configure a
-          specification with limit type &ldquo;Weight Variation&rdquo; in Item Specifications.
+          {t("weightVariation.noSpecWarning")}
         </Alert>
       )}
 
@@ -734,21 +744,20 @@ export function WeightVariationPanel({
       {isNextStageRequired && activeParam ? (
         <Stack spacing={2}>
           <Alert severity="warning">
-            <strong>Stage 2 required:</strong> Results from Stage 1 did not meet acceptance
-            criteria. Staged testing continues to Stage 2.
+            <Trans i18nKey="weightVariation.stage2RequiredBanner" ns="testingWorkspace" components={{ strong: <strong /> }} />
           </Alert>
 
           {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
           {/* Grouped read-only previous stage(s) */}
-          <ResultSection step={1} title="Previously recorded Stage 1 units">
+          <ResultSection step={1} title={t("weightVariation.prevStage1Title")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                    Stage {stg} Units ({rList.length} units)
+                    {t("weightVariation.stageUnitsHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, true, "Stage Criterion")}
+                  {renderReadingsTable(rList, true, t("weightVariation.stageCriterionHeader"))}
                 </Box>
               ))}
             </Stack>
@@ -757,12 +766,12 @@ export function WeightVariationPanel({
           {/* Stage 2 Entry */}
           <ResultSection
             step={2}
-            title={`Stage 2 unit entry (${s2UnitsCount} additional units, Units ${s1UnitsCount + 1}\u2013${s1UnitsCount + s2UnitsCount})`}
+            title={t("weightVariation.stage2EntryTitle", { count: s2UnitsCount, from: s1UnitsCount + 1, to: s1UnitsCount + s2UnitsCount })}
           >
             <Box sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
               <UnitEntryGrid
                 rowCount={s2UnitsCount}
-                rowLabel={(i) => `Unit ${s1UnitsCount + i + 1}`}
+                rowLabel={(i) => t("weightVariation.unitLabel", { index: s1UnitsCount + i + 1 })}
                 columns={capsuleColumns}
                 values={stage2Units}
                 onChange={handleStage2Change}
@@ -778,7 +787,7 @@ export function WeightVariationPanel({
                   setSigning(true);
                 }}
               >
-                Sign &amp; Record Stage 2 Result
+                {t("weightVariation.signStage2Btn")}
               </Button>
             </Box>
           </ResultSection>
@@ -788,24 +797,24 @@ export function WeightVariationPanel({
         <Stack spacing={2}>
           {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <ResultSection step={1} title="Analysis parameters & conditions">
+          <ResultSection step={1} title={t("weightVariation.paramsAndConditionsTitle")}>
           <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
-                <InputLabel id="wv-equipment-label">Analytical Balance</InputLabel>
+                <InputLabel id="wv-equipment-label">{t("weightVariation.balanceSelectLabel")}</InputLabel>
                 <Select
                   labelId="wv-equipment-label"
-                  label="Analytical Balance"
+                  label={t("weightVariation.balanceSelectLabel")}
                   value={selectedEquipmentId}
                   onChange={(e) => setSelectedEquipmentId(e.target.value as number | "")}
                 >
                   <MenuItem value="">
-                    <em>Select balance (optional)</em>
+                    <em>{t("weightVariation.selectBalanceOptional")}</em>
                   </MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code}: {eq.name} ({eq.type})
+                      <Ltr>{eq.code}</Ltr>: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>
@@ -814,10 +823,10 @@ export function WeightVariationPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local)"
+                label={t("weightVariation.analysisTimeLocal")}
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
                 required
                 sx={{ flex: 1 }}
               />
@@ -835,7 +844,7 @@ export function WeightVariationPanel({
                 }}
               >
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                  Test Conditions
+                  {t("weightVariation.testConditionsHeading")}
                 </Typography>
                 <Stack useFlexGap
                   direction={{ xs: "column", sm: "row" }}
@@ -847,7 +856,7 @@ export function WeightVariationPanel({
                       key={label}
                       size="small"
                       label={label}
-                      placeholder={`Enter ${label}`}
+                      placeholder={t("weightVariation.enterConditionPlaceholder", { label })}
                       value={conditions[label] || ""}
                       onChange={(e) =>
                         setConditions((prev) => ({ ...prev, [label]: e.target.value }))
@@ -865,11 +874,16 @@ export function WeightVariationPanel({
           {/* Stage 1 Units */}
           <ResultSection
             step={2}
-            title={`Stage 1 unit ${isCapsule ? "gross & shell weights" : "weights"} (${s1UnitsCount} units \u00b7 ${dosageForm})`}
+            title={
+              isCapsule
+                ? t("weightVariation.stage1GrossShellTitle", { count: s1UnitsCount, dosageForm: dosageFormLabel })
+                : t("weightVariation.stage1WeightsTitle", { count: s1UnitsCount, dosageForm: dosageFormLabel })
+            }
           >
           <Box sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
             <UnitEntryGrid
               rowCount={s1UnitsCount}
+              rowLabel={(i) => t("weightVariation.unitLabel", { index: i + 1 })}
               columns={gridColumns}
               values={stage1Units}
               onChange={handleStage1Change}
@@ -885,7 +899,7 @@ export function WeightVariationPanel({
                 setSigning(true);
               }}
             >
-              Sign &amp; Record Stage 1 Result
+              {t("weightVariation.signStage1Btn")}
             </Button>
           </Box>
           </ResultSection>
@@ -899,6 +913,9 @@ export function WeightVariationPanel({
           signingStage === 1
             ? "I entered these stage 1 weight variation unit weights and am recording this test result."
             : "I entered these stage 2 weight variation unit weights and am recording them."
+        }
+        meaningStatementTranslation={
+          signingStage === 1 ? t("weightVariation.signatureMeaningStage1") : t("weightVariation.signatureMeaningStage2")
         }
         showComment
         comment={comment}

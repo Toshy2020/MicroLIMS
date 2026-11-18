@@ -20,10 +20,13 @@ import {
   Typography,
   TableContainer
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -83,6 +86,7 @@ export function DisintegrationPanel({
   onRecorded,
   onClose
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -222,7 +226,7 @@ export function DisintegrationPanel({
           : Array.from({ length: s1UnitsCount }, () => ({ minutes: "", notDisintegrated: false }))
       );
     } catch (err: unknown) {
-      setError(errorMessage(err, "Could not load disintegration test configuration or specifications."));
+      setError(errorMessage(err, t("disintegration.loadConfigFailed")));
     } finally {
       setLoading(false);
     }
@@ -260,7 +264,7 @@ export function DisintegrationPanel({
   }, [existingReadings]);
 
   const limitMinutes = spec?.upperLimit != null ? Number(spec.upperLimit) : null;
-  const specLimitText = spec?.specLimit || (limitMinutes != null ? `NMT ${limitMinutes} min` : "Not specified");
+  const specLimitText = spec?.specLimit || (limitMinutes != null ? t("disintegration.nmtMinutes", { minutes: limitMinutes }) : t("disintegration.notSpecified"));
 
   const s1UnitsCount = testDef?.disintegrationStage1Units ?? 6;
   const s2UnitsCount = testDef?.disintegrationStage2Units ?? 12;
@@ -323,16 +327,16 @@ export function DisintegrationPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 2 required";
+        outcomeText = t("disintegration.stage2Required");
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = "Complies";
+        outcomeText = t("disintegration.complies");
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply";
+        outcomeText = t("disintegration.doesNotComply");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("disintegration.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -342,7 +346,7 @@ export function DisintegrationPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record disintegration result."));
+      setError(errorMessage(err, t("disintegration.recordFailed")));
     }
   };
 
@@ -362,16 +366,16 @@ export function DisintegrationPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 2 required";
+        outcomeText = t("disintegration.stage2Required");
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = "Complies";
+        outcomeText = t("disintegration.complies");
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply";
+        outcomeText = t("disintegration.doesNotComply");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("disintegration.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -381,7 +385,7 @@ export function DisintegrationPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record disintegration stage."));
+      setError(errorMessage(err, t("disintegration.recordStageFailed")));
     }
   };
 
@@ -405,16 +409,16 @@ export function DisintegrationPanel({
   // Acceptance criteria from the spec and stage counts the panel already loads.
   const criteriaRows: CriteriaRow[] = spec
     ? [
-        { parameter: "Disintegration time", criterion: specLimitText, unit: "min", source: "Specification" },
+        { parameter: t("disintegration.disintegrationTimeParam"), criterion: specLimitText, unit: "min", source: t("disintegration.sourceSpecification") },
         {
-          parameter: `Stage 1 (${s1UnitsCount} units)`,
-          criterion: `All ${s1UnitsCount} units within the limit; 1\u2013${maxS1Failures} failures proceed to Stage 2; more than ${maxS1Failures} fail`,
-          source: "Stage criteria"
+          parameter: t("disintegration.stage1Param", { count: s1UnitsCount }),
+          criterion: t("disintegration.stage1Criterion", { count: s1UnitsCount, maxFail: maxS1Failures }),
+          source: t("disintegration.sourceStageCriteria")
         },
         {
-          parameter: `Stage 2 (${s1UnitsCount + s2UnitsCount} units total)`,
-          criterion: `At least ${minPassTotal} of ${s1UnitsCount + s2UnitsCount} units within the limit`,
-          source: "Stage criteria"
+          parameter: t("disintegration.stage2Param", { total: s1UnitsCount + s2UnitsCount }),
+          criterion: t("disintegration.stage2Criterion", { minPass: minPassTotal, total: s1UnitsCount + s2UnitsCount }),
+          source: t("disintegration.sourceStageCriteria")
         }
       ]
     : [];
@@ -424,17 +428,17 @@ export function DisintegrationPanel({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Unit</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Time (min)</TableCell>
+            <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("disintegration.unitCol")}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("disintegration.timeMinCol")}</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rList.map((r) => (
             <TableRow key={r.id}>
-              <TableCell sx={{ fontSize: 12 }}>Unit {r.index}</TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{t("disintegration.unitLabel", { index: r.index })}</TableCell>
               <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                {r.value1 != null ? <NumericCell value={Number(r.value1)} unit="min" /> : (r.text || "Not disintegrated")}
+                {r.value1 != null ? <NumericCell value={Number(r.value1)} unit="min" /> : (r.text || t("disintegration.notDisintegrated"))}
               </TableCell>
               <TableCell sx={{ fontSize: 12 }}>
                 {r.passed === null || r.passed === undefined ? "\u2014" : <StatusBadge status={r.passed ? "Pass" : "Fail"} />}
@@ -451,7 +455,7 @@ export function DisintegrationPanel({
       <Box sx={{ p: 4, textAlign: "center" }}>
         <CircularProgress size={32} />
         <Typography sx={{ mt: 1, fontSize: 13, color: "text.secondary" }}>
-          Loading disintegration configuration and readings…
+          {t("disintegration.loading")}
         </Typography>
       </Box>
     );
@@ -467,7 +471,7 @@ export function DisintegrationPanel({
 
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
-    const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+    const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? t("disintegration.analysisCompleteFallback");
     // Verdict comes only from the server's status field.
     const verdict: Verdict =
       finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
@@ -477,11 +481,11 @@ export function DisintegrationPanel({
         <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <ResultSection title="Analysis summary">
+          <ResultSection title={t("disintegration.summaryTitle")}>
             <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Specification
+                  {t("disintegration.specificationLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {specLimitText}
@@ -490,17 +494,17 @@ export function DisintegrationPanel({
               {activeParam?.reportedDisplay && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Reported Result
+                    {t("disintegration.reportedResultLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeParam.reportedDisplay}
+                    <Ltr>{activeParam.reportedDisplay}</Ltr>
                   </Typography>
                 </Box>
               )}
               {activeParam?.reportedValue != null && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Longest Time
+                    {t("disintegration.longestTimeLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     <NumericCell value={Number(activeParam.reportedValue)} unit="min" />
@@ -510,10 +514,10 @@ export function DisintegrationPanel({
               {activeAnalysis.equipmentCode && (
                 <Box>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Apparatus
+                    {t("disintegration.apparatusLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    {activeAnalysis.equipmentCode}
+                    <Ltr>{activeAnalysis.equipmentCode}</Ltr>
                   </Typography>
                 </Box>
               )}
@@ -524,14 +528,14 @@ export function DisintegrationPanel({
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {activeAnalysis && readingsByStage.size > 0 && (
-          <ResultSection title="Raw replicate readings">
+          <ResultSection title={t("disintegration.rawReadingsTitle")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
-                    Stage {stg} ({rList.length} units)
+                    {t("disintegration.stageUnitsHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, "Unit Mark")}
+                  {renderReadingsTable(rList, t("disintegration.unitMarkHeader"))}
                 </Box>
               ))}
             </Stack>
@@ -539,10 +543,10 @@ export function DisintegrationPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
+          <StatusBadge status="ResultRecorded" label={t("disintegration.resultRecordedPending")} />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
-              Done / Close
+              {t("disintegration.doneClose")}
             </Button>
           )}
         </Box>
@@ -555,14 +559,19 @@ export function DisintegrationPanel({
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("disintegration.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("disintegration.returnedDefault")}
         </Alert>
       )}
 
       {outcomeBanner && (
         <Alert severity={outcomeBanner.severity} sx={{ mb: 2 }} onClose={() => setOutcomeBanner(null)}>
-          Outcome: <strong>{outcomeBanner.message}</strong>
+          <Trans
+            i18nKey="disintegration.outcomeBanner"
+            ns="testingWorkspace"
+            values={{ message: outcomeBanner.message }}
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       )}
 
@@ -574,7 +583,7 @@ export function DisintegrationPanel({
 
       {!spec && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          No Disintegration specification configured for this item and test. Please configure a specification with limit type &ldquo;Disintegration Time&rdquo; in Item Specifications.
+          {t("disintegration.noSpecWarning")}
         </Alert>
       )}
 
@@ -582,48 +591,51 @@ export function DisintegrationPanel({
       {isNextStageRequired && activeParam ? (
         <Stack spacing={2}>
           <Alert severity="warning">
-            <strong>Stage 2 required:</strong> Results from Stage 1 did not meet acceptance criteria. Staged testing continues to Stage 2.
+            <Trans i18nKey="disintegration.stage2RequiredBanner" ns="testingWorkspace" components={{ strong: <strong /> }} />
           </Alert>
 
           {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
           {/* Grouped read-only previous stage(s) */}
-          <ResultSection step={1} title="Previously recorded Stage 1 units">
+          <ResultSection step={1} title={t("disintegration.prevStage1Title")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                    Stage {stg} Units ({rList.length} units)
+                    {t("disintegration.stageUnitsTableHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, "Stage Criterion")}
+                  {renderReadingsTable(rList, t("disintegration.stageCriterionHeader"))}
                 </Box>
               ))}
             </Stack>
           </ResultSection>
 
           {/* Stage 2 Entry */}
-          <ResultSection step={2} title={`Stage 2 unit entry (${s2UnitsCount} additional units, Units ${s1UnitsCount + 1}\u2013${s1UnitsCount + s2UnitsCount})`}>
+          <ResultSection
+            step={2}
+            title={t("disintegration.stage2EntryTitle", { count: s2UnitsCount, from: s1UnitsCount + 1, to: s1UnitsCount + s2UnitsCount })}
+          >
             <TableContainer>
               <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Time (min)</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Live Hint</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>{t("disintegration.unitCol")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>{t("disintegration.timeMinCol")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>{t("disintegration.statusCol")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>{t("disintegration.liveHintCol")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {stage2Units.map((u, i) => (
                     <TableRow key={i}>
                       <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                        Unit {s1UnitsCount + i + 1}
+                        {t("disintegration.unitLabel", { index: s1UnitsCount + i + 1 })}
                       </TableCell>
                       <TableCell>
                         <TextField
                           size="small"
                           type="number"
-                          placeholder="Minutes"
+                          placeholder={t("disintegration.minutesPlaceholder")}
                           value={u.notDisintegrated ? "" : u.minutes}
                           disabled={u.notDisintegrated}
                           onChange={(e) => {
@@ -632,7 +644,7 @@ export function DisintegrationPanel({
                               prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
                             );
                           }}
-                          slotProps={{ htmlInput: { "aria-label": `Unit ${s1UnitsCount + i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
+                          slotProps={{ htmlInput: { "aria-label": t("disintegration.unitTimeAria", { index: s1UnitsCount + i + 1 }), min: 0.01, step: "any", dir: "ltr" } }}
                           sx={{ width: 140 }}
                         />
                       </TableCell>
@@ -652,7 +664,7 @@ export function DisintegrationPanel({
                               }}
                             />
                           }
-                          label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
+                          label={<Typography sx={{ fontSize: 12 }}>{t("disintegration.notDisintegrated")}</Typography>}
                         />
                       </TableCell>
                       <TableCell sx={{ fontSize: 12 }}>
@@ -664,7 +676,7 @@ export function DisintegrationPanel({
               </Table>
             </TableContainer>
             <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
-              * Live pass/fail hint is based on {specLimitText}; the server&apos;s staged evaluation verdict is authoritative.
+              {t("disintegration.liveHintDisclaimer", { specLimit: specLimitText })}
             </Typography>
 
             <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
@@ -676,7 +688,7 @@ export function DisintegrationPanel({
                   setSigning(true);
                 }}
               >
-                Sign & Record Stage 2 Result
+                {t("disintegration.signStage2Btn")}
               </Button>
             </Box>
           </ResultSection>
@@ -686,22 +698,22 @@ export function DisintegrationPanel({
         <Stack spacing={2}>
           {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-          <ResultSection step={1} title="Analysis parameters & conditions">
+          <ResultSection step={1} title={t("disintegration.paramsAndConditionsTitle")}>
           <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
-                <InputLabel id="disintegration-equipment-label">Disintegration Apparatus</InputLabel>
+                <InputLabel id="disintegration-equipment-label">{t("disintegration.apparatusSelectLabel")}</InputLabel>
                 <Select
                   labelId="disintegration-equipment-label"
-                  label="Disintegration Apparatus"
+                  label={t("disintegration.apparatusSelectLabel")}
                   value={selectedEquipmentId}
                   onChange={(e) => setSelectedEquipmentId(e.target.value as number | "")}
                 >
-                  <MenuItem value=""><em>Select apparatus (optional)</em></MenuItem>
+                  <MenuItem value=""><em>{t("disintegration.selectApparatusOptional")}</em></MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code}: {eq.name} ({eq.type})
+                      <Ltr>{eq.code}</Ltr>: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>
@@ -710,10 +722,10 @@ export function DisintegrationPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local)"
+                label={t("disintegration.analysisTimeLocal")}
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
                 required
                 sx={{ flex: 1 }}
               />
@@ -723,7 +735,7 @@ export function DisintegrationPanel({
             {conditionLabels.length > 0 && (
               <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                  Test Conditions
+                  {t("disintegration.testConditionsHeading")}
                 </Typography>
                 <Stack useFlexGap direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
                   {conditionLabels.map((label) => (
@@ -731,7 +743,7 @@ export function DisintegrationPanel({
                       key={label}
                       size="small"
                       label={label}
-                      placeholder={`Enter ${label}`}
+                      placeholder={t("disintegration.enterConditionPlaceholder", { label })}
                       value={conditions[label] || ""}
                       onChange={(e) =>
                         setConditions((prev) => ({ ...prev, [label]: e.target.value }))
@@ -747,29 +759,29 @@ export function DisintegrationPanel({
           </ResultSection>
 
           {/* Stage 1 Units */}
-          <ResultSection step={2} title={`Stage 1 unit times (${s1UnitsCount} units)`}>
+          <ResultSection step={2} title={t("disintegration.stage1TimesTitle", { count: s1UnitsCount })}>
 
           <TableContainer>
             <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Unit</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Time (min)</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>Live Hint</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>{t("disintegration.unitCol")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>{t("disintegration.timeMinCol")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>{t("disintegration.statusCol")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>{t("disintegration.liveHintCol")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {stage1Units.map((u, i) => (
                   <TableRow key={i}>
                     <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                      Unit {i + 1}
+                      {t("disintegration.unitLabel", { index: i + 1 })}
                     </TableCell>
                     <TableCell>
                       <TextField
                         size="small"
                         type="number"
-                        placeholder="Minutes"
+                        placeholder={t("disintegration.minutesPlaceholder")}
                         value={u.notDisintegrated ? "" : u.minutes}
                         disabled={u.notDisintegrated}
                         onChange={(e) => {
@@ -778,7 +790,7 @@ export function DisintegrationPanel({
                             prev.map((row, idx) => (idx === i ? { ...row, minutes: val } : row))
                           );
                         }}
-                        slotProps={{ htmlInput: { "aria-label": `Unit ${i + 1} disintegration time (minutes)`, min: 0.01, step: "any" } }}
+                        slotProps={{ htmlInput: { "aria-label": t("disintegration.unitTimeAria", { index: i + 1 }), min: 0.01, step: "any", dir: "ltr" } }}
                         sx={{ width: 140 }}
                       />
                     </TableCell>
@@ -798,7 +810,7 @@ export function DisintegrationPanel({
                             }}
                           />
                         }
-                        label={<Typography sx={{ fontSize: 12 }}>Not disintegrated</Typography>}
+                        label={<Typography sx={{ fontSize: 12 }}>{t("disintegration.notDisintegrated")}</Typography>}
                       />
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>
@@ -810,7 +822,7 @@ export function DisintegrationPanel({
             </Table>
           </TableContainer>
           <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
-            * Live pass/fail hint is based on {specLimitText}; the server&apos;s staged evaluation verdict is authoritative.
+            {t("disintegration.liveHintDisclaimer", { specLimit: specLimitText })}
           </Typography>
 
           <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
@@ -822,7 +834,7 @@ export function DisintegrationPanel({
                 setSigning(true);
               }}
             >
-              Sign & Record Stage 1 Result
+              {t("disintegration.signStage1Btn")}
             </Button>
           </Box>
           </ResultSection>
@@ -836,6 +848,9 @@ export function DisintegrationPanel({
           signingStage === 1
             ? "I entered these stage 1 disintegration unit times and am recording this test result."
             : "I entered these stage 2 disintegration unit times and am recording them."
+        }
+        meaningStatementTranslation={
+          signingStage === 1 ? t("disintegration.signatureMeaningStage1") : t("disintegration.signatureMeaningStage2")
         }
         showComment
         comment={comment}

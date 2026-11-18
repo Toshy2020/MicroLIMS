@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialItem, MaterialType, MaterialUnit } from "../types/materialTypes";
+import { typeText, wizardText as tw } from "./wizardText";
 import { MaterialKindFields } from "./MaterialKindFields";
 import { StepErrorAlert } from "./StepErrorAlert";
 import type { MaterialLookups } from "./materialLookups";
 import {
   newLotTypesFor,
-  typeOptionLabel,
   validateStep,
   withMaterialType,
   type MaterialFormModel,
@@ -28,6 +29,7 @@ interface MaterialStepProps {
 const isStandard = (type: MaterialType) => type === "ReferenceStandard" || type === "PrimaryStandard";
 
 function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStepProps) {
+  const { t } = useTranslation("inventory");
   const modelRef = useRef(model);
   modelRef.current = model;
   const { setDemand, initialTypeApplied, typeOptions } = lookups;
@@ -69,9 +71,9 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
 
   const nameLocked = model.materialType === "DehydratedMedia" || Boolean(model.materialMasterEntryId) || view.nameFromEntryOnly || view.nameFromStrain;
   const fromHelper = model.materialMasterEntryId || view.nameFromEntryOnly
-    ? "Populated from master entry"
+    ? t("wizard.material.fromMaster")
     : view.nameFromStrain
-      ? "Populated from reference organism"
+      ? t("wizard.material.fromOrganism")
       : undefined;
 
   return (
@@ -82,10 +84,10 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
         {view.editingOtherMaterial ? (
           <TextField
             size="small"
-            label="Material Type"
+            label={t("wizard.material.type")}
             value={view.storedTypeLabel}
             disabled
-            helperText={view.editingLegacyLot ? "Received before material categories; the stored type is kept." : "A received lot keeps its category."}
+            helperText={view.editingLegacyLot ? t("wizard.material.legacyHelper") : t("wizard.material.keepsCategory")}
           />
         ) : (
           <FormControl
@@ -94,17 +96,17 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
             required
             sx={{ gridColumn: { xs: "1", sm: model.materialType === "DehydratedMedia" ? "span 2" : "1" } }}
           >
-            <InputLabel id="material-type-label">Material Type</InputLabel>
+            <InputLabel id="material-type-label">{t("wizard.material.type")}</InputLabel>
             <Select<MaterialType>
               labelId="material-type-label"
-              label="Material Type"
+              label={t("wizard.material.type")}
               name="materialType"
               value={typeSelectOptions.includes(model.materialType) ? model.materialType : ""}
               onChange={(e) => void changeType(e.target.value as MaterialType)}
             >
-              {typeSelectOptions.map((t) => (
-                <MenuItem key={t} value={t}>
-                  {typeOptionLabel(t)}
+              {typeSelectOptions.map((ty) => (
+                <MenuItem key={ty} value={ty}>
+                  {typeText(ty)}
                 </MenuItem>
               ))}
             </Select>
@@ -113,10 +115,10 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
 
         {!editing && lookups.sections.length > 1 && (
           <FormControl size="small" fullWidth required error={Boolean(errors.section)} sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-            <InputLabel id="material-section-label">Laboratory Section</InputLabel>
+            <InputLabel id="material-section-label">{t("wizard.material.section")}</InputLabel>
             <Select<number | "">
               labelId="material-section-label"
-              label="Laboratory Section"
+              label={t("wizard.material.section")}
               name="section"
               value={model.sectionId}
               onChange={(e) => {
@@ -124,10 +126,10 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
                 // Categories are offered per lab.
                 set({ sectionId, ...(model.materialType === "Other" ? categoryPatch(model, "", lookups.categories) : {}) });
               }}
-              inputProps={{ "aria-label": "Laboratory Section" }}
+              inputProps={{ "aria-label": t("wizard.material.section") }}
             >
               <MenuItem value="">
-                <em>Select Laboratory Section...</em>
+                <em>{t("wizard.material.selectSection")}</em>
               </MenuItem>
               {lookups.sections.map((s) => (
                 <MenuItem key={s.sectionId} value={s.sectionId}>
@@ -152,8 +154,8 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
           size="small"
           required
           name="materialName"
-          label="Material Name"
-          placeholder="e.g. Tryptic Soy Agar Powder"
+          label={t("wizard.material.name")}
+          placeholder={t("wizard.material.nameExample")}
           value={model.materialName}
           onChange={(e) => set({ materialName: e.target.value })}
           disabled={nameLocked}
@@ -163,16 +165,16 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
         <TextField
           size="small"
           name="manufacturerName"
-          label="Manufacturer"
-          placeholder="e.g. Oxoid, Merck, Difco"
+          label={t("wizard.material.manufacturer")}
+          placeholder={t("wizard.material.manufacturerExample")}
           value={model.manufacturerName}
           onChange={(e) => set({ manufacturerName: e.target.value })}
         />
         <TextField
           size="small"
           name="code"
-          label={model.materialType === "DehydratedMedia" ? "Media code" : "Code / Catalog No."}
-          placeholder={model.materialType === "DehydratedMedia" ? "e.g. TSA" : "e.g. CM0131B"}
+          label={model.materialType === "DehydratedMedia" ? t("wizard.material.mediaCode") : t("wizard.material.catalogCode")}
+          placeholder={model.materialType === "DehydratedMedia" ? t("wizard.material.mediaCodeExample") : t("wizard.material.catalogExample")}
           value={model.code}
           onChange={(e) => set({ code: e.target.value })}
           disabled={nameLocked}
@@ -184,28 +186,28 @@ function MaterialStepView({ model, set, errors, editing, lookups }: MaterialStep
             size="small"
             required
             name="purity"
-            label="Purity (%)"
-            placeholder="e.g. 99.8"
+            label={t("wizard.material.purity")}
+            placeholder={t("wizard.material.purityExample")}
             type="number"
             value={model.purity}
             onChange={(e) => set({ purity: e.target.value })}
             error={Boolean(errors.purity)}
             slotProps={{ htmlInput: { step: "0.001", min: "0.001", max: "100" } }}
-            helperText="Purity percentage (0 < p ≤ 100)"
+            helperText={t("wizard.material.purityHelp")}
           />
         )}
         {model.materialType === "ReferenceStandard" && (
           <TextField
             size="small"
             name="moisturePercent"
-            label="Moisture Content (%)"
-            placeholder="e.g. 0.5"
+            label={t("wizard.material.moisture")}
+            placeholder={t("wizard.material.moistureExample")}
             type="number"
             value={model.moisturePercent}
             onChange={(e) => set({ moisturePercent: e.target.value })}
             error={Boolean(errors.moisturePercent)}
             slotProps={{ htmlInput: { step: "0.001", min: "0", max: "99.999" } }}
-            helperText="Moisture percentage (0 ≤ m < 100, optional)"
+            helperText={t("wizard.material.moistureHelp")}
           />
         )}
       </Box>
@@ -220,7 +222,7 @@ export function createMaterialStep(
 ): WizardStep<MaterialFormModel> {
   return {
     key: "material",
-    title: "Material",
+    title: tw("wizard.steps.material"),
     validate: (model) => validateStep("material", model, getContext(model)),
     render: ({ model, set, errors }) => (
       <MaterialStepView model={model} set={set} errors={errors} editing={getEditing()} lookups={getLookups()} />
@@ -232,28 +234,28 @@ export function createMaterialStep(
       const section = lookups.sections.find((s) => s.sectionId === model.sectionId);
       const rows: { label: string; value: string; field: string }[] = [
         {
-          label: "Material Type",
-          value: editing && view.editingOtherMaterial ? view.storedTypeLabel : typeOptionLabel(model.materialType),
+          label: tw("wizard.material.type"),
+          value: editing && view.editingOtherMaterial ? view.storedTypeLabel : typeText(model.materialType),
           field: "materialType"
         }
       ];
       if (lookups.sections.length > 1 && !editing) {
-        rows.push({ label: "Laboratory Section", value: section?.sectionName ?? "—", field: "section" });
+        rows.push({ label: tw("wizard.material.section"), value: section?.sectionName ?? "—", field: "section" });
       }
       if (model.materialType === "Other" && !editing) {
-        rows.push({ label: "Material category", value: view.selectedCategory?.name ?? "—", field: "categoryId" });
+        rows.push({ label: tw("wizard.material.category"), value: view.selectedCategory?.name ?? "—", field: "categoryId" });
       }
       rows.push(
-        { label: "Material Name", value: model.materialName.trim() || "—", field: "materialName" },
-        { label: "Code", value: model.code.trim() || "—", field: "code" },
-        { label: "Manufacturer", value: model.manufacturerName.trim() || "—", field: "manufacturerName" }
+        { label: tw("wizard.material.name"), value: model.materialName.trim() || "—", field: "materialName" },
+        { label: tw("wizard.material.code"), value: model.code.trim() || "—", field: "code" },
+        { label: tw("wizard.material.manufacturer"), value: model.manufacturerName.trim() || "—", field: "manufacturerName" }
       );
       if (isStandard(model.materialType)) {
-        rows.push({ label: "Purity (%)", value: model.purity !== "" ? String(model.purity) : "—", field: "purity" });
+        rows.push({ label: tw("wizard.material.purity"), value: model.purity !== "" ? String(model.purity) : "—", field: "purity" });
       }
       if (model.materialType === "ReferenceStandard") {
         rows.push({
-          label: "Moisture Content (%)",
+          label: tw("wizard.material.moisture"),
           value: model.moisturePercent !== "" ? String(model.moisturePercent) : "—",
           field: "moisturePercent"
         });

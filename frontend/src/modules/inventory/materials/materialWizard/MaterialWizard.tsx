@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef } from "react";
+import { useTranslation } from "../../../../i18n";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { MaterialService } from "../services/MaterialService";
@@ -60,6 +61,7 @@ export function MaterialWizard(props: MaterialWizardProps) {
 }
 
 function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialWizardProps) {
+  const { t } = useTranslation("inventory");
   const lookups = useMaterialLookups(open, editingItem);
   const lookupsRef = useRef<MaterialLookups>(lookups);
   lookupsRef.current = lookups;
@@ -91,7 +93,7 @@ function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialW
 
       if (editingItem) {
         await MaterialService.update(editingItem.id, payload, editingItem.version);
-        onSuccess("Material stock updated successfully.");
+        onSuccess(t("wizard.saved.updated"));
         return;
       }
       const created = (await MaterialService.create(payload)) as
@@ -102,17 +104,17 @@ function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialW
           ? { id: created.id, stockId: created.stockId ?? null, materialName: created.materialName }
           : undefined;
       onSuccess(
-        created?.stockId ? `Material added to stock as ${created.stockId}.` : "Material added to stock successfully.",
+        created?.stockId ? t("wizard.saved.addedAs", { stockId: created.stockId }) : t("wizard.saved.added"),
         createdRef
       );
     },
-    [editingItem, onSuccess, getContext]
+    [editingItem, onSuccess, getContext, t]
   );
 
   if (!lookups.initial) return null;
   return (
     <WizardFrame
-      title={editingItem ? `Edit Material${editingItem.stockId ? ` - ${editingItem.stockId}` : ""}` : "Add Material to Stock"}
+      title={editingItem ? (editingItem.stockId ? t("wizard.title.editWithId", { stockId: editingItem.stockId }) : t("wizard.title.edit")) : t("wizard.title.add")}
       mode={editingItem ? "edit" : "create"}
       draftKey={editingItem ? `material-edit-${editingItem.id}` : "material-create"}
       steps={steps}

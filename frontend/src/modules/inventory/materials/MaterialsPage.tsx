@@ -15,6 +15,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { useTableState } from "../../../components/lab/table/useTableState";
 import { TableToolbar } from "../../../components/lab/table/TableToolbar";
+import { useTranslation } from "../../../i18n";
 import { MaterialService } from "./services/MaterialService";
 import {
   MaterialFilterState,
@@ -40,14 +41,14 @@ const MATERIAL_TYPE_LABEL_MAP = new Map<string, string>(
 );
 
 // An Other lot shows its category; lots received before categories fall back to their stored custom type or type.
-function getMaterialTypeDisplay(item: { materialType: string; customType?: string | null; categoryName?: string | null }): string {
+function getMaterialTypeDisplay(item: { materialType: string; customType?: string | null; categoryName?: string | null }, label: (value: string) => string | undefined = (value) => MATERIAL_TYPE_LABEL_MAP.get(value)): string {
   if (item.categoryName && item.categoryName.trim()) {
     return item.categoryName.trim();
   }
   if (item.customType && item.customType.trim()) {
     return item.customType.trim();
   }
-  return MATERIAL_TYPE_LABEL_MAP.get(item.materialType) ?? item.materialType;
+  return label(item.materialType) ?? item.materialType;
 }
 
 const TABLE_KEY = "inventory.materials";
@@ -61,6 +62,8 @@ function textFilter(filters: Record<string, string | string[]>, name: string): s
 
 export function MaterialsPage() {
   const theme = useTheme();
+  const { t } = useTranslation("inventory");
+  const typeLabel = (value: string) => (MATERIAL_TYPE_LABEL_MAP.has(value) ? t(`types.${value}`) : undefined);
   const { permissions } = useAuth();
   const canSeeHistory = permissions.includes(PERMISSIONS.AUDIT_VIEW);
   const canRelease = permissions.includes(PERMISSIONS.MATERIALS_RELEASE);
@@ -174,7 +177,7 @@ export function MaterialsPage() {
       setItems(allMaterials);
       setPrintList(printMaterials);
     } catch {
-      setMessage({ text: "Failed to load materials stock.", ok: false });
+      setMessage({ text: t("materials.page.loadError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -285,9 +288,9 @@ export function MaterialsPage() {
   };
 
   const columns: RegisterColumn<MaterialItem>[] = [
-    { key: "materialType", label: "Type", sortable: true, sortValue: (m) => getMaterialTypeDisplay(m), render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{getMaterialTypeDisplay(m)}</Box> },
+    { key: "materialType", label: t("materials.columns.type"), sortable: true, sortValue: (m) => getMaterialTypeDisplay(m, typeLabel), render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{getMaterialTypeDisplay(m, typeLabel)}</Box> },
     {
-      key: "materialName", label: "Material Name", sortable: true,
+      key: "materialName", label: t("materials.columns.materialName"), sortable: true,
       // Material Name + optional organism/ATCC secondary line
       render: (m) => {
         // Canonical ATCC: organism.atccNumber first, material.atccNumber as fallback
@@ -298,10 +301,10 @@ export function MaterialsPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", fontWeight: 600 }}>
               <span>{m.materialName}</span>
               {m.materialType === "DehydratedMedia" && m.mediaProductId == null && (
-                <StatusBadge status="OnHold" label="Not linked to a media product" />
+                <StatusBadge status="OnHold" label={t("materials.page.notLinked")} />
               )}
               {(m.materialType === "ReferenceStandard" || m.materialType === "PrimaryStandard") && m.purity != null && (
-                <StatusBadge status="Assigned" label={`Purity: ${m.purity}%`} />
+                <StatusBadge status="Assigned" label={t("materials.page.purity", { value: m.purity })} />
               )}
             </Box>
             {(organism || canonicalAtcc) && (
@@ -316,19 +319,19 @@ export function MaterialsPage() {
         );
       }
     },
-    { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (m) => m.manufacturerName || "—" },
+    { key: "manufacturerName", label: t("materials.columns.manufacturer"), sortable: true, render: (m) => m.manufacturerName || "—" },
     {
-      key: "stockId", label: "Stock ID", sortable: true, nowrap: true,
+      key: "stockId", label: t("materials.columns.stockId"), sortable: true, nowrap: true,
       sortValue: (m) => m.stockId ?? "",
       render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.stockId ?? "—"}</Box>
     },
     {
-      key: "batchNumber", label: "Batch/Lot No.", sortable: true, nowrap: true,
+      key: "batchNumber", label: t("materials.columns.batchLot"), sortable: true, nowrap: true,
       render: (m) => <Box id={`lot-${m.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.batchNumber}</Box>
     },
-    { key: "receivingDate", label: "Received", sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabCalendarDate(m.receivingDate)}</Box> },
+    { key: "receivingDate", label: t("materials.columns.received"), sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabCalendarDate(m.receivingDate)}</Box> },
     {
-      key: "expiryDate", label: "Expiry", sortable: true,
+      key: "expiryDate", label: t("materials.columns.expiry"), sortable: true,
       render: (m) => (
         <Box
           component="span"
@@ -342,12 +345,12 @@ export function MaterialsPage() {
         </Box>
       )
     },
-    { key: "code", label: "Code", sortable: true, nowrap: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
-    { key: "location", label: "Location", sortable: true, render: (m) => m.location },
-    { key: "storageCondition", label: "Storage Condition", sortable: true, render: (m) => m.storageCondition || "—" },
-    { key: "quantityReceived", label: "Qty Received", numeric: true, sortable: true, render: (m) => <NumericCell value={m.quantityReceived} unit={m.unit} /> },
+    { key: "code", label: t("materials.columns.code"), sortable: true, nowrap: true, render: (m) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{m.code ?? "—"}</Box> },
+    { key: "location", label: t("materials.columns.location"), sortable: true, render: (m) => m.location },
+    { key: "storageCondition", label: t("materials.columns.storageCondition"), sortable: true, render: (m) => m.storageCondition || "—" },
+    { key: "quantityReceived", label: t("materials.columns.qtyReceived"), numeric: true, sortable: true, render: (m) => <NumericCell value={m.quantityReceived} unit={m.unit} /> },
     {
-      key: "quantityRemaining", label: "Qty Remaining", numeric: true, sortable: true,
+      key: "quantityRemaining", label: t("materials.columns.qtyRemaining"), numeric: true, sortable: true,
       render: (m) => (
         <Box
           component="span"
@@ -364,14 +367,14 @@ export function MaterialsPage() {
         </Box>
       )
     },
-    { key: "minimumStockLevel", label: "Min Stock", numeric: true, sortable: true, render: (m) => <NumericCell value={m.minimumStockLevel} unit={m.unit} /> },
+    { key: "minimumStockLevel", label: t("materials.columns.minStock"), numeric: true, sortable: true, render: (m) => <NumericCell value={m.minimumStockLevel} unit={m.unit} /> },
     {
-      key: "status", label: "Status", sortable: true,
+      key: "status", label: t("materials.columns.status"), sortable: true,
       render: (m) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap" }}>
-          {isMaterialLowStock(m) ? <StatusBadge status="LowStock" label="Low Stock" /> : <StatusBadge status={m.status} />}
-          {m.approvalStatus === "PendingReview" && <StatusBadge status="PendingReview" label="Awaiting release" />}
-          {m.approvalStatus === "Rejected" && <StatusBadge status="Rejected" label="Rejected" />}
+          {isMaterialLowStock(m) ? <StatusBadge status="LowStock" label={t("status.LowStock")} /> : <StatusBadge status={m.status} />}
+          {m.approvalStatus === "PendingReview" && <StatusBadge status="PendingReview" label={t("materials.page.awaitingRelease")} />}
+          {m.approvalStatus === "Rejected" && <StatusBadge status="Rejected" label={t("materials.page.rejected")} />}
         </Box>
       )
     }
@@ -388,7 +391,7 @@ export function MaterialsPage() {
       }}
       sx={{ whiteSpace: "nowrap" }}
     >
-      Add to Stock
+      {t("materials.page.add")}
     </Button>
   );
 
@@ -398,11 +401,11 @@ export function MaterialsPage() {
     <>
       <Box className="no-print">
         <LabPage
-          title="Materials Stock"
-          subtitle="Media, discs, kits, reagents, chemicals, disposables: receiving, expiry, and quantity received/remaining."
+          title={t("materials.page.title")}
+          subtitle={t("materials.page.subtitle")}
           actions={
             <>
-              <PrintButton label="Print (excludes expired / depleted)" />
+              <PrintButton label={t("materials.page.print")} />
               {addButton}
             </>
           }
@@ -438,15 +441,15 @@ export function MaterialsPage() {
             onRowClick={(m) => setLotDetailsFor(m)}
             rowTone={(m) => (m.status === "Expired" ? "detected" : isMaterialLowStock(m) ? "inconclusive" : undefined)}
             rowActions={(m) => [
-              { label: "Lot details and documents", onClick: () => setLotDetailsFor(m) },
-              { label: "Edit material", onClick: () => openEdit(m) },
-              ...(canRelease && m.approvalStatus === "PendingReview" ? [{ label: "Release", onClick: () => setReleaseFor(m) }] : []),
-              ...(canSeeHistory ? [{ label: "Audit history", onClick: () => setHistoryFor(m.id) }] : [])
+              { label: t("materials.actions.lotDetails"), onClick: () => setLotDetailsFor(m) },
+              { label: t("materials.actions.edit"), onClick: () => openEdit(m) },
+              ...(canRelease && m.approvalStatus === "PendingReview" ? [{ label: t("materials.actions.release"), onClick: () => setReleaseFor(m) }] : []),
+              ...(canSeeHistory ? [{ label: t("materials.actions.audit"), onClick: () => setHistoryFor(m.id) }] : [])
             ]}
             empty={
               isFiltered
-                ? { title: "No materials matching the selected filter criteria", description: "Reset the filters to see all stock." }
-                : { title: "No materials in stock", description: "Receive the first material lot.", action: addButton }
+                ? { title: t("materials.empty.filteredTitle"), description: t("materials.empty.filteredDescription") }
+                : { title: t("materials.empty.title"), description: t("materials.empty.description"), action: addButton }
             }
           />
         </LabPage>

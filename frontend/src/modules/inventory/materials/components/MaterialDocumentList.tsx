@@ -12,12 +12,12 @@ import {
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import BlockIcon from "@mui/icons-material/Block";
+import { useTranslation } from "../../../../i18n";
 import { MaterialService } from "../services/MaterialService";
 import { formatLabDate } from "../../../../utils/formatDate";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 import type { MaterialDocument, MaterialDocumentStatus } from "../types/materialTypes";
-import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
 import { SupersedeMaterialDocumentDialog } from "./SupersedeMaterialDocumentDialog";
 import { VoidMaterialDocumentDialog } from "./VoidMaterialDocumentDialog";
 import { toast } from "sonner";
@@ -42,6 +42,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocumentChanged }: Props) {
+  const { t } = useTranslation("inventory");
   const { permissions } = useAuth();
   const canSupersede = permissions.includes(PERMISSIONS.MATERIALS_DOCUMENT_CONTROL);
 
@@ -56,9 +57,9 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
     setError(null);
     MaterialService.getDocuments(materialId)
       .then(setDocuments)
-      .catch(() => setError("Failed to load documents."))
+      .catch(() => setError(t("materials.docs.loadFailed")))
       .finally(() => setLoading(false));
-  }, [materialId, refreshKey]);
+  }, [materialId, refreshKey, t]);
 
   const handleView = async (doc: MaterialDocument) => {
     try {
@@ -66,7 +67,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
-      toast.error("Failed to retrieve document. Please try again.");
+      toast.error(t("materials.docs.viewFailed"));
     }
   };
 
@@ -85,7 +86,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
   if (documents.length === 0) {
     return (
       <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-        No documents have been uploaded for this lot.
+        {t("materials.docs.none")}
       </Typography>
     );
   }
@@ -115,7 +116,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                   </Typography>
                   <Chip
                     id={`doc-status-${doc.id}`}
-                    label={doc.status}
+                    label={t(`docStatus.${doc.status}`)}
                     size="small"
                     color={STATUS_COLORS[doc.status]}
                     variant={doc.status === "Current" ? "filled" : "outlined"}
@@ -124,34 +125,34 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                 </Box>
 
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {MATERIAL_DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatBytes(doc.fileSizeBytes)}
+                  {t(`docTypes.${doc.documentType}`)} · {formatBytes(doc.fileSizeBytes)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Uploaded by {doc.uploadedByName} · {formatLabDate(doc.uploadedAt)}
+                  {t("materials.docs.uploadedBy", { name: doc.uploadedByName, date: formatLabDate(doc.uploadedAt) })}
                 </Typography>
 
                 {isExpired && doc.status === "Current" && (
                   <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
-                    Historical, lot expired
+                    {t("materials.lot.historical")}
                   </Typography>
                 )}
 
                 {doc.status === "Voided" && doc.voidReason && (
                   <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.25 }}>
-                    Voided: {doc.voidReason}
+                    {t("materials.docs.voided", { reason: doc.voidReason })}
                   </Typography>
                 )}
 
                 {doc.status === "Superseded" && doc.supersessionReason && (
                   <Typography sx={{ fontSize: 12, color: "warning.dark", mt: 0.25 }}>
-                    Superseded: {doc.supersessionReason}
+                    {t("materials.docs.superseded", { reason: doc.supersessionReason })}
                   </Typography>
                 )}
               </Box>
 
               {/* Action buttons */}
               <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                <Tooltip title="View / Download">
+                <Tooltip title={t("materials.docs.view")}>
                   <IconButton
                     id={`view-doc-${doc.id}`}
                     size="small"
@@ -163,7 +164,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                 </Tooltip>
 
                 {canSupersede && doc.status === "Current" && (
-                  <Tooltip title="Supersede (Replace)">
+                  <Tooltip title={t("materials.docs.supersede")}>
                     <IconButton
                       id={`supersede-doc-${doc.id}`}
                       size="small"
@@ -176,7 +177,7 @@ export function MaterialDocumentList({ materialId, isExpired, refreshKey, onDocu
                 )}
 
                 {canSupersede && doc.status !== "Voided" && (
-                  <Tooltip title="Void">
+                  <Tooltip title={t("materials.docs.void")}>
                     <IconButton
                       id={`void-doc-${doc.id}`}
                       size="small"

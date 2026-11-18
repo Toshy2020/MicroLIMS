@@ -14,6 +14,7 @@ import {
   Link,
   useTheme
 } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import { tableHeadSx } from "../../../../theme";
 import { SolutionPreparationService } from "../../../solutionPreparation/services/SolutionPreparationService";
 import { PreparationStatusBadge } from "../../../solutionPreparation/components/PreparationStatusBadge";
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function LotPreparationsList({ materialId, onNavigate }: Props) {
+  const { t } = useTranslation("inventory");
   const navigate = useNavigate();
   const theme = useTheme();
   const [preparations, setPreparations] = useState<SolutionPreparationListItem[]>([]);
@@ -60,29 +62,29 @@ export function LotPreparationsList({ materialId, onNavigate }: Props) {
   return (
     <Box sx={{ mb: 2 }}>
       <Typography sx={{ fontWeight: 600, fontSize: 13, mb: 1 }}>
-        Consumed by Preparations
+        {t("materials.preps.title")}
       </Typography>
 
       {loading ? (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
           <CircularProgress size={14} />
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Checking preparations...
+            {t("materials.preps.checking")}
           </Typography>
         </Box>
       ) : preparations.length === 0 ? (
         <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-          No preparations have consumed this lot.
+          {t("materials.preps.none")}
         </Typography>
       ) : (
         <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 180 }}>
           <Table size="small" stickyHeader>
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Code</TableCell>
-                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Solution</TableCell>
-                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Prepared</TableCell>
-                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>Status</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>{t("materials.preps.code")}</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>{t("materials.preps.solution")}</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>{t("materials.preps.prepared")}</TableCell>
+                <TableCell sx={{ fontSize: 12, py: 0.5, fontWeight: 700 }}>{t("materials.preps.status")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -101,7 +103,7 @@ export function LotPreparationsList({ materialId, onNavigate }: Props) {
                         cursor: "pointer"
                       }}
                     >
-                      {p.code || `#${p.id} (In Progress)`}
+                      {p.code || t("materials.preps.inProgress", { id: p.id })}
                     </Link>
                   </TableCell>
                   <TableCell sx={{ fontSize: 12, py: 0.5 }}>

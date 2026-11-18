@@ -19,6 +19,7 @@ import { apiClient } from "../services/apiClient";
 import { useThemeMode } from "../theme/ThemeModeContext";
 import { useBenchMode } from "../theme/BenchModeContext";
 import { useAuth } from "../contexts/AuthContext";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { useLive } from "../contexts/LiveContext";
 import { useLiveRefresh } from "../hooks/useLiveRefresh";
 import { formatRoleFallback, formatRoleName, userInitials } from "../utils/userDisplay";
@@ -417,7 +418,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
                       {n.message}
                     </>
                   }
-                  secondary={new Date(n.timestamp).toLocaleString()}
+                  secondary={formatDateTimeWithTimeZone(n.timestamp)}
                   slotProps={{
                     primary: { sx: { fontWeight: n.isRead ? 400 : 700, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }

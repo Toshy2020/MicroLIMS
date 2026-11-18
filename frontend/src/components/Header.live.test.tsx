@@ -8,6 +8,8 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { LiveProvider } from "../contexts/LiveContext";
 import { createFakeLiveConnection } from "../contexts/testing/fakeLiveConnection";
 import { apiClient } from "../services/apiClient";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
+import userEvent from "@testing-library/user-event";
 import { Header } from "./Header";
 
 vi.mock("../services/apiClient", () => ({
@@ -82,6 +84,23 @@ describe("Header live updates", () => {
     });
     expect(screen.getByRole("button", { name: /Notifications, 2 unread/i })).toBeTruthy();
     expect(screen.queryByRole("status", { name: "Live updates paused" })).toBeNull();
+  });
+
+  it("bell list shows each notification time with its time zone", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(apiClient.get).mockImplementation(async (url: string) => {
+      if (url === "/dashboard/notifications") return { data: { data: [notification(1)] } };
+      return { data: { data: { unreadCount: 0 } } };
+    });
+    renderHeader(createFakeLiveConnection());
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+    await user.click(screen.getByRole("button", { name: /Notifications, 1 unread/i }));
+    const expected = formatDateTimeWithTimeZone("2026-11-15T12:00:00.000Z");
+    expect(expected).toMatch(/[A-Z]{2,5}|GMT[+-]\d+|UTC/);
+    expect(screen.getByText(expected)).toBeTruthy();
   });
 
   it("shows a 'Live updates paused' indicator with an accessible name while offline", async () => {

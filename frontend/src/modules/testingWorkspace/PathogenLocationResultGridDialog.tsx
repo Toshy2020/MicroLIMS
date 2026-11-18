@@ -15,6 +15,7 @@ import { useBenchMode } from "../../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../../theme/benchTheme";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface LocationRow {
   id: number;
@@ -173,7 +174,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     : !allEntered
       ? "Select a result for every location."
       : !isTimeReady && minReadyAt
-        ? `Results cannot be submitted before ${minReadyAt.toLocaleString()}.`
+        ? `Results cannot be submitted before ${formatDateTimeWithTimeZone(minReadyAt)}.`
         : undefined;
 
   const content = (
@@ -284,7 +285,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
             {detectedCount}/{rows.length} locations detected; overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
           </Typography>
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
           )}
           {!benchMode && (
             <Stack direction="row" sx={{ justifyContent: "flex-end" }}>

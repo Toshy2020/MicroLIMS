@@ -9,6 +9,7 @@ import { TestResultCard } from "./TestResultCards";
 import { SampleSummary } from "./types/sampleSummaryTypes";
 import { reportStyles } from "./reportStyles";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../utils/formatDate";
 
 export const CheckIcon = ({ strokeWidth = 2.5 }: { strokeWidth?: number }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
@@ -39,11 +40,11 @@ export const humanize = (v: string | null | undefined): string => {
 };
 
 export const dt = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).replace(",", "") : "—";
+  v ? formatDateTimeWithTimeZone(v) : "—";
 export const d = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—";
+  v ? formatLabCalendarDate(v) : "—";
 const hhmm = (v: string | null | undefined) =>
-  v ? new Date(v).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+  v ? formatDateTimeWithTimeZone(v) : "";
 
 // Terminal states render red; anything mid-flight renders neutral.
 function statusTone(status: string): "" | "is-danger" | "is-warning" | "is-neutral" {

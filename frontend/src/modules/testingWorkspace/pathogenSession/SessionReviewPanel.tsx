@@ -31,6 +31,7 @@ import {
 import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SharedTsbStatusCard } from "./SharedTsbStatusCard";
 import { brandColors } from "../../../theme";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -40,13 +41,7 @@ interface Props {
 
 const formatDate = (d: string | null | undefined) =>
   d
-    ? new Date(d).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      })
+    ? formatDateTimeWithTimeZone(d)
     : "—";
 
 interface CellDerivationProps {

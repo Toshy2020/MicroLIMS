@@ -21,6 +21,7 @@ import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
 import { StepActionBar, StepDetailList, IncubationTimeline, FixedMediumRow, MediaLotIncubatorFields } from "./StepLayout";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface BrothDraftValues {
   mediaLotId: number | "";
@@ -187,9 +188,9 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
             rows={[
               { label: "TSB lot", value: summary.mediaLotNumber ?? "Standard Lot" },
               { label: "Incubator", value: summary.incubatorCode ?? "Standard Incubator" },
-              { label: "Started", value: summary.incubationStartUtc ? new Date(summary.incubationStartUtc).toLocaleString() : "Recorded" },
+              { label: "Started", value: summary.incubationStartUtc ? formatDateTimeWithTimeZone(summary.incubationStartUtc) : "Recorded" },
               { label: "By", value: summary.startedByUserName },
-              ...(summary.minReadyAt ? [{ label: "Available from", value: new Date(summary.minReadyAt).toLocaleString() }] : [])
+              ...(summary.minReadyAt ? [{ label: "Available from", value: formatDateTimeWithTimeZone(summary.minReadyAt) }] : [])
             ]}
           />
         </Box>
@@ -261,7 +262,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           siblingOrders: siblings,
           mediaLotLabel: selectedLot?.lotNumber ?? `Lot #${mediaLotId}`,
           incubatorLabel: selectedInc?.code ?? `Incubator #${equipmentId}`,
-          incubationStart: new Date().toLocaleString()
+          incubationStart: formatDateTimeWithTimeZone(new Date())
         });
         return;
       }

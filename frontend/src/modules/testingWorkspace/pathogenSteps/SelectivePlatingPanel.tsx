@@ -16,6 +16,7 @@ import {
   ExpectedAppearanceNote, ObservationOptions
 } from "./StepLayout";
 import { IncubationWaitingView } from "./IncubationWaitingView";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface SelectivePlatingDraftValues {
   mediaLotId: number | "";
@@ -273,9 +274,9 @@ export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted 
           <Alert severity="success">Incubation complete. Read the plate and record what you observe.</Alert>
           <StepDetailList
             rows={[
-              ...(incubationStartUtc ? [{ label: "Started", value: incubationStartUtc.toLocaleString() }] : []),
-              ...(minReadyAt ? [{ label: "Ready from", value: minReadyAt.toLocaleString() }] : []),
-              ...(expectedEndAt ? [{ label: "Read by", value: expectedEndAt.toLocaleString() }] : [])
+              ...(incubationStartUtc ? [{ label: "Started", value: formatDateTimeWithTimeZone(incubationStartUtc) }] : []),
+              ...(minReadyAt ? [{ label: "Ready from", value: formatDateTimeWithTimeZone(minReadyAt) }] : []),
+              ...(expectedEndAt ? [{ label: "Read by", value: formatDateTimeWithTimeZone(expectedEndAt) }] : [])
             ]}
           />
 

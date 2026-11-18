@@ -43,6 +43,7 @@ import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
 import type { CountPreviewResult, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
@@ -577,7 +578,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
   const countSaveBlockedReason = !isTimeReady
     ? minReadyAt
-      ? `Results cannot be submitted before ${minReadyAt.toLocaleString()}.`
+      ? `Results cannot be submitted before ${formatDateTimeWithTimeZone(minReadyAt)}.`
       : "This step is not ready for a result yet."
     : dilutionFactorNotConfigured
       ? "No Dilution Factor is configured for this test on the item's Specifications tab."
@@ -1284,7 +1285,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           {countEntryFields}
 
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
           )}
           <StepActionBar
             note={readings.every((r) => r.trim() === "") ? "Enter at least one plate count to continue." : "The result is recorded in the audit trail."}
@@ -1319,7 +1320,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           {countEntryFields}
 
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
           )}
           </Stack>
         </BenchDialog>

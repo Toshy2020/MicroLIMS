@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
@@ -76,6 +77,7 @@ function OpenSpecificationWizard({
   onSuccess,
   onSaved
 }: SpecificationWizardProps) {
+  const { t } = useTranslation("labConfig");
   const isEditing = Boolean(editingSpec && editingSpec.id != null);
   const assignedTests = useMemo(() => item.assignedTests ?? [], [item.assignedTests]);
 
@@ -181,13 +183,13 @@ function OpenSpecificationWizard({
   const steps = useMemo<WizardStep<SpecFormModel>[]>(() => {
     const getLookup = () => lookupRef.current;
     const stepMap: Record<SpecWizardStep, WizardStep<SpecFormModel>> = {
-      test: createTestParameterStep(getLookup),
-      method: createMethodStep(getLookup),
-      limit: createLimitStep(getLookup),
-      unit: createUnitDilutionStep()
+      test: createTestParameterStep(getLookup, t),
+      method: createMethodStep(getLookup, t),
+      limit: createLimitStep(getLookup, t),
+      unit: createUnitDilutionStep(t)
     };
     return SPEC_WIZARD_STEP_ORDER.map((key) => stepMap[key]);
-  }, []);
+  }, [t]);
 
   const initialModel = useMemo(
     () =>
@@ -245,7 +247,7 @@ function OpenSpecificationWizard({
               collapsed.find((s) => s.id === editingSpec.id) ??
               all.find((s) => s.id === editingSpec.id);
             if (!fresh) {
-              throw new Error("Specification no longer exists.");
+              throw new Error(t("specWizard.specMissingError"));
             }
             return fromSpecification(fresh, {
               itemId: item.id,
@@ -256,7 +258,7 @@ function OpenSpecificationWizard({
             });
           }
         : undefined,
-    [isEditing, editingSpec?.id, item.id, item.category, workflowTypeByCode]
+    [isEditing, editingSpec?.id, item.id, item.category, workflowTypeByCode, t]
   );
 
   const handleSave = useCallback(
@@ -323,13 +325,13 @@ function OpenSpecificationWizard({
       });
       if (!next) return null;
       return {
-        label: `Save and add next: ${next.displayName || next.testCode}`,
+        label: t("specWizard.saveAndNext", { name: next.displayName || next.testCode }),
         onSaved: () => {
           setContinuedState((prev) => ({ testCode: next.testCode, seq: prev.seq + 1 }));
         }
       };
     },
-    [isEditing, ownLabAssignedTests, existingSpecs]
+    [isEditing, ownLabAssignedTests, existingSpecs, t]
   );
 
   const draftKey =
@@ -340,7 +342,7 @@ function OpenSpecificationWizard({
   return (
     <ConfigWizard
       open={open}
-      title={isEditing ? "Edit Specification Parameter" : "Add Specification Parameter"}
+      title={isEditing ? t("specWizard.titleEdit") : t("specWizard.titleAdd")}
       mode={isEditing ? "edit" : "create"}
       steps={steps}
       initial={initialModel}

@@ -12,6 +12,8 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import {
   GRADE_SUGGESTIONS,
@@ -41,6 +43,7 @@ function TestParameterStepView({
   mode,
   lookup
 }: TestParameterStepViewProps) {
+  const { t } = useTranslation("labConfig");
   const flags = resolveSpecMethodFlags(model);
   const currentDef = lookup.testDefs[model.testCode];
   const methodId = currentDef?.hplcMethodId;
@@ -142,14 +145,13 @@ function TestParameterStepView({
     <Stack spacing={2.5}>
       {lookup.testDefsFailed && (
         <Alert severity="error">
-          The test definitions could not be loaded, so test-specific fields may be missing. Close and reopen this dialog to try again.
+          {t("specWizard.testStep.testDefsFailed")}
         </Alert>
       )}
 
       {!lookup.isTestDisabled && lookup.selectableAssignedTests.length === 0 && (
         <Alert severity="warning">
-          None of this item&rsquo;s assigned tests belong to your laboratory. Ask that test&rsquo;s Section Head to add
-          the specification.
+          {t("specWizard.testStep.noOwnLabTests")}
         </Alert>
       )}
 
@@ -160,17 +162,17 @@ function TestParameterStepView({
           disabled={lookup.isTestDisabled}
           error={Boolean(errors.testCode)}
         >
-          <InputLabel id="assigned-test-label">Assigned Test *</InputLabel>
+          <InputLabel id="assigned-test-label">{t("specWizard.testStep.assignedTestLabel")}</InputLabel>
           <Select
             name="testCode"
             labelId="assigned-test-label"
-            label="Assigned Test *"
+            label={t("specWizard.testStep.assignedTestLabel")}
             value={model.testCode}
             onChange={(e) => handleTestChange(e.target.value)}
           >
-            {lookup.selectableAssignedTests.map((t) => (
-              <MenuItem key={t.testCode} value={t.testCode}>
-                {formatAssignedTestName(lookup.assignedTests, t.testCode)}
+            {lookup.selectableAssignedTests.map((tOpt) => (
+              <MenuItem key={tOpt.testCode} value={tOpt.testCode}>
+                {formatAssignedTestName(lookup.assignedTests, tOpt.testCode)}
               </MenuItem>
             ))}
           </Select>
@@ -180,29 +182,29 @@ function TestParameterStepView({
         <TextField
           size="small"
           name="parameterName"
-          label="Parameter Name *"
+          label={t("specWizard.testStep.parameterNameLabel")}
           value={model.parameterName}
           onChange={(e) => set({ parameterName: e.target.value })}
           error={Boolean(errors.parameterName)}
           helperText={errors.parameterName}
           fullWidth
-          placeholder="e.g. Assay (HPLC) or Impurity A"
+          placeholder={t("specWizard.testStep.parameterNamePlaceholder")}
         />
       </Box>
 
       {flags.supportsProductionStage && (
         <FormControl size="small" fullWidth error={Boolean(errors.productionStageRole)}>
-          <InputLabel id="production-stage-label">Production Stage</InputLabel>
+          <InputLabel id="production-stage-label">{t("specWizard.testStep.productionStageLabel")}</InputLabel>
           <Select
             name="productionStageRole"
             labelId="production-stage-label"
-            label="Production Stage"
+            label={t("specWizard.testStep.productionStageLabel")}
             value={model.productionStageRole}
             onChange={(e) =>
               set({ productionStageRole: e.target.value as ProductionStageRole | "" })
             }
           >
-            <MenuItem value="">All stages</MenuItem>
+            <MenuItem value="">{t("specWizard.testStep.allStages")}</MenuItem>
             {PRODUCTION_STAGE_ROLE_OPTIONS.map((o) => (
               <MenuItem key={o.value} value={o.value}>
                 {o.label}
@@ -213,8 +215,7 @@ function TestParameterStepView({
             <FormHelperText>{errors.productionStageRole}</FormHelperText>
           )}
           <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
-            A sample at a stage that has its own specification for this test uses it; every other sample uses the
-            &quot;All stages&quot; specification.
+            {t("specWizard.testStep.productionStageHelper")}
           </Typography>
         </FormControl>
       )}
@@ -238,11 +239,11 @@ function TestParameterStepView({
             <TextField
               {...params}
               name="grades"
-              label="Grade"
+              label={t("specWizard.testStep.gradeLabel")}
               error={Boolean(errors.grades)}
               helperText={
                 errors.grades ||
-                "Pick every grade these limits apply to (BP, USP, In-house or your own, max 20 characters). Leave empty for an ungraded specification."
+                t("specWizard.testStep.gradeHelper")
               }
               slotProps={{
                 ...params.slotProps,
@@ -260,11 +261,12 @@ function TestParameterStepView({
  * Builds the Test & Parameter wizard step.
  */
 export function createTestParameterStep(
-  getLookup: () => SpecWizardLookupData
+  getLookup: () => SpecWizardLookupData,
+  t: TFunction<"labConfig"> = i18n.getFixedT("en", "labConfig")
 ): WizardStep<SpecFormModel> {
   return {
     key: "test",
-    title: "Test & Parameter",
+    title: t("specWizard.testStep.title"),
     validate: (model) => validateStep("test", model),
     render: (ctx) => <TestParameterStepView {...ctx} lookup={getLookup()} />,
     summary: (model) => {
@@ -273,27 +275,27 @@ export function createTestParameterStep(
       const rows = [
         {
           field: "testCode",
-          label: "Assigned test",
+          label: t("specWizard.testStep.summary.assignedTest"),
           value: formatAssignedTestName(lookup.assignedTests, model.testCode)
         },
         {
           field: "parameterName",
-          label: "Parameter name",
+          label: t("specWizard.testStep.summary.parameterName"),
           value: model.parameterName.trim()
         }
       ];
       if (flags.supportsProductionStage) {
         rows.push({
           field: "productionStageRole",
-          label: "Production stage",
+          label: t("specWizard.testStep.summary.productionStage"),
           value: productionStageRoleLabel(model.productionStageRole || null)
         });
       }
       if (flags.supportsGrade) {
         rows.push({
           field: "grades",
-          label: "Grades",
-          value: model.grades.length > 0 ? model.grades.join(", ") : "Ungraded"
+          label: t("specWizard.testStep.summary.grades"),
+          value: model.grades.length > 0 ? model.grades.join(", ") : t("specWizard.testStep.summary.ungraded")
         });
       }
       return rows;

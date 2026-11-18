@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useTranslation } from "../../../../../i18n";
 import type { DosageForm } from "../../../specifications/services/SpecificationService";
 import type { LimitGroupProps } from "./NumericLimits";
 
@@ -21,6 +22,7 @@ import type { LimitGroupProps } from "./NumericLimits";
  * (MultiStage, DissolutionQ, DisintegrationTime, WeightVariation).
  */
 export function StageLimits({ model, set, errors }: LimitGroupProps) {
+  const { t } = useTranslation("labConfig");
   const handleAddStage = () => {
     set({
       stages: [
@@ -63,7 +65,7 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
           >
             <TextField
               size="small"
-              label="Stage #"
+              label={t("specWizard.stageLimits.stageNumLabel")}
               type="number"
               value={stage.stageNumber}
               disabled
@@ -71,29 +73,29 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
             />
             <TextField
               size="small"
-              label="Stage Label *"
+              label={t("specWizard.stageLimits.stageLabelLabel")}
               value={stage.stageLabel}
-              placeholder="e.g. Stage 1 (S1, n=6)"
+              placeholder={t("specWizard.stageLimits.stageLabelPlaceholder")}
               onChange={(e) => handleStageChange(idx, "stageLabel", e.target.value)}
               sx={{ width: { xs: 140, sm: 200 } }}
             />
             <TextField
               size="small"
-              label="Acceptance Criteria Text *"
+              label={t("specWizard.stageLimits.criteriaLabel")}
               multiline
               minRows={1}
               value={stage.acceptanceCriteriaText}
-              placeholder="e.g. Each unit ≥ Q + 5% (≥ 85%)"
+              placeholder={t("specWizard.stageLimits.criteriaPlaceholder")}
               onChange={(e) => handleStageChange(idx, "acceptanceCriteriaText", e.target.value)}
               fullWidth
             />
             <IconButton
-              aria-label={`Remove stage ${idx + 1}`}
+              aria-label={t("specWizard.stageLimits.removeAriaLabel", { index: idx + 1 })}
               size="small"
               color="error"
               onClick={() => handleRemoveStage(idx)}
               disabled={model.stages.length <= 1}
-              title="Remove Stage"
+              title={t("specWizard.stageLimits.removeTitle")}
               sx={{ mt: 0.5 }}
             >
               <DeleteIcon fontSize="small" />
@@ -109,7 +111,7 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
             onClick={handleAddStage}
             sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
           >
-            + Add Stage
+            {t("specWizard.stageLimits.addStage")}
           </Button>
         </Box>
       </Stack>
@@ -120,20 +122,20 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
     return (
       <Box>
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Dissolution Acceptance (USP &lt;711&gt; / EP 2.9.3)
+          {t("specWizard.stageLimits.dissolutionHeading")}
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
           <TextField
             size="small"
             name="lowerLimit"
             type="number"
-            label="Q (% dissolved) *"
-            placeholder="e.g. 75"
+            label={t("specWizard.stageLimits.qLabel")}
+            placeholder={t("specWizard.stageLimits.qPlaceholder")}
             value={model.lowerLimit}
             onChange={(e) => set({ lowerLimit: e.target.value })}
             error={Boolean(errors.lowerLimit)}
             slotProps={{ htmlInput: { min: 0.01, max: 100, step: "any" } }}
-            helperText={errors.lowerLimit || "Stored in lower limit (0 < Q ≤ 100 %)"}
+            helperText={errors.lowerLimit || t("specWizard.stageLimits.qHelper")}
             required
             sx={{ flex: 1 }}
           />
@@ -141,28 +143,28 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
             size="small"
             name="labelClaim"
             type="number"
-            label="Label Claim *"
-            placeholder="e.g. 100"
+            label={t("specWizard.stageLimits.labelClaimLabel")}
+            placeholder={t("specWizard.stageLimits.labelClaimPlaceholder")}
             value={model.labelClaim}
             onChange={(e) => set({ labelClaim: e.target.value })}
             error={Boolean(errors.labelClaim)}
             slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
-            helperText={errors.labelClaim || "Active substance per dosage unit"}
+            helperText={errors.labelClaim || t("specWizard.stageLimits.labelClaimHelper")}
             required
             sx={{ flex: 1 }}
           />
           <TextField
             size="small"
-            label="Unit"
+            label={t("specWizard.stageLimits.unitLabel")}
             value="mg"
             disabled
-            helperText="Fixed unit for dissolution claim"
+            helperText={t("specWizard.stageLimits.dissolutionUnitHelper")}
             sx={{ width: 120 }}
           />
         </Stack>
         {model.lowerLimit.trim() !== "" && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Specification limit display: <strong>Q = {model.lowerLimit.trim()} %</strong>
+            {t("specWizard.stageLimits.specLimitDisplay")} <strong>Q = {model.lowerLimit.trim()} %</strong>
           </Typography>
         )}
       </Box>
@@ -173,35 +175,35 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
     return (
       <Box>
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Disintegration Acceptance (USP &lt;701&gt; / EP 2.9.1)
+          {t("specWizard.stageLimits.disintegrationHeading")}
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
           <TextField
             size="small"
             name="upperLimit"
             type="number"
-            label="Time limit (min) *"
-            placeholder="e.g. 15"
+            label={t("specWizard.stageLimits.timeLimitLabel")}
+            placeholder={t("specWizard.stageLimits.timeLimitPlaceholder")}
             value={model.upperLimit}
             onChange={(e) => set({ upperLimit: e.target.value })}
             error={Boolean(errors.upperLimit)}
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
-            helperText={errors.upperLimit || "Stored in upper limit (NMT time in minutes)"}
+            helperText={errors.upperLimit || t("specWizard.stageLimits.timeLimitHelper")}
             required
             sx={{ flex: 1 }}
           />
           <TextField
             size="small"
-            label="Unit"
+            label={t("specWizard.stageLimits.unitLabel")}
             value="min"
             disabled
-            helperText="Fixed unit for disintegration time"
+            helperText={t("specWizard.stageLimits.disintegrationUnitHelper")}
             sx={{ width: 120 }}
           />
         </Stack>
         {model.upperLimit.trim() !== "" && (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Specification limit display: <strong>NMT {model.upperLimit.trim()} min</strong>
+            {t("specWizard.stageLimits.specLimitDisplay")} <strong>{t("specWizard.stageLimits.nmtMin", { value: model.upperLimit.trim() })}</strong>
           </Typography>
         )}
       </Box>
@@ -212,39 +214,39 @@ export function StageLimits({ model, set, errors }: LimitGroupProps) {
     return (
       <Box>
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Weight Variation Acceptance (USP &lt;2091&gt;)
+          {t("specWizard.stageLimits.weightVariationHeading")}
         </Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mb: 1.5 }}>
           <FormControl size="small" sx={{ flex: 1 }} error={Boolean(errors.dosageForm)}>
-            <InputLabel id="wv-dosage-form-label">Dosage Form *</InputLabel>
+            <InputLabel id="wv-dosage-form-label">{t("specWizard.stageLimits.dosageFormLabel")}</InputLabel>
             <Select
               name="dosageForm"
               labelId="wv-dosage-form-label"
-              label="Dosage Form *"
+              label={t("specWizard.stageLimits.dosageFormLabel")}
               value={model.dosageForm}
               onChange={(e) => set({ dosageForm: e.target.value as DosageForm })}
             >
-              <MenuItem value="Tablet">Tablet</MenuItem>
-              <MenuItem value="HardCapsule">Hard Capsule</MenuItem>
-              <MenuItem value="SoftCapsule">Soft Capsule</MenuItem>
+              <MenuItem value="Tablet">{t("specWizard.stageLimits.dosageForms.Tablet")}</MenuItem>
+              <MenuItem value="HardCapsule">{t("specWizard.stageLimits.dosageForms.HardCapsule")}</MenuItem>
+              <MenuItem value="SoftCapsule">{t("specWizard.stageLimits.dosageForms.SoftCapsule")}</MenuItem>
             </Select>
             {errors.dosageForm && <FormHelperText>{errors.dosageForm}</FormHelperText>}
           </FormControl>
           <TextField
             size="small"
-            label="Unit"
+            label={t("specWizard.stageLimits.unitLabel")}
             value="mg"
             disabled
-            helperText="Fixed unit for weight variation"
+            helperText={t("specWizard.stageLimits.weightVariationUnitHelper")}
             sx={{ width: 120 }}
           />
         </Stack>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Specification limit display:{" "}
+          {t("specWizard.stageLimits.specLimitDisplay")}{" "}
           <strong>
             {model.dosageForm === "Tablet"
-              ? "USP <2091>: tablets, limit by average weight"
-              : "USP <2091>: net content 90-110 % of average"}
+              ? t("specWizard.stageLimits.weightVariationTablet")
+              : t("specWizard.stageLimits.weightVariationCapsule")}
           </strong>
         </Typography>
       </Box>

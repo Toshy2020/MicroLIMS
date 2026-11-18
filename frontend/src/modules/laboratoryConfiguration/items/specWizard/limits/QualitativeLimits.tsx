@@ -7,6 +7,7 @@ import {
   Select,
   TextField
 } from "@mui/material";
+import { useTranslation } from "../../../../../i18n";
 import type { ExpectedPresence } from "../../../specifications/services/SpecificationService";
 import type { LimitGroupProps } from "./NumericLimits";
 
@@ -14,15 +15,16 @@ import type { LimitGroupProps } from "./NumericLimits";
  * Qualitative and Presence/Absence limit fields.
  */
 export function QualitativeLimits({ model, set, errors }: LimitGroupProps) {
+  const { t } = useTranslation("labConfig");
   if (model.limitType === "Qualitative") {
     return (
       <TextField
         size="small"
         name="expectedResultText"
-        label="Expected Result Text *"
+        label={t("specWizard.qualitativeLimits.expectedTextLabel")}
         multiline
         minRows={2}
-        placeholder="e.g. White to off-white, round biconvex effervescent tablets, characteristic citrus odor"
+        placeholder={t("specWizard.qualitativeLimits.expectedTextPlaceholder")}
         value={model.expectedResultText}
         onChange={(e) => set({ expectedResultText: e.target.value })}
         error={Boolean(errors.expectedResultText)}
@@ -42,25 +44,25 @@ export function QualitativeLimits({ model, set, errors }: LimitGroupProps) {
         }}
       >
         <FormControl size="small" fullWidth error={Boolean(errors.expectedState)}>
-          <InputLabel id="expected-state-label">Expected State *</InputLabel>
+          <InputLabel id="expected-state-label">{t("specWizard.qualitativeLimits.expectedStateLabel")}</InputLabel>
           <Select
             name="expectedState"
             labelId="expected-state-label"
-            label="Expected State *"
+            label={t("specWizard.qualitativeLimits.expectedStateLabel")}
             value={model.expectedState}
             onChange={(e) => set({ expectedState: e.target.value as ExpectedPresence })}
           >
-            <MenuItem value="Absence">Absence (Absent)</MenuItem>
-            <MenuItem value="Presence">Presence (Present)</MenuItem>
+            <MenuItem value="Absence">{t("specWizard.qualitativeLimits.absence")}</MenuItem>
+            <MenuItem value="Presence">{t("specWizard.qualitativeLimits.presence")}</MenuItem>
           </Select>
           {errors.expectedState && <FormHelperText>{errors.expectedState}</FormHelperText>}
         </FormControl>
         <TextField
           size="small"
           name="sampleQuantity"
-          label="Sample Quantity"
+          label={t("specWizard.qualitativeLimits.sampleQtyLabel")}
           type="number"
-          placeholder="e.g. 1"
+          placeholder={t("specWizard.qualitativeLimits.sampleQtyPlaceholder")}
           value={model.sampleQuantity}
           onChange={(e) => set({ sampleQuantity: e.target.value })}
           error={Boolean(errors.sampleQuantity)}
@@ -71,8 +73,8 @@ export function QualitativeLimits({ model, set, errors }: LimitGroupProps) {
         <TextField
           size="small"
           name="sampleQuantityUnit"
-          label="Quantity Unit"
-          placeholder="e.g. g or mL"
+          label={t("specWizard.qualitativeLimits.qtyUnitLabel")}
+          placeholder={t("specWizard.qualitativeLimits.qtyUnitPlaceholder")}
           value={model.sampleQuantityUnit}
           onChange={(e) => set({ sampleQuantityUnit: e.target.value })}
           error={Boolean(errors.sampleQuantityUnit)}

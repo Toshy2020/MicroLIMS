@@ -518,5 +518,210 @@
         "labelClaimRequired": "Label claim (mg per unit) must be greater than 0 for this basis."
       }
     }
+  },
+  "specWizard": {
+    "titleEdit": "Edit Specification Parameter",
+    "titleAdd": "Add Specification Parameter",
+    "saveAndNext": "Save and add next: {{name}}",
+    "specMissingError": "Specification no longer exists.",
+    "limitTypeOptions": {
+      "Range": "Range (NLT — NMT)",
+      "NotMoreThan": "NMT (Not More Than)",
+      "NotLessThan": "NLT (Not Less Than)",
+      "TargetWithTolerance": "Target ± Tolerance",
+      "CountTiered": "Count-Tiered (Alert / Action / Spec)",
+      "Qualitative": "Qualitative (descriptive text)",
+      "PresenceAbsence": "Presence / Absence",
+      "MultiStage": "Multi-Stage Criteria",
+      "DissolutionQ": "Dissolution Q",
+      "DisintegrationTime": "Disintegration Time",
+      "WeightVariation": "Weight Variation (USP <2091>)"
+    },
+    "toleranceModeOptions": {
+      "Absolute": "Absolute (± value)",
+      "Percent": "Percent (± %)"
+    },
+    "testStep": {
+      "title": "Test & Parameter",
+      "testDefsFailed": "The test definitions could not be loaded, so test-specific fields may be missing. Close and reopen this dialog to try again.",
+      "noOwnLabTests": "None of this item’s assigned tests belong to your laboratory. Ask that test’s Section Head to add the specification.",
+      "assignedTestLabel": "Assigned Test *",
+      "parameterNameLabel": "Parameter Name *",
+      "parameterNamePlaceholder": "e.g. Assay (HPLC) or Impurity A",
+      "productionStageLabel": "Production Stage",
+      "allStages": "All stages",
+      "productionStageHelper": "A sample at a stage that has its own specification for this test uses it; every other sample uses the \"All stages\" specification.",
+      "gradeLabel": "Grade",
+      "gradeHelper": "Pick every grade these limits apply to (BP, USP, In-house or your own, max 20 characters). Leave empty for an ungraded specification.",
+      "summary": {
+        "assignedTest": "Assigned test",
+        "parameterName": "Parameter name",
+        "productionStage": "Production stage",
+        "grades": "Grades",
+        "ungraded": "Ungraded"
+      }
+    },
+    "methodStep": {
+      "title": "Method & Basis",
+      "uvHeading": "UV Spectrophotometry Basis",
+      "basisLabel": "Basis",
+      "none": "None",
+      "uvBasis": {
+        "PercentAsIs": "% as is",
+        "PercentDriedBasis": "% dried basis",
+        "PercentAnhydrousBasis": "% anhydrous basis"
+      },
+      "relatedRowLabels": {
+        "Named": "Named impurity",
+        "UnspecifiedEach": "Any unspecified impurity",
+        "Total": "Total impurities",
+        "TotalOthers": "Total of others"
+      },
+      "summary": {
+        "relatedSubstanceRow": "Related-substance row",
+        "impurity": "Impurity",
+        "resultBasis": "Result basis",
+        "solvent": "Solvent",
+        "analyte": "Analyte",
+        "labelClaim": "Label claim",
+        "labelClaimUnit": "Label claim unit",
+        "element": "Element",
+        "percentAsIs": "% as is",
+        "ppm": "ppm",
+        "mgValue": "{{value}} mg"
+      }
+    },
+    "hplcFields": {
+      "relatedHeading": "Related Substances (HPLC) Specification",
+      "rowLabel": "Row *",
+      "impurityLabel": "Impurity *",
+      "loadingImpurities": "Loading impurities...",
+      "noImpurities": "No impurities configured in HPLC method",
+      "rrtSuffix": " (RRT {{rrt}})",
+      "resultBasisLabel": "Result Basis *",
+      "relatedResultBasisHelper": "Fixed basis for related substances",
+      "assayHeading": "HPLC Method Assay Specification",
+      "analyteLabel": "Analyte *",
+      "loadingAnalytes": "Loading method analytes...",
+      "noAnalytes": "No analytes found in HPLC method",
+      "wavelengthSuffix": " ({{nm}} nm)",
+      "basisLabel": "Basis *",
+      "basisOptions": {
+        "PercentLabelClaim": "Assay %",
+        "MgPerUnit": "Amount per unit",
+        "PercentAsIs": "% as is",
+        "PercentDriedBasis": "% dried basis",
+        "PercentAnhydrousBasis": "% anhydrous basis"
+      },
+      "labelClaimLabel": "Label Claim *",
+      "labelClaimHelper": "Target amount per unit",
+      "labelClaimUnitLabel": "Label Claim Unit *",
+      "labelClaimUnitPlaceholder": "e.g. mg, g, mcg",
+      "labelClaimUnitHelper": "Unit for claim and result"
+    },
+    "limitStep": {
+      "title": "Limits",
+      "limitTypeLabel": "Limit Type *",
+      "nmtFixedValue": "NMT (Not More Than)",
+      "relatedFixedHelper": "Fixed limit type for related substances",
+      "residualFixedHelper": "Fixed limit type for residual solvents",
+      "definitionHeading": "LIMIT DEFINITION · CHANGES WITH TYPE ABOVE",
+      "summary": {
+        "limitType": "Limit type",
+        "limit": "Limit",
+        "boundaryInclusivity": "Boundary inclusivity",
+        "lowerGe": "≥ lower",
+        "lowerGt": "> lower",
+        "upperLe": "≤ upper",
+        "upperLt": "< upper",
+        "labelClaim": "Label claim",
+        "stages": "Stages"
+      }
+    },
+    "numericLimits": {
+      "nmtPercent": "NMT (%) *",
+      "nmtPpm": "NMT (ppm) *",
+      "upperLimitLabel": "Upper Limit (NMT) *",
+      "lowerLimitLabel": "Lower Limit (NLT) *",
+      "lowerInclusive": "Lower inclusive (≥)",
+      "upperInclusive": "Upper inclusive (≤)",
+      "targetLabel": "Target *",
+      "toleranceLabel": "Tolerance *",
+      "modeLabel": "Mode *"
+    },
+    "countTieredLimits": {
+      "alertLabel": "Alert Limit",
+      "alertPlaceholder": "e.g. 100",
+      "actionLabel": "Action Limit",
+      "actionPlaceholder": "e.g. 500",
+      "specLabel": "Specification Limit *",
+      "specPlaceholder": "e.g. 1000"
+    },
+    "qualitativeLimits": {
+      "expectedTextLabel": "Expected Result Text *",
+      "expectedTextPlaceholder": "e.g. White to off-white, round biconvex effervescent tablets, characteristic citrus odor",
+      "expectedStateLabel": "Expected State *",
+      "absence": "Absence (Absent)",
+      "presence": "Presence (Present)",
+      "sampleQtyLabel": "Sample Quantity",
+      "sampleQtyPlaceholder": "e.g. 1",
+      "qtyUnitLabel": "Quantity Unit",
+      "qtyUnitPlaceholder": "e.g. g or mL"
+    },
+    "stageLimits": {
+      "stageNumLabel": "Stage #",
+      "stageLabelLabel": "Stage Label *",
+      "stageLabelPlaceholder": "e.g. Stage 1 (S1, n=6)",
+      "criteriaLabel": "Acceptance Criteria Text *",
+      "criteriaPlaceholder": "e.g. Each unit ≥ Q + 5% (≥ 85%)",
+      "removeAriaLabel": "Remove stage {{index}}",
+      "removeTitle": "Remove Stage",
+      "addStage": "+ Add Stage",
+      "dissolutionHeading": "Dissolution Acceptance (USP <711> / EP 2.9.3)",
+      "qLabel": "Q (% dissolved) *",
+      "qPlaceholder": "e.g. 75",
+      "qHelper": "Stored in lower limit (0 < Q ≤ 100 %)",
+      "labelClaimLabel": "Label Claim *",
+      "labelClaimPlaceholder": "e.g. 100",
+      "labelClaimHelper": "Active substance per dosage unit",
+      "unitLabel": "Unit",
+      "dissolutionUnitHelper": "Fixed unit for dissolution claim",
+      "specLimitDisplay": "Specification limit display:",
+      "disintegrationHeading": "Disintegration Acceptance (USP <701> / EP 2.9.1)",
+      "timeLimitLabel": "Time limit (min) *",
+      "timeLimitPlaceholder": "e.g. 15",
+      "timeLimitHelper": "Stored in upper limit (NMT time in minutes)",
+      "disintegrationUnitHelper": "Fixed unit for disintegration time",
+      "nmtMin": "NMT {{value}} min",
+      "weightVariationHeading": "Weight Variation Acceptance (USP <2091>)",
+      "dosageFormLabel": "Dosage Form *",
+      "dosageForms": {
+        "Tablet": "Tablet",
+        "HardCapsule": "Hard Capsule",
+        "SoftCapsule": "Soft Capsule"
+      },
+      "weightVariationUnitHelper": "Fixed unit for weight variation",
+      "weightVariationTablet": "USP <2091>: tablets, limit by average weight",
+      "weightVariationCapsule": "USP <2091>: net content 90-110 % of average"
+    },
+    "unitStep": {
+      "title": "Unit & Reference",
+      "unitLabel": "Unit",
+      "unitPlaceholder": "e.g. % w/w, CFU/g, pH units",
+      "fixedResidual": "Fixed unit for residual solvents",
+      "fixedIcp": "Fixed unit for elemental impurities",
+      "fixedWeightVariation": "Fixed unit for weight variation",
+      "fixedDisintegration": "Fixed unit for disintegration time",
+      "referenceLabel": "Reference Standard",
+      "referencePlaceholder": "e.g. USP <711>, EP 2.2.29, STP-VITC-01",
+      "dilutionLabel": "Dilution Factor",
+      "dilutionHelper": "DILUTION FACTOR: editable only for Count-Tiered parameters",
+      "dilutionPlaceholder": "e.g. 10",
+      "summary": {
+        "unit": "Unit",
+        "referenceStandard": "Reference standard",
+        "dilutionFactor": "Dilution factor"
+      }
+    }
   }
 }

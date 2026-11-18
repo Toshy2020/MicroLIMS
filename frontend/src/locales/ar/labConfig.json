@@ -558,5 +558,210 @@
         "labelClaimRequired": "يجب أن تكون الكمية المصرح بها (mg لكل وحدة) أكبر من 0 لهذا الأساس."
       }
     }
+  },
+  "specWizard": {
+    "titleEdit": "تعديل معيار المواصفات",
+    "titleAdd": "إضافة معيار مواصفات",
+    "saveAndNext": "حفظ وإضافة التالي: {{name}}",
+    "specMissingError": "لم تعد المواصفات موجودة.",
+    "limitTypeOptions": {
+      "Range": "نطاق (NLT — NMT)",
+      "NotMoreThan": "NMT (لا يتجاوز)",
+      "NotLessThan": "NLT (لا يقل عن)",
+      "TargetWithTolerance": "المستهدف ± التسامح",
+      "CountTiered": "متدرج بالعد (تنبيه / إجراء / مواصفات)",
+      "Qualitative": "وصفي (نص وصفي)",
+      "PresenceAbsence": "وجود / غياب",
+      "MultiStage": "معايير متعددة المراحل",
+      "DissolutionQ": "الذوبان Q",
+      "DisintegrationTime": "زمن التفكك",
+      "WeightVariation": "تباين الوزن (USP <2091>)"
+    },
+    "toleranceModeOptions": {
+      "Absolute": "مطلق (± قيمة)",
+      "Percent": "نسبة مئوية (± %)"
+    },
+    "testStep": {
+      "title": "الاختبار والمعيار",
+      "testDefsFailed": "تعذّر تحميل تعريفات الاختبارات، لذا قد تغيب الحقول الخاصة بالاختبار. أغلق هذا الحوار وأعد فتحه للمحاولة مجددًا.",
+      "noOwnLabTests": "لا ينتمي أي من الاختبارات المُسندة لهذا الصنف إلى مختبرك. اطلب من رئيس القسم المختص بهذا الاختبار إضافة المواصفات.",
+      "assignedTestLabel": "الاختبار المُسند *",
+      "parameterNameLabel": "اسم المعيار *",
+      "parameterNamePlaceholder": "مثال: المقايسة (HPLC) أو الشائبة A",
+      "productionStageLabel": "مرحلة الإنتاج",
+      "allStages": "جميع المراحل",
+      "productionStageHelper": "تستخدم العينة في مرحلة لها مواصفات خاصة بها لهذا الاختبار تلك المواصفات؛ وتستخدم كل عينة أخرى مواصفات \"جميع المراحل\".",
+      "gradeLabel": "الدرجة",
+      "gradeHelper": "اختر كل درجة تنطبق عليها هذه الحدود (BP أو USP أو داخلي أو درجتك الخاصة، بحد أقصى 20 حرفًا). اتركه فارغًا للمواصفات غير المصنفة بدرجة.",
+      "summary": {
+        "assignedTest": "الاختبار المُسند",
+        "parameterName": "اسم المعيار",
+        "productionStage": "مرحلة الإنتاج",
+        "grades": "الدرجات",
+        "ungraded": "غير مصنف بدرجة"
+      }
+    },
+    "methodStep": {
+      "title": "الطريقة والأساس",
+      "uvHeading": "أساس القياس الطيفي بالأشعة فوق البنفسجية (UV)",
+      "basisLabel": "الأساس",
+      "none": "لا يوجد",
+      "uvBasis": {
+        "PercentAsIs": "% كما هو",
+        "PercentDriedBasis": "% على الأساس الجاف",
+        "PercentAnhydrousBasis": "% على الأساس اللامائي"
+      },
+      "relatedRowLabels": {
+        "Named": "شائبة مسماة",
+        "UnspecifiedEach": "أي شائبة غير محددة",
+        "Total": "إجمالي الشوائب",
+        "TotalOthers": "إجمالي الشوائب الأخرى"
+      },
+      "summary": {
+        "relatedSubstanceRow": "صف المواد المرتبطة",
+        "impurity": "الشائبة",
+        "resultBasis": "أساس النتيجة",
+        "solvent": "المذيب",
+        "analyte": "المادة المحللة",
+        "labelClaim": "الكمية المصرح بها",
+        "labelClaimUnit": "وحدة الكمية المصرح بها",
+        "element": "العنصر",
+        "percentAsIs": "% كما هو",
+        "ppm": "ppm",
+        "mgValue": "{{value}} mg"
+      }
+    },
+    "hplcFields": {
+      "relatedHeading": "مواصفات المواد المرتبطة (HPLC)",
+      "rowLabel": "الصف *",
+      "impurityLabel": "الشائبة *",
+      "loadingImpurities": "جارٍ تحميل الشوائب...",
+      "noImpurities": "لا توجد شوائب مهيّأة في طريقة HPLC",
+      "rrtSuffix": " (RRT {{rrt}})",
+      "resultBasisLabel": "أساس النتيجة *",
+      "relatedResultBasisHelper": "الأساس الثابت للمواد المرتبطة",
+      "assayHeading": "مواصفات المقايسة بطريقة HPLC",
+      "analyteLabel": "المادة المحللة *",
+      "loadingAnalytes": "جارٍ تحميل المواد المحللة في الطريقة...",
+      "noAnalytes": "لم يتم العثور على مواد محللة في طريقة HPLC",
+      "wavelengthSuffix": " ({{nm}} nm)",
+      "basisLabel": "الأساس *",
+      "basisOptions": {
+        "PercentLabelClaim": "المقايسة %",
+        "MgPerUnit": "الكمية لكل وحدة",
+        "PercentAsIs": "% كما هو",
+        "PercentDriedBasis": "% على الأساس الجاف",
+        "PercentAnhydrousBasis": "% على الأساس اللامائي"
+      },
+      "labelClaimLabel": "الكمية المصرح بها *",
+      "labelClaimHelper": "الكمية المستهدفة لكل وحدة",
+      "labelClaimUnitLabel": "وحدة الكمية المصرح بها *",
+      "labelClaimUnitPlaceholder": "مثال: mg, g, mcg",
+      "labelClaimUnitHelper": "وحدة الكمية المصرح بها والنتيجة"
+    },
+    "limitStep": {
+      "title": "الحدود",
+      "limitTypeLabel": "نوع الحد *",
+      "nmtFixedValue": "NMT (لا يتجاوز)",
+      "relatedFixedHelper": "نوع الحد الثابت للمواد المرتبطة",
+      "residualFixedHelper": "نوع الحد الثابت للمذيبات المتبقية",
+      "definitionHeading": "تعريف الحد · يتغير وفق النوع أعلاه",
+      "summary": {
+        "limitType": "نوع الحد",
+        "limit": "الحد",
+        "boundaryInclusivity": "شمولية الحدود",
+        "lowerGe": "≥ الحد الأدنى",
+        "lowerGt": "> الحد الأدنى",
+        "upperLe": "≤ الحد الأعلى",
+        "upperLt": "< الحد الأعلى",
+        "labelClaim": "الكمية المصرح بها",
+        "stages": "المراحل"
+      }
+    },
+    "numericLimits": {
+      "nmtPercent": "NMT (%) *",
+      "nmtPpm": "NMT (ppm) *",
+      "upperLimitLabel": "الحد الأعلى (NMT) *",
+      "lowerLimitLabel": "الحد الأدنى (NLT) *",
+      "lowerInclusive": "شامل للحد الأدنى (≥)",
+      "upperInclusive": "شامل للحد الأعلى (≤)",
+      "targetLabel": "المستهدف *",
+      "toleranceLabel": "التسامح *",
+      "modeLabel": "النمط *"
+    },
+    "countTieredLimits": {
+      "alertLabel": "حد التنبيه",
+      "alertPlaceholder": "مثال: 100",
+      "actionLabel": "حد الإجراء",
+      "actionPlaceholder": "مثال: 500",
+      "specLabel": "حد المواصفات *",
+      "specPlaceholder": "مثال: 1000"
+    },
+    "qualitativeLimits": {
+      "expectedTextLabel": "نص النتيجة المتوقعة *",
+      "expectedTextPlaceholder": "مثال: أقراص فوارة مستديرة محدبة الوجهين بيضاء إلى مائلة للصفرة، ذات رائحة حمضيات مميزة",
+      "expectedStateLabel": "الحالة المتوقعة *",
+      "absence": "غياب (غائب)",
+      "presence": "وجود (موجود)",
+      "sampleQtyLabel": "كمية العينة",
+      "sampleQtyPlaceholder": "مثال: 1",
+      "qtyUnitLabel": "وحدة الكمية",
+      "qtyUnitPlaceholder": "مثال: g أو mL"
+    },
+    "stageLimits": {
+      "stageNumLabel": "رقم المرحلة",
+      "stageLabelLabel": "تسمية المرحلة *",
+      "stageLabelPlaceholder": "مثال: المرحلة 1 (S1, n=6)",
+      "criteriaLabel": "نص معايير القبول *",
+      "criteriaPlaceholder": "مثال: كل وحدة ≥ Q + 5% (≥ 85%)",
+      "removeAriaLabel": "إزالة المرحلة {{index}}",
+      "removeTitle": "إزالة المرحلة",
+      "addStage": "+ إضافة مرحلة",
+      "dissolutionHeading": "قبول الذوبان (USP <711> / EP 2.9.3)",
+      "qLabel": "Q (% الذائب) *",
+      "qPlaceholder": "مثال: 75",
+      "qHelper": "يُخزّن في الحد الأدنى (0 < Q ≤ 100 %)",
+      "labelClaimLabel": "الكمية المصرح بها *",
+      "labelClaimPlaceholder": "مثال: 100",
+      "labelClaimHelper": "المادة الفعالة لكل وحدة جرعة",
+      "unitLabel": "الوحدة",
+      "dissolutionUnitHelper": "الوحدة الثابتة للكمية المصرح بها للذوبان",
+      "specLimitDisplay": "عرض حد المواصفات:",
+      "disintegrationHeading": "قبول التفكك (USP <701> / EP 2.9.1)",
+      "timeLimitLabel": "الحد الزمني (دقيقة) *",
+      "timeLimitPlaceholder": "مثال: 15",
+      "timeLimitHelper": "يُخزّن في الحد الأعلى (الزمن لا يتجاوز بالدقائق)",
+      "disintegrationUnitHelper": "الوحدة الثابتة لزمن التفكك",
+      "nmtMin": "NMT {{value}} دقيقة",
+      "weightVariationHeading": "قبول تباين الوزن (USP <2091>)",
+      "dosageFormLabel": "الشكل الصيدلاني *",
+      "dosageForms": {
+        "Tablet": "قرص",
+        "HardCapsule": "كبسولة صلبة",
+        "SoftCapsule": "كبسولة رخوة"
+      },
+      "weightVariationUnitHelper": "الوحدة الثابتة لتباين الوزن",
+      "weightVariationTablet": "USP <2091>: أقراص، الحد حسب متوسط الوزن",
+      "weightVariationCapsule": "USP <2091>: صافي المحتوى 90-110 % من المتوسط"
+    },
+    "unitStep": {
+      "title": "الوحدة والمرجع",
+      "unitLabel": "الوحدة",
+      "unitPlaceholder": "مثال: % w/w, CFU/g, وحدات pH",
+      "fixedResidual": "الوحدة الثابتة للمذيبات المتبقية",
+      "fixedIcp": "الوحدة الثابتة للشوائب العنصرية",
+      "fixedWeightVariation": "الوحدة الثابتة لتباين الوزن",
+      "fixedDisintegration": "الوحدة الثابتة لزمن التفكك",
+      "referenceLabel": "المادة المرجعية",
+      "referencePlaceholder": "مثال: USP <711>, EP 2.2.29, STP-VITC-01",
+      "dilutionLabel": "معامل التخفيف",
+      "dilutionHelper": "معامل التخفيف: قابل للتعديل فقط للمعايير المتدرجة بالعد",
+      "dilutionPlaceholder": "مثال: 10",
+      "summary": {
+        "unit": "الوحدة",
+        "referenceStandard": "المادة المرجعية",
+        "dilutionFactor": "معامل التخفيف"
+      }
+    }
   }
 }

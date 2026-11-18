@@ -9,6 +9,8 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import type { LimitType } from "../../specifications/services/SpecificationService";
 import { formatLimitCell } from "../components/copySpecifications";
@@ -18,7 +20,7 @@ import { QualitativeLimits } from "./limits/QualitativeLimits";
 import { StageLimits } from "./limits/StageLimits";
 import { resolveSpecMethodFlags, validateStep, type SpecFormModel } from "./specFormModel";
 import {
-  LIMIT_TYPE_OPTIONS,
+  getLimitTypeOptions,
   modelToDisplaySpec,
   type SpecWizardLookupData
 } from "./specHelpers";
@@ -31,6 +33,8 @@ interface LimitStepViewProps {
 }
 
 function LimitStepView({ model, set, errors, lookup }: LimitStepViewProps) {
+  const { t } = useTranslation("labConfig");
+  const limitTypeOptions = getLimitTypeOptions(t);
   const flags = resolveSpecMethodFlags(model);
   const currentDef = lookup.testDefs[model.testCode];
   const wf = currentDef?.workflowType || lookup.workflowTypeByCode[model.testCode];
@@ -40,22 +44,22 @@ function LimitStepView({ model, set, errors, lookup }: LimitStepViewProps) {
   const isWeightVariation = wf === "WeightVariation" || model.limitType === "WeightVariation";
 
   const availableOptions = isWeightVariation
-    ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "WeightVariation")
+    ? limitTypeOptions.filter((opt) => opt.value === "WeightVariation")
     : isDisintegration
-    ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DisintegrationTime")
+    ? limitTypeOptions.filter((opt) => opt.value === "DisintegrationTime")
     : isDissolution
-    ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "DissolutionQ")
+    ? limitTypeOptions.filter((opt) => opt.value === "DissolutionQ")
     : flags.isUv
     ? flags.isUvLimit
-      ? LIMIT_TYPE_OPTIONS.filter((opt) => opt.value === "Qualitative")
-      : LIMIT_TYPE_OPTIONS.filter((opt) =>
+      ? limitTypeOptions.filter((opt) => opt.value === "Qualitative")
+      : limitTypeOptions.filter((opt) =>
           ["Range", "NotMoreThan", "NotLessThan"].includes(opt.value)
         )
     : flags.isHplcMethodAssay || flags.isIcpMethodAssay || flags.isTitration
-    ? LIMIT_TYPE_OPTIONS.filter((opt) =>
+    ? limitTypeOptions.filter((opt) =>
         ["Range", "NotMoreThan", "NotLessThan", "TargetWithTolerance"].includes(opt.value)
       )
-    : LIMIT_TYPE_OPTIONS.filter(
+    : limitTypeOptions.filter(
         (opt) =>
           opt.value !== "DissolutionQ" &&
           opt.value !== "DisintegrationTime" &&
@@ -100,28 +104,28 @@ function LimitStepView({ model, set, errors, lookup }: LimitStepViewProps) {
       {flags.isRelatedSubstances ? (
         <TextField
           size="small"
-          label="Limit Type *"
-          value="NMT (Not More Than)"
+          label={t("specWizard.limitStep.limitTypeLabel")}
+          value={t("specWizard.limitStep.nmtFixedValue")}
           slotProps={{ input: { readOnly: true } }}
-          helperText="Fixed limit type for related substances"
+          helperText={t("specWizard.limitStep.relatedFixedHelper")}
           fullWidth
         />
       ) : flags.isResidualSolvents ? (
         <TextField
           size="small"
-          label="Limit Type *"
-          value="NMT (Not More Than)"
+          label={t("specWizard.limitStep.limitTypeLabel")}
+          value={t("specWizard.limitStep.nmtFixedValue")}
           slotProps={{ input: { readOnly: true } }}
-          helperText="Fixed limit type for residual solvents"
+          helperText={t("specWizard.limitStep.residualFixedHelper")}
           fullWidth
         />
       ) : flags.isIcpElementalImpurities ? null : (
         <FormControl size="small" fullWidth error={Boolean(errors.limitType)}>
-          <InputLabel id="limit-type-label">Limit Type *</InputLabel>
+          <InputLabel id="limit-type-label">{t("specWizard.limitStep.limitTypeLabel")}</InputLabel>
           <Select
             name="limitType"
             labelId="limit-type-label"
-            label="Limit Type *"
+            label={t("specWizard.limitStep.limitTypeLabel")}
             value={model.limitType}
             onChange={(e) => handleLimitTypeChange(e.target.value as LimitType)}
           >
@@ -155,7 +159,7 @@ function LimitStepView({ model, set, errors, lookup }: LimitStepViewProps) {
             mb: 1.5
           }}
         >
-          LIMIT DEFINITION &middot; CHANGES WITH TYPE ABOVE
+          {t("specWizard.limitStep.definitionHeading")}
         </Typography>
 
         {renderLimitFields()}
@@ -192,40 +196,41 @@ function primaryLimitField(limitType: LimitType): string {
  * Builds the Limits wizard step.
  */
 export function createLimitStep(
-  getLookup: () => SpecWizardLookupData
+  getLookup: () => SpecWizardLookupData,
+  t: TFunction<"labConfig"> = i18n.getFixedT("en", "labConfig")
 ): WizardStep<SpecFormModel> {
   return {
     key: "limit",
-    title: "Limits",
+    title: t("specWizard.limitStep.title"),
     validate: (model) => validateStep("limit", model),
     render: (ctx) => <LimitStepView {...ctx} lookup={getLookup()} />,
     summary: (model) => {
       const displaySpec = modelToDisplaySpec(model);
       const limitTypeLabel =
-        LIMIT_TYPE_OPTIONS.find((opt) => opt.value === displaySpec.limitType)?.label ??
+        getLimitTypeOptions(t).find((opt) => opt.value === displaySpec.limitType)?.label ??
         String(displaySpec.limitType ?? model.limitType);
 
       const rows = [
-        { field: "limitType", label: "Limit type", value: limitTypeLabel },
+        { field: "limitType", label: t("specWizard.limitStep.summary.limitType"), value: limitTypeLabel },
         {
           field: primaryLimitField(model.limitType),
-          label: "Limit",
-          value: formatLimitCell(displaySpec)
+          label: t("specWizard.limitStep.summary.limit"),
+          value: formatLimitCell(displaySpec, t)
         }
       ];
 
       if (model.limitType === "Range") {
         rows.push({
           field: "lowerInclusive",
-          label: "Boundary inclusivity",
-          value: `${model.lowerInclusive ? "≥ lower" : "> lower"}, ${model.upperInclusive ? "≤ upper" : "< upper"}`
+          label: t("specWizard.limitStep.summary.boundaryInclusivity"),
+          value: `${model.lowerInclusive ? t("specWizard.limitStep.summary.lowerGe") : t("specWizard.limitStep.summary.lowerGt")}, ${model.upperInclusive ? t("specWizard.limitStep.summary.upperLe") : t("specWizard.limitStep.summary.upperLt")}`
         });
       }
 
       if (model.limitType === "DissolutionQ") {
         rows.push({
           field: "labelClaim",
-          label: "Label claim",
+          label: t("specWizard.limitStep.summary.labelClaim"),
           value: model.labelClaim ? `${model.labelClaim} mg` : ""
         });
       }
@@ -233,7 +238,7 @@ export function createLimitStep(
       if (model.limitType === "MultiStage") {
         rows.push({
           field: "stages",
-          label: "Stages",
+          label: t("specWizard.limitStep.summary.stages"),
           value: model.stages
             .map((s) => `${s.stageLabel}: ${s.acceptanceCriteriaText}`)
             .join(" · ")

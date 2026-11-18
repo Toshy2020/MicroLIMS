@@ -11,9 +11,10 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { useTranslation } from "../../../../../i18n";
 import type { ToleranceMode } from "../../../specifications/services/SpecificationService";
 import type { SpecFormModel, SpecMethodFlags } from "../specFormModel";
-import { TOLERANCE_MODE_OPTIONS } from "../specHelpers";
+import { getToleranceModeOptions } from "../specHelpers";
 
 export interface LimitGroupProps {
   model: SpecFormModel;
@@ -26,13 +27,15 @@ export interface LimitGroupProps {
  * Numeric limit fields for Range, NotMoreThan, NotLessThan, and TargetWithTolerance.
  */
 export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
+  const { t } = useTranslation("labConfig");
+  const toleranceModeOptions = getToleranceModeOptions(t);
   const nmtLabel = flags.isRelatedSubstances
-    ? "NMT (%) *"
+    ? t("specWizard.numericLimits.nmtPercent")
     : flags.isResidualSolvents
-    ? "NMT (ppm) *"
+    ? t("specWizard.numericLimits.nmtPpm")
     : flags.isIcpElementalImpurities
-    ? "NMT (ppm) *"
-    : "Upper Limit (NMT) *";
+    ? t("specWizard.numericLimits.nmtPpm")
+    : t("specWizard.numericLimits.upperLimitLabel");
 
   if (model.limitType === "Range") {
     return (
@@ -41,7 +44,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
           <TextField
             size="small"
             name="lowerLimit"
-            label="Lower Limit (NLT) *"
+            label={t("specWizard.numericLimits.lowerLimitLabel")}
             type="number"
             value={model.lowerLimit}
             onChange={(e) => set({ lowerLimit: e.target.value })}
@@ -53,7 +56,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
           <TextField
             size="small"
             name="upperLimit"
-            label="Upper Limit (NMT) *"
+            label={t("specWizard.numericLimits.upperLimitLabel")}
             type="number"
             value={model.upperLimit}
             onChange={(e) => set({ upperLimit: e.target.value })}
@@ -72,7 +75,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
                 onChange={(e) => set({ lowerInclusive: e.target.checked })}
               />
             }
-            label={<Typography variant="body2">Lower inclusive (&ge;)</Typography>}
+            label={<Typography variant="body2">{t("specWizard.numericLimits.lowerInclusive")}</Typography>}
           />
           <FormControlLabel
             control={
@@ -82,7 +85,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
                 onChange={(e) => set({ upperInclusive: e.target.checked })}
               />
             }
-            label={<Typography variant="body2">Upper inclusive (&le;)</Typography>}
+            label={<Typography variant="body2">{t("specWizard.numericLimits.upperInclusive")}</Typography>}
           />
         </Stack>
       </Stack>
@@ -114,7 +117,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
         <TextField
           size="small"
           name="lowerLimit"
-          label="Lower Limit (NLT) *"
+          label={t("specWizard.numericLimits.lowerLimitLabel")}
           type="number"
           value={model.lowerLimit}
           onChange={(e) => set({ lowerLimit: e.target.value })}
@@ -139,7 +142,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
         <TextField
           size="small"
           name="target"
-          label="Target *"
+          label={t("specWizard.numericLimits.targetLabel")}
           type="number"
           value={model.target}
           onChange={(e) => set({ target: e.target.value })}
@@ -151,7 +154,7 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
         <TextField
           size="small"
           name="tolerance"
-          label="Tolerance *"
+          label={t("specWizard.numericLimits.toleranceLabel")}
           type="number"
           value={model.tolerance}
           onChange={(e) => set({ tolerance: e.target.value })}
@@ -161,15 +164,15 @@ export function NumericLimits({ model, set, errors, flags }: LimitGroupProps) {
           fullWidth
         />
         <FormControl size="small" fullWidth error={Boolean(errors.toleranceMode)}>
-          <InputLabel id="tolerance-mode-label">Mode *</InputLabel>
+          <InputLabel id="tolerance-mode-label">{t("specWizard.numericLimits.modeLabel")}</InputLabel>
           <Select
             name="toleranceMode"
             labelId="tolerance-mode-label"
-            label="Mode *"
+            label={t("specWizard.numericLimits.modeLabel")}
             value={model.toleranceMode}
             onChange={(e) => set({ toleranceMode: e.target.value as ToleranceMode })}
           >
-            {TOLERANCE_MODE_OPTIONS.map((opt) => (
+            {toleranceModeOptions.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>
                 {opt.label}
               </MenuItem>

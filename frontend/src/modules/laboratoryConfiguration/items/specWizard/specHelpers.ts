@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type {
   LimitType,
   ResultBasis,
@@ -35,24 +37,33 @@ export interface TestDefinitionSummary {
   uvStandardVolumeMl?: number | null;
 }
 
-export const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] = [
-  { value: "Range", label: "Range (NLT \u2014 NMT)" },
-  { value: "NotMoreThan", label: "NMT (Not More Than)" },
-  { value: "NotLessThan", label: "NLT (Not Less Than)" },
-  { value: "TargetWithTolerance", label: "Target \u00B1 Tolerance" },
-  { value: "CountTiered", label: "Count-Tiered (Alert / Action / Spec)" },
-  { value: "Qualitative", label: "Qualitative (descriptive text)" },
-  { value: "PresenceAbsence", label: "Presence / Absence" },
-  { value: "MultiStage", label: "Multi-Stage Criteria" },
-  { value: "DissolutionQ", label: "Dissolution Q" },
-  { value: "DisintegrationTime", label: "Disintegration Time" },
-  { value: "WeightVariation", label: "Weight Variation (USP \u003C2091\u003E)" }
-];
+export function getLimitTypeOptions(t: TFunction<"labConfig">): { value: LimitType; label: string }[] {
+  return [
+    { value: "Range", label: t("specWizard.limitTypeOptions.Range") },
+    { value: "NotMoreThan", label: t("specWizard.limitTypeOptions.NotMoreThan") },
+    { value: "NotLessThan", label: t("specWizard.limitTypeOptions.NotLessThan") },
+    { value: "TargetWithTolerance", label: t("specWizard.limitTypeOptions.TargetWithTolerance") },
+    { value: "CountTiered", label: t("specWizard.limitTypeOptions.CountTiered") },
+    { value: "Qualitative", label: t("specWizard.limitTypeOptions.Qualitative") },
+    { value: "PresenceAbsence", label: t("specWizard.limitTypeOptions.PresenceAbsence") },
+    { value: "MultiStage", label: t("specWizard.limitTypeOptions.MultiStage") },
+    { value: "DissolutionQ", label: t("specWizard.limitTypeOptions.DissolutionQ") },
+    { value: "DisintegrationTime", label: t("specWizard.limitTypeOptions.DisintegrationTime") },
+    { value: "WeightVariation", label: t("specWizard.limitTypeOptions.WeightVariation") }
+  ];
+}
 
-export const TOLERANCE_MODE_OPTIONS = [
-  { value: "Absolute", label: "Absolute (\u00B1 value)" },
-  { value: "Percent", label: "Percent (\u00B1 %)" }
-] as const;
+export const LIMIT_TYPE_OPTIONS: { value: LimitType; label: string }[] =
+  getLimitTypeOptions(i18n.getFixedT("en", "labConfig"));
+
+export function getToleranceModeOptions(t: TFunction<"labConfig">) {
+  return [
+    { value: "Absolute", label: t("specWizard.toleranceModeOptions.Absolute") },
+    { value: "Percent", label: t("specWizard.toleranceModeOptions.Percent") }
+  ] as const;
+}
+
+export const TOLERANCE_MODE_OPTIONS = getToleranceModeOptions(i18n.getFixedT("en", "labConfig"));
 
 export const SPEC_DRAFT_FIELDS: (keyof SpecFormModel)[] = [
   "testCode",

@@ -1,10 +1,12 @@
 import { Box, TextField } from "@mui/material";
+import { useTranslation } from "../../../../../i18n";
 import type { LimitGroupProps } from "./NumericLimits";
 
 /**
  * Count-tiered limit fields (Alert, Action, Specification Limit).
  */
 export function CountTieredLimits({ model, set, errors }: LimitGroupProps) {
+  const { t } = useTranslation("labConfig");
   return (
     <Box
       sx={{
@@ -16,8 +18,8 @@ export function CountTieredLimits({ model, set, errors }: LimitGroupProps) {
       <TextField
         size="small"
         name="alertLimit"
-        label="Alert Limit"
-        placeholder="e.g. 100"
+        label={t("specWizard.countTieredLimits.alertLabel")}
+        placeholder={t("specWizard.countTieredLimits.alertPlaceholder")}
         value={model.alertLimit}
         onChange={(e) => set({ alertLimit: e.target.value })}
         error={Boolean(errors.alertLimit)}
@@ -27,8 +29,8 @@ export function CountTieredLimits({ model, set, errors }: LimitGroupProps) {
       <TextField
         size="small"
         name="actionLimit"
-        label="Action Limit"
-        placeholder="e.g. 500"
+        label={t("specWizard.countTieredLimits.actionLabel")}
+        placeholder={t("specWizard.countTieredLimits.actionPlaceholder")}
         value={model.actionLimit}
         onChange={(e) => set({ actionLimit: e.target.value })}
         error={Boolean(errors.actionLimit)}
@@ -38,8 +40,8 @@ export function CountTieredLimits({ model, set, errors }: LimitGroupProps) {
       <TextField
         size="small"
         name="specLimit"
-        label="Specification Limit *"
-        placeholder="e.g. 1000"
+        label={t("specWizard.countTieredLimits.specLabel")}
+        placeholder={t("specWizard.countTieredLimits.specPlaceholder")}
         value={model.specLimit}
         onChange={(e) => set({ specLimit: e.target.value })}
         error={Boolean(errors.specLimit)}

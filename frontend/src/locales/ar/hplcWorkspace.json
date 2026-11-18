@@ -1,0 +1,311 @@
+{
+  "status": {
+    "open": "مفتوح",
+    "completed": "مكتمل",
+    "abandoned": "مُلغى",
+    "pending": "قيد الانتظار",
+    "passed": "ناجح",
+    "failed": "فاشل",
+    "available": "متاح",
+    "running": "قيد التشغيل",
+    "unavailable": "غير متاح",
+    "assigned": "مُسنَد",
+    "removed": "مُزال",
+    "withinLimits": "ضمن الحدود",
+    "oos": "خارج المواصفات",
+    "actionLimitExceeded": "تجاوز حد الإجراء",
+    "alertLimitExceeded": "تجاوز حد التنبيه",
+    "requiresReview": "يتطلب مراجعة",
+    "compatible": "متوافق"
+  },
+  "overview": {
+    "title": "مساحة عمل {{label}}",
+    "subtitle": "عمليات الجهاز، وملاءمة النظام، وسير عمل اختبار العينة",
+    "loadError": "تعذّر تحميل أجهزة {{label}}.",
+    "refresh": "تحديث",
+    "searchPlaceholder": "ابحث بالرمز أو الاسم أو التشغيل أو الطريقة",
+    "kpi": {
+      "instruments": "الأجهزة",
+      "available": "متاح",
+      "inUse": "قيد الاستخدام",
+      "sstPending": "ملاءمة النظام قيد الانتظار",
+      "unavailable": "غير متاح"
+    },
+    "tabs": {
+      "all": "الكل ({{count}})",
+      "inUse": "قيد الاستخدام ({{count}})",
+      "available": "متاح ({{count}})",
+      "unavailable": "غير متاح ({{count}})"
+    },
+    "empty": {
+      "title": "لم يتم العثور على أجهزة",
+      "searchHint": "جرّب تعديل معايير البحث.",
+      "noneConfigured": "لا توجد أجهزة {{label}} مُهيأة لقسمك."
+    },
+    "card": {
+      "unavailableReasonFallback": "الجهاز خارج الخدمة أو أن المعايرة متأخرة.",
+      "sstBadge": "SST: {{status}}",
+      "method": "طريقة:",
+      "analyst": "محلل:",
+      "assignedSamples": "عينات مسندة:",
+      "readyGc": "الجهاز جاهز. ابدأ تشغيلاً جديداً لإعداد الطريقة والعمود.",
+      "readyHplc": "الجهاز جاهز. ابدأ تشغيلاً جديداً لإعداد الطريقة والعمود والأطوار المتحركة.",
+      "history": "السجل",
+      "openRun": "فتح التشغيل",
+      "noPermissionGc": "ليست لديك صلاحية لبدء تشغيل GC.",
+      "noPermissionHplc": "ليست لديك صلاحية لبدء تشغيل HPLC.",
+      "startNewRun": "بدء تشغيل جديد",
+      "unavailable": "غير متاح"
+    }
+  },
+  "history": {
+    "title": "سجل تشغيل الجهاز ({{count}})",
+    "columns": {
+      "runCode": "رمز التشغيل",
+      "method": "طريقة",
+      "analyst": "محلل",
+      "startedAt": "بدء التشغيل",
+      "closedAt": "إغلاق التشغيل",
+      "runStatus": "حالة التشغيل",
+      "sstStatus": "حالة SST",
+      "action": "إجراء"
+    },
+    "view": "عرض",
+    "emptyTitle": "لا توجد تشغيلات سابقة مسجلة",
+    "emptyDescription": "تظهر هنا تشغيلات {{label}} المكتملة والملغاة والسابقة على هذا الجهاز."
+  },
+  "stepRail": {
+    "steps": {
+      "runSetup": "إعداد التشغيل",
+      "systemSuitability": "ملاءمة النظام",
+      "sampleAssignment": "إسناد العينة",
+      "testingEvidence": "الاختبار والأدلة",
+      "reviewComplete": "مراجعة وإكمال"
+    },
+    "locks": {
+      "sstFailed": "فشل اختبار ملاءمة النظام (SST). ألغِ هذا التشغيل وابدأ تشغيلاً جديداً.",
+      "sstPending": "إسناد عينة مقفل حتى ينجح اختبار ملاءمة النظام.",
+      "testingNeedSst": "مقفل حتى ينجح اختبار ملاءمة النظام.",
+      "testingNeedSamples": "مقفل حتى يتم إسناد عينات إلى التشغيل.",
+      "needSubmittedSamples": "يجب إرسال جميع العينات المسندة قبل الإكمال."
+    },
+    "states": {
+      "failed": "فاشل",
+      "completed": "مكتمل",
+      "locked": "مقفل",
+      "active": "نشط",
+      "pending": "قيد الانتظار"
+    }
+  },
+  "residualSolvent": {
+    "notDetected": "غير مكتشف",
+    "title": "مراجعة المذيبات المتبقية · <ltr>{{analyte}}</ltr>",
+    "basis": "الأساس: {{basis}}",
+    "basisMean": "المتوسط",
+    "badge": "مذيب متبقٍ (ppm)",
+    "runSstMeta": "التشغيل: <ltr><strong>{{runCode}}</strong></ltr> · SST: <ltr><strong>{{sstCode}}</strong></ltr>",
+    "methodSnapshotTitle": "لقطة طريقة التحليل ومعايرة المادة القياسية",
+    "standardConc": "تركيز المادة القياسية (C_std)",
+    "sampleSolutionVolume": "حجم محلول عينة الاختبار (V)",
+    "standardMeanResponse": "متوسط استجابة المادة القياسية (r̄_std)",
+    "formula": "المعادلة: <ltr>ppm = (C_std × V / W) × (r_u / r̄_std)</ltr>",
+    "columns": {
+      "replicate": "التكرار",
+      "sampleWeight": "وزن عينة الاختبار (mg)",
+      "area": "المساحة",
+      "calculated": "المحسوب (ppm)"
+    },
+    "reportedResult": "نتيجة التقرير:",
+    "spec": "(المواصفات: <ltr>{{specLimit}}</ltr>)",
+    "evidenceLink": "الكروماتوجرامات والأدلة الخام مخزنة ضمن تشغيل GC <ltr><strong>{{runCode}}</strong></ltr>"
+  },
+  "run": {
+    "breadcrumbUnavailable": "التشغيل غير متاح",
+    "instrumentNotFound": "الجهاز غير موجود",
+    "instrumentUnavailable": "الجهاز غير متاح",
+    "loadError": "تعذّر تحميل بيانات التشغيل.",
+    "abandonedToast": "تم تحديد التشغيل كملغى.",
+    "abandonError": "تعذّر إلغاء التشغيل.",
+    "completedToast": "اكتمل التشغيل.",
+    "completeError": "تعذّر إكمال التشغيل.",
+    "notFoundAlert": "التشغيل غير موجود أو مغلق.",
+    "backToInstruments": "العودة إلى الأجهزة",
+    "instruments": "الأجهزة",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "sst": "ملاءمة النظام",
+      "samples": "عينات ({{count}})",
+      "evidence": "الأدلة ({{count}})",
+      "history": "سجل التشغيل"
+    },
+    "sections": {
+      "runSetup": "إعداد التشغيل",
+      "assignedMobilePhases": "الأطوار المتحركة المسندة",
+      "noMobilePhases": "لا توجد أطوار متحركة مسندة",
+      "sst": "ملاءمة النظام",
+      "sampleAssignment": "إسناد عينة",
+      "testingEvidence": "الاختبار والأدلة"
+    },
+    "mobilePhases": {
+      "channel": "القناة",
+      "channelValue": "القناة {{channel}}",
+      "solution": "المحلول",
+      "preparationCode": "رمز التحضير",
+      "expiryDate": "تاريخ انتهاء الصلاحية"
+    },
+    "historyLoadError": "تعذّر تحميل سجل التشغيل لهذا الجهاز.",
+    "abandonDialog": {
+      "title": "إلغاء تشغيل {{label}}",
+      "confirmText": "إلغاء التشغيل",
+      "loadingText": "جارٍ الإلغاء...",
+      "label": "سبب الإلغاء",
+      "placeholder": "اشرح سبب إلغاء هذا التشغيل..."
+    },
+    "header": {
+      "runCode": "رمز التشغيل:",
+      "method": "طريقة:",
+      "column": "العمود:",
+      "analyst": "محلل:",
+      "analystFallback": "محلل",
+      "started": "بدء التشغيل:",
+      "abandonRun": "إلغاء التشغيل...",
+      "completeRun": "إكمال التشغيل"
+    }
+  },
+  "method": {
+    "loadError": "تعذّر تحميل لقطة الطريقة.",
+    "noDefinition": "لا يوجد تعريف متاح للطريقة.",
+    "title": "طريقة: {{name}} ({{abbreviation}})",
+    "chromatographyColumn": "عمود الكروماتوجرافيا",
+    "gcColumn": "عمود GC (شعري)",
+    "designation": "التصنيف",
+    "dimensions": "الأبعاد",
+    "temperature": "درجة الحرارة",
+    "filmThickness": "سُمك الطبقة",
+    "brandPartNo": "العلامة التجارية / رقم القطعة",
+    "instrumentConditions": "ظروف الجهاز",
+    "inletDetectorConditions": "ظروف المدخل والكاشف",
+    "flowRate": "معدل التدفق",
+    "detector": "الكاشف",
+    "injectionVolume": "حجم الحقن",
+    "runTimeEquil": "زمن التشغيل / الاتزان",
+    "eqSuffix": "({{min}} min اتزان)",
+    "carrierGas": "الغاز الحامل",
+    "splitRatio": "نسبة التقسيم",
+    "splitless": "بدون تقسيم",
+    "inletTemp": "حرارة المدخل",
+    "detectorTemp": "حرارة الكاشف",
+    "solutionsMobilePhases": "المحاليل والأطوار المتحركة",
+    "solutionsPreparation": "المحاليل والتحضير",
+    "diluentSolution": "محلول التخفيف:",
+    "solutionFallback": "محلول #{{id}}",
+    "sampleSolutionVolume": "حجم محلول عينة الاختبار:",
+    "mobilePhases": "الأطوار المتحركة:",
+    "channelItem": "القناة {{channel}}: {{name}}",
+    "channelItemRatio": "القناة {{channel}}: {{name}} ({{ratio}}%)",
+    "gradientProgram": "برنامج التدرّج:",
+    "gradientColumns": {
+      "time": "الزمن (min)"
+    },
+    "ovenProgram": "برنامج حرارة الفرن",
+    "ovenColumns": {
+      "step": "الخطوة",
+      "rampRate": "معدل الرفع (°C/min)",
+      "temperature": "درجة الحرارة (°C)",
+      "holdTime": "زمن الثبات (min)"
+    },
+    "stepNumber": "الخطوة {{number}}",
+    "initialStep": "ابتدائي (—)",
+    "headspaceTitle": "معاملات حاقن الفراغ العلوي",
+    "equilibrationTemp": "درجة حرارة الاتزان:",
+    "equilibrationTime": "زمن الاتزان:",
+    "transferLineTemp": "درجة حرارة خط النقل:",
+    "analytesTitle": "مُحلَّلات الطريقة ومعايير ملاءمة النظام",
+    "residualSolventsTitle": "المذيبات المتبقية ومعايير ملاءمة النظام",
+    "analytesColumns": {
+      "solvent": "المذيب",
+      "analyte": "المُحلَّل",
+      "wavelength": "الطول الموجي",
+      "standard": "مادة قياسية",
+      "stdConc": "تركيز قياسي (µg/mL)",
+      "thWtStd": "الوزن النظري قياسي (mg)",
+      "thWtTest": "الوزن النظري اختبار (mg)",
+      "injections": "مرات الحقن (n)",
+      "sstCriteria": "معايير ملاءمة النظام"
+    },
+    "noneConfigured": "غير مهيأ",
+    "residualSolventsChip": "المذيبات المتبقية",
+    "assayChip": "المقايسة",
+    "criteria": {
+      "rsd": "%RSD ≤ {{val}}%",
+      "res": "Res ≥ {{val}}",
+      "tailing": "Tailing ≤ {{val}}",
+      "plates": "Plates ≥ {{val}}",
+      "kPrime": "k' ≥ {{val}}",
+      "sn": "S/N ≥ {{val}}",
+      "pv": "P/V ≥ {{val}}"
+    }
+  },
+  "wizard": {
+    "breadcrumb": "تشغيل جديد",
+    "steps": {
+      "selectMethod": "اختيار الطريقة",
+      "selectColumn": "اختيار العمود",
+      "assignMobilePhases": "إسناد الأطوار المتحركة",
+      "reviewStart": "مراجعة وبدء"
+    },
+    "loadError": "تعذّر تحميل متطلبات التشغيل.",
+    "missingChannel": "يرجى اختيار طور متحرك مُحضَّر للقناة {{channel}}.",
+    "startError": "تعذّر بدء التشغيل.",
+    "backToInstruments": "العودة إلى الأجهزة",
+    "title": "بدء تشغيل {{label}}: {{name}}",
+    "instrumentFallback": "جهاز #{{id}}",
+    "subtitleHplc": "إعداد الطريقة والعمود والأطوار المتحركة لـ {{code}}",
+    "subtitleGc": "إعداد الطريقة والعمود لـ {{code}}",
+    "back": "السابق",
+    "next": "التالي",
+    "startingRun": "جارٍ بدء التشغيل...",
+    "startRun": "بدء تشغيل {{label}}",
+    "methodStep": {
+      "title": "اختر طريقة {{label}} نشطة:",
+      "eligibleTests_zero": "لا توجد اختبارات مؤهلة",
+      "eligibleTests_one": "اختبار واحد مؤهل",
+      "eligibleTests_two": "2 اختبارات مؤهلة",
+      "eligibleTests_few": "{{count}} اختبارات مؤهلة",
+      "eligibleTests_many": "{{count}} اختبارات مؤهلة",
+      "eligibleTests_other": "{{count}} اختبارات مؤهلة",
+      "previewTitle": "معاينة تفاصيل الطريقة:"
+    },
+    "columnStep": {
+      "selectGc": "اختر عمود GC:",
+      "selectHplc": "اختر عمود الكروماتوجرافيا:",
+      "required": "المطلوب: USP {{designation}}",
+      "uspGc": "تصنيف USP G",
+      "usp": "تصنيف USP",
+      "noDesignatedColumn": "لا يوجد عمود {{designation}} مسجّل لهذا الجهاز - أضف {{uspLabel}} في سجل الأعمدة.",
+      "noQualifyingColumn": "لا يوجد عمود مؤهل مسجّل لهذا الجهاز - أضف {{uspLabel}} في سجل الأعمدة.",
+      "serialNumber": "الرقم التسلسلي: {{serial}}"
+    },
+    "mobilePhasesStep": {
+      "title": "إسناد الأطوار المتحركة المُحضَّرة:",
+      "refresh": "تحديث التحضيرات",
+      "channelTitle": "القناة {{channel}}: {{name}}",
+      "ratio": "النسبة: {{ratio}}%",
+      "prepareNew": "تحضير جديد",
+      "scanLabel": "مسح الطور المتحرك (القناة {{channel}})",
+      "noneAvailable": "لم يتم العثور على تحضير متاح لـ {{name}}. انقر على «تحضير جديد» لتحضير وتوقيع دفعة، ثم انقر على «تحديث التحضيرات».",
+      "preparedByExp": "حُضِّر بواسطة {{user}} · الانتهاء: {{exp}}"
+    },
+    "reviewStep": {
+      "title": "ملخص إعداد التشغيل:",
+      "instrument": "الجهاز",
+      "method": "طريقة",
+      "column": "العمود",
+      "carrierGasInlet": "الغاز الحامل والمدخل",
+      "gas": "الغاز:",
+      "split": "التقسيم:",
+      "mobilePhases": "الأطوار المتحركة",
+      "channel": "القناة {{channel}}:"
+    }
+  }
+}

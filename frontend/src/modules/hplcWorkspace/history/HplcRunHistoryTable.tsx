@@ -1,8 +1,10 @@
 import { Button } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { Ltr } from "../../../components/Ltr";
 import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useTechnique } from "../useTechnique";
 import type { HplcRunListItem, HplcTechnique } from "../types";
@@ -20,37 +22,38 @@ export function HplcRunHistoryTable({
   technique,
   onSelectRun
 }: HplcRunHistoryTableProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const { technique: routeTechnique } = useTechnique();
   const activeTechnique = technique ?? routeTechnique;
   const label = activeTechnique === "Gc" ? "GC" : "HPLC";
   const columns: RegisterColumn<HplcRunListItem>[] = [
     {
       key: "code",
-      label: "Run Code",
+      label: t("history.columns.runCode"),
       sortable: true,
-      render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{hr.code}</span>
+      render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}><Ltr>{hr.code}</Ltr></span>
     },
-    { key: "methodAbbreviation", label: "Method", sortable: true },
-    { key: "analystUserName", label: "Analyst", sortable: true },
+    { key: "methodAbbreviation", label: t("history.columns.method"), sortable: true },
+    { key: "analystUserName", label: t("history.columns.analyst"), sortable: true },
     {
       key: "startedAt",
-      label: "Started At",
+      label: t("history.columns.startedAt"),
       sortable: true,
       sortValue: (hr) => new Date(hr.startedAt).getTime(),
-      render: (hr) => formatDateTimeWithTimeZone(hr.startedAt)
+      render: (hr) => <Ltr>{formatDateTimeWithTimeZone(hr.startedAt)}</Ltr>
     },
     {
       key: "closedAt",
-      label: "Closed At",
+      label: t("history.columns.closedAt"),
       sortable: true,
       sortValue: (hr) => (hr.closedAt ? new Date(hr.closedAt).getTime() : null),
-      render: (hr) => (hr.closedAt ? formatDateTimeWithTimeZone(hr.closedAt) : "—")
+      render: (hr) => (hr.closedAt ? <Ltr>{formatDateTimeWithTimeZone(hr.closedAt)}</Ltr> : "—")
     },
-    { key: "status", label: "Run Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.status} /> },
-    { key: "sstStatus", label: "SST Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.sstStatus} /> },
+    { key: "status", label: t("history.columns.runStatus"), sortable: true, render: (hr) => <HplcStatusBadge status={hr.status} /> },
+    { key: "sstStatus", label: t("history.columns.sstStatus"), sortable: true, render: (hr) => <HplcStatusBadge status={hr.sstStatus} /> },
     {
       key: "action",
-      label: "Action",
+      label: t("history.columns.action"),
       align: "right",
       render: (hr) => (
         <Button
@@ -62,14 +65,14 @@ export function HplcRunHistoryTable({
             onSelectRun(hr.id);
           }}
         >
-          View
+          {t("history.view")}
         </Button>
       )
     }
   ];
 
   return (
-    <ResultSection title={`Instrument run history (${historyRuns.length})`}>
+    <ResultSection title={t("history.title", { count: historyRuns.length })}>
       <RegisterTable
         columns={columns}
         rows={historyRuns}
@@ -77,8 +80,8 @@ export function HplcRunHistoryTable({
         onRowClick={(hr) => onSelectRun(hr.id)}
         defaultSort={{ key: "startedAt", direction: "desc" }}
         empty={{
-          title: "No past runs recorded",
-          description: `Completed, abandoned, and past ${label} runs on this instrument appear here.`
+          title: t("history.emptyTitle"),
+          description: t("history.emptyDescription", { label })
         }}
       />
     </ResultSection>

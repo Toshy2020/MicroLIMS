@@ -1,0 +1,307 @@
+{
+  "status": {
+    "open": "Open",
+    "completed": "Completed",
+    "abandoned": "Abandoned",
+    "pending": "Pending",
+    "passed": "Passed",
+    "failed": "Failed",
+    "available": "Available",
+    "running": "Running",
+    "unavailable": "Unavailable",
+    "assigned": "Assigned",
+    "removed": "Removed",
+    "withinLimits": "Within Limits",
+    "oos": "OOS",
+    "actionLimitExceeded": "Action Limit Exceeded",
+    "alertLimitExceeded": "Alert Limit Exceeded",
+    "requiresReview": "Requires Review",
+    "compatible": "Compatible"
+  },
+  "overview": {
+    "title": "{{label}} Workspace",
+    "subtitle": "Instrument operations, system suitability, and sample testing workflow",
+    "loadError": "Could not load {{label}} instruments.",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search by code, name, run or method",
+    "kpi": {
+      "instruments": "Instruments",
+      "available": "Available",
+      "inUse": "In use",
+      "sstPending": "SST pending",
+      "unavailable": "Unavailable"
+    },
+    "tabs": {
+      "all": "All ({{count}})",
+      "inUse": "In use ({{count}})",
+      "available": "Available ({{count}})",
+      "unavailable": "Unavailable ({{count}})"
+    },
+    "empty": {
+      "title": "No instruments found",
+      "searchHint": "Try adjusting your search criteria.",
+      "noneConfigured": "No {{label}} instruments configured for your section."
+    },
+    "card": {
+      "unavailableReasonFallback": "Instrument is out of service or calibration is overdue.",
+      "sstBadge": "SST: {{status}}",
+      "method": "Method:",
+      "analyst": "Analyst:",
+      "assignedSamples": "Assigned Samples:",
+      "readyGc": "Instrument is ready. Start a new run to set up method and column.",
+      "readyHplc": "Instrument is ready. Start a new run to set up method, column, and mobile phases.",
+      "history": "History",
+      "openRun": "Open Run",
+      "noPermissionGc": "You do not have permission to start a GC run.",
+      "noPermissionHplc": "You do not have permission to start an HPLC run.",
+      "startNewRun": "Start New Run",
+      "unavailable": "Unavailable"
+    }
+  },
+  "history": {
+    "title": "Instrument run history ({{count}})",
+    "columns": {
+      "runCode": "Run Code",
+      "method": "Method",
+      "analyst": "Analyst",
+      "startedAt": "Started At",
+      "closedAt": "Closed At",
+      "runStatus": "Run Status",
+      "sstStatus": "SST Status",
+      "action": "Action"
+    },
+    "view": "View",
+    "emptyTitle": "No past runs recorded",
+    "emptyDescription": "Completed, abandoned, and past {{label}} runs on this instrument appear here."
+  },
+  "stepRail": {
+    "steps": {
+      "runSetup": "Run Setup",
+      "systemSuitability": "System Suitability",
+      "sampleAssignment": "Sample Assignment",
+      "testingEvidence": "Testing & Evidence",
+      "reviewComplete": "Review & Complete"
+    },
+    "locks": {
+      "sstFailed": "SST failed. Abandon this run and start a new run.",
+      "sstPending": "Sample assignment is locked until system suitability passes.",
+      "testingNeedSst": "Locked until system suitability passes.",
+      "testingNeedSamples": "Locked until samples are assigned to the run.",
+      "needSubmittedSamples": "All assigned samples must be submitted before completion."
+    },
+    "states": {
+      "failed": "Failed",
+      "completed": "Completed",
+      "locked": "Locked",
+      "active": "Active",
+      "pending": "Pending"
+    }
+  },
+  "residualSolvent": {
+    "notDetected": "Not detected",
+    "title": "Residual Solvent Review · <ltr>{{analyte}}</ltr>",
+    "basis": "Basis: {{basis}}",
+    "basisMean": "Mean",
+    "badge": "Residual solvent (ppm)",
+    "runSstMeta": "Run: <ltr><strong>{{runCode}}</strong></ltr> · SST: <ltr><strong>{{sstCode}}</strong></ltr>",
+    "methodSnapshotTitle": "Method Snapshot & Standard Calibration",
+    "standardConc": "Standard Concentration (C_std)",
+    "sampleSolutionVolume": "Sample Solution Volume (V)",
+    "standardMeanResponse": "Standard Mean Response (r̄_std)",
+    "formula": "Formula: <ltr>ppm = (C_std × V / W) × (r_u / r̄_std)</ltr>",
+    "columns": {
+      "replicate": "Replicate",
+      "sampleWeight": "Sample Weight (mg)",
+      "area": "Area",
+      "calculated": "Calculated (ppm)"
+    },
+    "reportedResult": "Reported Result:",
+    "spec": "(Spec: <ltr>{{specLimit}}</ltr>)",
+    "evidenceLink": "Chromatograms and raw evidence stored under GC Run <ltr><strong>{{runCode}}</strong></ltr>"
+  },
+  "run": {
+    "breadcrumbUnavailable": "Run unavailable",
+    "instrumentNotFound": "Instrument not found",
+    "instrumentUnavailable": "Instrument unavailable",
+    "loadError": "Could not load run data.",
+    "abandonedToast": "Run marked as abandoned.",
+    "abandonError": "Could not abandon run.",
+    "completedToast": "Run completed.",
+    "completeError": "Could not complete run.",
+    "notFoundAlert": "Run not found or closed.",
+    "backToInstruments": "Back to Instruments",
+    "instruments": "Instruments",
+    "tabs": {
+      "overview": "Overview",
+      "sst": "System Suitability",
+      "samples": "Samples ({{count}})",
+      "evidence": "Evidence ({{count}})",
+      "history": "Run History"
+    },
+    "sections": {
+      "runSetup": "Run setup",
+      "assignedMobilePhases": "Assigned Mobile Phases",
+      "noMobilePhases": "No mobile phases assigned",
+      "sst": "System suitability",
+      "sampleAssignment": "Sample assignment",
+      "testingEvidence": "Testing & evidence"
+    },
+    "mobilePhases": {
+      "channel": "Channel",
+      "channelValue": "Channel {{channel}}",
+      "solution": "Solution",
+      "preparationCode": "Preparation Code",
+      "expiryDate": "Expiry Date"
+    },
+    "historyLoadError": "The run history for this instrument could not be loaded.",
+    "abandonDialog": {
+      "title": "Abandon {{label}} Run",
+      "confirmText": "Abandon Run",
+      "loadingText": "Abandoning...",
+      "label": "Reason for Abandoning",
+      "placeholder": "Explain why this run is being abandoned..."
+    },
+    "header": {
+      "runCode": "Run Code:",
+      "method": "Method:",
+      "column": "Column:",
+      "analyst": "Analyst:",
+      "analystFallback": "Analyst",
+      "started": "Started:",
+      "abandonRun": "Abandon Run...",
+      "completeRun": "Complete Run"
+    }
+  },
+  "method": {
+    "loadError": "Could not load method snapshot.",
+    "noDefinition": "No method definition available.",
+    "title": "Method: {{name}} ({{abbreviation}})",
+    "chromatographyColumn": "Chromatography Column",
+    "gcColumn": "GC Column (Capillary)",
+    "designation": "Designation",
+    "dimensions": "Dimensions",
+    "temperature": "Temperature",
+    "filmThickness": "Film Thickness",
+    "brandPartNo": "Brand / Part No.",
+    "instrumentConditions": "Instrument Conditions",
+    "inletDetectorConditions": "Inlet & Detector Conditions",
+    "flowRate": "Flow Rate",
+    "detector": "Detector",
+    "injectionVolume": "Injection Volume",
+    "runTimeEquil": "Run Time / Equil.",
+    "eqSuffix": "({{min}} min eq.)",
+    "carrierGas": "Carrier Gas",
+    "splitRatio": "Split Ratio",
+    "splitless": "Splitless",
+    "inletTemp": "Inlet Temp",
+    "detectorTemp": "Detector Temp",
+    "solutionsMobilePhases": "Solutions & Mobile Phases",
+    "solutionsPreparation": "Solutions & Preparation",
+    "diluentSolution": "Diluent Solution:",
+    "solutionFallback": "Solution #{{id}}",
+    "sampleSolutionVolume": "Sample Solution Volume:",
+    "mobilePhases": "Mobile Phases:",
+    "channelItem": "Channel {{channel}}: {{name}}",
+    "channelItemRatio": "Channel {{channel}}: {{name}} ({{ratio}}%)",
+    "gradientProgram": "Gradient Program:",
+    "gradientColumns": {
+      "time": "Time (min)"
+    },
+    "ovenProgram": "Oven Temperature Program",
+    "ovenColumns": {
+      "step": "Step",
+      "rampRate": "Ramp Rate (°C/min)",
+      "temperature": "Temperature (°C)",
+      "holdTime": "Hold Time (min)"
+    },
+    "stepNumber": "Step {{number}}",
+    "initialStep": "Initial (—)",
+    "headspaceTitle": "Headspace Sampler Parameters",
+    "equilibrationTemp": "Equilibration Temperature:",
+    "equilibrationTime": "Equilibration Time:",
+    "transferLineTemp": "Transfer Line Temperature:",
+    "analytesTitle": "Method Analytes & System Suitability Criteria",
+    "residualSolventsTitle": "Residual Solvents & System Suitability Criteria",
+    "analytesColumns": {
+      "solvent": "Solvent",
+      "analyte": "Analyte",
+      "wavelength": "Wavelength",
+      "standard": "Standard",
+      "stdConc": "Std Conc (µg/mL)",
+      "thWtStd": "Th. Wt. Std (mg)",
+      "thWtTest": "Th. Wt. Test (mg)",
+      "injections": "Injections (n)",
+      "sstCriteria": "SST Criteria"
+    },
+    "noneConfigured": "None configured",
+    "residualSolventsChip": "Residual Solvents",
+    "assayChip": "Assay",
+    "criteria": {
+      "rsd": "%RSD ≤ {{val}}%",
+      "res": "Res ≥ {{val}}",
+      "tailing": "Tailing ≤ {{val}}",
+      "plates": "Plates ≥ {{val}}",
+      "kPrime": "k' ≥ {{val}}",
+      "sn": "S/N ≥ {{val}}",
+      "pv": "P/V ≥ {{val}}"
+    }
+  },
+  "wizard": {
+    "breadcrumb": "New run",
+    "steps": {
+      "selectMethod": "Select Method",
+      "selectColumn": "Select Column",
+      "assignMobilePhases": "Assign Mobile Phases",
+      "reviewStart": "Review & Start"
+    },
+    "loadError": "Could not load run prerequisites.",
+    "missingChannel": "Please select a prepared mobile phase for Channel {{channel}}.",
+    "startError": "Failed to start run.",
+    "backToInstruments": "Back to Instruments",
+    "title": "Start {{label}} Run: {{name}}",
+    "instrumentFallback": "Instrument #{{id}}",
+    "subtitleHplc": "Set up method and column, and mobile phases for {{code}}",
+    "subtitleGc": "Set up method and column for {{code}}",
+    "back": "Back",
+    "next": "Next",
+    "startingRun": "Starting Run...",
+    "startRun": "Start {{label}} Run",
+    "methodStep": {
+      "title": "Select an Active {{label}} Method:",
+      "eligibleTests_one": "{{count}} eligible test",
+      "eligibleTests_other": "{{count}} eligible tests",
+      "previewTitle": "Method Details Preview:"
+    },
+    "columnStep": {
+      "selectGc": "Select GC Column:",
+      "selectHplc": "Select Chromatography Column:",
+      "required": "Required: USP {{designation}}",
+      "uspGc": "USP G-designation",
+      "usp": "USP designation",
+      "noDesignatedColumn": "No {{designation}} column is registered for this instrument - add the {{uspLabel}} in the Column master.",
+      "noQualifyingColumn": "No qualifying column is registered for this instrument - add the {{uspLabel}} in the Column master.",
+      "serialNumber": "S/N: {{serial}}"
+    },
+    "mobilePhasesStep": {
+      "title": "Assign Prepared Mobile Phases:",
+      "refresh": "Refresh Preparations",
+      "channelTitle": "Channel {{channel}}: {{name}}",
+      "ratio": "Ratio: {{ratio}}%",
+      "prepareNew": "Prepare New",
+      "scanLabel": "Scan mobile phase (Channel {{channel}})",
+      "noneAvailable": "No available preparation found for {{name}}. Click \"Prepare New\" to prepare and sign a batch, then click \"Refresh Preparations\".",
+      "preparedByExp": "Prepared by {{user}} · Exp: {{exp}}"
+    },
+    "reviewStep": {
+      "title": "Run Setup Summary:",
+      "instrument": "Instrument",
+      "method": "Method",
+      "column": "Column",
+      "carrierGasInlet": "Carrier Gas & Inlet",
+      "gas": "Gas:",
+      "split": "Split:",
+      "mobilePhases": "Mobile Phases",
+      "channel": "Channel {{channel}}:"
+    }
+  }
+}

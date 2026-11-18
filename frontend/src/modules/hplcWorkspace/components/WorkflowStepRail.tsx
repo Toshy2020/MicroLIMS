@@ -11,6 +11,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import PlayCircleFilledWhiteIcon from "@mui/icons-material/PlayCircleFilledWhite";
+import { useTranslation } from "../../../i18n";
 import type { HplcRunDto } from "../types";
 
 export interface WorkflowStepRailProps {
@@ -31,6 +32,7 @@ interface StepDefinition {
 }
 
 export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRailProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   const sstStatus = run.sst?.status ?? "Pending";
@@ -46,7 +48,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
   const steps: StepDefinition[] = [
     {
       index: 0,
-      label: "Run Setup",
+      label: t("stepRail.steps.runSetup"),
       tabIndex: 0,
       isCompleted: true,
       isCurrent: activeTab === 0,
@@ -54,7 +56,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
     },
     {
       index: 1,
-      label: "System Suitability",
+      label: t("stepRail.steps.systemSuitability"),
       tabIndex: 1,
       isCompleted: sstPassed,
       isFailed: sstFailed,
@@ -63,7 +65,7 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
     },
     {
       index: 2,
-      label: "Sample Assignment",
+      label: t("stepRail.steps.sampleAssignment"),
       tabIndex: 2,
       isCompleted: sstPassed && sampleCount > 0,
       isCurrent: activeTab === 2,
@@ -71,32 +73,32 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
       lockReason:
         run.canAssignSamplesReason ||
         (sstFailed
-          ? "SST failed. Abandon this run and start a new run."
-          : "Sample assignment is locked until system suitability passes.")
+          ? t("stepRail.locks.sstFailed")
+          : t("stepRail.locks.sstPending"))
     },
     {
       index: 3,
-      label: "Testing & Evidence",
+      label: t("stepRail.steps.testingEvidence"),
       tabIndex: 3,
       isCompleted: allSamplesSubmitted,
       isCurrent: activeTab === 3,
       isLocked: !sstPassed || sampleCount === 0,
       lockReason: !sstPassed
-        ? "Locked until system suitability passes."
+        ? t("stepRail.locks.testingNeedSst")
         : sampleCount === 0
-        ? "Locked until samples are assigned to the run."
+        ? t("stepRail.locks.testingNeedSamples")
         : undefined
     },
     {
       index: 4,
-      label: "Review & Complete",
+      label: t("stepRail.steps.reviewComplete"),
       tabIndex: 4,
       isCompleted: run.status === "Completed",
       isCurrent: activeTab === 4,
       isLocked: run.status === "Open" && (!allSamplesSubmitted || sampleCount === 0),
       lockReason:
         run.status === "Open" && (!allSamplesSubmitted || sampleCount === 0)
-          ? "All assigned samples must be submitted before completion."
+          ? t("stepRail.locks.needSubmittedSamples")
           : undefined
     }
   ];
@@ -218,14 +220,14 @@ export function WorkflowStepRail({ run, activeTab, onTabChange }: WorkflowStepRa
                   }}
                 >
                   {step.isFailed
-                    ? "Failed"
+                    ? t("stepRail.states.failed")
                     : step.isCompleted
-                    ? "Completed"
+                    ? t("stepRail.states.completed")
                     : step.isLocked
-                    ? "Locked"
+                    ? t("stepRail.states.locked")
                     : step.isCurrent
-                    ? "Active"
-                    : "Pending"}
+                    ? t("stepRail.states.active")
+                    : t("stepRail.states.pending")}
                 </Typography>
               </Box>
             </Box>

@@ -18,6 +18,8 @@ import ScienceIcon from "@mui/icons-material/Science";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useTechnique } from "../useTechnique";
 import type { HplcInstrumentDto, HplcTechnique } from "../types";
@@ -39,6 +41,7 @@ export function HplcInstrumentCard({
   onStartRun,
   onViewHistory
 }: HplcInstrumentCardProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const { technique: routeTechnique } = useTechnique();
   const activeTechnique = technique ?? routeTechnique;
@@ -76,7 +79,7 @@ export function HplcInstrumentCard({
               {instrument.name}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: 12, fontFamily: monospaceFontFamily }}>
-              {instrument.code}
+              <Ltr>{instrument.code}</Ltr>
             </Typography>
           </Box>
           <HplcStatusBadge status={instrument.state} />
@@ -85,7 +88,7 @@ export function HplcInstrumentCard({
         {/* Unavailable reason banner */}
         {isUnavailable && (
           <Alert severity="error" sx={{ mt: 1.5, py: 0.5, fontSize: 13 }}>
-            {instrument.reason || "Instrument is out of service or calibration is overdue."}
+            {instrument.reason || t("overview.card.unavailableReasonFallback")}
           </Alert>
         )}
 
@@ -102,30 +105,30 @@ export function HplcInstrumentCard({
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main", fontFamily: monospaceFontFamily }}>
-                {instrument.activeRun.code}
+                <Ltr>{instrument.activeRun.code}</Ltr>
               </Typography>
-              <HplcStatusBadge status={instrument.activeRun.sstStatus} label={`SST: ${instrument.activeRun.sstStatus}`} size="small" />
+              <HplcStatusBadge status={instrument.activeRun.sstStatus} label={t("overview.card.sstBadge", { status: instrument.activeRun.sstStatus })} size="small" />
             </Box>
 
             <Stack spacing={0.75}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <BiotechIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13 }}>
-                  Method: <strong>{instrument.activeRun.methodAbbreviation}</strong>
+                  {t("overview.card.method")} <strong><Ltr>{instrument.activeRun.methodAbbreviation}</Ltr></strong>
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <PersonOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13 }}>
-                  Analyst: {instrument.activeRun.analystName}
+                  {t("overview.card.analyst")} {instrument.activeRun.analystName}
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <ScienceIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                  Assigned Samples: <strong>{instrument.activeRun.sampleCount}</strong>
+                  {t("overview.card.assignedSamples")} <strong><Ltr>{instrument.activeRun.sampleCount}</Ltr></strong>
                 </Typography>
               </Box>
             </Stack>
@@ -145,8 +148,8 @@ export function HplcInstrumentCard({
           >
             <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
               {activeTechnique === "Gc"
-                ? "Instrument is ready. Start a new run to set up method and column."
-                : "Instrument is ready. Start a new run to set up method, column, and mobile phases."}
+                ? t("overview.card.readyGc")
+                : t("overview.card.readyHplc")}
             </Typography>
           </Box>
         )}
@@ -162,7 +165,7 @@ export function HplcInstrumentCard({
           onClick={() => onViewHistory(instrument.equipmentId)}
           sx={{ textTransform: "none", color: "text.secondary" }}
         >
-          History
+          {t("overview.card.history")}
         </Button>
 
         {isRunning && instrument.activeRun && (
@@ -174,12 +177,12 @@ export function HplcInstrumentCard({
             onClick={() => onOpenRun(instrument.equipmentId, instrument.activeRun!.runId)}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Open Run
+            {t("overview.card.openRun")}
           </Button>
         )}
 
         {isAvailable && (
-          <Tooltip title={!canOperate ? `You do not have permission to start ${activeLabel === "GC" ? "a GC" : "an HPLC"} run.` : ""}>
+          <Tooltip title={!canOperate ? (activeLabel === "GC" ? t("overview.card.noPermissionGc") : t("overview.card.noPermissionHplc")) : ""}>
             <span>
               <Button
                 variant="contained"
@@ -190,7 +193,7 @@ export function HplcInstrumentCard({
                 onClick={() => onStartRun(instrument.equipmentId)}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Start New Run
+                {t("overview.card.startNewRun")}
               </Button>
             </span>
           </Tooltip>
@@ -202,7 +205,7 @@ export function HplcInstrumentCard({
             disabled
             variant="outlined"
           >
-            Unavailable
+            {t("overview.card.unavailable")}
           </Button>
         )}
       </CardActions>

@@ -45,6 +45,7 @@ import type {
   DocumentRevisionStatus
 } from "../types/documentControlTypes";
 import { clickable } from "../../../utils/clickable";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 const TABLE_KEY = "documentControl.library";
 
@@ -377,7 +378,7 @@ export function DocumentLibraryPage() {
         sortable: true,
         render: (doc) => (
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            {doc.effectiveDate ? new Date(doc.effectiveDate).toLocaleDateString() : "Pending"}
+            {doc.effectiveDate ? formatLabCalendarDate(doc.effectiveDate) : "Pending"}
           </Typography>
         )
       }

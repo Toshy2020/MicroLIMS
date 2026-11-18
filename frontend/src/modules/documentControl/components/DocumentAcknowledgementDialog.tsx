@@ -22,6 +22,7 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import InfoIcon from "@mui/icons-material/Info";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
 import { monospaceFontFamily } from "../../../theme/palette";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface DocumentAcknowledgementDialogProps {
   open: boolean;
@@ -134,7 +135,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                   color: "text.secondary"
                 }}>Due Date (UTC)</Typography>
                 <Typography variant="body2">
-                  {context.dueDateUtc ? new Date(context.dueDateUtc).toLocaleDateString() : "No fixed due date"}
+                  {context.dueDateUtc ? formatLabCalendarDate(context.dueDateUtc) : "No fixed due date"}
                 </Typography>
               </div>
               {context.controlledFileName && (

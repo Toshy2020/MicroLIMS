@@ -50,6 +50,7 @@ import type {
 } from "../types/documentControlTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { DateField } from "../../../components/DateField";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface ApprovalWorkspaceDialogProps {
   open: boolean;
@@ -659,7 +660,7 @@ export const ApprovalWorkspaceDialog: React.FC<ApprovalWorkspaceDialogProps> = (
                           <Typography variant="caption" sx={{
                             color: "text.secondary"
                           }}>
-                            Decision: {rt.decision} on {rt.decisionAt ? new Date(rt.decisionAt).toLocaleDateString() : "N/A"}
+                            Decision: {rt.decision} on {rt.decisionAt ? formatDateTimeWithTimeZone(rt.decisionAt) : "N/A"}
                           </Typography>
                         </Box>
                         {rt.reviewNotes && (

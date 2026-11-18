@@ -83,6 +83,7 @@ import type {
   PeriodicReviewTaskDto
 } from "../types/documentControlTypes";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 export function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -563,7 +564,7 @@ export function DocumentDetailPage() {
             </Typography>
             <Typography variant="caption" sx={{ display: "block" }}>
               This revision has been approved and signed under 21 CFR Part 11. It is scheduled for automated activation on{" "}
-              <strong>{currentRevision.effectiveDate ? new Date(currentRevision.effectiveDate).toLocaleDateString() : "the designated target date"}</strong>.
+              <strong>{currentRevision.effectiveDate ? formatLabCalendarDate(currentRevision.effectiveDate) : "the designated target date"}</strong>.
               The current effective revision remains fully active and authoritative until that time.
             </Typography>
           </Alert>
@@ -571,7 +572,7 @@ export function DocumentDetailPage() {
 
         {document.recordStatus === "Void" && (
           <Alert severity="error" sx={{ mt: 2 }}>
-            <strong>RECORD VOIDED:</strong> This Document Master was voided on {new Date(document.voidedAt!).toLocaleString()} by {document.voidedByUserName}.<br />
+            <strong>RECORD VOIDED:</strong> This Document Master was voided on {formatDateTimeWithTimeZone(document.voidedAt!)} by {document.voidedByUserName}.<br />
             <strong>Mandatory Justification:</strong> <em>"{document.voidReason}"</em>
           </Alert>
         )}
@@ -674,7 +675,7 @@ export function DocumentDetailPage() {
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>Created By</Typography>
-                      <Typography variant="body2">{document.createdByUserName} ({new Date(document.createdAt).toLocaleString()})</Typography>
+                      <Typography variant="body2">{document.createdByUserName} ({formatDateTimeWithTimeZone(document.createdAt)})</Typography>
                     </Box>
                     <Box>
                       <Typography variant="caption" sx={{
@@ -682,7 +683,7 @@ export function DocumentDetailPage() {
                       }}>Last Modified By</Typography>
                       <Typography variant="body2">
                         {document.modifiedByUserName
-                          ? `${document.modifiedByUserName} (${new Date(document.modifiedAt!).toLocaleString()})`
+                          ? `${document.modifiedByUserName} (${formatDateTimeWithTimeZone(document.modifiedAt!)})`
                           : "None"}
                       </Typography>
                     </Box>
@@ -753,7 +754,7 @@ export function DocumentDetailPage() {
                         )}
                       </TableCell>
                       <TableCell>{file.uploadedByUserName}</TableCell>
-                      <TableCell>{new Date(file.uploadedAt).toLocaleString()}</TableCell>
+                      <TableCell>{formatDateTimeWithTimeZone(file.uploadedAt)}</TableCell>
                       <TableCell align="right">
                         {file.fileRole === "ControlledPdf" && (
                           <IconButton aria-label={`View controlled PDF ${file.fileName}`}
@@ -816,8 +817,8 @@ export function DocumentDetailPage() {
                       <TableCell>
                         <StatusBadge status={rev.revisionStatus} />
                       </TableCell>
-                      <TableCell>{rev.effectiveDate ? new Date(rev.effectiveDate).toLocaleDateString() : "—"}</TableCell>
-                      <TableCell>{rev.nextReviewDate ? new Date(rev.nextReviewDate).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell>{rev.effectiveDate ? formatLabCalendarDate(rev.effectiveDate) : "—"}</TableCell>
+                      <TableCell>{rev.nextReviewDate ? formatLabCalendarDate(rev.nextReviewDate) : "—"}</TableCell>
                       <TableCell sx={{ maxWidth: 260 }}>
                         <Typography variant="caption" sx={{
                           display: "block"
@@ -886,7 +887,7 @@ export function DocumentDetailPage() {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>{document.documentOwnerUserName || document.documentOwnerName || "System Owner"}</TableCell>
                     <TableCell>Primary System Owner</TableCell>
-                    <TableCell>{new Date(document.createdAt).toLocaleString()}</TableCell>
+                    <TableCell>{formatDateTimeWithTimeZone(document.createdAt)}</TableCell>
                     <TableCell>{document.createdByUserName || document.createdByName || "System"}</TableCell>
                     <TableCell align="right">
                       <Typography variant="caption" sx={{
@@ -903,7 +904,7 @@ export function DocumentDetailPage() {
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>{assign.userFullName}</TableCell>
                       <TableCell>{assign.username}</TableCell>
-                      <TableCell>{new Date(assign.assignedAt).toLocaleString()}</TableCell>
+                      <TableCell>{formatDateTimeWithTimeZone(assign.assignedAt)}</TableCell>
                       <TableCell>{assign.assignedByUserName}</TableCell>
                       <TableCell align="right">
                         {canEditDraft && (
@@ -952,7 +953,7 @@ export function DocumentDetailPage() {
                   {auditLogs.map((log) => (
                     <TableRow key={log.id} hover>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        {new Date(log.timestamp).toLocaleString()}
+                        {formatDateTimeWithTimeZone(log.timestamp)}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 600 }}>
                         <Box sx={{ display: "flex", flexDirection: "column" }}>
@@ -1088,7 +1089,7 @@ export function DocumentDetailPage() {
                         />
                       </TableCell>
                       <TableCell>{new Date(t.assignedAt).toLocaleDateString()}</TableCell>
-                      <TableCell>{t.dueDate ? new Date(t.dueDate).toLocaleDateString() : "—"}</TableCell>
+                      <TableCell>{t.dueDate ? formatLabCalendarDate(t.dueDate) : "—"}</TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
                           <Chip label={`${t.totalFindingsCount} Total`} size="small" variant="outlined" />
@@ -1179,7 +1180,7 @@ export function DocumentDetailPage() {
                       <TableCell sx={{ fontWeight: 600 }}>Rev {t.revisionNumber}</TableCell>
                       <TableCell>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                          <span>{new Date(t.scheduledDueDate).toLocaleDateString()}</span>
+                          <span>{formatLabCalendarDate(t.scheduledDueDate)}</span>
                           {t.isOverdue && <Chip label="OVERDUE" color="error" size="small" sx={compactChipStrongSx} />}
                         </Box>
                       </TableCell>

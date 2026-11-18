@@ -55,6 +55,7 @@ import type {
 } from "../types/trainingMatrixTypes";
 import type { DocumentDepartmentDto } from "../types/documentControlTypes";
 import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 export function TrainingMatrixPage() {
   const navigate = useNavigate();
@@ -190,7 +191,7 @@ export function TrainingMatrixPage() {
         );
       case "Pending":
         return (
-          <Tooltip title={`Pending Reading (Due ${cell.dueDateUtc ? new Date(cell.dueDateUtc).toLocaleDateString() : "TBD"})`}>
+          <Tooltip title={`Pending Reading (Due ${cell.dueDateUtc ? formatLabCalendarDate(cell.dueDateUtc) : "TBD"})`}>
             <Chip
               icon={<ScheduleIcon sx={{ fontSize: "14px !important" }} />}
               label="Pending"
@@ -798,7 +799,7 @@ export function TrainingMatrixPage() {
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
                         }}>
-                          Due: {new Date(us.dueDateUtc).toLocaleDateString()}
+                          Due: {formatLabCalendarDate(us.dueDateUtc)}
                         </Typography>
                       )}
                     </Box>

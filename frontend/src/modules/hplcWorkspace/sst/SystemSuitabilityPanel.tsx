@@ -13,6 +13,7 @@ import { findMissingSstFields } from "./sstValidation";
 import { ReportUploadPanel } from "../evidence/ReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
+import { i18n, useTranslation } from "../../../i18n";
 import { useTechnique } from "../useTechnique";
 import type { HplcRunDto, HplcSstRecordDto, SaveSstAnalyteInput } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
@@ -30,6 +31,7 @@ export function SystemSuitabilityPanel({
   canOperate,
   onRunUpdated
 }: SystemSuitabilityPanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const { label } = useTechnique();
   const isResidualSolvents = run.resultMode === "ResidualSolvents";
   const standardIsWeighed = run.resultMode === "Assay";
@@ -164,7 +166,7 @@ export function SystemSuitabilityPanel({
     setError(null);
     try {
       const savedRun = await HplcWorkspaceService.saveSst(currentRun.id, { analytes: analytesPayload });
-      toast.success("System suitability data saved.");
+      toast.success(t("sst.panel.savedToast"));
       if (savedRun && savedRun.sst) {
         setCurrentRun(savedRun);
       }
@@ -172,7 +174,7 @@ export function SystemSuitabilityPanel({
       return true;
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not save system suitability.");
+      setError(e.response?.data?.message ?? e.message ?? t("sst.panel.saveError"));
       return false;
     } finally {
       setSaving(false);
@@ -188,14 +190,14 @@ export function SystemSuitabilityPanel({
         comment: signComment.trim() || null
       });
       setSignOpen(false);
-      toast.success("System suitability confirmed.");
+      toast.success(t("sst.panel.confirmedToast"));
       if (confirmedRun && confirmedRun.sst) {
         setCurrentRun(confirmedRun);
       }
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not confirm system suitability.");
+      setError(e.response?.data?.message ?? e.message ?? t("sst.panel.confirmError"));
     }
   };
 
@@ -206,11 +208,11 @@ export function SystemSuitabilityPanel({
     try {
       await HplcWorkspaceService.abandonRun(currentRun.id, abandonReason.trim());
       setAbandonOpen(false);
-      toast.info("Run has been marked as abandoned.");
+      toast.info(t("sst.panel.abandonedToast"));
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not abandon run.");
+      setError(e.response?.data?.message ?? e.message ?? t("sst.panel.abandonError"));
     } finally {
       setAbandoning(false);
     }
@@ -221,7 +223,7 @@ export function SystemSuitabilityPanel({
   if (!sst) {
     return (
       <Alert severity="warning">
-        No System Suitability record found for this run.
+        {t("sst.panel.noSstAlert")}
       </Alert>
     );
   }
@@ -245,7 +247,7 @@ export function SystemSuitabilityPanel({
 
       {missing.length > 0 && (
         <Alert severity="warning">
-          <strong>Fill in the empty fields before saving:</strong>
+          <strong>{t("sst.panel.fillMissingTitle")}</strong>
           <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
             {missing.map((m) => <li key={m}>{m}</li>)}
           </ul>
@@ -258,7 +260,7 @@ export function SystemSuitabilityPanel({
       {/* Per-analyte standard entry forms */}
       <Box>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Standard Entry & Injections
+          {t("sst.panel.standardEntryTitle")}
         </Typography>
 
         {loadingLots ? (
@@ -315,7 +317,7 @@ export function SystemSuitabilityPanel({
             startIcon={<CancelOutlinedIcon />}
             onClick={() => setAbandonOpen(true)}
           >
-            Abandon Run...
+            {t("sst.panel.abandonRun")}
           </Button>
 
           <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
@@ -326,14 +328,14 @@ export function SystemSuitabilityPanel({
               disabled={saving}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : "Save System Suitability"}
+              {saving ? t("sst.panel.saving") : t("sst.panel.saveSst")}
             </Button>
 
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
               <Tooltip
                 title={
                   !currentRun.canConfirmSst
-                    ? currentRun.canConfirmSstReason || "Standard report upload and valid criteria are required."
+                    ? currentRun.canConfirmSstReason || t("sst.panel.confirmTooltipFallback")
                     : ""
                 }
               >
@@ -352,7 +354,7 @@ export function SystemSuitabilityPanel({
                     }}
                     sx={{ textTransform: "none", fontWeight: 600 }}
                   >
-                    Confirm System Suitability...
+                    {t("sst.panel.confirmSst")}
                   </Button>
                 </span>
               </Tooltip>
@@ -369,7 +371,8 @@ export function SystemSuitabilityPanel({
       {/* E-Signature Dialog for SST Confirmation */}
       <SignatureDialog
         open={signOpen}
-        meaningStatement="I confirm that the system suitability results meet the method acceptance criteria and the standard integration report has been verified."
+        meaningStatement={i18n.getFixedT("en", "hplcWorkspace")("sst.panel.signatureMeaning")}
+        meaningStatementTranslation={t("sst.panel.signatureMeaning")}
         showComment
         comment={signComment}
         onCommentChange={setSignComment}
@@ -380,17 +383,17 @@ export function SystemSuitabilityPanel({
       {/* Reason Dialog for Abandon Run */}
       <ReasonDialog
         open={abandonOpen}
-        title={`Abandon ${label} Run`}
+        title={t("sst.panel.abandonDialogTitle", { label })}
         onClose={() => setAbandonOpen(false)}
         onConfirm={handleAbandonRun}
-        confirmText="Abandon Run"
+        confirmText={t("sst.panel.abandonConfirmText")}
         confirmColor="error"
         loading={abandoning}
-        loadingText="Abandoning..."
+        loadingText={t("sst.panel.abandonLoadingText")}
         reason={abandonReason}
         onReasonChange={setAbandonReason}
-        label="Reason for Abandoning"
-        placeholder="Document why this run is being abandoned (e.g. system suitability failure, instrument pressure error)..."
+        label={t("sst.panel.abandonLabel")}
+        placeholder={t("sst.panel.abandonPlaceholder")}
       />
     </Stack>
   );

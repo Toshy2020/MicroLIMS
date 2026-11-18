@@ -26,6 +26,8 @@ import {
   HplcMethodResponse
 } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { GcMethodDetails } from "./GcMethodDetails";
 
 export interface MethodReadOnlyPanelProps {
@@ -34,6 +36,7 @@ export interface MethodReadOnlyPanelProps {
 }
 
 export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodReadOnlyPanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const [method, setMethod] = useState<HplcMethodResponse | null>(initialMethod ?? null);
   const [loading, setLoading] = useState(Boolean(methodId && !initialMethod));
@@ -56,7 +59,7 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
       .catch((err: unknown) => {
         if (active) {
           const e = err as { response?: { data?: { message?: string } }; message?: string };
-          setError(e.response?.data?.message ?? e.message ?? "Could not load method snapshot.");
+          setError(e.response?.data?.message ?? e.message ?? t("method.loadError"));
         }
       })
       .finally(() => {
@@ -66,7 +69,7 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
     return () => {
       active = false;
     };
-  }, [methodId, initialMethod]);
+  }, [methodId, initialMethod, t]);
 
   if (loading) {
     return (
@@ -83,7 +86,7 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
   if (!method) {
     return (
       <Typography variant="body2" sx={{ color: "text.secondary", py: 2 }}>
-        No method definition available.
+        {t("method.noDefinition")}
       </Typography>
     );
   }
@@ -120,7 +123,7 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
         <BiotechIcon color="primary" />
         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-          Method: {method.name} ({method.abbreviation})
+          {t("method.title", { name: method.name, abbreviation: method.abbreviation })}
         </Typography>
         <Chip
           label={method.elutionMode}
@@ -140,31 +143,31 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <ViewColumnIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Chromatography Column
+              {t("method.chromatographyColumn")}
             </Typography>
           </Box>
           <TableContainer>
             <Table size="small">
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Designation</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.columnDesignation}</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.designation")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{method.columnDesignation}</Ltr></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Dimensions</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.dimensions")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.columnLengthMm} mm × {method.columnInternalDiameterMm} mm, {method.particleSizeUm} µm
+                    <Ltr>{`${method.columnLengthMm} mm × ${method.columnInternalDiameterMm} mm, ${method.particleSizeUm} µm`}</Ltr>
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Temperature</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.columnTemperatureC} °C</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.temperature")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{`${method.columnTemperatureC} °C`}</Ltr></TableCell>
                 </TableRow>
                 {(method.columnBrand || method.columnPartNumber) && (
                   <TableRow>
-                    <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Brand / Part No.</TableCell>
+                    <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.brandPartNo")}</TableCell>
                     <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                      {[method.columnBrand, method.columnPartNumber].filter(Boolean).join(" / ")}
+                      <Ltr>{[method.columnBrand, method.columnPartNumber].filter(Boolean).join(" / ")}</Ltr>
                     </TableCell>
                   </TableRow>
                 )}
@@ -178,28 +181,28 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <TuneIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Instrument Conditions
+              {t("method.instrumentConditions")}
             </Typography>
           </Box>
           <TableContainer>
             <Table size="small">
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Flow Rate</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.flowRateMlPerMin} mL/min</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.flowRate")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{`${method.flowRateMlPerMin} mL/min`}</Ltr></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Detector</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.detectorType}</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.detector")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{method.detectorType}</Ltr></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Injection Volume</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.injectionVolumeUl} µL</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.injectionVolume")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{`${method.injectionVolumeUl} µL`}</Ltr></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Run Time / Equil.</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.runTimeEquil")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.runTimeMin} min {method.equilibrationMin ? `(${method.equilibrationMin} min eq.)` : ""}
+                    <Ltr>{`${method.runTimeMin} min`}</Ltr> {method.equilibrationMin ? t("method.eqSuffix", { min: method.equilibrationMin }) : ""}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -213,28 +216,32 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
           <WaterDropIcon fontSize="small" sx={{ color: "text.secondary" }} />
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Solutions & Mobile Phases
+            {t("method.solutionsMobilePhases")}
           </Typography>
         </Box>
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 4 }}>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Diluent Solution:
+              {t("method.diluentSolution")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {method.diluentSolutionName || `Solution #${method.diluentSolutionId}`}
+              {method.diluentSolutionName || t("method.solutionFallback", { id: method.diluentSolutionId })}
             </Typography>
           </Grid>
           <Grid size={{ xs: 12, sm: 8 }}>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Mobile Phases:
+              {t("method.mobilePhases")}
             </Typography>
             <Stack useFlexGap direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
               {method.mobilePhases.map((mp) => (
                 <Chip
                   key={mp.id}
                   size="small"
-                  label={`Channel ${mp.channel}: ${mp.solutionMasterName}${mp.ratioPercent != null ? ` (${mp.ratioPercent}%)` : ""}`}
+                  label={
+                    mp.ratioPercent != null
+                      ? t("method.channelItemRatio", { channel: mp.channel, name: mp.solutionMasterName, ratio: mp.ratioPercent })
+                      : t("method.channelItem", { channel: mp.channel, name: mp.solutionMasterName })
+                  }
                   variant="outlined"
                   sx={{ mb: 0.5 }}
                 />
@@ -247,27 +254,27 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
         {method.elutionMode === "Gradient" && method.gradientSteps?.length > 0 && (
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-              Gradient Program:
+              {t("method.gradientProgram")}
             </Typography>
             <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell>Time (min)</TableCell>
-                    <TableCell align="right">%A</TableCell>
-                    <TableCell align="right">%B</TableCell>
-                    <TableCell align="right">%C</TableCell>
-                    <TableCell align="right">%D</TableCell>
+                    <TableCell>{t("method.gradientColumns.time")}</TableCell>
+                    <TableCell align="right"><Ltr>%A</Ltr></TableCell>
+                    <TableCell align="right"><Ltr>%B</Ltr></TableCell>
+                    <TableCell align="right"><Ltr>%C</Ltr></TableCell>
+                    <TableCell align="right"><Ltr>%D</Ltr></TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {method.gradientSteps.map((s) => (
                     <TableRow key={s.id}>
-                      <TableCell sx={{ py: 0.5 }}>{s.timeMin}</TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>{s.percentA}%</TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>{s.percentB}%</TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>{s.percentC}%</TableCell>
-                      <TableCell align="right" sx={{ py: 0.5 }}>{s.percentD}%</TableCell>
+                      <TableCell sx={{ py: 0.5 }}><Ltr>{s.timeMin}</Ltr></TableCell>
+                      <TableCell align="right" sx={{ py: 0.5 }}><Ltr>{s.percentA}%</Ltr></TableCell>
+                      <TableCell align="right" sx={{ py: 0.5 }}><Ltr>{s.percentB}%</Ltr></TableCell>
+                      <TableCell align="right" sx={{ py: 0.5 }}><Ltr>{s.percentC}%</Ltr></TableCell>
+                      <TableCell align="right" sx={{ py: 0.5 }}><Ltr>{s.percentD}%</Ltr></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -280,53 +287,53 @@ export function MethodReadOnlyPanel({ methodId, method: initialMethod }: MethodR
       {/* Analytes */}
       <Box>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-          Method Analytes & System Suitability Criteria
+          {t("method.analytesTitle")}
         </Typography>
         <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>Analyte</TableCell>
-                <TableCell>Wavelength</TableCell>
-                <TableCell>Standard</TableCell>
-                <TableCell align="right">Th. Wt. Std (mg)</TableCell>
-                <TableCell align="right">Th. Wt. Test (mg)</TableCell>
-                <TableCell align="center">Injections (n)</TableCell>
-                <TableCell>SST Criteria</TableCell>
+                <TableCell>{t("method.analytesColumns.analyte")}</TableCell>
+                <TableCell>{t("method.analytesColumns.wavelength")}</TableCell>
+                <TableCell>{t("method.analytesColumns.standard")}</TableCell>
+                <TableCell align="right">{t("method.analytesColumns.thWtStd")}</TableCell>
+                <TableCell align="right">{t("method.analytesColumns.thWtTest")}</TableCell>
+                <TableCell align="center">{t("method.analytesColumns.injections")}</TableCell>
+                <TableCell>{t("method.analytesColumns.sstCriteria")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {method.analytes.map((a) => {
                 const criteria = [
-                  a.sstMaxRsdPercent != null ? `%RSD ≤ ${a.sstMaxRsdPercent}%` : null,
-                  a.sstMinResolution != null ? `Res ≥ ${a.sstMinResolution}` : null,
-                  a.sstMaxTailingFactor != null ? `Tailing ≤ ${a.sstMaxTailingFactor}` : null,
-                  a.sstMinTheoreticalPlates != null ? `Plates ≥ ${a.sstMinTheoreticalPlates}` : null,
-                  a.sstMinRetentionFactor != null ? `k' ≥ ${a.sstMinRetentionFactor}` : null,
-                  a.sstMinSignalToNoise != null ? `S/N ≥ ${a.sstMinSignalToNoise}` : null,
-                  a.sstMinPeakToValley != null ? `P/V ≥ ${a.sstMinPeakToValley}` : null
+                  a.sstMaxRsdPercent != null ? t("method.criteria.rsd", { val: a.sstMaxRsdPercent }) : null,
+                  a.sstMinResolution != null ? t("method.criteria.res", { val: a.sstMinResolution }) : null,
+                  a.sstMaxTailingFactor != null ? t("method.criteria.tailing", { val: a.sstMaxTailingFactor }) : null,
+                  a.sstMinTheoreticalPlates != null ? t("method.criteria.plates", { val: a.sstMinTheoreticalPlates }) : null,
+                  a.sstMinRetentionFactor != null ? t("method.criteria.kPrime", { val: a.sstMinRetentionFactor }) : null,
+                  a.sstMinSignalToNoise != null ? t("method.criteria.sn", { val: a.sstMinSignalToNoise }) : null,
+                  a.sstMinPeakToValley != null ? t("method.criteria.pv", { val: a.sstMinPeakToValley }) : null
                 ].filter(Boolean);
 
                 return (
                   <TableRow key={a.id}>
-                    <TableCell sx={{ fontWeight: 600, py: 1 }}>{a.name}</TableCell>
-                    <TableCell sx={{ py: 1 }}>{a.wavelengthNm} nm</TableCell>
-                    <TableCell sx={{ py: 1 }}>{a.standardEntryCode}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, py: 1 }}><Ltr>{a.name}</Ltr></TableCell>
+                    <TableCell sx={{ py: 1 }}><Ltr>{`${a.wavelengthNm} nm`}</Ltr></TableCell>
+                    <TableCell sx={{ py: 1 }}><Ltr>{a.standardEntryCode}</Ltr></TableCell>
                     <TableCell align="right" sx={{ py: 1, fontWeight: 600, color: "text.primary" }}>
-                      {a.theoreticalWeightStdMg}
+                      <Ltr>{a.theoreticalWeightStdMg}</Ltr>
                     </TableCell>
                     <TableCell align="right" sx={{ py: 1, fontWeight: 600, color: "text.primary" }}>
-                      {a.theoreticalWeightTestMg}
+                      <Ltr>{a.theoreticalWeightTestMg}</Ltr>
                     </TableCell>
-                    <TableCell align="center" sx={{ py: 1 }}>{a.standardInjections}</TableCell>
+                    <TableCell align="center" sx={{ py: 1 }}><Ltr>{a.standardInjections}</Ltr></TableCell>
                     <TableCell sx={{ py: 1 }}>
                       {criteria.length > 0 ? (
                         <Typography variant="body2" sx={{ fontSize: 12 }}>
-                          {criteria.join(" · ")}
+                          <Ltr>{criteria.join(" · ")}</Ltr>
                         </Typography>
                       ) : (
                         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                          None configured
+                          {t("method.noneConfigured")}
                         </Typography>
                       )}
                     </TableCell>

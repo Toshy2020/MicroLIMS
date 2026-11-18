@@ -16,6 +16,8 @@ import {
 import RefreshIcon from "@mui/icons-material/Refresh";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ScanField } from "../../../components/labels/ScanField";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import type { SolutionPreparationListItem } from "../../solutionPreparation/types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -37,13 +39,14 @@ export function WizardMobilePhasesStep({
   onSelectPreparation,
   onRefreshPreparations
 }: WizardMobilePhasesStepProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   return (
     <Stack spacing={3}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          Assign Prepared Mobile Phases:
+          {t("wizard.mobilePhasesStep.title")}
         </Typography>
         <Button
           size="small"
@@ -51,7 +54,7 @@ export function WizardMobilePhasesStep({
           onClick={onRefreshPreparations}
           disabled={loadingPreps}
         >
-          Refresh Preparations
+          {t("wizard.mobilePhasesStep.refresh")}
         </Button>
       </Box>
 
@@ -72,11 +75,11 @@ export function WizardMobilePhasesStep({
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, fontSize: 15 }}>
-                  Channel {mp.channel}: {mp.solutionMasterName}
+                  {t("wizard.mobilePhasesStep.channelTitle", { channel: mp.channel, name: mp.solutionMasterName })}
                 </Typography>
                 {mp.ratioPercent != null && (
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Ratio: {mp.ratioPercent}%
+                    {t("wizard.mobilePhasesStep.ratio", { ratio: mp.ratioPercent })}
                   </Typography>
                 )}
               </Box>
@@ -89,13 +92,13 @@ export function WizardMobilePhasesStep({
                 rel="noopener noreferrer"
                 endIcon={<OpenInNewIcon fontSize="small" />}
               >
-                Prepare New
+                {t("wizard.mobilePhasesStep.prepareNew")}
               </Button>
             </Box>
 
             <Box sx={{ mb: 1.5 }}>
               <ScanField
-                label={`Scan mobile phase (Channel ${mp.channel})`}
+                label={t("wizard.mobilePhasesStep.scanLabel", { channel: mp.channel })}
                 expectedType="SolutionPreparation"
                 offeredIds={preps.map((p) => p.id)}
                 onSelect={(id) => onSelectPreparation(mp.channel, id)}
@@ -105,7 +108,7 @@ export function WizardMobilePhasesStep({
 
             {preps.length === 0 ? (
               <Alert severity="warning" sx={{ py: 0.5, fontSize: 13 }}>
-                No available preparation found for {mp.solutionMasterName}. Click &quot;Prepare New&quot; to prepare and sign a batch, then click &quot;Refresh Preparations&quot;.
+                {t("wizard.mobilePhasesStep.noneAvailable", { name: mp.solutionMasterName })}
               </Alert>
             ) : (
               <RadioGroup
@@ -137,10 +140,13 @@ export function WizardMobilePhasesStep({
                           label={
                             <Box>
                               <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                {p.code}
+                                <Ltr>{p.code}</Ltr>
                               </Typography>
                               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                Prepared by {p.preparedByUserName} · Exp: {p.expiresAt ? formatDateTimeWithTimeZone(p.expiresAt) : "—"}
+                                {t("wizard.mobilePhasesStep.preparedByExp", {
+                                  user: p.preparedByUserName,
+                                  exp: p.expiresAt ? formatDateTimeWithTimeZone(p.expiresAt) : "—"
+                                })}
                               </Typography>
                             </Box>
                           }

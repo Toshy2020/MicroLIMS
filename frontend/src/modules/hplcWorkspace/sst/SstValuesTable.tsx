@@ -2,6 +2,9 @@ import { Box, Stack, Tooltip, Typography } from "@mui/material";
 import { CriteriaCard, NumericCell, RegisterTable } from "../../../components/lab";
 import type { CriteriaRow, RegisterColumn } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import type { TFunction } from "i18next";
 import type { HplcSstAnalyteDto } from "../types";
 import type {
   HplcMethodResponse,
@@ -24,77 +27,85 @@ function findMethodAnalyte(method: HplcMethodResponse | null | undefined, a: Hpl
 }
 
 // Method limits as configured (display only; verdicts come from the server).
-function methodCriteria(ma: HplcMethodAnalyteResponse): { param: string; criterion: string }[] {
+function methodCriteria(ma: HplcMethodAnalyteResponse, t: TFunction<"hplcWorkspace">): { param: string; criterion: string }[] {
   const rows: { param: string; criterion: string }[] = [];
-  if (ma.sstMaxRsdPercent != null) rows.push({ param: "%RSD", criterion: `≤ ${ma.sstMaxRsdPercent}%` });
-  if (ma.sstMinResolution != null) rows.push({ param: "Resolution", criterion: `≥ ${ma.sstMinResolution}` });
-  if (ma.sstMaxTailingFactor != null) rows.push({ param: "Tailing Factor", criterion: `≤ ${ma.sstMaxTailingFactor}` });
-  if (ma.sstMinTheoreticalPlates != null) rows.push({ param: "Theoretical Plates", criterion: `≥ ${ma.sstMinTheoreticalPlates}` });
-  if (ma.sstMinRetentionFactor != null) rows.push({ param: "Retention Factor (k')", criterion: `≥ ${ma.sstMinRetentionFactor}` });
-  if (ma.sstMinSignalToNoise != null) rows.push({ param: "Signal-to-Noise", criterion: `≥ ${ma.sstMinSignalToNoise}` });
-  if (ma.sstMinPeakToValley != null) rows.push({ param: "Peak-to-Valley", criterion: `≥ ${ma.sstMinPeakToValley}` });
+  if (ma.sstMaxRsdPercent != null) rows.push({ param: t("sst.valuesTable.params.rsd"), criterion: `≤ ${ma.sstMaxRsdPercent}%` });
+  if (ma.sstMinResolution != null) rows.push({ param: t("sst.valuesTable.params.resolution"), criterion: `≥ ${ma.sstMinResolution}` });
+  if (ma.sstMaxTailingFactor != null) rows.push({ param: t("sst.valuesTable.params.tailingFactor"), criterion: `≤ ${ma.sstMaxTailingFactor}` });
+  if (ma.sstMinTheoreticalPlates != null) rows.push({ param: t("sst.valuesTable.params.theoreticalPlates"), criterion: `≥ ${ma.sstMinTheoreticalPlates}` });
+  if (ma.sstMinRetentionFactor != null) rows.push({ param: t("sst.valuesTable.params.retentionFactor"), criterion: `≥ ${ma.sstMinRetentionFactor}` });
+  if (ma.sstMinSignalToNoise != null) rows.push({ param: t("sst.valuesTable.params.signalToNoise"), criterion: `≥ ${ma.sstMinSignalToNoise}` });
+  if (ma.sstMinPeakToValley != null) rows.push({ param: t("sst.valuesTable.params.peakToValley"), criterion: `≥ ${ma.sstMinPeakToValley}` });
   return rows;
 }
 
-function reportedRows(a: HplcSstAnalyteDto, ma: HplcMethodAnalyteResponse | undefined): ReportedRow[] {
+function reportedRows(a: HplcSstAnalyteDto, ma: HplcMethodAnalyteResponse | undefined, t: TFunction<"hplcWorkspace">): ReportedRow[] {
   const rows: ReportedRow[] = [];
   const add = (param: string, criterion: string | null, reported: string | number | null | undefined) => {
     if (criterion === null && reported == null) return;
     rows.push({ param, criterionText: criterion ?? "—", reportedValue: reported ?? "—" });
   };
-  add("%RSD", ma?.sstMaxRsdPercent != null ? `≤ ${ma.sstMaxRsdPercent}%` : null, a.reportedRsdPercent != null ? `${a.reportedRsdPercent}%` : null);
-  add("Resolution", ma?.sstMinResolution != null ? `≥ ${ma.sstMinResolution}` : null, a.resolution);
-  add("Tailing Factor", ma?.sstMaxTailingFactor != null ? `≤ ${ma.sstMaxTailingFactor}` : null, a.tailingFactor);
-  add("Theoretical Plates", ma?.sstMinTheoreticalPlates != null ? `≥ ${ma.sstMinTheoreticalPlates}` : null, a.theoreticalPlates);
-  add("Retention Factor (k')", ma?.sstMinRetentionFactor != null ? `≥ ${ma.sstMinRetentionFactor}` : null, a.retentionFactor);
-  add("Signal-to-Noise", ma?.sstMinSignalToNoise != null ? `≥ ${ma.sstMinSignalToNoise}` : null, a.signalToNoise);
-  add("Peak-to-Valley", ma?.sstMinPeakToValley != null ? `≥ ${ma.sstMinPeakToValley}` : null, a.peakToValley);
+  add(t("sst.valuesTable.params.rsd"), ma?.sstMaxRsdPercent != null ? `≤ ${ma.sstMaxRsdPercent}%` : null, a.reportedRsdPercent != null ? `${a.reportedRsdPercent}%` : null);
+  add(t("sst.valuesTable.params.resolution"), ma?.sstMinResolution != null ? `≥ ${ma.sstMinResolution}` : null, a.resolution);
+  add(t("sst.valuesTable.params.tailingFactor"), ma?.sstMaxTailingFactor != null ? `≤ ${ma.sstMaxTailingFactor}` : null, a.tailingFactor);
+  add(t("sst.valuesTable.params.theoreticalPlates"), ma?.sstMinTheoreticalPlates != null ? `≥ ${ma.sstMinTheoreticalPlates}` : null, a.theoreticalPlates);
+  add(t("sst.valuesTable.params.retentionFactor"), ma?.sstMinRetentionFactor != null ? `≥ ${ma.sstMinRetentionFactor}` : null, a.retentionFactor);
+  add(t("sst.valuesTable.params.signalToNoise"), ma?.sstMinSignalToNoise != null ? `≥ ${ma.sstMinSignalToNoise}` : null, a.signalToNoise);
+  add(t("sst.valuesTable.params.peakToValley"), ma?.sstMinPeakToValley != null ? `≥ ${ma.sstMinPeakToValley}` : null, a.peakToValley);
   return rows;
 }
 
 export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const criteria: CriteriaRow[] = analytes.flatMap((a) => {
     const ma = findMethodAnalyte(method, a);
     return ma
-      ? methodCriteria(ma).map((c) => ({ parameter: `${a.analyteName} - ${c.param}`, criterion: c.criterion, source: "Method" }))
+      ? methodCriteria(ma, t).map((c) => ({
+          parameter: t("sst.valuesTable.paramWithAnalyte", { analyte: a.analyteName, param: c.param }),
+          criterion: c.criterion,
+          source: t("sst.valuesTable.sourceMethod")
+        }))
       : [];
   });
 
   const columns: RegisterColumn<HplcSstAnalyteDto>[] = [
-    { key: "analyteName", label: "Analyte", sortable: true, render: (a) => <strong>{a.analyteName}</strong> },
+    { key: "analyteName", label: t("sst.valuesTable.columns.analyte"), sortable: true, render: (a) => <strong><Ltr>{a.analyteName}</Ltr></strong> },
     {
       key: "standardMaterialBatch",
-      label: "Standard Lot",
+      label: t("sst.valuesTable.columns.standardLot"),
       render: (a) =>
         a.standardMaterialBatch ? (
           <Box>
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{a.standardMaterialBatch}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}><Ltr>{a.standardMaterialBatch}</Ltr></Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              P: {a.standardPurityPercent ?? "—"}% | MC: {a.standardMoisturePercent ?? "—"}%
+              {t("sst.valuesTable.purityMc", {
+                purity: a.standardPurityPercent ?? "—",
+                mc: a.standardMoisturePercent ?? "—"
+              })}
             </Typography>
           </Box>
         ) : (
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>Not selected</Typography>
+          <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("sst.valuesTable.notSelected")}</Typography>
         )
     },
     {
       key: "standardWeightMg",
-      label: "Std Weight (mg)",
+      label: t("sst.valuesTable.columns.stdWeight"),
       numeric: true,
       render: (a) => <NumericCell value={a.standardWeightMg} />
     },
     {
       key: "meanResponse",
-      label: "Mean Response",
+      label: t("sst.valuesTable.columns.meanResponse"),
       numeric: true,
       render: (a) => (
         <Box>
           <Box component="span" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            {a.meanResponse != null ? a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}
+            <Ltr>{a.meanResponse != null ? a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</Ltr>
           </Box>
           {a.meanResponse != null && !a.passed && !a.failureReasons && (
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12, display: "block" }}>
-              pending confirmation
+              {t("sst.valuesTable.pendingConfirmation")}
             </Typography>
           )}
         </Box>
@@ -102,14 +113,14 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
     },
     {
       key: "computedRsdPercent",
-      label: "Computed %RSD",
+      label: t("sst.valuesTable.columns.computedRsd"),
       numeric: true,
       render: (a) => (
         <Box>
           <NumericCell value={a.computedRsdPercent} decimals={2} unit="%" />
           {a.computedRsdPercent != null && !a.passed && !a.failureReasons && (
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12, display: "block" }}>
-              pending confirmation
+              {t("sst.valuesTable.pendingConfirmation")}
             </Typography>
           )}
         </Box>
@@ -117,17 +128,17 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
     },
     {
       key: "reported",
-      label: "Reported Criteria Values",
+      label: t("sst.valuesTable.columns.reportedCriteria"),
       render: (a) => {
-        const rows = reportedRows(a, findMethodAnalyte(method, a));
+        const rows = reportedRows(a, findMethodAnalyte(method, a), t);
         if (rows.length === 0) {
-          return <Typography variant="caption" sx={{ color: "text.secondary" }}>No criteria configured</Typography>;
+          return <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("sst.valuesTable.noCriteriaConfigured")}</Typography>;
         }
         return (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
             {rows.map((r) => (
               <Typography key={r.param} variant="caption" sx={{ display: "block", fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                <strong>{r.param}:</strong> {r.reportedValue} (Criterion: {r.criterionText})
+                <strong>{r.param}:</strong> <Ltr>{r.reportedValue}</Ltr> {t("sst.valuesTable.criterionEntry", { criterion: r.criterionText })}
               </Typography>
             ))}
           </Box>
@@ -136,7 +147,7 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
     },
     {
       key: "passed",
-      label: "Verdict",
+      label: t("sst.valuesTable.columns.verdict"),
       align: "center",
       render: (a) =>
         a.passed ? (
@@ -155,10 +166,10 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
     <Stack spacing={1.5}>
       <Box>
         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          Acceptance Criteria vs Entered / Computed Values
+          {t("sst.valuesTable.title")}
         </Typography>
         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-          Pass/Fail verdicts are evaluated strictly by the laboratory backend engine.
+          {t("sst.valuesTable.subtitle")}
         </Typography>
       </Box>
       {criteria.length > 0 && <CriteriaCard rows={criteria} />}
@@ -167,7 +178,7 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
         rows={analytes}
         getRowId={(a) => a.id}
         dense={false}
-        empty={{ title: "No analytes on this record" }}
+        empty={{ title: t("sst.valuesTable.emptyTitle") }}
       />
     </Stack>
   );

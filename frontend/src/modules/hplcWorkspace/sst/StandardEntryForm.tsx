@@ -16,6 +16,9 @@ import {
   useTheme
 } from "@mui/material";
 import ScienceIcon from "@mui/icons-material/Science";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import type { TFunction } from "i18next";
 import type { HplcSstAnalyteDto, SaveSstAnalyteInput } from "../types";
 import type { HplcMethodAnalyteResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 
@@ -33,8 +36,10 @@ export interface StandardMaterialOption {
 
 // A working standard lot is named by its WS code; its batch number is the
 // source raw-material batch.
-const lotLabel = (lot: StandardMaterialOption) =>
-  lot.materialType === "WorkingStandard" && lot.code ? `${lot.code} (working standard)` : `Lot ${lot.batchNumber}`;
+const lotLabel = (lot: StandardMaterialOption, t: TFunction<"hplcWorkspace">) =>
+  lot.materialType === "WorkingStandard" && lot.code
+    ? t("sst.entryForm.lotWorkingStandard", { code: lot.code })
+    : t("sst.entryForm.lotBatch", { lotNumber: lot.batchNumber });
 
 export interface StandardEntryFormProps {
   analyte: HplcSstAnalyteDto;
@@ -65,6 +70,7 @@ export function StandardEntryForm({
   hasInternalStandard = false,
   internalStandardName
 }: StandardEntryFormProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   // Filter options per analyte to lots whose materialMasterEntryId === analyte.standardEntryId
@@ -147,12 +153,12 @@ export function StandardEntryForm({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <ScienceIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-            Analyte: {analyte.analyteName}
+            {t("sst.entryForm.analyteTitle", { name: analyte.analyteName })}
           </Typography>
           {methodAnalyte && methodAnalyte.wavelengthNm != null && (
             <Chip
               size="small"
-              label={`${methodAnalyte.wavelengthNm} nm`}
+              label={<Ltr>{`${methodAnalyte.wavelengthNm} nm`}</Ltr>}
               variant="outlined"
               sx={{ fontWeight: 600 }}
             />
@@ -160,7 +166,7 @@ export function StandardEntryForm({
           {hasInternalStandard && (
             <Chip
               size="small"
-              label={internalStandardName ? `IS: ${internalStandardName}` : "Internal Standard"}
+              label={internalStandardName ? t("sst.entryForm.isChip", { name: internalStandardName }) : t("sst.entryForm.isChipFallback")}
               color="primary"
               variant="outlined"
               sx={{ fontWeight: 600 }}
@@ -176,18 +182,23 @@ export function StandardEntryForm({
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth size="small" required disabled={disabled} error={showMissing && !formValue.standardMaterialId}>
-              <InputLabel id={`std-lot-label-${analyte.id}`}>Reference Standard Lot</InputLabel>
+              <InputLabel id={`std-lot-label-${analyte.id}`}>{t("sst.entryForm.refStandardLot")}</InputLabel>
               <Select
                 labelId={`std-lot-label-${analyte.id}`}
-                label="Reference Standard Lot"
+                label={t("sst.entryForm.refStandardLot")}
                 value={formValue.standardMaterialId || ""}
                 onChange={(e) => onChange({ standardMaterialId: Number(e.target.value) })}
               >
                 {selectableLots.map((lot) => (
                   <MenuItem key={lot.id} value={lot.id}>
                     {isResidualSolvents
-                      ? `${lot.materialName}, ${lotLabel(lot)}`
-                      : `${lot.materialName}, ${lotLabel(lot)} (Purity: ${lot.purity ?? "—"}% | MC: ${lot.moisturePercent ?? "—"}%)`}
+                      ? t("sst.entryForm.lotOptionResidual", { name: lot.materialName, lot: lotLabel(lot, t) })
+                      : t("sst.entryForm.lotOptionFull", {
+                          name: lot.materialName,
+                          lot: lotLabel(lot, t),
+                          purity: lot.purity ?? "—",
+                          mc: lot.moisturePercent ?? "—"
+                        })}
                   </MenuItem>
                 ))}
               </Select>
@@ -195,7 +206,7 @@ export function StandardEntryForm({
 
             {matchingLots.length === 0 && (
               <Alert severity="info" sx={{ mt: 1, py: 0.5, px: 1.5, fontSize: 13 }}>
-                No usable lot of this analyte's reference standard in stock.
+                {t("sst.entryForm.noUsableLot")}
               </Alert>
             )}
 
@@ -204,14 +215,14 @@ export function StandardEntryForm({
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
                   {isResidualSolvents ? (
                     <>
-                      <strong>Lot:</strong> {lotLabel(selectedLot)}
-                      {selectedLot.purity != null && ` · P: ${selectedLot.purity}%`}
-                      {selectedLot.moisturePercent != null && ` · MC: ${selectedLot.moisturePercent}%`}
+                      <strong>{t("sst.entryForm.lotPrefix")}</strong> {lotLabel(selectedLot, t)}
+                      {selectedLot.purity != null && t("sst.entryForm.purityShort", { purity: selectedLot.purity })}
+                      {selectedLot.moisturePercent != null && t("sst.entryForm.mcShort", { mc: selectedLot.moisturePercent })}
                     </>
                   ) : (
                     <>
-                      <strong>Purity (P):</strong> {selectedLot.purity ?? "—"}% ·{" "}
-                      <strong>Moisture Content (MC):</strong> {selectedLot.moisturePercent ?? "—"}%
+                      <strong>{t("sst.entryForm.purityFull")}</strong> <Ltr>{selectedLot.purity ?? "—"}%</Ltr> ·{" "}
+                      <strong>{t("sst.entryForm.mcFull")}</strong> <Ltr>{selectedLot.moisturePercent ?? "—"}%</Ltr>
                     </>
                   )}
                 </Typography>
@@ -220,7 +231,11 @@ export function StandardEntryForm({
               analyte.standardMaterialBatch && (
                 <Box sx={{ mt: 1, p: 1, borderRadius: 1, backgroundColor: theme.palette.action.hover }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    Previously saved: Lot {analyte.standardMaterialBatch} (P: {analyte.standardPurityPercent ?? "—"}% | MC: {analyte.standardMoisturePercent ?? "—"}%)
+                    {t("sst.entryForm.previouslySaved", {
+                      lotNumber: analyte.standardMaterialBatch,
+                      purity: analyte.standardPurityPercent ?? "—",
+                      mc: analyte.standardMoisturePercent ?? "—"
+                    })}
                   </Typography>
                 </Box>
               )
@@ -232,19 +247,19 @@ export function StandardEntryForm({
               <TextField
                 fullWidth
                 size="small"
-                label="Std Concentration (µg/mL)"
+                label={t("sst.entryForm.stdConcLabel")}
                 value={methodAnalyte?.standardConcentrationUgPerMl ?? "—"}
                 disabled
-                helperText="Method target (read-only)"
+                helperText={t("sst.entryForm.stdConcHelper")}
               />
             ) : (
               <TextField
                 fullWidth
                 size="small"
-                label="Theoretical Std Wt (mg)"
+                label={t("sst.entryForm.thStdWtLabel")}
                 value={methodAnalyte?.theoreticalWeightStdMg ?? "—"}
                 disabled
-                helperText="Method constant (read-only)"
+                helperText={t("sst.entryForm.thStdWtHelper")}
               />
             )}
           </Grid>
@@ -253,14 +268,14 @@ export function StandardEntryForm({
             <TextField
               fullWidth
               size="small"
-              label="Actual Std Weight (mg)"
+              label={t("sst.entryForm.actualStdWtLabel")}
               type="number"
               required={standardIsWeighed}
               disabled={disabled}
               error={showMissing && standardIsWeighed && !(formValue.standardWeightMg > 0)}
               value={formValue.standardWeightMg === 0 ? "" : formValue.standardWeightMg}
               onChange={(e) => onChange({ standardWeightMg: e.target.value === "" ? 0 : Number(e.target.value) })}
-              helperText={standardIsWeighed ? "Weighed on analytical balance" : "Not required for this method (optional)"}
+              helperText={standardIsWeighed ? t("sst.entryForm.actualStdWtWeighed") : t("sst.entryForm.actualStdWtOptional")}
             />
           </Grid>
         </Grid>
@@ -269,10 +284,10 @@ export function StandardEntryForm({
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Standard Injections (n = {injectionCount}):
+              {t("sst.entryForm.standardInjections", { count: injectionCount })}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Mean and %RSD are calculated on save (see the values table).
+              {t("sst.entryForm.rsdHint")}
             </Typography>
           </Box>
 
@@ -282,42 +297,42 @@ export function StandardEntryForm({
                 <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
                   <Box sx={{ p: 1.5, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: "block" }}>
-                      Injection #{i + 1}
+                      {t("sst.entryForm.injectionNumber", { num: i + 1 })}
                     </Typography>
                     <Stack spacing={1}>
                       <TextField
                         fullWidth
                         size="small"
-                        label="Analyte area"
+                        label={t("sst.entryForm.analyteArea")}
                         type="number"
                         disabled={disabled}
                         error={showMissing && !((responses[i] ?? 0) > 0)}
                         value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
                         onChange={(e) => handleResponseChange(i, e.target.value)}
-                        placeholder="Analyte area"
+                        placeholder={t("sst.entryForm.analyteArea")}
                         slotProps={{
                           htmlInput: {
                             min: 0,
                             step: "any",
-                            "aria-label": `Injection ${i + 1} Analyte area`
+                            "aria-label": t("sst.entryForm.analyteAreaAria", { num: i + 1 })
                           }
                         }}
                       />
                       <TextField
                         fullWidth
                         size="small"
-                        label="IS area"
+                        label={t("sst.entryForm.isArea")}
                         type="number"
                         disabled={disabled}
                         error={showMissing && !((isResponses[i] ?? 0) > 0)}
                         value={isResponses[i] !== undefined && isResponses[i] !== 0 ? isResponses[i] : ""}
                         onChange={(e) => handleIsResponseChange(i, e.target.value)}
-                        placeholder="IS area"
+                        placeholder={t("sst.entryForm.isArea")}
                         slotProps={{
                           htmlInput: {
                             min: 0,
                             step: "any",
-                            "aria-label": `Injection ${i + 1} IS area`
+                            "aria-label": t("sst.entryForm.isAreaAria", { num: i + 1 })
                           }
                         }}
                       />
@@ -329,18 +344,18 @@ export function StandardEntryForm({
                   <TextField
                     fullWidth
                     size="small"
-                    label={`Injection #${i + 1}`}
+                    label={t("sst.entryForm.injectionNumber", { num: i + 1 })}
                     type="number"
                     disabled={disabled}
                     error={showMissing && !((responses[i] ?? 0) > 0)}
                     value={responses[i] !== undefined && responses[i] !== 0 ? responses[i] : ""}
                     onChange={(e) => handleResponseChange(i, e.target.value)}
-                    placeholder="Peak area"
+                    placeholder={t("sst.entryForm.peakArea")}
                     slotProps={{
                       htmlInput: {
                         min: 0,
                         step: "any",
-                        "aria-label": `Injection #${i + 1}`
+                        "aria-label": t("sst.entryForm.injectionNumber", { num: i + 1 })
                       }
                     }}
                   />
@@ -353,7 +368,7 @@ export function StandardEntryForm({
         {/* Row 3: Transcribed CDS Report Criteria Values */}
         <Box>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Transcribed CDS Suitability Values:
+            {t("sst.entryForm.transcribedTitle")}
           </Typography>
 
           <Grid container spacing={2}>
@@ -361,12 +376,12 @@ export function StandardEntryForm({
               <TextField
                 fullWidth
                 size="small"
-                label="Reported %RSD"
+                label={t("sst.entryForm.reportedRsd")}
                 type="number"
                 disabled={disabled}
                 value={formValue.reportedRsdPercent ?? ""}
                 onChange={(e) => handleNumChange("reportedRsdPercent", e.target.value)}
-                helperText={methodAnalyte?.sstMaxRsdPercent != null ? `Criterion: ≤ ${methodAnalyte.sstMaxRsdPercent}%` : undefined}
+                helperText={methodAnalyte?.sstMaxRsdPercent != null ? t("sst.entryForm.criterionHelper", { criterion: `≤ ${methodAnalyte.sstMaxRsdPercent}%` }) : undefined}
               />
             </Grid>
 
@@ -374,13 +389,13 @@ export function StandardEntryForm({
               <TextField
                 fullWidth
                 size="small"
-                label="Resolution"
+                label={t("sst.entryForm.resolution")}
                 type="number"
                 disabled={disabled}
                 error={showMissing && methodAnalyte?.sstMinResolution != null && formValue.resolution == null}
                 value={formValue.resolution ?? ""}
                 onChange={(e) => handleNumChange("resolution", e.target.value)}
-                helperText={methodAnalyte?.sstMinResolution != null ? `Criterion: ≥ ${methodAnalyte.sstMinResolution}` : undefined}
+                helperText={methodAnalyte?.sstMinResolution != null ? t("sst.entryForm.criterionHelper", { criterion: `≥ ${methodAnalyte.sstMinResolution}` }) : undefined}
               />
             </Grid>
 
@@ -388,13 +403,13 @@ export function StandardEntryForm({
               <TextField
                 fullWidth
                 size="small"
-                label="Tailing Factor"
+                label={t("sst.entryForm.tailingFactor")}
                 type="number"
                 disabled={disabled}
                 error={showMissing && methodAnalyte?.sstMaxTailingFactor != null && formValue.tailingFactor == null}
                 value={formValue.tailingFactor ?? ""}
                 onChange={(e) => handleNumChange("tailingFactor", e.target.value)}
-                helperText={methodAnalyte?.sstMaxTailingFactor != null ? `Criterion: ≤ ${methodAnalyte.sstMaxTailingFactor}` : undefined}
+                helperText={methodAnalyte?.sstMaxTailingFactor != null ? t("sst.entryForm.criterionHelper", { criterion: `≤ ${methodAnalyte.sstMaxTailingFactor}` }) : undefined}
               />
             </Grid>
 
@@ -402,13 +417,13 @@ export function StandardEntryForm({
               <TextField
                 fullWidth
                 size="small"
-                label="Theoretical Plates"
+                label={t("sst.entryForm.theoreticalPlates")}
                 type="number"
                 disabled={disabled}
                 error={showMissing && methodAnalyte?.sstMinTheoreticalPlates != null && formValue.theoreticalPlates == null}
                 value={formValue.theoreticalPlates ?? ""}
                 onChange={(e) => handleNumChange("theoreticalPlates", e.target.value)}
-                helperText={methodAnalyte?.sstMinTheoreticalPlates != null ? `Criterion: ≥ ${methodAnalyte.sstMinTheoreticalPlates}` : undefined}
+                helperText={methodAnalyte?.sstMinTheoreticalPlates != null ? t("sst.entryForm.criterionHelper", { criterion: `≥ ${methodAnalyte.sstMinTheoreticalPlates}` }) : undefined}
               />
             </Grid>
 
@@ -418,13 +433,13 @@ export function StandardEntryForm({
                 <TextField
                   fullWidth
                   size="small"
-                  label="Retention Factor (k')"
+                  label={t("sst.entryForm.retentionFactor")}
                   type="number"
                   disabled={disabled}
                   error={showMissing && methodAnalyte?.sstMinRetentionFactor != null && formValue.retentionFactor == null}
                   value={formValue.retentionFactor ?? ""}
                   onChange={(e) => handleNumChange("retentionFactor", e.target.value)}
-                  helperText={methodAnalyte?.sstMinRetentionFactor != null ? `Criterion: ≥ ${methodAnalyte.sstMinRetentionFactor}` : undefined}
+                  helperText={methodAnalyte?.sstMinRetentionFactor != null ? t("sst.entryForm.criterionHelper", { criterion: `≥ ${methodAnalyte.sstMinRetentionFactor}` }) : undefined}
                 />
               </Grid>
             )}
@@ -434,13 +449,13 @@ export function StandardEntryForm({
                 <TextField
                   fullWidth
                   size="small"
-                  label="Signal-to-Noise (S/N)"
+                  label={t("sst.entryForm.signalToNoise")}
                   type="number"
                   disabled={disabled}
                   error={showMissing && methodAnalyte?.sstMinSignalToNoise != null && formValue.signalToNoise == null}
                   value={formValue.signalToNoise ?? ""}
                   onChange={(e) => handleNumChange("signalToNoise", e.target.value)}
-                  helperText={methodAnalyte?.sstMinSignalToNoise != null ? `Criterion: ≥ ${methodAnalyte.sstMinSignalToNoise}` : undefined}
+                  helperText={methodAnalyte?.sstMinSignalToNoise != null ? t("sst.entryForm.criterionHelper", { criterion: `≥ ${methodAnalyte.sstMinSignalToNoise}` }) : undefined}
                 />
               </Grid>
             )}
@@ -450,13 +465,13 @@ export function StandardEntryForm({
                 <TextField
                   fullWidth
                   size="small"
-                  label="Peak-to-Valley (P/V)"
+                  label={t("sst.entryForm.peakToValley")}
                   type="number"
                   disabled={disabled}
                   error={showMissing && methodAnalyte?.sstMinPeakToValley != null && formValue.peakToValley == null}
                   value={formValue.peakToValley ?? ""}
                   onChange={(e) => handleNumChange("peakToValley", e.target.value)}
-                  helperText={methodAnalyte?.sstMinPeakToValley != null ? `Criterion: ≥ ${methodAnalyte.sstMinPeakToValley}` : undefined}
+                  helperText={methodAnalyte?.sstMinPeakToValley != null ? t("sst.entryForm.criterionHelper", { criterion: `≥ ${methodAnalyte.sstMinPeakToValley}` }) : undefined}
                 />
               </Grid>
             )}

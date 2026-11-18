@@ -45,8 +45,11 @@ import type {
   HplcReplicateDto,
 } from "../types";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 export function HplcSampleEntryPage() {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const navigate = useNavigate();
   const { basePath } = useTechnique();
@@ -63,7 +66,7 @@ export function HplcSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<HplcSampleEntryDto | null>(null);
-  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? "Entry unavailable" : null);
+  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? t("entry.samplePage.breadcrumbUnavailable") : null);
   const [replicates, setReplicates] = useState<HplcReplicateDto[]>([]);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
@@ -102,7 +105,7 @@ export function HplcSampleEntryPage() {
           setMoistureStatus("loaded");
         } catch (err: unknown) {
           setMoisture(null);
-          setMoistureError(getErrorMessage(err, "Could not load the sample's moisture result."));
+          setMoistureError(getErrorMessage(err, t("entry.samplePage.moistureLoadError")));
           setMoistureStatus("error");
         }
       } else {
@@ -111,11 +114,11 @@ export function HplcSampleEntryPage() {
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to load sample entry data.");
+      setError(e.response?.data?.message ?? e.message ?? t("entry.samplePage.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [sampleIdNum]);
+  }, [sampleIdNum, t]);
 
   useEffect(() => {
     loadData();
@@ -141,11 +144,11 @@ export function HplcSampleEntryPage() {
       });
       setSampleEntry(updated);
       setReplicates(updated.replicates);
-      toast.success("Replicate values saved and preview updated.");
+      toast.success(t("entry.samplePage.savedToast"));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       // Preserve entered replicate values on error
-      setError(e.response?.data?.message ?? e.message ?? "Could not save replicates.");
+      setError(e.response?.data?.message ?? e.message ?? t("entry.samplePage.saveError"));
     } finally {
       setSaving(false);
     }
@@ -162,9 +165,9 @@ export function HplcSampleEntryPage() {
   if (!sampleEntry) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Sample entry record not found.</Alert>
+        <Alert severity="error">{t("entry.samplePage.notFoundAlert")}</Alert>
         <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
-          Back to Run Samples
+          {t("entry.samplePage.backToSamples")}
         </Button>
       </Box>
     );
@@ -185,7 +188,7 @@ export function HplcSampleEntryPage() {
         onClick={handleBack}
         sx={{ mb: 2, textTransform: "none" }}
       >
-        Back to Run Samples
+        {t("entry.samplePage.backToSamples")}
       </Button>
 
       {error && (
@@ -209,7 +212,7 @@ export function HplcSampleEntryPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {sampleEntry.sampleNumber}
+                  <Ltr>{sampleEntry.sampleNumber}</Ltr>
                 </Typography>
                 {sampleEntry.subjectName && (
                   <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
@@ -218,22 +221,22 @@ export function HplcSampleEntryPage() {
                 )}
               </Box>
               <HplcStatusBadge status={sampleEntry.status} />
-              <StatusBadge status="Prepared" label={`Basis: ${sampleEntry.basis}`} />
+              <StatusBadge status="Prepared" label={t("entry.samplePage.basis", { basis: sampleEntry.basis })} />
               <HplcStatusBadge
                 status={sampleEntry.sstStatus}
-                label={`SST: ${sampleEntry.sstCode} (${sampleEntry.sstStatus})`}
+                label={t("entry.samplePage.sstBadge", { code: sampleEntry.sstCode, status: sampleEntry.sstStatus })}
               />
               {sampleEntry.submitted && (
-                <StatusBadge status="Completed" label="Submitted for Review" />
+                <StatusBadge status="Completed" label={t("entry.samplePage.submittedBadge")} />
               )}
             </Box>
 
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              <strong>Test Code:</strong> {sampleEntry.testCode}
-              {sampleEntry.batchNumber ? ` · Batch: ${sampleEntry.batchNumber}` : ""}
-              {sampleEntry.productName ? ` · Product: ${sampleEntry.productName}` : ""}
-              {sampleEntry.stageName ? ` · Stage: ${sampleEntry.stageName}` : ""}
-              {` · Run: ${sampleEntry.runCode}`}
+              <strong>{t("entry.samplePage.testCode")}</strong> <Ltr>{sampleEntry.testCode}</Ltr>
+              {sampleEntry.batchNumber ? t("entry.samplePage.batchSuffix", { batch: sampleEntry.batchNumber }) : ""}
+              {sampleEntry.productName ? t("entry.samplePage.productSuffix", { product: sampleEntry.productName }) : ""}
+              {sampleEntry.stageName ? t("entry.samplePage.stageSuffix", { stage: sampleEntry.stageName }) : ""}
+              {t("entry.samplePage.runSuffix", { run: sampleEntry.runCode })}
             </Typography>
           </Box>
 
@@ -247,13 +250,13 @@ export function HplcSampleEntryPage() {
               disabled={!isEditable || saving || !canSave}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : "Save Replicates"}
+              {saving ? t("entry.samplePage.saving") : t("entry.samplePage.saveReplicates")}
             </Button>
 
             <Tooltip
               title={
                 !sampleEntry.canSubmit
-                  ? (sampleEntry.canSubmitReason || "Prerequisites not met")
+                  ? (sampleEntry.canSubmitReason || t("entry.samplePage.prerequisitesNotMet"))
                   : ""
               }
             >
@@ -266,7 +269,7 @@ export function HplcSampleEntryPage() {
                   disabled={!sampleEntry.canSubmit || sampleEntry.submitted || saving || !canOperate}
                   sx={{ textTransform: "none", fontWeight: 600 }}
                 >
-                  Send for Review
+                  {t("entry.samplePage.sendForReview")}
                 </Button>
               </span>
             </Tooltip>
@@ -276,7 +279,7 @@ export function HplcSampleEntryPage() {
         {/* Read-only / Lock reason */}
         {!sampleEntry.editable && (
           <Alert severity="info" icon={<LockOutlinedIcon />} sx={{ mt: 2 }}>
-            <strong>Entry Locked:</strong> {sampleEntry.editableReason || "This test order is read-only."}
+            <strong>{t("entry.samplePage.entryLocked")}</strong> {sampleEntry.editableReason || t("entry.samplePage.readOnlyFallback")}
           </Alert>
         )}
 
@@ -285,11 +288,11 @@ export function HplcSampleEntryPage() {
           <Box sx={{ mt: 2, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
             {moistureStatus === "loading" ? (
               <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
-                Loading moisture result...
+                {t("entry.samplePage.loadingMoisture")}
               </Typography>
             ) : moistureStatus === "error" ? (
               <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5 }}>
-                {moistureError || "Could not load the sample's moisture result."}
+                {moistureError || t("entry.samplePage.moistureLoadError")}
               </Alert>
             ) : moisture ? (
               <Typography sx={{ fontSize: 13, color: "text.primary", py: 0.5, fontWeight: 600 }}>
@@ -307,21 +310,21 @@ export function HplcSampleEntryPage() {
       <Stack spacing={2.5}>
         {/* 1. Method theoretical weights snapshot (Assay mode only) */}
         {!isResidualSolvents && !isRelatedSubstances && (
-          <ResultSection step={1} title="Method & theoretical weights">
+          <ResultSection step={1} title={t("entry.samplePage.sectionMethodWeights")}>
             {methodWeights.length > 0 ? (
               <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead sx={tableHeadSx(theme)}>
                     <TableRow>
-                      <TableCell>Analyte</TableCell>
-                      <TableCell align="right">Theoretical Weight Std</TableCell>
-                      <TableCell align="right">Theoretical Weight Test</TableCell>
+                      <TableCell>{t("entry.samplePage.columns.analyte")}</TableCell>
+                      <TableCell align="right">{t("entry.samplePage.columns.thWtStd")}</TableCell>
+                      <TableCell align="right">{t("entry.samplePage.columns.thWtTest")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {methodWeights.map((mw) => (
                       <TableRow key={mw.hplcMethodAnalyteId}>
-                        <TableCell sx={{ fontWeight: 600 }}>{mw.analyteName}</TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}><Ltr>{mw.analyteName}</Ltr></TableCell>
                         <TableCell align="right">
                           <NumericCell value={mw.theoreticalWeightStdMg} unit="mg" />
                         </TableCell>
@@ -335,7 +338,7 @@ export function HplcSampleEntryPage() {
               </TableContainer>
             ) : (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                No method theoretical weights are configured for this test.
+                {t("entry.samplePage.noMethodWeights")}
               </Typography>
             )}
           </ResultSection>
@@ -344,7 +347,7 @@ export function HplcSampleEntryPage() {
         {/* 2. Replicate entry */}
         <ResultSection
           step={isResidualSolvents || isRelatedSubstances ? 1 : 2}
-          title={isRelatedSubstances ? "Peak area entry" : "Replicates"}
+          title={isRelatedSubstances ? t("entry.samplePage.sectionPeakArea") : t("entry.samplePage.sectionReplicates")}
         >
           {isRelatedSubstances ? (
             <RelatedSubstancesPeakTable
@@ -381,8 +384,8 @@ export function HplcSampleEntryPage() {
                       sx={{ color: !hasExactlyOneAnalyte ? "error.main" : "text.secondary" }}
                     >
                       {!hasExactlyOneAnalyte
-                        ? "This related-substances method must have exactly one analyte."
-                        : "Enter a positive reference solution area, non-negative peak areas, and positive RRTs to save."}
+                        ? t("entry.rsPeakTable.oneAnalyteError")
+                        : t("entry.samplePage.rsSaveHint")}
                     </Typography>
                   )}
                   <Button
@@ -393,7 +396,7 @@ export function HplcSampleEntryPage() {
                     disabled={!isEditable || saving || !canSave}
                     sx={{ textTransform: "none", fontWeight: 600 }}
                   >
-                    {saving ? "Saving..." : "Save Replicates"}
+                    {saving ? t("entry.samplePage.saving") : t("entry.samplePage.saveReplicates")}
                   </Button>
                 </Box>
               }
@@ -427,10 +430,10 @@ export function HplcSampleEntryPage() {
                   {isEditable && !canSave && (
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
                       {hasInternalStandard
-                        ? "Enter a positive weight, analyte area, and IS area in every row to save."
+                        ? t("entry.samplePage.isSaveHint")
                         : isResidualSolvents
-                        ? "Enter a positive weight and area (≥ 0) in every cell to save."
-                        : "Enter a positive weight and response in every cell to save."}
+                        ? t("entry.samplePage.residualSaveHint")
+                        : t("entry.samplePage.defaultSaveHint")}
                     </Typography>
                   )}
                   <Button
@@ -441,7 +444,7 @@ export function HplcSampleEntryPage() {
                     disabled={!isEditable || saving || !canSave}
                     sx={{ textTransform: "none", fontWeight: 600 }}
                   >
-                    {saving ? "Saving..." : "Save Replicates"}
+                    {saving ? t("entry.samplePage.saving") : t("entry.samplePage.saveReplicates")}
                   </Button>
                 </Box>
               }
@@ -452,7 +455,7 @@ export function HplcSampleEntryPage() {
         {/* 3. Results: Official when submitted, otherwise the server-calculated preview */}
         <ResultSection
           step={isResidualSolvents || isRelatedSubstances ? 2 : 3}
-          title={sampleEntry.submitted ? "Results (official)" : "Results (preview)"}
+          title={sampleEntry.submitted ? t("entry.samplePage.sectionResultsOfficial") : t("entry.samplePage.sectionResultsPreview")}
         >
           {sampleEntry.submitted ? (
             <OfficialResultsCard official={sampleEntry.official || []} basis={sampleEntry.basis} />
@@ -464,7 +467,7 @@ export function HplcSampleEntryPage() {
         {/* 4. Chromatogram / evidence upload */}
         <ResultSection
           step={isResidualSolvents || isRelatedSubstances ? 3 : 4}
-          title="Evidence: chromatograms & reports"
+          title={t("entry.samplePage.sectionEvidence")}
         >
           <ReportUploadPanel
             runId={parsedRunId || sampleEntry.hplcRunId}

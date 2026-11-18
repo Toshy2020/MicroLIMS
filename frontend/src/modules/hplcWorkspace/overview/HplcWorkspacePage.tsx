@@ -12,6 +12,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ScienceIcon from "@mui/icons-material/Science";
 import { LabPage, KpiStrip, FilterBar, EmptyState } from "../../../components/lab";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { HplcInstrumentCard } from "./HplcInstrumentCard";
@@ -19,6 +20,7 @@ import { useTechnique } from "../useTechnique";
 import type { HplcInstrumentDto } from "../types";
 
 export function HplcWorkspacePage() {
+  const { t } = useTranslation("hplcWorkspace");
   const navigate = useNavigate();
   const { technique, label, routes } = useTechnique();
   const { permissions } = useAuth();
@@ -38,11 +40,11 @@ export function HplcWorkspacePage() {
       setInstruments(data);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? `Could not load ${label} instruments.`);
+      setError(e.response?.data?.message ?? e.message ?? t("overview.loadError", { label }));
     } finally {
       setLoading(false);
     }
-  }, [technique, label]);
+  }, [technique, label, t]);
 
   useEffect(() => {
     loadInstruments();
@@ -98,8 +100,8 @@ export function HplcWorkspacePage() {
 
   return (
     <LabPage
-      title={`${label} Workspace`}
-      subtitle="Instrument operations, system suitability, and sample testing workflow"
+      title={t("overview.title", { label })}
+      subtitle={t("overview.subtitle")}
       actions={
         <Button
           variant="outlined"
@@ -108,18 +110,18 @@ export function HplcWorkspacePage() {
           onClick={loadInstruments}
           disabled={loading}
         >
-          Refresh
+          {t("overview.refresh")}
         </Button>
       }
       kpis={
         <KpiStrip
           loading={loading}
           tiles={[
-            { label: "Instruments", value: counts.total },
-            { label: "Available", value: counts.available, tone: "notDetected" },
-            { label: "In use", value: counts.running, tone: "info" },
-            { label: "SST pending", value: counts.sstPending, tone: counts.sstPending > 0 ? "pending" : undefined },
-            { label: "Unavailable", value: counts.unavailable, tone: counts.unavailable > 0 ? "detected" : undefined }
+            { label: t("overview.kpi.instruments"), value: counts.total },
+            { label: t("overview.kpi.available"), value: counts.available, tone: "notDetected" },
+            { label: t("overview.kpi.inUse"), value: counts.running, tone: "info" },
+            { label: t("overview.kpi.sstPending"), value: counts.sstPending, tone: counts.sstPending > 0 ? "pending" : undefined },
+            { label: t("overview.kpi.unavailable"), value: counts.unavailable, tone: counts.unavailable > 0 ? "detected" : undefined }
           ]}
         />
       }
@@ -127,7 +129,7 @@ export function HplcWorkspacePage() {
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search by code, name, run or method"
+          placeholder={t("overview.searchPlaceholder")}
           resultCount={filteredInstruments.length}
         >
           <Tabs
@@ -135,10 +137,10 @@ export function HplcWorkspacePage() {
             onChange={(_, val) => setStateFilter(val)}
             sx={{ minHeight: 38 }}
           >
-            <Tab value="all" label={`All (${counts.total})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="running" label={`In use (${counts.running})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="available" label={`Available (${counts.available})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="unavailable" label={`Unavailable (${counts.unavailable})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="all" label={t("overview.tabs.all", { count: counts.total })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="running" label={t("overview.tabs.inUse", { count: counts.running })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="available" label={t("overview.tabs.available", { count: counts.available })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="unavailable" label={t("overview.tabs.unavailable", { count: counts.unavailable })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
           </Tabs>
         </FilterBar>
       }
@@ -158,8 +160,8 @@ export function HplcWorkspacePage() {
       ) : filteredInstruments.length === 0 ? (
         <EmptyState
           icon={<ScienceIcon />}
-          title="No instruments found"
-          description={search ? "Try adjusting your search criteria." : `No ${label} instruments configured for your section.`}
+          title={t("overview.empty.title")}
+          description={search ? t("overview.empty.searchHint") : t("overview.empty.noneConfigured", { label })}
         />
       ) : (
         <Box sx={gridSx}>

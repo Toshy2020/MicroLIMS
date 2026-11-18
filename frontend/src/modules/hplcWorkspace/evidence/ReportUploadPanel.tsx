@@ -27,6 +27,8 @@ import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { SupersedeEvidenceDialog } from "./SupersedeEvidenceDialog";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type {
   HplcEvidenceDto,
   HplcEvidenceContext,
@@ -53,6 +55,7 @@ export function ReportUploadPanel({
   evidenceList = [],
   onChanged
 }: ReportUploadPanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +85,7 @@ export function ReportUploadPanel({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setError("File exceeds the 25 MB limit.");
+        setError(t("evidence.upload.fileTooLarge"));
         setSelectedFile(null);
         return;
       }
@@ -108,7 +111,7 @@ export function ReportUploadPanel({
       onChanged?.();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Upload failed.");
+      setError(e.response?.data?.message ?? e.message ?? t("evidence.upload.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -120,7 +123,7 @@ export function ReportUploadPanel({
       await HplcWorkspaceService.openEvidenceInNewTab(id);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not open file.");
+      setError(e.response?.data?.message ?? e.message ?? t("evidence.upload.openFailed"));
     } finally {
       setViewingId(null);
     }
@@ -150,17 +153,17 @@ export function ReportUploadPanel({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            {context === "Sst" ? "System Suitability Report Evidence" : "Report & Chromatogram Evidence"}
+            {context === "Sst" ? t("evidence.upload.sstTitle") : t("evidence.upload.defaultTitle")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {context === "Sst"
-              ? "The standard report from the CDS is required before SST confirmation."
-              : "Upload instrument integration reports and chromatograms."}
+              ? t("evidence.upload.sstSubtitle")
+              : t("evidence.upload.defaultSubtitle")}
           </Typography>
         </Box>
         <StatusBadge
           status={currentCount > 0 ? "Active" : "Pending"}
-          label={`${currentCount} current report${currentCount === 1 ? "" : "s"}`}
+          label={t("evidence.upload.currentReports", { count: currentCount })}
         />
       </Box>
 
@@ -201,18 +204,18 @@ export function ReportUploadPanel({
             disabled={uploading}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Select Report File
+            {t("evidence.upload.selectFile")}
           </Button>
         </label>
 
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           {selectedFile ? (
             <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: "break-all" }}>
-              {selectedFile.name} ({(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)
+              <Ltr>{`${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)`}</Ltr>
             </Typography>
           ) : (
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Supported formats: PDF, PNG, JPG (Max 25 MB)
+              {t("evidence.upload.supportedFormats")}
             </Typography>
           )}
         </Box>
@@ -224,25 +227,25 @@ export function ReportUploadPanel({
           disabled={!selectedFile || uploading}
           sx={{ textTransform: "none", fontWeight: 600, minWidth: 100 }}
         >
-          {uploading ? <CircularProgress size={20} color="inherit" /> : "Upload"}
+          {uploading ? <CircularProgress size={20} color="inherit" /> : t("evidence.upload.upload")}
         </Button>
       </Box>
 
       {/* Evidence Table */}
       {relevantEvidence.length === 0 ? (
         <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
-          No reports uploaded yet.
+          {t("evidence.upload.noReports")}
         </Typography>
       ) : (
         <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>File</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Uploaded By</TableCell>
-                <TableCell>Uploaded At</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t("evidence.upload.columns.file")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.status")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.uploadedBy")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.uploadedAt")}</TableCell>
+                <TableCell align="right">{t("evidence.upload.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -259,30 +262,33 @@ export function ReportUploadPanel({
                       {getFileIcon(item.contentType)}
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: item.isCurrent ? 600 : 400 }}>
-                          {item.fileName}
+                          <Ltr>{item.fileName}</Ltr>
                         </Typography>
                         {!item.isCurrent && item.supersedeReason && (
                           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                            Superseded: {item.supersedeReason}
+                            {t("evidence.upload.supersededPrefix", { reason: item.supersedeReason })}
                           </Typography>
                         )}
                       </Box>
                     </Box>
                   </TableCell>
                   <TableCell>
-                    <StatusBadge status={item.isCurrent ? "Active" : "Superseded"} label={item.isCurrent ? "Current" : "Superseded"} />
+                    <StatusBadge
+                      status={item.isCurrent ? "Active" : "Superseded"}
+                      label={item.isCurrent ? t("evidence.upload.current") : t("evidence.upload.superseded")}
+                    />
                   </TableCell>
-                  <TableCell>{item.uploadedByUserName ?? `User #${item.uploadedByUserId}`}</TableCell>
-                  <TableCell>{formatDateTimeWithTimeZone(item.uploadedAt)}</TableCell>
+                  <TableCell>{item.uploadedByUserName ?? t("evidence.upload.userFallback", { id: item.uploadedByUserId })}</TableCell>
+                  <TableCell><Ltr>{formatDateTimeWithTimeZone(item.uploadedAt)}</Ltr></TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                      <Tooltip title="View in new tab">
+                      <Tooltip title={t("evidence.upload.viewTooltip")}>
                         <span>
                           <IconButton
                             size="small"
                             onClick={() => handleViewFile(item.id)}
                             disabled={viewingId === item.id}
-                            aria-label={`View ${item.fileName} in a new tab`}
+                            aria-label={t("evidence.upload.viewAria", { fileName: item.fileName })}
                           >
                             {viewingId === item.id ? (
                               <CircularProgress size={16} />
@@ -294,12 +300,12 @@ export function ReportUploadPanel({
                       </Tooltip>
 
                       {item.isCurrent && (
-                        <Tooltip title="Replace with newer version (supersede)">
+                        <Tooltip title={t("evidence.upload.replaceTooltip")}>
                           <IconButton
                             size="small"
                             color="primary"
                             onClick={() => openSupersede(item)}
-                            aria-label={`Replace ${item.fileName} with a newer version`}
+                            aria-label={t("evidence.upload.replaceAria", { fileName: item.fileName })}
                           >
                             <SwapHorizIcon fontSize="small" />
                           </IconButton>

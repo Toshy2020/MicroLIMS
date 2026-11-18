@@ -13,6 +13,8 @@ import {
   useTheme
 } from "@mui/material";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { ChromatographyColumnDto } from "../../laboratoryConfiguration/masterDataSimple/services/ChromatographyColumnService";
 import type { HplcTechnique } from "../types";
 import { useTechnique } from "../useTechnique";
@@ -34,6 +36,7 @@ export function WizardColumnStep({
   technique,
   onSelectColumn
 }: WizardColumnStepProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const { technique: routeTechnique } = useTechnique();
   const activeTechnique = technique ?? routeTechnique;
@@ -48,18 +51,18 @@ export function WizardColumnStep({
     });
   }, [columns, targetDesignation, equipmentId]);
 
-  const designationLabel = activeTechnique === "Gc" ? "USP G-designation" : "USP designation";
+  const designationLabel = activeTechnique === "Gc" ? t("wizard.columnStep.uspGc") : t("wizard.columnStep.usp");
 
   return (
     <Stack spacing={2.5}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-          {activeTechnique === "Gc" ? "Select GC Column:" : "Select Chromatography Column:"}
+          {activeTechnique === "Gc" ? t("wizard.columnStep.selectGc") : t("wizard.columnStep.selectHplc")}
         </Typography>
         {targetDesignation && (
           <Chip
             size="small"
-            label={`Required: USP ${targetDesignation}`}
+            label={t("wizard.columnStep.required", { designation: targetDesignation })}
             color="primary"
             variant="outlined"
             sx={{ fontWeight: 600 }}
@@ -70,8 +73,8 @@ export function WizardColumnStep({
       {qualifyingColumns.length === 0 ? (
         <Alert severity="warning" sx={{ borderRadius: 2 }}>
           {targetDesignation
-            ? `No ${targetDesignation} column is registered for this instrument - add the ${designationLabel} in the Column master.`
-            : `No qualifying column is registered for this instrument - add the ${designationLabel} in the Column master.`}
+            ? t("wizard.columnStep.noDesignatedColumn", { designation: targetDesignation, uspLabel: designationLabel })
+            : t("wizard.columnStep.noQualifyingColumn", { uspLabel: designationLabel })}
         </Alert>
       ) : (
         <RadioGroup
@@ -105,11 +108,11 @@ export function WizardColumnStep({
                       label={
                         <Box>
                           <Typography variant="body1" sx={{ fontWeight: 700, fontSize: 14 }}>
-                            {col.name} ({col.code})
+                            {col.name} (<Ltr>{col.code}</Ltr>)
                           </Typography>
                           {col.serialNumber && (
                             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                              S/N: {col.serialNumber}
+                              {t("wizard.columnStep.serialNumber", { serial: col.serialNumber })}
                             </Typography>
                           )}
                         </Box>
@@ -120,12 +123,12 @@ export function WizardColumnStep({
                       {col.uspDesignation && (
                         <Chip
                           size="small"
-                          label={`USP ${col.uspDesignation}`}
+                          label={<Ltr>USP {col.uspDesignation}</Ltr>}
                           variant="outlined"
                           sx={{ fontWeight: 600, fontSize: 12 }}
                         />
                       )}
-                      <StatusBadge status="Suitable" label="Compatible" />
+                      <StatusBadge status="Suitable" label={t("status.compatible")} />
                     </Stack>
                   </Box>
                 </Card>

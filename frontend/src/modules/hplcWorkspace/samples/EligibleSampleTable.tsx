@@ -25,6 +25,8 @@ import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import { toast } from "sonner";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { EligibleTestDto } from "../types";
 
@@ -41,6 +43,7 @@ export function EligibleSampleTable({
   onClose,
   onAssigned
 }: EligibleSampleTableProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,11 +60,11 @@ export function EligibleSampleTable({
       setEligibleTests(tests);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to load eligible test orders.");
+      setError(e.response?.data?.message ?? e.message ?? t("samples.eligible.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [runId]);
+  }, [runId, t]);
 
   useEffect(() => {
     if (open) {
@@ -96,12 +99,12 @@ export function EligibleSampleTable({
     setError(null);
     try {
       await HplcWorkspaceService.assignSamples(runId, selectedIds);
-      toast.success(`Assigned ${selectedIds.length} sample(s) to this run.`);
+      toast.success(t("samples.eligible.assignedToast", { count: selectedIds.length }));
       onAssigned();
       onClose();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not assign samples.");
+      setError(e.response?.data?.message ?? e.message ?? t("samples.eligible.assignError"));
     } finally {
       setAssigning(false);
     }
@@ -113,19 +116,19 @@ export function EligibleSampleTable({
   return (
     <Dialog open={open} onClose={() => !assigning && onClose()} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-        Assign Eligible Samples to Run
+        {t("samples.eligible.title")}
       </DialogTitle>
       <DialogContent dividers sx={{ p: 2.5 }}>
         <Box component="form" onSubmit={handleSearchSubmit} sx={{ mb: 2 }}>
           <TextField
             size="small"
             fullWidth
-            placeholder="Search by sample number, batch, product, or test code..."
+            placeholder={t("samples.eligible.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             disabled={loading || assigning}
             slotProps={{
-              htmlInput: { "aria-label": "Search eligible samples" },
+              htmlInput: { "aria-label": t("samples.eligible.searchAria") },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -139,7 +142,7 @@ export function EligibleSampleTable({
                       size="small"
                       disabled={loading || assigning}
                     >
-                      Search
+                      {t("samples.eligible.searchButton")}
                     </Button>
                   </InputAdornment>
                 )
@@ -173,36 +176,36 @@ export function EligibleSampleTable({
                     <Checkbox
                       size="small"
                       checked={allSelected}
-                      slotProps={{ input: { "aria-label": "Select all eligible samples" } }}
+                      slotProps={{ input: { "aria-label": t("samples.eligible.selectAllAria") } }}
                       indeterminate={someSelected}
                       onChange={handleToggleSelectAll}
                       disabled={eligibleTests.length === 0 || assigning}
                     />
                   </TableCell>
-                  <TableCell>Sample Number</TableCell>
-                  <TableCell>Batch</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Test Code</TableCell>
-                  <TableCell>Stage</TableCell>
-                  <TableCell>Received At</TableCell>
+                  <TableCell>{t("samples.eligible.columns.sampleNumber")}</TableCell>
+                  <TableCell>{t("samples.eligible.columns.batch")}</TableCell>
+                  <TableCell>{t("samples.eligible.columns.product")}</TableCell>
+                  <TableCell>{t("samples.eligible.columns.testCode")}</TableCell>
+                  <TableCell>{t("samples.eligible.columns.stage")}</TableCell>
+                  <TableCell>{t("samples.eligible.columns.receivedAt")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {eligibleTests.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                      No eligible test orders found matching this method and criteria.
+                      {t("samples.eligible.empty")}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  eligibleTests.map((t) => {
-                    const isSelected = selectedIds.includes(t.testOrderId);
+                  eligibleTests.map((testItem) => {
+                    const isSelected = selectedIds.includes(testItem.testOrderId);
                     return (
                       <TableRow
-                        key={t.testOrderId}
+                        key={testItem.testOrderId}
                         hover
                         selected={isSelected}
-                        onClick={() => !assigning && handleToggleRow(t.testOrderId)}
+                        onClick={() => !assigning && handleToggleRow(testItem.testOrderId)}
                         sx={{ cursor: assigning ? "default" : "pointer" }}
                       >
                         <TableCell padding="checkbox">
@@ -210,23 +213,23 @@ export function EligibleSampleTable({
                             size="small"
                             checked={isSelected}
                             disabled={assigning}
-                            slotProps={{ input: { "aria-label": `Select ${t.sampleNumber} - ${t.testCode}` } }}
+                            slotProps={{ input: { "aria-label": t("samples.eligible.selectRowAria", { sampleNumber: testItem.sampleNumber, testCode: testItem.testCode }) } }}
                           />
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>
-                          <div>{t.sampleNumber}</div>
-                          {t.subjectName && (
+                          <div><Ltr>{testItem.sampleNumber}</Ltr></div>
+                          {testItem.subjectName && (
                             <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
-                              {t.subjectName}
+                              {testItem.subjectName}
                             </Typography>
                           )}
                         </TableCell>
-                        <TableCell>{t.batchNumber ?? "—"}</TableCell>
-                        <TableCell>{t.productName ?? "—"}</TableCell>
-                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{t.testCode}</TableCell>
-                        <TableCell>{t.stageName ?? "—"}</TableCell>
+                        <TableCell>{testItem.batchNumber ? <Ltr>{testItem.batchNumber}</Ltr> : "—"}</TableCell>
+                        <TableCell>{testItem.productName ?? "—"}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}><Ltr>{testItem.testCode}</Ltr></TableCell>
+                        <TableCell>{testItem.stageName ?? "—"}</TableCell>
                         <TableCell>
-                          {t.receivedAt ? new Date(t.receivedAt).toLocaleDateString() : "—"}
+                          {testItem.receivedAt ? <Ltr>{new Date(testItem.receivedAt).toLocaleDateString()}</Ltr> : "—"}
                         </TableCell>
                       </TableRow>
                     );
@@ -239,7 +242,7 @@ export function EligibleSampleTable({
 
         <Box sx={{ mt: 1.5, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {selectedIds.length} of {eligibleTests.length} sample(s) selected
+            {t("samples.eligible.selectedCount", { selected: selectedIds.length, total: eligibleTests.length })}
           </Typography>
         </Box>
       </DialogContent>
@@ -248,7 +251,7 @@ export function EligibleSampleTable({
           onClick={onClose}
           disabled={assigning}
         >
-          Cancel
+          {t("samples.eligible.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -258,7 +261,7 @@ export function EligibleSampleTable({
           startIcon={assigning ? <CircularProgress size={16} color="inherit" /> : <AssignmentTurnedInIcon />}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          {assigning ? "Assigning..." : `Assign Selected (${selectedIds.length})`}
+          {assigning ? t("samples.eligible.assigning") : t("samples.eligible.assignSelected", { count: selectedIds.length })}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1644,5 +1644,122 @@
     "heightLabel": "Height (mm)",
     "layoutLabel": "Layout",
     "copiesLabel": "Default number of labels"
+  },
+  "cryovials": {
+    "kpis": {
+      "totalBatches": "Total Batches",
+      "vialsAvailable": "Vials Available",
+      "expiringSoon": "Expiring Soon (30 d)",
+      "lowStock": "Low Stock (≤ 2 vials)"
+    },
+    "move": {
+      "moved": "Storage location of cryovial batch {{code}} changed.",
+      "error": "Failed to change storage location.",
+      "title": "Change Storage Location",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "move": "Move",
+      "batchLine": "Batch <bold>{{code}}</bold> - currently: {{current}}",
+      "notRecorded": "not recorded",
+      "reasonLabel": "Reason for move *",
+      "reasonShort": "Reason must be at least 5 characters.",
+      "reasonHelper": "Recorded in the audit trail."
+    },
+    "filters": {
+      "searchPlaceholder": "Search by code, organism, material...",
+      "organism": "Organism",
+      "allOrganisms": "All Organisms",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "statuses": {
+        "Approved": "Approved",
+        "PendingReview": "Pending Review",
+        "Rejected": "Rejected",
+        "Destroyed": "Destroyed",
+        "Depleted": "Depleted (0 Vials)"
+      },
+      "expiry": "Expiry",
+      "allExpiry": "All Expiry",
+      "expiryOptions": {
+        "expiring_30": "Expiring in 30 Days",
+        "expired": "Expired",
+        "valid": "Valid / Unexpired"
+      },
+      "reset": "Reset"
+    },
+    "destroy": {
+      "error": "Failed to destroy cryovial batch.",
+      "title": "Confirm Batch Destruction",
+      "cancel": "Cancel",
+      "destroying": "Destroying...",
+      "confirm": "Confirm Destruction",
+      "warning": "Destroying this cryovial batch withdraws it permanently: no more vials can be thawed from it, and its already-thawed vials can no longer be used in Media Evaluation or GPT. All of its vials (thawed and unthawed) become eligible for destruction straight away; record the autoclave cycle on the Biological Waste Destruction page.",
+      "code": "Cryovial Code",
+      "organism": "Organism",
+      "vialsRemaining": "Vials Remaining",
+      "ofPrepared": "{{remaining}} of {{prepared}}"
+    },
+    "thaw": {
+      "error": "Failed to thaw cryovial.",
+      "title": "Thaw Vial: Provide Reason",
+      "cancel": "Cancel",
+      "thawing": "Thawing...",
+      "confirm": "Confirm Thaw",
+      "code": "Cryovial Code",
+      "organism": "Organism",
+      "available": "Available Vials",
+      "availableValue": "{{remaining}} of {{prepared}} vials",
+      "reasonHeading": "Reason for Thawing",
+      "placeholder": "Enter reason for thawing this cryovial...",
+      "reasonShort": "Reason must be at least 5 characters.",
+      "reasonAria": "Enter reason for thawing this cryovial",
+      "justification": "GMP justification for vial retrieval",
+      "counter": "{{count}} / 500 characters"
+    },
+    "table": {
+      "columns": {
+        "code": "Code",
+        "organismSource": "Organism & Source",
+        "status": "Status",
+        "vialsStock": "Vials Stock",
+        "prepared": "Prepared",
+        "expiry": "Expiry"
+      },
+      "atcc": " (ATCC {{number}})",
+      "strain": "Strain {{code}} · {{collection}}{{number}}",
+      "materialBatch": "{{name}} · Batch {{batch}}",
+      "destroyed": "Destroyed",
+      "depleted": "Depleted",
+      "vialsOf": "{{remaining}} of {{prepared}} vials",
+      "expired": "Expired",
+      "expiringSoon": "Expiring soon",
+      "actions": {
+        "approve": "Approve batch",
+        "reject": "Reject batch",
+        "thaw": "Thaw vial",
+        "moveStorage": "Change storage location",
+        "destroy": "Destroy (decommission batch)",
+        "viewReport": "View laboratory report record"
+      },
+      "emptyFilteredTitle": "No cryovials matching the filter criteria",
+      "emptyFilteredDesc": "Reset the filters to see all batches.",
+      "emptyTitle": "No cryovial batches yet",
+      "emptyDesc": "Prepare the first working cryovial batch."
+    },
+    "page": {
+      "loadError": "Failed to load cryovials register.",
+      "tabRegister": "Cryovials",
+      "tabApproved": "Approved Cryovials",
+      "approved": "Cryovial batch {{code}} has been Approved.",
+      "rejected": "Cryovial batch {{code}} has been Rejected.",
+      "thawed": "Vial from {{code}} successfully thawed and logged.",
+      "destroyed": "Batch {{code}} has been decommissioned and destroyed.",
+      "title": "Cryovials",
+      "subtitle": "Prepare working cryovial batches from an approved lyophilized microorganism material.",
+      "prepare": "Prepare Cryovial Batch",
+      "prepared": "Cryovial batch prepared successfully. Awaiting Section Head approval.",
+      "approveStatement": "I am approving Cryovial Batch {{code}} for laboratory testing and media evaluation.",
+      "rejectStatement": "I am rejecting and decommissioning Cryovial Batch {{code}}."
+    }
   }
 }

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import {
@@ -16,6 +18,7 @@ export function MoveCryovialStorageDialog({ cryovial, onClose, onMoved }: {
   onClose: () => void;
   onMoved: (message: string) => void;
 }) {
+  const { t } = useTranslation("labConfig");
   const [location, setLocation] = useState<StorageLocationValue>(EMPTY_STORAGE_LOCATION);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -35,9 +38,9 @@ export function MoveCryovialStorageDialog({ cryovial, onClose, onMoved }: {
     setError(null);
     try {
       await CryovialService.moveStorage(cryovial.id, { ...storageLocationPayload(location), reason: reason.trim() });
-      onMoved(`Storage location of cryovial batch ${cryovial.code} changed.`);
+      onMoved(t("cryovials.move.moved", { code: cryovial.code }));
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to change storage location.");
+      setError(e?.response?.data?.message ?? t("cryovials.move.error"));
     } finally {
       setSubmitting(false);
     }
@@ -48,12 +51,12 @@ export function MoveCryovialStorageDialog({ cryovial, onClose, onMoved }: {
       open
       maxWidth="sm"
       onClose={() => { if (!submitting) onClose(); }}
-      title="Change Storage Location"
+      title={t("cryovials.move.title")}
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>{t("cryovials.move.cancel")}</Button>
           <Button variant="contained" onClick={save} disabled={!valid || submitting}>
-            {submitting ? "Saving..." : "Move"}
+            {submitting ? t("cryovials.move.saving") : t("cryovials.move.move")}
           </Button>
         </>
       }
@@ -61,7 +64,12 @@ export function MoveCryovialStorageDialog({ cryovial, onClose, onMoved }: {
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}
         <Typography sx={{ fontSize: 13 }}>
-          Batch <b>{cryovial.code}</b> - currently: {cryovial.storageCondition || "not recorded"}
+          <Trans
+            i18nKey="cryovials.move.batchLine"
+            ns="labConfig"
+            values={{ code: cryovial.code, current: cryovial.storageCondition || t("cryovials.move.notRecorded") }}
+            components={{ bold: <b /> }}
+          />
         </Typography>
         <StorageLocationPicker value={location} onChange={setLocation} disabled={submitting} />
         <TextField
@@ -69,11 +77,11 @@ export function MoveCryovialStorageDialog({ cryovial, onClose, onMoved }: {
           fullWidth
           multiline
           rows={2}
-          label="Reason for move *"
+          label={t("cryovials.move.reasonLabel")}
           value={reason}
           onChange={(e) => setReason(e.target.value.slice(0, 500))}
           error={reason.length > 0 && reason.trim().length < 5}
-          helperText={reason.length > 0 && reason.trim().length < 5 ? "Reason must be at least 5 characters." : "Recorded in the audit trail."}
+          helperText={reason.length > 0 && reason.trim().length < 5 ? t("cryovials.move.reasonShort") : t("cryovials.move.reasonHelper")}
         />
       </Stack>
     </FloatingDialog>

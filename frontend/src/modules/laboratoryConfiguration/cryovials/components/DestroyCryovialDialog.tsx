@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import {
   Button,
   Typography,
@@ -26,6 +27,7 @@ export function DestroyCryovialDialog({
   onCancel,
   onConfirm
 }: DestroyCryovialDialogProps) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +42,7 @@ export function DestroyCryovialDialog({
     try {
       await onConfirm();
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to destroy cryovial batch.");
+      setError(e?.response?.data?.message ?? t("cryovials.destroy.error"));
     } finally {
       setSubmitting(false);
     }
@@ -70,14 +72,14 @@ export function DestroyCryovialDialog({
             <DeleteOutlineIcon fontSize="small" />
           </Box>
           <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
-            Confirm Batch Destruction
+            {t("cryovials.destroy.title")}
           </Typography>
         </>
       }
       actions={
         <>
           <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
-            Cancel
+            {t("cryovials.destroy.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -86,7 +88,7 @@ export function DestroyCryovialDialog({
             disabled={submitting}
             startIcon={<DeleteOutlineIcon />}
           >
-            {submitting ? "Destroying..." : "Confirm Destruction"}
+            {submitting ? t("cryovials.destroy.destroying") : t("cryovials.destroy.confirm")}
           </Button>
         </>
       }
@@ -95,9 +97,7 @@ export function DestroyCryovialDialog({
           {error && <Alert severity="error">{error}</Alert>}
 
           <Alert severity="warning" icon={<WarningAmberIcon />}>
-            Destroying this cryovial batch withdraws it permanently: no more vials can be thawed from it, and its already-thawed
-            vials can no longer be used in Media Evaluation or GPT. All of its vials (thawed and unthawed) become eligible for
-            destruction straight away; record the autoclave cycle on the Biological Waste Destruction page.
+            {t("cryovials.destroy.warning")}
           </Alert>
 
           <Paper
@@ -118,7 +118,7 @@ export function DestroyCryovialDialog({
             >
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Cryovial Code
+                  {t("cryovials.destroy.code")}
                 </Typography>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
                   {cryovial.code}
@@ -127,7 +127,7 @@ export function DestroyCryovialDialog({
 
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Organism
+                  {t("cryovials.destroy.organism")}
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                   {organismName}
@@ -136,10 +136,10 @@ export function DestroyCryovialDialog({
 
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Vials Remaining
+                  {t("cryovials.destroy.vialsRemaining")}
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.detected.text }}>
-                  {cryovial.vialsRemaining} of {cryovial.numberOfVialsPrepared}
+                  {t("cryovials.destroy.ofPrepared", { remaining: cryovial.vialsRemaining, prepared: cryovial.numberOfVialsPrepared })}
                 </Typography>
               </Box>
             </Box>

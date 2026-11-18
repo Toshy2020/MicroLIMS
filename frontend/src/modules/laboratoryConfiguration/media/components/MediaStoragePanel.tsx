@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import type { TFunction } from "i18next";
+import { Trans } from "react-i18next";
 import {
   Alert, Box, Button, FormControl, InputLabel, MenuItem, Select, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, Typography
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useTranslation } from "../../../../i18n";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import {
   EMPTY_STORAGE_LOCATION,
@@ -15,13 +18,15 @@ import {
 import { tableHeadSx } from "../../../../theme";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 
-const FORMS = [
-  { value: "Plates", label: "Plates" },
-  { value: "AgarBottles", label: "Agar bottles" },
-  { value: "BrothBottles", label: "Broth bottles" },
-  { value: "Tubes", label: "Tubes" }
-];
-const formLabel = (v: string) => FORMS.find((f) => f.value === v)?.label ?? v;
+function getForms(t: TFunction<"labConfig">) {
+  return [
+    { value: "Plates", label: t("media.storagePanel.forms.plates") },
+    { value: "AgarBottles", label: t("media.storagePanel.forms.agarBottles") },
+    { value: "BrothBottles", label: t("media.storagePanel.forms.brothBottles") },
+    { value: "Tubes", label: t("media.storagePanel.forms.tubes") }
+  ];
+}
+const formLabel = (t: TFunction<"labConfig">, v: string) => getForms(t).find((f) => f.value === v)?.label ?? v;
 
 interface Entry {
   id: number;
@@ -42,6 +47,7 @@ const placeOf = (e: Entry) =>
 // Where a released lot physically is. One lot can be held in several forms
 // and places at once (plates in a refrigerator, bottles in the media store).
 export function MediaStoragePanel({ lot }: { lot: any }) {
+  const { t } = useTranslation("labConfig");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loadError, setLoadError] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -66,41 +72,47 @@ export function MediaStoragePanel({ lot }: { lot: any }) {
   return (
     <Stack spacing={2} sx={{ pt: 1 }}>
       {message && <Alert severity="success" onClose={() => setMessage(null)}>{message}</Alert>}
-      {loadError && <Alert severity="error">Failed to load storage locations.</Alert>}
+      {loadError && <Alert severity="error">{t("media.storagePanel.loadError")}</Alert>}
 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "primary.main" }}>STORAGE LOCATIONS</Typography>
+        <Typography sx={{ fontSize: 12, fontWeight: 700, color: "primary.main" }}>
+          {t("media.storagePanel.title")}
+        </Typography>
         {canStore && (
           <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
-            Add storage
+            {t("media.storagePanel.addStorage")}
           </Button>
         )}
       </Box>
 
-      {!canStore && <Alert severity="info">Storage can be recorded once the lot is released and in stock.</Alert>}
+      {!canStore && <Alert severity="info">{t("media.storagePanel.notStorable")}</Alert>}
 
       {entries.length === 0 && canStore && !loadError ? (
-        <Alert severity="info">No storage recorded yet. Add where this lot is kept (e.g. plates in a refrigerator, bottles in the media storage area).</Alert>
+        <Alert severity="info">{t("media.storagePanel.empty")}</Alert>
       ) : (
         entries.length > 0 && (
           <TableContainer>
             <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
               <TableHead>
                 <TableRow sx={tableHeadSx}>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Form</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Quantity</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Location</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.storagePanel.columns.form")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.storagePanel.columns.quantity")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.storagePanel.columns.location")}</TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
                 {entries.map((e) => (
                   <TableRow key={e.id}>
-                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formLabel(e.form)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>{formLabel(t, e.form)}</TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{e.quantity}</TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{placeOf(e)}</TableCell>
                     <TableCell align="right">
-                      {canStore && <Button size="small" onClick={() => setMoving(e)}>Move</Button>}
+                      {canStore && (
+                        <Button size="small" onClick={() => setMoving(e)}>
+                          {t("media.storagePanel.move")}
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -110,14 +122,29 @@ export function MediaStoragePanel({ lot }: { lot: any }) {
         )
       )}
 
-      {adding && <StorageDialog lot={lot} onClose={() => setAdding(false)} onDone={() => done("Storage added.")} />}
-      {moving && <StorageDialog lot={lot} entry={moving} onClose={() => setMoving(null)} onDone={() => done("Storage moved.")} />}
+      {adding && (
+        <StorageDialog
+          lot={lot}
+          onClose={() => setAdding(false)}
+          onDone={() => done(t("media.storagePanel.storageAdded"))}
+        />
+      )}
+      {moving && (
+        <StorageDialog
+          lot={lot}
+          entry={moving}
+          onClose={() => setMoving(null)}
+          onDone={() => done(t("media.storagePanel.storageMoved"))}
+        />
+      )}
     </Stack>
   );
 }
 
 // Add a new entry, or (with `entry`) move some/all of an existing one.
 function StorageDialog({ lot, entry, onClose, onDone }: { lot: any; entry?: Entry; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslation("labConfig");
+  const forms = getForms(t);
   const [form, setForm] = useState(entry?.form ?? "Plates");
   const [quantity, setQuantity] = useState(entry ? String(entry.quantity) : "");
   const [location, setLocation] = useState<StorageLocationValue>(EMPTY_STORAGE_LOCATION);
@@ -138,7 +165,7 @@ function StorageDialog({ lot, entry, onClose, onDone }: { lot: any; entry?: Entr
       else await MediaPreparationService.addStorage(lot.id, { form, quantity: qty, ...where });
       onDone();
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to save storage.");
+      setError(e?.response?.data?.message ?? t("media.storagePanel.saveError"));
     } finally {
       setSubmitting(false);
     }
@@ -149,12 +176,18 @@ function StorageDialog({ lot, entry, onClose, onDone }: { lot: any; entry?: Entr
       open
       maxWidth="sm"
       onClose={() => { if (!submitting) onClose(); }}
-      title={entry ? "Move Storage" : "Add Storage"}
+      title={entry ? t("media.storagePanel.moveTitle") : t("media.storagePanel.addTitle")}
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>
+            {t("media.storagePanel.cancel")}
+          </Button>
           <Button variant="contained" onClick={save} disabled={!valid || submitting}>
-            {submitting ? "Saving..." : entry ? "Move" : "Add"}
+            {submitting
+              ? t("media.storagePanel.saving")
+              : entry
+              ? t("media.storagePanel.move")
+              : t("media.storagePanel.add")}
           </Button>
         </>
       }
@@ -162,25 +195,40 @@ function StorageDialog({ lot, entry, onClose, onDone }: { lot: any; entry?: Entr
       <Stack spacing={2}>
         {error && <Alert severity="error">{error}</Alert>}
         <Typography sx={{ fontSize: 13 }}>
-          Lot <b>{lot.lotNumber}</b>
-          {entry && <> - moving from {formLabel(entry.form)} at {placeOf(entry)} (holds {entry.quantity})</>}
+          <Trans
+            i18nKey="media.storagePanel.lotPrefix"
+            ns="labConfig"
+            values={{ lotNumber: lot.lotNumber }}
+            components={{ bold: <b /> }}
+          />
+          {entry &&
+            t("media.storagePanel.movingFrom", {
+              form: formLabel(t, entry.form),
+              place: placeOf(entry),
+              quantity: entry.quantity
+            })}
         </Typography>
         {!entry && (
           <FormControl size="small" fullWidth>
-            <InputLabel id="storage-form">Stored as *</InputLabel>
-            <Select labelId="storage-form" label="Stored as *" value={form} onChange={(e) => setForm(e.target.value)}>
-              {FORMS.map((f) => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
+            <InputLabel id="storage-form">{t("media.storagePanel.storedAsLabel")}</InputLabel>
+            <Select
+              labelId="storage-form"
+              label={t("media.storagePanel.storedAsLabel")}
+              value={form}
+              onChange={(e) => setForm(e.target.value)}
+            >
+              {forms.map((f) => <MenuItem key={f.value} value={f.value}>{f.label}</MenuItem>)}
             </Select>
           </FormControl>
         )}
         <TextField
           size="small"
-          label={entry ? "Quantity to move *" : "Quantity *"}
+          label={entry ? t("media.storagePanel.quantityToMoveLabel") : t("media.storagePanel.quantityLabel")}
           type="number"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           error={quantity !== "" && !qtyOk}
-          helperText={entry ? `Up to ${entry.quantity}. Moving less splits the entry.` : undefined}
+          helperText={entry ? t("media.storagePanel.moveHelper", { max: entry.quantity }) : undefined}
           slotProps={{ htmlInput: { min: 1, step: 1 } }}
         />
         <StorageLocationPicker value={location} onChange={setLocation} disabled={submitting} />
@@ -190,11 +238,11 @@ function StorageDialog({ lot, entry, onClose, onDone }: { lot: any; entry?: Entr
             fullWidth
             multiline
             rows={2}
-            label="Reason for move *"
+            label={t("media.storagePanel.reasonLabel")}
             value={reason}
             onChange={(e) => setReason(e.target.value.slice(0, 500))}
             error={reason.length > 0 && reason.trim().length < 5}
-            helperText="Recorded in the audit trail."
+            helperText={t("media.storagePanel.reasonHelper")}
           />
         )}
       </Stack>

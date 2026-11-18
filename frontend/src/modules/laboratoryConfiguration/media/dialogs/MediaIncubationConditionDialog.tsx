@@ -8,7 +8,8 @@ import {
 } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
-import { hints } from "../hints";
+import { useTranslation } from "../../../../i18n";
+import { getMediaHints } from "../hints";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import {
   MediaIncubationConditionOption,
@@ -26,6 +27,8 @@ interface MediaIncubationConditionDialogProps {
 export function MediaIncubationConditionDialog(props: MediaIncubationConditionDialogProps) {
   const { open, product, conditionToEdit, onClose, onSuccess } = props;
 
+  const { t } = useTranslation("labConfig");
+  const hints = getMediaHints(t);
   const [incubationMinHours, setIncubationMinHours] = useState<number | "">("");
   const [incubationMaxHours, setIncubationMaxHours] = useState<number | "">("");
   const [temperatureMin, setTemperatureMin] = useState<number | "">("");
@@ -61,7 +64,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
       temperatureMin === "" ||
       temperatureMax === ""
     ) {
-      setError("Enter the incubation hours and temperature range.");
+      setError(t("media.incubationConditionDialog.requiredError"));
       return;
     }
 
@@ -86,7 +89,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
       onClose();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? "Failed to save the incubation condition.");
+      setError(msg ?? t("media.incubationConditionDialog.saveError"));
     } finally {
       setSaving(false);
     }
@@ -100,16 +103,20 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
       titleSx={{ fontWeight: 700, fontSize: 16 }}
       title={
         conditionToEdit
-          ? `Edit incubation condition - ${product.name}`
-          : `Add incubation condition - ${product.name}`
+          ? t("media.incubationConditionDialog.editTitle", { name: product.name })
+          : t("media.incubationConditionDialog.addTitle", { name: product.name })
       }
       actions={
         <>
           <Button onClick={onClose} disabled={saving} color="inherit">
-            Cancel
+            {t("media.incubationConditionDialog.cancel")}
           </Button>
           <Button variant="contained" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : conditionToEdit ? "Save Changes" : "Save Condition"}
+            {saving
+              ? t("media.incubationConditionDialog.saving")
+              : conditionToEdit
+              ? t("media.incubationConditionDialog.saveChanges")
+              : t("media.incubationConditionDialog.saveCondition")}
           </Button>
         </>
       }
@@ -120,7 +127,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
         <Stack direction="row" spacing={2}>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", flex: 1 }}>
             <TextField
-              label="Incubation Min (h)"
+              label={t("media.incubationConditionDialog.incubationMinLabel")}
               type="number"
               size="small"
               required
@@ -131,10 +138,14 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
               }
               slotProps={{ input: { "aria-describedby": hintDescribedBy("media-incubation-min") } }}
             />
-            <FieldHint id="media-incubation-min" label="Incubation Min (h)" hint={hints.incubationMin} />
+            <FieldHint
+              id="media-incubation-min"
+              label={t("media.incubationConditionDialog.incubationMinLabel")}
+              hint={hints.incubationMin}
+            />
           </Stack>
           <TextField
-            label="Incubation Max (h)"
+            label={t("media.incubationConditionDialog.incubationMaxLabel")}
             type="number"
             size="small"
             required
@@ -148,7 +159,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
 
         <Stack direction="row" spacing={2}>
           <TextField
-            label="Temp Min (°C)"
+            label={t("media.incubationConditionDialog.tempMinLabel")}
             type="number"
             size="small"
             required
@@ -159,7 +170,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
             }
           />
           <TextField
-            label="Temp Max (°C)"
+            label={t("media.incubationConditionDialog.tempMaxLabel")}
             type="number"
             size="small"
             required
@@ -172,7 +183,7 @@ export function MediaIncubationConditionDialog(props: MediaIncubationConditionDi
         </Stack>
 
         <Typography variant="caption" color="text.secondary">
-          Once an evaluation configuration or a Test Master step uses this condition, it can't be changed.
+          {t("media.incubationConditionDialog.lockedNote")}
         </Typography>
       </Stack>
     </FloatingDialog>

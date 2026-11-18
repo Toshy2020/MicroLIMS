@@ -19,6 +19,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
+import { useTranslation } from "../../../../i18n";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../../theme";
 import {
@@ -40,6 +41,7 @@ interface MediaIncubationConditionsSectionProps {
 
 export function MediaIncubationConditionsSection(props: MediaIncubationConditionsSectionProps) {
   const { product, conditions, onUpdated, isManager } = props;
+  const { t } = useTranslation("labConfig");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCondition, setEditingCondition] = useState<MediaIncubationConditionOption | null>(null);
   const [pendingDeleteCondition, setPendingDeleteCondition] = useState<MediaIncubationConditionOption | null>(null);
@@ -62,10 +64,14 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
     try {
       await masterDataOptions.deleteMediaIncubationCondition(conditionToDelete.id);
       setPendingDeleteCondition(null);
-      onUpdated(`Incubation condition ${incubationConditionLabel(conditionToDelete)} deleted.`);
+      onUpdated(
+        t("media.incubationConditionsSection.deleteSuccess", {
+          label: incubationConditionLabel(conditionToDelete)
+        })
+      );
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(msg ?? "Could not delete this incubation condition.");
+      setError(msg ?? t("media.incubationConditionsSection.deleteError"));
       setPendingDeleteCondition(null);
     }
   };
@@ -73,7 +79,11 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
   const handleDialogSuccess = () => {
     const isEditing = editingCondition != null;
     setDialogOpen(false);
-    onUpdated(isEditing ? "Incubation condition updated." : "Incubation condition added.");
+    onUpdated(
+      isEditing
+        ? t("media.incubationConditionsSection.updateSuccess")
+        : t("media.incubationConditionsSection.addSuccess")
+    );
   };
 
   return (
@@ -87,7 +97,7 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
         }}
       >
         <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-          Incubation Conditions
+          {t("media.incubationConditionsSection.title")}
         </Typography>
         {isManager && (
           <Button
@@ -97,13 +107,13 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
             onClick={handleOpenAdd}
             sx={{ textTransform: "none", fontWeight: 700 }}
           >
-            Add Condition
+            {t("media.incubationConditionsSection.addCondition")}
           </Button>
         )}
       </Stack>
 
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-        Time and temperature pairs this medium can be incubated at. The evaluation configuration and Test Master step media each pick one. A condition in use can't be edited or deleted - add a new one instead.
+        {t("media.incubationConditionsSection.subtitle")}
       </Typography>
 
       {error && (
@@ -125,8 +135,8 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
         >
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {isManager
-              ? "No incubation conditions yet. Add one before configuring this medium or using it in Test Master."
-              : "No incubation conditions yet."}
+              ? t("media.incubationConditionsSection.emptyManagerDesc")
+              : t("media.incubationConditionsSection.emptyDesc")}
           </Typography>
         </Paper>
       ) : (
@@ -134,10 +144,10 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
             <TableHead>
               <TableRow sx={tableHeadSx}>
-                <TableCell>Incubation</TableCell>
-                <TableCell>Temperature</TableCell>
-                <TableCell>Used by</TableCell>
-                {isManager && <TableCell align="right">Actions</TableCell>}
+                <TableCell>{t("media.incubationConditionsSection.columns.incubation")}</TableCell>
+                <TableCell>{t("media.incubationConditionsSection.columns.temperature")}</TableCell>
+                <TableCell>{t("media.incubationConditionsSection.columns.usedBy")}</TableCell>
+                {isManager && <TableCell align="right">{t("media.incubationConditionsSection.columns.actions")}</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -147,17 +157,17 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
 
                 if (condition.configurationCount > 0) {
                   usedByParts.push(
-                    `${condition.configurationCount} configuration${
-                      condition.configurationCount === 1 ? "" : "s"
-                    }`
+                    t("media.incubationConditionsSection.configurationCount", {
+                      count: condition.configurationCount
+                    })
                   );
                 }
 
                 if (condition.stepMediaCount > 0) {
                   usedByParts.push(
-                    `${condition.stepMediaCount} ${
-                      condition.stepMediaCount === 1 ? "step medium" : "step media"
-                    }`
+                    t("media.incubationConditionsSection.stepMediaCount", {
+                      count: condition.stepMediaCount
+                    })
                   );
                 }
 
@@ -171,7 +181,7 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
                     </TableCell>
                     <TableCell>
                       {usedByParts.length === 0 ? (
-                        <Chip size="small" variant="outlined" label="Not used" />
+                        <Chip size="small" variant="outlined" label={t("media.incubationConditionsSection.notUsed")} />
                       ) : (
                         usedByParts.join(" · ")
                       )}
@@ -180,30 +190,39 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
                           {inUse ? (
-                            <Tooltip title="In use - add a new condition instead">
+                            <Tooltip title={t("media.incubationConditionsSection.inUseTooltip")}>
                               <span>
-                                <IconButton aria-label="In use - add a new condition instead" size="small" disabled>
+                                <IconButton
+                                  aria-label={t("media.incubationConditionsSection.inUseTooltip")}
+                                  size="small"
+                                  disabled
+                                >
                                   <EditIcon fontSize="small" />
                                 </IconButton>
                               </span>
                             </Tooltip>
                           ) : (
-                            <Tooltip title="Edit condition">
+                            <Tooltip title={t("media.incubationConditionsSection.editTitle")}>
                               <IconButton size="small" onClick={() => handleOpenEdit(condition)}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           )}
                           {inUse ? (
-                            <Tooltip title="In use - add a new condition instead">
+                            <Tooltip title={t("media.incubationConditionsSection.inUseTooltip")}>
                               <span>
-                                <IconButton aria-label="In use - add a new condition instead" size="small" color="error" disabled>
+                                <IconButton
+                                  aria-label={t("media.incubationConditionsSection.inUseTooltip")}
+                                  size="small"
+                                  color="error"
+                                  disabled
+                                >
                                   <DeleteOutlineIcon fontSize="small" />
                                 </IconButton>
                               </span>
                             </Tooltip>
                           ) : (
-                            <Tooltip title="Delete condition">
+                            <Tooltip title={t("media.incubationConditionsSection.deleteTitle")}>
                               <IconButton
                                 size="small"
                                 color="error"
@@ -228,7 +247,10 @@ export function MediaIncubationConditionsSection(props: MediaIncubationCondition
         open={pendingDeleteCondition != null}
         message={
           pendingDeleteCondition
-            ? `Delete the incubation condition ${incubationConditionLabel(pendingDeleteCondition)} for "${product.name}"? This cannot be undone.`
+            ? t("media.incubationConditionsSection.deleteConfirm", {
+                label: incubationConditionLabel(pendingDeleteCondition),
+                name: product.name
+              })
             : ""
         }
         onCancel={() => setPendingDeleteCondition(null)}

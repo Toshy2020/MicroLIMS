@@ -13,6 +13,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { AuditSearchService } from "../services/AuditSearchService";
 import type { AuditTraceabilityResult } from "../types/auditTypes";
 import { resolveTraceabilityRoute } from "../../../routes/routes";
+import { i18n, useTranslation } from "../../../i18n";
+
+const tl = (key: string): string => i18n.t(key, { ns: "auditSearch" });
 
 interface Props {
   auditLogId?: number;
@@ -28,6 +31,7 @@ export function AuditTraceabilityChain({
   onOpenEntityHistory
 }: Props) {
   const navigate = useNavigate();
+  const { t } = useTranslation("auditSearch");
   const theme = useTheme();
   const [result, setResult] = useState<AuditTraceabilityResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,7 +52,7 @@ export function AuditTraceabilityChain({
         setResult(res);
       })
       .catch(() => {
-        setError("Could not load record traceability chain.");
+        setError(tl("trace.error"));
       })
       .finally(() => {
         setLoading(false);
@@ -70,7 +74,7 @@ export function AuditTraceabilityChain({
   if (!result || !result.nodes || result.nodes.length === 0) {
     return (
       <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-        No relationship chain found for this record.
+        {t("trace.none")}
       </Typography>
     );
   }
@@ -78,7 +82,7 @@ export function AuditTraceabilityChain({
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, py: 1 }}>
       <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-        Traceability Chain · {result.primaryCategory} ({result.rootIdentifier})
+        {t("trace.chain", { category: result.primaryCategory, root: result.rootIdentifier })}
       </Typography>
 
       {result.nodes.map((node, idx) => {
@@ -143,7 +147,7 @@ export function AuditTraceabilityChain({
                     onClick={() => onOpenEntityHistory(node.nodeType, node.entityId!)}
                     sx={{ fontSize: 12, textTransform: "none", py: 0.2 }}
                   >
-                    View Audit History
+                    {t("trace.viewHistory")}
                   </Button>
                 )}
 
@@ -160,7 +164,7 @@ export function AuditTraceabilityChain({
                       endIcon={<OpenInNewIcon sx={{ fontSize: 12 }} />}
                       sx={{ fontSize: 12, textTransform: "none", py: 0.2 }}
                     >
-                      Open {node.nodeType}
+                      {t("trace.open", { type: node.nodeType })}
                     </Button>
                   );
                 })()}

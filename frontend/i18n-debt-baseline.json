@@ -1,10 +1,10 @@
 {
-  "total": 5603,
+  "total": 5495,
   "modules": {
     "components": 129,
     "modules/admin": 13,
     "modules/auditReview": 61,
-    "modules/auditSearch": 118,
+    "modules/auditSearch": 10,
     "modules/authentication": 59,
     "modules/dashboard": 13,
     "modules/discussions": 95,

@@ -103,7 +103,11 @@ describe("regulated times show their time zone", () => {
       approvedByName: "Sami Head",
       approvedAt: "2026-11-17T10:41:07Z"
     });
-    expect(screen.getAllByText(new RegExp(WITH_ZONE.source + ".*Verified"))).toHaveLength(2);
+    expect(
+      screen.getAllByText(
+        (_, el) => el?.tagName === "P" && new RegExp(WITH_ZONE.source + ".*Verified").test(el.textContent ?? "")
+      )
+    ).toHaveLength(2);
   });
 });
 

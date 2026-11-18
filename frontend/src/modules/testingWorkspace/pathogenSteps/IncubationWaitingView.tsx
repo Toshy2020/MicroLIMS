@@ -1,12 +1,15 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Stack } from "@mui/material";
+import { Trans } from "react-i18next";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, CurrentStepResponse } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
-import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE, serverIncubationWindow } from "../utils/incubationWindow";
+import { serverIncubationWindow } from "../utils/incubationWindow";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { StepActionBar, StepDetailList, IncubationTimeline } from "./StepLayout";
 import { IncubationCountdown } from "./IncubationCountdown";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -46,6 +49,7 @@ interface Props {
 // timeline, the recorded lot and incubator, and the supervisor Skip Wait.
 // Readiness is still enforced by the server on submit.
 export function IncubationWaitingView({ testOrderId, step, current, onSubmitted, nextLabel, onReady, incubationWindow, renderAction }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [error, setError] = useState<string | null>(null);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
   const [skipping, setSkipping] = useState(false);
@@ -90,12 +94,21 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
 
   const openRow = (current?.previousSteps ?? []).find((p) => p.stepName === step.stepName && p.status === "Incubating");
   const details: { label: string; value: ReactNode }[] = [];
-  if (openRow?.lotNumber) details.push({ label: "Media lot", value: openRow.lotNumber });
+  if (openRow?.lotNumber) details.push({ label: t("pathogenSteps.waiting.mediaLot"), value: <Ltr>{openRow.lotNumber}</Ltr> });
   if (openRow?.incubatorName) {
-    details.push({ label: "Incubator", value: openRow.incubatorSetTemp != null ? `${openRow.incubatorName} · ${openRow.incubatorSetTemp} °C` : openRow.incubatorName });
+    details.push({
+      label: t("pathogenSteps.waiting.incubator"),
+      value: openRow.incubatorSetTemp != null ? (
+        <>
+          {openRow.incubatorName} · <Ltr>{`${openRow.incubatorSetTemp} °C`}</Ltr>
+        </>
+      ) : (
+        openRow.incubatorName
+      )
+    });
   }
-  if (tempMin > 0) details.push({ label: "Temperature", value: `${tempMin}–${tempMax} °C` });
-  if (minHours > 0) details.push({ label: "Duration", value: `${minHours}–${maxHours} h` });
+  if (tempMin > 0) details.push({ label: t("pathogenSteps.waiting.temperature"), value: <Ltr>{`${tempMin}–${tempMax} °C`}</Ltr> });
+  if (minHours > 0) details.push({ label: t("pathogenSteps.waiting.duration"), value: <Ltr>{`${minHours}–${maxHours} h`}</Ltr> });
 
   const confirmSkipWait = async () => {
     setError(null);
@@ -119,27 +132,34 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
 
       <IncubationTimeline
         points={[
-          { label: "Started", value: incubationStartUtc ? fmt(incubationStartUtc) : "—" },
-          { label: "Ready from", value: minReadyAt ? fmt(minReadyAt) : "—", active: !isReady },
-          { label: "Read by", value: expectedEndAt ? fmt(expectedEndAt) : "—", active: isReady }
+          { label: t("pathogenSteps.waiting.started"), value: incubationStartUtc ? <Ltr>{fmt(incubationStartUtc)}</Ltr> : "—" },
+          { label: t("pathogenSteps.waiting.readyFrom"), value: minReadyAt ? <Ltr>{fmt(minReadyAt)}</Ltr> : "—", active: !isReady },
+          { label: t("pathogenSteps.waiting.readBy"), value: expectedEndAt ? <Ltr>{fmt(expectedEndAt)}</Ltr> : "—", active: isReady }
         ]}
       />
 
       {details.length > 0 && <StepDetailList rows={details} />}
 
       {error && <Alert severity="error">{error}</Alert>}
-      {windowNotConfigured && <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>}
+      {windowNotConfigured && <Alert severity="error">{t("pathogenSteps.windowNotConfigured")}</Alert>}
       {!showCountdown && !isReady && minReadyAt && (
-        <Alert severity="warning">Not ready yet. Available from {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
+        <Alert severity="warning">
+          <Trans
+            i18nKey="pathogenSteps.waiting.notReadyYet"
+            ns="testingWorkspace"
+            values={{ time: fmt(minReadyAt) }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
+        </Alert>
       )}
       {alreadyOverridden && (
-        <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>
+        <Alert severity="info">{t("pathogenSteps.waiting.overridden")}</Alert>
       )}
 
       <StepActionBar>
         {canOverride && !isReady && !alreadyOverridden && !windowNotConfigured && (
           <Button variant="outlined" color="warning" onClick={() => setSkipDialogOpen(true)} disabled={skipping}>
-            Skip Wait
+            {t("pathogenSteps.waiting.skipWait")}
           </Button>
         )}
         {renderAction(isReady)}
@@ -147,7 +167,7 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
 
       <ConfirmationDialog
         open={skipDialogOpen}
-        message="Skip the remaining minimum incubation wait time for this step? This bypasses the wait only; the recorded incubation window is not changed."
+        message={t("pathogenSteps.waiting.skipConfirmMessage")}
         onConfirm={confirmSkipWait}
         onCancel={() => setSkipDialogOpen(false)}
       />

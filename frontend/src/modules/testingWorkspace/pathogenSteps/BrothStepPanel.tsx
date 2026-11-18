@@ -13,10 +13,11 @@ import {
   TestWorkflowStepDto, PermittedConfirmatoryMediaEntry, CurrentStepResponse, SiblingPathogenOrder
 } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
-import { INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE } from "../utils/incubationWindow";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
@@ -46,6 +47,7 @@ interface Props {
 // (the method requires it), so this must never be framed as a pass/fail
 // decision point. No observation field is presented.
 export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const { benchMode } = useBenchMode();
   const [keptOffline, setKeptOffline] = useKeptOffline();
@@ -157,7 +159,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
       incubatorCode: sharedRow?.incubatorName ?? null,
       incubationStartUtc: sharedRow?.incubationStartUtc ?? null,
       minReadyAt: null,
-      startedByUserName: "Analyst",
+      startedByUserName: t("pathogenSteps.broth.analystFallback"),
       isCompleted: sharedRow?.status === "Complete",
       windowNotConfigured: false
     };
@@ -173,24 +175,27 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     return (
       <Box sx={{ p: 1 }}>
         <Alert severity="success" icon={<CheckCircleIcon />} sx={{ mb: 2 }}>
-          <AlertTitle sx={{ fontWeight: 700 }}>Shared TSB Applied</AlertTitle>
-          This test is linked to the shared TSB for this sample. There is one shared tube per sample; no separate broth entry required.
+          <AlertTitle sx={{ fontWeight: 700 }}>{t("pathogenSteps.broth.sharedTsbApplied")}</AlertTitle>
+          {t("pathogenSteps.broth.sharedTsbDetail")}
         </Alert>
 
         {summary.windowNotConfigured && (
           <Alert severity="error" sx={{ mb: 2 }}>
-            {INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}
+            {t("pathogenSteps.windowNotConfigured")}
           </Alert>
         )}
 
         <Box sx={{ border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 2, p: 2, mb: 2 }}>
           <StepDetailList
             rows={[
-              { label: "TSB lot", value: summary.mediaLotNumber ?? "Standard Lot" },
-              { label: "Incubator", value: summary.incubatorCode ?? "Standard Incubator" },
-              { label: "Started", value: summary.incubationStartUtc ? formatDateTimeWithTimeZone(summary.incubationStartUtc) : "Recorded" },
-              { label: "By", value: summary.startedByUserName },
-              ...(summary.minReadyAt ? [{ label: "Available from", value: formatDateTimeWithTimeZone(summary.minReadyAt) }] : [])
+              { label: t("pathogenSteps.broth.tsbLot"), value: summary.mediaLotNumber ? <Ltr>{summary.mediaLotNumber}</Ltr> : t("pathogenSteps.broth.standardLot") },
+              { label: t("pathogenSteps.broth.incubator"), value: summary.incubatorCode ? <Ltr>{summary.incubatorCode}</Ltr> : t("pathogenSteps.broth.standardIncubator") },
+              {
+                label: t("pathogenSteps.broth.started"),
+                value: summary.incubationStartUtc ? <Ltr>{formatDateTimeWithTimeZone(new Date(summary.incubationStartUtc))}</Ltr> : t("pathogenSteps.broth.recorded")
+              },
+              { label: t("pathogenSteps.broth.by"), value: <Ltr>{summary.startedByUserName}</Ltr> },
+              ...(summary.minReadyAt ? [{ label: t("pathogenSteps.broth.availableFrom"), value: <Ltr>{formatDateTimeWithTimeZone(new Date(summary.minReadyAt))}</Ltr> }] : [])
             ]}
           />
         </Box>
@@ -202,7 +207,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
             disabled={saving || Boolean(summary.windowNotConfigured)}
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {saving ? "Advancing..." : "Proceed to Next Step →"}
+            {saving ? t("pathogenSteps.broth.advancing") : t("pathogenSteps.broth.proceedNextStep")}
           </Button>
         </StepActionBar>
       </Box>
@@ -237,7 +242,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
   const handleStartIncubation = async () => {
     setError(null);
     if (!medium || !mediaLotId || !equipmentId) {
-      setError("Select a media lot and an incubator.");
+      setError(t("pathogenSteps.broth.selectLotAndIncubator"));
       return;
     }
 
@@ -280,7 +285,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
   if (loading) return <DialogBodySkeleton blocks={3} blockHeight={48} />;
   if (error && !medium) return <Alert severity="error">{error}</Alert>;
-  if (!medium) return <Alert severity="error">This step has no assigned medium configured in Test Master.</Alert>;
+  if (!medium) return <Alert severity="error">{t("pathogenSteps.broth.noAssignedMedium")}</Alert>;
 
   const canStart = Boolean(mediaLotId && equipmentId);
 
@@ -306,16 +311,16 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
       <IncubationTimeline
         points={[
-          { label: "Start", value: "0 h", active: true },
-          { label: "Ready from", value: `${step.incubationMinHours} h` },
-          { label: "Read by", value: `${step.incubationMaxHours} h` }
+          { label: t("pathogenSteps.broth.start"), value: <Ltr>0 h</Ltr>, active: true },
+          { label: t("pathogenSteps.broth.readyFrom"), value: <Ltr>{`${step.incubationMinHours} h`}</Ltr> },
+          { label: t("pathogenSteps.broth.readBy"), value: <Ltr>{`${step.incubationMaxHours} h`}</Ltr> }
         ]}
       />
 
       <StepActionBar
         note={canStart
-          ? "Start time, media lot and incubator are recorded in the audit trail."
-          : "Select a media lot and an incubator to continue."}
+          ? t("pathogenSteps.broth.noteReady")
+          : t("pathogenSteps.broth.noteIncomplete")}
       >
         <Button
           variant="contained"
@@ -323,7 +328,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
           disabled={saving || !canStart}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {saving ? "Starting..." : "Start Incubation"}
+          {saving ? t("pathogenSteps.broth.starting") : t("pathogenSteps.broth.startIncubation")}
         </Button>
       </StepActionBar>
 
@@ -336,7 +341,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
         title={
           <>
             <InfoOutlinedIcon sx={{ color: theme.custom.status.info.text }} />
-            Apply Shared TSB to All Pathogen Tests
+            {t("pathogenSteps.broth.dialogTitle")}
           </>
         }
         actions={
@@ -345,7 +350,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
               variant="outlined"
               onClick={() => setConfirmationDialog((prev) => ({ ...prev, open: false }))}
             >
-              Cancel
+              {t("pathogenSteps.broth.cancel")}
             </Button>
             <Button
               variant="contained"
@@ -353,32 +358,31 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
               disabled={saving}
               startIcon={saving ? <CircularProgress size={16} color="inherit" /> : <CheckIcon />}
             >
-              Confirm & Apply to All
+              {t("pathogenSteps.broth.confirmApplyAll")}
             </Button>
           </>
         }
       >
           <Alert severity="info" sx={{ mb: 2 }}>
-            One TSB tube is shared across all pathogen tests for this sample.
-            There is one physical shared tube per sample; no per-test variation is permitted.
+            {t("pathogenSteps.broth.dialogInfo")}
           </Alert>
 
           {/* TSB details */}
           <Box sx={{ mb: 2, p: 1.5, backgroundColor: "background.default", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
             <Typography variant="body2">
-              <strong>TSB Lot:</strong> {confirmationDialog.mediaLotLabel}
+              <strong>{t("pathogenSteps.broth.tsbLotLabel")}</strong> <Ltr>{confirmationDialog.mediaLotLabel}</Ltr>
             </Typography>
             <Typography variant="body2">
-              <strong>Incubator:</strong> {confirmationDialog.incubatorLabel}
+              <strong>{t("pathogenSteps.broth.incubatorLabel")}</strong> <Ltr>{confirmationDialog.incubatorLabel}</Ltr>
             </Typography>
             <Typography variant="body2">
-              <strong>Started:</strong> {confirmationDialog.incubationStart}
+              <strong>{t("pathogenSteps.broth.startedLabel")}</strong> <Ltr>{confirmationDialog.incubationStart}</Ltr>
             </Typography>
           </Box>
 
           {/* Applies to list */}
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
-            Applies to all pathogen tests for this sample:
+            {t("pathogenSteps.broth.appliesToHeading")}
           </Typography>
           <List dense sx={{ mb: 1, bgcolor: "background.default", borderRadius: 1 }}>
             {confirmationDialog.siblingOrders?.map((order) => (
@@ -388,7 +392,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
                 </ListItemIcon>
                 <ListItemText
                   primary={<strong>{order.pathogenName}</strong>}
-                  secondary={`Test Order #${order.testOrderId} (${order.testCode})`}
+                  secondary={t("pathogenSteps.broth.testOrderItem", { id: order.testOrderId, code: order.testCode })}
                 />
               </ListItem>
             ))}
@@ -396,7 +400,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
 
           {/* GMP note */}
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-            This action is recorded in the audit trail per ALCOA+ contemporaneous recording requirements.
+            {t("pathogenSteps.broth.gmpNote")}
           </Typography>
       </FloatingDialog>
     </Stack>

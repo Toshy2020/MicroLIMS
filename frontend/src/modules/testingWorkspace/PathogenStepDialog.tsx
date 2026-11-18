@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, Alert, Button, useTheme } from "@mui/material";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
+import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "./utils/workflowErrors";
@@ -25,17 +26,8 @@ function getConfirmatoryOutcome(current: CurrentStepResponse): string | null {
   return confirmatoryStep?.outcome ?? null;
 }
 
-// One-line explanation per step type, behind "What happens in this step?".
-const STEP_HELP: Record<string, string> = {
-  BrothEnrichment: "This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once the assigned incubation window completes.",
-  SelectiveBroth: "This step is preparation only - it is not a pass/fail result. The workflow proceeds to the next step once the assigned incubation window completes.",
-  SelectivePlating: "Plate onto the selective medium and start incubation. Once the minimum incubation has passed, read the plate and record what grew against the expected appearance.",
-  ConfirmatoryPlating: "Plate onto each confirmatory medium the method permits and start incubation. Once the minimum incubation has passed, record an observation for every plate.",
-  BiochemicalTest: "Record the biochemical identification result and whether it shows the target organism. Your Detected / Not Detected decision sets the final result."
-};
-
-
 export function PathogenStepDialog({ testOrderId, onClose }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [current, setCurrent] = useState<CurrentStepResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +63,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
         {current.finalResult ? (
           <Box sx={{ backgroundColor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1, p: 2, mt: 1, mb: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: theme.custom.status.notDetected.text }}>
-              ✓ Final result: {current.finalResult}
+              {t("pathogenSteps.dialog.finalResult", { result: current.finalResult })}
             </Typography>
           </Box>
         ) : (
@@ -81,7 +73,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
           <Box />
           {onClose && (
             <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
-              Done / Close
+              {t("pathogenSteps.dialog.doneClose")}
             </Button>
           )}
         </Box>
@@ -90,7 +82,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   }
 
   const step = current.step;
-  if (!step) return <Alert severity="error">No current step is available for this test order.</Alert>;
+  if (!step) return <Alert severity="error">{t("pathogenSteps.dialog.noCurrentStep")}</Alert>;
 
   const stepPanelKind = resolvePathogenStepPanelKind(step.stepType);
   const isBrothStep = stepPanelKind === "Broth";
@@ -100,11 +92,11 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   const { isTimeReady } = serverIncubationWindow(step, current);
 
   const stepChip: { label: string; tone: StepChipTone } | null =
-    isBrothStep ? (isIncubating ? { label: "Incubating", tone: "purple" } : { label: "Preparation · no pass/fail", tone: "info" })
-    : isPlatingStep ? (!isIncubating ? { label: "Set up", tone: "info" } : isTimeReady ? { label: "Ready to read", tone: "notDetected" } : { label: "Incubating", tone: "purple" })
-    : stepPanelKind === "BiochemicalTest" ? { label: "Result entry", tone: "info" }
+    isBrothStep ? (isIncubating ? { label: t("pathogenSteps.dialog.chip.incubating"), tone: "purple" } : { label: t("pathogenSteps.dialog.chip.preparation"), tone: "info" })
+    : isPlatingStep ? (!isIncubating ? { label: t("pathogenSteps.dialog.chip.setup"), tone: "info" } : isTimeReady ? { label: t("pathogenSteps.dialog.chip.readyToRead"), tone: "notDetected" } : { label: t("pathogenSteps.dialog.chip.incubating"), tone: "purple" })
+    : stepPanelKind === "BiochemicalTest" ? { label: t("pathogenSteps.dialog.chip.resultEntry"), tone: "info" }
     : null;
-  const stepHelp = STEP_HELP[step.stepType];
+  const stepHelp = t(`pathogenSteps.dialog.help.${step.stepType}`, { defaultValue: "" }) || undefined;
 
   return (
     <Box>
@@ -113,7 +105,7 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
       <StepHeading
         title={step.stepName}
         chip={stepChip}
-        caption={step.isFinalStep ? "(determines the final result)" : undefined}
+        caption={step.isFinalStep ? t("pathogenSteps.dialog.determinesFinal") : undefined}
         help={stepHelp}
       />
 

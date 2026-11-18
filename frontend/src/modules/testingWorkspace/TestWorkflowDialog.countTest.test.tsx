@@ -7,6 +7,7 @@ import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../theme";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { TestWorkflowDialog } from "./TestWorkflowDialog";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 
 const service = vi.hoisted(() => ({
   getCurrentStep: vi.fn(),
@@ -390,6 +391,29 @@ describe("TestWorkflowDialog count test", () => {
 
       await user.click(screen.getByRole("button", { name: "Calculate" }));
       expect(service.recordCountResult).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Arabic RTL", () => {
+    afterEach(async () => {
+      await resetLanguage();
+    });
+
+    it("renders RTL layout, Arabic headings/buttons, and LTR batch identifier", async () => {
+      service.getCurrentStep.mockResolvedValue(incubating(60));
+      await renderInArabic(
+        <AuthProvider>
+          <MemoryRouter>
+            <TestWorkflowDialog testOrderId={9} testCode="TAMC" category="FinishedProduct" displayName="Tablet" />
+          </MemoryRouter>
+        </AuthProvider>,
+        ["common", "testingWorkspace"]
+      );
+
+      expect(document.documentElement.dir).toBe("rtl");
+      expect(await screen.findByText("قيد الحضانة")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "تسجيل النتيجة" })).toBeTruthy();
+      expect(screen.getByText("TSA-01").closest("bdi")?.getAttribute("dir")).toBe("ltr");
     });
   });
 });

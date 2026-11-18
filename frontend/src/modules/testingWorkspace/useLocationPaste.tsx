@@ -5,6 +5,7 @@ import { PastePreviewDialog } from "../../components/entry/PastePreviewDialog";
 import type { PasteAcceptedRow, PastePlan } from "../../components/entry/PastePreviewDialog";
 import { matchRowsByName } from "../../components/entry/pasteMatching";
 import { parseCount } from "../../components/bench/NumericEntryField";
+import { useTranslation } from "../../i18n";
 
 export const MAX_PASTE_ROWS = 500;
 
@@ -23,18 +24,19 @@ export function useLocationPaste(
   nameLabel: string,
   apply: (rowIndex: number, count: string) => void
 ): { onPaste(e: ClipboardEvent): void; pasteDialog: ReactElement | null } {
+  const { t } = useTranslation("testingWorkspace");
   const [cells, setCells] = useState<string[][] | null>(null);
 
   const plan = useMemo<PastePlan>(
     () => ({
-      title: "Paste preview",
+      title: t("locationGrid.paste.title"),
       maxRows: MAX_PASTE_ROWS,
       columns: [
         { key: "name", label: nameLabel, check: () => null },
         {
           key: "count",
-          label: "Count",
-          check: (v) => (parseCount(v.trim()) === null ? "Enter a whole number, 0 or more, using digits only." : null)
+          label: t("locationGrid.paste.countCol"),
+          check: (v) => (parseCount(v.trim()) === null ? t("locationGrid.paste.invalidCount") : null)
         }
       ],
       match: (pasted) =>
@@ -49,7 +51,7 @@ export function useLocationPaste(
         return location && count > 0 ? { label: location.name, count } : null;
       }
     }),
-    [locations, nameLabel]
+    [locations, nameLabel, t]
   );
 
   const onPaste = useCallback(

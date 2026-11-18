@@ -12,6 +12,8 @@ import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workfl
 import { serverIncubationWindow } from "../utils/incubationWindow";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { DraftRestoreNotice } from "../../../components/bench/DraftRestoreNotice";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useBenchDraft } from "../../../hooks/useBenchDraft";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, useKeptOffline } from "../benchSave";
@@ -34,12 +36,6 @@ function pickConfirmatorySetupDraft(v: ConfirmatoryDraftValues): Partial<Confirm
 function pickConfirmatoryReadoutDraft(v: ConfirmatoryDraftValues): Partial<ConfirmatoryDraftValues> {
   return { observations: v.observations, readoutChecked: v.readoutChecked };
 }
-
-const OBSERVATION_OPTIONS: { value: GrowthObservation; title: string; detail?: string }[] = [
-  { value: "NoGrowth", title: "No growth" },
-  { value: "GrowthNonConforming", title: "Growth, does not match expected appearance" },
-  { value: "GrowthConforming", title: "Growth matching expected appearance", detail: "Conforming" }
-];
 
 interface Props {
   testOrderId: number;
@@ -70,6 +66,7 @@ interface ReadoutMedium {
 }
 
 export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const { benchMode } = useBenchMode();
   const [keptOffline, setKeptOffline] = useKeptOffline();
   const [permitted, setPermitted] = useState<PermittedConfirmatoryMediaEntry[]>([]);
@@ -81,6 +78,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   // Set by the waiting screen when its countdown reaches zero.
   const [countdownReady, setCountdownReady] = useState(false);
   const handleReady = useCallback(() => setCountdownReady(true), []);
+
+  const observationOptions: { value: GrowthObservation; title: string; detail?: string }[] = [
+    { value: "NoGrowth", title: t("pathogenSteps.plating.obs.noGrowth") },
+    { value: "GrowthNonConforming", title: t("pathogenSteps.plating.obs.growthNonConforming") },
+    { value: "GrowthConforming", title: t("pathogenSteps.plating.obs.growthConforming"), detail: t("pathogenSteps.plating.obs.conforming") }
+  ];
 
   // Setup phase state, keyed by stepMediaId.
   const [setupRows, setSetupRows] = useState<Record<number, SetupRow>>({});
@@ -231,9 +234,9 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   const submitSetup = async () => {
     setError(null);
     const checkedRows = Object.values(setupRows).filter((r) => r.checked);
-    if (checkedRows.length === 0) { setError("Check at least one medium that was actually plated."); return; }
+    if (checkedRows.length === 0) { setError(t("pathogenSteps.confirmatory.checkOneMedium")); return; }
     if (checkedRows.some((r) => !r.mediaLotId || !r.equipmentId)) {
-      setError("Every checked medium needs a media lot and an incubator.");
+      setError(t("pathogenSteps.confirmatory.needLotAndIncubator"));
       return;
     }
     const startUtc = new Date().toISOString();
@@ -290,10 +293,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
   const submitReadout = async () => {
     setError(null);
     const active = readoutMedia.filter((m) => isReadoutActive(m.materialId));
-    if (active.length === 0) { setError("At least one medium must be confirmed as plated."); return; }
+    if (active.length === 0) { setError(t("pathogenSteps.confirmatory.confirmOneMedium")); return; }
     const missing = active.filter((m) => !observations[m.materialId]);
     if (missing.length > 0) {
-      setError(`Select an observation for: ${missing.map((m) => m.mediaName).join(", ")}.`);
+      setError(t("pathogenSteps.confirmatory.selectObservationFor", { names: missing.map((m) => m.mediaName).join(", ") }));
       return;
     }
     const payload = active.map((m) => ({ materialId: m.materialId, observation: observations[m.materialId] as GrowthObservation }));
@@ -360,13 +363,12 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
         <OfflineDraftNotice onTryAgain={() => void (phase === "setup" ? submitSetup() : submitReadout())} />
       )}
       {error && <Alert severity="error">{error}</Alert>}
-      {organism && <FixedMediumRow label="Target organism" mediaName={organism.name} />}
+      {organism && <FixedMediumRow label={t("pathogenSteps.confirmatory.targetOrganism")} mediaName={organism.name} />}
 
       {phase === "setup" && (
         <>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Tick every medium you actually plated, then choose its lot and incubator. Only media the step template
-            permits are listed.
+            {t("pathogenSteps.confirmatory.setupInstruction")}
           </Typography>
           {permitted.map((m) => {
             const row = setupRows[m.stepMediaId] ?? {
@@ -407,21 +409,21 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
           {step.incubationMaxHours > 0 ? (
             <IncubationTimeline
               points={[
-                { label: "Start", value: "0 h", active: true },
-                { label: "Ready from", value: `${step.incubationMinHours} h` },
-                { label: "Read by", value: `${step.incubationMaxHours} h` }
+                { label: t("pathogenSteps.plating.start"), value: <Ltr>0 h</Ltr>, active: true },
+                { label: t("pathogenSteps.plating.readyFrom"), value: <Ltr>{`${step.incubationMinHours} h`}</Ltr> },
+                { label: t("pathogenSteps.plating.readBy"), value: <Ltr>{`${step.incubationMaxHours} h`}</Ltr> }
               ]}
             />
           ) : (
-            <Alert severity="warning">Incubation duration is not configured in Test Master.</Alert>
+            <Alert severity="warning">{t("pathogenSteps.confirmatory.durationNotConfigured")}</Alert>
           )}
           <Typography variant="caption" sx={{ color: "text.secondary", mt: -1 }}>
-            Each medium keeps its own window; the shared incubation runs to the longest one selected.
+            {t("pathogenSteps.confirmatory.longestWindowNote")}
           </Typography>
           <StepActionBar
             note={setupComplete
-              ? "Start time, media lots and incubators are recorded in the audit trail."
-              : "Tick at least one medium and choose its lot and incubator to continue."}
+              ? t("pathogenSteps.confirmatory.setupNoteReady")
+              : t("pathogenSteps.confirmatory.setupNoteIncomplete")}
           >
             <Button
               variant="contained"
@@ -429,7 +431,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               disabled={submitting || !setupComplete}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              {submitting ? "Starting..." : "Start Incubation"}
+              {submitting ? t("pathogenSteps.plating.starting") : t("pathogenSteps.plating.startIncubation")}
             </Button>
           </StepActionBar>
         </>
@@ -441,10 +443,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
           step={step}
           current={current}
           onSubmitted={onSubmitted}
-          nextLabel="plate reading"
+          nextLabel={t("pathogenSteps.plating.plateReading")}
           onReady={handleReady}
           renderAction={() => (
-            <Button variant="contained" disabled>Submit Observations</Button>
+            <Button variant="contained" disabled>{t("pathogenSteps.confirmatory.submitObservations")}</Button>
           )}
         />
       )}
@@ -453,11 +455,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
         <>
           {readoutUncertain ? (
             <Alert severity="warning">
-              Confirmatory media for this step were already selected in a previous session. Confirm
-              each medium before recording its observation.
+              {t("pathogenSteps.confirmatory.readoutUncertain")}
             </Alert>
           ) : (
-            <Alert severity="success">Incubation complete. Read each plate against its expected appearance.</Alert>
+            <Alert severity="success">{t("pathogenSteps.confirmatory.readoutComplete")}</Alert>
           )}
           {readoutMedia.map((m) => {
             const checked = isReadoutActive(m.materialId);
@@ -470,7 +471,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                     sx={{ m: 0 }}
                     control={<Checkbox checked={checked} onChange={(e) =>
                       setReadoutChecked((prev) => ({ ...prev, [m.materialId]: e.target.checked }))} />}
-                    label="This medium was actually plated"
+                    label={t("pathogenSteps.confirmatory.actuallyPlated")}
                   />
                 )}
                 <ExpectedAppearanceNote mediaName={m.mediaName} expectedAppearance={m.expectedAppearance} />
@@ -479,19 +480,19 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
                   value={value}
                   disabled={!checked}
                   onChange={(v) => setObservations((prev) => ({ ...prev, [m.materialId]: v }))}
-                  options={OBSERVATION_OPTIONS}
+                  options={observationOptions}
                 />
               </Box>
             );
           })}
-          <StepActionBar note={readoutComplete ? undefined : "Record an observation for every plated medium to continue."}>
+          <StepActionBar note={readoutComplete ? undefined : t("pathogenSteps.confirmatory.readoutNoteIncomplete")}>
             <Button
               variant="contained"
               onClick={submitReadout}
               disabled={submitting || !readoutComplete}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              {submitting ? "Submitting..." : "Submit Observations"}
+              {submitting ? t("pathogenSteps.confirmatory.submitting") : t("pathogenSteps.confirmatory.submitObservations")}
             </Button>
           </StepActionBar>
         </>
@@ -500,11 +501,10 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
       {phase === "decision" && (
         <>
           <Alert severity="success">
-            Every confirmatory medium showed growth matching the target organism's expected appearance.
+            {t("pathogenSteps.confirmatory.decisionAlert")}
           </Alert>
           <Typography variant="body2">
-            Per SOP, choose whether to conclude detection from this conforming confirmatory result alone,
-            or proceed with biochemical confirmation.
+            {t("pathogenSteps.confirmatory.decisionPrompt")}
           </Typography>
           <StepActionBar>
             <Button
@@ -512,14 +512,14 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              Conclude as Detected
+              {t("pathogenSteps.confirmatory.concludeDetected")}
             </Button>
             <Button
               variant="contained" onClick={() => decide("ProceedToBiochemical")}
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              Proceed to Biochemical Confirmation
+              {t("pathogenSteps.confirmatory.proceedBiochemical")}
             </Button>
           </StepActionBar>
         </>

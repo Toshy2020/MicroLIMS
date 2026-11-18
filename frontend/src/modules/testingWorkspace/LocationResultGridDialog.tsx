@@ -4,12 +4,15 @@ import { Box, Table, TableHead, TableRow, TableCell, TableBody, IconButton, Butt
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { Ltr } from "../../components/Ltr";
 import { StatusBadge } from "../../components/StatusBadge";
 import { TableSkeleton } from "../../components/TableSkeleton";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { useTranslation } from "../../i18n";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
@@ -83,6 +86,7 @@ function isRowEntered(readings: string[] | undefined): boolean {
 // RawPlateReadings - same multi-reading model Water has always used,
 // mirrored here (see WaterLocationResultGridDialog.tsx).
 export function LocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const { benchMode } = useBenchMode();
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
   const [rows, setRows] = useState<LocationRow[] | null>(null);
@@ -90,12 +94,13 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [keptOffline, setKeptOffline] = useKeptOffline();
+  const dialogTitle = t("locationGrid.title", { testCode, displayName });
 
   const draft = useBenchDraft<EmGridDraftValues>({
     formKey: "em-grid",
     recordKey: String(testOrderId),
     recordVersion: null,
-    title: `${testCode} Results: ${displayName}`,
+    title: dialogTitle,
     values: { readingsByLocation },
     pick: pickEmGridDraft,
     enabled: benchMode && open && rows !== null
@@ -154,7 +159,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
           enteredReadings: (readingsByLocation[r.id] ?? []).filter((v) => v.trim() !== "").length
         }))
       : null,
-    "Location",
+    t("locationGrid.locationCol"),
     (rowIndex, count) => {
       const target = rows?.[rowIndex];
       if (target) setReadingsByLocation((m) => ({ ...m, [target.id]: [count] }));
@@ -205,7 +210,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
       onSubmitted();
     } catch (e) {
       if (!benchMode) {
-        setError(serverMessage(e) ?? "Could not record batch results.");
+        setError(serverMessage(e) ?? t("locationGrid.recordBatchFailed"));
         return;
       }
       const failure = classifySaveFailure(e);
@@ -215,7 +220,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
         await draft.onRejected(failure.message);
         setError(failure.message);
       } else {
-        setError(failure.message ?? "Could not record batch results.");
+        setError(failure.message ?? t("locationGrid.recordBatchFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -230,16 +235,16 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
   };
 
   const keepDraft = () => {
-    toast.info("Draft kept on this tablet. It is not saved to MicroLIMS.");
+    toast.info(t("locationGrid.draftKeptOffline"));
     onClose();
   };
 
   const submitDisabledReason = !rows
-    ? "Loading locations…"
+    ? t("locationGrid.loadingLocations")
     : !allEntered
-      ? "Enter at least one reading for every location."
+      ? t("locationGrid.enterAtLeastOne")
       : !isTimeReady && minReadyAt
-        ? `Results cannot be submitted before ${formatDateTimeWithTimeZone(minReadyAt)}.`
+        ? t("locationGrid.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
         : undefined;
 
   const content = (
@@ -252,20 +257,25 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
           {benchMode && keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
           {error && <Alert severity="error">{error}</Alert>}
           <Typography variant="body2" aria-live="polite" role="status" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            {enteredCount} of {rows.length} entered
+            <Trans
+              i18nKey="locationGrid.enteredProgress"
+              ns="testingWorkspace"
+              values={{ entered: enteredCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Tip: copy two columns (name, count) from a spreadsheet and paste into any reading field. You will see a preview first; nothing is saved until you submit.
+            {t("locationGrid.pasteTip")}
           </Typography>
           <Box sx={{ overflowX: "auto" }} onPaste={paste.onPaste}>
             <Table size={benchMode ? "medium" : "small"}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: "background.paper" }}>Location</TableCell>
-                  <TableCell>Limits (Alert / Action / Spec)</TableCell>
-                  <TableCell>Plate Readings</TableCell>
-                  <TableCell>Calculated Result</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 2, bgcolor: "background.paper" }}>{t("locationGrid.locationCol")}</TableCell>
+                  <TableCell>{t("locationGrid.limitsCol")}</TableCell>
+                  <TableCell>{t("locationGrid.plateReadingsCol")}</TableCell>
+                  <TableCell>{t("locationGrid.calculatedResultCol")}</TableCell>
+                  <TableCell>{t("locationGrid.statusCol")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -274,11 +284,11 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
                     key={r.id}
                     onFocus={(e) => e.currentTarget.scrollIntoView?.({ block: "nearest" })}
                   >
-                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 1, bgcolor: "background.paper" }}>
+                    <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 1, bgcolor: "background.paper" }}>
                       {r.locationName}{r.gradeClassification ? ` (${r.gradeClassification})` : ""}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {r.alertLimit ?? "—"} / {r.actionLimit ?? "—"} / {r.specLimit ?? "—"}
+                      <Ltr>{`${r.alertLimit ?? "—"} / ${r.actionLimit ?? "—"} / ${r.specLimit ?? "—"}`}</Ltr>
                     </TableCell>
                     <TableCell>
                       <Stack spacing={1}>
@@ -286,15 +296,15 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
                           <Stack direction="row" spacing={1} key={i} sx={{ alignItems: "center", width: "100%" }}>
                             <Box sx={{ flex: 1, minWidth: 120 }}>
                               <NumericEntryField
-                                label={`${r.locationName} reading ${i + 1}`}
-                                aria-label={`${r.locationName} reading ${i + 1}`}
+                                label={t("locationGrid.readingLabel", { location: r.locationName, index: i + 1 })}
+                                aria-label={t("locationGrid.readingLabel", { location: r.locationName, index: i + 1 })}
                                 kind="count"
                                 value={v}
                                 onChange={(val) => updateReading(r.id, i, val)}
                               />
                             </Box>
                             <IconButton
-                              aria-label={`Remove reading ${i + 1} for ${r.locationName}`}
+                              aria-label={t("locationGrid.removeReadingAria", { index: i + 1, location: r.locationName })}
                               size={benchMode ? "large" : "small"}
                               onClick={() => removeReading(r.id, i)}
                             >
@@ -305,15 +315,15 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
                         <Button
                           size={benchMode ? "large" : "small"}
                           startIcon={<AddIcon />}
-                          aria-label={`Add plate reading for ${r.locationName}`}
+                          aria-label={t("locationGrid.addReadingAria", { location: r.locationName })}
                           onClick={() => addReading(r.id)}
                           sx={{ alignSelf: "flex-start" }}
                         >
-                          Add Plate
+                          {t("locationGrid.addPlate")}
                         </Button>
                       </Stack>
                     </TableCell>
-                    <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>{r.liveReported ?? "—"}</TableCell>
+                    <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>{r.liveReported != null ? <Ltr>{r.liveReported}</Ltr> : "—"}</TableCell>
                     <TableCell>{r.liveStatus ? <StatusBadge status={r.liveStatus} /> : "—"}</TableCell>
                   </TableRow>
                 ))}
@@ -321,15 +331,28 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {conformCount}/{rows.length} locations within spec; worst status: <StatusBadge status={worstStatus} />
+            <Trans
+              i18nKey="locationGrid.withinSpecSummary"
+              ns="testingWorkspace"
+              values={{ conform: conformCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />{" "}
+            <StatusBadge status={worstStatus} />
           </Typography>
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
+            <Alert severity="warning">
+              <Trans
+                i18nKey="locationGrid.cannotSubmitBeforeTrans"
+                ns="testingWorkspace"
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </Alert>
           )}
           {!benchMode && (
             <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
               <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
-                {submitting ? "Submitting…" : "Submit Results"}
+                {submitting ? t("locationGrid.submitting") : t("locationGrid.submitResults")}
               </Button>
             </Stack>
           )}
@@ -349,11 +372,11 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
     return withPaste(
       <BenchDialog
         open={open}
-        title={`${testCode} Results: ${displayName}`}
+        title={dialogTitle}
         onClose={() => void closeGrid()}
         onSave={keptOffline ? keepDraft : () => void submit()}
         saving={submitting}
-        saveLabel={keptOffline ? "Keep draft" : "Submit Results"}
+        saveLabel={keptOffline ? t("locationGrid.keepDraft") : t("locationGrid.submitResults")}
         saveDisabledReason={keptOffline ? undefined : submitDisabledReason}
         dirty={dirty}
         maxWidth="lg"
@@ -364,7 +387,7 @@ export function LocationResultGridDialog({ open, testOrderId, testCode, displayN
   }
 
   return withPaste(
-    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={dialogTitle} onClose={onClose}>
       {content}
     </FloatingDialog>
   );

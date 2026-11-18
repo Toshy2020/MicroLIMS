@@ -2,9 +2,12 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import axios from "axios";
 import { Box, Typography, TextField, Button, Stack, Alert, IconButton, useTheme } from "@mui/material";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { StatusBadge } from "../../components/StatusBadge";
 import { statusTone } from "../../theme/statusTokens";
 import { errorsByRow } from "../../utils/fieldErrors";
@@ -41,28 +44,31 @@ import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
-import type { CountPreviewResult, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
+import type { CountPreviewResult, CurrentStepResponse, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
 type StepStage = NonNullable<TestWorkflowStepDto["incubationStages"]>[number];
 type OpenIncubationRow = PreviousStepDetail & { stageNumber?: number };
+type WorkflowStepState = CurrentStepResponse & { returnInfo?: { reason?: string | null } | null };
+type WorkflowPanelCurrent = WorkflowStepState &
+  Record<string, unknown> & {
+    sampleContext: CurrentStepResponse["sampleContext"] & Record<string, unknown>;
+  };
 
 // The shared incubator picker's option shape, from the lookup cache's items.
 const incubatorOptions = (items: IncubatorEquipmentItem[]) =>
   items.map((i) => ({ id: i.id, name: i.name, code: i.code, setTemperature: i.setPointTemperature ?? 0 }));
 
-const COUNT_STEP_HELP =
-  "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.";
-
-const INVALID_READING_MESSAGE = "Enter a whole number using digits only, or TNTC or Uncountable.";
-const BOTH_FLAGS_MESSAGE = "A reading set cannot contain both TNTC and Uncountable. Choose one.";
-
 const isTntcFlag = (val: string) => val.toLowerCase() === "tntc";
 const isUncountableFlag = (val: string) => val.toLowerCase() === "uncountable";
 
-function validateCountReadings(readings: string[]): {
+function validateCountReadings(
+  readings: string[],
+  invalidMsg: string,
+  bothFlagsMsg: string
+): {
   rowErrors: Record<number, string>;
   setError: string | null;
 } {
@@ -77,11 +83,11 @@ function validateCountReadings(readings: string[]): {
     } else if (isUncountableFlag(value)) {
       hasUncountable = true;
     } else if (parseCount(value) === null) {
-      rowErrors[index] = INVALID_READING_MESSAGE;
+      rowErrors[index] = invalidMsg;
     }
   });
 
-  const setError = hasTntc && hasUncountable ? BOTH_FLAGS_MESSAGE : null;
+  const setError = hasTntc && hasUncountable ? bothFlagsMsg : null;
   return { rowErrors, setError };
 }
 
@@ -110,6 +116,7 @@ interface BenchPlateRowsProps {
 // One plate per row for a tablet: a whole-number field filled from the keypad, and
 // buttons for the two non-numeric readings the existing screen already accepts.
 function BenchPlateRows({ readings, errors, isNonNumeric, onChange, onRemove }: BenchPlateRowsProps) {
+  const { t } = useTranslation("testingWorkspace");
   return (
     <Stack spacing={1}>
       {readings.map((r, i) => (
@@ -117,29 +124,29 @@ function BenchPlateRows({ readings, errors, isNonNumeric, onChange, onRemove }: 
           <Box sx={{ flex: "1 1 160px", minWidth: 0 }}>
             {isNonNumeric(r) ? (
               <TextField
-                label={`Plate ${i + 1}`}
+                label={t("testWorkflow.plateLabel", { index: i + 1 })}
                 value={r}
                 fullWidth
                 error={Boolean(errors?.[i])}
-                helperText={errors?.[i] ?? "Non-numeric: flagged for reviewer decision"}
+                helperText={errors?.[i] ?? t("testWorkflow.nonNumericHelper")}
                 slotProps={{
                   htmlInput: { readOnly: true },
                   formHelperText: errors?.[i] ? { role: "alert" } : undefined
                 }}
               />
             ) : (
-              <NumericEntryField label={`Plate ${i + 1}`} value={r} error={errors?.[i]} onChange={(v) => onChange(i, v)} kind="count" />
+              <NumericEntryField label={t("testWorkflow.plateLabel", { index: i + 1 })} value={r} error={errors?.[i]} onChange={(v) => onChange(i, v)} kind="count" />
             )}
           </Box>
           {isNonNumeric(r) ? (
-            <Button variant="outlined" aria-label={`Enter a count for plate ${i + 1}`} onClick={() => onChange(i, "")}>Enter a count</Button>
+            <Button variant="outlined" aria-label={t("testWorkflow.enterCountAria", { index: i + 1 })} onClick={() => onChange(i, "")}>{t("testWorkflow.enterCount")}</Button>
           ) : (
             <>
-              <Button variant="outlined" aria-label={`Mark plate ${i + 1} as TNTC`} onClick={() => onChange(i, "TNTC")}>TNTC</Button>
-              <Button variant="outlined" aria-label={`Mark plate ${i + 1} as uncountable`} onClick={() => onChange(i, "uncountable")}>Uncountable</Button>
+              <Button variant="outlined" aria-label={t("testWorkflow.markTntcAria", { index: i + 1 })} onClick={() => onChange(i, "TNTC")}>{t("testWorkflow.tntc")}</Button>
+              <Button variant="outlined" aria-label={t("testWorkflow.markUncountableAria", { index: i + 1 })} onClick={() => onChange(i, "uncountable")}>{t("testWorkflow.uncountable")}</Button>
             </>
           )}
-          <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => onRemove(i)} disabled={readings.length <= 1}>
+          <IconButton aria-label={t("testWorkflow.removePlateAria", { index: i + 1 })} onClick={() => onRemove(i)} disabled={readings.length <= 1}>
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
@@ -203,10 +210,11 @@ export function TestWorkflowDialog(props: Props) {
 }
 
 function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
-  const [current, setCurrent] = useState<any | null>(null);
+  const [current, setCurrent] = useState<WorkflowStepState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showLocationGrid, setShowLocationGrid] = useState(false);
   const [outsourcedLab, setOutsourcedLab] = useState<string | null>(outsourcedToLab ?? null);
@@ -252,7 +260,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       setReadingErrors({});
       setPhase(data.allStepsComplete ? "all-complete" : data.incubationLock != null ? "awaiting-result" : "select-media");
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? "Could not load this test's workflow.");
+      setError(serverMessage(e) ?? t("testWorkflow.loadFailed"));
     }
   };
 
@@ -405,7 +413,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   // one, tagged status: "Incubating"). The open row's own start time comes
   // from there instead.
   const openIncubationRow = step
-    ? (current?.previousSteps ?? []).find((p: OpenIncubationRow) => p.stepName === step.stepName && p.status === "Incubating")
+    ? ((current?.previousSteps ?? []) as OpenIncubationRow[]).find(
+        (p) => p.stepName === step.stepName && p.status === "Incubating"
+      )
     : null;
 
   const currentStageNumber = current?.incubationLock?.stageNumber ?? openIncubationRow?.stageNumber ?? 1;
@@ -426,24 +436,24 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
   const startIncubation = async () => {
     setError(null);
-    if (!mediaId || !incubatorId) return;
+    if (!mediaId || !incubatorId || !step) return;
     try {
       await TestWorkflowService.selectMedia(testOrderId, step.stepName, Number(mediaId), Number(incubatorId));
       await load();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? "Could not start incubation for this step.");
+      setError(serverMessage(e) ?? t("testWorkflow.startIncubationFailed"));
     }
   };
 
   const startStage2Incubation = async () => {
     setError(null);
-    if (!stage2IncubatorId) return;
+    if (!stage2IncubatorId || !step) return;
     try {
       await TestWorkflowService.startStage2Incubation(testOrderId, step.stepName, Number(stage2IncubatorId));
       setStage2IncubatorId("");
       await load();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? "Could not start stage 2 incubation.");
+      setError(serverMessage(e) ?? t("testWorkflow.startStage2Failed"));
     }
   };
 
@@ -453,7 +463,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       await TestWorkflowService.closeIncubationWindow(testOrderId);
       await load();
     } catch (e: unknown) {
-      setError(serverMessage(e) ?? "Could not close this incubation window.");
+      setError(serverMessage(e) ?? t("testWorkflow.closeWindowFailed"));
     }
   };
 
@@ -510,7 +520,11 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       return;
     }
 
-    const { rowErrors, setError: clientSetError } = validateCountReadings(readings);
+    const { rowErrors, setError: clientSetError } = validateCountReadings(
+      readings,
+      t("testWorkflow.invalidReading"),
+      t("testWorkflow.bothFlagsError")
+    );
     if (Object.keys(rowErrors).length > 0 || clientSetError) {
       setPreview(null);
       setPreviewError(false);
@@ -573,17 +587,18 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     dilutionFactor,
     dilutionFactorDiffersFromConfigured,
     dilutionFactorOverrideNote,
-    testOrderId
+    testOrderId,
+    t
   ]);
 
   const countSaveBlockedReason = !isTimeReady
     ? minReadyAt
-      ? `Results cannot be submitted before ${formatDateTimeWithTimeZone(minReadyAt)}.`
-      : "This step is not ready for a result yet."
+      ? t("testWorkflow.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
+      : t("testWorkflow.stepNotReady")
     : dilutionFactorNotConfigured
-      ? "No Dilution Factor is configured for this test on the item's Specifications tab."
+      ? t("testWorkflow.dfNotConfiguredShort")
       : dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim()
-        ? "A justification note is required when the entered Dilution Factor differs from the configured value."
+        ? t("testWorkflow.dfOverrideNoteRequired")
         : undefined;
 
   // Bench mode (a shared touch tablet): the plate counts are entered in a full-screen form
@@ -597,7 +612,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     formKey: "count-reading",
     recordKey: `${testOrderId}:${step?.stepName ?? ""}`,
     recordVersion: null,
-    title: `${testCode} plate counts`,
+    title: t("testWorkflow.plateCountsTitle", { testCode }),
     values: { readings, dilutionFactor, dilutionFactorOverrideNote },
     pick: pickCountDraft,
     enabled: benchCount && phase === "enter-result" && Boolean(step)
@@ -636,29 +651,34 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   };
 
   const keepCountDraft = () => {
-    toast.info("Draft kept on this tablet. It is not saved to MicroLIMS.");
+    toast.info(t("testWorkflow.draftKeptOffline"));
     setPhase("awaiting-result");
   };
 
   const submitResult = async (advance = false) => {
     setError(null);
+    if (!step) return;
     try {
       if (dilutionFactorNotConfigured) {
-        setError("No Dilution Factor is configured for this test on the item's Specifications. Ask a Section Head/Admin to configure it before recording a result.");
+        setError(t("testWorkflow.dfNotConfiguredError"));
         return;
       }
       if (readings.every((r) => r.trim() === "")) {
-        setError("Enter at least one plate reading.");
+        setError(t("testWorkflow.enterAtLeastOneReading"));
         return;
       }
-      const { rowErrors, setError: clientSetError } = validateCountReadings(readings);
+      const { rowErrors, setError: clientSetError } = validateCountReadings(
+        readings,
+        t("testWorkflow.invalidReading"),
+        t("testWorkflow.bothFlagsError")
+      );
       if (Object.keys(rowErrors).length > 0 || clientSetError) {
         setReadingErrors(rowErrors);
         setReadingSetError(clientSetError);
         return;
       }
       if (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim()) {
-        setError("A justification note is required when the entered Dilution Factor differs from the configured value.");
+        setError(t("testWorkflow.dfOverrideNoteRequired"));
         return;
       }
       const payload = {
@@ -675,7 +695,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       setLastOutcome(result);
       if (advance) {
         // Save and next: straight on to whatever the server says comes next.
-        toast.success(result.outcomeSummary ? `Recorded: ${result.outcomeSummary}` : "Reading recorded.");
+        toast.success(result.outcomeSummary ? t("testWorkflow.recordedToast", { summary: result.outcomeSummary }) : t("testWorkflow.readingRecordedToast"));
         await load();
       } else if (result.allStepsComplete) {
         setPhase("all-complete");
@@ -684,7 +704,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       }
     } catch (e) {
       if (!benchCount) {
-        setError(serverMessage(e) ?? "Could not record this result.");
+        setError(serverMessage(e) ?? t("testWorkflow.recordResultFailed"));
         return;
       }
       const failure = classifySaveFailure(e);
@@ -695,7 +715,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         await draft.onRejected(failure.message);
         setError(failure.message);
       } else {
-        setError(failure.message ?? "Could not record this result.");
+        setError(failure.message ?? t("testWorkflow.recordResultFailed"));
       }
     } finally {
       setSaving(false);
@@ -737,6 +757,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     locationEntry: current.locationEntry,
     category
   });
+  const panelCurrent = current as WorkflowPanelCurrent;
 
   // Water / AC per-location result entry
   if (panelKind === "LocationResults") {
@@ -761,7 +782,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -777,7 +798,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -793,7 +814,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -810,7 +831,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -826,7 +847,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -842,7 +863,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -858,7 +879,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -874,7 +895,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         testCode={testCode}
         itemId={itemId}
         sampleId={sampleId}
-        current={current}
+        current={panelCurrent}
         onRecorded={load}
         onClose={onClose}
       />
@@ -898,13 +919,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
   }
 
   const stepChip: { label: string; tone: StepChipTone } | null =
-    phase === "select-media" ? { label: "Set up", tone: "info" }
-    : phase === "transfer-stage-2" ? { label: "Stage 2 transfer", tone: "info" }
-    : phase === "awaiting-result" ? (isTimeReady ? { label: "Ready to read", tone: "notDetected" } : { label: "Incubating", tone: "purple" })
-    : phase === "enter-result" ? { label: "Result entry", tone: "info" }
-    : phase === "step-complete" ? { label: "Recorded", tone: "notDetected" }
+    phase === "select-media" ? { label: t("testWorkflow.chip.setup"), tone: "info" }
+    : phase === "transfer-stage-2" ? { label: t("testWorkflow.chip.stage2Transfer"), tone: "info" }
+    : phase === "awaiting-result" ? (isTimeReady ? { label: t("testWorkflow.chip.readyToRead"), tone: "notDetected" } : { label: t("testWorkflow.chip.incubating"), tone: "purple" })
+    : phase === "enter-result" ? { label: t("testWorkflow.chip.resultEntry"), tone: "info" }
+    : phase === "step-complete" ? { label: t("testWorkflow.chip.recorded"), tone: "notDetected" }
     : null;
-  const stepHelp = current.workflowType === "CountTest" ? COUNT_STEP_HELP : undefined;
+  const stepHelp = current.workflowType === "CountTest" ? t("testWorkflow.countStepHelp") : undefined;
 
   if (phase === "all-complete") {
     const outcome = lastOutcome?.finalResult ?? current.finalResult;
@@ -912,19 +933,26 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       <Box>
         <StepChainStrip current={current} />
         <Alert severity={outcome === "Detected" ? "error" : "success"} sx={{ mb: 2 }}>
-          Final result: <strong>{outcome}</strong>
+          <Trans
+            i18nKey="testWorkflow.finalResult"
+            ns="testingWorkspace"
+            values={{ outcome: outcome ?? "" }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Alert>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2 }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
+          <StatusBadge status="ResultRecorded" label={t("testWorkflow.resultRecordedPendingReview")} />
           {onClose && (
             <Button variant="contained" onClick={onClose} sx={{ fontWeight: 600, textTransform: "none" }}>
-              Done / Close
+              {t("testWorkflow.doneClose")}
             </Button>
           )}
         </Box>
       </Box>
     );
   }
+
+  if (!step) return null;
 
   const previewTone = preview?.status ? theme.custom.status[statusTone(preview.status)] : null;
 
@@ -933,34 +961,36 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             <>
               {dilutionFactorNotConfigured ? (
                 <Alert severity="error">
-                  No Dilution Factor is configured for this test on the item's Specifications tab. Ask a Section Head/Admin to configure it before recording a result.
+                  {t("testWorkflow.dfNotConfiguredError")}
                 </Alert>
               ) : (
                 <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
                   <TextField
                     id="count-dilution-factor"
-                    label="Dilution factor"
+                    label={t("testWorkflow.dilutionFactor")}
                     type="number"
                     value={dilutionFactor}
                     onChange={(e) => setDilutionFactor(e.target.value)}
                     disabled={isDirectCount || !dilutionFactorOverriding}
                     helperText={
                       isDirectCount
-                        ? "Direct count: dilution factor fixed at 1"
+                        ? t("testWorkflow.dfDirectHelper")
                         : dilutionFactorOverriding
-                          ? "Enter multiplier: 10 for 1:10 dilution, 100 for 1:100"
-                          : `Configured value from Specifications${configuredDilutionFactor != null ? ` (${configuredDilutionFactor})` : ""}`
+                          ? t("testWorkflow.dfOverrideHelper")
+                          : configuredDilutionFactor != null
+                            ? t("testWorkflow.dfConfiguredWithValHelper", { value: configuredDilutionFactor })
+                            : t("testWorkflow.dfConfiguredHelper")
                     }
                     sx={{ flex: 1, maxWidth: 320 }}
                     slotProps={{
                       inputLabel: { shrink: true },
-                      htmlInput: { step: "1", min: "1", inputMode: "numeric" }
+                      htmlInput: { step: "1", min: "1", inputMode: "numeric", dir: "ltr" }
                     }}
                   />
                   {!isDirectCount && !dilutionFactorOverriding && (
-                    <IconButton aria-label="Override dilution factor"
+                    <IconButton aria-label={t("testWorkflow.overrideDfAria")}
                       onClick={() => setDilutionFactorOverriding(true)}
-                      title="Override configured Dilution Factor"
+                      title={t("testWorkflow.overrideDfTitle")}
                       sx={{ mt: 0.5 }}
                     >
                       <EditIcon fontSize="small" />
@@ -975,7 +1005,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                         setDilutionFactor(configuredDilutionFactor != null ? String(configuredDilutionFactor) : "");
                       }}
                     >
-                      Cancel Override
+                      {t("testWorkflow.cancelOverride")}
                     </Button>
                   )}
                 </Box>
@@ -984,21 +1014,21 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               {dilutionFactorDiffersFromConfigured && (
                 <TextField
                   id="count-dilution-justification"
-                  label="Justification for override"
+                  label={t("testWorkflow.justificationOverride")}
                   required
                   multiline
                   minRows={2}
                   value={dilutionFactorOverrideNote}
                   onChange={(e) => setDilutionFactorOverrideNote(e.target.value)}
                   error={!dilutionFactorOverrideNote.trim()}
-                  helperText="Required: the entered value differs from what's configured on Specifications. This is captured in the audit trail."
+                  helperText={t("testWorkflow.justificationOverrideHelper")}
                   fullWidth
                 />
               )}
 
               <Box>
                 <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", mb: 1 }}>
-                  Plate counts
+                  {t("testWorkflow.plateCounts")}
                 </Typography>
                 {benchCount ? (
                   <BenchPlateRows readings={readings} errors={readingErrors} isNonNumeric={isNonNumeric} onChange={updateReading} onRemove={removeReading} />
@@ -1010,15 +1040,15 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                         <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 0.5 }}>
                           <TextField
                             id={`count-plate-${i + 1}`}
-                            label={`Plate ${i + 1}`}
+                            label={t("testWorkflow.plateLabel", { index: i + 1 })}
                             value={r}
                             onChange={(e) => updateReading(i, e.target.value)}
-                            placeholder="Colonies or TNTC"
+                            placeholder={t("testWorkflow.platePlaceholder")}
                             error={Boolean(fieldError)}
-                            helperText={fieldError ?? (isNonNumeric(r) ? "Non-numeric: flagged for reviewer decision" : " ")}
+                            helperText={fieldError ?? (isNonNumeric(r) ? t("testWorkflow.nonNumericHelper") : " ")}
                             slotProps={{
                               inputLabel: { shrink: true },
-                              htmlInput: { inputMode: "numeric" },
+                              htmlInput: { inputMode: "numeric", dir: "ltr" },
                               formHelperText: fieldError ? { role: "alert" } : undefined
                             }}
                             sx={{
@@ -1028,7 +1058,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                               }
                             }}
                           />
-                          <IconButton aria-label={`Remove plate ${i + 1}`} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
+                          <IconButton aria-label={t("testWorkflow.removePlateAria", { index: i + 1 })} onClick={() => removeReading(i)} disabled={readings.length <= 1} sx={{ mt: 0.5 }}>
                             <CloseIcon fontSize="small" />
                           </IconButton>
                         </Box>
@@ -1036,7 +1066,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                     })}
                   </Box>
                 )}
-                <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>Add Plate</Button>
+                <Button startIcon={<AddIcon />} onClick={addReading} sx={{ mt: 0.5 }}>{t("testWorkflow.addPlate")}</Button>
                 {readingSetError && <Alert severity="error" sx={{ mt: 1 }}>{readingSetError}</Alert>}
               </Box>
 
@@ -1050,29 +1080,29 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               >
                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
                   <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Preview — not recorded
+                    {t("testWorkflow.previewTitle")}
                   </Typography>
                   {preview?.status && <StatusBadge status={preview.status} />}
                 </Box>
                 {previewError ? (
                   <>
                     <Typography sx={{ fontSize: 16, fontWeight: 600, color: "text.secondary" }}>
-                      Preview unavailable
+                      {t("testWorkflow.previewUnavailable")}
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      Save will still calculate and record the result.
+                      {t("testWorkflow.previewUnavailableNote")}
                     </Typography>
                   </>
                 ) : preview ? (
                   <>
                     <Typography sx={{ fontSize: 22, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                      {preview.reported}
+                      <Ltr>{preview.reported}</Ltr>
                     </Typography>
                     {(preview.average != null || preview.calculated != null) && (
                       <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
                         {[
-                          preview.average != null ? `Average: ${preview.average}` : null,
-                          preview.calculated != null ? `Calculated: ${preview.calculated}` : null
+                          preview.average != null ? t("testWorkflow.previewAverage", { value: preview.average }) : null,
+                          preview.calculated != null ? t("testWorkflow.previewCalculated", { value: preview.calculated }) : null
                         ].filter(Boolean).join(" · ")}
                       </Typography>
                     )}
@@ -1088,7 +1118,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
                       —
                     </Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      Enter plate counts to see the result.
+                      {t("testWorkflow.previewEmptyNote")}
                     </Typography>
                   </>
                 )}
@@ -1102,8 +1132,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       {current?.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("testWorkflow.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("testWorkflow.returnedDefault")}
         </Alert>
       )}
       {error && !(benchCount && phase === "enter-result") && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -1112,15 +1142,15 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         title={step.stepName}
         chip={stepChip}
         caption={[
-          isTwoStageTransfer ? `Stage ${currentStageNumber} of 2` : null,
-          step.isFinalStep ? "(determines the final result)" : null
+          isTwoStageTransfer ? t("testWorkflow.stageOf2", { stage: currentStageNumber }) : null,
+          step.isFinalStep ? t("testWorkflow.determinesFinal") : null
         ].filter(Boolean).join(" · ") || undefined}
         help={stepHelp}
       />
 
       {phase === "select-media" && (
         <Stack spacing={2}>
-          <FixedMediumRow label="Permitted medium" mediaName={permittedMaterialNames || "Approved media"} />
+          <FixedMediumRow label={t("testWorkflow.permittedMedium")} mediaName={permittedMaterialNames || t("testWorkflow.approvedMedia")} />
 
           <MediaLotIncubatorFields
             idPrefix="count"
@@ -1148,9 +1178,9 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
           <IncubationTimeline
             points={[
-              { label: isTwoStageTransfer ? "Stage 1 start" : "Start", value: "0 h", active: true },
-              { label: "Ready from", value: `${stage1IncMinHours} h` },
-              { label: "Read by", value: `${stage1IncMaxHours} h` }
+              { label: isTwoStageTransfer ? t("testWorkflow.stage1Start") : t("testWorkflow.start"), value: <Ltr>0 h</Ltr>, active: true },
+              { label: t("testWorkflow.readyFrom"), value: <Ltr>{`${stage1IncMinHours} h`}</Ltr> },
+              { label: t("testWorkflow.readBy"), value: <Ltr>{`${stage1IncMaxHours} h`}</Ltr> }
             ]}
           />
 
@@ -1159,8 +1189,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               lotLastChoice.saveBlockedReason
                 ? lotLastChoice.saveBlockedReason
                 : mediaId && incubatorId
-                  ? "Start time, media lot and incubator are recorded in the audit trail."
-                  : "Select a media lot and an incubator to continue."
+                  ? t("testWorkflow.noteAuditTrail")
+                  : t("testWorkflow.noteSelectLotIncubator")
             }
           >
             <Button
@@ -1168,7 +1198,7 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
               disabled={!mediaId || !incubatorId || Boolean(lotLastChoice.saveBlockedReason)}
               onClick={startIncubation}
             >
-              Start Incubation
+              {t("testWorkflow.startIncubation")}
             </Button>
           </StepActionBar>
         </Stack>
@@ -1177,20 +1207,25 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       {phase === "transfer-stage-2" && stage2Config && (
         <Stack spacing={2}>
           <Alert severity="info">
-            Stage 1 incubation is complete. Move the plates to an incubator set within {stage2Config.tempMin}–{stage2Config.tempMax} °C to start Stage 2.
+            <Trans
+              i18nKey="testWorkflow.stage2Alert"
+              ns="testingWorkspace"
+              values={{ min: stage2Config.tempMin, max: stage2Config.tempMax }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Alert>
 
           <StepDetailList
             rows={[
-              { label: "Media lot (from Stage 1)", value: openIncubationRow?.lotNumber ?? "Selected in Stage 1" },
-              { label: "Stage 2 temperature", value: `${stage2Config.tempMin}–${stage2Config.tempMax} °C` },
-              { label: "Stage 2 incubation", value: `${stage2Config.incubationMinHours}–${stage2Config.incubationMaxHours} h` }
+              { label: t("testWorkflow.mediaLotFromStage1"), value: openIncubationRow?.lotNumber ? <Ltr>{openIncubationRow.lotNumber}</Ltr> : t("testWorkflow.selectedInStage1") },
+              { label: t("testWorkflow.stage2Temperature"), value: <Ltr>{`${stage2Config.tempMin}–${stage2Config.tempMax} °C`}</Ltr> },
+              { label: t("testWorkflow.stage2Incubation"), value: <Ltr>{`${stage2Config.incubationMinHours}–${stage2Config.incubationMaxHours} h`}</Ltr> }
             ]}
           />
 
           <IncubatorField
             id="count-stage2-incubator"
-            label="Stage 2 incubator"
+            label={t("testWorkflow.stage2Incubator")}
             incubators={incubatorOptions(matchingStage2Incubators)}
             tempMin={stage2Config.tempMin}
             tempMax={stage2Config.tempMax}
@@ -1202,10 +1237,10 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             }}
           />
 
-          <StepActionBar note={stage2IncubatorId ? undefined : "Select a Stage 2 incubator to continue."}>
-            <Button variant="outlined" onClick={() => setPhase("awaiting-result")}>Back</Button>
+          <StepActionBar note={stage2IncubatorId ? undefined : t("testWorkflow.selectStage2IncubatorNote")}>
+            <Button variant="outlined" onClick={() => setPhase("awaiting-result")}>{t("testWorkflow.back")}</Button>
             <Button variant="contained" disabled={!stage2IncubatorId} onClick={startStage2Incubation}>
-              Start Stage 2 Incubation
+              {t("testWorkflow.startStage2Incubation")}
             </Button>
           </StepActionBar>
         </Stack>
@@ -1219,27 +1254,27 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           onSubmitted={load}
           incubationWindow={{ tempMin: activeTempMin, tempMax: activeTempMax, minHours: activeIncMinHours, maxHours: activeIncMaxHours }}
           nextLabel={
-            isTwoStageTransfer && !isStage2 ? "Stage 2 transfer"
-            : isEmOrAfterCleaning && !step.isFinalStep && !isTwoStageTransfer ? "the next incubation window"
-            : "plate reading"
+            isTwoStageTransfer && !isStage2 ? t("testWorkflow.nextLabelStage2")
+            : isEmOrAfterCleaning && !step.isFinalStep && !isTwoStageTransfer ? t("testWorkflow.nextLabelWindow")
+            : t("testWorkflow.nextLabelPlate")
           }
           renderAction={(ready) =>
             isTwoStageTransfer && !isStage2 ? (
               <Button variant="contained" disabled={!ready} onClick={() => setPhase("transfer-stage-2")}>
-                Transfer to Stage 2 Incubation
+                {t("testWorkflow.transferToStage2")}
               </Button>
             ) : isTwoStageTransfer && isStage2 ? (
               isBatchOrder ? (
-                <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
+                <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>{t("testWorkflow.recordResults")}</Button>
               ) : (
-                <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>Record Result</Button>
+                <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>{t("testWorkflow.recordResult")}</Button>
               )
             ) : isEmOrAfterCleaning && !step.isFinalStep ? (
-              <Button variant="contained" disabled={!ready} onClick={advanceIncubationWindow}>Advance to Next Incubation Window</Button>
+              <Button variant="contained" disabled={!ready} onClick={advanceIncubationWindow}>{t("testWorkflow.advanceNextWindow")}</Button>
             ) : isBatchOrder ? (
-              <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>Record Results</Button>
+              <Button variant="contained" disabled={!ready} onClick={() => setShowLocationGrid(true)}>{t("testWorkflow.recordResults")}</Button>
             ) : (
-              <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>Record Result</Button>
+              <Button variant="contained" disabled={!ready} onClick={() => setPhase("enter-result")}>{t("testWorkflow.recordResult")}</Button>
             )
           }
         />
@@ -1285,17 +1320,24 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           {countEntryFields}
 
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
+            <Alert severity="warning">
+              <Trans
+                i18nKey="testWorkflow.cannotSubmitBeforeTrans"
+                ns="testingWorkspace"
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </Alert>
           )}
           <StepActionBar
-            note={readings.every((r) => r.trim() === "") ? "Enter at least one plate count to continue." : "The result is recorded in the audit trail."}
+            note={readings.every((r) => r.trim() === "") ? t("testWorkflow.noteEnterPlateCount") : t("testWorkflow.noteResultAuditTrail")}
           >
             <Button
               variant="contained"
               disabled={!isTimeReady || dilutionFactorNotConfigured || (dilutionFactorDiffersFromConfigured && !dilutionFactorOverrideNote.trim())}
               onClick={() => submitResult()}
             >
-              {current.workflowType === "CountTest" ? "Calculate" : "Submit"}
+              {current.workflowType === "CountTest" ? t("testWorkflow.calculate") : t("testWorkflow.submit")}
             </Button>
           </StepActionBar>
         </Stack>
@@ -1304,12 +1346,12 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
       {benchCount && (
         <BenchDialog
           open={phase === "enter-result"}
-          title={`${testCode} plate counts`}
+          title={t("testWorkflow.plateCountsTitle", { testCode })}
           onClose={() => void closeCountEntry()}
           onSave={keptOffline ? keepCountDraft : () => void submitResult()}
           onSaveAndNext={keptOffline || step?.isFinalStep ? undefined : () => void submitResult(true)}
           saving={saving}
-          saveLabel={keptOffline ? "Keep draft" : "Save"}
+          saveLabel={keptOffline ? t("testWorkflow.keepDraft") : t("testWorkflow.save")}
           saveDisabledReason={countSaveBlockedReason}
           dirty={countEntryDirty}
         >
@@ -1320,7 +1362,14 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
           {countEntryFields}
 
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
+            <Alert severity="warning">
+              <Trans
+                i18nKey="testWorkflow.cannotSubmitBeforeTrans"
+                ns="testingWorkspace"
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </Alert>
           )}
           </Stack>
         </BenchDialog>
@@ -1330,24 +1379,29 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
         <Stack spacing={2}>
           {lastOutcome.isDefinitive ? (
             <Alert severity="success">
-              Step recorded: <strong>{lastOutcome.outcomeSummary}</strong>
+              <Trans
+                i18nKey="testWorkflow.stepRecorded"
+                ns="testingWorkspace"
+                values={{ summary: lastOutcome.outcomeSummary ?? "" }}
+                components={{ strong: <strong /> }}
+              />
             </Alert>
           ) : (
             <Alert severity="warning">
-              {lastOutcome.outcomeSummary} - this step must be repeated with a fresh media lot.
+              {t("testWorkflow.repeatWithFreshLot", { summary: lastOutcome.outcomeSummary ?? "" })}
             </Alert>
           )}
           {lastOutcome.isDefinitive && lastOutcome.average != null && (
             <StepDetailList
               rows={[
-                { label: "Average", value: String(lastOutcome.average) },
-                { label: "Calculated", value: String(lastOutcome.calculatedResult) },
-                { label: "Status", value: String(lastOutcome.status) }
+                { label: t("testWorkflow.averageLabel"), value: <Ltr>{String(lastOutcome.average)}</Ltr> },
+                { label: t("testWorkflow.calculatedLabel"), value: <Ltr>{String(lastOutcome.calculatedResult)}</Ltr> },
+                { label: t("testWorkflow.statusLabel"), value: String(lastOutcome.status) }
               ]}
             />
           )}
           <StepActionBar>
-            <Button variant="contained" onClick={load}>{lastOutcome.isDefinitive ? "Proceed to Next Step" : "Retry This Step"}</Button>
+            <Button variant="contained" onClick={load}>{lastOutcome.isDefinitive ? t("testWorkflow.proceedNextStep") : t("testWorkflow.retryThisStep")}</Button>
           </StepActionBar>
         </Stack>
       )}

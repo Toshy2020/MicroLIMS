@@ -17,9 +17,9 @@ import { formatLabDate } from "../../../../utils/formatDate";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 import type { EquipmentDocument, EquipmentDocumentStatus } from "../types/equipmentTypes";
-import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
 import { SupersedeEquipmentDocumentDialog } from "./SupersedeEquipmentDocumentDialog";
 import { VoidEquipmentDocumentDialog } from "./VoidEquipmentDocumentDialog";
+import { useTranslation } from "../../../../i18n";
 import { toast } from "sonner";
 
 interface Props {
@@ -41,6 +41,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChanged }: Props) {
+  const { t } = useTranslation("inventory");
   const { permissions } = useAuth();
   const canSupersede = permissions.includes(PERMISSIONS.EQUIPMENT_DOCUMENT_CONTROL);
 
@@ -55,9 +56,9 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
     setError(null);
     EquipmentInventoryService.getDocuments(equipmentId)
       .then(setDocuments)
-      .catch(() => setError("Failed to load calibration certificates."))
+      .catch(() => setError(t("equipment.documents.loadError")))
       .finally(() => setLoading(false));
-  }, [equipmentId, refreshKey]);
+  }, [equipmentId, refreshKey, t]);
 
   const handleView = async (doc: EquipmentDocument) => {
     try {
@@ -65,7 +66,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
-      toast.error("Failed to retrieve document. Please try again.");
+      toast.error(t("equipment.documents.retrieveError"));
     }
   };
 
@@ -84,7 +85,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
   if (documents.length === 0) {
     return (
       <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-        No calibration certificates have been uploaded for this equipment.
+        {t("equipment.documents.empty")}
       </Typography>
     );
   }
@@ -114,7 +115,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                   </Typography>
                   <Chip
                     id={`equip-doc-status-${doc.id}`}
-                    label={doc.status}
+                    label={t(`equipment.documents.status.${doc.status}`)}
                     size="small"
                     color={STATUS_COLORS[doc.status]}
                     variant={doc.status === "Current" ? "filled" : "outlined"}
@@ -123,28 +124,28 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                 </Box>
 
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {EQUIPMENT_DOCUMENT_TYPE_LABELS[doc.documentType]} · {formatBytes(doc.fileSizeBytes)}
+                  {t(`equipment.documents.types.${doc.documentType}`)} · {formatBytes(doc.fileSizeBytes)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Uploaded by {doc.uploadedByName} · {formatLabDate(doc.uploadedAt)}
+                  {t("equipment.documents.uploadedBy", { name: doc.uploadedByName, date: formatLabDate(doc.uploadedAt) })}
                 </Typography>
 
                 {doc.status === "Voided" && doc.voidReason && (
                   <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.25 }}>
-                    Voided: {doc.voidReason}
+                    {t("equipment.documents.voidedReason", { reason: doc.voidReason })}
                   </Typography>
                 )}
 
                 {doc.status === "Superseded" && doc.supersessionReason && (
                   <Typography sx={{ fontSize: 12, color: "warning.dark", mt: 0.25 }}>
-                    Superseded: {doc.supersessionReason}
+                    {t("equipment.documents.supersededReason", { reason: doc.supersessionReason })}
                   </Typography>
                 )}
               </Box>
 
               {/* Action buttons */}
               <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-                <Tooltip title="View / Download">
+                <Tooltip title={t("equipment.documents.viewTooltip")}>
                   <IconButton
                     id={`view-equip-doc-${doc.id}`}
                     size="small"
@@ -156,7 +157,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                 </Tooltip>
 
                 {canSupersede && doc.status === "Current" && (
-                  <Tooltip title="Supersede (Replace)">
+                  <Tooltip title={t("equipment.documents.supersedeTooltip")}>
                     <IconButton
                       id={`supersede-equip-doc-${doc.id}`}
                       size="small"
@@ -169,7 +170,7 @@ export function EquipmentDocumentList({ equipmentId, refreshKey, onDocumentChang
                 )}
 
                 {canSupersede && doc.status !== "Voided" && (
-                  <Tooltip title="Void">
+                  <Tooltip title={t("equipment.documents.voidTooltip")}>
                     <IconButton
                       id={`void-equip-doc-${doc.id}`}
                       size="small"

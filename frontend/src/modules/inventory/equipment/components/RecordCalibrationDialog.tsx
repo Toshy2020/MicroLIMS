@@ -23,6 +23,7 @@ import type {
   RecordCalibrationRequest
 } from "../types/equipmentTypes";
 import { DateField } from "../../../../components/DateField";
+import { useTranslation } from "../../../../i18n";
 
 interface Props {
   open: boolean;
@@ -39,6 +40,7 @@ export function RecordCalibrationDialog({
   onClose,
   onSuccess
 }: Props) {
+  const { t, i18n } = useTranslation("inventory");
   const [documents, setDocuments] = useState<EquipmentDocument[]>([]);
   const [loadingDocs, setLoadingDocs] = useState(false);
   const [selectedDocId, setSelectedDocId] = useState<string>("");
@@ -64,7 +66,7 @@ export function RecordCalibrationDialog({
         setSelectedDocId(sorted[0].id.toString());
       }
     } catch {
-      setError("Failed to load calibration certificates.");
+      setError(t("equipment.recordCalibrationDialog.errors.loadError"));
     } finally {
       setLoadingDocs(false);
     }
@@ -87,17 +89,17 @@ export function RecordCalibrationDialog({
     setError(null);
 
     if (!selectedDocId) {
-      setError("Please select a calibration certificate.");
+      setError(t("equipment.recordCalibrationDialog.errors.certificateRequired"));
       return;
     }
     if (!calibratedOn) {
-      setError("Calibration date is required.");
+      setError(t("equipment.recordCalibrationDialog.errors.dateRequired"));
       return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
     if (calibratedOn > today) {
-      setError("Calibration date cannot be in the future.");
+      setError(t("equipment.recordCalibrationDialog.errors.dateFuture"));
       return;
     }
 
@@ -106,7 +108,18 @@ export function RecordCalibrationDialog({
 
   const selectedDoc = documents.find((d) => d.id.toString() === selectedDocId);
   const fileName = selectedDoc?.originalFileName ?? "";
-  const meaningStatement = `I confirm the calibration of ${equipmentCode} on ${calibratedOn} is recorded with certificate ${fileName}${certificateNextDue ? `, next due ${certificateNextDue}` : ""}.`;
+  const enT = i18n.getFixedT("en", "inventory");
+  const meaningKey = certificateNextDue
+    ? "equipment.recordCalibrationDialog.meaningStatementWithNextDue"
+    : "equipment.recordCalibrationDialog.meaningStatement";
+  const meaningParams = {
+    code: equipmentCode,
+    date: calibratedOn,
+    fileName,
+    nextDue: certificateNextDue
+  };
+  const meaningStatement = enT(meaningKey, meaningParams);
+  const meaningStatementTranslation = t(meaningKey, meaningParams);
 
   const handleSignConfirm = async (password: string) => {
     const payload: RecordCalibrationRequest = {
@@ -125,13 +138,13 @@ export function RecordCalibrationDialog({
     <>
       <FloatingDialog
         open={open && !signing}
-        title="Record Calibration"
+        title={t("equipment.recordCalibrationDialog.title")}
         onClose={onClose}
         maxWidth="sm"
         actions={
           <>
             <Button onClick={onClose} color="inherit">
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               id="record-calibration-submit"
@@ -139,13 +152,13 @@ export function RecordCalibrationDialog({
               onClick={handleContinueToSign}
               disabled={!canContinue || loadingDocs}
             >
-              Continue to sign
+              {t("equipment.recordCalibrationDialog.continueToSign")}
             </Button>
           </>
         }
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-          Attach a current calibration certificate, enter the calibration date, and electronically sign with your password.
+          {t("equipment.recordCalibrationDialog.subtitle")}
         </Typography>
 
         {error && (
@@ -159,18 +172,18 @@ export function RecordCalibrationDialog({
           <Box>
             <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
               <FormControl size="small" fullWidth>
-                <InputLabel id="cert-select-label">Calibration Certificate</InputLabel>
+                <InputLabel id="cert-select-label">{t("equipment.recordCalibrationDialog.certificateLabel")}</InputLabel>
                 <Select
                   labelId="cert-select-label"
                   id="record-cal-cert-select"
                   value={selectedDocId}
-                  label="Calibration Certificate"
+                  label={t("equipment.recordCalibrationDialog.certificateLabel")}
                   onChange={(e) => setSelectedDocId(e.target.value)}
                   disabled={loadingDocs}
                 >
                   {documents.length === 0 ? (
                     <MenuItem value="" disabled>
-                      {loadingDocs ? "Loading certificates..." : "No current certificates found"}
+                      {loadingDocs ? t("equipment.recordCalibrationDialog.loadingCertificates") : t("equipment.recordCalibrationDialog.noCertificates")}
                     </MenuItem>
                   ) : (
                     documents.map((d) => (
@@ -188,33 +201,33 @@ export function RecordCalibrationDialog({
                 onClick={() => setUploadOpen(true)}
                 sx={{ minWidth: 140, height: 40, textTransform: "none", fontSize: 12 }}
               >
-                Upload New
+                {t("equipment.recordCalibrationDialog.uploadNew")}
               </Button>
             </Box>
             {documents.length === 0 && !loadingDocs && (
               <Typography sx={{ fontSize: 12, color: "warning.main", mt: 0.5 }}>
-                A current calibration certificate is required. Click &quot;Upload New&quot; to upload one.
+                {t("equipment.recordCalibrationDialog.certificateRequiredHint")}
               </Typography>
             )}
           </Box>
 
           {/* Calibration Date */}
           <DateField
-            label="Calibration Date"
+            label={t("equipment.recordCalibrationDialog.calibrationDate")}
             required
             fullWidth
             value={calibratedOn}
             onChange={(v) => setCalibratedOn(v)}
-            helperText="Date when calibration was performed (cannot be in the future)"
+            helperText={t("equipment.recordCalibrationDialog.calibrationDateHelper")}
           />
 
           {/* Certificate Next-Due Date (Optional) */}
           <DateField
-            label="Certificate Next-Due Date (Optional)"
+            label={t("equipment.recordCalibrationDialog.nextDueLabel")}
             fullWidth
             value={certificateNextDue}
             onChange={(v) => setCertificateNextDue(v)}
-            helperText="When specified on the vendor certificate, overrides the calculated interval due date"
+            helperText={t("equipment.recordCalibrationDialog.nextDueHelper")}
           />
         </Stack>
       </FloatingDialog>
@@ -222,6 +235,7 @@ export function RecordCalibrationDialog({
       <SignatureDialog
         open={open && signing}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSigning(false)}
         onConfirm={handleSignConfirm}
       />

@@ -10,6 +10,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { LabPage, FilterBar } from "../../../components/lab";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import { HplcMethodTable } from "./hplcMethod/HplcMethodTable";
 import {
   HplcMethodService,
@@ -30,6 +31,7 @@ import { HplcMethodHistoryDialog } from "./hplcMethod/HplcMethodHistoryDialog";
 import { ReasonDialog } from "./solutionMaster/ReasonDialog";
 
 export function HplcMethodsPage() {
+  const { t } = useTranslation("masterData");
   const { sections } = useLaboratorySections();
 
   const [methods, setMethods] = useState<HplcMethodListItem[]>([]);
@@ -75,11 +77,11 @@ export function HplcMethodsPage() {
     } catch (err: unknown) {
       console.error("Failed to load HPLC methods:", err);
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load HPLC methods.");
+      setError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethods.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -123,7 +125,7 @@ export function HplcMethodsPage() {
     if (!methodToToggle) return;
     const trimmedReason = toggleReason.trim();
     if (!trimmedReason) {
-      setToggleError("A reason is required to activate or deactivate an HPLC method.");
+      setToggleError(t("hplcMethods.toggleReasonRequired"));
       return;
     }
 
@@ -132,12 +134,16 @@ export function HplcMethodsPage() {
     setToggleError(null);
     try {
       await HplcMethodService.setActive(methodToToggle.id, nextActive, trimmedReason);
-      toast.success(`HPLC method "${methodToToggle.name}" ${nextActive ? "activated" : "deactivated"}.`);
+      toast.success(
+        nextActive
+          ? t("hplcMethods.toggledToast_activated", { name: methodToToggle.name })
+          : t("hplcMethods.toggledToast_deactivated", { name: methodToToggle.name })
+      );
       setMethodToToggle(null);
       await loadData();
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setToggleError(errObj.response?.data?.message ?? errObj.message ?? "Could not update HPLC method status.");
+      setToggleError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethods.toggleError"));
     } finally {
       setTogglingActive(false);
     }
@@ -163,64 +169,64 @@ export function HplcMethodsPage() {
 
   const resolveSectionDisplay = (secName?: string) => {
     if (secName) return secName;
-    return "Section";
+    return t("hplcMethods.sectionFallback");
   };
 
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
-      Add Method
+      {t("hplcMethods.addMethod")}
     </Button>
   );
 
   return (
     <LabPage
-      title="Chromatography Methods Master"
-      subtitle="Manage HPLC and GC methods, column chemistry, carrier gas/oven parameters, mobile phases, and analyte theoretical constants with SST criteria."
+      title={t("hplcMethods.title")}
+      subtitle={t("hplcMethods.subtitle")}
       actions={addButton}
       filters={
         <FilterBar
           search={searchQuery}
           onSearch={setSearchQuery}
-          placeholder="Search by name, abbreviation, section..."
+          placeholder={t("hplcMethods.searchPlaceholder")}
           resultCount={filteredMethods.length}
           onRefresh={loadData}
           refreshing={loading}
         >
           <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="method-technique-filter-label">Technique</InputLabel>
+            <InputLabel id="method-technique-filter-label">{t("hplcMethods.techniqueLabel")}</InputLabel>
             <Select
               labelId="method-technique-filter-label"
-              label="Technique"
+              label={t("hplcMethods.techniqueLabel")}
               value={techniqueFilter}
               onChange={(e) => setTechniqueFilter(e.target.value as "ALL" | "Hplc" | "Gc")}
             >
-              <MenuItem value="ALL">All Techniques</MenuItem>
-              <MenuItem value="Hplc">HPLC</MenuItem>
-              <MenuItem value="Gc">GC</MenuItem>
+              <MenuItem value="ALL">{t("hplcMethods.allTechniques")}</MenuItem>
+              <MenuItem value="Hplc">{t("hplcMethods.hplc")}</MenuItem>
+              <MenuItem value="Gc">{t("hplcMethods.gc")}</MenuItem>
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="method-status-filter-label">Status</InputLabel>
+            <InputLabel id="method-status-filter-label">{t("common.status")}</InputLabel>
             <Select
               labelId="method-status-filter-label"
-              label="Status"
+              label={t("common.status")}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
             >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="ACTIVE">Active Only</MenuItem>
-              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+              <MenuItem value="ALL">{t("common.allStatuses")}</MenuItem>
+              <MenuItem value="ACTIVE">{t("common.activeOnly")}</MenuItem>
+              <MenuItem value="INACTIVE">{t("common.inactiveOnly")}</MenuItem>
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="method-section-filter-label">Section</InputLabel>
+            <InputLabel id="method-section-filter-label">{t("common.section")}</InputLabel>
             <Select
               labelId="method-section-filter-label"
-              label="Section"
+              label={t("common.section")}
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Sections</MenuItem>
+              <MenuItem value="ALL">{t("common.allSections")}</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={sec.sectionName}>
                   {sec.sectionName}
@@ -268,24 +274,24 @@ export function HplcMethodsPage() {
       {/* Activate / Deactivate Confirmation Dialog with Reason */}
       <ReasonDialog
         open={Boolean(methodToToggle)}
-        title={methodToToggle?.isActive ? "Deactivate HPLC Method" : "Activate HPLC Method"}
+        title={methodToToggle?.isActive ? t("hplcMethods.deactivateTitle") : t("hplcMethods.activateTitle")}
         onClose={() => { if (!togglingActive) setMethodToToggle(null); }}
         onConfirm={handleConfirmToggleActive}
-        confirmText={methodToToggle?.isActive ? "Deactivate Method" : "Activate Method"}
+        confirmText={methodToToggle?.isActive ? t("hplcMethods.deactivateConfirm") : t("hplcMethods.activateConfirm")}
         confirmColor={methodToToggle?.isActive ? "error" : "success"}
         loading={togglingActive}
-        loadingText="Updating..."
+        loadingText={t("common.updating")}
         error={toggleError}
         reason={toggleReason}
         onReasonChange={setToggleReason}
-        label="Reason *"
-        placeholder={methodToToggle?.isActive ? "State the operational reason for deactivating this HPLC method..." : "State the operational reason for activating this HPLC method..."}
+        label={t("hplcMethods.reasonLabel")}
+        placeholder={methodToToggle?.isActive ? t("hplcMethods.deactivatePlaceholder") : t("hplcMethods.activatePlaceholder")}
         disabled={!toggleReason.trim() || togglingActive}
       >
         <Alert severity={methodToToggle?.isActive ? "warning" : "info"} sx={{ fontSize: 13 }}>
           {methodToToggle?.isActive
-            ? `Are you sure you want to deactivate "${methodToToggle?.name}"? Inactive HPLC methods cannot be selected for new test definitions.`
-            : `Are you sure you want to activate "${methodToToggle?.name}"?`}
+            ? t("hplcMethods.deactivateMessage", { name: methodToToggle?.name ?? "" })
+            : t("hplcMethods.activateMessage", { name: methodToToggle?.name ?? "" })}
         </Alert>
       </ReasonDialog>
     </LabPage>

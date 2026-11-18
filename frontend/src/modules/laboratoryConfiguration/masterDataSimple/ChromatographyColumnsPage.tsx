@@ -23,6 +23,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import {
   ChromatographyColumnService,
   ChromatographyColumnDto
@@ -53,6 +54,7 @@ export function chromatographyTypeLabel(type: ChromatographyEquipmentOption["typ
 }
 
 export function ChromatographyColumnsPage() {
+  const { t } = useTranslation("masterData");
   const { sections, sectionName } = useLaboratorySections();
 
   const [columns, setColumns] = useState<ChromatographyColumnDto[]>([]);
@@ -102,11 +104,11 @@ export function ChromatographyColumnsPage() {
     } catch (err: unknown) {
       console.error("Failed to load chromatography columns data:", err);
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not load chromatography columns.");
+      setError(errorObj.response?.data?.message ?? errorObj.message ?? t("chromatographyColumns.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -160,11 +162,11 @@ export function ChromatographyColumnsPage() {
     const trimmedUsp = formUspDesignation.trim();
 
     const errors: typeof fieldErrors = {};
-    if (!trimmedCode) errors.code = "Column Code is required.";
-    if (!trimmedName) errors.name = "Column Name is required.";
-    if (trimmedSerial.length > 100) errors.serial = "Serial number cannot exceed 100 characters.";
-    if (trimmedUsp.length > 10) errors.usp = "USP designation cannot exceed 10 characters.";
-    if (!editingColumn && mySections.length > 1 && !formSectionId) errors.section = "Laboratory Section is required.";
+    if (!trimmedCode) errors.code = t("chromatographyColumns.form.codeRequired");
+    if (!trimmedName) errors.name = t("chromatographyColumns.form.nameRequired");
+    if (trimmedSerial.length > 100) errors.serial = t("chromatographyColumns.form.serialMax");
+    if (trimmedUsp.length > 10) errors.usp = t("chromatographyColumns.form.uspMax");
+    if (!editingColumn && mySections.length > 1 && !formSectionId) errors.section = t("chromatographyColumns.form.sectionRequired");
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
@@ -181,7 +183,7 @@ export function ChromatographyColumnsPage() {
           sectionId: formSectionId ? Number(formSectionId) : null,
           compatibleEquipmentIds: formCompatibleEquipmentIds
         }, editingColumn.version);
-        toast.success(`Chromatography column "${trimmedCode}" updated.`);
+        toast.success(t("chromatographyColumns.updatedToast", { code: trimmedCode }));
       } else {
         await ChromatographyColumnService.create({
           code: trimmedCode,
@@ -191,13 +193,13 @@ export function ChromatographyColumnsPage() {
           sectionId: formSectionId ? Number(formSectionId) : null,
           compatibleEquipmentIds: formCompatibleEquipmentIds
         });
-        toast.success(`Chromatography column "${trimmedCode}" created.`);
+        toast.success(t("chromatographyColumns.createdToast", { code: trimmedCode }));
       }
       setDialogOpen(false);
       await loadData();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = errorObj.response?.data?.message ?? errorObj.message ?? "Could not save chromatography column.";
+      const msg = errorObj.response?.data?.message ?? errorObj.message ?? t("chromatographyColumns.saveError");
       setDialogError(msg);
     } finally {
       setSaving(false);
@@ -210,12 +212,12 @@ export function ChromatographyColumnsPage() {
     setDeactivating(true);
     try {
       await ChromatographyColumnService.deactivate(columnToDeactivate.id);
-      toast.success(`Column "${columnToDeactivate.code}" deactivated.`);
+      toast.success(t("chromatographyColumns.deactivatedToast", { code: columnToDeactivate.code }));
       setColumnToDeactivate(null);
       await loadData();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(errorObj.response?.data?.message ?? errorObj.message ?? "Could not deactivate column.");
+      toast.error(errorObj.response?.data?.message ?? errorObj.message ?? t("chromatographyColumns.deactivateError"));
     } finally {
       setDeactivating(false);
     }
@@ -254,52 +256,52 @@ export function ChromatographyColumnsPage() {
     if (colSection?.sectionName) return colSection.sectionName;
     const foundSec = sections.find((s) => s.sectionId === sectionId);
     if (foundSec?.sectionName) return foundSec.sectionName;
-    return `Section #${sectionId}`;
+    return t("chromatographyColumns.sectionFallback", { id: sectionId });
   };
 
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
-      Add Column
+      {t("chromatographyColumns.addColumn")}
     </Button>
   );
 
   const tableColumns: RegisterColumn<ChromatographyColumnDto>[] = [
     {
       key: "code",
-      label: "Code",
+      label: t("chromatographyColumns.columns.code"),
       sortable: true,
       render: (col) => (
         <Typography component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 600, fontSize: "0.875rem" }}>{col.code}</Typography>
       )
     },
-    { key: "name", label: "Column Name", sortable: true },
+    { key: "name", label: t("chromatographyColumns.columns.name"), sortable: true },
     {
       key: "uspDesignation",
-      label: "USP",
+      label: t("chromatographyColumns.columns.usp"),
       sortable: true,
       render: (col) =>
         col.uspDesignation ? (
           <Chip label={col.uspDesignation} size="small" variant="outlined" sx={{ fontWeight: 600, fontSize: 12 }} />
         ) : (
-          <Typography variant="body2" color="text.secondary">—</Typography>
+          <Typography variant="body2" color="text.secondary">{t("common.dash")}</Typography>
         )
     },
     {
       key: "serialNumber",
-      label: "Serial Number",
+      label: t("chromatographyColumns.columns.serialNumber"),
       sortable: true,
-      render: (col) => col.serialNumber || <Typography variant="body2" color="text.secondary">—</Typography>
+      render: (col) => col.serialNumber || <Typography variant="body2" color="text.secondary">{t("common.dash")}</Typography>
     },
     {
       key: "section",
-      label: "Section",
+      label: t("chromatographyColumns.columns.section"),
       sortable: true,
       sortValue: (col) => resolveSectionDisplay(col.sectionId, col.section),
       render: (col) => <Chip label={resolveSectionDisplay(col.sectionId, col.section)} size="small" variant="outlined" sx={{ fontSize: 12 }} />
     },
     {
       key: "compatibleEquipment",
-      label: "Compatible Instruments (HPLC / GC)",
+      label: t("chromatographyColumns.columns.compatibleEquipment"),
       render: (col) =>
         col.compatibleEquipment && col.compatibleEquipment.length > 0 ? (
           <Stack useFlexGap direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
@@ -310,15 +312,15 @@ export function ChromatographyColumnsPage() {
             ))}
           </Stack>
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>None linked</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>{t("chromatographyColumns.noneLinked")}</Typography>
         )
     },
     {
       key: "isActive",
-      label: "Status",
+      label: t("chromatographyColumns.columns.status"),
       sortable: true,
       sortValue: (col) => (col.isActive ? 0 : 1),
-      render: (col) => <StatusBadge status={col.isActive ? "Active" : "Inactive"} />
+      render: (col) => <StatusBadge status={col.isActive ? "Active" : "Inactive"} label={col.isActive ? t("common.active") : t("common.inactive")} />
     }
   ];
 
@@ -326,41 +328,41 @@ export function ChromatographyColumnsPage() {
 
   return (
     <LabPage
-      title="Chromatography Columns"
-      subtitle="Manage HPLC and GC chromatography column master records, column parameters, and instrument compatibility."
+      title={t("chromatographyColumns.title")}
+      subtitle={t("chromatographyColumns.subtitle")}
       actions={addButton}
       filters={
         <FilterBar
           search={searchQuery}
           onSearch={setSearchQuery}
-          placeholder="Search code, name, serial, USP..."
+          placeholder={t("chromatographyColumns.searchPlaceholder")}
           resultCount={filteredColumns.length}
           onRefresh={loadData}
           refreshing={loading}
         >
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="column-status-filter-label">Status</InputLabel>
+            <InputLabel id="column-status-filter-label">{t("common.status")}</InputLabel>
             <Select
               labelId="column-status-filter-label"
-              label="Status"
+              label={t("common.status")}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
             >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="ACTIVE">Active Only</MenuItem>
-              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+              <MenuItem value="ALL">{t("common.allStatuses")}</MenuItem>
+              <MenuItem value="ACTIVE">{t("common.activeOnly")}</MenuItem>
+              <MenuItem value="INACTIVE">{t("common.inactiveOnly")}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="column-section-filter-label">Section</InputLabel>
+            <InputLabel id="column-section-filter-label">{t("common.section")}</InputLabel>
             <Select
               labelId="column-section-filter-label"
-              label="Section"
+              label={t("common.section")}
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Sections</MenuItem>
+              <MenuItem value="ALL">{t("common.allSections")}</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
                   {sec.sectionName}
@@ -380,80 +382,80 @@ export function ChromatographyColumnsPage() {
         loading={loading}
         onRowClick={handleOpenEdit}
         rowActions={(col) => [
-          { label: "Edit", onClick: () => handleOpenEdit(col) },
-          { label: "Deactivate", onClick: () => setColumnToDeactivate(col), disabled: !col.isActive, danger: true }
+          { label: t("common.edit"), onClick: () => handleOpenEdit(col) },
+          { label: t("common.deactivate"), onClick: () => setColumnToDeactivate(col), disabled: !col.isActive, danger: true }
         ]}
         empty={
           filtersActive
-            ? { title: "No chromatography columns found", description: "Try adjusting your search or filters." }
-            : { title: "No chromatography columns found", description: "Register your first chromatography column.", action: addButton }
+            ? { title: t("chromatographyColumns.emptyFilteredTitle"), description: t("chromatographyColumns.emptyFilteredDesc") }
+            : { title: t("chromatographyColumns.emptyTitle"), description: t("chromatographyColumns.emptyDesc"), action: addButton }
         }
       />
 
       {/* Create / Edit Floating Dialog */}
       <FormDialog
         open={dialogOpen}
-        title={editingColumn ? `Edit Column: ${editingColumn.code}` : "Add Chromatography Column"}
+        title={editingColumn ? t("chromatographyColumns.editDialogTitle", { code: editingColumn.code }) : t("chromatographyColumns.addDialogTitle")}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleSave}
-        submitLabel={saving ? "Saving..." : editingColumn ? "Save Changes" : "Create Column"}
+        submitLabel={saving ? t("chromatographyColumns.saving") : editingColumn ? t("common.saveChanges") : t("chromatographyColumns.createColumn")}
         submitting={saving}
         error={dialogError}
       >
           <TextField
-            label="Column Code"
+            label={t("chromatographyColumns.form.codeLabel")}
             value={formCode}
             onChange={(e) => { setFieldErrors((fe) => ({ ...fe, code: undefined })); setFormCode(e.target.value.toUpperCase()); }}
             required
             fullWidth
             size="small"
-            placeholder="e.g. COL-C18-01"
+            placeholder={t("chromatographyColumns.form.codePlaceholder")}
             error={!!fieldErrors.code}
-            helperText={fieldErrors.code ?? "Unique alphanumeric identifier (e.g. COL-C18-01)"}
+            helperText={fieldErrors.code ?? t("chromatographyColumns.form.codeHelper")}
           />
 
           <TextField
-            label="Column Name"
+            label={t("chromatographyColumns.form.nameLabel")}
             value={formName}
             onChange={(e) => { setFieldErrors((fe) => ({ ...fe, name: undefined })); setFormName(e.target.value); }}
             required
             fullWidth
             size="small"
-            placeholder="e.g. Hypersil BDS C18 5um 4.6x250mm"
+            placeholder={t("chromatographyColumns.form.namePlaceholder")}
             error={!!fieldErrors.name}
-            helperText={fieldErrors.name ?? "Full descriptive name including stationary phase and dimensions"}
+            helperText={fieldErrors.name ?? t("chromatographyColumns.form.nameHelper")}
           />
 
           <TextField
-            label="Serial Number"
+            label={t("chromatographyColumns.form.serialLabel")}
             value={formSerialNumber}
             onChange={(e) => { setFieldErrors((fe) => ({ ...fe, serial: undefined })); setFormSerialNumber(e.target.value); }}
             fullWidth
             size="small"
-            placeholder="e.g. SN-09823481"
+            placeholder={t("chromatographyColumns.form.serialPlaceholder")}
             error={!!fieldErrors.serial}
-            helperText={fieldErrors.serial ?? "Manufacturer serial number (max 100 characters)"}
+            helperText={fieldErrors.serial ?? t("chromatographyColumns.form.serialHelper")}
           />
 
           <TextField
-            label="USP Designation"
+            label={t("chromatographyColumns.form.uspLabel")}
             value={formUspDesignation}
             onChange={(e) => { setFieldErrors((fe) => ({ ...fe, usp: undefined })); setFormUspDesignation(e.target.value.slice(0, 10)); }}
             fullWidth
             size="small"
-            placeholder="L1"
+            placeholder={t("chromatographyColumns.form.uspPlaceholder")}
             slotProps={{ htmlInput: { maxLength: 10 } }}
             error={!!fieldErrors.usp}
-            helperText={fieldErrors.usp ?? "USP packing code (e.g. L1 for C18, L7 for C8, L11 for Phenyl)"}
+            helperText={fieldErrors.usp ?? t("chromatographyColumns.form.uspHelper")}
           />
 
           {/* Laboratory Section Select */}
           {(!editingColumn && mySections.length > 1) || (editingColumn && sections.length > 0) ? (
             <FormControl fullWidth size="small" required={!editingColumn && mySections.length > 1} error={!!fieldErrors.section}>
-              <InputLabel id="column-form-section-label">Laboratory Section</InputLabel>
+              <InputLabel id="column-form-section-label">{t("chromatographyColumns.form.sectionLabel")}</InputLabel>
               <Select
                 labelId="column-form-section-label"
-                label="Laboratory Section"
+                label={t("chromatographyColumns.form.sectionLabel")}
                 value={formSectionId}
                 onChange={(e) => {
                   const newSecId = e.target.value;
@@ -483,7 +485,7 @@ export function ChromatographyColumnsPage() {
 
           {/* Compatible HPLC / GC Instruments Multi-Select */}
           <FormControl fullWidth size="small">
-            <InputLabel id="compatible-equipment-select-label">Compatible Instruments (HPLC / GC)</InputLabel>
+            <InputLabel id="compatible-equipment-select-label">{t("chromatographyColumns.form.compatibleLabel")}</InputLabel>
             <Select
               labelId="compatible-equipment-select-label"
               multiple
@@ -492,7 +494,7 @@ export function ChromatographyColumnsPage() {
                 const val = e.target.value;
                 setFormCompatibleEquipmentIds(typeof val === "string" ? val.split(",").map(Number) : (val as number[]));
               }}
-              input={<OutlinedInput label="Compatible Instruments (HPLC / GC)" />}
+              input={<OutlinedInput label={t("chromatographyColumns.form.compatibleLabel")} />}
               renderValue={(selectedIds) => (
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                   {selectedIds.map((id) => {
@@ -514,7 +516,7 @@ export function ChromatographyColumnsPage() {
             >
               {availableEquipmentForSection.length === 0 ? (
                 <MenuItem disabled value="">
-                  <em>No HPLC or GC instruments found in this section</em>
+                  <em>{t("chromatographyColumns.form.noInstrumentsInSection")}</em>
                 </MenuItem>
               ) : (
                 availableEquipmentForSection.map((eq) => (
@@ -522,7 +524,7 @@ export function ChromatographyColumnsPage() {
                     <Checkbox checked={formCompatibleEquipmentIds.includes(eq.id)} size="small" />
                     <ListItemText
                       primary={`${chromatographyTypeLabel(eq.type) ? `[${chromatographyTypeLabel(eq.type)}] ` : ""}${eq.code} - ${eq.name}`}
-                      secondary={eq.location ? `Location: ${eq.location}` : undefined}
+                      secondary={eq.location ? t("chromatographyColumns.form.locationSecondary", { location: eq.location }) : undefined}
                     />
                   </MenuItem>
                 ))
@@ -544,7 +546,7 @@ export function ChromatographyColumnsPage() {
                   variant="body2"
                   sx={{ cursor: "pointer", fontWeight: 500 }}
                 >
-                  Column is Active
+                  {t("chromatographyColumns.form.isActiveLabel")}
                 </Typography>
               </Stack>
             </FormControl>
@@ -554,10 +556,13 @@ export function ChromatographyColumnsPage() {
       {/* Deactivate Confirmation Dialog */}
       <ConfirmationDialog
         open={Boolean(columnToDeactivate)}
-        title="Deactivate Chromatography Column"
-        message={`Are you sure you want to deactivate chromatography column "${columnToDeactivate?.code} - ${columnToDeactivate?.name}"?`}
+        title={t("chromatographyColumns.deactivateTitle")}
+        message={t("chromatographyColumns.deactivateMessage", {
+          code: columnToDeactivate?.code ?? "",
+          name: columnToDeactivate?.name ?? ""
+        })}
         destructive
-        confirmText={deactivating ? "Deactivating..." : "Deactivate"}
+        confirmText={deactivating ? t("common.deactivating") : t("common.deactivate")}
         onConfirm={handleConfirmDeactivate}
         onCancel={() => setColumnToDeactivate(null)}
       />

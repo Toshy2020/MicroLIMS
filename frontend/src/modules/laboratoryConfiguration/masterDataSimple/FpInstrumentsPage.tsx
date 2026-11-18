@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import { LabPage, FilterBar, RegisterTable, RegisterColumn, FormDialog } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
@@ -110,6 +111,11 @@ const inferTypeFromInventoryText = (text: string | null | undefined): string | n
 };
 
 export function FpInstrumentsPage() {
+  const { t } = useTranslation("masterData");
+  const typeLabelTranslated = useCallback(
+    (type: string) => t(`fpInstruments.types.${type}`, { defaultValue: typeLabel(type) }),
+    [t]
+  );
   const [fpSection, setFpSection] = useState<LaboratorySection | null>(null);
   const [instruments, setInstruments] = useState<FpInstrument[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -152,14 +158,14 @@ export function FpInstrumentsPage() {
       );
       setConfiguredCodes(new Set((equipment as FpInstrument[]).map((e) => e.code.toLowerCase())));
       setInventory(Array.isArray(inv) ? inv : []);
-      if (!fp) setError("The Physicochemical laboratory section (code FP) was not found.");
+      if (!fp) setError(t("fpInstruments.fpSectionNotFound"));
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? "Could not load Physicochemical instruments.");
+      setError(err?.response?.data?.message ?? t("fpInstruments.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -215,10 +221,12 @@ export function FpInstrumentsPage() {
   const save = async () => {
     if (!fpSection) return;
     const errors: typeof fieldErrors = {};
-    if (!editing && !selectedInventory) errors.inventory = "Select the instrument from the Equipment Inventory.";
-    if (!form.name.trim()) errors.name = "Instrument name is required.";
+    if (!editing && !selectedInventory) errors.inventory = t("fpInstruments.form.inventoryRequired");
+    if (!form.name.trim()) errors.name = t("fpInstruments.form.nameRequired");
     if ((form.type === "Hplc" || form.type === "IcpOes") && !form.cdsSoftware) {
-      errors.cds = `CDS software is required for an ${form.type === "Hplc" ? "HPLC" : "ICP-OES"}.`;
+      errors.cds = t("fpInstruments.form.cdsRequired", {
+        instrumentType: form.type === "Hplc" ? t("fpInstruments.types.Hplc") : t("fpInstruments.types.IcpOes")
+      });
     }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
@@ -244,10 +252,10 @@ export function FpInstrumentsPage() {
       if (editing) {
         attemptedEdit = { id: editing.id, payload, version: editing.version };
         await EquipmentConfigurationService.updateEquipment(editing.id, payload as never, editing.version);
-        toast.success("Instrument updated.");
+        toast.success(t("fpInstruments.updatedToast"));
       } else {
         await EquipmentConfigurationService.createEquipment(payload as never);
-        toast.success("Instrument added to the Physicochemical laboratory.");
+        toast.success(t("fpInstruments.createdToast"));
       }
       setDialogOpen(false);
       await loadData();
@@ -259,7 +267,7 @@ export function FpInstrumentsPage() {
         return;
       }
       const err = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      setDialogError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? "Could not save the instrument.");
+      setDialogError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? t("fpInstruments.saveError"));
     } finally {
       setSaving(false);
     }
@@ -276,12 +284,12 @@ export function FpInstrumentsPage() {
         pendingReasonEdit.version,
         reason
       );
-      toast.success("Instrument updated.");
+      toast.success(t("fpInstruments.updatedToast"));
       setPendingReasonEdit(null);
       await loadData();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      setReasonError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? "Could not save the instrument.");
+      setReasonError(err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? t("fpInstruments.saveError"));
     } finally {
       setReasonSaving(false);
     }
@@ -292,47 +300,47 @@ export function FpInstrumentsPage() {
     if (!q) return instruments;
     return instruments.filter((inst) => {
       const inv = inventoryByCode.get(inst.code.toLowerCase());
-      return [inst.code, inst.name, typeLabel(String(inst.type)), inv?.manufacturerName ?? inst.vendor, inv?.serialNumber, inv?.location ?? inst.location]
+      return [inst.code, inst.name, typeLabelTranslated(String(inst.type)), inv?.manufacturerName ?? inst.vendor, inv?.serialNumber, inv?.location ?? inst.location]
         .some((v) => v?.toLowerCase().includes(q));
     });
-  }, [instruments, inventoryByCode, search]);
+  }, [instruments, inventoryByCode, search, typeLabelTranslated]);
 
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={openAdd} disabled={!fpSection} sx={{ fontWeight: 600, textTransform: "none" }}>
-      Add Instrument
+      {t("fpInstruments.addInstrument")}
     </Button>
   );
 
   const columns: RegisterColumn<FpInstrument>[] = [
     {
       key: "code",
-      label: "Code",
+      label: t("fpInstruments.columns.code"),
       sortable: true,
       render: (inst) => <Typography component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily, fontSize: 13 }}>{inst.code}</Typography>
     },
-    { key: "name", label: "Instrument", sortable: true },
+    { key: "name", label: t("fpInstruments.columns.name"), sortable: true },
     {
       key: "type",
-      label: "Type",
+      label: t("fpInstruments.columns.type"),
       sortable: true,
-      sortValue: (inst) => typeLabel(String(inst.type)),
-      render: (inst) => <StatusBadge status={String(inst.type)} label={typeLabel(String(inst.type))} />
+      sortValue: (inst) => typeLabelTranslated(String(inst.type)),
+      render: (inst) => <StatusBadge status={String(inst.type)} label={typeLabelTranslated(String(inst.type))} />
     },
     {
       key: "manufacturer",
-      label: "Manufacturer",
+      label: t("fpInstruments.columns.manufacturer"),
       sortable: true,
       sortValue: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.manufacturerName ?? inst.vendor,
-      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.manufacturerName ?? inst.vendor ?? "—"
+      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.manufacturerName ?? inst.vendor ?? t("common.dash")
     },
     {
       key: "serial",
-      label: "Serial No.",
-      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.serialNumber ?? "—"
+      label: t("fpInstruments.columns.serial"),
+      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.serialNumber ?? t("common.dash")
     },
     {
       key: "cdsSoftware",
-      label: "CDS Software",
+      label: t("fpInstruments.columns.cdsSoftware"),
       render: (inst) => {
         const inv = inventoryByCode.get(inst.code.toLowerCase());
         return inst.type === "Hplc" || inst.type === "IcpOes" ? (
@@ -340,19 +348,19 @@ export function FpInstrumentsPage() {
             <Typography sx={{ fontSize: 13 }}>{cdsLabel(inst.cdsSoftware)}</Typography>
             {inv?.firmwareVersion && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{inv.firmwareVersion}</Typography>}
           </>
-        ) : "—";
+        ) : t("common.dash");
       }
     },
     {
       key: "location",
-      label: "Location",
+      label: t("fpInstruments.columns.location"),
       sortable: true,
       sortValue: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.location ?? inst.location,
-      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.location ?? inst.location ?? "—"
+      render: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.location ?? inst.location ?? t("common.dash")
     },
     {
       key: "calibrationDueDate",
-      label: "Calibration Due",
+      label: t("fpInstruments.columns.calibrationDueDate"),
       sortable: true,
       sortValue: (inst) => inventoryByCode.get(inst.code.toLowerCase())?.calibrationDueDate ?? inst.calibrationDueDate,
       render: (inst) => formatDate(inventoryByCode.get(inst.code.toLowerCase())?.calibrationDueDate ?? inst.calibrationDueDate)
@@ -361,14 +369,14 @@ export function FpInstrumentsPage() {
 
   return (
     <LabPage
-      title="Physicochemical Instruments"
-      subtitle="Physicochemical laboratory instruments (HPLC, ICP-OES, pH meters, balances). Assets come from the Equipment Inventory."
+      title={t("fpInstruments.title")}
+      subtitle={t("fpInstruments.subtitle")}
       actions={addButton}
       filters={
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search code, instrument, manufacturer or serial"
+          placeholder={t("fpInstruments.searchPlaceholder")}
           resultCount={filtered.length}
           onRefresh={loadData}
           refreshing={loading}
@@ -383,34 +391,34 @@ export function FpInstrumentsPage() {
         getRowId={(inst) => inst.id}
         loading={loading}
         onRowClick={openEdit}
-        rowActions={(inst) => [{ label: "Edit", onClick: () => openEdit(inst) }]}
+        rowActions={(inst) => [{ label: t("common.edit"), onClick: () => openEdit(inst) }]}
         empty={
           search
-            ? { title: "No matching instruments", description: "Try a different search term." }
-            : { title: "No Physicochemical instruments yet", description: "Add one from the Equipment Inventory.", action: addButton }
+            ? { title: t("fpInstruments.emptyFilteredTitle"), description: t("fpInstruments.emptyFilteredDesc") }
+            : { title: t("fpInstruments.emptyTitle"), description: t("fpInstruments.emptyDesc"), action: addButton }
         }
       />
 
       <FormDialog
         open={dialogOpen}
-        title={editing ? `Edit Instrument: ${editing.code}` : "Add Physicochemical Instrument"}
+        title={editing ? t("fpInstruments.editDialogTitle", { code: editing.code }) : t("fpInstruments.addDialogTitle")}
         onClose={() => setDialogOpen(false)}
         onSubmit={save}
-        submitLabel={saving ? "Saving…" : "Save"}
+        submitLabel={saving ? t("common.saving") : t("common.save")}
         submitting={saving}
         error={dialogError}
       >
         {!editing && (
           <FormControl fullWidth size="small" required error={!!fieldErrors.inventory}>
-            <InputLabel id="fp-inventory-label">Equipment Inventory asset</InputLabel>
+            <InputLabel id="fp-inventory-label">{t("fpInstruments.form.inventoryLabel")}</InputLabel>
             <Select<number | "">
               labelId="fp-inventory-label"
-              label="Equipment Inventory asset"
+              label={t("fpInstruments.form.inventoryLabel")}
               value={form.inventoryId}
               onChange={(e) => e.target.value !== "" && pickInventory(Number(e.target.value))}
-              inputProps={{ "aria-label": "Equipment Inventory asset" }}
+              inputProps={{ "aria-label": t("fpInstruments.form.inventoryLabel") }}
             >
-              {availableInventory.length === 0 && <MenuItem value="" disabled>No unconfigured assets in the inventory</MenuItem>}
+              {availableInventory.length === 0 && <MenuItem value="" disabled>{t("fpInstruments.form.noUnconfiguredAssets")}</MenuItem>}
               {availableInventory.map((i) => (
                 <MenuItem key={i.id} value={i.id}>
                   {i.code}: {i.instrumentType}{i.manufacturerName ? ` (${i.manufacturerName})` : ""}
@@ -423,21 +431,28 @@ export function FpInstrumentsPage() {
 
         {shownInventory && (
           <Paper variant="outlined" sx={{ p: 1.5 }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>From Equipment Inventory</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>{t("fpInstruments.form.fromInventoryTitle")}</Typography>
             <Typography sx={{ fontSize: 13 }}>
-              {shownInventory.manufacturerName ?? "—"} · S/N {shownInventory.serialNumber ?? "—"} · {shownInventory.location ?? "—"}
+              {t("fpInstruments.form.serialLine", {
+                manufacturer: shownInventory.manufacturerName ?? t("common.dash"),
+                serial: shownInventory.serialNumber ?? t("common.dash"),
+                location: shownInventory.location ?? t("common.dash")
+              })}
             </Typography>
             <Typography sx={{ fontSize: 13 }}>
-              Software/firmware: {shownInventory.firmwareVersion ?? "—"} · Calibration due {formatDate(shownInventory.calibrationDueDate)}
+              {t("fpInstruments.form.firmwareLine", {
+                firmware: shownInventory.firmwareVersion ?? t("common.dash"),
+                date: formatDate(shownInventory.calibrationDueDate)
+              })}
             </Typography>
           </Paper>
         )}
 
         <FormControl fullWidth size="small" required>
-          <InputLabel id="fp-type-label">Instrument type</InputLabel>
+          <InputLabel id="fp-type-label">{t("fpInstruments.form.typeLabel")}</InputLabel>
           <Select
             labelId="fp-type-label"
-            label="Instrument type"
+            label={t("fpInstruments.form.typeLabel")}
             value={form.type}
             onChange={(e) => {
               const newType = e.target.value;
@@ -451,16 +466,16 @@ export function FpInstrumentsPage() {
               });
             }}
           >
-            {FP_INSTRUMENT_TYPES.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
+            {FP_INSTRUMENT_TYPES.map((ft) => <MenuItem key={ft.value} value={ft.value}>{typeLabelTranslated(ft.value)}</MenuItem>)}
           </Select>
         </FormControl>
 
         {(form.type === "Hplc" || form.type === "IcpOes") && (
           <FormControl fullWidth size="small" required error={!!fieldErrors.cds}>
-            <InputLabel id="fp-cds-label">CDS software</InputLabel>
+            <InputLabel id="fp-cds-label">{t("fpInstruments.form.cdsLabel")}</InputLabel>
             <Select
               labelId="fp-cds-label"
-              label="CDS software"
+              label={t("fpInstruments.form.cdsLabel")}
               value={form.cdsSoftware}
               onChange={(e) => {
                 setFieldErrors((fe) => ({ ...fe, cds: undefined }));
@@ -475,7 +490,7 @@ export function FpInstrumentsPage() {
 
         <TextField
           size="small"
-          label="Instrument name"
+          label={t("fpInstruments.form.nameLabel")}
           required
           value={form.name}
           error={!!fieldErrors.name}
@@ -484,15 +499,15 @@ export function FpInstrumentsPage() {
             setFieldErrors((fe) => ({ ...fe, name: undefined }));
             setForm((f) => ({ ...f, name: e.target.value }));
           }}
-          helperText={fieldErrors.name ?? "As it should appear on suitability runs, e.g. Agilent HPLC 1"}
+          helperText={fieldErrors.name ?? t("fpInstruments.form.nameHelper")}
           slotProps={{ htmlInput: { maxLength: 100 } }}
         />
       </FormDialog>
       <ChangeReasonDialog
         open={pendingReasonEdit !== null}
-        title="Reason required to update instrument"
-        message="This instrument is referenced by active laboratory work. Enter a reason to apply your changes."
-        confirmText="Save Change"
+        title={t("fpInstruments.reasonDialogTitle")}
+        message={t("fpInstruments.reasonDialogMessage")}
+        confirmText={t("fpInstruments.reasonDialogConfirm")}
         loading={reasonSaving}
         error={reasonError}
         onConfirm={confirmReasonEdit}

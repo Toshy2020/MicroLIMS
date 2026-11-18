@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ClipboardEvent as ReactClipboardEvent } from "react";
 import { Button, Paper, Stack, TextField } from "@mui/material";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import { parseClipboardTable } from "../../../components/entry/parseClipboardTable";
 import { PastePreviewDialog, type PasteAcceptedRow } from "../../../components/entry/PastePreviewDialog";
 import { PendingBatchList, type PendingBatchColumn } from "../../../components/entry/PendingBatchList";
@@ -20,31 +21,33 @@ import {
   type ConfiguredEquipmentSummary
 } from "./services/EquipmentConfigurationService";
 
-const EQUIPMENT_PENDING_COLUMNS: PendingBatchColumn<PendingEquipment>[] = [
-  { key: "name", label: "Equipment name", render: (r) => r.name },
+const getEquipmentPendingColumns = (
+  t: ReturnType<typeof useTranslation>["t"]
+): PendingBatchColumn<PendingEquipment>[] => [
+  { key: "name", label: t("equipmentPaste.columns.name"), render: (r) => r.name },
   {
     key: "code",
-    label: "Equipment code",
+    label: t("equipmentPaste.columns.code"),
     sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
     render: (r) => r.code
   },
-  { key: "typeLabel", label: "Equipment type", render: (r) => r.typeLabel },
-  { key: "vendor", label: "Vendor / Manufacturer", render: (r) => r.vendor || "—" },
-  { key: "sectionName", label: "Laboratory section", render: (r) => r.sectionName || "—" },
-  { key: "location", label: "Location", render: (r) => r.location || "—" },
-  { key: "inventoryLabel", label: "Asset register entry", render: (r) => r.inventoryLabel || "—" },
-  { key: "connectionSettings", label: "Connection settings", render: (r) => r.connectionSettings || "—" },
+  { key: "typeLabel", label: t("equipmentPaste.columns.type"), render: (r) => r.typeLabel },
+  { key: "vendor", label: t("equipmentPaste.columns.vendor"), render: (r) => r.vendor || t("common.dash") },
+  { key: "sectionName", label: t("equipmentPaste.columns.section"), render: (r) => r.sectionName || t("common.dash") },
+  { key: "location", label: t("equipmentPaste.columns.location"), render: (r) => r.location || t("common.dash") },
+  { key: "inventoryLabel", label: t("equipmentPaste.columns.inventory"), render: (r) => r.inventoryLabel || t("common.dash") },
+  { key: "connectionSettings", label: t("equipmentPaste.columns.connection"), render: (r) => r.connectionSettings || t("common.dash") },
   {
     key: "setPointTemperature",
-    label: "Set point temp (°C)",
+    label: t("equipmentPaste.columns.setPoint"),
     sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.setPointTemperature !== null ? String(r.setPointTemperature) : "—")
+    render: (r) => (r.setPointTemperature !== null ? String(r.setPointTemperature) : t("common.dash"))
   },
   {
     key: "calibrationDueDate",
-    label: "Calibration due date",
+    label: t("equipmentPaste.columns.calibrationDue"),
     sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => r.calibrationDueDate || "—"
+    render: (r) => r.calibrationDueDate || t("common.dash")
   }
 ];
 
@@ -71,14 +74,17 @@ export function EquipmentPasteSection({
   inventoryList,
   onCreated
 }: EquipmentPasteSectionProps) {
+  const { t } = useTranslation("masterData");
   const [previewCells, setPreviewCells] = useState<string[][] | null>(null);
   const [pendingRows, setPendingRows] = useState<PendingEquipment[]>([]);
   const [saving, setSaving] = useState(false);
   const [batchError, setBatchError] = useState<string | null>(null);
 
+  const pendingColumns = useMemo(() => getEquipmentPendingColumns(t), [t]);
+
   const pastePlan = useMemo(
-    () => buildEquipmentPastePlan({ existingEquipment, mySections, inventoryList }),
-    [existingEquipment, mySections, inventoryList]
+    () => buildEquipmentPastePlan({ existingEquipment, mySections, inventoryList, t }),
+    [existingEquipment, mySections, inventoryList, t]
   );
 
   const anyModalOpen = modalOpen || previewCells !== null;
@@ -117,7 +123,7 @@ export function EquipmentPasteSection({
   };
 
   const handleAccept = (rows: PasteAcceptedRow[]) => {
-    setPendingRows(toPendingEquipmentRows(rows, mySections, inventoryList));
+    setPendingRows(toPendingEquipmentRows(rows, mySections, inventoryList, t));
     setBatchError(null);
     setPreviewCells(null);
     onClosePasteBar();
@@ -132,12 +138,12 @@ export function EquipmentPasteSection({
       await EquipmentConfigurationService.createEquipmentBatch(payload);
       const count = pendingRows.length;
       setPendingRows([]);
-      toast.success(`Created ${count} equipment item${count === 1 ? "" : "s"}.`);
+      toast.success(t("equipmentPaste.createdToast", { count }));
       await onCreated();
     } catch (err: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         err,
-        "Could not create equipment. Nothing was created."
+        t("equipmentPaste.saveError")
       );
       if (rowErrors) {
         setPendingRows((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -157,25 +163,25 @@ export function EquipmentPasteSection({
               autoFocus
               size="small"
               fullWidth
-              label="Paste equipment rows"
-              placeholder="Paste rows copied from a spreadsheet (Equipment name, Equipment code, Equipment type, Vendor / Manufacturer, Laboratory section, Location, Asset register entry, Connection settings, Set point temp (°C), Calibration due date)"
+              label={t("equipmentPaste.pasteLabel")}
+              placeholder={t("equipmentPaste.pastePlaceholder")}
               value=""
               onChange={() => {}}
               onPaste={handlePasteInput}
-              helperText="Columns in order: Equipment name, Equipment code, Equipment type, Vendor / Manufacturer, Laboratory section, Location, Asset register entry, Connection settings, Set point temp (°C), Calibration due date (YYYY-MM-DD). Add set points and programs after creating the equipment. HPLC, ICP-OES, pH Meter, and Balance are not supported by paste here."
+              helperText={t("equipmentPaste.pasteHelper")}
             />
             <Button onClick={onClosePasteBar} sx={{ textTransform: "none", flexShrink: 0 }}>
-              Close
+              {t("common.close")}
             </Button>
           </Stack>
         </Paper>
       )}
 
       <PendingBatchList
-        title={`Pending equipment (${pendingRows.length})`}
-        subtitle={`Review the ${pendingRows.length} equipment item${pendingRows.length === 1 ? "" : "s"} below. Nothing is saved until you click Save.`}
-        ariaLabel="Pending equipment"
-        columns={EQUIPMENT_PENDING_COLUMNS}
+        title={t("equipmentPaste.pendingTitle", { count: pendingRows.length })}
+        subtitle={t("equipmentPaste.pendingSubtitle", { count: pendingRows.length })}
+        ariaLabel={t("equipmentPaste.pendingAria")}
+        columns={pendingColumns}
         rows={pendingRows}
         getRowKey={(r, i) => `${r.code}-${i}`}
         getRowLabel={(r) => (r.code ? `${r.code} (${r.name})` : r.name)}

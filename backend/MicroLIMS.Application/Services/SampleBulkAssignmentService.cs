@@ -70,7 +70,8 @@ public class SampleBulkAssignmentService
                     request.AnalystUserId,
                     actingUserId,
                     actingScope,
-                    assigneeScope);
+                    assigneeScope,
+                    ct);
 
                 passing.Add((sample, changes));
                 rows.Add(new BulkAssignRowResult(sample.Id, sample.ReferenceNumber, true, null));

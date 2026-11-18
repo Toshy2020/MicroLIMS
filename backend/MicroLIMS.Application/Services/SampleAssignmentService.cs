@@ -32,53 +32,84 @@ public class SampleAssignmentService
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
+    internal const string CannotReassignWithResultMessage = "Tests with a result cannot be reassigned.";
+
     private static readonly ApprovalStatus[] ClosedStatuses =
         { ApprovalStatus.Approved, ApprovalStatus.Rejected, ApprovalStatus.Voided, ApprovalStatus.Cancelled };
 
-    private static bool IsOpen(TestOrder t) => !t.IsSuperseded && !ClosedStatuses.Contains(t.Status);
+    private static bool IsClosed(TestOrder t) => t.IsSuperseded || ClosedStatuses.Contains(t.Status);
+
+    // A test order's result is complete and submitted once its status leaves Pending/InProgress
+    // (ResultEntered, Reviewed, RetestRequested, etc.) or its step reaches Ready or later.
+    // Intermediate readings/steps saved while InProgress do not block reassignment.
+    internal static bool HasResult(TestOrder t) =>
+        t.Status is not (ApprovalStatus.Pending or ApprovalStatus.InProgress)
+        || t.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved;
+
+    private static bool IsOpen(TestOrder t) => !IsClosed(t) && !HasResult(t);
 
     // Assignment is a write, so the scope is membership for everyone (never null).
     private static bool InScope(IReadOnlyList<int>? scope, int sectionId) => scope is null || scope.Contains(sectionId);
 
-    // Whole sample: the analyst takes every open test in the sections they
-    // belong to (tests in other sections keep whoever is on them). A null
-    // analyst unassigns every open test.
-    public async Task<SampleDto> AssignAnalystAsync(int sampleId, int? analystUserId, int actingUserId, string? reason = null)
+    // Whole sample: the analyst takes every open test (no submitted result) in the sections
+    // they belong to (tests in other sections keep whoever is on them). A null analyst
+    // unassigns every open test without a submitted result.
+    public async Task<SampleDto> AssignAnalystAsync(
+        int sampleId, int? analystUserId, int actingUserId, string? reason = null, CancellationToken ct = default)
     {
-        var sample = await LoadSampleAsync(sampleId);
-        var changes = await PrepareSampleAssignmentAsync(sample, analystUserId, actingUserId);
-        await ApplyAsync(sample, changes, actingUserId, reason);
+        var sample = await LoadSampleAsync(sampleId, ct);
+        var changes = await PrepareSampleAssignmentAsync(sample, analystUserId, actingUserId, ct: ct);
+        await ApplyAsync(sample, changes, actingUserId, reason, ct);
         return await LoadDtoAsync(sample);
     }
 
-    private static List<TestOrder> OpenInScope(Sample sample, IReadOnlyList<int>? actingScope) =>
-        sample.TestOrders.Where(t => IsOpen(t) && InScope(actingScope, t.SectionId)).ToList();
+    private static (List<TestOrder> Assignable, ActionCheck Check) EvaluateSampleAssignment(
+        Sample sample,
+        IReadOnlyList<int>? actingScope)
+    {
+        var inScope = sample.TestOrders
+            .Where(t => !IsClosed(t) && InScope(actingScope, t.SectionId))
+            .ToList();
+        var assignable = inScope
+            .Where(t => !HasResult(t))
+            .ToList();
 
-    private static ActionCheck CheckAssign(List<TestOrder> openInScope) =>
-        openInScope.Count == 0 ? ActionCheck.No(MessageCodes.SampleNoOpenTestsToAssign, "This sample has no open tests you can assign.") : ActionCheck.Ok;
+        if (assignable.Count > 0)
+            return (assignable, ActionCheck.Ok);
 
-    // Whether the acting user can assign anything on the sample: it has an open test in a section they belong to.
-    // Who is put on the tests is the user's choice, and AnalystAssignmentRules judges it in the action.
-    // The sample carries its TestOrders.
-    internal async Task<ActionCheck> CheckAssignAsync(Sample sample, int actingUserId, CancellationToken ct = default) =>
-        CheckAssign(OpenInScope(sample, await _scope.GetMemberSectionIdsAsync(actingUserId, ct)));
+        var check = inScope.Count > 0
+            ? ActionCheck.No(MessageCodes.SampleCannotReassignWithResult, CannotReassignWithResultMessage)
+            : ActionCheck.No(MessageCodes.SampleNoOpenTestsToAssign, "This sample has no open tests you can assign.");
+
+        return (assignable, check);
+    }
+
+    // Whether the acting user can assign anything on the sample: it has an open test without a submitted
+    // result in a section they belong to. Who is put on the tests is the user's choice, and
+    // AnalystAssignmentRules judges it in the action. The sample carries its TestOrders.
+    internal async Task<ActionCheck> CheckAssignAsync(Sample sample, int actingUserId, CancellationToken ct = default)
+    {
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
+        return EvaluateSampleAssignment(sample, actingScope).Check;
+    }
 
     internal async Task<List<(TestOrder Order, int? AnalystId)>> PrepareSampleAssignmentAsync(
         Sample sample,
         int? analystUserId,
         int actingUserId,
         IReadOnlyList<int>? actingScope = null,
-        IReadOnlyList<int>? assigneeScope = null)
+        IReadOnlyList<int>? assigneeScope = null,
+        CancellationToken ct = default)
     {
-        actingScope ??= await _scope.GetMemberSectionIdsAsync(actingUserId);
+        actingScope ??= await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
 
-        var open = OpenInScope(sample, actingScope);
-        CheckAssign(open).ThrowIfRefused();
+        var (open, check) = EvaluateSampleAssignment(sample, actingScope);
+        check.ThrowIfRefused();
 
         var targets = open;
         if (analystUserId is int assigneeId)
         {
-            var memberOf = assigneeScope ?? await _scope.GetMemberSectionIdsAsync(assigneeId);
+            var memberOf = assigneeScope ?? await _scope.GetMemberSectionIdsAsync(assigneeId, ct);
             targets = open.Where(t => InScope(memberOf, t.SectionId)).ToList();
 
             // With no test in the assignee's sections, checking against all
@@ -91,15 +122,16 @@ public class SampleAssignmentService
     }
 
     // Per test: each listed test gets its own analyst, all in one save.
-    public async Task<SampleDto> AssignTestsAsync(int sampleId, IReadOnlyList<TestAnalystAssignment> assignments, int actingUserId, string? reason = null)
+    public async Task<SampleDto> AssignTestsAsync(
+        int sampleId, IReadOnlyList<TestAnalystAssignment> assignments, int actingUserId, string? reason = null, CancellationToken ct = default)
     {
         if (assignments.Count == 0)
             throw new BusinessRuleException("Choose at least one test to assign.");
         if (assignments.Select(a => a.TestOrderId).Distinct().Count() != assignments.Count)
             throw new BusinessRuleException("Each test can be listed only once.");
 
-        var sample = await LoadSampleAsync(sampleId);
-        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
+        var sample = await LoadSampleAsync(sampleId, ct);
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
         var now = _time.GetUtcNow().UtcDateTime;
 
         var changes = new List<(TestOrder Order, int? AnalystId)>();
@@ -108,10 +140,12 @@ public class SampleAssignmentService
             var order = sample.TestOrders.FirstOrDefault(t => t.Id == assignment.TestOrderId)
                 ?? throw new NotFoundException($"Test {assignment.TestOrderId} is not on sample {sample.ReferenceNumber}.");
 
-            if (!IsOpen(order))
+            if (IsClosed(order))
                 throw new BusinessRuleException($"{order.TestCode} is closed - its analyst can no longer be changed.");
             if (!InScope(actingScope, order.SectionId))
                 throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+            if (HasResult(order))
+                throw new BusinessRuleException(MessageCodes.SampleCannotReassignWithResult, CannotReassignWithResultMessage);
 
             if (assignment.AnalystUserId is int assigneeId)
                 await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId, new[] { order.SectionId }, now);
@@ -119,34 +153,34 @@ public class SampleAssignmentService
             changes.Add((order, assignment.AnalystUserId));
         }
 
-        await ApplyAsync(sample, changes, actingUserId, reason);
+        await ApplyAsync(sample, changes, actingUserId, reason, ct);
         return await LoadDtoAsync(sample);
     }
 
     // Everything the Assign Analyst dialog needs: each test, whether the
     // acting user may change it, and who may take it.
-    public async Task<SampleAssignmentOptionsDto> GetAssignmentOptionsAsync(int sampleId, int actingUserId)
+    public async Task<SampleAssignmentOptionsDto> GetAssignmentOptionsAsync(int sampleId, int actingUserId, CancellationToken ct = default)
     {
         var sample = await _db.Samples
             .AsNoTracking()
             .Include(s => s.TestOrders).ThenInclude(t => t.Section)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
-        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId);
+        var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
         var now = _time.GetUtcNow().UtcDateTime;
 
         var candidates = await AnalystAssignmentRules.Candidates(_db, actingUserId, now)
             .AsNoTracking()
             .OrderBy(u => u.FullName)
-            .ToListAsync();
+            .ToListAsync(ct);
         var sectionsByUser = new Dictionary<int, IReadOnlyList<int>?>();
         foreach (var candidate in candidates)
-            sectionsByUser[candidate.Id] = await _scope.GetMemberSectionIdsAsync(candidate.Id);
+            sectionsByUser[candidate.Id] = await _scope.GetMemberSectionIdsAsync(candidate.Id, ct);
 
         var orders = sample.TestOrders.Where(t => !t.IsSuperseded).OrderBy(t => t.SectionId).ThenBy(t => t.TestCode).ToList();
         var assignedIds = orders.Where(t => t.AssignedAnalystId.HasValue).Select(t => t.AssignedAnalystId!.Value).Distinct().ToList();
-        var names = await _db.Users.Where(u => assignedIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName);
+        var names = await _db.Users.Where(u => assignedIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
         var tests = orders.Select(t =>
         {
@@ -170,10 +204,10 @@ public class SampleAssignmentService
         return new SampleAssignmentOptionsDto(sample.Id, tests, users);
     }
 
-    private async Task<Sample> LoadSampleAsync(int sampleId) =>
+    private async Task<Sample> LoadSampleAsync(int sampleId, CancellationToken ct = default) =>
         await _db.Samples
             .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
         ?? throw new NotFoundException($"Sample {sampleId} not found.");
 
     // The one audit shape for a change of a test's analyst; Take and Release (TestSelfAssignmentService) write it too.

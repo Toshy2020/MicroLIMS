@@ -27,6 +27,24 @@ public class SampleMoisturePostgresTests
     private static Task<TestWorkflowResult> Record(MicroLimsDbContext db, TitrationScenario s, TitrationPayload p) =>
         TestServiceFactory.TestWorkflow(db).RecordTitrationResultAsync(s.Order.Id, p, s.UserId, "127.0.0.1");
 
+    private static int NewReviewerId(MicroLimsDbContext db)
+    {
+        var role = db.Roles.FirstOrDefault(r => r.Type == RoleType.Reviewer)
+            ?? db.Roles.Add(new Role { Name = "Reviewer", Type = RoleType.Reviewer, IsActive = true }).Entity;
+        db.SaveChanges();
+        var reviewer = new User
+        {
+            Username = $"rev_{Guid.NewGuid():N}"[..14],
+            FullName = "Moisture Reviewer",
+            PasswordHash = "x",
+            RoleId = role.Id,
+            IsActive = true
+        };
+        db.Users.Add(reviewer);
+        db.SaveChanges();
+        return reviewer.Id;
+    }
+
     // ---- resolver ----
 
     [PostgresFact]
@@ -181,7 +199,7 @@ public class SampleMoisturePostgresTests
         var (otherLodOrder, otherLod) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 3m, active: false);
         var unrelated = AddAssay(db, s, otherLod.Id, ApprovalStatus.ResultEntered);
 
-        var ret = await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+        var ret = await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, NewReviewerId(db), null);
         Assert.Equal(lodOrder.Id, ret.TestOrderId);
 
         await using var v = _fixture.CreateDbContext();
@@ -208,7 +226,7 @@ public class SampleMoisturePostgresTests
         var (kfOrder, _) = s.AddMoistureResult(db, MoistureRole.Water, 5m);
         await Record(db, s, TitrationRecorderTests.Payload(s));
 
-        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(kfOrder.Id, s.UserId, "Re-run");
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(kfOrder.Id, NewReviewerId(db), "Re-run");
 
         await using var v = _fixture.CreateDbContext();
         var ev = await v.TestReturnEvents.SingleAsync(e => e.TestOrderId == s.Order.Id);
@@ -223,7 +241,7 @@ public class SampleMoisturePostgresTests
         var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
         await Record(db, s, TitrationRecorderTests.Payload(s));
 
-        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(s.Order.Id, s.UserId, "Recheck");
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(s.Order.Id, NewReviewerId(db), "Recheck");
 
         await using var v = _fixture.CreateDbContext();
         Assert.Equal(ApprovalStatus.ResultEntered, (await v.TestOrders.FindAsync(lodOrder.Id))!.Status);
@@ -264,7 +282,7 @@ public class SampleMoisturePostgresTests
         var s = Seed(db);
         var (lodOrder, _) = s.AddMoistureResult(db, MoistureRole.LossOnDrying, 2.5m);
         await Record(db, s, TitrationRecorderTests.Payload(s));
-        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, NewReviewerId(db), null);
 
         await using var db2 = _fixture.CreateDbContext();
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Record(db2, s, TitrationRecorderTests.Payload(s)));
@@ -317,8 +335,9 @@ public class SampleMoisturePostgresTests
         await using var tx = await db1.Database.BeginTransactionAsync();
         await SampleMoistureResolver.LockMoistureOrderAsync(db1, lodOrder.Id);
 
+        var reviewerId = NewReviewerId(db);
         await using var db2 = _fixture.CreateDbContext();
-        var returning = TestServiceFactory.SampleReview(db2).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+        var returning = TestServiceFactory.SampleReview(db2).ReturnToAnalystAsync(lodOrder.Id, reviewerId, null);
         Assert.True(await WaitsAsync(returning), "the return must wait for the lock on the moisture order");
 
         await tx.CommitAsync();
@@ -344,7 +363,7 @@ public class SampleMoisturePostgresTests
         db.SaveChanges();
 
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
+            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, NewReviewerId(db), null));
         Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
 
         await using var v = _fixture.CreateDbContext();
@@ -363,7 +382,7 @@ public class SampleMoisturePostgresTests
         var reviewed = AddAssay(db, s, lod.Id, ApprovalStatus.Reviewed);
 
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(
-            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null));
+            () => TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, NewReviewerId(db), null));
         Assert.Equal($"Cannot return {lodOrder.TestCode}: assay {s.Test.Code} has already been reviewed.", ex.Message);
 
         await using var v = _fixture.CreateDbContext();

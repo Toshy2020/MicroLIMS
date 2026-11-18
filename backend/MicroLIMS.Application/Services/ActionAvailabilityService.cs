@@ -126,7 +126,7 @@ public sealed class ActionAvailabilityService
                 () => Holds(permissions, PermissionConstants.SamplesReview),
                 // The guard SampleReviewController runs before a return.
                 () => ActionCheck.FromGuardAsync(() => _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct)),
-                () => _review.CheckReturnToAnalystAsync(testOrderId, ct)),
+                () => _review.CheckReturnToAnalystAsync(testOrderId, userId, ct)),
             // Take and release name their own permission refusal, so no generic sentence is needed.
             await FirstRefusalAsync(GatedActions.TestTake, () => _selfAssignment.CheckTakeAsync(testOrderId, userId, ct)),
             await FirstRefusalAsync(GatedActions.TestRelease, () => _selfAssignment.CheckReleaseAsync(testOrderId, userId, ct)),

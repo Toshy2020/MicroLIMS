@@ -558,6 +558,14 @@ internal sealed class ActionGuardScenarios
             return new Arranged(new Target(reviewer.Id, seed.Orders[0].Id),
                 "Cannot return a test order in Pending status. Only test orders in ResultEntered status can be returned to the analyst.");
         }),
+        Rule("performed the test", async () =>
+        {
+            var section = await SectionAsync();
+            var head = await HeadAsync(section);
+            var code = await TestDefinitionAsync(section, WorkflowType.CountTest);
+            var seed = await UnderReviewAsync(section, analystId: head.Id, testCode: code);
+            return new Arranged(new Target(head.Id, seed.Orders[0].Id), SignoffRefusalSentences.CannotReviewTested);
+        }),
         Rule("test definition missing", async () =>
         {
             var section = await SectionAsync();
@@ -734,6 +742,13 @@ internal sealed class ActionGuardScenarios
             var seed = await SampleAsync(section, SampleStatus.InTesting, ApprovalStatus.Approved, WorkflowStep.Approved, SectionSignoffStatus.Approved, reviewer.Id);
             await AddSectionAsync(seed, second, ApprovalStatus.Pending, WorkflowStep.Waiting);
             return new Arranged(new Target(head.Id, seed.Sample.Id), "This sample has no open tests you can assign.");
+        }),
+        Rule("every test in the section has a result", async () =>
+        {
+            var section = await SectionAsync();
+            var head = await HeadAsync(section);
+            var seed = await UnderReviewAsync(section);
+            return new Arranged(new Target(head.Id, seed.Sample.Id), "Tests with a result cannot be reassigned.");
         }),
     };
 

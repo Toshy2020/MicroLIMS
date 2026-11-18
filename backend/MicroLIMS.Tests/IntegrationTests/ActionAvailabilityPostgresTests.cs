@@ -14,6 +14,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -512,5 +513,82 @@ public class ActionAvailabilityPostgresTests
         Assert.True(Assert.Single(listed, a => a.Action == GatedActions.ApprovalApprove).Allowed);
         await _scenarios.ApproveAsync(target);
         await Case(GatedActions.ApprovalApprove).AssertDone(target);
+    }
+
+    [PostgresFact]
+    public async Task SampleAssign_WhenTestsHaveResult_ReportsRefusedWithSentenceAndCode()
+    {
+        var section = await _scenarios.SectionAsync();
+        var head = await _scenarios.HeadAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+        var reviewer = await _scenarios.ReviewerAsync(section);
+
+        var underReview = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        var underApproval = await _scenarios.UnderApprovalAsync(section, reviewer.Id, analystId: analyst.Id);
+
+        // Intermediate reading saved while InProgress must still allow assignment.
+        var inProgressWithRow = await _scenarios.InTestingAsync(section, orderStatus: ApprovalStatus.InProgress, step: WorkflowStep.Incubating, analystId: analyst.Id);
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.Results.Add(new Result
+            {
+                TestOrderId = inProgressWithRow.Orders[0].Id,
+                RawValue = "10",
+                InterpretedValue = "10 CFU/g",
+                Type = ResultType.Numeric,
+                EnteredByUserId = analyst.Id,
+                EnteredAt = ActionGuardScenarios.Now.AddMinutes(-10)
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        var mixed = await _scenarios.InTestingAsync(section, orderStatus: ApprovalStatus.Pending, step: WorkflowStep.Waiting);
+        await _scenarios.AddSectionAsync(mixed, section, ApprovalStatus.ResultEntered, WorkflowStep.Ready, analystId: analyst.Id);
+
+        foreach (var sampleId in new[] { underReview.Sample.Id, underApproval.Sample.Id })
+        {
+            var ok = Assert.IsType<OkObjectResult>(await GetAsync("sample", sampleId, head.Id));
+            var body = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(ok.Value);
+            Assert.NotNull(body.Data);
+            var assign = Assert.Single(body.Data, a => a.Action == GatedActions.SampleAssign);
+            Assert.False(assign.Allowed);
+            Assert.Equal("Tests with a result cannot be reassigned.", assign.Reason);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, assign.ReasonCode);
+        }
+
+        foreach (var sampleId in new[] { inProgressWithRow.Sample.Id, mixed.Sample.Id })
+        {
+            var ok = Assert.IsType<OkObjectResult>(await GetAsync("sample", sampleId, head.Id));
+            var body = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(ok.Value);
+            Assert.NotNull(body.Data);
+            var assign = Assert.Single(body.Data, a => a.Action == GatedActions.SampleAssign);
+            Assert.True(assign.Allowed);
+            Assert.Null(assign.Reason);
+        }
+    }
+
+    [PostgresFact]
+    public async Task ReviewReturn_WhenTesterIsSectionHead_ReportsRefusedWithSentenceAndCode()
+    {
+        var section = await _scenarios.SectionAsync();
+        var headWhoTested = await _scenarios.HeadAsync(section);
+        var otherReviewer = await _scenarios.ReviewerAsync(section);
+        var code = await _scenarios.TestDefinitionAsync(section, WorkflowType.CountTest);
+        var seed = await _scenarios.UnderReviewAsync(section, analystId: headWhoTested.Id, testCode: code);
+
+        var testerOk = Assert.IsType<OkObjectResult>(await GetAsync("test-order", seed.Orders[0].Id, headWhoTested.Id));
+        var testerBody = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(testerOk.Value);
+        Assert.NotNull(testerBody.Data);
+        var testerReturn = Assert.Single(testerBody.Data, a => a.Action == GatedActions.ReviewReturn);
+        Assert.False(testerReturn.Allowed);
+        Assert.Equal(SignoffRefusalSentences.CannotReviewTested, testerReturn.Reason);
+        Assert.Equal(MessageCodes.SampleCannotReviewTested, testerReturn.ReasonCode);
+
+        var reviewerOk = Assert.IsType<OkObjectResult>(await GetAsync("test-order", seed.Orders[0].Id, otherReviewer.Id));
+        var reviewerBody = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(reviewerOk.Value);
+        Assert.NotNull(reviewerBody.Data);
+        var reviewerReturn = Assert.Single(reviewerBody.Data, a => a.Action == GatedActions.ReviewReturn);
+        Assert.True(reviewerReturn.Allowed);
+        Assert.Null(reviewerReturn.Reason);
     }
 }

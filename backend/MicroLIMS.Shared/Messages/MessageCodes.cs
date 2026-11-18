@@ -19,6 +19,7 @@ public static class MessageCodes
     public const string MediaCannotApproveOwnLot = "Media.CannotApproveOwnLot";
     public const string SampleCannotApproveReviewed = "Sample.CannotApproveReviewed";
     public const string SampleCannotApproveTested = "Sample.CannotApproveTested";
+    public const string SampleCannotReassignWithResult = "Sample.CannotReassignWithResult";
     public const string SampleCannotReviewTested = "Sample.CannotReviewTested";
     public const string SampleDuplicateBatchAndControl = "Sample.DuplicateBatchAndControl";
     public const string SampleNoOpenTestsToAssign = "Sample.NoOpenTestsToAssign";
@@ -37,6 +38,7 @@ public static class MessageCodes
         [MediaCannotApproveOwnLot] = None,
         [SampleCannotApproveReviewed] = None,
         [SampleCannotApproveTested] = None,
+        [SampleCannotReassignWithResult] = None,
         [SampleCannotReviewTested] = None,
         [SampleDuplicateBatchAndControl] = None,
         [SampleNoOpenTestsToAssign] = None,

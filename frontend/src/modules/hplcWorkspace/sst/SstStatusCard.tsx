@@ -2,6 +2,8 @@ import { Box, Stack, Typography } from "@mui/material";
 import { VerdictBanner } from "../../../components/lab";
 import type { Verdict } from "../../../components/lab";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcSstStatus } from "../types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -28,28 +30,32 @@ export function SstStatusCard({
   confirmedByUserName,
   confirmedAt
 }: SstStatusCardProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const isPassed = status === "Passed";
   const isFailed = status === "Failed";
 
   const detail = isPassed
-    ? `All acceptance criteria have been verified and confirmed. Sample assignment is unlocked for this run.${
+    ? `${t("sst.statusCard.detailPassed")}${
         confirmedByUserName
-          ? ` Confirmed by ${confirmedByUserName}${confirmedAt ? ` on ${formatDateTimeWithTimeZone(confirmedAt)}` : ""}.`
+          ? t("sst.statusCard.detailConfirmedBy", {
+              user: confirmedByUserName,
+              at: confirmedAt ? t("sst.statusCard.detailConfirmedAt", { date: formatDateTimeWithTimeZone(confirmedAt) }) : ""
+            })
           : ""
       }`
     : isFailed
-    ? "Sample assignment is locked until system suitability passes."
-    : "Sample assignment is locked until system suitability passes. Record standard weights and injection responses, transcribe CDS report criteria, upload the standard report, and confirm with electronic signature.";
+    ? t("sst.statusCard.detailFailed")
+    : t("sst.statusCard.detailPending");
 
   return (
     <Stack spacing={1.5}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: "uppercase" }}>
-            System Suitability Record
+            {t("sst.statusCard.title")}
           </Typography>
           <Typography sx={{ fontWeight: 700, fontSize: 16, fontFamily: monospaceFontFamily }}>
-            {code}
+            <Ltr>{code}</Ltr>
           </Typography>
         </Box>
         <HplcStatusBadge status={status} size="medium" />
@@ -62,7 +68,7 @@ export function SstStatusCard({
           {failureReasons && (
             <Box sx={{ p: 1, borderRadius: 1, bgcolor: "action.hover" }}>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
-                Failure Details:
+                {t("sst.statusCard.failureDetails")}
               </Typography>
               <Typography variant="body2" sx={{ fontSize: 13, whiteSpace: "pre-wrap" }}>
                 {failureReasons}
@@ -70,7 +76,7 @@ export function SstStatusCard({
             </Box>
           )}
           <Typography variant="caption" sx={{ color: "text.secondary", px: 0.5 }}>
-            Under lab SOP, a failed SST cannot be re-opened for sample testing. Abandon this run with an explanatory reason and initiate a fresh run.
+            {t("sst.statusCard.sopNote")}
           </Typography>
         </>
       )}

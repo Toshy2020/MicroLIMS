@@ -24,6 +24,8 @@ import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useTechnique } from "../useTechnique";
 import type { HplcRunDto, HplcRunSampleSummaryDto } from "../types";
@@ -39,6 +41,7 @@ export function SampleAssignmentPanel({
   canOperate,
   onRunUpdated
 }: SampleAssignmentPanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const navigate = useNavigate();
   const { basePath, label } = useTechnique();
 
@@ -63,13 +66,13 @@ export function SampleAssignmentPanel({
     setRemoveError(null);
     try {
       await HplcWorkspaceService.removeSample(run.id, sampleToRemove.id, removeReason.trim());
-      toast.success(`Sample ${sampleToRemove.sampleNumber} removed from run.`);
+      toast.success(t("samples.panel.removedToast", { sampleNumber: sampleToRemove.sampleNumber }));
       setRemoveDialogOpen(false);
       setSampleToRemove(null);
       onRunUpdated();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setRemoveError(e.response?.data?.message ?? e.message ?? "Could not remove sample.");
+      setRemoveError(e.response?.data?.message ?? e.message ?? t("samples.panel.removeError"));
     } finally {
       setRemoving(false);
     }
@@ -77,21 +80,21 @@ export function SampleAssignmentPanel({
 
   const canAssign = run.canAssignSamples && canOperate && run.status === "Open";
   const assignTooltip = !run.canAssignSamples
-    ? run.canAssignSamplesReason || "System suitability must pass first"
+    ? run.canAssignSamplesReason || t("samples.panel.tooltipSst")
     : run.status !== "Open"
-    ? "Run is no longer open"
+    ? t("samples.panel.tooltipClosed")
     : !canOperate
-    ? "Permission required"
+    ? t("samples.panel.tooltipPermission")
     : "";
 
   const columns: RegisterColumn<HplcRunSampleSummaryDto>[] = [
     {
       key: "sampleNumber",
-      label: "Sample Number",
+      label: t("samples.panel.columns.sampleNumber"),
       sortable: true,
       render: (s) => (
         <div>
-          <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.sampleNumber}</span>
+          <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}><Ltr>{s.sampleNumber}</Ltr></span>
           {s.subjectName && (
             <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
               {s.subjectName}
@@ -100,27 +103,27 @@ export function SampleAssignmentPanel({
         </div>
       )
     },
-    { key: "batchNumber", label: "Batch", sortable: true, render: (s) => s.batchNumber ?? "—" },
-    { key: "productName", label: "Product", sortable: true, render: (s) => s.productName ?? "—" },
+    { key: "batchNumber", label: t("samples.panel.columns.batch"), sortable: true, render: (s) => (s.batchNumber ? <Ltr>{s.batchNumber}</Ltr> : "—") },
+    { key: "productName", label: t("samples.panel.columns.product"), sortable: true, render: (s) => s.productName ?? "—" },
     {
       key: "testCode",
-      label: "Test Code",
+      label: t("samples.panel.columns.testCode"),
       sortable: true,
       render: (s) => s.workingStandardQualificationId
-        ? <Chip label="WS qualification" size="small" color="secondary" />
-        : <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{s.testCode}</span>
+        ? <Chip label={t("samples.panel.wsQualification")} size="small" color="secondary" />
+        : <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}><Ltr>{s.testCode}</Ltr></span>
     },
-    { key: "status", label: "Run Status", sortable: true, render: (s) => <HplcStatusBadge status={s.status} /> },
+    { key: "status", label: t("samples.panel.columns.runStatus"), sortable: true, render: (s) => <HplcStatusBadge status={s.status} /> },
     {
       key: "submitted",
-      label: "Submission",
+      label: t("samples.panel.columns.submission"),
       sortable: true,
       sortValue: (s) => (s.submitted ? 1 : 0),
-      render: (s) => (s.submitted ? <StatusBadge status="Completed" label="Submitted" /> : <StatusBadge status="Pending" />)
+      render: (s) => (s.submitted ? <StatusBadge status="Completed" label={t("samples.panel.submitted")} /> : <StatusBadge status="Pending" />)
     },
     {
       key: "actions",
-      label: "Actions",
+      label: t("samples.panel.columns.actions"),
       align: "right",
       render: (s) => {
         const canRemove = canOperate && run.status === "Open" && s.status === "Assigned" && !s.submitted;
@@ -141,7 +144,11 @@ export function SampleAssignmentPanel({
               }
               sx={{ textTransform: "none", py: 0.25 }}
             >
-              {s.submitted ? "View Entry" : s.isDissolution ? "Enter Dissolution" : "Enter Replicates"}
+              {s.submitted
+                ? t("samples.panel.viewEntry")
+                : s.isDissolution
+                ? t("samples.panel.enterDissolution")
+                : t("samples.panel.enterReplicates")}
             </Button>
 
             {canRemove && (
@@ -153,7 +160,7 @@ export function SampleAssignmentPanel({
                 onClick={() => handleOpenRemoveDialog(s)}
                 sx={{ textTransform: "none", py: 0.25 }}
               >
-                Remove
+                {t("samples.panel.remove")}
               </Button>
             )}
           </Stack>
@@ -167,12 +174,12 @@ export function SampleAssignmentPanel({
       {/* Gating Alert */}
       {!run.canAssignSamples ? (
         <Alert severity="warning" icon={<LockOutlinedIcon />}>
-          <strong>Sample assignment is locked.</strong>{" "}
-          {run.canAssignSamplesReason || "Sample assignment is locked until system suitability passes."}
+          <strong>{t("samples.panel.lockedBold")}</strong>{" "}
+          {run.canAssignSamplesReason || t("samples.panel.lockedFallback")}
         </Alert>
       ) : (
         <Alert severity="success">
-          System suitability is passed. Samples can be assigned and tested in this run.
+          {t("samples.panel.unlockedAlert")}
         </Alert>
       )}
 
@@ -187,10 +194,10 @@ export function SampleAssignmentPanel({
       >
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Assigned Run Samples ({run.samples.length})
+            {t("samples.panel.assignedTitle", { count: run.samples.length })}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Samples linked to this {label} run for testing and replicate entry.
+            {t("samples.panel.assignedSubtitle", { label })}
           </Typography>
         </Box>
 
@@ -206,7 +213,7 @@ export function SampleAssignmentPanel({
                 onClick={() => setEligibleDialogOpen(true)}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Assign Samples...
+                {t("samples.panel.assignSamples")}
               </Button>
             </span>
           </Tooltip>
@@ -222,7 +229,7 @@ export function SampleAssignmentPanel({
                 onClick={() => setEligibleWsDialogOpen(true)}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Assign Working Standard...
+                {t("samples.panel.assignWs")}
               </Button>
             </span>
           </Tooltip>
@@ -234,8 +241,8 @@ export function SampleAssignmentPanel({
         rows={run.samples}
         getRowId={(s) => s.id}
         empty={{
-          title: "No samples assigned",
-          description: "Click “Assign Samples...” to add test orders to this run."
+          title: t("samples.panel.emptyTitle"),
+          description: t("samples.panel.emptyDescription")
         }}
       />
 
@@ -258,18 +265,18 @@ export function SampleAssignmentPanel({
       {/* Remove Sample Reason Dialog */}
       <ReasonDialog
         open={removeDialogOpen}
-        title={`Remove Sample ${sampleToRemove?.sampleNumber ?? ""}`}
+        title={t("samples.panel.removeDialogTitle", { sampleNumber: sampleToRemove?.sampleNumber ?? "" })}
         onClose={() => !removing && setRemoveDialogOpen(false)}
         onConfirm={handleConfirmRemove}
-        confirmText="Remove Sample"
+        confirmText={t("samples.panel.removeConfirmText")}
         confirmColor="error"
         loading={removing}
-        loadingText="Removing..."
+        loadingText={t("samples.panel.removingText")}
         error={removeError}
         reason={removeReason}
         onReasonChange={setRemoveReason}
-        label="Reason for Removal"
-        placeholder="Explain why this sample is being removed from the run..."
+        label={t("samples.panel.removeReasonLabel")}
+        placeholder={t("samples.panel.removeReasonPlaceholder")}
       />
     </Stack>
   );

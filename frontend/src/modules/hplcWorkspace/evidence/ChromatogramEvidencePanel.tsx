@@ -28,6 +28,8 @@ import { SupersedeEvidenceDialog } from "./SupersedeEvidenceDialog";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { HplcRunDto, HplcEvidenceDto } from "../types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
@@ -42,6 +44,7 @@ export function ChromatogramEvidencePanel({
   canOperate,
   onRunUpdated
 }: ChromatogramEvidencePanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const [filterContext, setFilterContext] = useState<string>("all");
   const [viewingId, setViewingId] = useState<number | null>(null);
@@ -90,10 +93,10 @@ export function ChromatogramEvidencePanel({
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Run Chromatograms & Evidence Files ({allEvidence.length})
+                {t("evidence.chromatogram.title", { count: allEvidence.length })}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Complete audit trail of system suitability, sample, and run report files.
+                {t("evidence.chromatogram.subtitle")}
               </Typography>
             </Box>
 
@@ -104,10 +107,10 @@ export function ChromatogramEvidencePanel({
               indicatorColor="primary"
               sx={{ minHeight: 36 }}
             >
-              <Tab value="all" label="All Files" sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
-              <Tab value="sst" label="SST" sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
-              <Tab value="sample" label="Sample" sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
-              <Tab value="run" label="Run" sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
+              <Tab value="all" label={t("evidence.chromatogram.tabs.all")} sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
+              <Tab value="sst" label={t("evidence.chromatogram.tabs.sst")} sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
+              <Tab value="sample" label={t("evidence.chromatogram.tabs.sample")} sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
+              <Tab value="run" label={t("evidence.chromatogram.tabs.run")} sx={{ minHeight: 36, textTransform: "none", py: 0.5 }} />
             </Tabs>
           </Box>
         </Box>
@@ -116,20 +119,20 @@ export function ChromatogramEvidencePanel({
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>File Name</TableCell>
-                <TableCell>Context</TableCell>
-                <TableCell>Kind</TableCell>
-                <TableCell>Uploaded By</TableCell>
-                <TableCell>Uploaded At</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.fileName")}</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.context")}</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.kind")}</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.uploadedBy")}</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.uploadedAt")}</TableCell>
+                <TableCell>{t("evidence.chromatogram.columns.status")}</TableCell>
+                <TableCell align="right">{t("evidence.chromatogram.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredEvidence.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} sx={{ textAlign: "center", py: 4, color: "text.secondary" }}>
-                    No evidence files found for the selected category.
+                    {t("evidence.chromatogram.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -143,7 +146,7 @@ export function ChromatogramEvidencePanel({
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           {getFileIcon(e.contentType)}
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {e.fileName}
+                            <Ltr>{e.fileName}</Ltr>
                           </Typography>
                         </Box>
                         {e.supersedeReason && (
@@ -151,7 +154,7 @@ export function ChromatogramEvidencePanel({
                             variant="caption"
                             sx={{ color: "error.main", display: "block", mt: 0.5 }}
                           >
-                            Superseded: {e.supersedeReason}
+                            {t("evidence.chromatogram.supersededPrefix", { reason: e.supersedeReason })}
                           </Typography>
                         )}
                       </TableCell>
@@ -161,21 +164,24 @@ export function ChromatogramEvidencePanel({
                       <TableCell>{e.kind}</TableCell>
                       <TableCell>{e.uploadedByUserName ?? "—"}</TableCell>
                       <TableCell>
-                        {formatDateTimeWithTimeZone(e.uploadedAt)}
+                        <Ltr>{formatDateTimeWithTimeZone(e.uploadedAt)}</Ltr>
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={e.isCurrent ? "Active" : "Superseded"} label={e.isCurrent ? "Current" : "Superseded"} />
+                        <StatusBadge
+                          status={e.isCurrent ? "Active" : "Superseded"}
+                          label={e.isCurrent ? t("evidence.chromatogram.current") : t("evidence.chromatogram.superseded")}
+                        />
                       </TableCell>
                       <TableCell align="right">
                         <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                          <Tooltip title="View in new tab">
+                          <Tooltip title={t("evidence.chromatogram.viewTooltip")}>
                             <span>
                               <IconButton
                                 size="small"
                                 color="primary"
                                 onClick={() => handleView(e.id)}
                                 disabled={viewingId === e.id}
-                                aria-label={`View ${e.fileName} in a new tab`}
+                                aria-label={t("evidence.chromatogram.viewAria", { fileName: e.fileName })}
                               >
                                 {viewingId === e.id ? (
                                   <CircularProgress size={16} />
@@ -187,12 +193,12 @@ export function ChromatogramEvidencePanel({
                           </Tooltip>
 
                           {canSupersede && (
-                            <Tooltip title="Supersede with replacement file">
+                            <Tooltip title={t("evidence.chromatogram.supersedeTooltip")}>
                               <IconButton
                                 size="small"
                                 color="warning"
                                 onClick={() => handleOpenSupersede(e)}
-                                aria-label={`Supersede ${e.fileName} with a replacement file`}
+                                aria-label={t("evidence.chromatogram.supersedeAria", { fileName: e.fileName })}
                               >
                                 <SwapHorizIcon fontSize="small" />
                               </IconButton>
@@ -219,7 +225,7 @@ export function ChromatogramEvidencePanel({
       >
         <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Upload General Run Evidence
+            {t("evidence.chromatogram.uploadGeneralTitle")}
           </Typography>
         </Box>
         <Box sx={{ p: 2 }}>

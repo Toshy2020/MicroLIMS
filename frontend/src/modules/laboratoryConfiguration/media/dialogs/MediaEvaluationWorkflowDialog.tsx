@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import {
   Box,
   Typography,
@@ -41,6 +43,7 @@ interface Props {
 }
 
 export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onUpdated }: Props) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const [evaluation, setEvaluation] = useState<MediaEvaluationDetail | null>(null);
   const [cryovials, setCryovials] = useState<CryovialItem[]>([]);
@@ -60,7 +63,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       const data = await MediaEvaluationService.getById(evaluationId);
       setEvaluation(data);
     } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not load evaluation details.", ok: false });
+      setMessage({ text: serverMessage(e) ?? t("media.evaluationWorkflowDialog.loadError"), ok: false });
     }
   };
 
@@ -142,10 +145,10 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     if (!incubatorEquipmentId) return;
     try {
       await MediaEvaluationService.recordIncubation(challenge.id, Number(incubatorEquipmentId));
-      setMessage({ text: "Incubation recorded.", ok: true });
+      setMessage({ text: t("media.evaluationWorkflowDialog.incubationRecorded"), ok: true });
       await refreshDetail();
     } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not record incubation.", ok: false });
+      setMessage({ text: serverMessage(e) ?? t("media.evaluationWorkflowDialog.incubationError"), ok: false });
     }
   };
 
@@ -172,10 +175,10 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
     }
     try {
       await MediaEvaluationService.recordResult(challenge.id, payload);
-      setMessage({ text: "Result recorded successfully.", ok: true });
+      setMessage({ text: t("media.evaluationWorkflowDialog.resultRecorded"), ok: true });
       await refreshDetail();
     } catch (e) {
-      setMessage({ text: serverMessage(e) ?? "Could not record result.", ok: false });
+      setMessage({ text: serverMessage(e) ?? t("media.evaluationWorkflowDialog.resultError"), ok: false });
     }
   };
 
@@ -203,7 +206,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                 {evaluation.media?.lotNumber}: {evaluationTypeLabel(evaluation.evaluationType)}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Evaluation ID #{evaluation.id} · Status: {evaluation.status}
+                {t("media.evaluationWorkflowDialog.evaluationMeta", { id: evaluation.id, status: evaluation.status })}
               </Typography>
             </Box>
 
@@ -216,7 +219,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
       }
       actions={
         <Button onClick={onClose} variant="outlined">
-          Close
+          {t("media.evaluationWorkflowDialog.close")}
         </Button>
       }
     >
@@ -232,7 +235,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
             <Stack spacing={2}>
               {evaluation.challenges.length === 0 && (
                 <Alert severity="warning">
-                  No challenges assigned yet - add Media Challenge Specs for this material under Laboratory Configuration.
+                  {t("media.evaluationWorkflowDialog.noChallenges")}
                 </Alert>
               )}
 
@@ -251,13 +254,18 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         <StatusBadge status={c.outcome} />
                       ) : (
                         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                          Pending
+                          {t("media.evaluationWorkflowDialog.pending")}
                         </Typography>
                       )}
                     </Box>
 
                     <Typography variant="body2" sx={{ mb: 1 }}>
-                      Initial Inoculum: <strong>{c.initialInoculum}</strong>
+                      <Trans
+                        i18nKey="media.evaluationWorkflowDialog.initialInoculum"
+                        ns="labConfig"
+                        values={{ value: c.initialInoculum }}
+                        components={{ bold: <strong /> }}
+                      />
                     </Typography>
 
                     {/* Reference Lot (GrowthPromotion only) - a setup choice
@@ -267,7 +275,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {evaluation.evaluationType === "GrowthPromotion" && !c.outcome && (
                       <Box sx={{ mb: 1.5 }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                          REFERENCE LOT (FOR RECOVERY% COMPARISON)
+                          {t("media.evaluationWorkflowDialog.referenceLotHeading")}
                         </Typography>
                         <Stack useFlexGap
                           direction="row"
@@ -290,23 +298,26 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                 }
                               }}
                               sx={{ minWidth: 320 }}
-                              inputProps={{ "aria-label": "Reference lot" }}
+                              inputProps={{ "aria-label": t("media.evaluationWorkflowDialog.referenceLotAria") }}
                             >
                               {referenceLotOptions.map((m) => (
                                 <MenuItem key={m.id} value={m.id}>
-                                  {m.lotNumber}, prepared {new Date(m.preparedAt).toLocaleDateString()}
+                                  {t("media.evaluationWorkflowDialog.referenceLotOption", {
+                                    lot: m.lotNumber,
+                                    date: new Date(m.preparedAt).toLocaleDateString()
+                                  })}
                                 </MenuItem>
                               ))}
                               <MenuItem value="freetext">
-                                <em>Enter manually…</em>
+                                <em>{t("media.evaluationWorkflowDialog.enterManually")}</em>
                               </MenuItem>
                             </Select>
                           )}
                           {(referenceLotOptions.length === 0 || referenceModeFor(form) === "freetext") && (
                             <TextField
                               size="small"
-                              label="Reference Lot (manual entry)"
-                              placeholder="e.g. prior lot code or description"
+                              label={t("media.evaluationWorkflowDialog.referenceLotManualLabel")}
+                              placeholder={t("media.evaluationWorkflowDialog.referenceLotManualPlaceholder")}
                               value={form.referenceMediaLabel ?? ""}
                               onChange={(e) => setField(c.id, "referenceMediaLabel", e.target.value)}
                               sx={{ minWidth: 320 }}
@@ -329,18 +340,24 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {/* Step 2: Incubation Recording */}
                     {c.incubation ? (
                       <Typography variant="body2" sx={{ mb: 1 }}>
-                        Incubation: <strong>{c.incubation.temperature}°C, {c.incubation.duration}h</strong>
+                        {t("media.evaluationWorkflowDialog.incubationLabel")}{" "}
+                        <strong>
+                          {t("media.evaluationWorkflowDialog.incubationValue", {
+                            temp: c.incubation.temperature,
+                            duration: c.incubation.duration
+                          })}
+                        </strong>
                         {", "}
                         {isReadyToRead(c) ? (
-                          <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
+                          <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>{t("media.evaluationWorkflowDialog.readyToRead")}</span>
                         ) : (
-                          <span>Earliest reading: {formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}</span>
+                          <span>{t("media.evaluationWorkflowDialog.earliestReading", { date: formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!) })}</span>
                         )}
                       </Typography>
                     ) : (
                       <Box sx={{ mb: 1.5, p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                          STEP 2: RECORD INCUBATION
+                          {t("media.evaluationWorkflowDialog.step2Heading")}
                         </Typography>
                         <Stack direction="row" spacing={1} sx={{
                           alignItems: "center"
@@ -351,10 +368,10 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             value={form.incubatorEquipmentId ?? ""}
                             onChange={(e) => setField(c.id, "incubatorEquipmentId", e.target.value)}
                             sx={{ minWidth: 220 }}
-                            inputProps={{ "aria-label": "Incubator" }}
+                            inputProps={{ "aria-label": t("media.evaluationWorkflowDialog.incubatorAria") }}
                           >
                             <MenuItem value="">
-                              <em>Select Incubator</em>
+                              <em>{t("media.evaluationWorkflowDialog.selectIncubator")}</em>
                             </MenuItem>
                             {incubators.map((i) => (
                               <MenuItem key={i.id} value={i.id}>
@@ -369,7 +386,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             onClick={() => recordIncubation(c)}
                             color="primary"
                           >
-                            Record Incubation
+                            {t("media.evaluationWorkflowDialog.recordIncubation")}
                           </Button>
                         </Stack>
                       </Box>
@@ -379,65 +396,90 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     {c.outcome ? (
                       <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.notDetected.border }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
-                          EVALUATION RESULT RECORDED
+                          {t("media.evaluationWorkflowDialog.resultRecordedHeading")}
                         </Typography>
                         {evaluation.evaluationType === "GrowthPromotion" && (
                           <Typography variant="body2">
-                            Old Count: <strong>{c.oldMediaCount}</strong> / New Count: <strong>{c.newMediaCount}</strong>, Recovery: <strong>{c.recoveryPercent}%</strong>
+                            <Trans
+                              i18nKey="media.evaluationWorkflowDialog.countsLine"
+                              ns="labConfig"
+                              values={{ old: c.oldMediaCount, new: c.newMediaCount, recovery: c.recoveryPercent }}
+                              components={{ bold: <strong /> }}
+                            />
                           </Typography>
                         )}
                         {evaluation.evaluationType === "GrowthPromotion" && (
                           <Typography variant="body2">
-                            Reference Lot: <strong>{c.referenceMedia?.lotNumber ?? c.referenceMediaLabel ?? "—"}</strong>
+                            <Trans
+                              i18nKey="media.evaluationWorkflowDialog.referenceLotLine"
+                              ns="labConfig"
+                              values={{ lot: c.referenceMedia?.lotNumber ?? c.referenceMediaLabel ?? "—" }}
+                              components={{ bold: <strong /> }}
+                            />
                           </Typography>
                         )}
                         {c.challengeRole === "Inhibition" && (
                           <Typography variant="body2">
-                            Growth Observed: <strong>{c.growthObserved ? "Yes" : "No"}</strong>
+                            <Trans
+                              i18nKey="media.evaluationWorkflowDialog.growthObservedLine"
+                              ns="labConfig"
+                              values={{ value: c.growthObserved ? t("media.evaluationWorkflowDialog.yes") : t("media.evaluationWorkflowDialog.no") }}
+                              components={{ bold: <strong /> }}
+                            />
                           </Typography>
                         )}
                         {c.challengeRole === "Indication" && (
                           <Typography variant="body2">
-                            Observed: <strong>{c.observedDescription}</strong>
+                            <Trans
+                              i18nKey="media.evaluationWorkflowDialog.observedLine"
+                              ns="labConfig"
+                              values={{ value: c.observedDescription }}
+                              components={{ bold: <strong /> }}
+                            />
                           </Typography>
                         )}
                         {evaluation.evaluationType === "EnrichmentCharacteristics" && (
                           <Typography variant="body2">
-                            State: <strong>{c.isTurbid ? "Turbid" : "Clear"}</strong>
+                            <Trans
+                              i18nKey="media.evaluationWorkflowDialog.stateLine"
+                              ns="labConfig"
+                              values={{ value: c.isTurbid ? t("media.evaluationWorkflowDialog.turbid") : t("media.evaluationWorkflowDialog.clear") }}
+                              components={{ bold: <strong /> }}
+                            />
                           </Typography>
                         )}
                       </Box>
                     ) : !isReadyToRead(c) ? (
                       <Alert severity="info" sx={{ mt: 1 }}>
                         {c.incubation
-                          ? `Incubation still in progress; result entry opens at ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}.`
-                          : "Record incubation before a result can be entered."}
+                          ? t("media.evaluationWorkflowDialog.incubationInProgress", { date: formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!) })
+                          : t("media.evaluationWorkflowDialog.recordIncubationFirst")}
                       </Alert>
                     ) : (
                       <Box sx={{ mt: 1, p: 1.5, bgcolor: theme.custom.status.purple.bg, borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-                          STEP 3: RECORD OBSERVATION / RESULT
+                          {t("media.evaluationWorkflowDialog.step3Heading")}
                         </Typography>
                         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 1.5, alignItems: "center" }}>
                           {evaluation.evaluationType === "GrowthPromotion" && (
                             <>
                               <TextField
                                 size="small"
-                                label="Old Media Count"
+                                label={t("media.evaluationWorkflowDialog.oldMediaCount")}
                                 type="number"
                                 value={form.oldMediaCount ?? ""}
                                 onChange={(e) => setField(c.id, "oldMediaCount", e.target.value)}
                               />
                               <TextField
                                 size="small"
-                                label="New Media Count"
+                                label={t("media.evaluationWorkflowDialog.newMediaCount")}
                                 type="number"
                                 value={form.newMediaCount ?? ""}
                                 onChange={(e) => setField(c.id, "newMediaCount", e.target.value)}
                               />
                               {previewRecovery(form) !== null && (
                                 <Typography variant="body2" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                                  Recovery: {previewRecovery(form)}%
+                                  {t("media.evaluationWorkflowDialog.recoveryPreview", { value: previewRecovery(form) })}
                                 </Typography>
                               )}
                             </>
@@ -449,13 +491,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.growthObserved ?? ""}
                               onChange={(e) => setField(c.id, "growthObserved", e.target.value)}
-                              inputProps={{ "aria-label": "Growth Observed?" }}
+                              inputProps={{ "aria-label": t("media.evaluationWorkflowDialog.growthObservedQuestion") }}
                             >
                               <MenuItem value="">
-                                <em>Growth Observed?</em>
+                                <em>{t("media.evaluationWorkflowDialog.growthObservedQuestion")}</em>
                               </MenuItem>
-                              <MenuItem value="yes">Yes</MenuItem>
-                              <MenuItem value="no">No</MenuItem>
+                              <MenuItem value="yes">{t("media.evaluationWorkflowDialog.yes")}</MenuItem>
+                              <MenuItem value="no">{t("media.evaluationWorkflowDialog.no")}</MenuItem>
                             </Select>
                           )}
 
@@ -463,7 +505,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             <>
                               <TextField
                                 size="small"
-                                label="Observed Description"
+                                label={t("media.evaluationWorkflowDialog.observedDescription")}
                                 value={form.observedDescription ?? ""}
                                 onChange={(e) => setField(c.id, "observedDescription", e.target.value)}
                                 sx={{ gridColumn: "span 2" }}
@@ -474,20 +516,20 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                                   color: "text.secondary",
                                   gridColumn: "span 2"
                                 }}>
-                                Expected: {c.expectedDescription ?? "—"}
+                                {t("media.evaluationWorkflowDialog.expected", { value: c.expectedDescription ?? "—" })}
                               </Typography>
                               <Select
                                 size="small"
                                 displayEmpty
                                 value={form.manualConform ?? ""}
                                 onChange={(e) => setField(c.id, "manualConform", e.target.value)}
-                                inputProps={{ "aria-label": "Judgment" }}
+                                inputProps={{ "aria-label": t("media.evaluationWorkflowDialog.judgment") }}
                               >
                                 <MenuItem value="">
-                                  <em>Judgment</em>
+                                  <em>{t("media.evaluationWorkflowDialog.judgment")}</em>
                                 </MenuItem>
-                                <MenuItem value="conform">Conform</MenuItem>
-                                <MenuItem value="nonconform">NonConform</MenuItem>
+                                <MenuItem value="conform">{t("media.evaluationWorkflowDialog.conform")}</MenuItem>
+                                <MenuItem value="nonconform">{t("media.evaluationWorkflowDialog.nonConform")}</MenuItem>
                               </Select>
                             </>
                           )}
@@ -498,13 +540,13 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                               displayEmpty
                               value={form.isTurbid ?? ""}
                               onChange={(e) => setField(c.id, "isTurbid", e.target.value)}
-                              inputProps={{ "aria-label": "Turbid or Clear?" }}
+                              inputProps={{ "aria-label": t("media.evaluationWorkflowDialog.turbidOrClear") }}
                             >
                               <MenuItem value="">
-                                <em>Turbid or Clear?</em>
+                                <em>{t("media.evaluationWorkflowDialog.turbidOrClear")}</em>
                               </MenuItem>
-                              <MenuItem value="yes">Turbid</MenuItem>
-                              <MenuItem value="no">Clear</MenuItem>
+                              <MenuItem value="yes">{t("media.evaluationWorkflowDialog.turbid")}</MenuItem>
+                              <MenuItem value="no">{t("media.evaluationWorkflowDialog.clear")}</MenuItem>
                             </Select>
                           )}
 
@@ -514,7 +556,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                             onClick={() => recordResult(c)}
                             color="primary"
                           >
-                            Record Result
+                            {t("media.evaluationWorkflowDialog.recordResult")}
                           </Button>
                         </Box>
                       </Box>

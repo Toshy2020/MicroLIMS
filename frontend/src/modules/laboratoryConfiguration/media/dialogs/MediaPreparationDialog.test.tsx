@@ -23,6 +23,7 @@ import {
 } from "../../masterDataSimple/services/EquipmentConfigurationService";
 import { MediaPreparationService } from "../services/MediaPreparationService";
 import { MediaPreparationDialog } from "./MediaPreparationDialog";
+import { i18n } from "../../../../i18n";
 import { changeDateField } from "../../../../components/DateField.testUtils";
 
 vi.mock("../../../../services/labelService", () => ({
@@ -482,5 +483,18 @@ describe("MediaPreparationDialog", () => {
 
     expect(await screen.findByText("Weight must be greater than zero.")).toBeTruthy();
     expect(screen.getByText("pH is outside allowed range.")).toBeTruthy();
+  });
+
+  it("shows the dialog title and field labels in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      renderDialog();
+      expect(await screen.findByText("تحضير تشغيلة أوساط زرعية جديدة")).toBeTruthy();
+      expect(screen.getByLabelText(/^الوزن الإجمالي/)).toBeTruthy();
+      expect(screen.getByRole("button", { name: "حفظ التشغيلة المحضّرة" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

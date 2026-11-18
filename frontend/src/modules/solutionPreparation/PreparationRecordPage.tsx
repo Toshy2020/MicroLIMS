@@ -23,7 +23,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { solutionTypeLabel } from "./types";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
-import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
 import type { LabelTarget } from "../../services/labelService";
 import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
@@ -245,7 +245,7 @@ export function PreparationRecordPage() {
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>Expires At</Typography>
             <Typography variant="body2" sx={{ fontWeight: 700, color: preparation.effectiveStatus === "Expired" ? "error.main" : "text.primary" }}>
-              {preparation.expiresAt ? formatLabCalendarDate(preparation.expiresAt) : "—"}
+              {preparation.expiresAt ? formatDateTimeWithTimeZone(preparation.expiresAt) : "—"}
             </Typography>
             {recipe && (
               <Typography variant="caption" sx={{ color: "text.secondary" }}>

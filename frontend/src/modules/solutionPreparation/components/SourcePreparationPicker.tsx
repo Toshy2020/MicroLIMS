@@ -15,7 +15,7 @@ import {
   Typography
 } from "@mui/material";
 import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
-import { formatLabDate, formatLabCalendarDate } from "../../../utils/formatDate";
+import { formatLabDate, formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { approvalStatusLabel } from "../releaseState";
 import type { SolutionPreparationComponentResponse, SourcePreparationOption } from "../types";
 
@@ -115,7 +115,7 @@ export function SourcePreparationPicker({
                 {options.map((o) => {
                   const dates = [
                     o.preparedAt ? `Prepared ${formatLabDate(o.preparedAt)}` : null,
-                    o.expiresAt ? `Exp ${formatLabCalendarDate(o.expiresAt)}` : null
+                    o.expiresAt ? `Exp ${formatDateTimeWithTimeZone(o.expiresAt)}` : null
                   ].filter(Boolean);
                   const release = approvalStatusLabel(o.approvalStatus);
                   return (
@@ -130,7 +130,7 @@ export function SourcePreparationPicker({
               </Select>
               {selected && (
                 <FormHelperText sx={{ fontSize: 12 }}>
-                  {selected.expiresAt ? `Expires ${formatLabCalendarDate(selected.expiresAt)}` : "No expiry date"}
+                  {selected.expiresAt ? `Expires ${formatDateTimeWithTimeZone(selected.expiresAt)}` : "No expiry date"}
                 </FormHelperText>
               )}
             </FormControl>

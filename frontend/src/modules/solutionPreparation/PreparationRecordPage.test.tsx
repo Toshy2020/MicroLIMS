@@ -1,3 +1,4 @@
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -100,6 +101,22 @@ describe("PreparationRecordPage label printing", () => {
   afterEach(() => {
     cleanup();
     localStorage.clear();
+  });
+
+  it("shows the expiry as the exact moment with its time zone (prepared time plus shelf life, not a calendar day)", async () => {
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <AuthProvider>
+          <MemoryRouter initialEntries={["/preparation/12"]}>
+            <Routes>
+              <Route path="/preparation/:id" element={<PreparationRecordPage />} />
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+    const expected = formatDateTimeWithTimeZone("2026-11-20T08:00:00Z");
+    expect(await screen.findByText(expected)).toBeTruthy();
   });
 
   it("shows the print label button with the record's code", async () => {

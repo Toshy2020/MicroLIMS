@@ -1,5 +1,5 @@
 {
-  "total": 8777,
+  "total": 8700,
   "modules": {
     "components": 351,
     "modules/admin": 366,
@@ -22,7 +22,6 @@
     "modules/oosTracking": 55,
     "modules/reports": 529,
     "modules/roles": 72,
-    "modules/solutionPreparation": 77,
     "modules/testingWorkspace": 1111,
     "modules/users": 197,
     "pages": 104,

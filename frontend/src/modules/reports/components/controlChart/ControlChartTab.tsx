@@ -32,6 +32,7 @@ import {
 import { SpcChart, SpcChartOptions, fmt } from "./SpcCharts";
 import { ApplyCandidate, ApplyLimitsDialog } from "./ApplyLimitsDialog";
 import { ReportBuilderDrawer } from "./ReportBuilderDrawer";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 // Report charts are captured at this width whatever the screen size, so
 // every figure in a report has the same proportions and text size.
@@ -892,7 +893,7 @@ export function ControlChartTab() {
                   <TableBody>
                     {events.map((ev) => (
                       <TableRow key={ev.id} hover sx={{ cursor: "pointer" }} onClick={() => openRecord(ev.id)}>
-                        <TableCell>{new Date(ev.resultEnteredAt).toLocaleDateString("en-GB")}</TableCell>
+                        <TableCell>{formatDateTimeWithTimeZone(ev.resultEnteredAt)}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{ev.referenceNumber}</TableCell>
                         <TableCell>{ev.subjectName}{ev.subjectDetail ? ` (${ev.subjectDetail})` : ""}</TableCell>
                         <TableCell>{ev.testDisplayName}</TableCell>

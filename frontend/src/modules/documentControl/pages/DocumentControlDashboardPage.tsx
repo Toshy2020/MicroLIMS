@@ -44,6 +44,7 @@ import type {
   DocumentMasterSummaryDto,
   DocumentAuditItemDto
 } from "../types/documentControlTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function DocumentControlDashboardPage() {
   const theme = useTheme();
@@ -431,7 +432,7 @@ export function DocumentControlDashboardPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatDateTimeWithTimeZone(log.timestamp)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

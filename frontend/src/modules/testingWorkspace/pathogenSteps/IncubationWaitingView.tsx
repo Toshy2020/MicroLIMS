@@ -9,6 +9,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { StepActionBar, StepDetailList, IncubationTimeline } from "./StepLayout";
 import { IncubationCountdown } from "./IncubationCountdown";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 // When the minimum incubation ends, as a client timestamp. Prefers the
 // server's remainingMinimumSeconds (immune to a wrong device clock) and
@@ -20,7 +21,7 @@ function minimumDeadline(current: CurrentStepResponse): number | null {
   return lock.minReadyAt ? new Date(lock.minReadyAt).getTime() : null;
 }
 
-const fmt = (d: Date) => d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const fmt = (d: Date) => formatDateTimeWithTimeZone(d);
 
 interface Props {
   testOrderId: number;
@@ -129,7 +130,7 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
       {error && <Alert severity="error">{error}</Alert>}
       {windowNotConfigured && <Alert severity="error">{INCUBATION_WINDOW_NOT_CONFIGURED_MESSAGE}</Alert>}
       {!showCountdown && !isReady && minReadyAt && (
-        <Alert severity="warning">Not ready yet. Available from {minReadyAt.toLocaleString()}.</Alert>
+        <Alert severity="warning">Not ready yet. Available from {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
       )}
       {alreadyOverridden && (
         <Alert severity="info">Minimum wait time was skipped by a Section Head/System Administrator.</Alert>

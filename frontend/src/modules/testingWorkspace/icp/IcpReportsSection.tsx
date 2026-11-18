@@ -19,6 +19,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { tableHeadSx } from "../../../theme";
 import { IcpReviewApi, type IcpEvidenceDto } from "./icpReviewApi";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpReportsSectionProps {
   testOrderId: number;
@@ -157,7 +158,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
                     {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedAt ? new Date(e.uploadedAt).toLocaleString() : "—"}
+                    {e.uploadedAt ? formatDateTimeWithTimeZone(e.uploadedAt) : "—"}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }} align="right">
                     <Button

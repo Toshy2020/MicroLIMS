@@ -14,7 +14,7 @@ import {
   Tooltip
 } from "@mui/material";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";
@@ -93,7 +93,7 @@ export function AuditResultsTable({
                   {/* Timestamp */}
                   <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                      {formatLabDateTime(item.timestamp)}
+                      {formatDateTimeWithTimeZone(item.timestamp)}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       UTC

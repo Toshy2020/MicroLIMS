@@ -16,7 +16,7 @@ import {
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 import type { WorkingStandardLotDto } from "../types";
 
 interface WorkingStandardLotsTableProps {
@@ -92,7 +92,7 @@ export const WorkingStandardLotsTable: React.FC<WorkingStandardLotsTableProps> =
                   {lot.quantityRemaining != null ? `${lot.quantityRemaining} g` : "—"}
                 </TableCell>
                 <TableCell sx={{ fontSize: 13 }}>
-                  {lot.expiryDate ? formatLabDate(lot.expiryDate) : "—"}
+                  {lot.expiryDate ? formatLabCalendarDate(lot.expiryDate) : "—"}
                 </TableCell>
                 <TableCell>
                   <StatusBadge

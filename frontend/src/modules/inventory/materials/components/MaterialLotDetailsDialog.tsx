@@ -13,7 +13,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
-import { formatLabDate } from "../../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../../utils/formatDate";
 import type { MaterialItem, CoeEligibilityResult } from "../types/materialTypes";
 import { COA_REQUIRED_TYPES } from "../types/materialTypes";
 import { MaterialDocumentList } from "./MaterialDocumentList";
@@ -130,8 +130,8 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
           <MetaRow label="Manufacturer" value={material.manufacturerName || "—"} />
           <MetaRow label="Stock ID" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.stockId ?? "—"}</span>} />
           <MetaRow label="Batch / Lot" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.batchNumber}</span>} />
-          <MetaRow label="Received" value={formatLabDate(material.receivingDate)} />
-          <MetaRow label="Expiry" value={material.expiryDate ? formatLabDate(material.expiryDate) : "None"} />
+          <MetaRow label="Received" value={formatLabCalendarDate(material.receivingDate)} />
+          <MetaRow label="Expiry" value={material.expiryDate ? formatLabCalendarDate(material.expiryDate) : "None"} />
           {material.materialType === "ReferenceStandard" && (
             <MetaRow label="Purity" value={material.purity != null ? `${material.purity}%` : "—"} />
           )}

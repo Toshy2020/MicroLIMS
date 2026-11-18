@@ -36,6 +36,7 @@ import type {
   ReviewFindingStatus
 } from "../types/documentControlTypes";
 import { documentReviewService } from "../services/documentReviewService";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface TechnicalReviewDrawerProps {
   open: boolean;
@@ -274,7 +275,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                   Due Date:
                 </Typography>
                 <Typography variant="body2">
-                  {new Date(reviewTask.dueDate).toLocaleDateString()}
+                  {formatLabCalendarDate(reviewTask.dueDate)}
                 </Typography>
               </Box>
             )}

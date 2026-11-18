@@ -4,6 +4,7 @@ import type { Verdict } from "../../../components/lab";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { HplcSstStatus } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface SstStatusCardProps {
   code: string;
@@ -33,7 +34,7 @@ export function SstStatusCard({
   const detail = isPassed
     ? `All acceptance criteria have been verified and confirmed. Sample assignment is unlocked for this run.${
         confirmedByUserName
-          ? ` Confirmed by ${confirmedByUserName}${confirmedAt ? ` on ${new Date(confirmedAt).toLocaleString()}` : ""}.`
+          ? ` Confirmed by ${confirmedByUserName}${confirmedAt ? ` on ${formatDateTimeWithTimeZone(confirmedAt)}` : ""}.`
           : ""
       }`
     : isFailed

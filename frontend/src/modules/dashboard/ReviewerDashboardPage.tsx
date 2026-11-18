@@ -30,6 +30,7 @@ import { DashboardService } from "./services/DashboardService";
 import { ReviewerDashboard } from "./types/dashboard";
 import { brandColors, tableHeadSx } from "../../theme";
 import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 function formatAge(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -447,7 +448,7 @@ export function ReviewerDashboardPage() {
                         Tests: {rec.testCode}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                        {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {formatDateTimeWithTimeZone(rec.reviewedAt)}
                       </Typography>
                     </Box>
                   </Paper>

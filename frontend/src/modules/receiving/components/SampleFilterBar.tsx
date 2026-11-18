@@ -11,7 +11,7 @@ import ToggleButton from "@mui/material/ToggleButton";
 import { RECEIVING_CATEGORIES, SAMPLE_STATUS_OPTIONS, TEST_STATUS_OPTIONS } from "../constants/receivingConstants";
 import { DateField } from "../../../components/DateField";
 import { useTranslation } from "../../../i18n";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 export type SampleFilterBarViewMode = "table" | "card" | "kanban";
 
@@ -75,8 +75,8 @@ export function SampleFilterBar({
     const label = o ? t(`testStatuses.${o.value}`) : testStatusFilter;
     activeChips.push({ key: "testStatus", label: t("filterBar.chipTestStatus", { label }), onDelete: () => onTestStatusFilterChange("ALL") });
   }
-  if (fromDate) activeChips.push({ key: "from", label: t("filterBar.chipFrom", { date: formatLabDate(fromDate) }), onDelete: () => onFromDateChange("") });
-  if (toDate) activeChips.push({ key: "to", label: t("filterBar.chipTo", { date: formatLabDate(toDate) }), onDelete: () => onToDateChange("") });
+  if (fromDate) activeChips.push({ key: "from", label: t("filterBar.chipFrom", { date: formatLabCalendarDate(fromDate) }), onDelete: () => onFromDateChange("") });
+  if (toDate) activeChips.push({ key: "to", label: t("filterBar.chipTo", { date: formatLabCalendarDate(toDate) }), onDelete: () => onToDateChange("") });
 
   return (
     <Paper

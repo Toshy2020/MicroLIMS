@@ -13,7 +13,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CodeIcon from "@mui/icons-material/Code";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";
@@ -87,7 +87,7 @@ export function AuditEventDrawer({
             {friendlyEntity} · ID: <span style={{ fontFamily: "monospace" }}>{event.entityId}</span>
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-            Timestamp: {formatLabDateTime(event.timestamp)} UTC
+            Timestamp: {formatDateTimeWithTimeZone(event.timestamp)}
           </Typography>
         </Box>
 

@@ -20,6 +20,7 @@ import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { tableHeadSx } from "../../../theme";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import type { HplcEvidenceDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface HplcReportsSectionProps {
   testOrderId: number;
@@ -163,7 +164,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
                     {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedAt ? new Date(e.uploadedAt).toLocaleString() : "—"}
+                    {e.uploadedAt ? formatDateTimeWithTimeZone(e.uploadedAt) : "—"}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }} align="right">
                     <Button

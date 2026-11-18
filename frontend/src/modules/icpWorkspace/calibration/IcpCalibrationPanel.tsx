@@ -24,6 +24,7 @@ import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { IcpRunDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpCalibrationPanelProps {
   run: IcpRunDto;
@@ -157,7 +158,7 @@ export function IcpCalibrationPanel({
               </Stack>
               <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
                 Confirmed by <strong>{cal.confirmedByUserName ?? "Analyst"}</strong> on{" "}
-                {cal.confirmedAt ? new Date(cal.confirmedAt).toLocaleString() : "—"}.
+                {cal.confirmedAt ? formatDateTimeWithTimeZone(cal.confirmedAt) : "—"}.
               </Typography>
             </Box>
 
@@ -172,7 +173,7 @@ export function IcpCalibrationPanel({
                   color: isExpired ? "error.main" : "text.primary"
                 }}
               >
-                Valid until: {cal.expiresAt ? new Date(cal.expiresAt).toLocaleString() : "—"}
+                Valid until: {cal.expiresAt ? formatDateTimeWithTimeZone(cal.expiresAt) : "—"}
               </Typography>
             </Box>
           </Box>

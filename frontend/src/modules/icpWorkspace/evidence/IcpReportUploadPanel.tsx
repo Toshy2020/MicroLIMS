@@ -32,6 +32,7 @@ import type {
   IcpEvidenceContext,
   IcpEvidenceKind
 } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpReportUploadPanelProps {
   runId: number;
@@ -246,7 +247,7 @@ export function IcpReportUploadPanel({
                     )}
                   </TableCell>
                   <TableCell>{e.uploadedByUserName ?? "Unknown"}</TableCell>
-                  <TableCell>{new Date(e.uploadedAt).toLocaleString()}</TableCell>
+                  <TableCell>{formatDateTimeWithTimeZone(e.uploadedAt)}</TableCell>
                   <TableCell>
                     {e.isCurrent ? (
                       <StatusBadge status="Completed" label="Current" />

@@ -38,6 +38,7 @@ import HardwareIcon from "@mui/icons-material/Memory";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 import { getMfaStateDisplay } from "../../utils/mfaStateDisplay";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 export function UsersPage() {
   const theme = useTheme();
@@ -512,7 +513,7 @@ export function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Never"}
+                      {u.lastLoginAt ? formatDateTimeWithTimeZone(u.lastLoginAt) : "Never"}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">

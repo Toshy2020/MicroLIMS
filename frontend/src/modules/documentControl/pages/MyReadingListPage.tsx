@@ -51,6 +51,7 @@ import type {
 } from "../types/trainingAssignmentTypes";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
 import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 /**
  * The views ML-DC-FRS-1C-001 §2:87 requires of My Reading List: Pending ("active
@@ -619,7 +620,7 @@ export function MyReadingListPage() {
                     <TableCell>
                       <Box sx={{ display: "flex", flexDirection: "column" }}>
                         <Typography variant="body2">
-                          {new Date(assignment.dueDateUtc).toLocaleDateString()}
+                          {formatLabCalendarDate(assignment.dueDateUtc)}
                         </Typography>
                         {!isAcknowledged && !isOverdue && (
                           <Typography variant="caption" sx={{
@@ -640,7 +641,7 @@ export function MyReadingListPage() {
                               gap: 0.5
                             }}>
                             <CheckCircleOutlineIcon fontSize="inherit" />
-                            Ack: {new Date(assignment.acknowledgedAtUtc).toLocaleDateString()}
+                            Ack: {formatDateTimeWithTimeZone(assignment.acknowledgedAtUtc)}
                           </Typography>
                         )}
                       </Box>

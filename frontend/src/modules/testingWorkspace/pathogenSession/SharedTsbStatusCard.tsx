@@ -5,6 +5,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import { SharedTsbStateDto } from "../types/pathogenSessionTypes";
 import { brandColors } from "../../../theme";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface Props {
   sharedTsb: SharedTsbStateDto;
@@ -12,13 +13,7 @@ interface Props {
 
 const formatDate = (d: string | null | undefined) =>
   d
-    ? new Date(d).toLocaleString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      })
+    ? formatDateTimeWithTimeZone(d)
     : "—";
 
 export function SharedTsbStatusCard({ sharedTsb }: Props) {

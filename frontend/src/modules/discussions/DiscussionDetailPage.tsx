@@ -40,6 +40,7 @@ import { brandColors } from "../../theme";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { toast } from "sonner";
 import { useBreadcrumb } from "../../components/breadcrumbContext";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 export function DiscussionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -278,7 +279,7 @@ export function DiscussionDetailPage() {
             <Box>
               <Typography sx={{ fontWeight: 700, fontSize: 14.5 }}>{post.authorName}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {post.authorRole} • Posted {new Date(post.createdAt).toLocaleString()}
+                {post.authorRole} • Posted {formatDateTimeWithTimeZone(post.createdAt)}
               </Typography>
             </Box>
           </Box>
@@ -445,7 +446,7 @@ export function DiscussionDetailPage() {
                           {comment.authorName}
                         </Typography>
                         <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.1 }}>
-                          {comment.authorRole} • {new Date(comment.createdAt).toLocaleString()}
+                          {comment.authorRole} • {formatDateTimeWithTimeZone(comment.createdAt)}
                         </Typography>
                       </Box>
                     </Box>

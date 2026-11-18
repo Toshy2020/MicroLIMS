@@ -31,7 +31,7 @@ import { PERMISSIONS } from "../../routes/routes";
 import { PathogenSessionDialog } from "./pathogenSession/PathogenSessionDialog";
 import { ItemDocumentsCard } from "./ItemDocumentsCard";
 import { AssignedTestCard } from "./components/AssignedTestCard";
-import { formatLabCalendarDate } from "../../utils/formatDate";
+import { formatLabCalendarDate, formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface Props {
   sample: SampleCardType;
@@ -81,12 +81,7 @@ export function SelectedSampleTestingPanel({
     "Unassigned";
   const batchDisplay =
     (sample.category === "AfterCleaning" ? sample.previousProductBatchNumber || sample.batchNumber : sample.batchNumber) || "—";
-  const receivedAtDisplay = new Date(sample.receivedAt).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  const receivedAtDisplay = formatDateTimeWithTimeZone(sample.receivedAt);
   const contextLabel =
     sample.category === "FinishedProduct"
       ? "STAGE"

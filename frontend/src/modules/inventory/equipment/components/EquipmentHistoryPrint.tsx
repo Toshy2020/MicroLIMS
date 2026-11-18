@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { PrintButton } from "../../../../components/PrintButton";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import type {
   InstrumentHistoryResponse,
   EquipmentTaskStatus
@@ -148,7 +148,7 @@ export function EquipmentHistoryPrint({
             MicroLIMS
           </Typography>
           <Typography sx={{ fontSize: "9pt", color: "text.secondary" }}>
-            Printed: {new Date().toLocaleString()}
+            Printed: {formatDateTimeWithTimeZone(new Date())}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: "13pt", fontWeight: 700, color: "text.primary", mb: 0.25 }}>
@@ -206,17 +206,17 @@ export function EquipmentHistoryPrint({
             </Box>
             <Box sx={{ py: 0.25 }}>
               <strong>Next Calibration Due:</strong>{" "}
-              {history.nextCalibrationDue ? formatLabDate(history.nextCalibrationDue) : "—"}
+              {history.nextCalibrationDue ? formatLabCalendarDate(history.nextCalibrationDue) : "—"}
             </Box>
             <Box sx={{ py: 0.25 }}>
               <strong>Next PM Due:</strong>{" "}
-              {history.nextPmDue ? formatLabDate(history.nextPmDue) : "—"}
+              {history.nextPmDue ? formatLabCalendarDate(history.nextPmDue) : "—"}
             </Box>
             <Box sx={{ py: 0.25 }}>
               <strong>Calibration Baseline:</strong>{" "}
               {history.calibrationBaseline ? (
                 <span>
-                  {formatLabDate(history.calibrationBaseline.date)}{" "}
+                  {formatLabCalendarDate(history.calibrationBaseline.date)}{" "}
                   <Chip
                     label={history.calibrationBaseline.label || "Baseline"}
                     size="small"
@@ -231,7 +231,7 @@ export function EquipmentHistoryPrint({
               <strong>PM Baseline:</strong>{" "}
               {history.pmBaseline ? (
                 <span>
-                  {formatLabDate(history.pmBaseline.date)}{" "}
+                  {formatLabCalendarDate(history.pmBaseline.date)}{" "}
                   <Chip
                     label={history.pmBaseline.label || "Baseline"}
                     size="small"
@@ -331,7 +331,7 @@ export function EquipmentHistoryPrint({
                     <TableCell sx={{ fontSize: "9pt" }}>
                       {r.performedByName || (r.performedByUserId ? `User #${r.performedByUserId}` : "—")}
                     </TableCell>
-                    <TableCell sx={{ fontSize: "9pt" }}>{formatLabDateTime(r.performedAt)}</TableCell>
+                    <TableCell sx={{ fontSize: "9pt" }}>{formatDateTimeWithTimeZone(r.performedAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -371,7 +371,7 @@ export function EquipmentHistoryPrint({
                     <TableCell sx={{ fontSize: "9pt" }}>
                       {s.changedByName || (s.changedByUserId == null ? "System (automatic)" : `User #${s.changedByUserId}`)}
                     </TableCell>
-                    <TableCell sx={{ fontSize: "9pt" }}>{formatLabDateTime(s.changedAt)}</TableCell>
+                    <TableCell sx={{ fontSize: "9pt" }}>{formatDateTimeWithTimeZone(s.changedAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -407,7 +407,7 @@ export function EquipmentHistoryPrint({
                 {history.logbook.map((e) => (
                   <TableRow key={e.id}>
                     <TableCell sx={{ fontSize: "9pt", whiteSpace: "nowrap" }}>
-                      {formatLabDate(e.performedOn)}
+                      {formatLabCalendarDate(e.performedOn)}
                     </TableCell>
                     <TableCell sx={{ fontSize: "9pt" }}>
                       {MAINTENANCE_ENTRY_TYPE_LABELS[e.entryType] ?? e.entryType}

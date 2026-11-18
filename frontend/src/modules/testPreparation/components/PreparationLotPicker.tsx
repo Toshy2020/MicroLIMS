@@ -1,5 +1,5 @@
 import { Alert, MenuItem, TextField } from "@mui/material";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { PreparationLotGroup } from "../services/SamplePreparationService";
 
 interface Props {
@@ -34,7 +34,7 @@ export function PreparationLotPicker({ label, group, value, onChange, disabled }
         {group.options.map((o) => (
           <MenuItem key={o.id} value={o.id} disabled={!o.usable}>
             {o.code}
-            {o.expiresAt ? ` · expires ${formatLabDate(o.expiresAt)}` : ""}
+            {o.expiresAt ? ` · expires ${formatDateTimeWithTimeZone(o.expiresAt)}` : ""}
             {!o.usable && o.reason ? ` — ${o.reason}` : ""}
           </MenuItem>
         ))}

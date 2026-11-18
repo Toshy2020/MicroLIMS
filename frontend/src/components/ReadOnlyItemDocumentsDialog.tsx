@@ -25,6 +25,7 @@ import {
 import { FloatingDialog } from "./FloatingDialog";
 import { ItemDocumentActionButtons } from "./ItemDocumentActionButtons";
 import { ItemStmPanel } from "./ItemStmPanel";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../utils/formatDate";
 
 interface ReadOnlyItemDocumentsDialogProps {
   open: boolean;
@@ -74,18 +75,12 @@ export function ReadOnlyItemDocumentsDialog({
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+    return formatLabCalendarDate(dateStr);
   };
 
   const formatDateTime = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeWithTimeZone(dateStr);
   };
 
   return (

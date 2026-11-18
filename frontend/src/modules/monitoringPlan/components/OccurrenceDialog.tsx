@@ -9,6 +9,7 @@ import { CATEGORY_LABEL, periodLabel } from "../statusDisplay";
 import type { OccurrenceDetail } from "../types";
 import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
 import { DateField } from "../../../components/DateField";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 type Mode = "view" | "skip" | "window";
 
@@ -144,7 +145,7 @@ export function OccurrenceDialog({
             {detail.events.length === 0 && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>No changes yet.</Typography>}
             {detail.events.map((ev) => (
               <Typography key={ev.id} sx={{ fontSize: 13 }}>
-                {new Date(ev.performedAt).toLocaleString()} · {ev.eventType} · {ev.performedBy}
+                {formatDateTimeWithTimeZone(ev.performedAt)} · {ev.eventType} · {ev.performedBy}
                 {ev.secondSigner ? ` + ${ev.secondSigner}` : ""}
                 {ev.oldValue || ev.newValue ? ` · ${ev.oldValue ?? ""} → ${ev.newValue ?? ""}` : ""}
                 {ev.reason ? ` · "${ev.reason}"` : ""}

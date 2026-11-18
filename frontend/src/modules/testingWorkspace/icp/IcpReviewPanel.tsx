@@ -16,6 +16,7 @@ import {
   type IcpCalculationData
 } from "./icpReviewTypes";
 import { IcpReportsSection } from "./IcpReportsSection";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpReviewPanelProps {
   parameter: ParameterResultDetail;
@@ -134,7 +135,7 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
               Declared ready (signed) at
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.calibrationConfirmedAt ? new Date(calc.calibrationConfirmedAt).toLocaleString() : "—"}
+              {calc.calibrationConfirmedAt ? formatDateTimeWithTimeZone(calc.calibrationConfirmedAt) : "—"}
             </Typography>
           </Box>
           <Box>

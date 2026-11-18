@@ -11,7 +11,7 @@ import {
   TableCell,
   TableContainer
 } from "@mui/material";
-import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import type { TitrantStandardizationResponse, RecipeSnapshot } from "../types";
 
 interface Props {
@@ -72,7 +72,7 @@ export function StandardizationResultView({ result, recipe, blankRequired }: Pro
               Standardized At
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {formatLabDateTime(result.standardizedAt)}
+              {formatDateTimeWithTimeZone(result.standardizedAt)}
             </Typography>
           </Box>
           <Box>
@@ -80,7 +80,7 @@ export function StandardizationResultView({ result, recipe, blankRequired }: Pro
               Valid Until
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {result.validUntil ? formatLabDate(result.validUntil) : (result.passed ? "Before each use" : "—")}
+              {result.validUntil ? formatLabCalendarDate(result.validUntil) : (result.passed ? "Before each use" : "—")}
             </Typography>
           </Box>
         </Box>

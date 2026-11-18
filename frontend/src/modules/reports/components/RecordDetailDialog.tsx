@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { withUnit } from "../../../utils/reportedValue";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -198,7 +199,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Result Entered By (Analyst)</Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{record.resultEnteredByName}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {new Date(record.resultEnteredAt).toLocaleString("en-GB")}
+                {formatDateTimeWithTimeZone(record.resultEnteredAt)}
               </Typography>
             </Grid>
 
@@ -210,7 +211,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approved By (Section Head / Reviewer)</Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{record.approvedByName ?? "Pending Approval"}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {record.approvedAt ? new Date(record.approvedAt).toLocaleString("en-GB") : "—"}
+                {record.approvedAt ? formatDateTimeWithTimeZone(record.approvedAt) : "—"}
               </Typography>
             </Grid>
           </Grid>

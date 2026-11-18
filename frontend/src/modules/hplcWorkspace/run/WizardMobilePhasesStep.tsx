@@ -18,6 +18,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { ScanField } from "../../../components/labels/ScanField";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import type { SolutionPreparationListItem } from "../../solutionPreparation/types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface WizardMobilePhasesStepProps {
   method: HplcMethodResponse;
@@ -139,7 +140,7 @@ export function WizardMobilePhasesStep({
                                 {p.code}
                               </Typography>
                               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                                Prepared by {p.preparedByUserName} · Exp: {p.expiresAt ? new Date(p.expiresAt).toLocaleDateString() : "—"}
+                                Prepared by {p.preparedByUserName} · Exp: {p.expiresAt ? formatDateTimeWithTimeZone(p.expiresAt) : "—"}
                               </Typography>
                             </Box>
                           }

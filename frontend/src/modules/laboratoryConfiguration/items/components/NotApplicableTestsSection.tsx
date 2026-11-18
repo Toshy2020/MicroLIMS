@@ -29,6 +29,7 @@ import {
 import { useHasPermission } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 export interface NotApplicableTestsSectionProps {
   itemId: number;
@@ -179,13 +180,7 @@ export function NotApplicableTestsSection({
 
   const formatDateTime = (dateStr?: string | null) => {
     if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTimeWithTimeZone(dateStr);
   };
 
   const getStatusChip = (status: NotApplicableStatus) => {

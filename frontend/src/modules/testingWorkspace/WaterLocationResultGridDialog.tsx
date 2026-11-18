@@ -15,6 +15,7 @@ import { useBenchMode } from "../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { useLocationPaste } from "./useLocationPaste";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface LocationRow {
   id: number;
@@ -223,7 +224,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
     : !allEntered
       ? "Enter at least one reading for every location."
       : !isTimeReady && minReadyAt
-        ? `Results cannot be submitted before ${minReadyAt.toLocaleString()}.`
+        ? `Results cannot be submitted before ${formatDateTimeWithTimeZone(minReadyAt)}.`
         : undefined;
 
   const content = (
@@ -308,7 +309,7 @@ export function WaterLocationResultGridDialog({ open, testOrderId, testCode, dis
             {conformCount}/{rows.length} locations within spec; worst status: <StatusBadge status={worstStatus} />
           </Typography>
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">Results cannot be submitted before {formatDateTimeWithTimeZone(minReadyAt)}.</Alert>
           )}
           {!benchMode && (
             <Stack direction="row" sx={{ justifyContent: "flex-end" }}>

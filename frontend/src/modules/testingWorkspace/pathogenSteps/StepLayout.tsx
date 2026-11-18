@@ -4,6 +4,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { ScanField } from "../../../components/labels/ScanField";
 import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { BENCH_MIN_TARGET } from "../../../theme/benchTheme";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 // Shared building blocks for the pathogen step panels, so every step reads
 // the same way: label/value rows for recorded details and an action bar
@@ -156,7 +157,7 @@ export function MediaLotIncubatorFields({
           >
             <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
             {lots.map((l) => (
-              <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
+              <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {formatLabCalendarDate(l.expiryDate)}</MenuItem>
             ))}
           </TextField>
         </LastChoiceField>

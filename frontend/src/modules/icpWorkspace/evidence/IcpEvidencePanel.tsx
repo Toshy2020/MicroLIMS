@@ -29,6 +29,7 @@ import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { IcpRunDto, IcpEvidenceDto } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpEvidencePanelProps {
   run: IcpRunDto;
@@ -189,7 +190,7 @@ export function IcpEvidencePanel({
                       </Typography>
                     </TableCell>
                     <TableCell>{e.uploadedByUserName ?? "Unknown"}</TableCell>
-                    <TableCell>{new Date(e.uploadedAt).toLocaleString()}</TableCell>
+                    <TableCell>{formatDateTimeWithTimeZone(e.uploadedAt)}</TableCell>
                     <TableCell>
                       {e.isCurrent ? (
                         <StatusBadge status="Completed" label="Current" />

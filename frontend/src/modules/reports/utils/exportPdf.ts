@@ -1,5 +1,6 @@
 import { ResultRecordItem } from "../types/reportingTypes";
 import { escapeHtml } from "../../../utils/escapeHtml";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface PdfExportOptions {
   title?: string;
@@ -18,14 +19,9 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
-function formatDateTime(iso: string | null | undefined): string {
+function formatDateTime(iso?: string | null): string {
   if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
-  } catch {
-    return iso;
-  }
+  return formatDateTimeWithTimeZone(iso, { english: true });
 }
 
 function formatResultLevel(level: string | null | undefined): string {
@@ -47,9 +43,7 @@ function formatLimits(record: ResultRecordItem): string {
 
 export function exportResultsPdf(records: ResultRecordItem[], options: PdfExportOptions = {}) {
   const title = options.title || (options.isSelection ? "Laboratory Results Export (Selected Records)" : "Laboratory Results Export");
-  const generatedAt = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
+  const generatedAt = formatDateTimeWithTimeZone(new Date(), { seconds: true, english: true });
   const generatedBy = options.generatedBy || "Authorized User";
   const criteria = options.criteriaSummary || "All Active Results";
   const count = records.length;
@@ -65,7 +59,7 @@ export function exportResultsPdf(records: ResultRecordItem[], options: PdfExport
       <td class="limits-col"><small>${escapeHtml(formatLimits(r))}</small></td>
       <td><span class="status-chip status-${(r.approvalStatus || "pending").toLowerCase()}">${escapeHtml(r.approvalStatus)}</span></td>
       <td><small>${escapeHtml(r.resultEnteredByName || "—")}</small></td>
-      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${formatDate(r.approvedAt)}</small></td>
+      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${r.approvedAt ? formatDateTimeWithTimeZone(r.approvedAt, { english: true }) : "—"}</small></td>
     </tr>
   `).join("");
 

@@ -1,4 +1,4 @@
-import { formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type { ApprovalGateStatus, SolutionPreparationResponse } from "./types";
 
 // Short label for a release gate value, as shown in lists and pickers.
@@ -19,7 +19,7 @@ export function approvalStatusLabel(status: ApprovalGateStatus | null | undefine
 export function releaseStateText(
   p: Pick<SolutionPreparationResponse, "approvalStatus" | "releasedByUserName" | "releasedAt" | "releaseComment">
 ): string | null {
-  const when = p.releasedAt ? ` on ${formatLabDateTime(p.releasedAt)}` : "";
+  const when = p.releasedAt ? ` on ${formatDateTimeWithTimeZone(p.releasedAt)}` : "";
   switch (p.approvalStatus) {
     case "PendingReview":
       return "Awaiting release";

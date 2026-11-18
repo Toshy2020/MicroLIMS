@@ -32,6 +32,7 @@ import type {
   HplcEvidenceContext,
   HplcEvidenceKind
 } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface ReportUploadPanelProps {
   runId: number;
@@ -272,7 +273,7 @@ export function ReportUploadPanel({
                     <StatusBadge status={item.isCurrent ? "Active" : "Superseded"} label={item.isCurrent ? "Current" : "Superseded"} />
                   </TableCell>
                   <TableCell>{item.uploadedByUserName ?? `User #${item.uploadedByUserId}`}</TableCell>
-                  <TableCell>{new Date(item.uploadedAt).toLocaleString()}</TableCell>
+                  <TableCell>{formatDateTimeWithTimeZone(item.uploadedAt)}</TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
                       <Tooltip title="View in new tab">

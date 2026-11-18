@@ -6,6 +6,7 @@ import type { RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useTechnique } from "../useTechnique";
 import type { HplcRunListItem, HplcTechnique } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface HplcRunHistoryTableProps {
   historyRuns: HplcRunListItem[];
@@ -36,14 +37,14 @@ export function HplcRunHistoryTable({
       label: "Started At",
       sortable: true,
       sortValue: (hr) => new Date(hr.startedAt).getTime(),
-      render: (hr) => new Date(hr.startedAt).toLocaleString()
+      render: (hr) => formatDateTimeWithTimeZone(hr.startedAt)
     },
     {
       key: "closedAt",
       label: "Closed At",
       sortable: true,
       sortValue: (hr) => (hr.closedAt ? new Date(hr.closedAt).getTime() : null),
-      render: (hr) => (hr.closedAt ? new Date(hr.closedAt).toLocaleString() : "—")
+      render: (hr) => (hr.closedAt ? formatDateTimeWithTimeZone(hr.closedAt) : "—")
     },
     { key: "status", label: "Run Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.status} /> },
     { key: "sstStatus", label: "SST Status", sortable: true, render: (hr) => <HplcStatusBadge status={hr.sstStatus} /> },

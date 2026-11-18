@@ -9,7 +9,7 @@ import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
@@ -326,7 +326,7 @@ export function MaterialsPage() {
       key: "batchNumber", label: "Batch/Lot No.", sortable: true, nowrap: true,
       render: (m) => <Box id={`lot-${m.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{m.batchNumber}</Box>
     },
-    { key: "receivingDate", label: "Received", sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabDate(m.receivingDate)}</Box> },
+    { key: "receivingDate", label: "Received", sortable: true, render: (m) => <Box component="span" sx={{ whiteSpace: "nowrap" }}>{formatLabCalendarDate(m.receivingDate)}</Box> },
     {
       key: "expiryDate", label: "Expiry", sortable: true,
       render: (m) => (
@@ -338,7 +338,7 @@ export function MaterialsPage() {
             fontWeight: isMaterialExpiringSoon(m.expiryDate) ? 600 : "normal"
           }}
         >
-          {m.expiryDate ? formatLabDate(m.expiryDate) : "—"}
+          {m.expiryDate ? formatLabCalendarDate(m.expiryDate) : "—"}
         </Box>
       )
     },
@@ -512,8 +512,8 @@ export function MaterialsPage() {
           { label: "Manufacturer", render: (m) => m.manufacturerName },
           { label: "Stock ID", render: (m) => m.stockId ?? "—" },
           { label: "Batch/Lot", render: (m) => m.batchNumber },
-          { label: "Received", render: (m) => formatLabDate(m.receivingDate) },
-          { label: "Expiry", render: (m) => (m.expiryDate ? formatLabDate(m.expiryDate) : "—") },
+          { label: "Received", render: (m) => formatLabCalendarDate(m.receivingDate) },
+          { label: "Expiry", render: (m) => (m.expiryDate ? formatLabCalendarDate(m.expiryDate) : "—") },
           { label: "Code", render: (m) => m.code ?? "—" },
           { label: "Location", render: (m) => m.location },
           { label: "Storage Condition", render: (m) => m.storageCondition || "—" },

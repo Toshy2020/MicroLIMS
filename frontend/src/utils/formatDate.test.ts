@@ -50,4 +50,11 @@ describe("formatDate", () => {
     release();
     expect(formatLabDate(INSTANT)).toContain("ديسمبر");
   });
+
+  it("prints English month names with a zone for an export while the interface is Arabic", async () => {
+    await i18n.changeLanguage("ar");
+    const text = formatDateTimeWithTimeZone(INSTANT, { english: true });
+    expect(text).toContain("Dec 2026");
+    expect(text).toMatch(/\d{2}:\d{2} [A-Za-z][A-Za-z0-9+:-]*$/);
+  });
 });

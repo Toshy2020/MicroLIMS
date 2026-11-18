@@ -10,6 +10,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { MediaGptDetail } from "../types/mediaGptTypes";
 import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface MediaGptDetailDialogProps {
   open: boolean;
@@ -28,12 +29,7 @@ function formatDate(iso?: string | null): string {
 
 function formatDateTime(iso?: string | null): string {
   if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
-  } catch {
-    return iso;
-  }
+  return formatDateTimeWithTimeZone(iso);
 }
 
 export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDialogProps) {
@@ -177,7 +173,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
             Evaluation Type: <strong>{detail.evaluationType}</strong>
-            {detail.evaluationCompletedByName && ` • Completed by ${detail.evaluationCompletedByName} on ${formatDate(detail.evaluationCompletedAt)}`}
+            {detail.evaluationCompletedByName && ` • Completed by ${detail.evaluationCompletedByName} on ${formatDateTime(detail.evaluationCompletedAt)}`}
           </Typography>
         </Box>
 

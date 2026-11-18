@@ -1,4 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+import { i18n, useTranslation } from "../../../i18n";
 import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import {
@@ -74,6 +76,8 @@ function toDraftRows(days: WorkingHoursDayDto[]): DraftDayRow[] {
 }
 
 export function WorkingHoursPage() {
+  const { t } = useTranslation("labConfig");
+  const dayName = (day: string) => t(`escalation.workingHours.days.${day}`, { defaultValue: day });
   const [data, setData] = useState<WorkingHoursDto | null>(null);
   const [rows, setRows] = useState<DraftDayRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +103,7 @@ export function WorkingHoursPage() {
       })
       .catch((err: unknown) => {
         if (signal.aborted || axios.isCancel(err)) return;
-        const message = getErrorMessage(err, "Could not load working hours.");
+        const message = getErrorMessage(err, i18n.t("escalation.workingHours.loadError", { ns: "labConfig" }));
         setLoadError(message);
         setLoading(false);
         toast.error(message);
@@ -141,10 +145,10 @@ export function WorkingHoursPage() {
 
       if (row.isWorkingDay) {
         if (parsedStart === null) {
-          localErrors[i] = { ...localErrors[i], startMinute: "Start time is required." };
+          localErrors[i] = { ...localErrors[i], startMinute: t("escalation.workingHours.startRequired") };
         }
         if (parsedEnd === null) {
-          localErrors[i] = { ...localErrors[i], endMinute: "End time is required." };
+          localErrors[i] = { ...localErrors[i], endMinute: t("escalation.workingHours.endRequired") };
         }
       }
 
@@ -158,7 +162,7 @@ export function WorkingHoursPage() {
 
     if (Object.keys(localErrors).length > 0) {
       setRowErrors(localErrors);
-      setSaveError("Enter valid start and end times for every working day.");
+      setSaveError(t("escalation.workingHours.validTimes"));
       return;
     }
 
@@ -170,9 +174,9 @@ export function WorkingHoursPage() {
       const updated = await workingHoursService.update(payload);
       setData(updated);
       setRows(toDraftRows(updated.days));
-      toast.success("Working hours saved.");
+      toast.success(t("escalation.workingHours.saved"));
     } catch (err: unknown) {
-      const message = getErrorMessage(err, "Could not save working hours.");
+      const message = getErrorMessage(err, t("escalation.workingHours.saveError"));
       const byRow = errorsByRow(err);
       const top = errorsByField(err);
       const nextRowErrors: Record<number, RowFieldErrors> = {};
@@ -199,15 +203,15 @@ export function WorkingHoursPage() {
 
   return (
     <LabPage
-      title="Working Hours"
-      subtitle="Define the weekly working schedule used to calculate escalation thresholds in laboratory time."
+      title={t("escalation.workingHours.title")}
+      subtitle={t("escalation.workingHours.subtitle")}
     >
       {loading && (
         <Paper sx={{ p: 2.5 }}>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }} role="status" aria-live="polite">
             <CircularProgress size={20} />
             <Typography variant="body2" color="text.secondary">
-              Loading working hours...
+              {t("escalation.workingHours.loading")}
             </Typography>
           </Stack>
         </Paper>
@@ -222,7 +226,7 @@ export function WorkingHoursPage() {
           <Paper sx={{ p: 2.5 }}>
             <Stack spacing={1}>
               <Typography variant="body2">
-                <strong>Laboratory time zone:</strong>{" "}
+                <Trans i18nKey="escalation.workingHours.timeZone" ns="labConfig" components={{ bold: <strong /> }} />{" "}
                 <Box component="span" sx={{ fontVariantNumeric: "tabular-nums" }}>
                   {data.timeZoneId}
                   {data.timeZoneDisplayName && data.timeZoneDisplayName !== data.timeZoneId
@@ -231,24 +235,26 @@ export function WorkingHoursPage() {
                 </Box>
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Escalation clocks count only minutes inside these local windows and skip{" "}
-                <MuiLink component={RouterLink} to={APP_ROUTES.MONITORING_PLAN} underline="hover">
-                  non-working dates
-                </MuiLink>{" "}
-                (public holidays and shutdowns).
+                <Trans
+                  i18nKey="escalation.workingHours.clocksNote"
+                  ns="labConfig"
+                  components={{
+                    lnk: <MuiLink component={RouterLink} to={APP_ROUTES.MONITORING_PLAN} underline="hover">{null}</MuiLink>
+                  }}
+                />
               </Typography>
             </Stack>
           </Paper>
 
           {!data.isConfigured && (
             <Alert severity="info">
-              Working hours are not configured yet. Turn on at least one working day and save before creating escalation rules.
+              {t("escalation.workingHours.notConfigured")}
             </Alert>
           )}
 
           <Paper sx={{ p: 2.5 }}>
             <Box component="form" onSubmit={handleSubmit} noValidate>
-              <SectionTitle>Weekly Schedule</SectionTitle>
+              <SectionTitle>{t("escalation.workingHours.weeklySchedule")}</SectionTitle>
 
               {saveError && (
                 <Alert severity="error" role="alert" sx={{ mb: 2 }}>
@@ -257,13 +263,13 @@ export function WorkingHoursPage() {
               )}
 
               <TableContainer>
-                <Table aria-label="Laboratory working hours" size="small">
+                <Table aria-label={t("escalation.workingHours.tableAria")} size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Day</TableCell>
-                      <TableCell>Working day</TableCell>
-                      <TableCell>Start time</TableCell>
-                      <TableCell>End time</TableCell>
+                      <TableCell>{t("escalation.workingHours.columns.day")}</TableCell>
+                      <TableCell>{t("escalation.workingHours.columns.workingDay")}</TableCell>
+                      <TableCell>{t("escalation.workingHours.columns.start")}</TableCell>
+                      <TableCell>{t("escalation.workingHours.columns.end")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -272,7 +278,7 @@ export function WorkingHoursPage() {
                       return (
                         <TableRow key={row.dayOfWeek}>
                           <TableCell sx={{ fontWeight: 500, verticalAlign: "top", pt: 1.5 }}>
-                            {row.dayOfWeek}
+                            {dayName(row.dayOfWeek)}
                             {err?.dayOfWeek && (
                               <FormHelperText error>{err.dayOfWeek}</FormHelperText>
                             )}
@@ -283,10 +289,10 @@ export function WorkingHoursPage() {
                                 checked={row.isWorkingDay}
                                 disabled={saving}
                                 onChange={(e) => updateRow(index, { isWorkingDay: e.target.checked })}
-                                slotProps={{ input: { "aria-label": `${row.dayOfWeek} working day` } }}
+                                slotProps={{ input: { "aria-label": t("escalation.workingHours.workingDayAria", { day: dayName(row.dayOfWeek) }) } }}
                               />
                               <Typography variant="body2" color="text.secondary">
-                                {row.isWorkingDay ? "Open" : "Closed"}
+                                {row.isWorkingDay ? t("escalation.workingHours.open") : t("escalation.workingHours.closed")}
                               </Typography>
                             </Stack>
                           </TableCell>
@@ -301,7 +307,7 @@ export function WorkingHoursPage() {
                               onChange={(e) => updateRow(index, { startTime: e.target.value })}
                               slotProps={{
                                 htmlInput: {
-                                  "aria-label": `${row.dayOfWeek} start time`,
+                                  "aria-label": t("escalation.workingHours.startAria", { day: dayName(row.dayOfWeek) }),
                                   step: 60
                                 }
                               }}
@@ -319,7 +325,7 @@ export function WorkingHoursPage() {
                               onChange={(e) => updateRow(index, { endTime: e.target.value })}
                               slotProps={{
                                 htmlInput: {
-                                  "aria-label": `${row.dayOfWeek} end time`,
+                                  "aria-label": t("escalation.workingHours.endAria", { day: dayName(row.dayOfWeek) }),
                                   step: 60
                                 }
                               }}
@@ -340,7 +346,7 @@ export function WorkingHoursPage() {
                   disabled={saving}
                   startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
                 >
-                  {saving ? "Saving..." : "Save working hours"}
+                  {saving ? t("escalation.workingHours.saving") : t("escalation.workingHours.save")}
                 </Button>
               </Stack>
             </Box>

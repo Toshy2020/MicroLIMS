@@ -82,6 +82,19 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
     focusFieldInContainer(bodyRef.current, wizard.focusRequest.field);
   }, [wizard.focusRequest]);
 
+  // Focus goes to the first field when the wizard has opened and whenever the step changes, so typing
+  // lands in the form (not on the dialog container, where it would reach page-level shortcuts).
+  const stepKey = wizard.currentStep?.key ?? REVIEW_STEP_KEY;
+  const firstStepFocus = useRef(true);
+  useEffect(() => {
+    // The opening itself is handled in onEntered, once the dialog has finished its transition.
+    if (firstStepFocus.current) {
+      firstStepFocus.current = false;
+      return;
+    }
+    focusFieldInContainer(bodyRef.current);
+  }, [stepKey]);
+
   const stepperItems = [
     ...wizard.applicableSteps.map((s) => ({ key: s.key, title: s.title })),
     { key: REVIEW_STEP_KEY, title: "Review" },
@@ -101,6 +114,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
           </Typography>
         }
         onClose={wizard.requestClose}
+        onEntered={() => focusFieldInContainer(bodyRef.current)}
         maxWidth="md"
         subHeader={
           <Box sx={{ px: 3, py: 1.5, borderBottom: 1, borderColor: "divider" }}>

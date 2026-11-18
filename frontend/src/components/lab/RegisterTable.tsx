@@ -32,6 +32,8 @@ export interface RegisterColumn<T> {
   sortable?: boolean;
   // Value compared when sorting; falls back to row[key].
   sortValue?: (row: T) => string | number | null | undefined;
+  // What a CSV export carries for this column when it renders JSX or sorts by a raw value (see ExportColumn).
+  exportValue?: (row: T) => string | number | null | undefined;
   width?: number | string;
   // Right-aligned with tabular figures.
   numeric?: boolean;
@@ -290,7 +292,7 @@ function RegisterTableInner<T>({
           await exportRegisterRows({
             tableKey,
             rows: exportRows,
-            columns: displayedColumns.map((c) => ({ key: String(c.key), label: c.label, sortValue: c.sortValue })),
+            columns: displayedColumns.map((c) => ({ key: String(c.key), label: c.label, sortValue: c.sortValue, exportValue: c.exportValue })),
             getRowId,
             filters: tableState?.state.filters ?? {},
             search: tableState?.state.search ?? "",

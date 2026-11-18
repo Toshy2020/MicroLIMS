@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Button, Dialog, DialogActions } from "@mui/material";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { HelpPanelProvider } from "./HelpPanelContext";
@@ -157,6 +158,29 @@ describe("HelpMenu", () => {
     (document.activeElement as HTMLElement | null)?.blur();
     await user.keyboard("?");
     expect(await screen.findByRole("dialog", { name: "Keyboard shortcuts" })).toBeTruthy();
+  });
+
+  it("'?' typed while focus is inside another dialog does not open the shortcuts dialog", async () => {
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <HelpPanelProvider>
+            <HelpMenu />
+            <Dialog open>
+              <DialogActions>
+                <Button>Dialog action</Button>
+              </DialogActions>
+            </Dialog>
+          </HelpPanelProvider>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+    const action = await screen.findByRole("button", { name: "Dialog action" });
+    action.focus();
+    await user.keyboard("?");
+    expect(screen.queryByRole("dialog", { name: "Keyboard shortcuts" })).toBeNull();
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
   });
 
   it("opens What's new from the Help menu and returns focus to the Help button on close", async () => {

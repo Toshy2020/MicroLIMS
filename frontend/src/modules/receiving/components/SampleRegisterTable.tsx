@@ -27,7 +27,8 @@ import { DirectionalIcon } from "../../../components/DirectionalIcon";
 import { Ltr } from "../../../components/Ltr";
 import { i18n as appI18n, useTranslation } from "../../../i18n";
 import { StatusTone } from "../../../theme/statusTokens";
-import { TestStatusSummaryCell } from "./TestStatusSummaryCell";
+import { TestStatusSummaryCell, testSummaryText } from "./TestStatusSummaryCell";
+import type { TFunction } from "i18next";
 import { SampleActionMenu } from "./SampleActionMenu";
 import { assignedAnalystsByTest, assignedAnalystsLabel } from "../utils/assignedAnalysts";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
@@ -126,33 +127,142 @@ function parseLegacyColumns(raw: string): string[] | null {
   }
 }
 
+// What the next-action column offers, from the statuses the server reported. `target` names the handler the
+// register routes a click to; an export carries only the label.
+interface ResolvedNextAction {
+  label: string;
+  // The server-answered action that gates the button (review.complete, approval.approve); a refusal shows its sentence.
+  gate?: string;
+  // "wait" renders a passive chip; anything else renders a button.
+  kind: "primary" | "secondary" | "wait";
+  target?: "selectTests" | "prepare" | "summary" | "report" | "test" | "assign";
+  test?: TestOrderSummary;
+}
+
+// Which next actions this user can be offered.
+export interface NextActionCapabilities {
+  canSelectTests: boolean;
+  canAssign: boolean;
+}
+
+type ReceivingT = TFunction<"receiving">;
+
+// Reads only statuses the server reported; no laboratory rule is decided here.
+function resolveNextAction(sample: SampleRecord, caps: NextActionCapabilities, t: ReceivingT): ResolvedNextAction | null {
+  if (CLOSED_STATUSES.has(sample.status)) return null;
+  // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
+  if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
+    return caps.canSelectTests
+      ? { label: t("register.nextAction.selectTests"), kind: "primary", target: "selectTests" }
+      : { label: t("register.nextAction.awaitingTestSelection"), kind: "wait" };
+  }
+  if (sample.preparationStatus === "NeedsPreparation") {
+    return { label: t("register.nextAction.prepare"), kind: "primary", target: "prepare" };
+  }
+  if (sample.status === "UnderReview" || sample.status === "PendingReview") {
+    return { label: t("register.nextAction.review"), kind: "primary", gate: "review.complete", target: "summary" };
+  }
+  if (sample.status === "UnderApproval") {
+    return { label: t("register.nextAction.approve"), kind: "primary", gate: "approval.approve", target: "summary" };
+  }
+  if (sample.status === "Approved") {
+    return { label: t("register.nextAction.viewReport"), kind: "secondary", target: "report" };
+  }
+  const tests = sample.assignedTests || [];
+  const ready = tests.find((test) => ["ReadyToRead", "EnterResult"].includes(effectiveTestStatus(test)));
+  if (ready) {
+    return {
+      label: tests.length > 1 ? t("register.nextAction.recordCode", { code: ready.testCode }) : t("register.nextAction.recordResult"),
+      kind: "primary",
+      target: "test",
+      test: ready
+    };
+  }
+  const hasAnalyst = Boolean(sample.assignedAnalystName || tests.some((test) => test.assignedAnalystName));
+  if (!hasAnalyst && caps.canAssign) {
+    return { label: t("register.nextAction.assign"), kind: "secondary", target: "assign" };
+  }
+  const notStarted = tests.find((test) => ["Pending", "Waiting", "NotStarted"].includes(effectiveTestStatus(test)));
+  if (notStarted) {
+    return {
+      label: tests.length > 1 ? t("register.nextAction.startCode", { code: notStarted.testCode }) : t("register.nextAction.startTest"),
+      kind: "secondary",
+      target: "test",
+      test: notStarted
+    };
+  }
+  if (tests.some((test) => ["InProgress", "Running", "Incubating"].includes(effectiveTestStatus(test)))) {
+    return { label: t("register.nextAction.inProgress"), kind: "wait" };
+  }
+  return null;
+}
+
+const safeDateTime = (iso: string): string => {
+  try {
+    return formatDateTimeWithTimeZone(iso);
+  } catch {
+    return iso;
+  }
+};
+
 // The register's columns without their cell renderers: what a CSV export of the register carries.
+// `exportValue` is the text the screen shows for the column (dates with their zone, labels, never raw
+// epochs or enums); `caps` decides whether a next action the user cannot take is offered.
 const SAMPLE_COLUMN_DEFS: ReadonlyArray<{
   key: RegisterColumnKey;
-  label: string;
   sortValue?: (s: SampleRecord) => string | number | null | undefined;
+  exportValue: (s: SampleRecord, t: ReceivingT, caps: NextActionCapabilities) => string;
 }> = [
-  { key: "item", label: "Item / Reference", sortValue: (s) => s.displayName },
-  { key: "receivedAt", label: "Received At", sortValue: (s) => new Date(s.receivedAt).getTime() },
-  { key: "sampleId", label: "#", sortValue: (s) => s.sampleId },
-  { key: "category", label: "Item Type", sortValue: (s) => s.category },
-  { key: "cause", label: "Cause" },
-  { key: "sampledBy", label: "Sampled By", sortValue: (s) => s.sampledBy },
-  { key: "batchControl", label: "Batch / Control No.", sortValue: (s) => s.batchNumber ?? s.controlNumber },
-  { key: "assignedTo", label: "Assigned To", sortValue: (s) => assignedAnalystsLabel(s.assignedTests) },
-  { key: "sampleStatus", label: "Sample Status", sortValue: (s) => s.status },
-  { key: "due", label: "Due", sortValue: (s) => (s.dueAt ? new Date(s.dueAt).getTime() : null) },
-  { key: "tests", label: "Tests" },
-  { key: "nextAction", label: "Next Action" }
+  { key: "item", sortValue: (s) => s.displayName, exportValue: (s) => `${s.displayName} / ${s.referenceNumber}` },
+  { key: "receivedAt", sortValue: (s) => new Date(s.receivedAt).getTime(), exportValue: (s) => safeDateTime(s.receivedAt) },
+  { key: "sampleId", sortValue: (s) => s.sampleId, exportValue: (s) => `#${s.sampleId}` },
+  { key: "category", sortValue: (s) => s.category, exportValue: (s) => categoryLabel(s.category) },
+  { key: "cause", exportValue: (s) => s.causeOfTesting || "" },
+  { key: "sampledBy", sortValue: (s) => s.sampledBy, exportValue: (s) => s.sampledBy || "" },
+  {
+    key: "batchControl",
+    sortValue: (s) => s.batchNumber ?? s.controlNumber,
+    exportValue: (s, t) =>
+      [s.batchNumber ? `${t("register.batchPrefix")} ${s.batchNumber}` : "", `${t("register.controlPrefix")} ${s.controlNumber || "—"}`]
+        .filter(Boolean)
+        .join(" ")
+  },
+  {
+    key: "assignedTo",
+    sortValue: (s) => assignedAnalystsLabel(s.assignedTests),
+    exportValue: (s, t) => assignedAnalystsLabel(s.assignedTests) ?? t("register.unassigned")
+  },
+  {
+    key: "sampleStatus",
+    sortValue: (s) => s.status,
+    exportValue: (s, t) => t(`register.sampleStatus.${s.status}`, { defaultValue: s.status })
+  },
+  {
+    key: "due",
+    sortValue: (s) => (s.dueAt ? new Date(s.dueAt).getTime() : null),
+    exportValue: (s) => (s.dueAt ? safeDateTime(s.dueAt) : "")
+  },
+  { key: "tests", exportValue: (s, t) => testSummaryText(t, s) },
+  { key: "nextAction", exportValue: (s, t, caps) => resolveNextAction(s, caps, t)?.label ?? "" }
 ];
 
-// The export columns for the register columns a user has chosen to show, in their order.
-export function sampleExportColumns(visibleKeys: readonly string[]): ExportColumn<SampleRecord>[] {
+// The export columns for the register columns a user has chosen to show, in their order. Labels and values
+// are in the interface language, as on screen.
+export function sampleExportColumns(
+  visibleKeys: readonly string[],
+  caps: NextActionCapabilities = { canSelectTests: false, canAssign: false }
+): ExportColumn<SampleRecord>[] {
+  const t = appI18n.getFixedT(null, "receiving") as ReceivingT;
   const byKey = new Map(SAMPLE_COLUMN_DEFS.map((d) => [String(d.key), d]));
   return visibleKeys
     .map((key) => byKey.get(key))
     .filter((d): d is NonNullable<typeof d> => Boolean(d))
-    .map((d) => ({ key: String(d.key), label: d.label, sortValue: d.sortValue }));
+    .map((d) => ({
+      key: String(d.key),
+      label: t(`register.columns.${d.key}`),
+      sortValue: d.sortValue,
+      exportValue: (s: SampleRecord) => d.exportValue(s, t, caps)
+    }));
 }
 
 const getSampleRowId = (sample: SampleRecord) => sample.sampleId;
@@ -333,54 +443,26 @@ function SampleRegisterTableInner({
     }
   }, [legacyColumnsKey, tableKey, setColumns]);
 
+  const nextActionCaps: NextActionCapabilities = {
+    canSelectTests: Boolean(onSelectTests) && canChooseTests,
+    canAssign: isAuthorizedToAssign && Boolean(onAssignAnalyst)
+  };
+
   // What the analyst should do next for this sample, routed to the same
-  // handlers the row's menus already use. It reads only statuses the server
-  // reported; no laboratory rule is decided here.
+  // handlers the row's menus already use.
   const getNextAction = (sample: SampleRecord): NextAction | null => {
-    if (CLOSED_STATUSES.has(sample.status)) return null;
-    // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
-    if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
-      return onSelectTests && canChooseTests
-        ? { label: t("register.nextAction.selectTests"), kind: "primary", run: () => onSelectTests(sample) }
-        : { label: t("register.nextAction.awaitingTestSelection"), kind: "wait" };
-    }
-    if (sample.preparationStatus === "NeedsPreparation") {
-      return { label: t("register.nextAction.prepare"), kind: "primary", run: () => onPrepareSample(sample) };
-    }
-    if (sample.status === "UnderReview" || sample.status === "PendingReview") {
-      return { label: t("register.nextAction.review"), kind: "primary", gate: "review.complete", run: () => onViewSummary(sample) };
-    }
-    if (sample.status === "UnderApproval") {
-      return { label: t("register.nextAction.approve"), kind: "primary", gate: "approval.approve", run: () => onViewSummary(sample) };
-    }
-    if (sample.status === "Approved") {
-      return { label: t("register.nextAction.viewReport"), kind: "secondary", run: () => onViewReport(sample) };
-    }
-    const tests = sample.assignedTests || [];
-    const ready = tests.find((test) => ["ReadyToRead", "EnterResult"].includes(effectiveTestStatus(test)));
-    if (ready) {
-      return {
-        label: tests.length > 1 ? t("register.nextAction.recordCode", { code: ready.testCode }) : t("register.nextAction.recordResult"),
-        kind: "primary",
-        run: () => onTestClick(ready, sample)
-      };
-    }
-    const hasAnalyst = Boolean(sample.assignedAnalystName || tests.some((test) => test.assignedAnalystName));
-    if (!hasAnalyst && isAuthorizedToAssign && onAssignAnalyst) {
-      return { label: t("register.nextAction.assign"), kind: "secondary", run: () => onAssignAnalyst(sample) };
-    }
-    const notStarted = tests.find((test) => ["Pending", "Waiting", "NotStarted"].includes(effectiveTestStatus(test)));
-    if (notStarted) {
-      return {
-        label: tests.length > 1 ? t("register.nextAction.startCode", { code: notStarted.testCode }) : t("register.nextAction.startTest"),
-        kind: "secondary",
-        run: () => onTestClick(notStarted, sample)
-      };
-    }
-    if (tests.some((test) => ["InProgress", "Running", "Incubating"].includes(effectiveTestStatus(test)))) {
-      return { label: t("register.nextAction.inProgress"), kind: "wait" };
-    }
-    return null;
+    const resolved = resolveNextAction(sample, nextActionCaps, t);
+    if (!resolved) return null;
+    const { target, test, ...rest } = resolved;
+    const runners: Record<NonNullable<ResolvedNextAction["target"]>, (() => void) | undefined> = {
+      selectTests: () => onSelectTests?.(sample),
+      prepare: () => onPrepareSample(sample),
+      summary: () => onViewSummary(sample),
+      report: () => onViewReport(sample),
+      test: test ? () => onTestClick(test, sample) : undefined,
+      assign: () => onAssignAnalyst?.(sample)
+    };
+    return { ...rest, run: target ? runners[target] : undefined };
   };
 
   const toggleExpand = (sampleId: string | number) => {
@@ -832,9 +914,10 @@ function SampleRegisterTableInner({
     render: (sample) => renderCell(key, sample, 0)
   });
 
-  const columns: RegisterColumn<SampleRecord>[] = SAMPLE_COLUMN_DEFS.map((d) =>
-    column(d.key, t(`register.columns.${d.key}`), d.sortValue)
-  );
+  const columns: RegisterColumn<SampleRecord>[] = SAMPLE_COLUMN_DEFS.map((d) => ({
+    ...column(d.key, t(`register.columns.${d.key}`), d.sortValue),
+    exportValue: (s: SampleRecord) => d.exportValue(s, t, nextActionCaps)
+  }));
 
   // Retest children of an expanded sample, each with the same visible columns
   // and the same row behaviour as a row of the table; their own retests follow.

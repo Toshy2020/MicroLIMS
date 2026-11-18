@@ -1,3 +1,4 @@
+import { isInsideDialog } from "../../utils/isInsideDialog";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IconButton, ListItemText, Menu, MenuItem, Tooltip } from "@mui/material";
@@ -33,6 +34,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
+      if (isInsideDialog(target)) return;
       if (target) {
         const tag = target.tagName;
         if (

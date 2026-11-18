@@ -1,0 +1,428 @@
+{
+  "status": {
+    "open": "Open",
+    "completed": "Completed",
+    "abandoned": "Abandoned",
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "passed": "Passed",
+    "failed": "Failed",
+    "available": "Available",
+    "running": "Running",
+    "unavailable": "Unavailable",
+    "assigned": "Assigned",
+    "removed": "Removed",
+    "withinLimits": "Within Limits",
+    "oos": "OOS",
+    "actionLimitExceeded": "Action Limit Exceeded",
+    "alertLimitExceeded": "Alert Limit Exceeded",
+    "requiresReview": "Requires Review"
+  },
+  "overview": {
+    "loadError": "Could not load ICP instruments.",
+    "title": "ICP-OES Workspace",
+    "subtitle": "Overview of inductively coupled plasma optical emission spectrometers, active analytical runs, and calibrations.",
+    "refresh": "Refresh",
+    "kpi": {
+      "instruments": "Instruments",
+      "available": "Available",
+      "inUse": "In use",
+      "calPending": "Cal. pending",
+      "unavailable": "Unavailable"
+    },
+    "searchPlaceholder": "Search by code, name or run...",
+    "tabs": {
+      "all": "All ({{count}})",
+      "inUse": "In use ({{count}})",
+      "available": "Available ({{count}})",
+      "unavailable": "Unavailable ({{count}})"
+    },
+    "empty": {
+      "title": "No ICP instruments found",
+      "filteredDescription": "No instruments matched the active search or state filter.",
+      "noneConfigured": "No ICP-OES equipment is configured for this laboratory section."
+    },
+    "card": {
+      "unavailableReasonFallback": "Instrument is out of service or calibration is overdue.",
+      "calBadge": "Cal: {{status}}",
+      "run": "Run:",
+      "analyst": "Analyst:",
+      "assignedSamples": "Assigned Samples:",
+      "ready": "Instrument is ready. No analytical run currently active.",
+      "runHistory": "Run History",
+      "openRun": "Open Run",
+      "startRun": "Start Run"
+    }
+  },
+  "history": {
+    "title": "Instrument run history ({{count}})",
+    "columns": {
+      "runCode": "Run Code",
+      "analyst": "Analyst",
+      "startedAt": "Started At",
+      "samples": "Samples",
+      "runStatus": "Run Status",
+      "calibration": "Calibration",
+      "action": "Action"
+    },
+    "view": "View",
+    "emptyTitle": "No past runs recorded",
+    "emptyDescription": "Completed, abandoned, and past ICP runs on this instrument appear here."
+  },
+  "stepRail": {
+    "steps": {
+      "calibration": "Calibration",
+      "samples": "Samples",
+      "testingEvidence": "Testing & Evidence",
+      "reviewComplete": "Review & Complete"
+    },
+    "locks": {
+      "calFailed": "Calibration has failing elements. Update calibration before assigning samples.",
+      "calPending": "Sample assignment is locked until calibration is confirmed.",
+      "evidenceNeedCal": "Locked until calibration is confirmed.",
+      "evidenceNeedSamples": "Locked until samples are assigned to the run.",
+      "completeNeedSamples": "Assigned samples must be processed before completing the run."
+    },
+    "stepNumber": "Step {{num}}"
+  },
+  "elementStrip": {
+    "title": "Calibrated elements:",
+    "failedFallback": "Failed calibration"
+  },
+  "run": {
+    "breadcrumbUnavailable": "Run unavailable",
+    "loadError": "Could not load ICP run data.",
+    "instrumentNotFound": "Instrument not found",
+    "instrumentUnavailable": "Instrument unavailable",
+    "abandonedToast": "Run marked as abandoned.",
+    "abandonError": "Could not abandon run.",
+    "completedToast": "Run completed.",
+    "completeError": "Could not complete run.",
+    "notFoundAlert": "Run not found or closed.",
+    "backToInstruments": "Back to Instruments",
+    "instruments": "Instruments",
+    "tabs": {
+      "calibration": "Calibration",
+      "samples": "Samples ({{count}})",
+      "evidence": "Evidence ({{count}})",
+      "history": "Run History"
+    },
+    "abandonDialog": {
+      "title": "Abandon ICP Run",
+      "label": "Reason for Abandoning *",
+      "placeholder": "Explain why this run is being abandoned (e.g. plasma extinguished, nebulizer clog, out of argon)...",
+      "confirmText": "Abandon Run",
+      "loadingText": "Abandoning..."
+    },
+    "header": {
+      "calibrationBadge": "Calibration: {{status}}",
+      "runCode": "Run Code:",
+      "analyst": "Analyst:",
+      "analystFallback": "Analyst",
+      "started": "Started:",
+      "abandonRun": "Abandon Run...",
+      "completing": "Completing...",
+      "completeRun": "Complete Run"
+    },
+    "startDialog": {
+      "loadError": "Failed to start ICP run.",
+      "title": "Start ICP Run",
+      "instrument": "Instrument: <strong>{{name}}</strong> (<ltr>{{code}}</ltr>)",
+      "description": "The run starts with a pending calibration. Record the standard lot, the elements calibrated and their r, attach the calibration curve report and sign to declare the instrument calibrated and ready for testing.",
+      "cancel": "Cancel",
+      "starting": "Starting Run...",
+      "start": "Start Run"
+    }
+  },
+  "calibration": {
+    "panel": {
+      "savedToast": "Calibration saved.",
+      "saveError": "Could not save calibration.",
+      "confirmedToast": "Calibration confirmed successfully.",
+      "titleExpired": "Calibration Expired ({{code}})",
+      "titleConfirmed": "Calibration Confirmed ({{code}})",
+      "confirmedBy": "Confirmed by <strong>{{user}}</strong> on <ltr>{{date}}</ltr>.",
+      "analystFallback": "Analyst",
+      "validityWindow": "Validity window",
+      "validUntil": "Valid until: <ltr>{{date}}</ltr>",
+      "expiredAlert": "This calibration has expired. A fresh calibration run is required before further sample testing.",
+      "standardLotLabel": "Calibration Standard Lot:",
+      "lotUnrecorded": "Lot unrecorded",
+      "formTitle": "Calibration standard & elements",
+      "formSubtitle": "Choose the standard lot, then list each metal calibrated and the correlation coefficient (r) read from the calibration curve.",
+      "calibratedElements": "Calibrated elements",
+      "saving": "Saving...",
+      "save": "Save calibration",
+      "confirmTooltipFallback": "Cannot confirm calibration",
+      "confirm": "Confirm Calibration",
+      "reportTitle": "Calibration curve report",
+      "reportDescription": "Upload the Syngistix report showing the calibration curve. It is the evidence for the r values above and is required to confirm.",
+      "signatureMeaning": "I confirm the ICP-OES is calibrated and ready for testing."
+    },
+    "elementTable": {
+      "columns": {
+        "element": "Element",
+        "correlation": "Correlation (r)",
+        "minCorrelation": "min {{min}}",
+        "result": "Result"
+      },
+      "empty": "No elements yet. Add each metal calibrated on this run.",
+      "elementAria": "Element {{num}}",
+      "correlationAria": "r for element {{num}}",
+      "passed": "Passed",
+      "failed": "Failed",
+      "saveToCheck": "Save to check r",
+      "removeAria": "Remove element {{num}}",
+      "addElement": "Add element"
+    },
+    "lotPicker": {
+      "lotDisplay": "{{name}} - Lot {{lotNumber}}",
+      "label": "Calibration standard lot",
+      "placeholder": "Select reference standard lot",
+      "loading": "Loading usable reference standard lots...",
+      "empty": "No usable reference standard lots found."
+    }
+  },
+  "samples": {
+    "panel": {
+      "removedToast": "Sample {{sampleNumber}} removed from run.",
+      "removeError": "Could not remove sample.",
+      "tooltipCal": "Sample assignment locked until calibration is confirmed",
+      "tooltipClosed": "Run is no longer open",
+      "tooltipPermission": "Permission required",
+      "lockedBold": "Sample assignment is locked.",
+      "lockedFallback": "Sample assignment is locked until calibration is confirmed and element availability is verified.",
+      "unlockedAlert": "Calibration confirmed. Eligible test orders can be assigned to this ICP run.",
+      "assignedTitle": "Assigned Run Samples ({{count}})",
+      "assignedSubtitle": "Samples linked to this ICP run for analysis and result entry.",
+      "assignSamples": "Assign Samples...",
+      "emptyTitle": "No samples assigned to this run yet",
+      "emptyDescription": "Click “Assign Samples...” to link eligible test orders to this run.",
+      "emptyLocked": "Sample assignment is locked.",
+      "columns": {
+        "sampleNumber": "Sample Number",
+        "batch": "Batch",
+        "product": "Product",
+        "testCode": "Test Code",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "enterResults": "Enter Results",
+      "remove": "Remove",
+      "removeDialogTitle": "Remove Sample {{sampleNumber}}",
+      "removeConfirmText": "Remove Sample",
+      "removingText": "Removing...",
+      "removeReasonLabel": "Reason for Removal *",
+      "removeReasonPlaceholder": "Explain why this sample is being removed from the run..."
+    },
+    "eligible": {
+      "loadError": "Failed to load eligible test orders.",
+      "assignedToast": "Assigned {{count}} sample(s) to this run.",
+      "title": "Assign Eligible Samples to Run",
+      "searchPlaceholder": "Search by sample number, batch, product, or test code...",
+      "searchAria": "Search eligible samples",
+      "searchButton": "Search",
+      "selectAllAria": "Select all eligible samples",
+      "columns": {
+        "sampleNumber": "Sample Number",
+        "batch": "Batch",
+        "product": "Product",
+        "testCode": "Test Code",
+        "stage": "Stage",
+        "receivedAt": "Received At"
+      },
+      "empty": "No eligible ICP test orders found.",
+      "selectRowAria": "Select {{sampleNumber}} - {{testCode}}",
+      "selectedCount": "{{selected}} of {{total}} sample(s) selected",
+      "cancel": "Cancel",
+      "assigning": "Assigning...",
+      "assign": "Assign ({{count}})",
+      "signatureMeaning": "I am assigning {{count}} sample(s) to this ICP run."
+    }
+  },
+  "entry": {
+    "samplePage": {
+      "breadcrumbUnavailable": "Entry unavailable",
+      "loadError": "Failed to load sample entry data.",
+      "savedToast": "Results saved and calculation preview updated.",
+      "saveError": "Could not save the results.",
+      "notFoundAlert": "Sample entry record not found.",
+      "backToSamples": "Back to Run Samples",
+      "basisLiquid": "Liquid sample: theoretical volume {{volume}} mL × specific gravity {{sg}}",
+      "basisSolid": "Solid sample: theoretical weight {{weight}} g",
+      "testBadge": "Test: {{mode}}",
+      "modeAssay": "Assay",
+      "modeElemental": "Elemental impurity",
+      "calBadge": "Calibration: {{code}} ({{status}})",
+      "submittedBadge": "Submitted for Review",
+      "testCode": "Test Code:",
+      "batchSuffix": " · Batch: {{batch}}",
+      "productSuffix": " · Product: {{product}}",
+      "stageSuffix": " · Stage: {{stage}}",
+      "runSuffix": " · Run: {{run}}",
+      "saving": "Saving...",
+      "saveResults": "Save results",
+      "prerequisitesNotMet": "Prerequisites not met",
+      "sendForReview": "Send for Review",
+      "entryLocked": "Entry Locked:",
+      "readOnlyFallback": "This test order is read-only.",
+      "sectionEvidence": "Evidence: Sample Reports",
+      "reportTitle": "Sample Report Upload",
+      "reportDescription": "Upload the instrument Syngistix/raw export or PDF report for this sample. Required before sending for review.",
+      "sectionWeightResults": "Sample weight & instrument results",
+      "sectionResults": "Instrument results",
+      "actualWeightLabel": "Actual weight of sample (g)",
+      "actualWeightHelper": "Act.Wt: the weight actually taken.",
+      "actualWeightAria": "Actual weight (g)",
+      "autofillToast": "Values filled from the report - review them, then save.",
+      "saveHintAssay": "Enter the actual weight and a result (≥ 0) for every element to save.",
+      "saveHintElemental": "Enter a result (≥ 0) for every element to save.",
+      "sectionResultsOfficial": "Results (Official)",
+      "sectionResultsPreview": "Results (Server Preview)"
+    },
+    "resultTable": {
+      "columns": {
+        "element": "Element",
+        "target": "Target (ppm)",
+        "instrumentResult": "Result from instrument report (ppm)",
+        "calibration": "Calibration"
+      },
+      "resultAria": "{{symbol}} result (ppm)",
+      "valid": "Valid",
+      "notAvailable": "Not available"
+    },
+    "autofill": {
+      "readError": "Could not read the report.",
+      "reading": "Reading report...",
+      "readButton": "Read values from the uploaded report",
+      "uploadFirst": "Upload the sample report above first.",
+      "uncertaintyWarning": "The report was read with some uncertainty ({{source}}). Check every value against the report.",
+      "solutionLabel": "Solution in the report",
+      "solutionPage": " — page {{page}}",
+      "matchesSample": " · matches this sample",
+      "useValues": "Use these values",
+      "useHint": "Fills the entry below - review, then save."
+    },
+    "preview": {
+      "officialBadge": "Official Results (Submitted)",
+      "officialSubtitle": "These official results were recorded and sent for peer review.",
+      "noOfficial": "No official results recorded yet for this sample entry.",
+      "columns": {
+        "parameter": "Parameter",
+        "quantity": "Quantity",
+        "result": "Result",
+        "unit": "Unit",
+        "specLimit": "Spec Limit",
+        "status": "Status",
+        "problem": "Problem / Warning"
+      },
+      "draftBadge": "Server Preview (Draft)",
+      "draftSubtitle": "Computed server-side from the entered weight and instrument results. Not the official result.",
+      "warningAlert": "<strong>Calculation warning:</strong> One or more element parameters have range or calibration problems. Dilution adjustment or re-measurement may be required before submitting.",
+      "noPreview": "No preview results available yet. Enter the sample weight (assay) and the instrument result for each element above, then click <strong>Save results</strong> to generate the server calculation."
+    },
+    "sendDialog": {
+      "submittedToast": "Sample {{sampleNumber}} submitted for peer review.",
+      "submitFailed": "Submission failed.",
+      "meaning": "I confirm that the ICP element results and evidence for sample {{sampleNumber}} ({{testCode}}) are complete, accurate, and ready for review.",
+      "title": "Send ICP Sample for Review",
+      "cannotSubmit": "Cannot submit for review:",
+      "criteriaNotMet": "Submission criteria are not met.",
+      "sampleSummary": "Sample: <ltr><strong>{{sampleNumber}}</strong></ltr> · Test: <ltr><strong>{{testCode}}</strong></ltr>",
+      "productSuffix": " · Product: {{productName}}",
+      "batchSuffix": " · Batch: {{batchNumber}}",
+      "verifyChecklist": "Verify the pre-submission readiness checklist below before applying your electronic signature.",
+      "calTitle": "Instrument Calibration",
+      "calSecondary": "Status: {{status}} (Code: {{code}})",
+      "elementsTitle": "Element Availability",
+      "elementsValid": "All {{count}} required element(s) are valid",
+      "elementsInvalidFallback": "Invalid",
+      "elementsRequiredInvalid": "Required elements invalid",
+      "resultsTitle": "Instrument results",
+      "resultsSecondary": "{{recorded}} of {{total}} element result(s) recorded",
+      "evidenceTitle": "Instrument Report Evidence",
+      "evidenceAttached": "{{count}} current sample report(s) attached",
+      "evidenceMissing": "Upload sample report before submitting",
+      "previewTitle": "Server Calculation Preview",
+      "previewNone": "No preview calculation generated",
+      "previewProblem": "One or more elements have calculation or range warnings",
+      "previewOk": "{{count}} parameter(s) evaluated within range",
+      "gateTitle": "Submission Gate",
+      "gateReady": "Ready for electronic signature",
+      "gateGated": "Gated",
+      "freezeInfo": "Signing will freeze the entered results, record official ICP assay results, and move the test order to <strong>Under Review</strong> in the testing workspace.",
+      "cancel": "Cancel",
+      "proceedToSign": "Proceed to Sign"
+    }
+  },
+  "evidence": {
+    "panel": {
+      "title": "Run Evidence & Instrument Reports ({{count}})",
+      "subtitle": "Complete audit trail of calibration, sample, and general run report files.",
+      "tabs": {
+        "all": "All ({{count}})",
+        "calibration": "Calibration ({{count}})",
+        "run": "Run ({{count}})",
+        "sample": "Sample ({{count}})"
+      },
+      "empty": "No evidence files attached for this category.",
+      "columns": {
+        "fileName": "File Name",
+        "context": "Context",
+        "kind": "Kind",
+        "uploadedBy": "Uploaded By",
+        "uploadedAt": "Uploaded At",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "supersededPrefix": "Superseded: {{reason}}",
+      "unknownUser": "Unknown",
+      "current": "Current",
+      "superseded": "Superseded",
+      "viewTooltip": "View in New Tab",
+      "viewAria": "View {{fileName}} in a new tab",
+      "downloadTooltip": "Download File",
+      "downloadAria": "Download {{fileName}}",
+      "supersedeTooltip": "Supersede File",
+      "attachTitle": "Attach Run Supporting Document",
+      "attachDescription": "Attach supplemental run evidence, system logs, or analyst notes."
+    },
+    "upload": {
+      "defaultTitle": "Calibration Report Upload",
+      "defaultDescription": "Upload the instrument instrument report file (Syngistix or instrument raw export). Required before calibration confirmation.",
+      "fileTooLarge": "File exceeds the 25 MB limit.",
+      "uploadFailed": "Upload failed.",
+      "attachedBadge": "{{count}} Attached",
+      "chooseDifferent": "Choose Different File",
+      "selectFile": "Select File",
+      "upload": "Upload",
+      "columns": {
+        "fileName": "File Name",
+        "uploadedBy": "Uploaded By",
+        "uploadedAt": "Uploaded At",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "supersededPrefix": "Superseded: {{reason}}",
+      "unknownUser": "Unknown",
+      "current": "Current",
+      "superseded": "Superseded",
+      "viewTooltip": "View File",
+      "viewAria": "View {{fileName}}",
+      "supersedeTooltip": "Supersede (Replace) File"
+    },
+    "supersede": {
+      "fileTooLarge": "File exceeds the 25 MB limit.",
+      "failed": "Replacement upload failed.",
+      "title": "Supersede Evidence File",
+      "replacing": "Replacing: <ltr><strong>{{fileName}}</strong></ltr>. Old versions remain visible in the audit trail.",
+      "selectFile": "Select Replacement File",
+      "reasonLabel": "Reason for Superseding",
+      "reasonPlaceholder": "Explain why this file is being replaced (e.g. recalculated baseline, re-exported chromatogram)...",
+      "charCount": "{{count}}/500 characters",
+      "cancel": "Cancel",
+      "uploading": "Uploading...",
+      "confirm": "Supersede File"
+    }
+  }
+}

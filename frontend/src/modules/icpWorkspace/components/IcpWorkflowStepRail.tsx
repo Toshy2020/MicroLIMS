@@ -11,6 +11,7 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import RadioButtonCheckedIcon from "@mui/icons-material/RadioButtonChecked";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import PlayCircleFilledWhiteIcon from "@mui/icons-material/PlayCircleFilledWhite";
+import { useTranslation } from "../../../i18n";
 import type { IcpRunDto } from "../types";
 
 export interface IcpWorkflowStepRailProps {
@@ -31,6 +32,7 @@ interface StepDefinition {
 }
 
 export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkflowStepRailProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
 
   const calConfirmed = run.calibration?.status === "Confirmed";
@@ -44,7 +46,7 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
   const steps: StepDefinition[] = [
     {
       index: 0,
-      label: "Calibration",
+      label: t("stepRail.steps.calibration"),
       tabKey: "calibration",
       isCompleted: calConfirmed,
       isFailed: calFailed && calPending,
@@ -53,7 +55,7 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
     },
     {
       index: 1,
-      label: "Samples",
+      label: t("stepRail.steps.samples"),
       tabKey: "samples",
       isCompleted: calConfirmed && sampleCount > 0,
       isCurrent: activeTabKey === "samples",
@@ -61,32 +63,32 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
       lockReason:
         run.canAssignSamplesReason ||
         (calFailed
-          ? "Calibration has failing elements. Update calibration before assigning samples."
-          : "Sample assignment is locked until calibration is confirmed.")
+          ? t("stepRail.locks.calFailed")
+          : t("stepRail.locks.calPending"))
     },
     {
       index: 2,
-      label: "Testing & Evidence",
+      label: t("stepRail.steps.testingEvidence"),
       tabKey: "evidence",
       isCompleted: allSamplesProcessed,
       isCurrent: activeTabKey === "evidence",
       isLocked: !calConfirmed || sampleCount === 0,
       lockReason: !calConfirmed
-        ? "Locked until calibration is confirmed."
+        ? t("stepRail.locks.evidenceNeedCal")
         : sampleCount === 0
-        ? "Locked until samples are assigned to the run."
+        ? t("stepRail.locks.evidenceNeedSamples")
         : undefined
     },
     {
       index: 3,
-      label: "Review & Complete",
+      label: t("stepRail.steps.reviewComplete"),
       tabKey: "samples",
       isCompleted: run.status === "Completed",
       isCurrent: false,
       isLocked: run.status === "Open" && sampleCount === 0,
       lockReason:
         run.status === "Open" && sampleCount === 0
-          ? "Assigned samples must be processed before completing the run."
+          ? t("stepRail.locks.completeNeedSamples")
           : undefined
     }
   ];
@@ -179,7 +181,7 @@ export function IcpWorkflowStepRail({ run, activeTabKey, onSelectTab }: IcpWorkf
                     letterSpacing: 0.5
                   }}
                 >
-                  Step {step.index + 1}
+                  {t("stepRail.stepNumber", { num: step.index + 1 })}
                 </Typography>
                 <Typography
                   variant="body2"

@@ -30,10 +30,14 @@ import { IcpSendForReviewDialog } from "./IcpSendForReviewDialog";
 import { IcpReportUploadPanel } from "../evidence/IcpReportUploadPanel";
 import { IcpReportAutofill } from "./IcpReportAutofill";
 import { applyReportValues, buildSaveEntryPayload, draftFromEntry, isEntryComplete, type EntryDraft } from "./entryMapping";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../i18n";
 import type { IcpSampleEntryDto } from "../types";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { Ltr } from "../../../components/Ltr";
 
 export function IcpSampleEntryPage() {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
   const navigate = useNavigate();
   const { permissions } = useAuth();
@@ -49,7 +53,7 @@ export function IcpSampleEntryPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleEntry, setSampleEntry] = useState<IcpSampleEntryDto | null>(null);
-  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? "Entry unavailable" : null);
+  useBreadcrumb(sampleEntry ? `${sampleEntry.sampleNumber} ${sampleEntry.testCode}` : error ? t("entry.samplePage.breadcrumbUnavailable") : null);
 
   const [draft, setDraft] = useState<EntryDraft>({ weight: "", results: {} });
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -65,7 +69,7 @@ export function IcpSampleEntryPage() {
       setDraft(draftFromEntry(data.elements, data.actualWeightG));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to load sample entry data.");
+      setError(e.response?.data?.message ?? e.message ?? i18n.t("entry.samplePage.loadError", { ns: "icpWorkspace" }));
     } finally {
       setLoading(false);
     }
@@ -86,10 +90,10 @@ export function IcpSampleEntryPage() {
       const updated = await IcpWorkspaceService.saveEntry(sampleIdNum, payload);
       setSampleEntry(updated);
       setDraft(draftFromEntry(updated.elements, updated.actualWeightG));
-      toast.success("Results saved and calculation preview updated.");
+      toast.success(t("entry.samplePage.savedToast"));
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not save the results.");
+      setError(e.response?.data?.message ?? e.message ?? t("entry.samplePage.saveError"));
     } finally {
       setSaving(false);
     }
@@ -107,9 +111,9 @@ export function IcpSampleEntryPage() {
   if (!sampleEntry) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="error">Sample entry record not found.</Alert>
+        <Alert severity="error">{t("entry.samplePage.notFoundAlert")}</Alert>
         <Button onClick={handleBack} sx={{ mt: 2 }} startIcon={<ArrowBackIcon />}>
-          Back to Run Samples
+          {t("entry.samplePage.backToSamples")}
         </Button>
       </Box>
     );
@@ -120,13 +124,18 @@ export function IcpSampleEntryPage() {
   const isAssay = sampleEntry.mode === "Assay";
   const basisText =
     sampleEntry.sampleForm === "Liquid"
-      ? `Liquid sample: theoretical volume ${sampleEntry.theoreticalAmount ?? "—"} mL × specific gravity ${sampleEntry.specificGravity ?? "—"}`
-      : `Solid sample: theoretical weight ${sampleEntry.theoreticalAmount ?? "—"} g`;
+      ? t("entry.samplePage.basisLiquid", {
+          volume: sampleEntry.theoreticalAmount ?? "—",
+          sg: sampleEntry.specificGravity ?? "—"
+        })
+      : t("entry.samplePage.basisSolid", {
+          weight: sampleEntry.theoreticalAmount ?? "—"
+        });
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: "auto" }}>
       <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mb: 2, textTransform: "none" }}>
-        Back to Run Samples
+        {t("entry.samplePage.backToSamples")}
       </Button>
 
       {error && (
@@ -142,7 +151,7 @@ export function IcpSampleEntryPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1, flexWrap: "wrap" }}>
               <Box>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                  {sampleEntry.sampleNumber}
+                  <Ltr>{sampleEntry.sampleNumber}</Ltr>
                 </Typography>
                 {sampleEntry.subjectName && (
                   <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
@@ -153,20 +162,25 @@ export function IcpSampleEntryPage() {
               <IcpStatusBadge status={sampleEntry.status} />
               <StatusBadge
                 status="Prepared"
-                label={`Test: ${isAssay ? "Assay" : "Elemental impurity"}`}
+                label={t("entry.samplePage.testBadge", {
+                  mode: isAssay ? t("entry.samplePage.modeAssay") : t("entry.samplePage.modeElemental")
+                })}
               />
               <IcpStatusBadge
                 status={sampleEntry.calibrationStatus}
-                label={`Calibration: ${sampleEntry.calibrationCode} (${sampleEntry.calibrationStatus})`}
+                label={t("entry.samplePage.calBadge", {
+                  code: sampleEntry.calibrationCode,
+                  status: sampleEntry.calibrationStatus
+                })}
               />
-              {sampleEntry.submitted && <StatusBadge status="Completed" label="Submitted for Review" />}
+              {sampleEntry.submitted && <StatusBadge status="Completed" label={t("entry.samplePage.submittedBadge")} />}
             </Box>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              <strong>Test Code:</strong> {sampleEntry.testCode}
-              {sampleEntry.batchNumber ? ` · Batch: ${sampleEntry.batchNumber}` : ""}
-              {sampleEntry.productName ? ` · Product: ${sampleEntry.productName}` : ""}
-              {sampleEntry.stageName ? ` · Stage: ${sampleEntry.stageName}` : ""}
-              {` · Run: ${sampleEntry.runCode}`}
+              <strong>{t("entry.samplePage.testCode")}</strong> <Ltr>{sampleEntry.testCode}</Ltr>
+              {sampleEntry.batchNumber ? ` · ${t("entry.samplePage.batchSuffix", { batch: sampleEntry.batchNumber })}` : ""}
+              {sampleEntry.productName ? ` · ${t("entry.samplePage.productSuffix", { product: sampleEntry.productName })}` : ""}
+              {sampleEntry.stageName ? ` · ${t("entry.samplePage.stageSuffix", { stage: sampleEntry.stageName })}` : ""}
+              {` · ${t("entry.samplePage.runSuffix", { run: sampleEntry.runCode })}`}
             </Typography>
           </Box>
 
@@ -179,10 +193,10 @@ export function IcpSampleEntryPage() {
               disabled={!isEditable || saving || !canSave}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : "Save results"}
+              {saving ? t("entry.samplePage.saving") : t("entry.samplePage.saveResults")}
             </Button>
 
-            <Tooltip title={!sampleEntry.canSubmit ? sampleEntry.canSubmitReason || "Prerequisites not met" : ""}>
+            <Tooltip title={!sampleEntry.canSubmit ? sampleEntry.canSubmitReason || t("entry.samplePage.prerequisitesNotMet") : ""}>
               <span>
                 <Button
                   variant="contained"
@@ -192,7 +206,7 @@ export function IcpSampleEntryPage() {
                   disabled={!sampleEntry.canSubmit || sampleEntry.submitted || saving || !canOperate}
                   sx={{ textTransform: "none", fontWeight: 600 }}
                 >
-                  Send for Review
+                  {t("entry.samplePage.sendForReview")}
                 </Button>
               </span>
             </Tooltip>
@@ -201,7 +215,7 @@ export function IcpSampleEntryPage() {
 
         {!sampleEntry.editable && (
           <Alert severity="info" icon={<LockOutlinedIcon />} sx={{ mt: 2 }}>
-            <strong>Entry Locked:</strong> {sampleEntry.editableReason || "This test order is read-only."}
+            <strong>{t("entry.samplePage.entryLocked")}</strong> {sampleEntry.editableReason || t("entry.samplePage.readOnlyFallback")}
           </Alert>
         )}
 
@@ -209,7 +223,7 @@ export function IcpSampleEntryPage() {
 
       {/* Main sections */}
       <Stack spacing={2.5}>
-        <ResultSection step={1} title="Evidence: Sample Reports">
+        <ResultSection step={1} title={t("entry.samplePage.sectionEvidence")}>
           <IcpReportUploadPanel
             runId={parsedRunId || sampleEntry.icpRunId}
             runSampleId={sampleEntry.runSampleId}
@@ -217,24 +231,24 @@ export function IcpSampleEntryPage() {
             kind="SampleReport"
             evidenceList={sampleEntry.evidence}
             onChanged={loadData}
-            title="Sample Report Upload"
-            description="Upload the instrument Syngistix/raw export or PDF report for this sample. Required before sending for review."
+            title={t("entry.samplePage.reportTitle")}
+            description={t("entry.samplePage.reportDescription")}
             disabled={!isEditable}
           />
         </ResultSection>
 
-        <ResultSection step={2} title={isAssay ? "Sample weight & instrument results" : "Instrument results"}>
+        <ResultSection step={2} title={isAssay ? t("entry.samplePage.sectionWeightResults") : t("entry.samplePage.sectionResults")}>
           {isAssay && (
             <Box sx={{ mb: 2, display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 3, alignItems: { sm: "center" } }}>
               <TextField
                 size="small"
                 type="number"
-                label="Actual weight of sample (g)"
+                label={t("entry.samplePage.actualWeightLabel")}
                 value={draft.weight}
                 onChange={(e) => setDraft((prev) => ({ ...prev, weight: e.target.value }))}
                 disabled={!isEditable || saving}
-                helperText="Act.Wt: the weight actually taken."
-                slotProps={{ htmlInput: { min: 0, step: "any", style: { fontVariantNumeric: "tabular-nums" }, "aria-label": "Actual weight (g)" } }}
+                helperText={t("entry.samplePage.actualWeightHelper")}
+                slotProps={{ htmlInput: { min: 0, step: "any", style: { fontVariantNumeric: "tabular-nums" }, "aria-label": t("entry.samplePage.actualWeightAria") } }}
                 sx={{ width: 260 }}
               />
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
@@ -248,7 +262,7 @@ export function IcpSampleEntryPage() {
             disabled={!isEditable || saving}
             onUse={(values) => {
               setDraft((prev) => applyReportValues(prev, values));
-              toast.info("Values filled from the report - review them, then save.");
+              toast.info(t("entry.samplePage.autofillToast"));
             }}
           />
           <IcpResultEntryTable
@@ -271,7 +285,7 @@ export function IcpSampleEntryPage() {
           >
             {isEditable && !canSave && (
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                {isAssay ? "Enter the actual weight and a result (≥ 0) for every element to save." : "Enter a result (≥ 0) for every element to save."}
+                {isAssay ? t("entry.samplePage.saveHintAssay") : t("entry.samplePage.saveHintElemental")}
               </Typography>
             )}
             <Button
@@ -282,12 +296,12 @@ export function IcpSampleEntryPage() {
               disabled={!isEditable || saving || !canSave}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : "Save results"}
+              {saving ? t("entry.samplePage.saving") : t("entry.samplePage.saveResults")}
             </Button>
           </Box>
         </ResultSection>
 
-        <ResultSection step={3} title={sampleEntry.submitted ? "Results (Official)" : "Results (Server Preview)"}>
+        <ResultSection step={3} title={sampleEntry.submitted ? t("entry.samplePage.sectionResultsOfficial") : t("entry.samplePage.sectionResultsPreview")}>
           <IcpPreviewCard preview={sampleEntry.preview} official={sampleEntry.official} submitted={sampleEntry.submitted} />
         </ResultSection>
 

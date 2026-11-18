@@ -16,6 +16,8 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpCalibrationElementDto } from "../types";
 import type { CalibrationRowInput } from "./calibrationPayload";
@@ -39,6 +41,7 @@ export function IcpCalibrationElementTable({
   minCorrelation,
   disabled = false
 }: IcpCalibrationElementTableProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
 
   const update = (index: number, patch: Partial<CalibrationRowInput>) =>
@@ -50,14 +53,14 @@ export function IcpCalibrationElementTable({
         <Table size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
-              <TableCell sx={{ minWidth: 100 }}>Element</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>{t("calibration.elementTable.columns.element")}</TableCell>
               <TableCell sx={{ minWidth: 160 }}>
-                Correlation (r)
+                {t("calibration.elementTable.columns.correlation")}
                 <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
-                  min {minCorrelation}
+                  {t("calibration.elementTable.columns.minCorrelation", { min: minCorrelation })}
                 </Typography>
               </TableCell>
-              <TableCell sx={{ minWidth: 160 }}>Result</TableCell>
+              <TableCell sx={{ minWidth: 160 }}>{t("calibration.elementTable.columns.result")}</TableCell>
               {!disabled && <TableCell sx={{ width: 56 }} />}
             </TableRow>
           </TableHead>
@@ -66,7 +69,7 @@ export function IcpCalibrationElementTable({
               <TableRow>
                 <TableCell colSpan={disabled ? 3 : 4}>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    No elements yet. Add each metal calibrated on this run.
+                    {t("calibration.elementTable.empty")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -78,7 +81,7 @@ export function IcpCalibrationElementTable({
                   <TableCell>
                     {disabled ? (
                       <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>
-                        {row.symbol}
+                        <Ltr>{row.symbol}</Ltr>
                       </Typography>
                     ) : (
                       <TextField
@@ -86,7 +89,7 @@ export function IcpCalibrationElementTable({
                         value={row.symbol}
                         onChange={(e) => update(index, { symbol: e.target.value })}
                         placeholder="Zn"
-                        slotProps={{ htmlInput: { maxLength: 3, "aria-label": `Element ${index + 1}` } }}
+                        slotProps={{ htmlInput: { maxLength: 3, "aria-label": t("calibration.elementTable.elementAria", { num: index + 1 }) } }}
                         sx={{ width: 90 }}
                       />
                     )}
@@ -94,7 +97,7 @@ export function IcpCalibrationElementTable({
                   <TableCell>
                     {disabled ? (
                       <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily }}>
-                        {row.correlationR || "—"}
+                        <Ltr>{row.correlationR || "—"}</Ltr>
                       </Typography>
                     ) : (
                       <TextField
@@ -103,7 +106,7 @@ export function IcpCalibrationElementTable({
                         value={row.correlationR}
                         onChange={(e) => update(index, { correlationR: e.target.value })}
                         placeholder="0.9995"
-                        slotProps={{ htmlInput: { step: "any", "aria-label": `r for element ${index + 1}` } }}
+                        slotProps={{ htmlInput: { step: "any", "aria-label": t("calibration.elementTable.correlationAria", { num: index + 1 }) } }}
                         sx={{ width: 140 }}
                       />
                     )}
@@ -111,15 +114,15 @@ export function IcpCalibrationElementTable({
                   <TableCell>
                     {saved ? (
                       saved.passed ? (
-                        <Chip size="small" color="success" variant="outlined" label="Passed" sx={{ fontWeight: 600 }} />
+                        <Chip size="small" color="success" variant="outlined" label={t("calibration.elementTable.passed")} sx={{ fontWeight: 600 }} />
                       ) : (
-                        <Tooltip title={saved.failureReasons ?? "Failed"} arrow>
-                          <Chip size="small" color="error" variant="outlined" label={saved.failureReasons ?? "Failed"} sx={{ fontWeight: 600, maxWidth: 320 }} />
+                        <Tooltip title={saved.failureReasons ?? t("calibration.elementTable.failed")} arrow>
+                          <Chip size="small" color="error" variant="outlined" label={saved.failureReasons ?? t("calibration.elementTable.failed")} sx={{ fontWeight: 600, maxWidth: 320 }} />
                         </Tooltip>
                       )
                     ) : (
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        Save to check r
+                        {t("calibration.elementTable.saveToCheck")}
                       </Typography>
                     )}
                   </TableCell>
@@ -127,7 +130,7 @@ export function IcpCalibrationElementTable({
                     <TableCell>
                       <IconButton
                         size="small"
-                        aria-label={`Remove element ${index + 1}`}
+                        aria-label={t("calibration.elementTable.removeAria", { num: index + 1 })}
                         onClick={() => onRowsChange(rows.filter((_, i) => i !== index))}
                       >
                         <DeleteOutlineIcon fontSize="small" />
@@ -147,7 +150,7 @@ export function IcpCalibrationElementTable({
           onClick={() => onRowsChange([...rows, { symbol: "", correlationR: "" }])}
           sx={{ mt: 1, textTransform: "none" }}
         >
-          Add element
+          {t("calibration.elementTable.addElement")}
         </Button>
       )}
     </>

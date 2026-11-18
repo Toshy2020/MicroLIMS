@@ -12,8 +12,10 @@ import {
   Stack
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { Trans, useTranslation } from "react-i18next";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import type { IcpEvidenceDto } from "../types";
+import { Ltr } from "../../../components/Ltr";
 
 export interface IcpSupersedeEvidenceDialogProps {
   open: boolean;
@@ -30,6 +32,7 @@ export function IcpSupersedeEvidenceDialog({
   onClose,
   onSuccess
 }: IcpSupersedeEvidenceDialogProps) {
+  const { t } = useTranslation("icpWorkspace");
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [supersedeReason, setSupersedeReason] = useState("");
@@ -41,7 +44,7 @@ export function IcpSupersedeEvidenceDialog({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setSupersedeError("File exceeds the 25 MB limit.");
+        setSupersedeError(t("evidence.supersede.fileTooLarge"));
         setReplacementFile(null);
         return;
       }
@@ -72,7 +75,7 @@ export function IcpSupersedeEvidenceDialog({
       onSuccess();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setSupersedeError(e.response?.data?.message ?? e.message ?? "Replacement upload failed.");
+      setSupersedeError(e.response?.data?.message ?? e.message ?? t("evidence.supersede.failed"));
     } finally {
       setSuperseding(false);
     }
@@ -86,14 +89,19 @@ export function IcpSupersedeEvidenceDialog({
       fullWidth
     >
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-        Supersede Evidence File
+        {t("evidence.supersede.title")}
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {supersedeError && <Alert severity="error">{supersedeError}</Alert>}
 
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Replacing: <strong>{targetEvidence?.fileName}</strong>. Old versions remain visible in the audit trail.
+            <Trans
+              i18nKey="evidence.supersede.replacing"
+              ns="icpWorkspace"
+              values={{ fileName: targetEvidence?.fileName ?? "" }}
+              components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+            />
           </Typography>
 
           <Box>
@@ -110,13 +118,13 @@ export function IcpSupersedeEvidenceDialog({
               onClick={() => replaceInputRef.current?.click()}
               sx={{ textTransform: "none" }}
             >
-              {replacementFile ? replacementFile.name : "Select Replacement File"}
+              {replacementFile ? <Ltr>{replacementFile.name}</Ltr> : t("evidence.supersede.selectFile")}
             </Button>
           </Box>
 
           <TextField
-            label="Reason for Superseding"
-            placeholder="Explain why this file is being replaced (e.g. recalculated baseline, re-exported chromatogram)..."
+            label={t("evidence.supersede.reasonLabel")}
+            placeholder={t("evidence.supersede.reasonPlaceholder")}
             multiline
             rows={3}
             fullWidth
@@ -124,13 +132,13 @@ export function IcpSupersedeEvidenceDialog({
             value={supersedeReason}
             onChange={(e) => setSupersedeReason(e.target.value)}
             slotProps={{ htmlInput: { maxLength: 500 } }}
-            helperText={`${supersedeReason.length}/500 characters`}
+            helperText={t("evidence.supersede.charCount", { count: supersedeReason.length })}
           />
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={superseding}>
-          Cancel
+          {t("evidence.supersede.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -138,7 +146,7 @@ export function IcpSupersedeEvidenceDialog({
           onClick={handleSupersede}
           disabled={!replacementFile || !supersedeReason.trim() || superseding}
         >
-          {superseding ? "Uploading..." : "Supersede File"}
+          {superseding ? t("evidence.supersede.uploading") : t("evidence.supersede.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

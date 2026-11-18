@@ -189,6 +189,16 @@ const OPEN_USAGE: UsageSummary = {
 };
 
 describe("ConfigWizard", () => {
+  it("puts focus on the first field when it opens and on the first field of the next step", async () => {
+    const user = userEvent.setup();
+    renderWizard();
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Name")));
+    await user.type(screen.getByLabelText("Name"), "Plate Count");
+    await user.type(screen.getByLabelText("Code"), "PC-01");
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Details")));
+  });
+
   beforeEach(async () => {
     localStorage.clear();
     await resetDraftDb();

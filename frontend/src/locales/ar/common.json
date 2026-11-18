@@ -126,5 +126,324 @@
   "listSeparator": "، ",
   "gated": {
     "unavailable": "الأسباب غير متاحة حاليًا"
+  },
+  "components": {
+    "viewsMenu": {
+      "saveChangesFailed": "تعذّر حفظ تغييرات العرض.",
+      "setDefaultFailed": "تعذّر تحديث العرض الافتراضي.",
+      "deleteFailed": "تعذّر حذف العرض.",
+      "views": "طرق العرض",
+      "viewsNamedAria": "طرق العرض: {{name}}",
+      "viewsModifiedAria": "طرق العرض: {{name}} (معدَّل)",
+      "favouriteName": "طريقة العرض {{name}}",
+      "clearDefaultAria": "مسح الافتراضي لـ {{name}}",
+      "setDefaultAria": "تعيين {{name}} كافتراضي",
+      "renameAria": "إعادة تسمية {{name}}",
+      "deleteAria": "حذف {{name}}",
+      "modified": "معدَّل",
+      "savedViewsAria": "طرق العرض المحفوظة",
+      "myViews": "طرق عرضي",
+      "noPersonalViews": "لا توجد طرق عرض شخصية محفوظة",
+      "sharedViews": "طرق العرض المشتركة",
+      "noSharedViews": "لا توجد طرق عرض مشتركة",
+      "saveChanges": "حفظ التغييرات",
+      "copyName": "{{name}} (نسخة)",
+      "saveCopy": "حفظ نسخة",
+      "saveAsNew": "حفظ كطريقة عرض جديدة",
+      "deleteTitle": "حذف طريقة العرض",
+      "deleteMessage": "حذف طريقة العرض المحفوظة \"{{name}}\"؟ لا يمكن التراجع عن هذا الإجراء.",
+      "deleteConfirm": "حذف"
+    },
+    "saveViewDialog": {
+      "renameTitle": "إعادة تسمية طريقة العرض",
+      "copyTitle": "حفظ نسخة",
+      "createTitle": "حفظ طريقة العرض",
+      "nameRequired": "اسم طريقة العرض مطلوب.",
+      "nameTooLong": "يجب ألا يتجاوز اسم طريقة العرض {{max}} حرفًا.",
+      "sectionRequired": "اختر قسمًا للمشاركة معه.",
+      "saveFailed": "تعذّر حفظ طريقة العرض.",
+      "viewName": "اسم طريقة العرض",
+      "shareWithSection": "مشاركة مع القسم",
+      "section": "القسم"
+    },
+    "columnsMenu": {
+      "columns": "الأعمدة",
+      "requiredIdentifier": "عمود المعرّف المطلوب",
+      "moveUpAria": "نقل {{label}} لأعلى",
+      "moveDownAria": "نقل {{label}} لأسفل",
+      "resetToDefault": "إعادة التعيين إلى الافتراضي"
+    },
+    "densityToggle": {
+      "rowDensityAria": "كثافة الصفوف",
+      "comfortable": "مريح",
+      "comfortableAria": "كثافة مريحة",
+      "compact": "مضغوط",
+      "compactAria": "كثافة مضغوطة",
+      "compactDisabledAria": "كثافة مضغوطة (معطّلة في وضع المنضدة)",
+      "compactDisabledTooltip": "يتطلب وضع المنضدة تباعد صفوف مريحًا"
+    },
+    "bulkActionBar": {
+      "canBeActioned": "{{eligible}} من {{total}} قابلة للإجراء ({{action}}).",
+      "selectAllMatching": "تحديد الكل المطابق ({{total}})",
+      "clear": "مسح"
+    },
+    "benchActionBar": {
+      "save": "حفظ",
+      "cancel": "إلغاء",
+      "saveAndNext": "حفظ والتالي"
+    },
+    "benchDialog": {
+      "discardTitle": "تجاهل الإدخالات؟",
+      "discardMessage": "لديك إدخالات غير محفوظة. سيؤدي الإغلاق الآن إلى تجاهلها.",
+      "discardConfirm": "تجاهل"
+    },
+    "benchKeypad": {
+      "ariaLabel": "لوحة الأرقام",
+      "decimalPoint": "فاصلة عشرية",
+      "backspace": "مسح للخلف",
+      "minusSign": "علامة السالب",
+      "next": "التالي"
+    },
+    "connectionBanner": {
+      "offlineMessage": "لا يوجد اتصال. لم تُحفَظ إدخالاتك في MicroLIMS. يتم الاحتفاظ بها على هذا الجهاز اللوحي حتى تتمكن من الحفظ.",
+      "restoredWithUnsaved_zero": "تمت استعادة الاتصال. لا توجد إدخالات غير محفوظة.",
+      "restoredWithUnsaved_one": "تمت استعادة الاتصال. لديك إدخال واحد غير محفوظ.",
+      "restoredWithUnsaved_two": "تمت استعادة الاتصال. لديك إدخالان غير محفوظين.",
+      "restoredWithUnsaved_few": "تمت استعادة الاتصال. لديك {{count}} إدخالات غير محفوظة.",
+      "restoredWithUnsaved_many": "تمت استعادة الاتصال. لديك {{count}} إدخالًا غير محفوظ.",
+      "restoredWithUnsaved_other": "تمت استعادة الاتصال. لديك {{count}} إدخال غير محفوظ.",
+      "restored": "تمت استعادة الاتصال.",
+      "dismiss": "إخفاء"
+    },
+    "draftRestoreNotice": {
+      "regionAria": "تم العثور على إدخال غير محفوظ",
+      "restore": "استعادة الإدخال",
+      "discard": "تجاهل",
+      "message": "تم العثور على إدخال غير محفوظ من {{date}} (ساعة الجهاز اللوحي) على هذا الجهاز اللوحي. لم يُحفَظ في MicroLIMS.",
+      "confirmTitle": "تجاهل الإدخال غير المحفوظ",
+      "confirmMessage": "تجاهل هذا الإدخال غير المحفوظ؟ إنه موجود على هذا الجهاز اللوحي فقط ولا يمكن استعادته."
+    },
+    "draftsMenu": {
+      "unknownAge": "وقت غير معروف",
+      "justNow": "الآن",
+      "minutesAgo": "منذ {{count}} د",
+      "hoursAgo": "منذ {{count}} س",
+      "daysAgo": "منذ {{count}} ي",
+      "tooltip": "إدخالات غير محفوظة على هذا الجهاز اللوحي",
+      "buttonAria": "إدخالات غير محفوظة على هذا الجهاز اللوحي، {{count}}",
+      "subtitle": "محفوظة على هذا الجهاز اللوحي فقط. لا تُحفَظ في MicroLIMS حتى تقوم بحفظها.",
+      "openAria": "فتح {{title}}",
+      "startedAt": "{{age}}. بدأ {{date}} (ساعة الجهاز اللوحي)",
+      "rejectedPrefix": "لم يُحفَظ: {{reason}}",
+      "serverRefused": "رفضه الخادم",
+      "discardAria": "تجاهل {{title}}",
+      "otherUsersNote": "لدى مستخدم آخر إدخالات غير محفوظة على هذا الجهاز اللوحي",
+      "discardTitle": "تجاهل الإدخال غير المحفوظ",
+      "discardMessage": "تجاهل الإدخال غير المحفوظ \"{{title}}\"؟ إنه موجود على هذا الجهاز اللوحي فقط ولا يمكن استعادته.",
+      "discardConfirm": "تجاهل"
+    },
+    "numericEntryField": {
+      "countFormat": "أدخل عددًا صحيحًا، 0 أو أكثر، باستخدام الأرقام فقط.",
+      "decimalFormat": "أدخل رقمًا باستخدام الأرقام، ونقطة عشرية واحدة على الأكثر، وعلامة سالب اختيارية في البداية."
+    },
+    "pastePreviewDialog": {
+      "nothingToPaste": "لا يوجد ما يمكن لصقه.",
+      "tooManyRows": "يحتوي اللصق على {{rows}} صفوف؛ الحد الأقصى المسموح بلصقه دفعة واحدة هو {{max}} صفًا.",
+      "noTextColumns": "لا يوجد عمود نصي أو عمود تاريخ للصق فيه من هذه الخلية.",
+      "problemsBlocking_zero": "لا توجد مشكلات.",
+      "problemsBlocking_one": "يجب إصلاح مشكلة واحدة في البيانات المصدرية قبل قبول هذا اللصق. لم يتم إدخال أي شيء.",
+      "problemsBlocking_two": "يجب إصلاح مشكلتين في البيانات المصدرية قبل قبول هذا اللصق. لم يتم إدخال أي شيء.",
+      "problemsBlocking_few": "يجب إصلاح {{count}} مشكلات في البيانات المصدرية قبل قبول هذا اللصق. لم يتم إدخال أي شيء.",
+      "problemsBlocking_many": "يجب إصلاح {{count}} مشكلة في البيانات المصدرية قبل قبول هذا اللصق. لم يتم إدخال أي شيء.",
+      "problemsBlocking_other": "يجب إصلاح {{count}} مشكلة في البيانات المصدرية قبل قبول هذا اللصق. لم يتم إدخال أي شيء.",
+      "accept": "قبول",
+      "intro": "تحقق من القيم الملصقة. القبول يملأ الشبكة فقط؛ لا يُحفَظ شيء حتى تحفظ كالمعتاد.",
+      "tableRegionAria": "الصفوف الملصقة، قابلة للتمرير",
+      "caption_zero": "معاينة اللصق، لا توجد صفوف",
+      "caption_one": "معاينة اللصق، صف واحد",
+      "caption_two": "معاينة اللصق، صفان",
+      "caption_few": "معاينة اللصق، {{count}} صفوف",
+      "caption_many": "معاينة اللصق، {{count}} صفًا",
+      "caption_other": "معاينة اللصق، {{count}} صف",
+      "rowColumn": "الصف",
+      "problemColumn": "المشكلة",
+      "noProblem": "لا توجد",
+      "extraColumns_zero": "لا توجد أعمدة إضافية.",
+      "extraColumns_one": "يوجد عمود واحد إضافي في اللصق أكثر مما يمكن تعبئته من هذه الخلية؛ لم يتم لصق العمود الإضافي.",
+      "extraColumns_two": "يوجد عمودان إضافيان في اللصق أكثر مما يمكن تعبئته من هذه الخلية؛ لم يتم لصق العمودين الإضافيين.",
+      "extraColumns_few": "يوجد {{count}} أعمدة إضافية في اللصق أكثر مما يمكن تعبئته من هذه الخلية؛ لم يتم لصق الأعمدة الإضافية.",
+      "extraColumns_many": "يوجد {{count}} عمودًا إضافيًا في اللصق أكثر مما يمكن تعبئته من هذه الخلية؛ لم يتم لصق الأعمدة الإضافية.",
+      "extraColumns_other": "يوجد {{count}} عمود إضافي في اللصق أكثر مما يمكن تعبئته من هذه الخلية؛ لم يتم لصق الأعمدة الإضافية.",
+      "replaceWarning": "سيؤدي هذا إلى استبدال {{readings}} المُدخلة بالفعل في {{rows}}. راجعها قبل القبول.",
+      "readingCount_zero": "لا توجد قراءات",
+      "readingCount_one": "قراءة واحدة",
+      "readingCount_two": "قراءتين",
+      "readingCount_few": "{{count}} قراءات",
+      "readingCount_many": "{{count}} قراءة",
+      "readingCount_other": "{{count}} قراءة",
+      "rowCount_zero": "لا توجد صفوف",
+      "rowCount_one": "صف واحد",
+      "rowCount_two": "صفين",
+      "rowCount_few": "{{count}} صفوف",
+      "rowCount_many": "{{count}} صفًا",
+      "rowCount_other": "{{count}} صف",
+      "replacedTitle": "القراءات التي سيتم استبدالها",
+      "replacedItem": "{{label}} ({{readings}})",
+      "leftEmptyTitle": "تُركت فارغة (غير موجودة في اللصق)",
+      "notPastedTitle": "لم تُلصق (أعمدة اختيارات، اخترها يدويًا)"
+    },
+    "pendingBatchList": {
+      "discard": "تجاهل",
+      "saving": "جارٍ الحفظ...",
+      "save": "حفظ",
+      "rowColumn": "الصف",
+      "problemColumn": "المشكلة",
+      "actionsColumn": "الإجراءات",
+      "noProblem": "لا توجد",
+      "removeRow": "إزالة الصف",
+      "removeRowAria": "إزالة الصف {{row}} ({{label}})"
+    },
+    "shortcutsDialog": {
+      "title": "اختصارات لوحة المفاتيح",
+      "gridHeading": "جداول إدخال البيانات",
+      "globalHeading": "عام",
+      "keyColumn": "المفتاح",
+      "actionColumn": "الإجراء",
+      "enterDown": "الانتقال إلى نفس العمود في الصف التالي",
+      "up": "الانتقال إلى نفس العمود في الصف السابق",
+      "leftRight": "الانتقال إلى الخلية السابقة / التالية عند وجود المؤشر على حافة النص",
+      "tabShiftTab": "الانتقال إلى الخلية التالية / السابقة بترتيب القراءة",
+      "ctrlD": "نسخ القيمة من الخلية التي فوقها",
+      "ctrlEnter": "حفظ النموذج",
+      "escape": "إلغاء التعديل أو إغلاق النافذة",
+      "ctrlK": "البحث في MicroLIMS",
+      "questionMark": "فتح اختصارات لوحة المفاتيح (عند عدم الكتابة داخل حقل)"
+    },
+    "appErrorBoundary": {
+      "inlineTitle": "تعذّر عرض هذه الصفحة",
+      "fullTitle": "حدث خطأ ما",
+      "inlineBody": "أوقف خطأ غير متوقع تحميل هذه الصفحة. تم إبلاغ مسؤول النظام تلقائيًا. لم يتأثر أي عمل قمت بحفظه بالفعل — يمكنك إعادة تحميل الصفحة أو استخدام قائمة التنقل للمتابعة في مكان آخر.",
+      "fullBody": "توقفت هذه الشاشة عن الاستجابة وتعذّرت استعادتها. تم إبلاغ مسؤول النظام تلقائيًا. لم يتأثر أي عمل قمت بحفظه بالفعل.",
+      "reloadPage": "إعادة تحميل الصفحة"
+    },
+    "loadErrorAlert": {
+      "defaultHint": "أغلق هذا الحوار وأعد فتحه للمحاولة مرة أخرى.",
+      "message_zero": "تعذّر تحميل {{lists}}. {{hint}}",
+      "message_one": "تعذّر تحميل {{lists}}. تظهر القائمة فارغة لهذا السبب، وليس لعدم توفر بيانات. {{hint}}",
+      "message_two": "تعذّر تحميل {{lists}}. تظهر القائمتان فارغتين لهذا السبب، وليس لعدم توفر بيانات. {{hint}}",
+      "message_few": "تعذّر تحميل {{lists}}. تظهر القوائم فارغة لهذا السبب، وليس لعدم توفر بيانات. {{hint}}",
+      "message_many": "تعذّر تحميل {{lists}}. تظهر القوائم فارغة لهذا السبب، وليس لعدم توفر بيانات. {{hint}}",
+      "message_other": "تعذّر تحميل {{lists}}. تظهر القوائم فارغة لهذا السبب، وليس لعدم توفر بيانات. {{hint}}"
+    },
+    "recordChangedBanner": {
+      "reload": "إعادة التحميل",
+      "message": "تم تعديل هذا السجل بواسطة مستخدم آخر في {{time}}. أعد التحميل لعرض أحدث نسخة.",
+      "confirmTitle": "إعادة تحميل هذا السجل؟",
+      "confirmMessage": "تجاهل تغييراتك غير المحفوظة؟",
+      "confirmButton": "تجاهل وإعادة التحميل"
+    },
+    "systemStatusBanner": {
+      "announcementAria": "إعلان",
+      "maintenanceMode": "وضع الصيانة"
+    },
+    "returnToAnalystDialog": {
+      "failed": "تعذّرت إعادة الاختبار إلى المحلل.",
+      "title": "إعادة الاختبار إلى المحلل",
+      "subtitle": "إعادة اختبار العدّ لإعادة العدّ أو إعادة إدخال النتيجة",
+      "returning": "جارٍ الإرجاع...",
+      "confirm": "تأكيد الإرجاع",
+      "testOrder": "طلب الاختبار",
+      "info": "سيؤدي إرجاع طلب الاختبار هذا إلى استبدال قراءات العدّ النشطة بشكل ناعم، وإعادة فتح خطوة الحضانة، وإرجاع الاختبار إلى المحلل المُسنَد. إذا كانت العينة الأم قيد المراجعة، فستعود إلى قيد الاختبار. وإذا كان هذا اختبار الفقد عند التجفيف أو اختبار المياه، فستُرجَع المعايرات التي استخدمت نتيجة هذا الاختبار معه.",
+      "reasonLabel": "سبب الإرجاع (اختياري)",
+      "reasonPlaceholder": "مثال: طُلب إعادة عدّ الطبق بسبب وجود فقاعة هواء"
+    },
+    "auditHistoryDialog": {
+      "loadFailed": "تعذّر تحميل سجل التدقيق.",
+      "title": "سجل التدقيق · {{entity}} #{{id}}",
+      "emptyTitle": "لا توجد سجلات تدقيق مسجّلة",
+      "emptyDescription": "لم تُسجَّل أي تغييرات لهذا السجل بعد.",
+      "userId": "المستخدم #{{id}}"
+    },
+    "fileDropZone": {
+      "uploadAria": "رفع ملف. الصيغ المقبولة: {{formats}}",
+      "changeFile": "تغيير الملف",
+      "dragDropPrefix": "اسحب ملفك وأفلته هنا، أو",
+      "browse": "تصفّح"
+    },
+    "filterBar": {
+      "defaultPlaceholder": "بحث",
+      "clearSearch": "مسح البحث",
+      "resultCount_zero": "لا توجد نتائج",
+      "resultCount_one": "نتيجة واحدة",
+      "resultCount_two": "نتائج: {{count}}",
+      "resultCount_few": "{{count}} نتائج",
+      "resultCount_many": "نتائج: {{count}}",
+      "resultCount_other": "نتائج: {{count}}",
+      "refresh": "تحديث"
+    },
+    "criteriaCard": {
+      "title": "معايير القبول",
+      "parameter": "المعامل",
+      "criterion": "معيار القبول",
+      "unit": "الوحدة",
+      "source": "المصدر"
+    },
+    "storageLocationPicker": {
+      "equipmentMode": "ثلاجة / مجمد",
+      "areaMode": "منطقة أخرى",
+      "equipmentLabel": "معدات التخزين *",
+      "loadFailed": "تعذّر تحميل معدات التخزين.",
+      "noneFound": "لم يتم العثور على ثلاجة أو مجمد قيد الخدمة.",
+      "areaLabel": "منطقة التخزين *",
+      "areaPlaceholder": "مثال: منطقة تخزين أوساط زرعية - الرف B"
+    },
+    "printLabelsDialog": {
+      "generateFailed": "تعذّر إنشاء ملف PDF للملصقات.",
+      "loadFailed": "تعذّر تحميل حالة طباعة الملصقات.",
+      "reprintTitle": "إعادة طباعة الملصقات",
+      "printTitle": "طباعة الملصقات",
+      "reprint": "إعادة الطباعة",
+      "print": "طباعة",
+      "invalidCopies": "أدخل عددًا صحيحًا بين {{min}} و{{max}}.",
+      "reasonTooShort": "يجب أن يكون السبب {{min}} أحرف على الأقل.",
+      "readyToast": "الملصقات جاهزة للطباعة",
+      "popupBlocked": "تم حظر النافذة المنبثقة بواسطة المتصفح.",
+      "openPdf": "فتح ملف PDF للملصق",
+      "setAllTo": "تعيين الكل إلى",
+      "cannotPrint": "لا يمكن طباعة هذا السجل.",
+      "copiesAria": "عدد الملصقات لـ {{code}}",
+      "reasonLabel": "سبب إعادة الطباعة",
+      "reasonHelper": "10 أحرف على الأقل"
+    },
+    "scanField": {
+      "ambiguous": "يوجد أكثر من سجل يحمل هذا الرمز. اختره من القائمة.",
+      "notFound": "لم يتم العثور على سجل لهذا الرمز.",
+      "wrongType": "هذا {{found}}، وليس {{expected}}.",
+      "cannotUse": "لا يمكن استخدام هذا السجل.",
+      "notLinkedEquipment": "{{code}} غير مرتبط بجهاز سير عمل. اختره من القائمة.",
+      "notAvailableStep": "{{code}} غير متاح لهذه الخطوة.",
+      "selected": "تم اختيار {{code}}",
+      "resolvingAria": "جارٍ تحليل المسح",
+      "scanButton": "مسح",
+      "scanCamera": "المسح بالكاميرا"
+    },
+    "cameraScanDialog": {
+      "permissionDenied": "تم رفض إذن الكاميرا. اسمح بالوصول إلى الكاميرا من إعدادات المتصفح وحاول مرة أخرى.",
+      "notFound": "لم يتم العثور على كاميرا في هذا الجهاز.",
+      "httpsRequired": "يتطلب المسح بالكاميرا اتصالًا آمنًا (HTTPS).",
+      "startFailed": "تعذّر تشغيل الكاميرا.",
+      "browserUnsupported": "الوصول إلى الكاميرا غير متاح في هذا المتصفح.",
+      "title": "مسح الباركود بالكاميرا",
+      "previewAria": "معاينة الباركود بالكاميرا",
+      "hint": "وجّه الكاميرا الخلفية نحو ملصق Data Matrix أو Code 128."
+    },
+    "entityTypes": {
+      "Sample": "عينة",
+      "MediaLot": "تشغيلة أوساط زرعية",
+      "SolutionPreparation": "تحضير محلول",
+      "Cryovial": "قارورة مجمدة",
+      "MaterialStockLot": "دفعة مخزون مادة",
+      "EquipmentAsset": "معدات"
+    }
   }
 }

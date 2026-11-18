@@ -4,6 +4,8 @@ import { Badge, Box, Button, IconButton, Popover, Tooltip, Typography } from "@m
 import EditNoteIcon from "@mui/icons-material/EditNote";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { ConfirmationDialog } from "../ConfirmationDialog";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
 import type { DraftOverview } from "../../hooks/useDraftOverview";
 import type { Draft } from "../../services/drafts/draftStore";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
@@ -13,19 +15,20 @@ interface DraftsMenuProps {
 }
 
 // "2 h ago", "5 min ago": the age of the last change on the tablet's own clock.
-export function draftAge(updatedAtDevice: string, now: Date): string {
+export function draftAge(updatedAtDevice: string, now: Date, t: TFunction = i18n.getFixedT("en", "common")): string {
   const minutes = Math.max(0, Math.floor((now.getTime() - Date.parse(updatedAtDevice)) / 60_000));
-  if (Number.isNaN(minutes)) return "unknown age";
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} min ago`;
+  if (Number.isNaN(minutes)) return t("components.draftsMenu.unknownAge");
+  if (minutes < 1) return t("components.draftsMenu.justNow");
+  if (minutes < 60) return t("components.draftsMenu.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  return `${Math.floor(hours / 24)} d ago`;
+  if (hours < 24) return t("components.draftsMenu.hoursAgo", { count: hours });
+  return t("components.draftsMenu.daysAgo", { count: Math.floor(hours / 24) });
 }
 
 // The signed-in user's unsaved entries on this tablet. Drafts are not records:
 // opening one only goes to its screen, where the analyst chooses to restore it.
 export function DraftsMenu({ overview }: DraftsMenuProps) {
+  const { t } = useTranslation();
   const { drafts, otherUsersCount, discard } = overview;
   const navigate = useNavigate();
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
@@ -37,11 +40,11 @@ export function DraftsMenu({ overview }: DraftsMenuProps) {
 
   return (
     <>
-      <Tooltip title="Unsaved entries on this tablet">
+      <Tooltip title={t("components.draftsMenu.tooltip")}>
         <IconButton
           color="inherit"
           onClick={(e) => setAnchor(e.currentTarget)}
-          aria-label={`Unsaved entries on this tablet, ${drafts.length}`}
+          aria-label={t("components.draftsMenu.buttonAria", { count: drafts.length })}
           aria-haspopup="dialog"
           aria-expanded={Boolean(anchor)}
         >
@@ -57,19 +60,19 @@ export function DraftsMenu({ overview }: DraftsMenuProps) {
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
         transformOrigin={{ vertical: "top", horizontal: "right" }}
-        slotProps={{ paper: { role: "dialog", "aria-label": "Unsaved entries on this tablet", sx: { minWidth: 300, maxWidth: 420, p: 1.5 } } }}
+        slotProps={{ paper: { role: "dialog", "aria-label": t("components.draftsMenu.tooltip"), sx: { minWidth: 300, maxWidth: 420, p: 1.5 } } }}
       >
         <Typography variant="subtitle2" component="p" sx={{ mb: 0.5 }}>
-          Unsaved entries on this tablet
+          {t("components.draftsMenu.tooltip")}
         </Typography>
         <Typography variant="caption" color="text.secondary" component="p" sx={{ mb: 1 }}>
-          Kept on this tablet only. Not saved to MicroLIMS until you save them.
+          {t("components.draftsMenu.subtitle")}
         </Typography>
 
         {drafts.map((draft) => (
           <Box key={draft.id} sx={{ display: "flex", alignItems: "center", gap: 0.5, py: 0.5 }}>
             <Button
-              aria-label={`Open ${draft.title}`}
+              aria-label={t("components.draftsMenu.openAria", { title: draft.title })}
               onClick={() => {
                 setAnchor(null);
                 navigate(draft.route);
@@ -79,16 +82,21 @@ export function DraftsMenu({ overview }: DraftsMenuProps) {
               <Box>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>{draft.title}</Typography>
                 <Typography variant="caption" color="text.secondary" component="span" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
-                  {draftAge(draft.updatedAtDevice, now)}. Started {formatDateTimeWithTimeZone(draft.startedAtDevice)} (tablet clock)
+                  {t("components.draftsMenu.startedAt", {
+                    age: draftAge(draft.updatedAtDevice, now, t),
+                    date: formatDateTimeWithTimeZone(draft.startedAtDevice)
+                  })}
                 </Typography>
                 {draft.state === "rejected" && (
                   <Typography variant="caption" color="error" component="span" sx={{ display: "block" }}>
-                    Not saved: {draft.rejectReason ?? "the server refused it"}
+                    {t("components.draftsMenu.rejectedPrefix", {
+                      reason: draft.rejectReason ?? t("components.draftsMenu.serverRefused")
+                    })}
                   </Typography>
                 )}
               </Box>
             </Button>
-            <IconButton aria-label={`Discard ${draft.title}`} onClick={() => setToDiscard(draft)}>
+            <IconButton aria-label={t("components.draftsMenu.discardAria", { title: draft.title })} onClick={() => setToDiscard(draft)}>
               <DeleteOutlinedIcon />
             </IconButton>
           </Box>
@@ -96,7 +104,7 @@ export function DraftsMenu({ overview }: DraftsMenuProps) {
 
         {otherUsersCount > 0 && (
           <Typography variant="body2" role="note" sx={{ mt: 1 }}>
-            Another user has unsaved entries on this tablet
+            {t("components.draftsMenu.otherUsersNote")}
           </Typography>
         )}
       </Popover>
@@ -104,9 +112,9 @@ export function DraftsMenu({ overview }: DraftsMenuProps) {
       <ConfirmationDialog
         open={toDiscard !== null}
         destructive
-        title="Discard unsaved entry"
-        message={`Discard the unsaved entry "${toDiscard?.title ?? ""}"? It exists only on this tablet and cannot be recovered.`}
-        confirmText="Discard"
+        title={t("components.draftsMenu.discardTitle")}
+        message={t("components.draftsMenu.discardMessage", { title: toDiscard?.title ?? "" })}
+        confirmText={t("components.draftsMenu.discardConfirm")}
         loading={busy}
         onCancel={() => setToDiscard(null)}
         onConfirm={async () => {

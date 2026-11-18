@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { FloatingDialog } from "../FloatingDialog";
 import { ConfirmationDialog } from "../ConfirmationDialog";
+import { useTranslation } from "../../i18n";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { incrementOpenBenchDialogs } from "../../pwa/benchDialogState";
 import { BenchActionBar } from "./BenchActionBar";
@@ -26,6 +27,7 @@ interface BenchDialogProps {
 // action bar and keypad, and that keeps the screen awake while open. Closing
 // a form with entries asks first.
 export function BenchDialog({ open, title, onClose, children, onSave, onSaveAndNext, saving, saveLabel, saveDisabledReason, dirty, maxWidth }: BenchDialogProps) {
+  const { t } = useTranslation();
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   useWakeLock(open);
 
@@ -65,9 +67,9 @@ export function BenchDialog({ open, title, onClose, children, onSave, onSaveAndN
       <ConfirmationDialog
         open={confirmingDiscard}
         destructive
-        title="Discard entries?"
-        message="You have entries that are not saved. Closing now discards them."
-        confirmText="Discard"
+        title={t("components.benchDialog.discardTitle")}
+        message={t("components.benchDialog.discardMessage")}
+        confirmText={t("components.benchDialog.discardConfirm")}
         onCancel={() => setConfirmingDiscard(false)}
         onConfirm={() => {
           setConfirmingDiscard(false);

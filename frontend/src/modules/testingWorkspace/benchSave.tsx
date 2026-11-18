@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Button } from "@mui/material";
 import { i18n as appI18n, useTranslation } from "../../i18n";
 import { isNetworkError } from "../../services/networkError";
-import { OFFLINE_MESSAGE } from "../../components/bench/ConnectionBanner";
+import { getOfflineMessage } from "../../components/bench/ConnectionBanner";
 
 // How a save that did not reach MicroLIMS ended, for the bench forms that keep a local draft.
 export type SaveFailure =
@@ -45,6 +45,7 @@ export function useKeptOffline(): [boolean, (value: boolean) => void] {
 
 export function OfflineDraftNotice({ onTryAgain }: { onTryAgain: () => void }) {
   const { t } = useTranslation("testingWorkspace");
+  const { t: tCommon } = useTranslation("common");
   return (
     <Alert
       severity="warning"
@@ -55,7 +56,7 @@ export function OfflineDraftNotice({ onTryAgain }: { onTryAgain: () => void }) {
         </Button>
       }
     >
-      {OFFLINE_MESSAGE}
+      {getOfflineMessage(tCommon)}
     </Alert>
   );
 }

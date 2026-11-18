@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box, Button, Stack, Typography } from "@mui/material";
 import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import type { RowSelection } from "./useRowSelection";
 
 export interface BulkAction<Id> {
@@ -33,6 +34,7 @@ export function BulkActionBar<Id>({
   totalMatching,
   onSelectAllMatching,
 }: BulkActionBarProps<Id>) {
+  const { t, i18n } = useTranslation();
   const auth = useOptionalAuth();
   const [runningKey, setRunningKey] = useState<string | null>(null);
 
@@ -86,7 +88,7 @@ export function BulkActionBar<Id>({
           role="status"
           aria-live="polite"
         >
-          {selection.count.toLocaleString()} selected
+          {t("selectedCount", { count: selection.count.toLocaleString() })}
         </Typography>
         {showSelectAllMatching && (
           <Button
@@ -100,7 +102,7 @@ export function BulkActionBar<Id>({
               }
             }}
           >
-            Select all {totalMatching.toLocaleString()} that match
+            {t("components.bulkActionBar.selectAllMatching", { total: totalMatching.toLocaleString() })}
           </Button>
         )}
         {permittedActions.map((action) => {
@@ -115,7 +117,11 @@ export function BulkActionBar<Id>({
               variant="caption"
               color="text.secondary"
             >
-              {eligibleCount} of {selectedIds.length} can be {actionVerb(action.label)}.
+              {t("components.bulkActionBar.canBeActioned", {
+                eligible: eligibleCount,
+                total: selectedIds.length,
+                action: i18n.language === "ar" ? action.label : actionVerb(action.label)
+              })}
               {action.ineligibleReason ? ` ${action.ineligibleReason}` : ""}
             </Typography>
           );
@@ -146,7 +152,7 @@ export function BulkActionBar<Id>({
           disabled={runningKey !== null}
           onClick={selection.clear}
         >
-          Clear
+          {t("components.bulkActionBar.clear")}
         </Button>
       </Stack>
     </Box>

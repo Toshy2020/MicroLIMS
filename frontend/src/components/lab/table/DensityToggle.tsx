@@ -1,5 +1,6 @@
 import { ToggleButton, ToggleButtonGroup, Tooltip } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { useTranslation } from "../../../i18n";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 
 export interface DensityToggleProps {
@@ -13,6 +14,7 @@ export function DensityToggle({
   onChange,
   benchMode: benchOverride,
 }: DensityToggleProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const { benchMode: ctxBench } = useBenchMode();
   const isBench = benchOverride ?? (ctxBench || Boolean(theme.custom?.bench));
@@ -24,11 +26,11 @@ export function DensityToggle({
       disabled={isBench}
       aria-label={
         isBench
-          ? "Compact density (disabled in bench mode)"
-          : "Compact density"
+          ? t("components.densityToggle.compactDisabledAria")
+          : t("components.densityToggle.compactAria")
       }
     >
-      Compact
+      {t("components.densityToggle.compact")}
     </ToggleButton>
   );
 
@@ -37,18 +39,18 @@ export function DensityToggle({
       size="small"
       exclusive
       value={value}
-      aria-label="Row density"
+      aria-label={t("components.densityToggle.rowDensityAria")}
       onChange={(_, next: "comfortable" | "compact" | null) => {
         if (!next) return;
         if (isBench && next === "compact") return;
         onChange(next);
       }}
     >
-      <ToggleButton value="comfortable" aria-label="Comfortable density">
-        Comfortable
+      <ToggleButton value="comfortable" aria-label={t("components.densityToggle.comfortableAria")}>
+        {t("components.densityToggle.comfortable")}
       </ToggleButton>
       {isBench ? (
-        <Tooltip title="Bench mode requires comfortable row spacing">
+        <Tooltip title={t("components.densityToggle.compactDisabledTooltip")}>
           <span>{compactButton}</span>
         </Tooltip>
       ) : (

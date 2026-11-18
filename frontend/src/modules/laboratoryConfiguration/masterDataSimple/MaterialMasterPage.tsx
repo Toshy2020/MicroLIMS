@@ -32,6 +32,7 @@ import { PastePreviewDialog, type PasteAcceptedRow } from "../../../components/e
 import { PendingBatchList, type PendingBatchColumn } from "../../../components/entry/PendingBatchList";
 import { extractBatchSaveErrors } from "../../../utils/fieldErrors";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import { RecordChangedBanner } from "../../../components/RecordChangedBanner";
 import { noteOwnSave } from "../../../hooks/useRecordChanged";
 import {
@@ -75,45 +76,47 @@ export const CATEGORY_OPTIONS: Array<{ value: MaterialMasterCategory; label: str
   { value: "Other", label: "Other material" }
 ];
 
-const PENDING_COLUMN_BY_KEY: Record<string, PendingBatchColumn<PendingMaterialMasterEntry>> = {
+const getPendingColumnByKey = (
+  t: ReturnType<typeof useTranslation>["t"]
+): Record<string, PendingBatchColumn<PendingMaterialMasterEntry>> => ({
   code: {
     key: "code",
-    label: "Code",
+    label: t("materialMasterPaste.columns.code"),
     sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
     render: (r) => r.code
   },
-  category: { key: "category", label: "Category", render: (r) => r.categoryLabel },
+  category: { key: "category", label: t("materialMasterPaste.columns.category"), render: (r) => r.categoryLabel },
   materialCategory: {
     key: "materialCategory",
-    label: "Material category",
-    render: (r) => r.materialCategoryName || "—"
+    label: t("materialMasterPaste.columns.materialCategory"),
+    render: (r) => r.materialCategoryName || t("common.dash")
   },
-  name: { key: "name", label: "Name", render: (r) => r.name },
-  baseUnit: { key: "baseUnit", label: "Base Unit", render: (r) => r.baseUnit },
-  grade: { key: "grade", label: "Grade", render: (r) => r.grade || "—" },
-  source: { key: "source", label: "Source / Pharmacopoeia", render: (r) => r.source || "—" },
-  section: { key: "section", label: "Owner Lab", render: (r) => r.sectionName || "—" },
+  name: { key: "name", label: t("materialMasterPaste.columns.name"), render: (r) => r.name },
+  baseUnit: { key: "baseUnit", label: t("materialMasterPaste.columns.baseUnit"), render: (r) => r.baseUnit },
+  grade: { key: "grade", label: t("materialMasterPaste.columns.grade"), render: (r) => r.grade || t("common.dash") },
+  source: { key: "source", label: t("materialMasterPaste.columns.source"), render: (r) => r.source || t("common.dash") },
+  section: { key: "section", label: t("materialMasterPaste.columns.section"), render: (r) => r.sectionName || t("common.dash") },
   workingConcentration: {
     key: "workingConcentration",
-    label: "Working Concentration",
-    render: (r) => r.workingConcentration || "—"
+    label: t("materialMasterPaste.columns.workingConcentration"),
+    render: (r) => r.workingConcentration || t("common.dash")
   },
-  solvent: { key: "solvent", label: "Solvent", render: (r) => r.solvent || "—" },
+  solvent: { key: "solvent", label: t("materialMasterPaste.columns.solvent"), render: (r) => r.solvent || t("common.dash") },
   transitionRangeFrom: {
     key: "transitionRangeFrom",
-    label: "Transition Range (From)",
+    label: t("materialMasterPaste.columns.transitionRangeFrom"),
     sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.transitionRangeFrom !== null ? String(r.transitionRangeFrom) : "—")
+    render: (r) => (r.transitionRangeFrom !== null ? String(r.transitionRangeFrom) : t("common.dash"))
   },
   transitionRangeTo: {
     key: "transitionRangeTo",
-    label: "Transition Range (To)",
+    label: t("materialMasterPaste.columns.transitionRangeTo"),
     sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.transitionRangeTo !== null ? String(r.transitionRangeTo) : "—")
+    render: (r) => (r.transitionRangeTo !== null ? String(r.transitionRangeTo) : t("common.dash"))
   },
-  colourChange: { key: "colourChange", label: "Colour Change", render: (r) => r.colourChange || "—" },
-  indicatorUse: { key: "indicatorUse", label: "Indicator Use", render: (r) => r.indicatorUse || "—" }
-};
+  colourChange: { key: "colourChange", label: t("materialMasterPaste.columns.colourChange"), render: (r) => r.colourChange || t("common.dash") },
+  indicatorUse: { key: "indicatorUse", label: t("materialMasterPaste.columns.indicatorUse"), render: (r) => r.indicatorUse || t("common.dash") }
+});
 
 // Other materials take the prefix of their material category; the rest have a fixed one.
 function codePrefixFor(category: MaterialMasterCategory, materialCategory: MaterialCategory | undefined): string | null {
@@ -129,10 +132,15 @@ interface MaterialMasterPageProps {
 }
 
 export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageProps = {}) {
+  const { t } = useTranslation("masterData");
   const { sections, sectionName } = useLaboratorySections();
   const categoryOptions = useMemo(
-    () => (categories ? CATEGORY_OPTIONS.filter((c) => categories.includes(c.value)) : CATEGORY_OPTIONS),
-    [categories]
+    () =>
+      (categories ? CATEGORY_OPTIONS.filter((c) => categories.includes(c.value)) : CATEGORY_OPTIONS).map((c) => ({
+        value: c.value,
+        label: t(`materialMaster.categories.${c.value}`, { defaultValue: c.label })
+      })),
+    [categories, t]
   );
   const defaultCategory = categoryOptions[0]?.value ?? "Reagent";
 
@@ -204,11 +212,11 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     } catch (err: unknown) {
       console.error("Failed to load material master entries:", err);
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not load material master entries.");
+      setError(errorObj.response?.data?.message ?? errorObj.message ?? t("materialMaster.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -286,7 +294,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       setDialogError(null);
       setFieldErrors({});
     } catch {
-      toast.error("Could not reload the latest record.");
+      toast.error(t("materialMaster.reloadError"));
     }
   };
 
@@ -325,22 +333,25 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     const trimmedSource = formSource.trim();
 
     const errors: typeof fieldErrors = {};
-    if (formCategory === "Other" && !formMaterialCategoryId) errors.materialCategory = "Material category is required.";
+    if (formCategory === "Other" && !formMaterialCategoryId) errors.materialCategory = t("materialMaster.form.materialCategoryRequired");
     const prefix = codePrefixFor(formCategory, selectedMaterialCategory);
-    if (!trimmedCode) errors.code = "Code is required.";
+    if (!trimmedCode) errors.code = t("materialMaster.form.codeRequired");
     // Prefix applies to new codes and changed codes; an unchanged older code is grandfathered.
     else if (prefix && (!editingEntry || trimmedCode !== editingEntry.code) && !trimmedCode.startsWith(prefix)) {
-      errors.code = `${CATEGORY_OPTIONS.find((c) => c.value === formCategory)?.label} codes must start with "${prefix}".`;
+      errors.code = t("materialMaster.form.codePrefixError", {
+        category: categoryOptions.find((c) => c.value === formCategory)?.label ?? formCategory,
+        prefix
+      });
     }
-    if (!trimmedName) errors.name = "Name is required.";
-    if (!formBaseUnit) errors.unit = "Base Unit is required.";
-    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = "Owner lab is required.";
+    if (!trimmedName) errors.name = t("materialMaster.form.nameRequired");
+    if (!formBaseUnit) errors.unit = t("materialMaster.form.baseUnitRequired");
+    if (!editingEntry && mySections.length > 1 && !formSectionId) errors.section = t("materialMaster.form.ownerLabRequired");
 
     if (formCategory === "Indicator") {
       const fromVal = formTransitionRangeFrom !== "" ? Number(formTransitionRangeFrom) : null;
       const toVal = formTransitionRangeTo !== "" ? Number(formTransitionRangeTo) : null;
       if (fromVal !== null && toVal !== null && fromVal > toVal) {
-        errors.range = "Transition range 'from' must not be above 'to'.";
+        errors.range = t("materialMaster.form.transitionRangeError");
       }
     }
     setFieldErrors(errors);
@@ -372,16 +383,16 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         if (editingEntry.isActive !== formIsActive) {
           await MaterialMasterService.setActive(editingEntry.id, formIsActive);
         }
-        toast.success(`Material master entry "${trimmedCode}" updated.`);
+        toast.success(t("materialMaster.updatedToast", { code: trimmedCode }));
       } else {
         await MaterialMasterService.create(payload);
-        toast.success(`Material master entry "${trimmedCode}" created.`);
+        toast.success(t("materialMaster.createdToast", { code: trimmedCode }));
       }
       setDialogOpen(false);
       await loadData();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = errorObj.response?.data?.message ?? errorObj.message ?? "Could not save material master entry.";
+      const msg = errorObj.response?.data?.message ?? errorObj.message ?? t("materialMaster.saveError");
       setDialogError(msg);
     } finally {
       setSaving(false);
@@ -395,12 +406,16 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     setTogglingActive(true);
     try {
       await MaterialMasterService.setActive(entryToToggle.id, nextActive);
-      toast.success(`Entry "${entryToToggle.code}" ${nextActive ? "activated" : "deactivated"}.`);
+      toast.success(
+        nextActive
+          ? t("materialMaster.toggledToast_activated", { code: entryToToggle.code })
+          : t("materialMaster.toggledToast_deactivated", { code: entryToToggle.code })
+      );
       setEntryToToggle(null);
       await loadData();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(errorObj.response?.data?.message ?? errorObj.message ?? "Could not update entry status.");
+      toast.error(errorObj.response?.data?.message ?? errorObj.message ?? t("materialMaster.toggleError"));
     } finally {
       setTogglingActive(false);
     }
@@ -445,16 +460,17 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     if (fromHook) return fromHook;
     const foundSec = sections.find((s) => s.sectionId === secId);
     if (foundSec?.sectionName) return foundSec.sectionName;
-    return `Section #${secId}`;
+    return t("materialMaster.sectionFallback", { id: secId });
   };
 
   const renderCategoryChip = (category: MaterialMasterCategory) => {
+    const label = t(`materialMaster.categories.${category}`, { defaultValue: category });
     switch (category) {
       case "Reagent":
         return (
           <Chip
             icon={<ScienceOutlinedIcon fontSize="small" />}
-            label="Reagent"
+            label={label}
             size="small"
             color="primary"
             variant="outlined"
@@ -465,7 +481,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         return (
           <Chip
             icon={<ColorLensOutlinedIcon fontSize="small" />}
-            label="Indicator"
+            label={label}
             size="small"
             color="secondary"
             variant="outlined"
@@ -476,7 +492,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         return (
           <Chip
             icon={<VerifiedOutlinedIcon fontSize="small" />}
-            label="Reference Standard"
+            label={label}
             size="small"
             color="info"
             variant="outlined"
@@ -487,7 +503,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         return (
           <Chip
             icon={<VerifiedOutlinedIcon fontSize="small" />}
-            label="Primary Standard"
+            label={label}
             size="small"
             color="success"
             variant="outlined"
@@ -498,7 +514,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         return (
           <Chip
             icon={<Inventory2OutlinedIcon fontSize="small" />}
-            label="Other material"
+            label={label}
             size="small"
             color="warning"
             variant="outlined"
@@ -506,7 +522,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
           />
         );
       default:
-        return <Chip label={category} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
+        return <Chip label={label} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
   };
 
@@ -517,17 +533,19 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         categoryOptions,
         categories,
         materialCategories,
-        mySections
+        mySections,
+        t
       }),
-    [entries, categoryOptions, categories, materialCategories, mySections]
+    [entries, categoryOptions, categories, materialCategories, mySections, t]
   );
 
+  const pendingColumnByKey = useMemo(() => getPendingColumnByKey(t), [t]);
   const pendingColumns = useMemo(
     () =>
       pastePlan.columns
-        .map((c) => PENDING_COLUMN_BY_KEY[c.key])
+        .map((c) => pendingColumnByKey[c.key])
         .filter((c): c is PendingBatchColumn<PendingMaterialMasterEntry> => Boolean(c)),
-    [pastePlan.columns]
+    [pastePlan.columns, pendingColumnByKey]
   );
 
   const anyModalOpen =
@@ -572,7 +590,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
 
   const handleAcceptPaste = (rows: PasteAcceptedRow[]) => {
     setPendingEntries(
-      toPendingMaterialMasterEntries(rows, { categoryOptions, materialCategories, mySections })
+      toPendingMaterialMasterEntries(rows, { categoryOptions, materialCategories, mySections, t })
     );
     setBatchError(null);
     setPastePreviewCells(null);
@@ -588,12 +606,12 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       await MaterialMasterService.createBatch(payload);
       const count = pendingEntries.length;
       setPendingEntries([]);
-      toast.success(`Added ${count} material master ${count === 1 ? "entry" : "entries"}.`);
+      toast.success(t("materialMaster.batchAddedToast", { count }));
       await loadData();
     } catch (e: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         e,
-        "Could not save material master entries. Nothing was created."
+        t("materialMaster.batchSaveError")
       );
       if (rowErrors) {
         setPendingEntries((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -606,7 +624,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
 
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
-      Add Entry
+      {t("materialMaster.addEntry")}
     </Button>
   );
 
@@ -618,7 +636,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       onClick={() => setPasteBarOpen((v) => !v)}
       sx={{ fontWeight: 600, textTransform: "none" }}
     >
-      Paste entries
+      {t("materialMaster.pasteEntries")}
     </Button>
   );
 
@@ -626,7 +644,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     <>
       {(!categories || categories.includes("Other")) && (
         <Button variant="outlined" startIcon={<CategoryOutlinedIcon />} onClick={() => setCategoriesOpen(true)} sx={{ fontWeight: 600, textTransform: "none" }}>
-          Material categories
+          {t("materialMaster.materialCategoriesButton")}
         </Button>
       )}
       {pasteButton}
@@ -635,14 +653,15 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
   );
 
   const columnLabels = pastePlan.columns.map((c) => c.label).join(", ");
-  const pasteHelperText = `Columns in order: ${columnLabels}.${
-    mySections.length === 1 ? ` Owner lab is set automatically to ${mySections[0].sectionName}.` : ""
-  } New entries are created active. Use Edit, Change code, or Material categories for existing entries, code changes on stocked entries, or managing material categories.`;
+  const ownerNote = mySections.length === 1
+    ? t("materialMaster.pasteHelperOwnerNote", { sectionName: mySections[0].sectionName })
+    : "";
+  const pasteHelperText = t("materialMaster.pasteHelperBase", { columns: columnLabels, ownerNote });
 
   const tableColumns: RegisterColumn<MaterialMasterEntry>[] = [
     {
       key: "code",
-      label: "Code",
+      label: t("materialMaster.columns.code"),
       sortable: true,
       render: (entry) => (
         <Typography component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 600, fontSize: "0.875rem" }}>{entry.code}</Typography>
@@ -650,7 +669,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     },
     {
       key: "name",
-      label: "Name",
+      label: t("materialMaster.columns.name"),
       sortable: true,
       render: (entry) => (
         <>
@@ -659,7 +678,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
             <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
               {[
                 entry.transitionRangeFrom != null || entry.transitionRangeTo != null
-                  ? `pH ${entry.transitionRangeFrom ?? "?"}–${entry.transitionRangeTo ?? "?"}`
+                  ? t("materialMaster.phRange", { from: entry.transitionRangeFrom ?? "?", to: entry.transitionRangeTo ?? "?" })
                   : null,
                 entry.colourChange,
                 entry.indicatorUse
@@ -669,35 +688,35 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         </>
       )
     },
-    { key: "category", label: "Category", sortable: true, render: (entry) => renderCategoryChip(entry.category) },
+    { key: "category", label: t("materialMaster.columns.category"), sortable: true, render: (entry) => renderCategoryChip(entry.category) },
     {
       key: "materialCategory",
-      label: "Material category",
+      label: t("materialMaster.columns.materialCategory"),
       sortable: true,
       sortValue: (entry) => entry.materialCategoryName ?? "",
-      render: (entry) => entry.materialCategoryName || <Typography variant="body2" color="text.secondary">—</Typography>
+      render: (entry) => entry.materialCategoryName || <Typography variant="body2" color="text.secondary">{t("common.dash")}</Typography>
     },
     {
       key: "grade",
-      label: "Grade",
+      label: t("materialMaster.columns.grade"),
       sortable: true,
-      render: (entry) => entry.grade || <Typography variant="body2" color="text.secondary">—</Typography>
+      render: (entry) => entry.grade || <Typography variant="body2" color="text.secondary">{t("common.dash")}</Typography>
     },
     {
       key: "source",
-      label: "Source",
+      label: t("materialMaster.columns.source"),
       sortable: true,
-      render: (entry) => entry.source || <Typography variant="body2" color="text.secondary">—</Typography>
+      render: (entry) => entry.source || <Typography variant="body2" color="text.secondary">{t("common.dash")}</Typography>
     },
     {
       key: "baseUnit",
-      label: "Base Unit",
+      label: t("materialMaster.columns.baseUnit"),
       sortable: true,
       render: (entry) => <Chip label={entry.baseUnit} size="small" variant="outlined" sx={{ fontSize: 12 }} />
     },
     {
       key: "section",
-      label: "Owner lab",
+      label: t("materialMaster.columns.ownerLab"),
       sortable: true,
       sortValue: (entry) => resolveSectionDisplay(entry.sectionId, entry.sectionName),
       render: (entry) => (
@@ -706,10 +725,10 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
     },
     {
       key: "isActive",
-      label: "Status",
+      label: t("materialMaster.columns.status"),
       sortable: true,
       sortValue: (entry) => (entry.isActive ? 0 : 1),
-      render: (entry) => <StatusBadge status={entry.isActive ? "Active" : "Inactive"} />
+      render: (entry) => <StatusBadge status={entry.isActive ? "Active" : "Inactive"} label={entry.isActive ? t("common.active") : t("common.inactive")} />
     }
   ];
 
@@ -718,28 +737,28 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
 
   return (
     <LabPage
-      title="Reagents & Reference Standards"
-      subtitle="Master definitions for reagents, indicators, and reference standards. Every lab can see and use every entry; only the owner lab can edit it."
+      title={t("materialMaster.title")}
+      subtitle={t("materialMaster.subtitle")}
       actions={pageActions}
       embedded={embedded}
       filters={
         <FilterBar
           search={searchQuery}
           onSearch={setSearchQuery}
-          placeholder="Search code, name, grade, source..."
+          placeholder={t("materialMaster.searchPlaceholder")}
           resultCount={filteredEntries.length}
           onRefresh={loadData}
           refreshing={loading}
         >
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="entry-category-filter-label">Category</InputLabel>
+            <InputLabel id="entry-category-filter-label">{t("materialMaster.categoryFilterLabel")}</InputLabel>
             <Select
               labelId="entry-category-filter-label"
-              label="Category"
+              label={t("materialMaster.categoryFilterLabel")}
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value as "ALL" | MaterialMasterCategory)}
             >
-              <MenuItem value="ALL">All Categories</MenuItem>
+              <MenuItem value="ALL">{t("materialMaster.allCategories")}</MenuItem>
               {categoryOptions.map((c) => (
                 <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>
               ))}
@@ -747,28 +766,28 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="entry-status-filter-label">Status</InputLabel>
+            <InputLabel id="entry-status-filter-label">{t("common.status")}</InputLabel>
             <Select
               labelId="entry-status-filter-label"
-              label="Status"
+              label={t("common.status")}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
             >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="ACTIVE">Active Only</MenuItem>
-              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+              <MenuItem value="ALL">{t("common.allStatuses")}</MenuItem>
+              <MenuItem value="ACTIVE">{t("common.activeOnly")}</MenuItem>
+              <MenuItem value="INACTIVE">{t("common.inactiveOnly")}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="entry-section-filter-label">Owner lab</InputLabel>
+            <InputLabel id="entry-section-filter-label">{t("materialMaster.ownerLabLabel")}</InputLabel>
             <Select
               labelId="entry-section-filter-label"
-              label="Owner lab"
+              label={t("materialMaster.ownerLabLabel")}
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Labs</MenuItem>
+              <MenuItem value="ALL">{t("materialMaster.allLabs")}</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
                   {sec.sectionName}
@@ -788,24 +807,24 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
               autoFocus
               size="small"
               fullWidth
-              label="Paste material master rows"
-              placeholder={`Paste rows copied from a spreadsheet (${columnLabels})`}
+              label={t("materialMaster.pasteLabel")}
+              placeholder={t("materialMaster.pastePlaceholder", { columns: columnLabels })}
               value=""
               onChange={() => {}}
               onPaste={handlePasteInput}
               helperText={pasteHelperText}
             />
             <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
-              Close
+              {t("common.close")}
             </Button>
           </Stack>
         </Paper>
       )}
 
       <PendingBatchList
-        title={`Pending material master entries (${pendingEntries.length})`}
-        subtitle={`Review the ${pendingEntries.length} material master ${pendingEntries.length === 1 ? "entry" : "entries"} below. Nothing is saved until you click Save.`}
-        ariaLabel="Pending material master entries"
+        title={t("materialMaster.pendingTitle", { count: pendingEntries.length })}
+        subtitle={t("materialMaster.pendingSubtitle", { count: pendingEntries.length })}
+        ariaLabel={t("materialMaster.pendingAria")}
         columns={pendingColumns}
         rows={pendingEntries}
         getRowKey={(r, i) => `${r.code}-${i}`}
@@ -830,18 +849,18 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         loading={loading}
         onRowClick={(entry) => { if (entry.canEdit) handleOpenEdit(entry); }}
         rowActions={(entry) => [
-          { label: "Edit", onClick: () => handleOpenEdit(entry), disabled: !entry.canEdit },
-          ...(entry.hasStock ? [{ label: "Change code", onClick: () => setEntryToRecode(entry), disabled: !entry.canEdit }] : []),
+          { label: t("common.edit"), onClick: () => handleOpenEdit(entry), disabled: !entry.canEdit },
+          ...(entry.hasStock ? [{ label: t("materialMaster.changeCodeAction"), onClick: () => setEntryToRecode(entry), disabled: !entry.canEdit }] : []),
           entry.isActive
-            ? { label: "Deactivate", onClick: () => setEntryToToggle(entry), danger: true, disabled: !entry.canEdit }
-            : { label: "Activate", onClick: () => setEntryToToggle(entry), disabled: !entry.canEdit }
+            ? { label: t("common.deactivate"), onClick: () => setEntryToToggle(entry), danger: true, disabled: !entry.canEdit }
+            : { label: t("common.activate"), onClick: () => setEntryToToggle(entry), disabled: !entry.canEdit }
         ]}
         empty={
           filtersActive
-            ? { title: "No material master entries found", description: "Try adjusting your search or filters." }
+            ? { title: t("materialMaster.emptyFilteredTitle"), description: t("materialMaster.emptyFilteredDesc") }
             : {
-                title: "No material master entries found",
-                description: "Register your first reagent, indicator, reference standard, or other material.",
+                title: t("materialMaster.emptyTitle"),
+                description: t("materialMaster.emptyDesc"),
                 action: addButton
               }
         }
@@ -850,10 +869,10 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       {/* Create / Edit Floating Dialog */}
       <FormDialog
         open={dialogOpen}
-        title={editingEntry ? `Edit Master Entry: ${editingEntry.code}` : "Add Reagent or Standard Master"}
+        title={editingEntry ? t("materialMaster.editDialogTitle", { code: editingEntry.code }) : t("materialMaster.addDialogTitle")}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleSave}
-        submitLabel={saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Entry"}
+        submitLabel={saving ? t("materialMaster.saving") : editingEntry ? t("common.saveChanges") : t("materialMaster.createEntry")}
         submitting={saving}
         error={dialogError}
         maxWidth="md"
@@ -868,30 +887,30 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
           )}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
             <TextField
-              label="Code"
+              label={t("materialMaster.form.codeLabel")}
               value={formCode}
               onChange={(e) => { setFieldErrors((fe) => ({ ...fe, code: undefined })); setFormCode(e.target.value.toUpperCase()); }}
               required
               fullWidth
               size="small"
-              placeholder={formPrefix ? `e.g. ${formPrefix}011` : "Choose the material category first"}
+              placeholder={formPrefix ? t("materialMaster.form.codePlaceholderPrefix", { prefix: formPrefix }) : t("materialMaster.form.codePlaceholderFirst")}
               disabled={Boolean(editingEntry?.hasStock)}
               error={!!fieldErrors.code}
               helperText={
                 fieldErrors.code ??
                 (editingEntry?.hasStock
-                  ? "This entry has stock; use Change code to change it."
+                  ? t("materialMaster.form.codeFrozenHelper")
                   : formPrefix
-                  ? `Unique across all labs; must start with "${formPrefix}"`
-                  : "Unique across all labs; the prefix comes from the material category")
+                  ? t("materialMaster.form.codePrefixHelper", { prefix: formPrefix })
+                  : t("materialMaster.form.codeCategoryHelper"))
               }
             />
 
             <FormControl fullWidth size="small" required>
-              <InputLabel id="entry-category-select-label">Category</InputLabel>
+              <InputLabel id="entry-category-select-label">{t("materialMaster.form.categoryLabel")}</InputLabel>
               <Select
                 labelId="entry-category-select-label"
-                label="Category"
+                label={t("materialMaster.form.categoryLabel")}
                 value={formCategory}
                 onChange={(e) => {
                   setFormCategory(e.target.value as MaterialMasterCategory);
@@ -909,10 +928,10 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
 
             {formCategory === "Other" && (
               <FormControl fullWidth size="small" required error={!!fieldErrors.materialCategory} sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-                <InputLabel id="entry-material-category-label">Material category</InputLabel>
+                <InputLabel id="entry-material-category-label">{t("materialMaster.form.materialCategoryLabel")}</InputLabel>
                 <Select<number | "">
                   labelId="entry-material-category-label"
-                  label="Material category"
+                  label={t("materialMaster.form.materialCategoryLabel")}
                   value={formMaterialCategoryId}
                   onChange={(e) => {
                     const id = e.target.value === "" ? "" : Number(e.target.value);
@@ -925,37 +944,37 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
                 >
                   {pickableCategories.map((c) => (
                     <MenuItem key={c.id} value={c.id}>
-                      {c.name} ({c.codePrefix}-){c.isActive ? "" : " - inactive"}
+                      {c.name} ({c.codePrefix}-){c.isActive ? "" : t("materialMaster.form.materialCategoryInactive")}
                     </MenuItem>
                   ))}
                 </Select>
                 <FormHelperText>
                   {fieldErrors.materialCategory ??
                     (pickableCategories.length === 0
-                      ? "No active category is available to this lab; a Section Head adds one under Material categories."
-                      : "Carries the entry's code prefix and rules (COA, expiry, approval before use).")}
+                      ? t("materialMaster.form.materialCategoryNone")
+                      : t("materialMaster.form.materialCategoryHelper"))}
                 </FormHelperText>
               </FormControl>
             )}
 
             <TextField
-              label="Name"
+              label={t("materialMaster.form.nameLabel")}
               value={formName}
               onChange={(e) => { setFieldErrors((fe) => ({ ...fe, name: undefined })); setFormName(e.target.value); }}
               required
               fullWidth
               size="small"
-              placeholder="e.g. Sodium Hydroxide Pellets"
+              placeholder={t("materialMaster.form.namePlaceholder")}
               error={!!fieldErrors.name}
-              helperText={fieldErrors.name ?? "Descriptive chemical or standard name"}
+              helperText={fieldErrors.name ?? t("materialMaster.form.nameHelper")}
               sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
             />
 
             <FormControl fullWidth size="small" required error={!!fieldErrors.unit}>
-              <InputLabel id="entry-base-unit-select-label">Base Unit</InputLabel>
+              <InputLabel id="entry-base-unit-select-label">{t("materialMaster.form.baseUnitLabel")}</InputLabel>
               <Select
                 labelId="entry-base-unit-select-label"
-                label="Base Unit"
+                label={t("materialMaster.form.baseUnitLabel")}
                 value={formBaseUnit}
                 onChange={(e) => { setFieldErrors((fe) => ({ ...fe, unit: undefined })); setFormBaseUnit(e.target.value as MaterialUnit); }}
               >
@@ -969,32 +988,32 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
             </FormControl>
 
             <TextField
-              label="Grade"
+              label={t("materialMaster.form.gradeLabel")}
               value={formGrade}
               onChange={(e) => setFormGrade(e.target.value)}
               fullWidth
               size="small"
-              placeholder="e.g. AR, HPLC Grade, ACS"
-              helperText="Chemical purity or grade"
+              placeholder={t("materialMaster.form.gradePlaceholder")}
+              helperText={t("materialMaster.form.gradeHelper")}
             />
 
             <TextField
-              label="Source / Pharmacopoeia"
+              label={t("materialMaster.form.sourceLabel")}
               value={formSource}
               onChange={(e) => setFormSource(e.target.value)}
               fullWidth
               size="small"
-              placeholder="e.g. USP, EP, BP, In-house"
-              helperText="Standard source or manufacturer"
+              placeholder={t("materialMaster.form.sourcePlaceholder")}
+              helperText={t("materialMaster.form.sourceHelper")}
             />
 
             {/* Laboratory Section Select */}
             {(!editingEntry && mySections.length > 1) || (editingEntry && sections.length > 0) ? (
               <FormControl fullWidth size="small" required={!editingEntry && mySections.length > 1} error={!!fieldErrors.section}>
-                <InputLabel id="entry-form-section-label">Owner Lab</InputLabel>
+                <InputLabel id="entry-form-section-label">{t("materialMaster.form.ownerLabLabel")}</InputLabel>
                 <Select
                   labelId="entry-form-section-label"
-                  label="Owner Lab"
+                  label={t("materialMaster.form.ownerLabLabel")}
                   value={formSectionId}
                   disabled={Boolean(editingEntry)}
                   onChange={(e) => { setFieldErrors((fe) => ({ ...fe, section: undefined })); setFormSectionId(e.target.value); }}
@@ -1014,64 +1033,64 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
           {formCategory === "Indicator" && (
             <Paper variant="outlined" sx={{ p: 2, bgcolor: "background.default", borderRadius: 1.5 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-                Indicator Specifications
+                {t("materialMaster.form.indicatorSectionTitle")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
                 <TextField
-                  label="Working Concentration"
+                  label={t("materialMaster.form.workingConcentrationLabel")}
                   value={formWorkingConcentration}
                   onChange={(e) => setFormWorkingConcentration(e.target.value)}
                   size="small"
                   fullWidth
-                  placeholder="e.g. 0.1% w/v, 1% in ethanol"
+                  placeholder={t("materialMaster.form.workingConcentrationPlaceholder")}
                 />
                 <TextField
-                  label="Solvent"
+                  label={t("materialMaster.form.solventLabel")}
                   value={formSolvent}
                   onChange={(e) => setFormSolvent(e.target.value)}
                   size="small"
                   fullWidth
-                  placeholder="e.g. Ethanol 96%, Purified Water"
+                  placeholder={t("materialMaster.form.solventPlaceholder")}
                 />
                 <TextField
-                  label="Transition Range (From)"
+                  label={t("materialMaster.form.transitionFromLabel")}
                   type="number"
                   value={formTransitionRangeFrom}
                   onChange={(e) => { setFieldErrors((fe) => ({ ...fe, range: undefined })); setFormTransitionRangeFrom(e.target.value); }}
                   size="small"
                   fullWidth
-                  placeholder="e.g. 8.2"
+                  placeholder={t("materialMaster.form.transitionFromPlaceholder")}
                   slotProps={{ htmlInput: { step: "0.01" } }}
                   error={!!fieldErrors.range}
-                  helperText={fieldErrors.range ?? "Lower pH limit"}
+                  helperText={fieldErrors.range ?? t("materialMaster.form.transitionFromHelper")}
                 />
                 <TextField
-                  label="Transition Range (To)"
+                  label={t("materialMaster.form.transitionToLabel")}
                   type="number"
                   value={formTransitionRangeTo}
                   onChange={(e) => { setFieldErrors((fe) => ({ ...fe, range: undefined })); setFormTransitionRangeTo(e.target.value); }}
                   size="small"
                   fullWidth
-                  placeholder="e.g. 10.0"
+                  placeholder={t("materialMaster.form.transitionToPlaceholder")}
                   slotProps={{ htmlInput: { step: "0.01" } }}
                   error={!!fieldErrors.range}
-                  helperText="Upper pH limit"
+                  helperText={t("materialMaster.form.transitionToHelper")}
                 />
                 <TextField
-                  label="Colour Change"
+                  label={t("materialMaster.form.colourChangeLabel")}
                   value={formColourChange}
                   onChange={(e) => setFormColourChange(e.target.value)}
                   size="small"
                   fullWidth
-                  placeholder="e.g. Colourless to Pink"
+                  placeholder={t("materialMaster.form.colourChangePlaceholder")}
                 />
                 <TextField
-                  label="Indicator Use"
+                  label={t("materialMaster.form.indicatorUseLabel")}
                   value={formIndicatorUse}
                   onChange={(e) => setFormIndicatorUse(e.target.value)}
                   size="small"
                   fullWidth
-                  placeholder="e.g. Acid-Base Titration"
+                  placeholder={t("materialMaster.form.indicatorUsePlaceholder")}
                 />
               </Box>
             </Paper>
@@ -1091,7 +1110,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
                   variant="body2"
                   sx={{ cursor: "pointer", fontWeight: 500 }}
                 >
-                  Entry is Active
+                  {t("materialMaster.form.isActiveLabel")}
                 </Typography>
               </Stack>
             </FormControl>
@@ -1103,7 +1122,7 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
         entry={entryToRecode}
         categoryPrefix={materialCategories.find((c) => c.id === entryToRecode?.materialCategoryId)?.codePrefix}
         onClose={() => setEntryToRecode(null)}
-        onSuccess={() => { toast.success("Material master code changed."); loadData(); }}
+        onSuccess={() => { toast.success(t("materialMaster.codeChangedToast")); loadData(); }}
       />
 
       <MaterialCategoriesDialog
@@ -1116,14 +1135,14 @@ export function MaterialMasterPage({ categories, embedded }: MaterialMasterPageP
       {/* Confirmation Dialog for Activate / Deactivate */}
       <ConfirmationDialog
         open={Boolean(entryToToggle)}
-        title={entryToToggle?.isActive ? "Deactivate Material Master Entry" : "Activate Material Master Entry"}
+        title={entryToToggle?.isActive ? t("materialMaster.deactivateTitle") : t("materialMaster.activateTitle")}
         message={
           entryToToggle?.isActive
-            ? `Are you sure you want to deactivate "${entryToToggle.code} - ${entryToToggle.name}"? Inactive entries cannot be selected for new stock lots.`
-            : `Are you sure you want to activate "${entryToToggle?.code} - ${entryToToggle?.name}"?`
+            ? t("materialMaster.deactivateMessage", { code: entryToToggle.code, name: entryToToggle.name })
+            : t("materialMaster.activateMessage", { code: entryToToggle?.code ?? "", name: entryToToggle?.name ?? "" })
         }
         destructive={entryToToggle?.isActive}
-        confirmText={togglingActive ? "Saving..." : entryToToggle?.isActive ? "Deactivate" : "Activate"}
+        confirmText={togglingActive ? t("materialMaster.saving") : entryToToggle?.isActive ? t("common.deactivate") : t("common.activate")}
         onConfirm={handleConfirmToggleActive}
         onCancel={() => setEntryToToggle(null)}
       />

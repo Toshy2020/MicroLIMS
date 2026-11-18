@@ -20,6 +20,7 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutlined";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { useTranslation } from "../../../i18n";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { ProductionStagesCard } from "./ProductionStagesCard";
 
@@ -61,6 +62,7 @@ function NameListCard({
   update,
   remove
 }: NameListCardProps) {
+  const { t } = useTranslation("masterData");
   const theme = useTheme();
   const [list, setList] = useState<NamedOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,17 +76,20 @@ function NameListCard({
   const reload = () =>
     load()
       .then(setList)
-      .catch(() => setMessage({ text: `Could not load ${title.toLowerCase()}. Refresh to try again.`, ok: false }))
+      .catch(() => setMessage({ text: t("receivingConfig.loadError", { title: title.toLowerCase() }), ok: false }))
       .finally(() => setLoading(false));
 
-  useEffect(() => { reload(); }, []);
+  useEffect(() => {
+    reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Success is transient confirmation; errors stay until dismissed or
   // superseded so the analyst can act on them.
   useEffect(() => {
     if (message?.ok) {
-      const t = setTimeout(() => setMessage(null), 3000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
     }
   }, [message]);
 
@@ -105,16 +110,17 @@ function NameListCard({
     try {
       if (editing) {
         await update(editing.id, trimmed, editing.version);
-        setMessage({ text: `Renamed to "${trimmed}".`, ok: true });
+        setMessage({ text: t("receivingConfig.renamedMsg", { name: trimmed }), ok: true });
       } else {
         await create(trimmed);
-        setMessage({ text: `"${trimmed}" added.`, ok: true });
+        setMessage({ text: t("receivingConfig.addedMsg", { name: trimmed }), ok: true });
       }
       cancelEdit();
       await reload();
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       setMessage({
-        text: e?.response?.data?.message ?? `Could not ${editing ? "rename" : "add"} this entry. Check the name and try again.`,
+        text: err?.response?.data?.message ?? (editing ? t("receivingConfig.renameError") : t("receivingConfig.addError")),
         ok: false
       });
     } finally {
@@ -130,10 +136,11 @@ function NameListCard({
     try {
       await remove(target.id);
       if (editing?.id === target.id) cancelEdit();
-      setMessage({ text: `"${target.name}" deleted.`, ok: true });
+      setMessage({ text: t("receivingConfig.deletedMsg", { name: target.name }), ok: true });
       await reload();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this entry.", ok: false });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setMessage({ text: err?.response?.data?.message ?? t("receivingConfig.deleteError"), ok: false });
     }
   };
 
@@ -161,7 +168,7 @@ function NameListCard({
         </Typography>
         <Chip
           size="small"
-          label={loading ? "—" : list.length}
+          label={loading ? t("common.dash") : list.length}
           sx={{ height: 20, fontSize: 12, fontWeight: 600 }}
         />
       </Box>
@@ -181,7 +188,7 @@ function NameListCard({
             inputRef={inputRef}
             size="small"
             fullWidth
-            label={editing ? `Rename "${editing.name}"` : inputLabel}
+            label={editing ? t("receivingConfig.renameLabel", { name: editing.name }) : inputLabel}
             placeholder={addPlaceholder}
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -192,7 +199,7 @@ function NameListCard({
           />
           {editing && (
             <Button size="small" onClick={cancelEdit} disabled={saving} sx={{ mt: 0.25, minWidth: 64 }}>
-              Cancel
+              {t("common.cancel")}
             </Button>
           )}
           <Button
@@ -203,7 +210,7 @@ function NameListCard({
             disabled={!name.trim() || saving}
             sx={{ mt: 0.25, minWidth: 72, whiteSpace: "nowrap" }}
           >
-            {editing ? "Save" : "Add"}
+            {editing ? t("common.save") : t("receivingConfig.add")}
           </Button>
         </Stack>
 
@@ -221,10 +228,10 @@ function NameListCard({
             hover-only, which is unusable on touch) */}
         <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
           {loading ? (
-            <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary" }}>Loading…</Typography>
+            <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary" }}>{t("receivingConfig.loading")}</Typography>
           ) : list.length === 0 ? (
             <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary", fontStyle: "italic" }}>
-              None configured yet. Add the first one above.
+              {t("receivingConfig.emptyList")}
             </Typography>
           ) : (
             list.map((o, idx) => {
@@ -251,15 +258,15 @@ function NameListCard({
                   <Typography sx={{ fontSize: 13, fontWeight: isEditing ? 600 : 400, flex: 1, wordBreak: "break-word" }}>
                     {o.name}
                   </Typography>
-                  <Tooltip title="Rename">
-                    <IconButton size="small" aria-label={`Rename ${o.name}`} onClick={() => startEdit(o)}>
+                  <Tooltip title={t("receivingConfig.renameTooltip")}>
+                    <IconButton size="small" aria-label={t("receivingConfig.renameAria", { name: o.name })} onClick={() => startEdit(o)}>
                       <EditOutlinedIcon sx={{ fontSize: 17 }} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Delete">
+                  <Tooltip title={t("receivingConfig.deleteTooltip")}>
                     <IconButton
                       size="small"
-                      aria-label={`Delete ${o.name}`}
+                      aria-label={t("receivingConfig.deleteAria", { name: o.name })}
                       onClick={() => setPendingDelete(o)}
                       sx={{ color: "text.secondary", "&:hover": { color: theme.palette.error.main } }}
                     >
@@ -275,7 +282,7 @@ function NameListCard({
 
       <ConfirmationDialog
         open={pendingDelete != null}
-        message={pendingDelete ? `Delete "${pendingDelete.name}" from ${title}? ${deleteNote}` : ""}
+        message={pendingDelete ? t("receivingConfig.deleteConfirm", { name: pendingDelete.name, title, note: deleteNote }) : ""}
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
       />
@@ -288,11 +295,12 @@ function NameListCard({
 // had no edit/delete and Samplers/Production Stages had no management UI at
 // all (they were hardcoded arrays in masterDataOptions.ts).
 export function ReceivingConfigurationPage() {
+  const { t } = useTranslation("masterData");
   return (
     <>
       <PageHeader
-        title="Receiving Configuration"
-        subtitle="Reference lists offered on the sample receiving form, shared across all six receiving categories."
+        title={t("receivingConfig.title")}
+        subtitle={t("receivingConfig.subtitle")}
       />
 
       <Box
@@ -305,11 +313,11 @@ export function ReceivingConfigurationPage() {
         }}
       >
         <NameListCard
-          title="Samplers"
-          usedFor="Offered as suggestions in the “Sampled By” field. Analysts can still type a name that isn’t listed."
-          deleteNote="Samples already recorded with this name keep it; only the suggestion list changes."
-          inputLabel="Sampler name"
-          addPlaceholder="e.g. Ahmed Reda"
+          title={t("receivingConfig.samplers.title")}
+          usedFor={t("receivingConfig.samplers.usedFor")}
+          deleteNote={t("receivingConfig.samplers.deleteNote")}
+          inputLabel={t("receivingConfig.samplers.inputLabel")}
+          addPlaceholder={t("receivingConfig.samplers.addPlaceholder")}
           icon={<PersonOutlineIcon sx={{ fontSize: 19 }} />}
           load={masterDataOptions.getSamplers}
           create={masterDataOptions.createSampler}
@@ -318,11 +326,11 @@ export function ReceivingConfigurationPage() {
         />
 
         <NameListCard
-          title="Cause of Testing"
-          usedFor="Required on every sample. A cause already used by a sample cannot be deleted."
-          deleteNote="If any sample already uses it, the delete will be rejected and nothing changes."
-          inputLabel="Cause of testing"
-          addPlaceholder="e.g. Investigation"
+          title={t("receivingConfig.causesOfTesting.title")}
+          usedFor={t("receivingConfig.causesOfTesting.usedFor")}
+          deleteNote={t("receivingConfig.causesOfTesting.deleteNote")}
+          inputLabel={t("receivingConfig.causesOfTesting.inputLabel")}
+          addPlaceholder={t("receivingConfig.causesOfTesting.addPlaceholder")}
           icon={<AssignmentOutlinedIcon sx={{ fontSize: 19 }} />}
           load={masterDataOptions.getCausesOfTesting}
           create={masterDataOptions.createCauseOfTesting}

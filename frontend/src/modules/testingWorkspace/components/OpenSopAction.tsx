@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import { i18n as appI18n, useTranslation } from "../../../i18n";
 import { ItemStmService, type ItemStmDto } from "../../laboratoryConfiguration/items/services/ItemStmService";
 
 /** How an item's SOP resolves, from Document Control and the reader's access. */
@@ -22,18 +23,19 @@ export function sopLinkState(stm: ItemStmDto): SopLinkState {
 function messageFor(state: Exclude<SopLinkState, "Linked">, sopNumber: string | null): string {
   switch (state) {
     case "NoSopNumber":
-      return "No SOP number on this item";
+      return appI18n.t("testingWorkspace:openSop.noSopNumber");
     case "NotInDocumentControl":
-      return `SOP ${sopNumber ?? ""} is not in Document Control`.replace("  ", " ");
+      return appI18n.t("testingWorkspace:openSop.notInDocumentControl", { sopNumber: sopNumber ?? "" }).replace("  ", " ");
     case "NoEffectiveRevision":
-      return `SOP ${sopNumber ?? ""} has no effective revision`.replace("  ", " ");
+      return appI18n.t("testingWorkspace:openSop.noEffectiveRevision", { sopNumber: sopNumber ?? "" }).replace("  ", " ");
     case "NoAccess":
-      return "You do not have read access to this SOP";
+      return appI18n.t("testingWorkspace:openSop.noAccess");
   }
 }
 
 /** "Open SOP" for the item of the sample being tested: opens the SOP's Document Control page in a new tab. */
 export function OpenSopAction({ itemId }: { itemId: number }) {
+  const { t } = useTranslation("testingWorkspace");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -50,7 +52,7 @@ export function OpenSopAction({ itemId }: { itemId: number }) {
       }
     } catch (e: unknown) {
       const status = (e as { response?: { status?: number } })?.response?.status;
-      setMessage(status === 403 || status === 401 ? messageFor("NoAccess", null) : "The SOP could not be checked. Try again.");
+      setMessage(status === 403 || status === 401 ? messageFor("NoAccess", null) : t("openSop.checkFailed"));
     } finally {
       setBusy(false);
     }
@@ -71,7 +73,7 @@ export function OpenSopAction({ itemId }: { itemId: number }) {
         disabled={busy}
         startIcon={busy ? <CircularProgress size={14} aria-hidden="true" /> : <DescriptionOutlinedIcon fontSize="small" />}
       >
-        Open SOP
+        {t("openSop.button")}
       </Button>
     </Box>
   );

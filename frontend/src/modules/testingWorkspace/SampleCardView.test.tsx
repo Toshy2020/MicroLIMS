@@ -36,7 +36,7 @@ describe("SampleCardView due times", () => {
     const overdueCard = screen.getByText("FP0926016").closest('[role="button"]') as HTMLElement;
     const hex = lightTheme.custom.status.detected.text.replace("#", "");
     const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ");
-    expect(getComputedStyle(overdueCard).borderLeftColor).toBe(`rgb(${rgb})`);
+    expect(getComputedStyle(overdueCard).getPropertyValue("border-inline-start-color")).toBe(`rgb(${rgb})`);
   });
 
   it("shows no due line for closed samples", () => {

@@ -1,4 +1,5 @@
 import { Alert, Checkbox, FormControlLabel, Stack, TextField, Typography } from "@mui/material";
+import { useTranslation } from "../../i18n";
 
 export interface TitrantDueAcknowledgementProps {
   warnings: string[];
@@ -15,9 +16,11 @@ export function TitrantDueAcknowledgement({
   justification,
   onJustificationChange
 }: TitrantDueAcknowledgementProps) {
+  const { t } = useTranslation("testingWorkspace");
   const trimmedLen = justification.trim().length;
   const isTouched = justification.length > 0;
   const isInvalid = isTouched && (trimmedLen < 10 || justification.length > 500);
+  const ackLabel = t("titrantDue.acknowledge");
 
   return (
     <Stack spacing={1.5} sx={{ mt: 1 }}>
@@ -34,15 +37,15 @@ export function TitrantDueAcknowledgement({
             checked={acknowledged}
             onChange={(e) => onAcknowledgedChange(e.target.checked)}
             color="warning"
-            slotProps={{ input: { "aria-label": "I acknowledge this titrant is due for standardization" } }}
+            slotProps={{ input: { "aria-label": ackLabel } }}
           />
         }
-        label="I acknowledge this titrant is due for standardization"
+        label={ackLabel}
       />
       <TextField
         size="small"
-        label="Justification for using due titrant"
-        placeholder="Explain why this due titrant is being used for this analysis (10–500 characters)"
+        label={t("titrantDue.justificationLabel")}
+        placeholder={t("titrantDue.justificationPlaceholder")}
         value={justification}
         onChange={(e) => onJustificationChange(e.target.value)}
         multiline
@@ -52,8 +55,8 @@ export function TitrantDueAcknowledgement({
         error={isInvalid}
         helperText={
           isTouched && trimmedLen < 10
-            ? `Justification must be at least 10 characters (${trimmedLen}/500)`
-            : `${justification.length}/500 characters (minimum 10)`
+            ? t("titrantDue.tooShortHelper", { count: trimmedLen })
+            : t("titrantDue.countHelper", { count: justification.length })
         }
         slotProps={{
           htmlInput: {

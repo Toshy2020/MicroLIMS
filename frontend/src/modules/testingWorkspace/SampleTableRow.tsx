@@ -5,8 +5,11 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
-import { formatLabCalendarDate } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../utils/formatDate";
 
 interface Props {
   sample: SampleCardType;
@@ -22,11 +25,10 @@ interface Props {
 }
 
 const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
-const formatDate = (d: string | null) => (d ? new Date(d).toLocaleDateString() : "");
 
-function assignedToLabel(tests: SampleCardType["assignedTests"]): string {
+function assignedToLabel(tests: SampleCardType["assignedTests"], unassignedLabel: string): string {
   const names = Array.from(new Set(tests.map((t) => t.assignedAnalystName).filter((n): n is string => !!n)));
-  if (names.length === 0) return "Unassigned";
+  if (names.length === 0) return unassignedLabel;
   if (names.length === 1) return names[0];
   return `${names[0]} +${names.length - 1}`;
 }
@@ -43,8 +45,10 @@ export function SampleTableRow({
   isChecked,
   onToggleCheck
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
+  const edgeOffset = theme.direction === "rtl" ? "-4px" : "4px";
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const isProductLike = PRODUCT_LIKE.includes(sample.category);
   const isWater = sample.category === "Water";
@@ -84,7 +88,7 @@ export function SampleTableRow({
           // Drawn on the first cell: a row border does not render in a
           // collapsed-border table.
           "& > td:first-of-type": {
-            boxShadow: `inset 4px 0 0 ${
+            boxShadow: `inset ${edgeOffset} 0 0 ${
               sample.isOverdue
                 ? theme.custom.status.detected.text
                 : isSelected
@@ -108,10 +112,10 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                sx={{ p: 0.25, mr: 0.25 }}
+                sx={{ p: 0.25, me: 0.25 }}
                 slotProps={{
                   input: {
-                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                    "aria-label": t("tableRow.selectForGroupedAria", { name: sample.displayName, ref: sample.referenceNumber })
                   }
                 }}
               />
@@ -121,7 +125,7 @@ export function SampleTableRow({
                 {sample.displayName}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {sample.referenceNumber}
+                <Ltr>{sample.referenceNumber}</Ltr>
               </Typography>
             </Box>
           </Box>
@@ -133,7 +137,9 @@ export function SampleTableRow({
 
         <TableCell sx={{ py: 1.25 }}>
           <Typography sx={{ fontSize: 12, color: "text.primary", fontWeight: 600 }}>
-            {sample.batchNumber ? `B: ${sample.batchNumber}` : `C: ${sample.controlNumber || "—"}`}
+            {sample.batchNumber
+              ? t("tableRow.batchShort", { batch: sample.batchNumber })
+              : t("tableRow.controlShort", { control: sample.controlNumber || "—" })}
           </Typography>
         </TableCell>
 
@@ -161,7 +167,7 @@ export function SampleTableRow({
           // Drawn on the first cell: a row border does not render in a
           // collapsed-border table.
           "& > td:first-of-type": {
-            boxShadow: `inset 4px 0 0 ${
+            boxShadow: `inset ${edgeOffset} 0 0 ${
               sample.isOverdue
                 ? theme.custom.status.detected.text
                 : isSelected
@@ -179,7 +185,7 @@ export function SampleTableRow({
             <IconButton
               size="small"
               onClick={() => setExpanded((e) => !e)}
-              aria-label={`${expanded ? "Hide" : "Show"} details for ${sample.displayName}`}
+              aria-label={expanded ? t("tableRow.hideDetailsAria", { name: sample.displayName }) : t("tableRow.showDetailsAria", { name: sample.displayName })}
               aria-expanded={expanded}
             >
               {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
@@ -198,10 +204,10 @@ export function SampleTableRow({
                   onToggleCheck(sample.sampleId, e.target.checked);
                 }}
                 onClick={(e) => e.stopPropagation()}
-                sx={{ p: 0.25, mr: 0.25 }}
+                sx={{ p: 0.25, me: 0.25 }}
                 slotProps={{
                   input: {
-                    "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                    "aria-label": t("tableRow.selectForGroupedAria", { name: sample.displayName, ref: sample.referenceNumber })
                   }
                 }}
               />
@@ -210,7 +216,9 @@ export function SampleTableRow({
               <Typography sx={{ fontWeight: isSelected ? 700 : 600, fontSize: 13, color: isSelected ? theme.palette.primary.main : "text.primary" }}>
                 {sample.displayName}
               </Typography>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{sample.referenceNumber}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                <Ltr>{sample.referenceNumber}</Ltr>
+              </Typography>
             </Box>
           </Box>
         </TableCell>
@@ -223,11 +231,11 @@ export function SampleTableRow({
 
         {/* Corrections go through the signed Edit Details dialog. */}
         {visibleColumns.has("batch") && (
-          <TableCell sx={{ fontSize: 12 }}>{isProductLike ? sample.batchNumber || "—" : "—"}</TableCell>
+          <TableCell sx={{ fontSize: 12 }}>{isProductLike && sample.batchNumber ? <Ltr>{sample.batchNumber}</Ltr> : "—"}</TableCell>
         )}
 
         {visibleColumns.has("control") && (
-          <TableCell sx={{ fontSize: 12 }}>{sample.controlNumber}</TableCell>
+          <TableCell sx={{ fontSize: 12 }}>{sample.controlNumber ? <Ltr>{sample.controlNumber}</Ltr> : ""}</TableCell>
         )}
 
         {visibleColumns.has("cause") && (
@@ -236,12 +244,17 @@ export function SampleTableRow({
 
         {visibleColumns.has("receivedAt") && (
           <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-            {formatDate(sample.receivedAt)}
+            {sample.receivedAt ? <Ltr>{formatDateTimeWithTimeZone(sample.receivedAt)}</Ltr> : ""}
           </TableCell>
         )}
 
         {visibleColumns.has("assignedTo") && (
-          <TableCell sx={{ fontSize: 12 }}>{assignedToLabel(sample.assignedTests)}</TableCell>
+          <TableCell sx={{ fontSize: 12 }}>
+            {(() => {
+              const label = assignedToLabel(sample.assignedTests, t("tableRow.unassigned"));
+              return label === t("tableRow.unassigned") ? label : <Ltr>{label}</Ltr>;
+            })()}
+          </TableCell>
         )}
 
         {visibleColumns.has("status") && (
@@ -260,24 +273,35 @@ export function SampleTableRow({
             <Collapse in={expanded} unmountOnExit>
               <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 1, p: 1.5, bgcolor: "background.default" }}>
                 {sample.category === "FinishedProduct" && sample.productionStage && (
-                  <DetailField label="Production Stage" value={sample.productionStage} />
+                  <DetailField label={t("tableRow.productionStage")} value={sample.productionStage} />
                 )}
                 {!isEmOrAfterCleaning && sample.sampleQuantity && (
-                  <DetailField label="Sample Quantity" value={sample.sampleQuantity} />
+                  <DetailField label={t("tableRow.sampleQuantity")} value={<Ltr>{sample.sampleQuantity}</Ltr>} />
                 )}
-                <DetailField label="Sampled By" value={sample.sampledBy} />
-                {isProductLike && <DetailField label="Mfg Date" value={sample.mfgDate ? formatLabCalendarDate(sample.mfgDate) : ""} />}
-                {isProductLike && <DetailField label="Exp Date" value={sample.expDate ? formatLabCalendarDate(sample.expDate) : ""} />}
+                <DetailField label={t("tableRow.sampledBy")} value={sample.sampledBy ? <Ltr>{sample.sampledBy}</Ltr> : ""} />
+                {isProductLike && <DetailField label={t("tableRow.mfgDate")} value={sample.mfgDate ? <Ltr>{formatLabCalendarDate(sample.mfgDate)}</Ltr> : ""} />}
+                {isProductLike && <DetailField label={t("tableRow.expDate")} value={sample.expDate ? <Ltr>{formatLabCalendarDate(sample.expDate)}</Ltr> : ""} />}
                 {isWater && (
                   <DetailField
-                    label="Sampling Point"
+                    label={t("tableRow.samplingPoint")}
                     value={sample.waterSamplingPointCode ? `${sample.waterSamplingPointCode}, ${sample.waterSamplingPointLocation}` : ""}
                   />
                 )}
                 {isWater && sample.storageCondition && (
                   <DetailField
-                    label="Storage Condition"
-                    value={sample.storageCondition === "Refrigerator" ? `Refrigerator (${sample.storageTimeHours ?? "?"}h)` : sample.storageCondition}
+                    label={t("tableRow.storageCondition")}
+                    value={
+                      sample.storageCondition === "Refrigerator" ? (
+                        <Trans
+                          i18nKey="tableRow.refrigeratorHours"
+                          ns="testingWorkspace"
+                          values={{ hours: sample.storageTimeHours ?? "?" }}
+                          components={{ ltr: <Ltr>{null}</Ltr> }}
+                        />
+                      ) : (
+                        sample.storageCondition
+                      )
+                    }
                   />
                 )}
               </Box>
@@ -289,7 +313,7 @@ export function SampleTableRow({
   );
 }
 
-function DetailField({ label, value }: { label: string; value: string }) {
+function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <Box>
       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{label}</Typography>

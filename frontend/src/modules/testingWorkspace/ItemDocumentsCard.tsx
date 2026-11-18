@@ -10,6 +10,7 @@ import {
 } from "../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemDocumentActionButtons } from "../../components/ItemDocumentActionButtons";
 import { ItemStmPanel } from "../../components/ItemStmPanel";
+import { useTranslation } from "../../i18n";
 
 interface ItemDocumentsCardProps {
   itemId: number;
@@ -17,6 +18,7 @@ interface ItemDocumentsCardProps {
 }
 
 export function ItemDocumentsCard({ itemId }: ItemDocumentsCardProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [loading, setLoading] = useState(false);
@@ -67,12 +69,12 @@ export function ItemDocumentsCard({ itemId }: ItemDocumentsCardProps) {
         }}
       >
         <DescriptionIcon fontSize="small" sx={{ color: theme.custom.status.purple.text }} />
-        Item Controlled Documents
+        {t("itemDocuments.title")}
       </Typography>
 
       {loadFailed ? (
         <Typography variant="caption" role="alert" sx={{ color: "error.main" }}>
-          The controlled documents for this item could not be loaded. Reopen this record to try again.
+          {t("itemDocuments.loadFailed")}
         </Typography>
       ) : (
         <Stack spacing={1.25}>
@@ -80,7 +82,7 @@ export function ItemDocumentsCard({ itemId }: ItemDocumentsCardProps) {
 
           {currentVr && (
             <ItemDocRow
-              title="Verification Report"
+              title={t("itemDocuments.verificationReport")}
               doc={currentVr}
               icon={<VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />}
             />

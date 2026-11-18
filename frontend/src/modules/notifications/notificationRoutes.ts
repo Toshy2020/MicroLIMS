@@ -1,3 +1,6 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../i18n";
+
 // Where clicking a notification should take the user when it is not about a
 // specific sample.
 export const NOTIFICATION_ROUTES: Record<string, string> = {
@@ -58,33 +61,38 @@ export interface NotificationTypeOption {
   label: string;
 }
 
-export const NOTIFICATION_TYPE_OPTIONS: readonly NotificationTypeOption[] = [
-  { value: "ReviewWaiting", label: "Sample awaiting review" },
-  { value: "ApprovalWaiting", label: "Sample awaiting approval" },
-  { value: "TestReturned", label: "Test returned to analyst" },
-  { value: "TestAssigned", label: "Test assigned" },
-  { value: "IncubationReady", label: "Incubation ready to read" },
-  { value: "MediaExpiry", label: "Media lot expiring or expired" },
-  { value: "SolutionExpiry", label: "Solution lot expiring or expired" },
-  { value: "StrainExpiry", label: "Reference strain expiring or expired" },
-  { value: "CalibrationDue", label: "Equipment calibration due" },
-  { value: "ItemOverdue", label: "Item overdue" },
-  { value: "Escalation", label: "Escalation triggered" },
-  { value: "DocumentTask", label: "Document task assigned" },
-  { value: "TrainingAssigned", label: "Training assigned" },
-  { value: "DirectMessage", label: "New direct message" },
-  { value: "Discussion", label: "Discussion activity" },
-  { value: "ConfigurationApprovalWaiting", label: "Configuration awaiting approval" },
-  { value: "PendingPreparationConfigApproval", label: "Preparation configuration awaiting approval" },
-  { value: "TestReturnedForRevision", label: "Test returned for revision" },
-  { value: "TestReturnedForBiochemical", label: "Test returned for biochemical confirmation" },
-  { value: "DiscussionPostUpdated", label: "Discussion post updated" },
-  { value: "DiscussionComment", label: "New discussion comment" },
-  { value: "DocumentReassigned", label: "Document responsibility reassigned" },
-  { value: "ReassignmentOverdue", label: "Document reassignment overdue" },
-  { value: "MonitoringOverdue", label: "Monitoring occurrence overdue" },
-  { value: "MonitoringDeviationsOpen", label: "Open monitoring deviations" },
-  { value: "MonitoringDueThisMonth", label: "Monitoring due this month" },
-  { value: "EquipmentCalibrationOverdue", label: "Equipment calibration task overdue" },
-  { value: "EquipmentPmOverdue", label: "Equipment preventive maintenance overdue" }
-];
+export function notificationTypeOptions(t: TFunction): readonly NotificationTypeOption[] {
+  return [
+    { value: "ReviewWaiting", label: t("types.ReviewWaiting") },
+    { value: "ApprovalWaiting", label: t("types.ApprovalWaiting") },
+    { value: "TestReturned", label: t("types.TestReturned") },
+    { value: "TestAssigned", label: t("types.TestAssigned") },
+    { value: "IncubationReady", label: t("types.IncubationReady") },
+    { value: "MediaExpiry", label: t("types.MediaExpiry") },
+    { value: "SolutionExpiry", label: t("types.SolutionExpiry") },
+    { value: "StrainExpiry", label: t("types.StrainExpiry") },
+    { value: "CalibrationDue", label: t("types.CalibrationDue") },
+    { value: "ItemOverdue", label: t("types.ItemOverdue") },
+    { value: "Escalation", label: t("types.Escalation") },
+    { value: "DocumentTask", label: t("types.DocumentTask") },
+    { value: "TrainingAssigned", label: t("types.TrainingAssigned") },
+    { value: "DirectMessage", label: t("types.DirectMessage") },
+    { value: "Discussion", label: t("types.Discussion") },
+    { value: "ConfigurationApprovalWaiting", label: t("types.ConfigurationApprovalWaiting") },
+    { value: "PendingPreparationConfigApproval", label: t("types.PendingPreparationConfigApproval") },
+    { value: "TestReturnedForRevision", label: t("types.TestReturnedForRevision") },
+    { value: "TestReturnedForBiochemical", label: t("types.TestReturnedForBiochemical") },
+    { value: "DiscussionPostUpdated", label: t("types.DiscussionPostUpdated") },
+    { value: "DiscussionComment", label: t("types.DiscussionComment") },
+    { value: "DocumentReassigned", label: t("types.DocumentReassigned") },
+    { value: "ReassignmentOverdue", label: t("types.ReassignmentOverdue") },
+    { value: "MonitoringOverdue", label: t("types.MonitoringOverdue") },
+    { value: "MonitoringDeviationsOpen", label: t("types.MonitoringDeviationsOpen") },
+    { value: "MonitoringDueThisMonth", label: t("types.MonitoringDueThisMonth") },
+    { value: "EquipmentCalibrationOverdue", label: t("types.EquipmentCalibrationOverdue") },
+    { value: "EquipmentPmOverdue", label: t("types.EquipmentPmOverdue") }
+  ];
+}
+
+// English labels, for code outside React.
+export const NOTIFICATION_TYPE_OPTIONS = notificationTypeOptions(i18n.getFixedT("en", "notifications"));

@@ -16,13 +16,15 @@ import {
 } from "@mui/material";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { toast } from "sonner";
+import type { TFunction } from "i18next";
 import { EmptyState, FilterBar, LabPage, RegisterTable } from "../../components/lab";
 import type { RegisterColumn } from "../../components/lab";
 import { MetaBadge, ToneBadge } from "../../components/StatusBadge";
 import type { StatusTone } from "../../theme/statusTokens";
+import { i18n, useTranslation } from "../../i18n";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
-import { NOTIFICATION_TYPE_OPTIONS, resolveNotificationTarget } from "./notificationRoutes";
+import { notificationTypeOptions, resolveNotificationTarget } from "./notificationRoutes";
 import {
   notificationService,
   type NotificationDto,
@@ -30,13 +32,6 @@ import {
 } from "./services/notificationService";
 
 const PAGE_SIZE = 25;
-
-const STATE_TABS: readonly { value: NotificationStateFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "unread", label: "Unread" },
-  { value: "read", label: "Read" },
-  { value: "done", label: "Done" }
-];
 
 function severityTone(severity: string): StatusTone {
   switch (severity.toLowerCase()) {
@@ -49,19 +44,27 @@ function severityTone(severity: string): StatusTone {
   }
 }
 
-function severityLabel(severity: string): string {
+function severityLabel(severity: string, t: TFunction): string {
   switch (severity.toLowerCase()) {
     case "error":
-      return "Error";
+      return t("severity.error");
     case "warning":
-      return "Warning";
+      return t("severity.warning");
     default:
-      return "Info";
+      return t("severity.info");
   }
 }
 
 export function NotificationsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation("notifications");
+
+  const stateTabs: readonly { value: NotificationStateFilter; label: string }[] = [
+    { value: "all", label: t("tabs.all") },
+    { value: "unread", label: t("tabs.unread") },
+    { value: "read", label: t("tabs.read") },
+    { value: "done", label: t("tabs.done") }
+  ];
 
   const [stateFilter, setStateFilter] = useState<NotificationStateFilter>("all");
   const [typeFilter, setTypeFilter] = useState<string>("");
@@ -99,7 +102,7 @@ export function NotificationsPage() {
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted || axios.isCancel(err)) return;
-        const message = getErrorMessage(err, "Could not load notifications.");
+        const message = getErrorMessage(err, i18n.t("errors.load", { ns: "notifications" }));
         setError(message);
         toast.error(message);
       })
@@ -145,10 +148,10 @@ export function NotificationsPage() {
     setMarkingAllRead(true);
     try {
       await notificationService.markAllRead();
-      toast.success("All notifications marked as read.");
+      toast.success(t("toast.allRead"));
       setReloadSeq((s) => s + 1);
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Could not mark all notifications as read."));
+      toast.error(getErrorMessage(err, t("errors.markAllRead")));
     } finally {
       setMarkingAllRead(false);
     }
@@ -167,7 +170,7 @@ export function NotificationsPage() {
             : prev.map((item) => (item.id === row.id ? { ...item, readAt: nowIso } : item))
         );
       } catch (err: unknown) {
-        toast.error(getErrorMessage(err, "Could not mark notification as read."));
+        toast.error(getErrorMessage(err, t("errors.markRead")));
         setBusyRowId(null);
         return;
       }
@@ -184,13 +187,13 @@ export function NotificationsPage() {
     () => [
       {
         key: "severity",
-        label: "Severity",
+        label: t("severity.label"),
         width: 110,
-        render: (row) => <ToneBadge tone={severityTone(row.severity)} label={severityLabel(row.severity)} />
+        render: (row) => <ToneBadge tone={severityTone(row.severity)} label={severityLabel(row.severity, t)} />
       },
       {
         key: "title",
-        label: "Title",
+        label: t("columns.title"),
         render: (row) => {
           const isUnread = !row.readAt && !row.resolvedAt;
           return (
@@ -198,14 +201,14 @@ export function NotificationsPage() {
               <Typography variant="body2" sx={{ fontWeight: isUnread ? 700 : 500 }}>
                 {row.title}
               </Typography>
-              {row.resolvedAt && <MetaBadge label="Done" />}
+              {row.resolvedAt && <MetaBadge label={t("badge.done")} />}
             </Stack>
           );
         }
       },
       {
         key: "message",
-        label: "Message",
+        label: t("columns.message"),
         render: (row) => (
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {row.message}
@@ -214,13 +217,13 @@ export function NotificationsPage() {
       },
       {
         key: "sectionName",
-        label: "Section",
+        label: t("columns.section"),
         width: 180,
         render: (row) => row.sectionName ?? "—"
       },
       {
         key: "createdAt",
-        label: "Created",
+        label: t("columns.created"),
         nowrap: true,
         width: 210,
         render: (row) => (
@@ -230,15 +233,15 @@ export function NotificationsPage() {
         )
       }
     ],
-    []
+    [t]
   );
 
   const hasFilters = stateFilter !== "all" || typeFilter !== "" || searchQuery.trim() !== "";
 
   return (
     <LabPage
-      title="Notifications"
-      subtitle="Alerts, assignments, escalations, and reminders across your sections."
+      title={t("page.title")}
+      subtitle={t("page.subtitle")}
       actions={
         <Button
           variant="outlined"
@@ -247,7 +250,7 @@ export function NotificationsPage() {
           disabled={loading || markingAllRead}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          {markingAllRead ? "Marking all read..." : "Mark all read"}
+          {markingAllRead ? t("actions.markingAllRead") : t("actions.markAllRead")}
         </Button>
       }
       filters={
@@ -256,31 +259,31 @@ export function NotificationsPage() {
             <Tabs
               value={stateFilter}
               onChange={handleStateChange}
-              aria-label="Notification state"
+              aria-label={t("tabs.stateLabel")}
             >
-              {STATE_TABS.map((t) => (
-                <Tab key={t.value} value={t.value} label={t.label} sx={{ textTransform: "none", fontWeight: 600 }} />
+              {stateTabs.map((tab) => (
+                <Tab key={tab.value} value={tab.value} label={tab.label} sx={{ textTransform: "none", fontWeight: 600 }} />
               ))}
             </Tabs>
           </Box>
           <FilterBar
             search={searchQuery}
             onSearch={handleSearch}
-            placeholder="Search notifications"
+            placeholder={t("filters.searchPlaceholder")}
             resultCount={loading || error ? undefined : totalCount}
             onRefresh={handleRefresh}
             refreshing={loading}
           >
             <FormControl size="small" sx={{ minWidth: 230 }}>
-              <InputLabel id="notification-type-filter-label">Type</InputLabel>
+              <InputLabel id="notification-type-filter-label">{t("filters.type")}</InputLabel>
               <Select
                 labelId="notification-type-filter-label"
-                label="Type"
+                label={t("filters.type")}
                 value={typeFilter}
                 onChange={(e) => handleTypeChange(String(e.target.value))}
               >
-                <MenuItem value="">All types</MenuItem>
-                {NOTIFICATION_TYPE_OPTIONS.map((opt) => (
+                <MenuItem value="">{t("filters.allTypes")}</MenuItem>
+                {notificationTypeOptions(t).map((opt) => (
                   <MenuItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </MenuItem>
@@ -296,7 +299,7 @@ export function NotificationsPage() {
           severity="error"
           action={
             <Button color="inherit" size="small" onClick={handleRefresh} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Retry
+              {t("actions.retry")}
             </Button>
           }
         >
@@ -305,11 +308,11 @@ export function NotificationsPage() {
       )}
       {error && !loading && items.length === 0 ? (
         <EmptyState
-          title="Could not load notifications"
-          description="Try again or check your connection."
+          title={t("errors.loadTitle")}
+          description={t("errors.loadDescription")}
           action={
             <Button variant="outlined" onClick={handleRefresh} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Retry
+              {t("actions.retry")}
             </Button>
           }
         />
@@ -330,17 +333,17 @@ export function NotificationsPage() {
           empty={
             hasFilters
               ? {
-                  title: "No matching notifications",
-                  description: "No notifications match the selected state, type, or search.",
+                  title: t("empty.filteredTitle"),
+                  description: t("empty.filteredDescription"),
                   action: (
                     <Button variant="outlined" onClick={clearFilters} sx={{ textTransform: "none", fontWeight: 600 }}>
-                      Clear filters
+                      {t("actions.clearFilters")}
                     </Button>
                   )
                 }
               : {
-                  title: "No notifications",
-                  description: "You are up to date - nothing needs your attention."
+                  title: t("empty.title"),
+                  description: t("empty.description")
                 }
           }
         />

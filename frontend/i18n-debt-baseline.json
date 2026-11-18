@@ -1,5 +1,5 @@
 {
-  "total": 1421,
+  "total": 1383,
   "modules": {
     "components": 129,
     "modules/admin": 13,
@@ -17,7 +17,7 @@
     "modules/laboratoryConfiguration": 554,
     "modules/messages": 31,
     "modules/navigation": 12,
-    "modules/notifications": 39,
+    "modules/notifications": 1,
     "modules/reports": 40,
     "modules/roles": 1,
     "modules/testingWorkspace": 305,

@@ -159,9 +159,9 @@ describe("PathogenLocationResultGridDialog", () => {
     const bodyCell = within(dialog).getByRole("cell", { name: /^Isolator Port 1/ });
 
     expect(getComputedStyle(headerCell).position).toBe("sticky");
-    expect(getComputedStyle(headerCell).left).toBe("0px");
+    expect(getComputedStyle(headerCell).getPropertyValue("inset-inline-start")).toBe("0px");
     expect(getComputedStyle(bodyCell).position).toBe("sticky");
-    expect(getComputedStyle(bodyCell).left).toBe("0px");
+    expect(getComputedStyle(bodyCell).getPropertyValue("inset-inline-start")).toBe("0px");
   });
 
   it("draft restores all entered locations and stores only allow-listed fields", async () => {

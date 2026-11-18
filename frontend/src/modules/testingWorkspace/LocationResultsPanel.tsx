@@ -15,6 +15,9 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
+import { serverMessage } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import type { CurrentStepResponse, CurrentStepLocationItem } from "./types/testWorkflowTypes";
 
@@ -55,6 +58,7 @@ export function LocationResultsPanel({
   onDone,
   onClose
 }: LocationResultsPanelProps) {
+  const { t } = useTranslation("testingWorkspace");
   const locations = current.locations ?? [];
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,12 +94,12 @@ export function LocationResultsPanel({
       const entry = values[loc.sampleLocationId];
       if (loc.limitType === "Qualitative") {
         if (!entry?.text || entry.text.trim() === "") {
-          setError(`Please enter result text for ${loc.name}.`);
+          setError(t("locationGrid.panel.enterTextFor", { location: loc.name }));
           return;
         }
       } else {
         if (!entry?.value || entry.value.trim() === "" || Number.isNaN(Number(entry.value))) {
-          setError(`Please enter a valid numeric result for ${loc.name}.`);
+          setError(t("locationGrid.panel.enterNumericFor", { location: loc.name }));
           return;
         }
       }
@@ -118,8 +122,8 @@ export function LocationResultsPanel({
       } else if (onDone) {
         await onDone();
       }
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Failed to record location results.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("locationGrid.panel.recordFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -129,10 +133,10 @@ export function LocationResultsPanel({
     <Stack spacing={2.5} sx={{ p: 2 }}>
       <Box>
         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-          {displayName || testCode || current.testName || "Location Results"}
+          {displayName || testCode || current.testName || t("locationGrid.panel.defaultTitle")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Enter results for each sampling location.
+          {t("locationGrid.panel.subtitle")}
         </Typography>
       </Box>
 
@@ -142,17 +146,17 @@ export function LocationResultsPanel({
         <Table size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: "action.hover" }}>
-              <TableCell sx={{ fontWeight: 600 }}>Location</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Limit</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Unit</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 220 }}>Result</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{t("locationGrid.panel.locationCol")}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{t("locationGrid.panel.limitCol")}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>{t("locationGrid.panel.unitCol")}</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 220 }}>{t("locationGrid.panel.resultCol")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {locations.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                  No locations configured for this test.
+                  {t("locationGrid.panel.noLocations")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -167,8 +171,8 @@ export function LocationResultsPanel({
                 return (
                   <TableRow key={loc.sampleLocationId}>
                     <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
-                    <TableCell>{formatLocationLimit(loc)}</TableCell>
-                    <TableCell>{loc.unit || "—"}</TableCell>
+                    <TableCell><Ltr>{formatLocationLimit(loc)}</Ltr></TableCell>
+                    <TableCell>{loc.unit ? <Ltr>{loc.unit}</Ltr> : "—"}</TableCell>
                     <TableCell>
                       {isQualitative ? (
                         isNoPeaks ? (
@@ -178,32 +182,32 @@ export function LocationResultsPanel({
                               variant={currentText === "No peaks" ? "contained" : "outlined"}
                               color="primary"
                               onClick={() => updateText(loc.sampleLocationId, "No peaks")}
-                              aria-label={`No peaks for ${loc.name}`}
+                              aria-label={t("locationGrid.panel.noPeaksAria", { location: loc.name })}
                               aria-pressed={currentText === "No peaks"}
                             >
-                              No peaks
+                              {t("locationGrid.panel.noPeaks")}
                             </Button>
                             <Button
                               size="small"
                               variant={currentText === "Peaks detected" ? "contained" : "outlined"}
                               color="error"
                               onClick={() => updateText(loc.sampleLocationId, "Peaks detected")}
-                              aria-label={`Peaks detected for ${loc.name}`}
+                              aria-label={t("locationGrid.panel.peaksDetectedAria", { location: loc.name })}
                               aria-pressed={currentText === "Peaks detected"}
                             >
-                              Peaks detected
+                              {t("locationGrid.panel.peaksDetected")}
                             </Button>
                           </Stack>
                         ) : (
                           <TextField
                             size="small"
                             fullWidth
-                            placeholder="Result text"
+                            placeholder={t("locationGrid.panel.resultTextPlaceholder")}
                             value={values[loc.sampleLocationId]?.text ?? ""}
                             onChange={(e) => updateText(loc.sampleLocationId, e.target.value)}
                             slotProps={{
                               htmlInput: {
-                                "aria-label": `Result for ${loc.name}`
+                                "aria-label": t("locationGrid.panel.resultAria", { location: loc.name })
                               }
                             }}
                           />
@@ -213,13 +217,14 @@ export function LocationResultsPanel({
                           size="small"
                           fullWidth
                           type="number"
-                          placeholder="Value"
+                          placeholder={t("locationGrid.panel.valuePlaceholder")}
                           value={values[loc.sampleLocationId]?.value ?? ""}
                           onChange={(e) => updateValue(loc.sampleLocationId, e.target.value)}
                           slotProps={{
                             htmlInput: {
-                              "aria-label": `Result for ${loc.name}`,
-                              step: "any"
+                              "aria-label": t("locationGrid.panel.resultAria", { location: loc.name }),
+                              step: "any",
+                              dir: "ltr"
                             }
                           }}
                         />
@@ -236,7 +241,7 @@ export function LocationResultsPanel({
       <Stack direction="row" spacing={1.5} sx={{ justifyContent: "flex-end" }}>
         {onClose && (
           <Button variant="outlined" onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("locationGrid.panel.cancel")}
           </Button>
         )}
         <Button
@@ -245,7 +250,7 @@ export function LocationResultsPanel({
           disabled={submitting || locations.length === 0}
           startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : null}
         >
-          {submitting ? "Submitting..." : "Submit"}
+          {submitting ? t("locationGrid.panel.submitting") : t("locationGrid.panel.submit")}
         </Button>
       </Stack>
     </Stack>

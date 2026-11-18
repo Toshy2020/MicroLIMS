@@ -190,9 +190,9 @@ describe("LocationResultGridDialog", () => {
     const bodyCell = within(dialog).getByRole("cell", { name: "Filling Room A (Grade A)" });
 
     expect(getComputedStyle(headerCell).position).toBe("sticky");
-    expect(getComputedStyle(headerCell).left).toBe("0px");
+    expect(getComputedStyle(headerCell).getPropertyValue("inset-inline-start")).toBe("0px");
     expect(getComputedStyle(bodyCell).position).toBe("sticky");
-    expect(getComputedStyle(bodyCell).left).toBe("0px");
+    expect(getComputedStyle(bodyCell).getPropertyValue("inset-inline-start")).toBe("0px");
   });
 
   it("add/remove reading buttons have record-specific aria-labels and >= 48 px targets in bench mode", async () => {

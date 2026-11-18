@@ -4,12 +4,15 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { useTheme } from "@mui/material/styles";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { Ltr } from "../../components/Ltr";
 import { StatusBadge } from "../../components/StatusBadge";
 import { TableSkeleton } from "../../components/TableSkeleton";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { useGridNavigation } from "../../components/entry/useGridNavigation";
+import { activeLanguage, useTranslation } from "../../i18n";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../../theme/benchTheme";
@@ -48,9 +51,12 @@ function pickPathogenGridDraft(values: PathogenGridDraftValues): Partial<Pathoge
 // location Detected/Absent call. Sibling to LocationResultGridDialog,
 // which handles the CFU/Count case instead.
 export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const { benchMode } = useBenchMode();
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
+  const dialogTitle = t("locationGrid.title", { testCode, displayName });
+  const dateLocale = activeLanguage() === "ar" ? "ar-u-nu-latn-ca-gregory" : undefined;
 
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [growth, setGrowth] = useState<Record<number, "yes" | "no" | "">>({});
@@ -62,7 +68,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     formKey: "pathogen-grid",
     recordKey: String(testOrderId),
     recordVersion: null,
-    title: `${testCode} Results: ${displayName}`,
+    title: dialogTitle,
     values: { growth },
     pick: pickPathogenGridDraft,
     enabled: benchMode && open && rows !== null
@@ -125,7 +131,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
       onSubmitted();
     } catch (e) {
       if (!benchMode) {
-        setError(serverMessage(e) ?? "Could not record batch pathogen results.");
+        setError(serverMessage(e) ?? t("locationGrid.recordBatchPathogenFailed"));
         return;
       }
       const failure = classifySaveFailure(e);
@@ -135,7 +141,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
         await draft.onRejected(failure.message);
         setError(failure.message);
       } else {
-        setError(failure.message ?? "Could not record batch pathogen results.");
+        setError(failure.message ?? t("locationGrid.recordBatchPathogenFailed"));
       }
     } finally {
       setSubmitting(false);
@@ -150,7 +156,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   };
 
   const keepDraft = () => {
-    toast.info("Draft kept on this tablet. It is not saved to MicroLIMS.");
+    toast.info(t("locationGrid.draftKeptOffline"));
     onClose();
   };
 
@@ -169,11 +175,11 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   });
 
   const submitDisabledReason = !rows
-    ? "Loading locations…"
+    ? t("locationGrid.loadingLocations")
     : !allEntered
-      ? "Select a result for every location."
+      ? t("locationGrid.selectForEvery")
       : !isTimeReady && minReadyAt
-        ? `Results cannot be submitted before ${minReadyAt.toLocaleString()}.`
+        ? t("locationGrid.cannotSubmitBefore", { time: minReadyAt.toLocaleString(dateLocale) })
         : undefined;
 
   const content = (
@@ -186,15 +192,20 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
           {benchMode && keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
           {error && <Alert severity="error">{error}</Alert>}
           <Typography variant="body2" aria-live="polite" role="status" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            {enteredCount} of {rows.length} entered
+            <Trans
+              i18nKey="locationGrid.enteredProgress"
+              ns="testingWorkspace"
+              values={{ entered: enteredCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
           <Box sx={{ overflowX: "auto" }}>
             <Table size={benchMode ? "medium" : "small"}>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: "background.paper" }}>Location</TableCell>
-                  <TableCell>Growth Observed?</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 2, bgcolor: "background.paper" }}>{t("locationGrid.locationCol")}</TableCell>
+                  <TableCell>{t("locationGrid.growthObservedCol")}</TableCell>
+                  <TableCell>{t("locationGrid.statusCol")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -207,12 +218,12 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                       key={r.id}
                       onFocus={(e) => e.currentTarget.scrollIntoView?.({ block: "nearest" })}
                     >
-                      <TableCell sx={{ position: "sticky", left: 0, zIndex: 1, bgcolor: "background.paper" }}>
+                      <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 1, bgcolor: "background.paper" }}>
                         {r.locationName}{r.gradeClassification ? ` (${r.gradeClassification})` : ""}
                       </TableCell>
                       <TableCell>
                         {benchMode ? (
-                          <Stack direction="row" spacing={1} role="group" aria-label={`Growth observed for ${r.locationName}`}>
+                          <Stack direction="row" spacing={1} role="group" aria-label={t("locationGrid.growthObservedGroupAria", { location: r.locationName })}>
                             <Button
                               {...yesNav}
                               variant={growth[r.id] === "yes" ? "contained" : "outlined"}
@@ -233,7 +244,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                                   : {})
                               }}
                             >
-                              Yes (Detected)
+                              {t("locationGrid.yesDetected")}
                             </Button>
                             <Button
                               {...noNav}
@@ -255,7 +266,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                                   : {})
                               }}
                             >
-                              No (Absent)
+                              {t("locationGrid.noAbsent")}
                             </Button>
                           </Stack>
                         ) : (
@@ -263,12 +274,12 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
                             <FormControlLabel
                               value="yes"
                               control={<Radio size="small" slotProps={{ input: yesNav }} />}
-                              label="Yes"
+                              label={t("locationGrid.yes")}
                             />
                             <FormControlLabel
                               value="no"
                               control={<Radio size="small" slotProps={{ input: noNav }} />}
-                              label="No"
+                              label={t("locationGrid.no")}
                             />
                           </RadioGroup>
                         )}
@@ -281,15 +292,28 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {detectedCount}/{rows.length} locations detected; overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
+            <Trans
+              i18nKey="locationGrid.detectedSummary"
+              ns="testingWorkspace"
+              values={{ detected: detectedCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />{" "}
+            <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
           </Typography>
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">
+              <Trans
+                i18nKey="locationGrid.cannotSubmitBeforeTrans"
+                ns="testingWorkspace"
+                values={{ time: minReadyAt.toLocaleString(dateLocale) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </Alert>
           )}
           {!benchMode && (
             <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
               <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
-                {submitting ? "Submitting…" : "Submit Results"}
+                {submitting ? t("locationGrid.submitting") : t("locationGrid.submitResults")}
               </Button>
             </Stack>
           )}
@@ -302,11 +326,11 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     return (
       <BenchDialog
         open={open}
-        title={`${testCode} Results: ${displayName}`}
+        title={dialogTitle}
         onClose={() => void closeGrid()}
         onSave={keptOffline ? keepDraft : () => void submit()}
         saving={submitting}
-        saveLabel={keptOffline ? "Keep draft" : "Submit Results"}
+        saveLabel={keptOffline ? t("locationGrid.keepDraft") : t("locationGrid.submitResults")}
         saveDisabledReason={keptOffline ? undefined : submitDisabledReason}
         dirty={dirty}
         maxWidth="lg"
@@ -317,7 +341,7 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
   }
 
   return (
-    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
+    <FloatingDialog open={open} title={dialogTitle} onClose={onClose}>
       {content}
     </FloatingDialog>
   );

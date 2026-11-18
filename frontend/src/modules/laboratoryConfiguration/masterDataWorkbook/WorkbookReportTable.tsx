@@ -1,14 +1,16 @@
 import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Stack } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import type { WorkbookReport } from "./types";
 
 // Result of a dry run or a load: one count row per sheet, then every
 // error with the sheet, row and column the lab must fix.
 export function WorkbookReportTable({ report }: { report: WorkbookReport }) {
+  const { t } = useTranslation("labConfig");
   return (
     <Stack spacing={2}>
-      <Table size="small" aria-label="Rows per sheet">
+      <Table size="small" aria-label={t("masterDataWorkbook.report.rowsPerSheet")}>
         <TableHead>
-          <TableRow><TableCell>Sheet</TableCell><TableCell align="right">New</TableCell><TableCell align="right">Unchanged</TableCell><TableCell align="right">Errors</TableCell></TableRow>
+          <TableRow><TableCell>{t("masterDataWorkbook.report.sheet")}</TableCell><TableCell align="right">{t("masterDataWorkbook.report.new")}</TableCell><TableCell align="right">{t("masterDataWorkbook.report.unchanged")}</TableCell><TableCell align="right">{t("masterDataWorkbook.report.errors")}</TableCell></TableRow>
         </TableHead>
         <TableBody>
           {report.sheets.map((s) => (
@@ -25,11 +27,11 @@ export function WorkbookReportTable({ report }: { report: WorkbookReport }) {
       {report.errors.length > 0 && (
         <>
           <Typography variant="subtitle2" color="error">
-            {report.errors.length} problem{report.errors.length === 1 ? "" : "s"} to fix in the workbook
+            {t("masterDataWorkbook.report.problems", { count: report.errors.length })}
           </Typography>
-          <Table size="small" aria-label="Problems to fix">
+          <Table size="small" aria-label={t("masterDataWorkbook.report.problemsToFix")}>
             <TableHead>
-              <TableRow><TableCell>Sheet</TableCell><TableCell>Row</TableCell><TableCell>Column</TableCell><TableCell>Problem</TableCell></TableRow>
+              <TableRow><TableCell>{t("masterDataWorkbook.report.sheet")}</TableCell><TableCell>{t("masterDataWorkbook.report.row")}</TableCell><TableCell>{t("masterDataWorkbook.report.column")}</TableCell><TableCell>{t("masterDataWorkbook.report.problem")}</TableCell></TableRow>
             </TableHead>
             <TableBody>
               {report.errors.map((e, i) => (

@@ -1,5 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
+import { i18n } from "../../../i18n";
 import { WorkbookReportTable } from "./WorkbookReportTable";
 import { canLoad } from "./types";
 import type { WorkbookReport } from "./types";
@@ -25,6 +26,18 @@ describe("WorkbookReportTable", () => {
     expect(screen.getByText("No EM department named 'X'.")).toBeTruthy();
     expect(screen.getByText("Department")).toBeTruthy();
     expect(screen.getByText("4")).toBeTruthy();
+  });
+
+  it("shows the problem count and headers in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      render(<WorkbookReportTable report={failing} />);
+      expect(screen.getByText("مشكلة واحدة لإصلاحها في المصنف")).toBeTruthy();
+      expect(screen.getByRole("table", { name: "الصفوف لكل ورقة" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });
 

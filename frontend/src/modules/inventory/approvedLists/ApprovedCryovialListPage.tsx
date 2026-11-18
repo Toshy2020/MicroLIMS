@@ -19,6 +19,7 @@ import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import AcUnitIcon from "@mui/icons-material/AcUnit";
 import { Link } from "react-router-dom";
+import { useTranslation } from "../../../i18n";
 import { PageHeader } from "../../../components/PageHeader";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
@@ -59,6 +60,7 @@ function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30
 }
 
 export function ApprovedCryovialListPage({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation("inventory");
   const theme = useTheme();
   const { action, detected, purple } = theme.custom.status;
 
@@ -97,7 +99,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
       );
       setCryovials(approvedList);
     } catch {
-      setError("Failed to retrieve approved cryovials register. Please try again.");
+      setError(t("cryovials.loadError"));
     } finally {
       setLoading(false);
     }
@@ -235,7 +237,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     if (!thawItem) return;
     await CryovialService.thawVial(thawItem.id, reason);
     setMessage({
-      text: `Vial from batch ${thawItem.code} successfully thawed and recorded.`,
+      text: t("cryovials.thawed", { code: thawItem.code }),
       ok: true
     });
     setThawItem(null);
@@ -245,7 +247,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
   const columns: RegisterColumn<CryovialItem>[] = [
     {
       key: "code",
-      label: "Cryovial Code",
+      label: t("cryovials.columns.code"),
       render: (c) => (
         <>
           <Typography
@@ -255,7 +257,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
           </Typography>
           {c.material?.batchNumber && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-              Batch: {c.material.batchNumber}
+              {t("cryovials.columns.batch", { batch: c.material.batchNumber })}
             </Typography>
           )}
         </>
@@ -263,7 +265,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     },
     {
       key: "organism",
-      label: "Organism",
+      label: t("cryovials.columns.organism"),
       render: (c) => (
         <>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -279,7 +281,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     },
     {
       key: "atcc",
-      label: "ATCC No.",
+      label: t("cryovials.columns.atcc"),
       render: (c) => (
         <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
           {c.organism?.atccNumber ?? "—"}
@@ -288,7 +290,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     },
     {
       key: "manufacturer",
-      label: "Manufacturer",
+      label: t("cryovials.columns.manufacturer"),
       render: (c) => (
         <Typography sx={{ fontSize: 12, color: "text.primary" }}>
           {c.manufacturerName || c.material?.manufacturerName || "—"}
@@ -297,23 +299,23 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     },
     {
       key: "storage",
-      label: "Storage",
+      label: t("cryovials.columns.storage"),
       render: (c) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{c.storageCondition || "—"}</Typography>
     },
     {
       key: "vials",
-      label: "Vials Remaining",
+      label: t("cryovials.columns.vials"),
       render: (c) => (
         <Typography
           sx={{ fontSize: 13, fontWeight: 700, color: c.vialsRemaining <= 0 ? detected.text : "text.primary" }}
         >
-          {c.vialsRemaining} of {c.numberOfVialsPrepared}
+          {t("cryovials.columns.vialsOf", { remaining: c.vialsRemaining, total: c.numberOfVialsPrepared })}
         </Typography>
       )
     },
     {
       key: "expiry",
-      label: "Expiry",
+      label: t("cryovials.columns.expiry"),
       render: (c) => {
         const expiring = isExpiringSoon(c.expiryDate, 30);
         return (
@@ -324,7 +326,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
               {formatLabCalendarDate(c.expiryDate)}
             </Typography>
             {expiring && (
-              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>Expiring soon</Typography>
+              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>{t("cryovials.columns.expiringSoon")}</Typography>
             )}
           </>
         );
@@ -332,12 +334,12 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
     },
     {
       key: "status",
-      label: "Status",
+      label: t("cryovials.columns.status"),
       render: (c) =>
         c.vialsRemaining <= 0 ? (
-          <StatusBadge status="Depleted" label="Depleted" />
+          <StatusBadge status="Depleted" label={t("cryovials.status.depleted")} />
         ) : (
-          <StatusBadge status="Approved" label="Approved" />
+          <StatusBadge status="Approved" label={t("cryovials.status.approved")} />
         )
     }
   ];
@@ -365,8 +367,8 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
       <Box className="no-print">
         {!embedded && (
           <PageHeader
-            title="Approved Cryovial List"
-            subtitle="Approved, non-destroyed cryovials available for use."
+            title={t("cryovials.title")}
+            subtitle={t("cryovials.subtitle")}
           />
         )}
 
@@ -403,7 +405,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
             <TextField
               fullWidth
               size="small"
-              placeholder="Search by cryovial code, organism, ATCC no., manufacturer..."
+              placeholder={t("cryovials.filters.searchPlaceholder")}
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
               sx={{
@@ -412,7 +414,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{ htmlInput: { "aria-label": "Search by cryovial code, organism, ATCC no., manufacturer" },
+              slotProps={{ htmlInput: { "aria-label": t("cryovials.filters.searchAria") },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
@@ -438,15 +440,15 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
             >
               {/* Organism Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="cryovial-organism-label">Organism</InputLabel>
+                <InputLabel id="cryovial-organism-label">{t("cryovials.filters.organism")}</InputLabel>
                 <Select
                   labelId="cryovial-organism-label"
-                  label="Organism"
+                  label={t("cryovials.filters.organism")}
                   value={filters.organism}
                   onChange={(e) => handleFilterChange("organism", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Organisms</em>
+                    <em>{t("cryovials.filters.allOrganisms")}</em>
                   </MenuItem>
                   {uniqueOrganisms.map((org) => (
                     <MenuItem key={org} value={org}>
@@ -458,15 +460,15 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
 
               {/* Storage Condition Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="cryovial-storage-label">Storage</InputLabel>
+                <InputLabel id="cryovial-storage-label">{t("cryovials.filters.storage")}</InputLabel>
                 <Select
                   labelId="cryovial-storage-label"
-                  label="Storage"
+                  label={t("cryovials.filters.storage")}
                   value={filters.storage}
                   onChange={(e) => handleFilterChange("storage", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Storage Types</em>
+                    <em>{t("cryovials.filters.allStorage")}</em>
                   </MenuItem>
                   {uniqueStorageConditions.map((cond) => (
                     <MenuItem key={cond} value={cond}>
@@ -478,15 +480,15 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
 
               {/* Manufacturer Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="cryovial-manufacturer-label">Manufacturer</InputLabel>
+                <InputLabel id="cryovial-manufacturer-label">{t("cryovials.filters.manufacturer")}</InputLabel>
                 <Select
                   labelId="cryovial-manufacturer-label"
-                  label="Manufacturer"
+                  label={t("cryovials.filters.manufacturer")}
                   value={filters.manufacturer}
                   onChange={(e) => handleFilterChange("manufacturer", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Manufacturers</em>
+                    <em>{t("cryovials.filters.allManufacturers")}</em>
                   </MenuItem>
                   {uniqueManufacturers.map((mfg) => (
                     <MenuItem key={mfg} value={mfg}>
@@ -498,36 +500,36 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
 
               {/* Status Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="cryovial-status-label">Status</InputLabel>
+                <InputLabel id="cryovial-status-label">{t("cryovials.filters.status")}</InputLabel>
                 <Select
                   labelId="cryovial-status-label"
-                  label="Status"
+                  label={t("cryovials.filters.status")}
                   value={filters.status}
                   onChange={(e) => handleFilterChange("status", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Statuses</em>
+                    <em>{t("cryovials.filters.allStatuses")}</em>
                   </MenuItem>
-                  <MenuItem value="in_stock">Available / In Stock</MenuItem>
-                  <MenuItem value="depleted">Depleted (0 Vials)</MenuItem>
+                  <MenuItem value="in_stock">{t("cryovials.filters.inStock")}</MenuItem>
+                  <MenuItem value="depleted">{t("cryovials.filters.depleted")}</MenuItem>
                 </Select>
               </FormControl>
 
               {/* Expiry Range Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="cryovial-expiry-label">Expiry Date</InputLabel>
+                <InputLabel id="cryovial-expiry-label">{t("cryovials.filters.expiryDate")}</InputLabel>
                 <Select
                   labelId="cryovial-expiry-label"
-                  label="Expiry Date"
+                  label={t("cryovials.filters.expiryDate")}
                   value={filters.expiryRange}
                   onChange={(e) => handleFilterChange("expiryRange", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Expiry</em>
+                    <em>{t("cryovials.filters.allExpiry")}</em>
                   </MenuItem>
-                  <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-                  <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
-                  <MenuItem value="valid">Valid / Unexpired</MenuItem>
+                  <MenuItem value="expiring_30">{t("cryovials.filters.expiring30")}</MenuItem>
+                  <MenuItem value="expiring_60">{t("cryovials.filters.expiring60")}</MenuItem>
+                  <MenuItem value="valid">{t("cryovials.filters.valid")}</MenuItem>
                 </Select>
               </FormControl>
 
@@ -546,7 +548,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                   "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
                 }}
               >
-                Reset
+                {t("cryovials.filters.reset")}
               </Button>
             </Box>
           </Box>
@@ -564,12 +566,10 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
           }}
         >
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
-            <SectionTitle>Approved Cryovials</SectionTitle>
+            <SectionTitle>{t("cryovials.section")}</SectionTitle>
             {!loading && (
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {filteredCryovials.length === 1
-                  ? "1 approved cryovial found"
-                  : `${filteredCryovials.length} approved cryovials found`}
+                {t("cryovials.found", { count: filteredCryovials.length })}
               </Typography>
             )}
           </Box>
@@ -589,7 +589,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
           toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
           loading={loading}
           trailingCell={{
-            label: "Actions",
+            label: t("cryovials.columns.actions"),
             render: (c) => (
               <Box
                 sx={{
@@ -600,7 +600,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                 }}
               >
                 {c.vialsRemaining > 0 && (
-                  <Tooltip title="Thaw a single vial from this approved batch">
+                  <Tooltip title={t("cryovials.thawTooltip")}>
                     <Button
                       size="small"
                       variant="outlined"
@@ -619,12 +619,12 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                         }
                       }}
                     >
-                      Thaw Vial
+                      {t("cryovials.thawVial")}
                     </Button>
                   </Tooltip>
                 )}
 
-                <Tooltip title="View cryovial report record">
+                <Tooltip title={t("cryovials.reportTooltip")}>
                   <Button
                     component={Link}
                     to={`/cryovials/${c.id}/report`}
@@ -642,7 +642,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                       "&:hover": { bgcolor: "background.default" }
                     }}
                   >
-                    Report
+                    {t("cryovials.report")}
                   </Button>
                 </Tooltip>
               </Box>
@@ -650,8 +650,8 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
           }}
           empty={{
             title: hasActiveFilters
-              ? "No approved cryovials match the selected filters."
-              : "No approved cryovials currently available in inventory.",
+              ? t("cryovials.emptyFiltered")
+              : t("cryovials.empty"),
             action: hasActiveFilters ? (
               <Button
                 size="small"
@@ -660,7 +660,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
                 startIcon={<RotateLeftIcon fontSize="small" />}
                 sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
               >
-                Reset Filters
+                {t("cryovials.filters.resetFilters")}
               </Button>
             ) : undefined
           }}

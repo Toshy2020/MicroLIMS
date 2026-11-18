@@ -33,6 +33,7 @@ import type { RegisterColumn } from "../../../components/lab";
 import { TableToolbar } from "../../../components/lab/table/TableToolbar";
 import { useTableState } from "../../../components/lab/table/useTableState";
 import { formatLabDate, formatLabCalendarDate } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { UserService, UserRecord } from "../../users/services/UserService";
 import type { MediaLot } from "../../laboratoryConfiguration/mediaEvaluation/types/mediaEvaluationTypes";
@@ -71,6 +72,7 @@ function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30
 }
 
 export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation("inventory");
   const theme = useTheme();
   const { action, purple } = theme.custom.status;
 
@@ -112,7 +114,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       setUserMap(map);
       setMedia(releasedMedia || []);
     } catch {
-      setError("Failed to retrieve approved media register. Please try again.");
+      setError(t("media.loadError"));
     } finally {
       setLoading(false);
     }
@@ -232,48 +234,48 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
     return [
       {
-        label: "Total Media Lots",
-        description: "All released lots",
+        label: t("media.kpi.total"),
+        description: t("media.kpi.totalDesc"),
         count: totalCount,
         icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "purple" as StatusTone
       },
       {
-        label: "In Stock",
-        description: "Active released lots",
+        label: t("media.kpi.inStock"),
+        description: t("media.kpi.inStockDesc"),
         count: inStockCount,
         icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />,
         tone: "notDetected" as StatusTone
       },
       {
-        label: "Expiring Soon",
-        description: "Within 30 days",
+        label: t("media.kpi.expiring"),
+        description: t("media.kpi.expiringDesc"),
         count: expiringSoonCount,
         icon: <WarningAmberOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "action" as StatusTone
       },
       {
-        label: "Media Formulations",
-        description: "Distinct types in use",
+        label: t("media.kpi.formulations"),
+        description: t("media.kpi.formulationsDesc"),
         count: uniqueTypesCount,
         icon: <CategoryOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "info" as StatusTone
       }
     ];
-  }, [media]);
+  }, [media, t]);
 
   // User name resolution helper
   const getPreparedByName = (m: ReleasedMediaRow) => {
     if (m.preparedByName) return m.preparedByName;
     if (m.preparedByUser?.fullName) return m.preparedByUser.fullName;
     if (m.preparedByUserId && userMap[m.preparedByUserId]) return userMap[m.preparedByUserId];
-    return m.preparedByUserId ? `User #${m.preparedByUserId}` : "—";
+    return m.preparedByUserId ? t("media.userFallback", { id: m.preparedByUserId }) : "—";
   };
 
   const columns: RegisterColumn<ReleasedMediaRow>[] = [
     {
       key: "lotNumber",
-      label: "Lot Number",
+      label: t("media.columns.lotNumber"),
       render: (m) => (
         <>
           <Typography
@@ -283,7 +285,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
           </Typography>
           {m.material?.batchNumber && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-              Batch: {m.material.batchNumber}
+              {t("media.columns.batch", { batch: m.material.batchNumber })}
             </Typography>
           )}
         </>
@@ -291,7 +293,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "mediaType",
-      label: "Media Type",
+      label: t("media.columns.mediaType"),
       render: (m) => (
         <>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -307,7 +309,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "ph",
-      label: "pH Result",
+      label: t("media.columns.ph"),
       render: (m) => (
         <Typography sx={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "text.primary" }}>
           {m.ph != null ? Number(m.ph).toFixed(2) : "—"}
@@ -316,17 +318,17 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "preparedBy",
-      label: "Prepared By",
+      label: t("media.columns.preparedBy"),
       render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{getPreparedByName(m)}</Typography>
     },
     {
       key: "volume",
-      label: "Total Volume",
+      label: t("media.columns.volume"),
       render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{m.totalVolume || "—"}</Typography>
     },
     {
       key: "weight",
-      label: "Total Weight",
+      label: t("media.columns.weight"),
       render: (m) => (
         <Typography sx={{ fontSize: 12, color: "text.primary" }}>
           {m.totalWeight != null ? `${m.totalWeight} g` : "—"}
@@ -335,7 +337,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "mfgLot",
-      label: "Manufacturer Lot",
+      label: t("media.columns.mfgLot"),
       render: (m) => (
         <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
           {m.manufacturerLot || "—"}
@@ -344,7 +346,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "mfgName",
-      label: "Manufacturer",
+      label: t("media.columns.manufacturer"),
       render: (m) => (
         <Typography sx={{ fontSize: 12, color: "text.primary" }}>
           {m.manufacturerName || m.material?.manufacturerName || "—"}
@@ -353,12 +355,12 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "preparedOn",
-      label: "Prepared On",
+      label: t("media.columns.preparedOn"),
       render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{formatLabDate(m.preparedAt)}</Typography>
     },
     {
       key: "expiry",
-      label: "Expiry",
+      label: t("media.columns.expiry"),
       render: (m) => {
         const expiring = isExpiringSoon(m.expiryDate, 30);
         return (
@@ -369,7 +371,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
               {formatLabCalendarDate(m.expiryDate)}
             </Typography>
             {expiring && (
-              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>Expiring soon</Typography>
+              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>{t("media.columns.expiringSoon")}</Typography>
             )}
           </>
         );
@@ -377,11 +379,11 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
     },
     {
       key: "status",
-      label: "Status",
+      label: t("media.columns.status"),
       render: (m) => (
         <StatusBadge
           status={m.status === "OutOfStock" ? "OutOfStock" : "Released"}
-          label={m.status === "OutOfStock" ? "Out of Stock" : "Released"}
+          label={m.status === "OutOfStock" ? t("media.status.outOfStock") : t("media.status.released")}
         />
       )
     }
@@ -416,8 +418,8 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       <Box className="no-print">
         {!embedded && (
           <PageHeader
-            title="Approved Media List"
-            subtitle="Prepared media lots that passed GPT and are released for routine use."
+            title={t("media.title")}
+            subtitle={t("media.subtitle")}
           />
         )}
 
@@ -515,7 +517,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
             <TextField
               fullWidth
               size="small"
-              placeholder="Search by lot number, media type, manufacturer, batch..."
+              placeholder={t("media.filters.searchPlaceholder")}
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
               sx={{
@@ -524,7 +526,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{ htmlInput: { "aria-label": "Search by lot number, media type, manufacturer, batch" },
+              slotProps={{ htmlInput: { "aria-label": t("media.filters.searchAria") },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
@@ -550,15 +552,15 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
             >
               {/* Media Type Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-type-label">Media Type</InputLabel>
+                <InputLabel id="media-type-label">{t("media.filters.mediaType")}</InputLabel>
                 <Select
                   labelId="media-type-label"
-                  label="Media Type"
+                  label={t("media.filters.mediaType")}
                   value={filters.mediaType}
                   onChange={(e) => handleFilterChange("mediaType", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Media Types</em>
+                    <em>{t("media.filters.allMediaTypes")}</em>
                   </MenuItem>
                   {uniqueMediaTypes.map(([cls, label]) => (
                     <MenuItem key={cls} value={cls}>
@@ -570,15 +572,15 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
               {/* Manufacturer Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-manufacturer-label">Manufacturer</InputLabel>
+                <InputLabel id="media-manufacturer-label">{t("media.filters.manufacturer")}</InputLabel>
                 <Select
                   labelId="media-manufacturer-label"
-                  label="Manufacturer"
+                  label={t("media.filters.manufacturer")}
                   value={filters.manufacturer}
                   onChange={(e) => handleFilterChange("manufacturer", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Manufacturers</em>
+                    <em>{t("media.filters.allManufacturers")}</em>
                   </MenuItem>
                   {uniqueManufacturers.map((mfg) => (
                     <MenuItem key={mfg} value={mfg}>
@@ -590,36 +592,36 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
               {/* Status Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-status-label">Status</InputLabel>
+                <InputLabel id="media-status-label">{t("media.filters.status")}</InputLabel>
                 <Select
                   labelId="media-status-label"
-                  label="Status"
+                  label={t("media.filters.status")}
                   value={filters.status}
                   onChange={(e) => handleFilterChange("status", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Statuses</em>
+                    <em>{t("media.filters.allStatuses")}</em>
                   </MenuItem>
-                  <MenuItem value="Released">Released / Active</MenuItem>
-                  <MenuItem value="OutOfStock">Out of Stock</MenuItem>
+                  <MenuItem value="Released">{t("media.filters.releasedActive")}</MenuItem>
+                  <MenuItem value="OutOfStock">{t("media.filters.outOfStock")}</MenuItem>
                 </Select>
               </FormControl>
 
               {/* Expiry Range Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-expiry-label">Expiry Date</InputLabel>
+                <InputLabel id="media-expiry-label">{t("media.filters.expiryDate")}</InputLabel>
                 <Select
                   labelId="media-expiry-label"
-                  label="Expiry Date"
+                  label={t("media.filters.expiryDate")}
                   value={filters.expiryRange}
                   onChange={(e) => handleFilterChange("expiryRange", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Expiry</em>
+                    <em>{t("media.filters.allExpiry")}</em>
                   </MenuItem>
-                  <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-                  <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
-                  <MenuItem value="valid">Valid / Unexpired</MenuItem>
+                  <MenuItem value="expiring_30">{t("media.filters.expiring30")}</MenuItem>
+                  <MenuItem value="expiring_60">{t("media.filters.expiring60")}</MenuItem>
+                  <MenuItem value="valid">{t("media.filters.valid")}</MenuItem>
                 </Select>
               </FormControl>
 
@@ -638,7 +640,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                   "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
                 }}
               >
-                Reset
+                {t("media.filters.reset")}
               </Button>
             </Box>
           </Box>
@@ -656,12 +658,10 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
           }}
         >
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
-            <SectionTitle>Released Media</SectionTitle>
+            <SectionTitle>{t("media.section")}</SectionTitle>
             {!loading && (
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {filteredMedia.length === 1
-                  ? "1 released media lot found"
-                  : `${filteredMedia.length} released media lots found`}
+                {t("media.found", { count: filteredMedia.length })}
               </Typography>
             )}
           </Box>
@@ -681,9 +681,9 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
           toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
           loading={loading}
           trailingCell={{
-            label: "Actions",
+            label: t("media.columns.actions"),
             render: (m) => (
-              <Tooltip title="View media lot report record">
+              <Tooltip title={t("media.recordTooltip")}>
                 <Button
                   component={Link}
                   to={`/media/${m.id}/report`}
@@ -701,15 +701,15 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                     "&:hover": { bgcolor: "background.default" }
                   }}
                 >
-                  Record
+                  {t("media.record")}
                 </Button>
               </Tooltip>
             )
           }}
           empty={{
             title: hasActiveFilters
-              ? "No approved media lots match the selected filters."
-              : "No approved media lots currently available in inventory.",
+              ? t("media.emptyFiltered")
+              : t("media.empty"),
             action: hasActiveFilters ? (
               <Button
                 size="small"
@@ -718,7 +718,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                 startIcon={<RotateLeftIcon fontSize="small" />}
                 sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
               >
-                Reset Filters
+                {t("media.filters.resetFilters")}
               </Button>
             ) : undefined
           }}

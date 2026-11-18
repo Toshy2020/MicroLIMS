@@ -14,6 +14,8 @@ import {
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { CriteriaCard, NumericCell, RegisterTable, ResultSection, VerdictBanner } from "../../components/lab";
 import type { RegisterColumn } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
@@ -63,6 +65,7 @@ export function GravimetricPanel({
   current,
   onRecorded
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -141,7 +144,7 @@ export function GravimetricPanel({
 
         if (loadedSpecs.length === 0) {
           if (active) {
-            setError(`No specifications configured for test ${effectiveTestCode}.`);
+            setError(t("gravimetric.noSpecsConfigured", { testCode: effectiveTestCode }));
             setLoading(false);
           }
           return;
@@ -195,7 +198,7 @@ export function GravimetricPanel({
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load gravimetric test configuration or specifications.";
+          t("gravimetric.loadConfigFailed");
         if (active) setError(msg);
       } finally {
         if (active) setLoading(false);
@@ -217,7 +220,7 @@ export function GravimetricPanel({
 
   const usesTare = Boolean(testDef?.usesTare);
   const isResidue = testDef?.equationType === "GravimetricResidue";
-  const previewLabel = isResidue ? "Residue (%) Preview" : "Loss (%) Preview";
+  const previewLabel = isResidue ? t("gravimetric.residuePreview") : t("gravimetric.lossPreview");
 
   const conditionLabels = useMemo(() => {
     if (!testDef?.conditionFields) return [];
@@ -229,12 +232,12 @@ export function GravimetricPanel({
 
   const columns: UnitEntryGridColumn[] = useMemo(() => {
     return [
-      ...(usesTare ? [{ key: "container", label: "Container (g)" }] : []),
-      { key: "initial", label: "Initial (g)" },
-      { key: "final", label: "Final (g)" },
+      ...(usesTare ? [{ key: "container", label: t("gravimetric.containerCol") }] : []),
+      { key: "initial", label: t("gravimetric.initialCol") },
+      { key: "final", label: t("gravimetric.finalCol") },
       { key: "preview", label: previewLabel, readOnly: true }
     ];
-  }, [usesTare, previewLabel]);
+  }, [usesTare, previewLabel, t]);
 
   const computePreview = (row: Record<string, string>): string => {
     const c = usesTare ? Number(row?.container) : 0;
@@ -335,7 +338,7 @@ export function GravimetricPanel({
       setSigning(false);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to record gravimetric result.";
+        t("gravimetric.recordFailed");
       setError(msg);
     }
   };
@@ -348,13 +351,13 @@ export function GravimetricPanel({
       s.expectedResultText ||
       (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} \u2013 ${s.upperLimit ?? ""}` : "\u2014"),
     unit: s.unit || "%",
-    source: "Specification"
+    source: t("gravimetric.sourceSpecification")
   }));
 
   // Completion view
   if (showCompleted) {
     const serverStatus = outcome?.status ?? "";
-    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}`;
+    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? t("gravimetric.resultsRecordedFallback")}`;
     // Verdict comes only from the server's status field; when the status is not
     // known (page reopened) the recorded result is shown with no verdict.
     const verdict: Verdict | null = !serverStatus
@@ -376,21 +379,21 @@ export function GravimetricPanel({
         )}
 
         {testDef && (
-          <ResultSection title="Analysis summary">
+          <ResultSection title={t("gravimetric.summaryTitle")}>
             <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("gravimetric.equationType")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {testDef.equationType === "GravimetricResidue" ? "Ash / Residue" : "Loss on Drying"}
+                  {testDef.equationType === "GravimetricResidue" ? t("gravimetric.ashResidue") : t("gravimetric.lossOnDrying")}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicates Recorded</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{replicateCount}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("gravimetric.replicatesRecorded")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><Ltr>{replicateCount}</Ltr></Typography>
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Tare Mode</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{usesTare ? "Container Tare" : "Direct"}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("gravimetric.tareMode")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{usesTare ? t("gravimetric.containerTare") : t("gravimetric.directTare")}</Typography>
               </Box>
             </Stack>
           </ResultSection>
@@ -404,26 +407,26 @@ export function GravimetricPanel({
             .sort((a, b) => a.index - b.index);
           if (weights.length === 0) return null;
           const weightColumns: RegisterColumn<ResultReadingDetail>[] = [
-            { key: "index", label: "Replicate", render: (r) => `Rep ${r.index}` },
+            { key: "index", label: t("gravimetric.replicateCol"), render: (r) => t("gravimetric.repLabel", { index: r.index }) },
             ...(usesTare
-              ? [{ key: "value1", label: "Container (g)", numeric: true, render: (r: ResultReadingDetail) => <NumericCell value={r.value1} /> }]
+              ? [{ key: "value1", label: t("gravimetric.containerCol"), numeric: true, render: (r: ResultReadingDetail) => <NumericCell value={r.value1} /> }]
               : []),
-            { key: "value2", label: "Initial (g)", numeric: true, render: (r) => <NumericCell value={r.value2} /> },
-            { key: "value3", label: "Final (g)", numeric: true, render: (r) => <NumericCell value={r.value3} /> },
+            { key: "value2", label: t("gravimetric.initialCol"), numeric: true, render: (r) => <NumericCell value={r.value2} /> },
+            { key: "value3", label: t("gravimetric.finalCol"), numeric: true, render: (r) => <NumericCell value={r.value3} /> },
             {
               key: "computedValue",
-              label: isResidue ? "Residue (%)" : "Loss (%)",
+              label: isResidue ? t("gravimetric.residuePctCol") : t("gravimetric.lossPctCol"),
               numeric: true,
               render: (r) => <NumericCell value={r.computedValue} decimals={2} unit="%" />
             }
           ];
           return (
-            <ResultSection key={p.id} title={`Recorded weights · ${p.parameterName}`}>
+            <ResultSection key={p.id} title={t("gravimetric.recordedWeightsTitle", { parameter: p.parameterName })}>
               <RegisterTable
                 columns={weightColumns}
                 rows={weights}
                 getRowId={(r) => r.id ?? `${idx}-${r.index}`}
-                empty={{ title: "No weights recorded" }}
+                empty={{ title: t("gravimetric.noWeightsRecorded") }}
               />
             </ResultSection>
           );
@@ -445,8 +448,8 @@ export function GravimetricPanel({
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("gravimetric.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("gravimetric.returnedDefault")}
         </Alert>
       )}
 
@@ -462,12 +465,12 @@ export function GravimetricPanel({
         {/* Section 1: Analysis Configuration */}
         <ResultSection
           step={1}
-          title="Analysis configuration"
+          title={t("gravimetric.analysisConfiguration")}
           actions={
             <Stack direction="row" spacing={1}>
-              <Chip size="small" variant="outlined" label={isResidue ? "Ash / Residue" : "Loss on Drying"} />
-              <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
-              {usesTare && <Chip size="small" color="primary" variant="outlined" label="Uses Tare" />}
+              <Chip size="small" variant="outlined" label={isResidue ? t("gravimetric.ashResidue") : t("gravimetric.lossOnDrying")} />
+              <Chip size="small" variant="outlined" label={t("gravimetric.replicatesChip", { count: replicateCount })} />
+              {usesTare && <Chip size="small" color="primary" variant="outlined" label={t("gravimetric.usesTare")} />}
             </Stack>
           }
         >
@@ -475,28 +478,28 @@ export function GravimetricPanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time"
+              label={t("gravimetric.analysisTime")}
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
               required
               fullWidth
             />
 
             <FormControl size="small" fullWidth>
-              <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
+              <InputLabel id="equipment-select-label">{t("gravimetric.equipmentLabel")}</InputLabel>
               <Select
                 labelId="equipment-select-label"
-                label="Equipment (Physicochemical)"
+                label={t("gravimetric.equipmentLabel")}
                 value={selectedEquipmentId}
                 onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
               >
                 <MenuItem value="">
-                  <em>None (no instrument linked)</em>
+                  <em>{t("gravimetric.noInstrument")}</em>
                 </MenuItem>
                 {fpEquipment.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.name} ({eq.code})
+                    {eq.name} (<Ltr>{eq.code}</Ltr>)
                   </MenuItem>
                 ))}
               </Select>
@@ -507,7 +510,7 @@ export function GravimetricPanel({
           {conditionLabels.length > 0 && (
             <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
               <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 1.5, color: "text.secondary" }}>
-                Test Conditions (All required)
+                {t("gravimetric.testConditionsHeading")}
               </Typography>
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: conditionLabels.length > 1 ? "1fr 1fr" : "1fr" }, gap: 1.5 }}>
                 {conditionLabels.map((label) => (
@@ -535,12 +538,12 @@ export function GravimetricPanel({
             <ResultSection
               key={s.id}
               step={specIdx + 2}
-              title={`Gravimetric weights \u00b7 ${s.parameterName || s.testCode} (${replicateCount} replicate${replicateCount === 1 ? "" : "s"})`}
+              title={t("gravimetric.weightsSectionTitle", { parameter: s.parameterName || s.testCode, count: replicateCount })}
             >
 
               <UnitEntryGrid
                 rowCount={replicateCount}
-                rowLabel={(i) => `Rep ${i + 1}`}
+                rowLabel={(i) => t("gravimetric.repLabel", { index: i + 1 })}
                 columns={columns}
                 values={specRows}
                 onChange={(next) => handleReplicatesChange(s.id!, next)}
@@ -553,7 +556,7 @@ export function GravimetricPanel({
         {/* Section 4: Comment */}
         <TextField
           size="small"
-          label="Comment (optional)"
+          label={t("gravimetric.commentOptional")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           multiline
@@ -569,7 +572,7 @@ export function GravimetricPanel({
             onClick={() => setSigning(true)}
             sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
           >
-            Sign and record result
+            {t("gravimetric.signAndRecord")}
           </Button>
         </Box>
       </Stack>
@@ -577,6 +580,7 @@ export function GravimetricPanel({
       <SignatureDialog
         open={signing}
         meaningStatement="I entered these gravimetric measurements and am recording this test result."
+        meaningStatementTranslation={t("gravimetric.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

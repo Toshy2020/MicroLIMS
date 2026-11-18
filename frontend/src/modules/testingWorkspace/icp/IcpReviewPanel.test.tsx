@@ -98,11 +98,13 @@ describe("IcpReviewPanel", () => {
     expect(screen.getByText("Act.Wt")).toBeTruthy();
     expect(screen.getByText("0.55 g")).toBeTruthy();
     expect(screen.queryByText("Sp.gr")).toBeNull();
-    expect(screen.getByText("Formula: Assay % = result × Th.Wt × 100 / (target × Act.Wt)")).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "SPAN" && el.textContent === "Formula: Assay % = result × Th.Wt × 100 / (target × Act.Wt)")
+    ).toBeTruthy();
 
     // Reported display and spec
     expect(screen.getByText("86.4 %")).toBeTruthy();
-    expect(screen.getByText(/\(Spec: 90-110\)/i)).toBeTruthy();
+    expect(screen.getByText((_, el) => el?.tagName === "P" && /\(Spec: 90-110\)/i.test(el.textContent ?? ""))).toBeTruthy();
 
     // Evidence file
     expect(await screen.findByText("Zn-run-report.pdf")).toBeTruthy();
@@ -122,7 +124,9 @@ describe("IcpReviewPanel", () => {
     expect(screen.getByText("10 mL")).toBeTruthy();
     expect(screen.getByText("Sp.gr")).toBeTruthy();
     expect(screen.getByText("1.2")).toBeTruthy();
-    expect(screen.getByText("Formula: Assay % = result × Th.Vol × Sp.gr × 100 / (target × Act.Wt)")).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "SPAN" && el.textContent === "Formula: Assay % = result × Th.Vol × Sp.gr × 100 / (target × Act.Wt)")
+    ).toBeTruthy();
   });
 
   it("shows only the ppm result and the impurity rule for an impurity test", () => {
@@ -176,7 +180,7 @@ describe("IcpReviewPanel", () => {
 
     expect(screen.getByText(/ICP Review · Arsenic \(As\)/i)).toBeTruthy();
     expect(screen.getAllByText("0.045 ppm").length).toBeGreaterThan(0);
-    expect(screen.getByText(/\(Spec: NMT 0.2\)/i)).toBeTruthy();
+    expect(screen.getByText((_, el) => el?.tagName === "P" && /\(Spec: NMT 0\.2\)/i.test(el.textContent ?? ""))).toBeTruthy();
     expect(
       screen.getByText(/Detailed calculation payload was not found or is in an invalid format/i)
     ).toBeTruthy();

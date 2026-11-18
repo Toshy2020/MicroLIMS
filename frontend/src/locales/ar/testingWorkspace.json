@@ -1322,5 +1322,73 @@
     "signStage1Btn": "توقيع وتسجيل نتيجة المرحلة 1",
     "signatureMeaningStage1": "أدخلت أوزان وحدات تفاوت الوزن للمرحلة 1 وأسجّل نتيجة الاختبار هذه.",
     "signatureMeaningStage2": "أدخلت أوزان وحدات تفاوت الوزن للمرحلة 2 وأقوم بتسجيلها."
+  },
+  "icpReports": {
+    "calibrationReport": "تقرير المعايرة",
+    "sampleReport": "تقرير عينة",
+    "loadFailed": "تعذّر تحميل التقارير.",
+    "heading": "تقارير الأدلة",
+    "loading": "جارٍ تحميل التقارير...",
+    "empty": "لا توجد تقارير متاحة لطلب اختبار هذا.",
+    "col": {
+      "reportContext": "التقرير / السياق",
+      "fileName": "اسم الملف",
+      "uploadedBy": "رُفع بواسطة",
+      "uploadedAt": "تاريخ الرفع",
+      "action": "الإجراء"
+    },
+    "userFallback": "مستخدم #{{id}}",
+    "view": "عرض"
+  },
+  "icpReview": {
+    "title": "مراجعة ICP · {{name}}",
+    "recordedFallback": "مسجّلة عبر مساحة عمل ICP. نتيجة المعامل: <strong><ltr>{{display}}</ltr></strong>{{statusPart}}.",
+    "payloadMissingAlert": "بيانات الحساب التفصيلية غير موجودة أو بتنسيق غير صالح.",
+    "reportedResult": "النتيجة المُبلَّغ عنها:",
+    "specParens": "(المواصفات: <ltr>{{spec}}</ltr>)",
+    "runCalHeader": "التشغيل: <strong><ltr>{{runCode}}</ltr></strong> · المعايرة: <strong><ltr>{{calCode}}</ltr></strong>",
+    "calibrationSection": "المعايرة",
+    "calibrationCode": "رمز المعايرة",
+    "declaredReadyAt": "أُعلن جاهزًا (موقّع) في",
+    "correlationR": "معامل الارتباط (r)",
+    "calculationSection": "الحساب",
+    "instrumentResult": "نتيجة الجهاز",
+    "target": "الهدف",
+    "thVol": "الحجم النظري",
+    "thWt": "الوزن النظري",
+    "spGr": "الكثافة النوعية",
+    "actWt": "الوزن الفعلي",
+    "formula": "المعادلة: <ltr>{{formula}}</ltr>",
+    "rawEvidenceRun": "الأدلة الأولية محفوظة ضمن تشغيل ICP <strong><ltr>{{runCode}}</ltr></strong>"
+  },
+  "uvReview": {
+    "modes": {
+      "SpecificAbsorbanceAssay": "معايرة بالامتصاص النوعي",
+      "SpecificAbsorbanceValue": "قيمة الامتصاص النوعي",
+      "StandardComparison": "مقارنة مع مادة قياسية",
+      "AbsorbanceLimit": "حد الامتصاص"
+    },
+    "title": "مراجعة UV · {{name}}",
+    "mode": "الوضع",
+    "wavelength": "الطول الموجي",
+    "volume": "الحجم",
+    "a1Percent": "A1%",
+    "asIsValue": "القيمة كما هي",
+    "moisture": "الرطوبة",
+    "standardLot": "تشغيلة المادة القياسية",
+    "stdPurity": "نقاء القياسي",
+    "stdMoisture": "رطوبة القياسي",
+    "stdVolume": "حجم القياسي",
+    "stdWeight": "وزن القياسي",
+    "stdAbsorbance": "امتصاص القياسي",
+    "referenceAbsorbance": "الامتصاص المرجعي",
+    "colReplicate": "التكرار",
+    "colSampleWeight": "وزن العينة (غ)",
+    "colAbsorbance": "الامتصاص",
+    "colResultAsIs": "النتيجة (كما هي)",
+    "colResult": "النتيجة",
+    "repLabel": "تكرار {{index}}",
+    "reportedResult": "النتيجة المُبلَّغ عنها:",
+    "specParens": "(المواصفات: <ltr>{{spec}}</ltr>)"
   }
 }

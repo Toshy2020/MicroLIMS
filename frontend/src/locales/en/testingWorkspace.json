@@ -1310,5 +1310,73 @@
     "signStage1Btn": "Sign & Record Stage 1 Result",
     "signatureMeaningStage1": "I entered these stage 1 weight variation unit weights and am recording this test result.",
     "signatureMeaningStage2": "I entered these stage 2 weight variation unit weights and am recording them."
+  },
+  "icpReports": {
+    "calibrationReport": "Calibration Report",
+    "sampleReport": "Sample Report",
+    "loadFailed": "Unable to load reports.",
+    "heading": "Evidence Reports",
+    "loading": "Loading reports...",
+    "empty": "No reports available for this test order.",
+    "col": {
+      "reportContext": "Report / Context",
+      "fileName": "File Name",
+      "uploadedBy": "Uploaded By",
+      "uploadedAt": "Uploaded At",
+      "action": "Action"
+    },
+    "userFallback": "User #{{id}}",
+    "view": "View"
+  },
+  "icpReview": {
+    "title": "ICP Review · {{name}}",
+    "recordedFallback": "Recorded via ICP Workspace. Parameter result: <strong><ltr>{{display}}</ltr></strong>{{statusPart}}.",
+    "payloadMissingAlert": "Detailed calculation payload was not found or is in an invalid format.",
+    "reportedResult": "Reported Result:",
+    "specParens": "(Spec: <ltr>{{spec}}</ltr>)",
+    "runCalHeader": "Run: <strong><ltr>{{runCode}}</ltr></strong> · Cal: <strong><ltr>{{calCode}}</ltr></strong>",
+    "calibrationSection": "Calibration",
+    "calibrationCode": "Calibration Code",
+    "declaredReadyAt": "Declared ready (signed) at",
+    "correlationR": "Correlation (r)",
+    "calculationSection": "Calculation",
+    "instrumentResult": "Instrument result",
+    "target": "Target",
+    "thVol": "Th.Vol",
+    "thWt": "Th.Wt",
+    "spGr": "Sp.gr",
+    "actWt": "Act.Wt",
+    "formula": "Formula: <ltr>{{formula}}</ltr>",
+    "rawEvidenceRun": "Raw evidence stored under ICP Run <strong><ltr>{{runCode}}</ltr></strong>"
+  },
+  "uvReview": {
+    "modes": {
+      "SpecificAbsorbanceAssay": "Specific Absorbance Assay",
+      "SpecificAbsorbanceValue": "Specific Absorbance Value",
+      "StandardComparison": "Standard Comparison",
+      "AbsorbanceLimit": "Absorbance Limit"
+    },
+    "title": "UV Review · {{name}}",
+    "mode": "Mode",
+    "wavelength": "Wavelength",
+    "volume": "Volume",
+    "a1Percent": "A1%",
+    "asIsValue": "As-is Value",
+    "moisture": "Moisture",
+    "standardLot": "Standard Lot",
+    "stdPurity": "Std Purity",
+    "stdMoisture": "Std Moisture",
+    "stdVolume": "Std Volume",
+    "stdWeight": "Std Weight",
+    "stdAbsorbance": "Std Absorbance",
+    "referenceAbsorbance": "Reference Absorbance",
+    "colReplicate": "Replicate",
+    "colSampleWeight": "Sample Weight (g)",
+    "colAbsorbance": "Absorbance",
+    "colResultAsIs": "Result (as is)",
+    "colResult": "Result",
+    "repLabel": "Rep {{index}}",
+    "reportedResult": "Reported Result:",
+    "specParens": "(Spec: <ltr>{{spec}}</ltr>)"
   }
 }

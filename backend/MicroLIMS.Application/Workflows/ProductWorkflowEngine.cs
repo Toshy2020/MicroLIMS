@@ -92,15 +92,23 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var item = await _db.Items
             .Include(i => i.AssignedTests)
             .FirstOrDefaultAsync(i => i.Id == request.ItemId)
-            ?? throw new BusinessRuleException($"Item {request.ItemId} not found or not configured.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ReceivingItemNotConfigured,
+                $"Item {request.ItemId} not found or not configured.",
+                new Dictionary<string, string> { ["itemId"] = request.ItemId.ToString(CultureInfo.InvariantCulture) });
 
         if (!item.IsActive)
-            throw new BusinessRuleException($"Item '{item.Name}' is frozen and cannot be used to receive new samples.");
+            throw new BusinessRuleException(
+                MessageCodes.ReceivingItemFrozen,
+                $"Item '{item.Name}' is frozen and cannot be used to receive new samples.",
+                new Dictionary<string, string> { ["item"] = item.Name });
 
         if (item.AssignedTests.Count == 0)
             throw new BusinessRuleException(
+                MessageCodes.ReceivingItemHasNoAssignedTests,
                 $"Item '{item.Name}' has no assigned tests. Configuration must be completed " +
-                "by the Section Head before samples can be received.");
+                "by the Section Head before samples can be received.",
+                new Dictionary<string, string> { ["item"] = item.Name });
 
         // FP-only: a Finished Product sample must name a known production
         // stage - stage-dependent tests (replicate counts) resolve it by
@@ -109,13 +117,18 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         if (item.Category == SampleCategory.FinishedProduct)
         {
             if (string.IsNullOrWhiteSpace(request.ProductionStage))
-                throw new BusinessRuleException("Production stage is required for a Finished Product sample.");
+                throw new BusinessRuleException(
+                    MessageCodes.ReceivingProductionStageRequired,
+                    "Production stage is required for a Finished Product sample.");
             var stageName = request.ProductionStage.Trim();
             productionStageId = await _db.ProductionStages
                 .Where(p => p.Name.ToLower() == stageName.ToLower())
                 .Select(p => (int?)p.Id)
                 .FirstOrDefaultAsync()
-                ?? throw new BusinessRuleException($"Production stage '{stageName}' is not a known stage.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.ReceivingProductionStageUnknown,
+                    $"Production stage '{stageName}' is not a known stage.",
+                    new Dictionary<string, string> { ["stage"] = stageName });
         }
 
         var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == item.Id && !s.IsRetired).ToListAsync();
@@ -155,9 +168,15 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         if (assigned.Count == 0)
         {
             if (grade is not null)
-                throw new BusinessRuleException($"Grade {grade} applies to none of the tests assigned to '{item.Name}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.ReceivingGradeAppliesToNoTests,
+                    $"Grade {grade} applies to none of the tests assigned to '{item.Name}'.",
+                    new Dictionary<string, string> { ["grade"] = grade, ["item"] = item.Name });
             if (item.AssignedTests.Count > 0)
-                throw new BusinessRuleException($"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.");
+                throw new BusinessRuleException(
+                    MessageCodes.ReceivingAllTestsNotApplicable,
+                    $"Every test assigned to '{item.Name}' is declared not applicable; there is nothing to test.",
+                    new Dictionary<string, string> { ["item"] = item.Name });
         }
         if (request.TargetSectionIds is { } targets)
         {
@@ -167,7 +186,10 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                 {
                     var name = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Name).FirstOrDefaultAsync()
                         ?? $"section {sectionId}";
-                    throw new BusinessRuleException($"Item '{item.Name}' has no tests for {name}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.ReceivingItemHasNoTestsForSection,
+                        $"Item '{item.Name}' has no tests for {name}.",
+                        new Dictionary<string, string> { ["item"] = item.Name, ["section"] = name });
                 }
             }
             assigned = assigned.Where(t => targets.Contains(testSections[t.TestCode])).ToList();
@@ -247,7 +269,9 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(item.Category);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
                 throw new BusinessRuleException(
-                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+                    MessageCodes.ReceivingReferenceNumberClash,
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.",
+                    new Dictionary<string, string> { ["referenceNumber"] = sample.ReferenceNumber });
         }
 
         return sample;
@@ -407,13 +431,22 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         var itemGrades = itemSpecs.Where(s => s.Grade != null).Select(s => s.Grade!).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (itemGrades.Count == 0)
         {
-            if (requestedGrade != null) throw new BusinessRuleException($"Grade {requestedGrade} has no specification for this item.");
+            if (requestedGrade != null)
+                throw new BusinessRuleException(
+                    MessageCodes.ReceivingGradeHasNoSpecification,
+                    $"Grade {requestedGrade} has no specification for this item.",
+                    new Dictionary<string, string> { ["grade"] = requestedGrade });
             return null;
         }
         if (requestedGrade == null)
-            throw new BusinessRuleException("Choose the grade stated on the supplier's CoA.");
+            throw new BusinessRuleException(
+                MessageCodes.ReceivingGradeRequired,
+                "Choose the grade stated on the supplier's CoA.");
         return itemGrades.FirstOrDefault(g => string.Equals(g, requestedGrade, StringComparison.OrdinalIgnoreCase))
-            ?? throw new BusinessRuleException($"Grade {requestedGrade} has no specification for this item.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ReceivingGradeHasNoSpecification,
+                $"Grade {requestedGrade} has no specification for this item.",
+                new Dictionary<string, string> { ["grade"] = requestedGrade });
     }
 
     public async Task<WorkflowStep> AdvanceAsync(int testOrderId, int performedByUserId, string? note = null)

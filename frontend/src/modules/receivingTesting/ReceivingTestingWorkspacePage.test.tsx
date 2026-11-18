@@ -193,7 +193,11 @@ describe("ReceivingTestingWorkspacePage label printing offer", () => {
     await receiveSampleFromWorkspace(user);
 
     expect(
-      await screen.findByText("Successfully received 1 sample. Test orders generated automatically.")
+      await screen.findByText(
+        (_c, el) =>
+          el?.classList.contains("MuiAlert-message") === true &&
+          el.textContent === "Successfully received 1 sample. Test orders generated automatically."
+      )
     ).toBeTruthy();
     await waitFor(() => {
       expect(vi.mocked(ReceiveService.getRecordsPaged).mock.calls.length).toBeGreaterThanOrEqual(2);

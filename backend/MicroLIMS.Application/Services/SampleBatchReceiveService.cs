@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -131,7 +132,10 @@ public class SampleBatchReceiveService
                         "EM" => await _emService.ReceiveAsync(ToEMRequest(request.Em![i], userId)),
                         "AfterCleaning" => await _afterCleaningService.ReceiveAsync(
                             ToAfterCleaningRequest(request.AfterCleaning![i], userId)),
-                        _ => throw new BusinessRuleException($"Unsupported category '{category}'.")
+                        _ => throw new BusinessRuleException(
+                            MessageCodes.ReceivingUnsupportedCategory,
+                            $"Unsupported category '{category}'.",
+                            new Dictionary<string, string> { ["category"] = category })
                     };
                     samples.Add(new BatchReceivedSample(i, dto.Id, dto.ReferenceNumber));
                 }

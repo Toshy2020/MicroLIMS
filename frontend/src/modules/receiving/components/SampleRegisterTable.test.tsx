@@ -79,7 +79,9 @@ describe("SampleRegisterTable", () => {
 
     expect(screen.getByRole("columnheader", { name: /Next Action/ })).toBeTruthy();
     expect(screen.queryByRole("columnheader", { name: "Received At" })).toBeNull();
-    expect(screen.getByText(/#91 · Product · Routine · IPQA/)).toBeTruthy();
+    expect(
+      screen.getByText((_c, el) => el?.tagName === "P" && /#91 · Product · Routine · IPQA/.test(el.textContent ?? ""))
+    ).toBeTruthy();
 
     await user.click(screen.getByRole("button", { name: "Record TAMC" }));
     expect(onTestClick).toHaveBeenCalledWith(expect.objectContaining({ testCode: "TAMC" }), expect.anything());
@@ -93,7 +95,11 @@ describe("SampleRegisterTable", () => {
     await user.click(within(picker).getByRole("checkbox", { name: "Received At" }));
     await user.keyboard("{Escape}");
     expect(screen.getByRole("columnheader", { name: "Received At" })).toBeTruthy();
-    expect(screen.queryByText(/#91 · Product · Routine · IPQA · /)).toBeNull();
+    expect(
+      screen.queryByText(
+        (_c, el) => el?.tagName === "P" && /#91 · Product · Routine · IPQA · /.test(el.textContent ?? "")
+      )
+    ).toBeNull();
 
     unmount();
     renderTable([sample({})]);
@@ -622,7 +628,9 @@ describe("SampleRegisterTable test list (characterisation)", () => {
     const h = makeHandlers();
     renderFull([sample({ sampleId: 91 })], h);
     await user.click(screen.getByRole("button", { name: "1 In Progress" }));
-    expect(screen.getByText("Assigned Tests (2)")).toBeTruthy();
+    expect(
+      screen.getByText((_c, el) => el?.tagName === "P" && el.textContent === "Assigned Tests (2)")
+    ).toBeTruthy();
     const popover = screen.getByRole("presentation");
     await user.click(within(popover).getByRole("button", { name: /TYMC/ }));
     expect(h.onTestClick).toHaveBeenCalledTimes(1);

@@ -11,7 +11,10 @@ import {
   useTheme
 } from "@mui/material";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
 import type { BulkAction } from "../../../components/lab/table/BulkActionBar";
 import type { RowSelection } from "../../../components/lab/table/useRowSelection";
 import { PERMISSIONS } from "../../../routes/routes";
@@ -33,11 +36,12 @@ export interface BulkAssignDialogProps {
 }
 
 export function bulkAssignAction(
-  onOpen: (sampleIds: number[]) => void
+  onOpen: (sampleIds: number[]) => void,
+  label?: string
 ): BulkAction<string | number> {
   return {
     key: "assign-analyst",
-    label: "Assign analyst",
+    label: label ?? i18n.t("bulkAssign.actionLabel", { ns: "receiving" }),
     permission: PERMISSIONS.SAMPLES_ASSIGN_ANALYST,
     run: (ids) => {
       onOpen(ids.map((id) => Number(id)));
@@ -56,6 +60,7 @@ export function BulkAssignDialog({
   onAssigned
 }: BulkAssignDialogProps) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [users, setUsers] = useState<AssignableUser[]>([]);
   const [analystUserId, setAnalystUserId] = useState<string>("");
   const [reason, setReason] = useState<string>("");
@@ -94,12 +99,15 @@ export function BulkAssignDialog({
       if (foundFor === null) {
         setNotice({
           severity: "warning",
-          text: `${probe.length === 1 ? "The selected sample has no" : `None of the first ${probe.length} selected samples has an`} open test you can assign in your laboratory sections (a voided or closed sample, or one outside your sections), so no analyst can be offered.`
+          text:
+            probe.length === 1
+              ? t("bulkAssign.noneOpenSingle")
+              : t("bulkAssign.noneOpenMultiple", { count: probe.length })
         });
       } else if (skipped > 0) {
         setNotice({
           severity: "info",
-          text: `${skipped} selected ${skipped === 1 ? "sample has" : "samples have"} no open test you can assign (for example a voided or closed sample). The analysts shown are those eligible for sample #${foundFor}. Each sample is still checked when you assign, and any refusal is listed afterwards.`
+          text: t("bulkAssign.skippedSome", { count: skipped, sampleId: foundFor })
         });
       }
     } catch (err: unknown) {
@@ -107,13 +115,13 @@ export function BulkAssignDialog({
       setError(
         getErrorMessage(
           err,
-          "Unable to load eligible analysts. Please retry or contact an administrator."
+          t("bulkAssign.loadFailed")
         )
       );
     } finally {
       setLoading(false);
     }
-  }, [idsKey]);
+  }, [idsKey, t]);
 
   useEffect(() => {
     if (open && !wasOpenRef.current) {
@@ -152,7 +160,7 @@ export function BulkAssignDialog({
       onAssigned?.(response);
       setResult(response);
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to assign analyst to selected samples."));
+      setError(getErrorMessage(err, t("bulkAssign.assignFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -172,19 +180,19 @@ export function BulkAssignDialog({
         <>
           <AssignmentIndIcon sx={{ color: theme.palette.primary.main }} />
           <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
-            {result ? "Bulk Assignment Results" : "Bulk Assign Analyst"}
+            {result ? t("bulkAssign.titleResults") : t("bulkAssign.title")}
           </Typography>
         </>
       }
       actions={
         result ? (
           <Button onClick={onClose} variant="contained">
-            Close
+            {t("bulkAssign.close")}
           </Button>
         ) : (
           <>
             <Button onClick={onClose} disabled={submitting} variant="outlined">
-              Cancel
+              {t("bulkAssign.cancel")}
             </Button>
             <Button
               onClick={handleSubmit}
@@ -192,7 +200,7 @@ export function BulkAssignDialog({
               variant="contained"
               startIcon={submitting ? <CircularProgress size={16} /> : <AssignmentIndIcon />}
             >
-              {submitting ? "Assigning..." : "Assign Analyst"}
+              {submitting ? t("bulkAssign.assigning") : t("bulkAssign.confirm")}
             </Button>
           </>
         )
@@ -204,7 +212,7 @@ export function BulkAssignDialog({
           sx={{ mb: 2 }}
           action={
             <Button color="inherit" size="small" onClick={() => void loadAnalysts()}>
-              Retry
+              {t("bulkAssign.retry")}
             </Button>
           }
         >
@@ -216,7 +224,12 @@ export function BulkAssignDialog({
         <Stack spacing={2}>
           <Alert severity={result.refusedCount > 0 ? "warning" : "success"}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {result.assignedCount} assigned, {result.refusedCount} refused
+              <Trans
+                i18nKey="bulkAssign.summary"
+                ns="receiving"
+                values={{ assigned: result.assignedCount, refused: result.refusedCount }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Alert>
 
@@ -231,7 +244,12 @@ export function BulkAssignDialog({
               }}
             >
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
-                Refused Samples ({refusedRows.length})
+                <Trans
+                  i18nKey="bulkAssign.refusedSamples"
+                  ns="receiving"
+                  values={{ count: refusedRows.length }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Divider sx={{ mb: 1 }} />
               <Stack spacing={1}>
@@ -246,9 +264,9 @@ export function BulkAssignDialog({
                     }}
                   >
                     <Typography variant="body2" sx={{ fontWeight: 700, flexShrink: 0 }}>
-                      {row.referenceNumber}
+                      <Ltr>{row.referenceNumber}</Ltr>
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "right" }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: "end" }}>
                       {row.refusedReason}
                     </Typography>
                   </Box>
@@ -269,10 +287,16 @@ export function BulkAssignDialog({
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-              {sampleIds.length} {sampleIds.length === 1 ? "sample" : "samples"} selected
+              <Trans
+                i18nKey="bulkAssign.selectedCount"
+                ns="receiving"
+                count={sampleIds.length}
+                values={{ count: sampleIds.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Open tests in your laboratory sections on each selected sample will be assigned to the chosen analyst.
+              {t("bulkAssign.selectedHint")}
             </Typography>
           </Box>
 
@@ -285,7 +309,7 @@ export function BulkAssignDialog({
           ) : (
             <AnalystPicker
               labelId="bulk-assign-analyst-label"
-              label="Assign analyst"
+              label={t("bulkAssign.pickerLabel")}
               value={analystUserId}
               users={users}
               onChange={setAnalystUserId}
@@ -295,8 +319,8 @@ export function BulkAssignDialog({
           <TextField
             fullWidth
             size="small"
-            label="Reason for Assignment / Reassignment (recorded in Audit Trail)"
-            placeholder="e.g. Workload balancing, primary analyst on leave, sectional scheduling"
+            label={t("bulkAssign.reasonLabel")}
+            placeholder={t("bulkAssign.reasonPlaceholder")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             multiline

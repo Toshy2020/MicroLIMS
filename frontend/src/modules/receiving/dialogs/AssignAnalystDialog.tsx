@@ -21,6 +21,8 @@ import { AssignableTest, AssignableUser, SampleAssignmentOptions, SampleRecord }
 import { ReceiveService } from "../services/ReceiveService";
 import { CategoryBadge } from "../../../components/StatusBadge";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { assignedAnalystNames } from "../utils/assignedAnalysts";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
@@ -96,6 +98,7 @@ export function AssignAnalystDialog({
   onAssigned
 }: AssignAnalystDialogProps) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [options, setOptions] = useState<SampleAssignmentOptions | null>(null);
   const [selections, setSelections] = useState<Record<number, string>>({});
   const [allTestsValue, setAllTestsValue] = useState<string>("");
@@ -111,13 +114,13 @@ export function AssignAnalystDialog({
     try {
       const loaded = await ReceiveService.getAssignmentOptions(sample.sampleId);
       setOptions(loaded);
-      setSelections(Object.fromEntries(loaded.tests.map((t) => [t.testOrderId, valueOf(t.assignedAnalystId)])));
+      setSelections(Object.fromEntries(loaded.tests.map((test) => [test.testOrderId, valueOf(test.assignedAnalystId)])));
     } catch (err: unknown) {
       setOptions(null);
       setError(
         getErrorMessage(
           err,
-          "Unable to load eligible analysts. Please retry or contact an administrator."
+          t("assignAnalyst.loadFailed")
         )
       );
     } finally {
@@ -175,7 +178,7 @@ export function AssignAnalystDialog({
       onAssigned(updated);
       onClose();
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Failed to assign analyst."));
+      setError(getErrorMessage(err, t("assignAnalyst.saveFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -184,41 +187,42 @@ export function AssignAnalystDialog({
   if (!sample) return null;
 
   const currentNames = assignedAnalystNames(sample.assignedTests);
-  const currentAssignedName = currentNames.length > 0 ? currentNames.join(", ") : "Unassigned";
-  const assignableToAny = (options?.users ?? []).filter((u) => assignableTests.some((t) => t.eligibleUserIds.includes(u.id)));
+  const hasAssigned = currentNames.length > 0;
+  const currentAssignedName = hasAssigned ? currentNames.join(", ") : t("assignAnalyst.unassigned");
+  const assignableToAny = (options?.users ?? []).filter((u) => assignableTests.some((test) => test.eligibleUserIds.includes(u.id)));
 
-  const renderTestRow = (t: AssignableTest) => {
-    const value = selections[t.testOrderId] ?? valueOf(t.assignedAnalystId);
-    const eligible = t.eligibleUserIds.map((id) => usersById.get(id)).filter((u): u is AssignableUser => !!u);
+  const renderTestRow = (test: AssignableTest) => {
+    const value = selections[test.testOrderId] ?? valueOf(test.assignedAnalystId);
+    const eligible = test.eligibleUserIds.map((id) => usersById.get(id)).filter((u): u is AssignableUser => !!u);
     // Whoever is on the test now stays visible even when the signed-in user
     // could not pick them (e.g. another Section Head).
-    const keepsCurrent = t.assignedAnalystId != null && !t.eligibleUserIds.includes(t.assignedAnalystId);
+    const keepsCurrent = test.assignedAnalystId != null && !test.eligibleUserIds.includes(test.assignedAnalystId);
 
     return (
       <Box
-        key={t.testOrderId}
+        key={test.testOrderId}
         sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
-        data-testid={`assign-row-${t.testCode}`}
+        data-testid={`assign-row-${test.testCode}`}
       >
         <Box sx={{ width: 150, flexShrink: 0 }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t.testCode}</Typography>
-          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap title={t.sectionName}>
-            {t.sectionName}
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}><Ltr>{test.testCode}</Ltr></Typography>
+          <Typography sx={{ fontSize: 11, color: "text.secondary" }} noWrap title={test.sectionName}>
+            {test.sectionName}
           </Typography>
         </Box>
-        {t.canAssign ? (
+        {test.canAssign ? (
           <FormControl fullWidth size="small">
             <Select
               value={value}
-              onChange={(e) => setSelections((prev) => ({ ...prev, [t.testOrderId]: e.target.value }))}
-              inputProps={{ "aria-label": `Analyst for ${t.testCode}` }}
+              onChange={(e) => setSelections((prev) => ({ ...prev, [test.testOrderId]: e.target.value }))}
+              inputProps={{ "aria-label": t("assignAnalyst.analystForTestAria", { testCode: test.testCode }) }}
             >
               <MenuItem value={UNASSIGNED}>
-                <em>Unassigned</em>
+                <em>{t("assignAnalyst.unassigned")}</em>
               </MenuItem>
               {keepsCurrent && (
-                <MenuItem value={String(t.assignedAnalystId)} disabled>
-                  {t.assignedAnalystName}
+                <MenuItem value={String(test.assignedAnalystId)} disabled>
+                  {test.assignedAnalystName}
                 </MenuItem>
               )}
               {eligible.map((u) => (
@@ -231,9 +235,9 @@ export function AssignAnalystDialog({
         ) : (
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }} noWrap>
-              {t.assignedAnalystName ?? "Unassigned"}
+              {test.assignedAnalystName ?? t("assignAnalyst.unassigned")}
             </Typography>
-            <Chip size="small" label={LOCKED_STATUSES.includes(t.status) ? t.status : "Not your laboratory"} />
+            <Chip size="small" label={LOCKED_STATUSES.includes(test.status) ? test.status : t("assignAnalyst.notYourLab")} />
           </Box>
         )}
       </Box>
@@ -250,14 +254,14 @@ export function AssignAnalystDialog({
         <>
           <AssignmentIndIcon sx={{ color: theme.palette.primary.main }} />
           <Typography variant="h6" component="span" sx={{ fontWeight: 700 }}>
-            Assign Analysts
+            {t("assignAnalyst.title")}
           </Typography>
         </>
       }
       actions={
         <>
           <Button onClick={onClose} disabled={submitting} variant="outlined">
-            Cancel
+            {t("assignAnalyst.cancel")}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -265,7 +269,7 @@ export function AssignAnalystDialog({
             variant="contained"
             startIcon={submitting ? <CircularProgress size={16} /> : <AssignmentIndIcon />}
           >
-            {submitting ? "Saving..." : "Save Assignment"}
+            {submitting ? t("assignAnalyst.saving") : t("assignAnalyst.save")}
           </Button>
         </>
       }
@@ -276,7 +280,7 @@ export function AssignAnalystDialog({
             sx={{ mb: 2 }}
             action={
               <Button color="inherit" size="small" onClick={loadOptions}>
-                Retry
+                {t("assignAnalyst.retry")}
               </Button>
             }
           >
@@ -303,18 +307,18 @@ export function AssignAnalystDialog({
           </Box>
           <Stack spacing={0.5} sx={{ fontSize: 12, color: "text.secondary" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <span>Reference Number:</span>
-              <strong>{sample.referenceNumber}</strong>
+              <span>{t("assignAnalyst.referenceNumber")}</span>
+              <strong><Ltr>{sample.referenceNumber}</Ltr></strong>
             </Box>
             {sample.batchNumber && (
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <span>Batch / Control No.:</span>
-                <strong>{sample.batchNumber} / {sample.controlNumber || "—"}</strong>
+                <span>{t("assignAnalyst.batchControl")}</span>
+                <strong><Ltr>{sample.batchNumber}</Ltr> / <Ltr>{sample.controlNumber || "—"}</Ltr></strong>
               </Box>
             )}
             <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-              <span>Current Assignment:</span>
-              <strong style={{ textAlign: "right", color: currentAssignedName === "Unassigned" ? theme.palette.text.disabled : theme.palette.primary.main }}>
+              <span>{t("assignAnalyst.currentAssignment")}</span>
+              <strong style={{ textAlign: "end", color: !hasAssigned ? theme.palette.text.disabled : theme.palette.primary.main }}>
                 {currentAssignedName}
               </strong>
             </Box>
@@ -322,8 +326,7 @@ export function AssignAnalystDialog({
         </Box>
 
         <Typography sx={{ fontSize: 12.5, color: "text.secondary", mb: 2 }}>
-          Each test can have its own analyst. Analysts, Reviewers and Section Heads of the test's laboratory can be
-          assigned; a Section Head can only assign themselves. The analyst on a test prepares and performs it.
+          {t("assignAnalyst.explanation")}
         </Typography>
 
         {loading ? (
@@ -335,17 +338,17 @@ export function AssignAnalystDialog({
             {assignableTests.length > 1 && (
               <AnalystPicker
                 labelId="assign-all-tests-label"
-                label="Assign all tests to"
+                label={t("assignAnalyst.assignAllLabel")}
                 value={allTestsValue}
                 users={assignableToAny}
                 onChange={applyToAllTests}
-                unassignedLabel="Unassigned (Open for any authorized analyst to prepare)"
+                unassignedLabel={t("assignAnalyst.assignAllUnassigned")}
                 sx={{ mb: 1 }}
               />
             )}
             {assignableTests.length === 0 && (
               <Alert severity="info" sx={{ mb: 1 }}>
-                This sample has no open tests in your laboratories to assign.
+                {t("assignAnalyst.noOpenTests")}
               </Alert>
             )}
             <Divider />
@@ -357,8 +360,8 @@ export function AssignAnalystDialog({
           <TextField
             fullWidth
             size="small"
-            label="Reason for Assignment / Reassignment (recorded in Audit Trail)"
-            placeholder="e.g. Workload balancing, primary analyst on leave, sectional scheduling"
+            label={t("assignAnalyst.reasonLabel")}
+            placeholder={t("assignAnalyst.reasonPlaceholder")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             multiline

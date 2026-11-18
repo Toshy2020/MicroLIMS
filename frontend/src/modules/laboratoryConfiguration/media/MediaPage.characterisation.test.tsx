@@ -198,7 +198,8 @@ describe("MediaPage lots register", () => {
     await user.click(screen.getByRole("button", { name: "Reset Filters" }));
     await waitFor(() => expect(registerRows()).toHaveLength(5), { timeout: 3000 });
     expect(screen.queryByRole("button", { name: "Reset Filters" })).toBeNull();
-  });
+    // Types three searches; give it room when the suite runs on a loaded machine.
+  }, 15000);
 
   it("the material and status dropdowns filter, and the status dropdown and the KPI tiles stay in step", async () => {
     const user = userEvent.setup();

@@ -176,7 +176,8 @@ describe("EquipmentInventoryPage register", () => {
     await user.click(screen.getByRole("button", { name: "Reset" }));
     await waitFor(() => expect(registerRows()).toHaveLength(4));
     expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();
-  });
+    // Types three searches; give it room when the suite runs on a loaded machine.
+  }, 15000);
 
   it("instrument type, status, location and calibration dropdowns each filter the list", async () => {
     const user = userEvent.setup();

@@ -1,5 +1,6 @@
 import { ReferenceStrainListItem } from "../types/referenceStrainTypes";
 import { escapeHtml } from "../../../utils/escapeHtml";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface ReferenceStrainPdfExportOptions {
   title?: string;
@@ -20,9 +21,7 @@ function formatDate(iso: string | null | undefined): string {
 
 export function exportReferenceStrainPdf(records: ReferenceStrainListItem[], options: ReferenceStrainPdfExportOptions = {}) {
   const title = options.title || (options.isSelection ? "Reference Strains Report (Selected Batches)" : "Reference Microorganism Strains Report");
-  const generatedAt = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
+  const generatedAt = formatDateTimeWithTimeZone(new Date(), { seconds: true, english: true });
   const generatedBy = options.generatedBy || "Authorized User";
   const criteria = options.criteriaSummary || "All Reference Strain Batches";
   const count = records.length;
@@ -51,7 +50,7 @@ export function exportReferenceStrainPdf(records: ReferenceStrainListItem[], opt
         ${r.isDestroyed ? `<br/><small style="color: #991b1b; font-weight: 700;">Destroyed</small>` : ""}
       </td>
       <td><small>${escapeHtml(r.preparedByName || "—")}</small></td>
-      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${formatDate(r.approvedAt)}</small></td>
+      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${r.approvedAt ? formatDateTimeWithTimeZone(r.approvedAt, { english: true }) : "—"}</small></td>
       <td style="text-align: center;"><strong>${r.directUsageCount}</strong></td>
     </tr>
   `).join("");

@@ -4,6 +4,7 @@ import type { KpiFiltersValue } from "./kpiFilters";
 import {
   FLAG_LABELS, entryView, formatExtras, formatKpiValue, formatPrior, formatRatio, formatUnits, sortByName
 } from "./kpiFormat";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 function esc(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "—";
@@ -90,9 +91,7 @@ export function buildKpiReportHtml(
   generatedBy: string,
   workloadError?: string | null
 ): string {
-  const generatedAt = new Date(dashboard.generatedAt).toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
-  });
+  const generatedAt = formatDateTimeWithTimeZone(dashboard.generatedAt, { english: true });
   const scope = [
     `Period: ${filters.from} to ${filters.to}`,
     filters.category ? `Category: ${filters.category}` : null,

@@ -6,6 +6,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import type { KpiRecordPage } from "../types/kpiTypes";
 import { formatKpiValue } from "../utils/kpiFormat";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 const PAGE_SIZE = 50;
 
@@ -73,7 +74,7 @@ export function KpiRecordsDrawer({ title, onClose, load }: KpiRecordsDrawerProps
                   <TableCell>{r.testCode ?? "—"}</TableCell>
                   <TableCell>{r.category ?? "—"}</TableCell>
                   <TableCell>{r.analystName ?? "—"}</TableCell>
-                  <TableCell>{r.eventAt ? new Date(r.eventAt).toLocaleString() : "—"}</TableCell>
+                  <TableCell>{r.eventAt ? formatDateTimeWithTimeZone(r.eventAt) : "—"}</TableCell>
                   <TableCell align="right">{r.value == null ? "—" : r.unit ? formatKpiValue(r.unit, r.value) : String(r.value)}</TableCell>
                   <TableCell>{r.inclusion}</TableCell>
                   <TableCell>{r.note ?? ""}</TableCell>

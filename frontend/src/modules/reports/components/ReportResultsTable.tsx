@@ -25,6 +25,7 @@ import { exportLogService } from "../../../components/lab/table/services/exportL
 import { TABLES } from "../../../components/lab/table/tableRegistry";
 import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import { fetchAllPages } from "../../../services/fetchAllPages";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -51,7 +52,7 @@ function formatDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);
   return {
     date: d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" })
   };
 }
 
@@ -283,7 +284,7 @@ export function ReportResultsTable({
     ) } },
     { colKey: "status", column: { key: "approvalStatus", label: COLUMN_LABELS.status, render: (row) => <StatusBadge status={row.approvalStatus} /> } },
     { colKey: "approvedBy", column: { key: "approvedByName", label: COLUMN_LABELS.approvedBy, render: (row) => row.approvedByName ?? "—" } },
-    { colKey: "approvalDate", column: { key: "approvedAt", label: COLUMN_LABELS.approvalDate, render: (row) => row.approvedAt ? formatDate(row.approvedAt) : "—" } }
+    { colKey: "approvalDate", column: { key: "approvedAt", label: COLUMN_LABELS.approvalDate, render: (row) => row.approvedAt ? formatDateTimeWithTimeZone(row.approvedAt) : "—" } }
   ];
 
   const tableColumns: RegisterColumn<ResultRecordItem>[] = [

@@ -1,5 +1,6 @@
 import { MediaGptListItem } from "../types/mediaGptTypes";
 import { escapeHtml } from "../../../utils/escapeHtml";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface MediaGptPdfExportOptions {
   title?: string;
@@ -20,9 +21,7 @@ function formatDate(iso: string | null | undefined): string {
 
 export function exportMediaGptPdf(records: MediaGptListItem[], options: MediaGptPdfExportOptions = {}) {
   const title = options.title || (options.isSelection ? "Media & GPT Report (Selected Lots)" : "Media & Growth Promotion Test (GPT) Report");
-  const generatedAt = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit"
-  });
+  const generatedAt = formatDateTimeWithTimeZone(new Date(), { seconds: true, english: true });
   const generatedBy = options.generatedBy || "Authorized User";
   const criteria = options.criteriaSummary || "All Prepared Media Lots";
   const count = records.length;
@@ -47,7 +46,7 @@ export function exportMediaGptPdf(records: MediaGptListItem[], options: MediaGpt
         ${r.isReleasedForUse ? `<br/><small style="color: #166534; font-weight: 700;">Released</small>` : ""}
       </td>
       <td><small>${escapeHtml(r.preparedByName || "—")}</small></td>
-      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${formatDate(r.approvedAt)}</small></td>
+      <td><small>${escapeHtml(r.approvedByName || "—")}<br/>${r.approvedAt ? formatDateTimeWithTimeZone(r.approvedAt, { english: true }) : "—"}</small></td>
     </tr>
   `).join("");
 

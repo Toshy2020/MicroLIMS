@@ -13,6 +13,7 @@ import HubIcon from "@mui/icons-material/Hub";
 import { ReferenceStrainDetail } from "../types/referenceStrainTypes";
 import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface ReferenceStrainDetailDialogProps {
   open: boolean;
@@ -30,13 +31,8 @@ function formatDate(iso?: string | null): string {
 }
 
 function formatDateTime(iso?: string | null): string {
-  if (!iso || iso.startsWith("0001")) return "—";
-  try {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
-  } catch {
-    return iso;
-  }
+  if (!iso) return "—";
+  return formatDateTimeWithTimeZone(iso);
 }
 
 export function ReferenceStrainDetailDialog({ open, onClose, detail }: ReferenceStrainDetailDialogProps) {
@@ -185,7 +181,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
             }}>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approved By</Typography>
             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-              {detail.approvedByName ? `${detail.approvedByName} on ${formatDate(detail.approvedAt)}` : "Pending Approval"}
+              {detail.approvedByName ? `${detail.approvedByName} on ${formatDateTime(detail.approvedAt)}` : "Pending Approval"}
             </Typography>
           </Grid>
         </Grid>
@@ -314,7 +310,7 @@ export function ReferenceStrainDetailDialog({ open, onClose, detail }: Reference
                     />
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {u.readByName ? `${u.readByName} (${formatDate(u.readAt)})` : "Pending"}
+                    {u.readByName ? `${u.readByName} (${formatDateTime(u.readAt)})` : "Pending"}
                   </TableCell>
                 </TableRow>
               ))}

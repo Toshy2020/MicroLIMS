@@ -1,6 +1,7 @@
 import { Box, TextField, Select, MenuItem, Button, Stack, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import { useTranslation } from "../../../../i18n";
 
 interface ItemFilterBarProps {
   searchQuery: string;
@@ -12,18 +13,8 @@ interface ItemFilterBarProps {
   onReset: () => void;
 }
 
-const CATEGORIES = [
-  { value: "ALL", label: "All Categories" },
-  { value: "FinishedProduct", label: "Product" },
-  { value: "RawMaterial", label: "Raw Material" },
-  { value: "PackagingMaterial", label: "Packaging Material" },
-];
-
-const STATUSES = [
-  { value: "ALL", label: "All Statuses" },
-  { value: "Active", label: "Active" },
-  { value: "Frozen", label: "Frozen" },
-];
+const CATEGORY_VALUES = ["ALL", "FinishedProduct", "RawMaterial", "PackagingMaterial"] as const;
+const STATUS_VALUES = ["ALL", "Active", "Frozen"] as const;
 
 export function ItemFilterBar({
   searchQuery,
@@ -34,7 +25,18 @@ export function ItemFilterBar({
   onStatusChange,
   onReset,
 }: ItemFilterBarProps) {
+  const { t } = useTranslation("labConfig");
   const isFiltered = searchQuery !== "" || categoryFilter !== "ALL" || statusFilter !== "ALL";
+
+  const categories = CATEGORY_VALUES.map((value) => ({
+    value,
+    label: value === "ALL" ? t("items.categories.all") : t(`items.categories.${value}`),
+  }));
+
+  const statuses = STATUS_VALUES.map((value) => ({
+    value,
+    label: value === "ALL" ? t("items.statuses.all") : t(`items.statuses.${value}`),
+  }));
 
   return (
     <Box sx={{ mb: 2.5, p: 2, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
@@ -43,12 +45,12 @@ export function ItemFilterBar({
       }}>
         <TextField
           size="small"
-          placeholder="Search by item name, item code, SOP number..."
+          placeholder={t("items.filterBar.searchPlaceholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: 280 } }}
           slotProps={{
-            htmlInput: { "aria-label": "Search items" },
+            htmlInput: { "aria-label": t("items.filterBar.searchAriaLabel") },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -63,10 +65,10 @@ export function ItemFilterBar({
           size="small"
           value={categoryFilter}
           onChange={(e) => onCategoryChange(e.target.value)}
-          inputProps={{ "aria-label": "Filter by category" }}
+          inputProps={{ "aria-label": t("items.filterBar.categoryAriaLabel") }}
           sx={{ minWidth: 180, width: { xs: "100%", sm: "auto" } }}
         >
-          {CATEGORIES.map((c) => (
+          {categories.map((c) => (
             <MenuItem key={c.value} value={c.value}>
               {c.label}
             </MenuItem>
@@ -77,10 +79,10 @@ export function ItemFilterBar({
           size="small"
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
-          inputProps={{ "aria-label": "Filter by status" }}
+          inputProps={{ "aria-label": t("items.filterBar.statusAriaLabel") }}
           sx={{ minWidth: 150, width: { xs: "100%", sm: "auto" } }}
         >
-          {STATUSES.map((s) => (
+          {statuses.map((s) => (
             <MenuItem key={s.value} value={s.value}>
               {s.label}
             </MenuItem>
@@ -96,7 +98,7 @@ export function ItemFilterBar({
             onClick={onReset}
             sx={{ textTransform: "none", height: 40, width: { xs: "100%", sm: "auto" }, flexShrink: 0 }}
           >
-            Reset
+            {t("items.filterBar.reset")}
           </Button>
         )}
       </Stack>

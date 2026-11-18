@@ -8,6 +8,8 @@ import {
   Alert,
 } from "@mui/material";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { mediaClassLabel } from "../../../../services/masterDataOptions";
 import { apiClient } from "../../../../services/apiClient";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
@@ -23,8 +25,9 @@ export function MarkOutOfStockDialog({
   open,
   lot,
   onClose,
-  onSuccess,
+  onSuccess
 }: MarkOutOfStockDialogProps) {
+  const { t } = useTranslation("labConfig");
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function MarkOutOfStockDialog({
       onSuccess();
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to mark media lot out of stock.");
+      setError(err?.response?.data?.message || err?.message || t("media.markOutOfStock.error"));
     } finally {
       setSubmitting(false);
     }
@@ -54,16 +57,16 @@ export function MarkOutOfStockDialog({
       title={
         <>
           <InventoryOutlinedIcon color="action" />
-          Mark Media Lot Out of Stock
+          {t("media.markOutOfStock.title")}
         </>
       }
       actions={
         <>
           <Button onClick={onClose} disabled={submitting} color="inherit">
-            Cancel
+            {t("media.markOutOfStock.cancel")}
           </Button>
           <Button variant="contained" color="warning" onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Processing..." : "Confirm Out of Stock"}
+            {submitting ? t("media.markOutOfStock.processing") : t("media.markOutOfStock.confirm")}
           </Button>
         </>
       }
@@ -75,7 +78,7 @@ export function MarkOutOfStockDialog({
             <Stack spacing={0.75}>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                  Media Lot:
+                  {t("media.markOutOfStock.mediaLotLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700 }}>
                   {lot.lotNumber}
@@ -84,7 +87,7 @@ export function MarkOutOfStockDialog({
 
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                  Media Type:
+                  {t("media.markOutOfStock.mediaTypeLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {mediaClassLabel(lot.mediaType?.class)}
@@ -93,36 +96,40 @@ export function MarkOutOfStockDialog({
 
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                  Current Status:
+                  {t("media.markOutOfStock.currentStatusLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
-                  Released
+                  {t("media.markOutOfStock.released")}
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                  New Status:
+                  {t("media.markOutOfStock.newStatusLabel")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                  Out of Stock
+                  {t("media.markOutOfStock.outOfStock")}
                 </Typography>
               </Box>
             </Stack>
           </Box>
 
           <Alert severity="warning" sx={{ fontSize: 12 }}>
-            <strong>Warning:</strong> This media lot will no longer be available for laboratory testing.
+            <Trans
+              i18nKey="media.markOutOfStock.warning"
+              ns="labConfig"
+              components={{ bold: <strong /> }}
+            />
           </Alert>
 
           <TextField
             size="small"
-            label="Reason / Comment (Optional)"
+            label={t("media.markOutOfStock.reasonLabel")}
             multiline
             rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="e.g. Prepared volume exhausted during routine testing."
+            placeholder={t("media.markOutOfStock.reasonPlaceholder")}
             fullWidth
           />
         </Stack>

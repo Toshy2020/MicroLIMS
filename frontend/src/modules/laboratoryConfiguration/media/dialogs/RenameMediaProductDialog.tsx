@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button, TextField, Stack, Alert } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { masterDataOptions, MediaProductOption } from "../../../../services/masterDataOptions";
+import { useTranslation } from "../../../../i18n";
 
 interface RenameMediaProductDialogProps {
   open: boolean;
@@ -11,6 +12,7 @@ interface RenameMediaProductDialogProps {
 }
 
 export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: RenameMediaProductDialogProps) {
+  const { t } = useTranslation("labConfig");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -25,7 +27,7 @@ export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: 
 
   const handleSave = async () => {
     if (!product || !name.trim()) {
-      setError("Product name is required.");
+      setError(t("media.renameProductDialog.requiredError"));
       return;
     }
     setSaving(true);
@@ -36,7 +38,7 @@ export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: 
       onClose();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setError(message ?? "Failed to rename media product.");
+      setError(message ?? t("media.renameProductDialog.renameError"));
     } finally {
       setSaving(false);
     }
@@ -45,20 +47,20 @@ export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: 
   return (
     <FloatingDialog
       open={open && product != null}
-      title={`Rename Media Product: ${product?.name ?? ""}`}
+      title={t("media.renameProductDialog.title", { name: product?.name ?? "" })}
       onClose={onClose}
       maxWidth="xs"
       actions={
         <>
           <Button onClick={onClose} disabled={saving}>
-            Cancel
+            {t("media.renameProductDialog.cancel")}
           </Button>
           <Button
             variant="contained"
             onClick={handleSave}
             disabled={!name.trim() || saving}
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("media.renameProductDialog.saving") : t("media.renameProductDialog.save")}
           </Button>
         </>
       }
@@ -66,14 +68,14 @@ export function RenameMediaProductDialog({ open, product, onClose, onSuccess }: 
       <Stack spacing={2} sx={{ mt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
         <TextField
-          label="Product Code"
+          label={t("media.renameProductDialog.codeLabel")}
           value={product?.code ?? ""}
           slotProps={{ input: { readOnly: true } }}
           size="small"
-          helperText="The code is changed from the Overview tab with an electronic signature."
+          helperText={t("media.renameProductDialog.codeHelper")}
         />
         <TextField
-          label="Product Name"
+          label={t("media.renameProductDialog.nameLabel")}
           required
           value={name}
           onChange={(e) => setName(e.target.value)}

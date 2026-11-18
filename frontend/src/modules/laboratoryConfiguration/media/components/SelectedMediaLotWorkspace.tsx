@@ -26,6 +26,8 @@ import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import InventoryOutlinedIcon from "@mui/icons-material/InventoryOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { Link } from "react-router-dom";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { evaluationTypeLabel } from "../../../../services/masterDataOptions";
 import { workflowEventLabel } from "../../../../utils/workflowEventLabel";
@@ -87,6 +89,7 @@ export function SelectedMediaLotWorkspace({
   onMarkOutOfStock,
   evaluationsList
 }: Props) {
+  const { t } = useTranslation("labConfig");
   const { permissions } = useAuth();
   const theme = useTheme();
   useTrackRecent("media", lot?.id);
@@ -135,7 +138,7 @@ export function SelectedMediaLotWorkspace({
     >
       {summaryFailed && (
         <Alert severity="error">
-          Part of this lot's record (preparer, source batch, autoclave, evaluation and approval details) could not be loaded. Select the lot again to retry.
+          {t("media.selectedLotWorkspace.summaryFailed")}
         </Alert>
       )}
       {/* Header: Lot Number, Media Type, Status, and Actions */}
@@ -154,11 +157,15 @@ export function SelectedMediaLotWorkspace({
           </Box>
 
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Prepared: {formatDateDDMMYY(lot.preparedAt)} · Expiry: {formatDateDDMMYY(lot.expiryDate)} · ID #{lot.id}
+            {t("media.selectedLotWorkspace.preparedMeta", {
+              prepared: formatDateDDMMYY(lot.preparedAt),
+              expiry: formatDateDDMMYY(lot.expiryDate),
+              id: lot.id
+            })}
           </Typography>
         </Box>
 
-        <Tooltip title="Close Workspace (Return to Full Register)">
+        <Tooltip title={t("media.selectedLotWorkspace.closeTooltip")}>
           <Button
             size="small"
             variant="outlined"
@@ -173,7 +180,7 @@ export function SelectedMediaLotWorkspace({
               "&:hover": { borderColor: "text.secondary", bgcolor: "background.default" }
             }}
           >
-            Deselect
+            {t("media.selectedLotWorkspace.deselect")}
           </Button>
         </Tooltip>
       </Box>
@@ -204,7 +211,7 @@ export function SelectedMediaLotWorkspace({
             "&:hover": { bgcolor: theme.custom.status.info.border, borderColor: theme.custom.status.info.text }
           }}
         >
-          View Lot Record
+          {t("media.selectedLotWorkspace.viewLotRecord")}
         </Button>
 
         <Button
@@ -221,7 +228,7 @@ export function SelectedMediaLotWorkspace({
             "&:hover": { bgcolor: "background.default" }
           }}
         >
-          Audit History
+          {t("media.selectedLotWorkspace.auditHistory")}
         </Button>
 
         <PrintLabelButton
@@ -229,7 +236,7 @@ export function SelectedMediaLotWorkspace({
             entityType: "MediaLot",
             entityId: lot.id,
             code: lot.lotNumber ?? "",
-            displayName: lot.material?.materialName || summary?.materialName || lot.lotNumber || "Media Lot"
+            displayName: lot.material?.materialName || summary?.materialName || lot.lotNumber || t("media.selectedLotWorkspace.mediaLotFallback")
           }}
         />
 
@@ -244,7 +251,7 @@ export function SelectedMediaLotWorkspace({
                 onClick={() => onRequestReleaseDecision(lot, true)}
                 sx={{ fontWeight: 700, fontSize: 12 }}
               >
-                Release Lot
+                {t("media.selectedLotWorkspace.releaseLot")}
               </Button>
             </GatedAction>
             {canRelease && (
@@ -256,7 +263,7 @@ export function SelectedMediaLotWorkspace({
                 onClick={() => onRequestReleaseDecision(lot, false)}
                 sx={{ fontWeight: 700, fontSize: 12 }}
               >
-                Reject Lot
+                {t("media.selectedLotWorkspace.rejectLot")}
               </Button>
             )}
           </>
@@ -271,7 +278,7 @@ export function SelectedMediaLotWorkspace({
             onClick={() => onMarkOutOfStock(lot)}
             sx={{ fontWeight: 700, fontSize: 12 }}
           >
-            Mark Out of Stock
+            {t("media.selectedLotWorkspace.markOutOfStock")}
           </Button>
         )}
       </Stack>
@@ -300,10 +307,12 @@ export function SelectedMediaLotWorkspace({
           }
         }}
       >
-        <Tab label="Preparation Overview" />
-        <Tab label={`Evaluations (${matchingEvaluations.length || (summary?.evaluation ? 1 : 0)})`} />
-        <Tab label="Release & Audit Trail" />
-        {lot.isReleasedForUse && <Tab label="Storage" />}
+        <Tab label={t("media.selectedLotWorkspace.tabs.preparationOverview")} />
+        <Tab label={t("media.selectedLotWorkspace.tabs.evaluations", {
+            count: matchingEvaluations.length || (summary?.evaluation ? 1 : 0)
+          })} />
+        <Tab label={t("media.selectedLotWorkspace.tabs.releaseAuditTrail")} />
+        {lot.isReleasedForUse && <Tab label={t("media.selectedLotWorkspace.tabs.storage")} />}
       </Tabs>
 
       {/* TAB 3: STORAGE (released lots only) */}
@@ -315,7 +324,7 @@ export function SelectedMediaLotWorkspace({
           {/* Section 1: Preparation Info */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              PREPARATION DETAILS
+              {t("media.selectedLotWorkspace.preparationDetailsHeading")}
             </Typography>
             <Box
               sx={{
@@ -330,67 +339,73 @@ export function SelectedMediaLotWorkspace({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared Date</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.preparedDate")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Dehydrated Stock</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.dehydratedStock")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.material?.materialName || summary?.materialName || "—"}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Manufacturer / Batch</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.manufacturerBatch")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.material
-                    ? `${lot.material.manufacturerName || "—"} (Batch: ${lot.material.batchNumber})`
+                    ? t("media.selectedLotWorkspace.manufacturerBatchValue", {
+                        manufacturer: lot.material.manufacturerName || "—",
+                        batch: lot.material.batchNumber
+                      })
                     : summary?.manufacturerName
-                    ? `${summary.manufacturerName} (Batch: ${summary.manufacturerLot})`
+                    ? t("media.selectedLotWorkspace.manufacturerBatchValue", {
+                        manufacturer: summary.manufacturerName,
+                        batch: summary.manufacturerLot
+                      })
                     : "—"}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Weight</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.totalWeight")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {lot.totalWeight} g
+                  {t("media.selectedLotWorkspace.weightWithUnit", { weight: lot.totalWeight })}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Volume</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.totalVolume")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.totalVolume}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>pH (at 25°C)</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.phAt25")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.ph}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.preparedBy")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {summary?.preparedByName || "—"}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared On</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.preparedOn")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateTimeDDMMYY(lot.preparedAt)}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Expiry Date</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.expiryDate")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {formatDateDDMMYY(lot.expiryDate)}
                 </Typography>
@@ -401,7 +416,7 @@ export function SelectedMediaLotWorkspace({
           {/* Section 2: Sterilization Info */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              AUTOCLAVE STERILIZATION PARAMETERS
+              {t("media.selectedLotWorkspace.sterilizationHeading")}
             </Typography>
             <Box
               sx={{
@@ -416,42 +431,42 @@ export function SelectedMediaLotWorkspace({
               }}
             >
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Autoclave Equipment</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.autoclaveEquipment")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {summary?.autoclaveName || `Autoclave #${lot.autoclaveEquipmentId}`}
+                  {summary?.autoclaveName || t("media.selectedLotWorkspace.autoclaveFallback", { id: lot.autoclaveEquipmentId })}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Program / Load</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.programLoad")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.autoclaveProgram}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Load Type</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.loadType")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {lot.loadType}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Temperature</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.temperature")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {lot.temperature} °C
+                  {t("media.selectedLotWorkspace.temperatureValue", { temp: lot.temperature })}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cycle Time</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.cycleTime")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  {lot.cycleTime} minutes
+                  {t("media.selectedLotWorkspace.cycleTimeValue", { minutes: lot.cycleTime })}
                 </Typography>
               </Box>
 
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cycle Number</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.cycleNumber")}</Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   #{lot.cycleNumber}
                 </Typography>
@@ -464,12 +479,12 @@ export function SelectedMediaLotWorkspace({
               sx={{ p: 1.5, borderRadius: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}
               data-testid="media-lot-additives"
             >
-              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Additives</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>{t("media.selectedLotWorkspace.additivesHeading")}</Typography>
               {summary.additives.map((a, i) => (
                 <Typography key={i} sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {a.name} ({a.code}): {a.quantity} {a.unit}
                   <Box component="span" sx={{ fontWeight: 400, color: "text.secondary" }}>
-                    {" "}· {a.kind === "StockLot" ? "stock lot" : "prepared solution"}
+                    {" "}· {a.kind === "StockLot" ? t("media.selectedLotWorkspace.additiveStockLot") : t("media.selectedLotWorkspace.additivePreparedSolution")}
                   </Box>
                 </Typography>
               ))}
@@ -485,10 +500,10 @@ export function SelectedMediaLotWorkspace({
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-              Assigned Evaluations
+              {t("media.selectedLotWorkspace.assignedEvaluations")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              GPT, Sterility, Indication/Inhibition, and Enrichment evaluations
+              {t("media.selectedLotWorkspace.assignedEvaluationsSubtitle")}
             </Typography>
           </Box>
 
@@ -511,7 +526,7 @@ export function SelectedMediaLotWorkspace({
                       {evaluationTypeLabel(ev.evaluationType)}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      Evaluation #{ev.id} · Assigned on: {formatDateDDMMYY(ev.assignedAt)}
+                      {t("media.selectedLotWorkspace.evaluationMeta", { id: ev.id, date: formatDateDDMMYY(ev.assignedAt) })}
                     </Typography>
                   </Box>
 
@@ -525,16 +540,16 @@ export function SelectedMediaLotWorkspace({
                 {ev.challenges && ev.challenges.length > 0 && (
                   <Box sx={{ mt: 1.5, mb: 1.5 }}>
                     <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.75 }}>
-                      CHALLENGE ORGANISMS & STATUS:
+                      {t("media.selectedLotWorkspace.challengesHeading")}
                     </Typography>
                     <TableContainer>
                       <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                         <TableHead>
                           <TableRow sx={tableHeadSx}>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Organism</TableCell>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Cryovial</TableCell>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Incubation</TableCell>
-                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Outcome</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.organism")}</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.cryovial")}</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.incubation")}</TableCell>
+                            <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.outcome")}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -545,20 +560,20 @@ export function SelectedMediaLotWorkspace({
                                 {c.challengeRole ? ` (${c.challengeRole})` : ""}
                               </TableCell>
                               <TableCell sx={{ fontSize: 12 }}>
-                                {c.cryovial?.code || c.cryovialCode || "Pending"}
+                                {c.cryovial?.code || c.cryovialCode || t("media.selectedLotWorkspace.pending")}
                               </TableCell>
                               <TableCell sx={{ fontSize: 12 }}>
                                 {c.incubation
                                   ? `${c.incubation.temperature}°C, ${c.incubation.duration}h`
                                   : c.temperature
                                   ? `${c.temperature}°C, ${c.duration}h`
-                                  : "Pending"}
+                                  : t("media.selectedLotWorkspace.pending")}
                               </TableCell>
                               <TableCell sx={{ fontSize: 12 }}>
                                 {c.outcome ? (
                                   <StatusBadge status={c.outcome} />
                                 ) : (
-                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Pending</Typography>
+                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.pending")}</Typography>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -578,7 +593,7 @@ export function SelectedMediaLotWorkspace({
                     color="primary"
                     sx={{ fontSize: 12, fontWeight: 700 }}
                   >
-                    {ev.status === "Completed" ? "View Evaluation Workflow" : "Open / Continue Evaluation"}
+                    {ev.status === "Completed" ? t("media.selectedLotWorkspace.viewEvaluationWorkflow") : t("media.selectedLotWorkspace.openContinueEvaluation")}
                   </Button>
                 </Box>
               </Paper>
@@ -600,7 +615,7 @@ export function SelectedMediaLotWorkspace({
                     {evaluationTypeLabel(summary.evaluation.evaluationType)}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    Assigned on: {formatDateDDMMYY(summary.evaluation.assignedAt)}
+                    {t("media.selectedLotWorkspace.assignedOn", { date: formatDateDDMMYY(summary.evaluation.assignedAt) })}
                   </Typography>
                 </Box>
 
@@ -617,10 +632,10 @@ export function SelectedMediaLotWorkspace({
                     <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
                       <TableHead>
                         <TableRow sx={tableHeadSx}>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Organism</TableCell>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Cryovial</TableCell>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Incubation</TableCell>
-                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>Outcome</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.organism")}</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.cryovial")}</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.incubation")}</TableCell>
+                          <TableCell sx={{ fontSize: 12, fontWeight: 700 }}>{t("media.selectedLotWorkspace.columns.outcome")}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -630,15 +645,15 @@ export function SelectedMediaLotWorkspace({
                               {c.organismName}
                               {c.challengeRole ? ` (${c.challengeRole})` : ""}
                             </TableCell>
-                            <TableCell sx={{ fontSize: 12 }}>{c.cryovialCode || "Pending"}</TableCell>
+                            <TableCell sx={{ fontSize: 12 }}>{c.cryovialCode || t("media.selectedLotWorkspace.pending")}</TableCell>
                             <TableCell sx={{ fontSize: 12 }}>
-                              {c.temperature ? `${c.temperature}°C, ${c.duration}h` : "Pending"}
+                              {c.temperature ? `${c.temperature}°C, ${c.duration}h` : t("media.selectedLotWorkspace.pending")}
                             </TableCell>
                             <TableCell sx={{ fontSize: 12 }}>
                               {c.outcome ? (
                                 <StatusBadge status={c.outcome} />
                               ) : (
-                                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Pending</Typography>
+                                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("media.selectedLotWorkspace.pending")}</Typography>
                               )}
                             </TableCell>
                           </TableRow>
@@ -651,7 +666,7 @@ export function SelectedMediaLotWorkspace({
             </Paper>
           ) : (
             <Alert severity="info">
-              No evaluations currently assigned to this media lot. Make sure Media Challenge Specs are configured for this media class.
+              {t("media.selectedLotWorkspace.noEvaluationsInfo")}
             </Alert>
           )}
         </Stack>
@@ -662,7 +677,7 @@ export function SelectedMediaLotWorkspace({
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              RELEASE & AUTHORIZATION STATUS
+              {t("media.selectedLotWorkspace.releaseStatusHeading")}
             </Typography>
 
             <Paper
@@ -683,25 +698,32 @@ export function SelectedMediaLotWorkspace({
                 <StatusBadge status={lifecycle} />
                 <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
                   {lot.isReleasedForUse
-                    ? "Released for Use in Routine Testing"
+                    ? t("media.selectedLotWorkspace.releasedForRoutineTesting")
                     : lifecycle === "Awaiting Approval"
-                    ? "Awaiting Section Head Release Signature"
+                    ? t("media.selectedLotWorkspace.awaitingSectionHeadSignature")
                     : lifecycle === "Rejected"
-                    ? "Rejected from Routine Use"
-                    : "Pending Media Evaluation Completion"}
+                    ? t("media.selectedLotWorkspace.rejectedFromRoutineUse")
+                    : t("media.selectedLotWorkspace.pendingEvaluationCompletion")}
                 </Typography>
               </Box>
 
               {lot.isReleasedForUse && summary?.approvedByName && (
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, mt: 0.5 }}>
-                  Electronically signed & approved by <strong>{summary.approvedByName}</strong> on{" "}
-                  {summary.approvedAt ? formatDateTimeDDMMYY(summary.approvedAt) : "—"}
+                  <Trans
+                    i18nKey="media.selectedLotWorkspace.electronicallySignedBy"
+                    ns="labConfig"
+                    values={{
+                      name: summary.approvedByName,
+                      date: summary.approvedAt ? formatDateTimeDDMMYY(summary.approvedAt) : "—"
+                    }}
+                    components={{ bold: <strong /> }}
+                  />
                 </Typography>
               )}
 
               {lifecycle === "Awaiting Approval" && (
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text, mt: 0.5 }}>
-                  This media lot has satisfied all evaluation criteria (Conform) and is waiting for a Section Head signature to release for laboratory use.
+                  {t("media.selectedLotWorkspace.awaitingSignatureDesc")}
                 </Typography>
               )}
             </Paper>
@@ -711,7 +733,7 @@ export function SelectedMediaLotWorkspace({
           {summary?.signatures && summary.signatures.length > 0 && (
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-                ELECTRONIC SIGNATURES
+                {t("media.selectedLotWorkspace.electronicSignaturesHeading")}
               </Typography>
               <Stack spacing={1}>
                 {summary.signatures.map((sig, idx) => (
@@ -724,11 +746,15 @@ export function SelectedMediaLotWorkspace({
                       {sig.printedName} ({sig.role})
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {sig.meaning} · Signed by @{sig.username} on {formatDateTimeDDMMYY(sig.signedAt)}
+                      {t("media.selectedLotWorkspace.signedByOn", {
+                        meaning: sig.meaning,
+                        username: sig.username,
+                        date: formatDateTimeDDMMYY(sig.signedAt)
+                      })}
                     </Typography>
                     {sig.comment && (
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-                        Comment: {sig.comment}
+                        {t("media.selectedLotWorkspace.commentPrefix", { comment: sig.comment })}
                       </Typography>
                     )}
                   </Paper>
@@ -741,7 +767,7 @@ export function SelectedMediaLotWorkspace({
           {summary?.timeline && summary.timeline.length > 0 && (
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-                LIFECYCLE TIMELINE
+                {t("media.selectedLotWorkspace.lifecycleTimelineHeading")}
               </Typography>
               <Stack spacing={1}>
                 {summary.timeline.map((ev, idx) => (
@@ -751,7 +777,10 @@ export function SelectedMediaLotWorkspace({
                     </Typography>
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                        {workflowEventLabel(ev.eventType, ev.decision)} by {ev.performedByName || "System"}
+                        {t("media.selectedLotWorkspace.timelineEventBy", {
+                          event: workflowEventLabel(ev.eventType, ev.decision),
+                          user: ev.performedByName || t("media.selectedLotWorkspace.systemUser")
+                        })}
                       </Typography>
                       {ev.comment && (
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>

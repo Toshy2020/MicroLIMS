@@ -1,6 +1,7 @@
 import { Select, MenuItem, Button } from "@mui/material";
 import FilterAltOffOutlinedIcon from "@mui/icons-material/FilterAltOffOutlined";
 import { FilterBar } from "../../../../components/lab";
+import { useTranslation } from "../../../../i18n";
 
 interface Props {
   search: string;
@@ -16,13 +17,13 @@ interface Props {
   refreshing?: boolean;
 }
 
-const STATUS_OPTIONS = [
-  { value: "Pending Evaluation", label: "Pending Evaluation" },
-  { value: "Awaiting Approval", label: "Awaiting Approval" },
-  { value: "Released", label: "Released" },
-  { value: "Rejected", label: "Rejected" },
-  { value: "Out of Stock", label: "Out of Stock" }
-];
+const STATUS_VALUES = [
+  "Pending Evaluation",
+  "Awaiting Approval",
+  "Released",
+  "Rejected",
+  "Out of Stock"
+] as const;
 
 export function MediaLotFilterBar({
   search,
@@ -37,6 +38,7 @@ export function MediaLotFilterBar({
   onRefresh,
   refreshing
 }: Props) {
+  const { t } = useTranslation("labConfig");
   const hasActiveFilters = Boolean(search || selectedMaterialId || selectedStatus);
   const materialSelectValue = materials.some((m) => String(m.id) === selectedMaterialId) ? selectedMaterialId : "";
 
@@ -44,7 +46,7 @@ export function MediaLotFilterBar({
     <FilterBar
       search={search}
       onSearch={onSearchChange}
-      placeholder="Search by lot number, dehydrated material, batch…"
+      placeholder={t("media.lotFilterBar.searchPlaceholder")}
       resultCount={resultCount}
       onRefresh={onRefresh}
       refreshing={refreshing}
@@ -55,10 +57,10 @@ export function MediaLotFilterBar({
         value={materialSelectValue}
         onChange={(e) => onMaterialChange(e.target.value)}
         sx={{ minWidth: 180 }}
-        inputProps={{ "aria-label": "Material" }}
+        inputProps={{ "aria-label": t("media.lotFilterBar.materialAriaLabel") }}
       >
         <MenuItem value="">
-          <em>All Materials</em>
+          <em>{t("media.lotFilterBar.allMaterials")}</em>
         </MenuItem>
         {materials.map((m) => (
           <MenuItem key={m.id} value={String(m.id)}>
@@ -73,14 +75,14 @@ export function MediaLotFilterBar({
         value={selectedStatus}
         onChange={(e) => onStatusChange(e.target.value)}
         sx={{ minWidth: 180 }}
-        inputProps={{ "aria-label": "Status" }}
+        inputProps={{ "aria-label": t("media.lotFilterBar.statusAriaLabel") }}
       >
         <MenuItem value="">
-          <em>All Statuses</em>
+          <em>{t("media.lotFilterBar.allStatuses")}</em>
         </MenuItem>
-        {STATUS_OPTIONS.map((s) => (
-          <MenuItem key={s.value} value={s.value}>
-            {s.label}
+        {STATUS_VALUES.map((value) => (
+          <MenuItem key={value} value={value}>
+            {t(`media.lotFilterBar.statuses.${value}`)}
           </MenuItem>
         ))}
       </Select>
@@ -93,7 +95,7 @@ export function MediaLotFilterBar({
           startIcon={<FilterAltOffOutlinedIcon fontSize="small" />}
           sx={{ borderColor: "divider", color: "text.secondary" }}
         >
-          Reset Filters
+          {t("media.lotFilterBar.resetFilters")}
         </Button>
       )}
     </FilterBar>

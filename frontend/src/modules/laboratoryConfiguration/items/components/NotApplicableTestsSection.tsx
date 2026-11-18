@@ -21,6 +21,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { i18n, useTranslation } from "../../../../i18n";
 import {
   NotApplicableTestService,
   NotApplicableTestDto,
@@ -44,6 +45,8 @@ export function NotApplicableTestsSection({
   assignedTests,
   grades,
 }: NotApplicableTestsSectionProps) {
+  const { t } = useTranslation("labConfig");
+  const enT = i18n.getFixedT("en", "labConfig");
   const [records, setRecords] = useState<NotApplicableTestDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,11 +80,11 @@ export function NotApplicableTestsSection({
       const data = await NotApplicableTestService.listForItem(itemId);
       setRecords(data);
     } catch {
-      setError("Failed to load not-applicable test declarations.");
+      setError(t("items.notApplicable.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [itemId]);
+  }, [itemId, t]);
 
   useEffect(() => {
     loadRecords();
@@ -107,23 +110,23 @@ export function NotApplicableTestsSection({
   const handleSubmitDeclare = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!testCode) {
-      setFormError("Test is required.");
+      setFormError(t("items.notApplicable.errors.testRequired"));
       return;
     }
     if (!justification.trim()) {
-      setFormError("Justification is required.");
+      setFormError(t("items.notApplicable.errors.justificationRequired"));
       return;
     }
     if (!criticality.trim()) {
-      setFormError("Criticality is required.");
+      setFormError(t("items.notApplicable.errors.criticalityRequired"));
       return;
     }
     if (!immediateAction.trim()) {
-      setFormError("Immediate action is required.");
+      setFormError(t("items.notApplicable.errors.immediateActionRequired"));
       return;
     }
     if (!longTermAction.trim()) {
-      setFormError("Long-term action is required.");
+      setFormError(t("items.notApplicable.errors.longTermActionRequired"));
       return;
     }
 
@@ -142,7 +145,7 @@ export function NotApplicableTestsSection({
       setDeclareOpen(false);
       await loadRecords();
     } catch (err: any) {
-      setFormError(err?.response?.data?.message ?? "Failed to declare test as not applicable.");
+      setFormError(err?.response?.data?.message ?? t("items.notApplicable.errors.createFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -164,8 +167,9 @@ export function NotApplicableTestsSection({
       await NotApplicableTestService.finalApprove(signingRow.id, password, signingComment);
     } else if (signingAction === "withdraw") {
       if (!signingComment.trim()) {
-        const customErr: any = new Error("Reason is required.");
-        customErr.response = { data: { message: "Reason is required." } };
+        const msg = t("items.notApplicable.signature.reasonRequiredError");
+        const customErr: any = new Error(msg);
+        customErr.response = { data: { message: msg } };
         throw customErr;
       }
       await NotApplicableTestService.withdraw(signingRow.id, password, signingComment.trim());
@@ -186,26 +190,27 @@ export function NotApplicableTestsSection({
   const getStatusChip = (status: NotApplicableStatus) => {
     switch (status) {
       case "Approved":
-        return <Chip label="Approved" size="small" color="success" sx={{ fontWeight: 600 }} />;
+        return <Chip label={t("items.notApplicable.statuses.Approved")} size="small" color="success" sx={{ fontWeight: 600 }} />;
       case "HeadApproved":
-        return <Chip label="Head Approved" size="small" color="warning" sx={{ fontWeight: 600 }} />;
+        return <Chip label={t("items.notApplicable.statuses.HeadApproved")} size="small" color="warning" sx={{ fontWeight: 600 }} />;
       case "Withdrawn":
-        return <Chip label="Withdrawn" size="small" color="default" sx={{ fontWeight: 600 }} />;
+        return <Chip label={t("items.notApplicable.statuses.Withdrawn")} size="small" color="default" sx={{ fontWeight: 600 }} />;
       case "Draft":
       default:
-        return <Chip label="Draft" size="small" color="info" sx={{ fontWeight: 600 }} />;
+        return <Chip label={t("items.notApplicable.statuses.Draft")} size="small" color="info" sx={{ fontWeight: 600 }} />;
     }
   };
 
-  const getMeaningStatement = () => {
+  const getMeaningStatement = (translate: typeof t = enT) => {
     if (!signingRow) return "";
+    const test = signingRow.testDisplayName || signingRow.testCode;
     switch (signingAction) {
       case "headApprove":
-        return `I approve the test '${signingRow.testDisplayName || signingRow.testCode}' as not applicable (Section Head).`;
+        return translate("items.notApplicable.signature.headApproveMeaning", { test });
       case "finalApprove":
-        return `I grant final approval for the test '${signingRow.testDisplayName || signingRow.testCode}' as not applicable (QC Manager).`;
+        return translate("items.notApplicable.signature.finalApproveMeaning", { test });
       case "withdraw":
-        return `I am withdrawing the not-applicable test declaration for '${signingRow.testDisplayName || signingRow.testCode}'.`;
+        return translate("items.notApplicable.signature.withdrawMeaning", { test });
       default:
         return "";
     }
@@ -216,10 +221,10 @@ export function NotApplicableTestsSection({
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Not-Applicable Tests
+            {t("items.notApplicable.title")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
-            Exempt assigned tests for specific grades or all grades with Section Head and QC Manager approval.
+            {t("items.notApplicable.subtitle")}
           </Typography>
         </Box>
         {canManage && (
@@ -230,7 +235,7 @@ export function NotApplicableTestsSection({
             onClick={handleOpenDeclare}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Declare not applicable
+            {t("items.notApplicable.declareButton")}
           </Button>
         )}
       </Stack>
@@ -250,22 +255,22 @@ export function NotApplicableTestsSection({
           variant="outlined"
           sx={{ p: 3, textAlign: "center", color: "text.secondary", bgcolor: "action.hover" }}
         >
-          <Typography variant="body2">No not-applicable test declarations on file.</Typography>
+          <Typography variant="body2">{t("items.notApplicable.empty")}</Typography>
         </Paper>
       ) : (
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead sx={{ bgcolor: "action.hover" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Test</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Grade</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Criticality</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Head Signer &amp; Time</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>QC Manager Signer &amp; Time</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Reference</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.test")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.grade")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.criticality")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.status")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.headSigner")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.qcSigner")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.notApplicable.columns.reference")}</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  Actions
+                  {t("items.notApplicable.columns.actions")}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -273,7 +278,7 @@ export function NotApplicableTestsSection({
               {records.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell sx={{ fontWeight: 600 }}>{r.testDisplayName || r.testCode}</TableCell>
-                  <TableCell>{r.grade || "All grades"}</TableCell>
+                  <TableCell>{r.grade || t("items.notApplicable.allGrades")}</TableCell>
                   <TableCell>{r.criticality}</TableCell>
                   <TableCell>{getStatusChip(r.status)}</TableCell>
                   <TableCell>
@@ -293,7 +298,7 @@ export function NotApplicableTestsSection({
                           onClick={() => handleOpenSignature(r, "headApprove")}
                           sx={{ textTransform: "none", fontSize: 12, py: 0.2 }}
                         >
-                          Approve (Section Head)
+                          {t("items.notApplicable.actions.headApprove")}
                         </Button>
                       )}
                       {r.status === "HeadApproved" && canFinalApprove && (
@@ -304,7 +309,7 @@ export function NotApplicableTestsSection({
                           onClick={() => handleOpenSignature(r, "finalApprove")}
                           sx={{ textTransform: "none", fontSize: 12, py: 0.2 }}
                         >
-                          Approve (QC Manager)
+                          {t("items.notApplicable.actions.finalApprove")}
                         </Button>
                       )}
                       {r.status !== "Withdrawn" && canManage && (
@@ -315,7 +320,7 @@ export function NotApplicableTestsSection({
                           onClick={() => handleOpenSignature(r, "withdraw")}
                           sx={{ textTransform: "none", fontSize: 12, py: 0.2 }}
                         >
-                          Withdraw
+                          {t("items.notApplicable.actions.withdraw")}
                         </Button>
                       )}
                     </Stack>
@@ -330,7 +335,7 @@ export function NotApplicableTestsSection({
       {/* Declare Dialog */}
       <Dialog open={declareOpen} onClose={handleCloseDeclare} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmitDeclare}>
-          <DialogTitle sx={{ fontWeight: 700 }}>Declare not applicable</DialogTitle>
+          <DialogTitle sx={{ fontWeight: 700 }}>{t("items.notApplicable.dialog.title")}</DialogTitle>
           <DialogContent dividers>
             <Stack spacing={2} sx={{ mt: 0.5 }}>
               {formError && <Alert severity="error">{formError}</Alert>}
@@ -338,7 +343,7 @@ export function NotApplicableTestsSection({
               <TextField
                 select
                 slotProps={{ select: { native: true } }}
-                label="Test"
+                label={t("items.notApplicable.dialog.testLabel")}
                 value={testCode}
                 onChange={(e) => setTestCode(e.target.value)}
                 required
@@ -346,11 +351,11 @@ export function NotApplicableTestsSection({
                 size="small"
               >
                 <option value="" disabled>
-                  Select a test
+                  {t("items.notApplicable.dialog.selectTest")}
                 </option>
-                {assignedTests.map((t) => (
-                  <option key={t.testCode} value={t.testCode}>
-                    {t.displayName ? `${t.displayName} (${t.testCode})` : t.testCode}
+                {assignedTests.map((tOpt) => (
+                  <option key={tOpt.testCode} value={tOpt.testCode}>
+                    {tOpt.displayName ? `${tOpt.displayName} (${tOpt.testCode})` : tOpt.testCode}
                   </option>
                 ))}
               </TextField>
@@ -358,13 +363,13 @@ export function NotApplicableTestsSection({
               <TextField
                 select
                 slotProps={{ select: { native: true } }}
-                label="Grade"
+                label={t("items.notApplicable.dialog.gradeLabel")}
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
                 fullWidth
                 size="small"
               >
-                <option value="">All grades</option>
+                <option value="">{t("items.notApplicable.allGrades")}</option>
                 {grades.map((g) => (
                   <option key={g} value={g}>
                     {g}
@@ -373,7 +378,7 @@ export function NotApplicableTestsSection({
               </TextField>
 
               <TextField
-                label="Justification"
+                label={t("items.notApplicable.dialog.justificationLabel")}
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 required
@@ -384,17 +389,17 @@ export function NotApplicableTestsSection({
               />
 
               <TextField
-                label="Criticality"
+                label={t("items.notApplicable.dialog.criticalityLabel")}
                 value={criticality}
                 onChange={(e) => setCriticality(e.target.value)}
                 required
                 fullWidth
                 size="small"
-                placeholder="e.g. Non-critical or Critical"
+                placeholder={t("items.notApplicable.dialog.criticalityPlaceholder")}
               />
 
               <TextField
-                label="Immediate Action"
+                label={t("items.notApplicable.dialog.immediateActionLabel")}
                 value={immediateAction}
                 onChange={(e) => setImmediateAction(e.target.value)}
                 required
@@ -405,7 +410,7 @@ export function NotApplicableTestsSection({
               />
 
               <TextField
-                label="Long-term Action"
+                label={t("items.notApplicable.dialog.longTermActionLabel")}
                 value={longTermAction}
                 onChange={(e) => setLongTermAction(e.target.value)}
                 required
@@ -416,21 +421,21 @@ export function NotApplicableTestsSection({
               />
 
               <TextField
-                label="Reference"
+                label={t("items.notApplicable.dialog.referenceLabel")}
                 value={reference}
                 onChange={(e) => setReference(e.target.value)}
                 fullWidth
                 size="small"
-                placeholder="e.g. Monograph or SOP reference"
+                placeholder={t("items.notApplicable.dialog.referencePlaceholder")}
               />
             </Stack>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDeclare} disabled={submitting}>
-              Cancel
+              {t("items.notApplicable.dialog.cancel")}
             </Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Submitting..." : "Submit"}
+              {submitting ? t("items.notApplicable.dialog.submitting") : t("items.notApplicable.dialog.submit")}
             </Button>
           </DialogActions>
         </form>
@@ -439,9 +444,10 @@ export function NotApplicableTestsSection({
       {/* Signature Dialog */}
       <SignatureDialog
         open={signingOpen}
-        meaningStatement={getMeaningStatement()}
+        meaningStatement={getMeaningStatement(enT)}
+        meaningStatementTranslation={getMeaningStatement(t)}
         showComment={true}
-        commentLabel={signingAction === "withdraw" ? "Reason (required)" : undefined}
+        commentLabel={signingAction === "withdraw" ? t("items.notApplicable.signature.reasonRequiredLabel") : undefined}
         commentRequired={signingAction === "withdraw"}
         comment={signingComment}
         onCommentChange={setSigningComment}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import {
   Dialog,
   DialogTitle,
@@ -127,12 +128,6 @@ function matchMediaField(text: string): MediaFieldKey | null {
   return null;
 }
 
-const BENCH_SECTIONS = [
-  "Preparation Details",
-  "Sterilization & Autoclave",
-  "Quality & Expiry",
-  "Additives"
-];
 
 interface Props {
   open: boolean;
@@ -141,6 +136,7 @@ interface Props {
 }
 
 export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const { benchMode } = useBenchMode();
   const [autoclaves, setAutoclaves] = useState<EquipmentResponse[]>([]);
@@ -224,12 +220,21 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
   const sectionId: number | undefined = selectedMaterial?.sectionId;
 
+  const benchSections = [
+    t("media.preparationDialog.benchSections.preparationDetails"),
+    t("media.preparationDialog.benchSections.sterilization"),
+    t("media.preparationDialog.benchSections.quality"),
+    t("media.preparationDialog.benchSections.additives")
+  ];
+
   const draftValues = useMemo<MediaDraftValues>(() => ({ ...form, additives }), [form, additives]);
   const draft = useBenchDraft<MediaDraftValues>({
     formKey: "media-preparation",
     recordKey: "new",
     recordVersion: null,
-    title: selectedMaterial ? `Prepare ${selectedMaterial.materialName}` : "Prepare Media Lot",
+    title: selectedMaterial
+      ? t("media.preparationDialog.draftTitleNamed", { name: selectedMaterial.materialName })
+      : t("media.preparationDialog.draftTitle"),
     values: draftValues,
     pick: pickMediaDraft,
     enabled: benchMode && open
@@ -334,51 +339,51 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
     // Basic required field validation
     if (!form.materialId) {
-      setError("Please select a Dehydrated Media Stock item from inventory.");
+      setError(t("media.preparationDialog.errors.materialRequired"));
       return;
     }
     if (selectedMaterial && selectedMaterial.mediaProductId == null) {
-      setError("The selected dehydrated media is not linked to a media product. Edit it in Inventory > Materials Stock before preparing.");
+      setError(t("media.preparationDialog.errors.notLinked"));
       return;
     }
     if (!form.totalWeight) {
-      setError("Please enter the total weight.");
+      setError(t("media.preparationDialog.errors.weightRequired"));
       return;
     }
     if (!form.totalVolume) {
-      setError("Please enter the total volume.");
+      setError(t("media.preparationDialog.errors.volumeRequired"));
       return;
     }
     if (!form.autoclaveEquipmentId) {
-      setError("Please select an Autoclave.");
+      setError(t("media.preparationDialog.errors.autoclaveRequired"));
       return;
     }
     if (!form.autoclaveProgram) {
-      setError("Please select an Autoclave Program / Load.");
+      setError(t("media.preparationDialog.errors.programRequired"));
       return;
     }
     if (!form.loadType) {
-      setError("Please select an Autoclave Program with valid Load Type.");
+      setError(t("media.preparationDialog.errors.loadTypeRequired"));
       return;
     }
     if (!form.temperature) {
-      setError("Autoclave temperature is required.");
+      setError(t("media.preparationDialog.errors.temperatureRequired"));
       return;
     }
     if (!form.cycleTime) {
-      setError("Autoclave cycle time is required.");
+      setError(t("media.preparationDialog.errors.cycleTimeRequired"));
       return;
     }
     if (!form.cycleNumber) {
-      setError("Please specify the cycle number.");
+      setError(t("media.preparationDialog.errors.cycleNumberRequired"));
       return;
     }
     if (!form.ph) {
-      setError("Please specify the pH.");
+      setError(t("media.preparationDialog.errors.phRequired"));
       return;
     }
     if (!form.expiryDate) {
-      setError("Please specify the Expiry Date.");
+      setError(t("media.preparationDialog.errors.expiryRequired"));
       return;
     }
 
@@ -426,7 +431,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       if (Object.keys(nextFieldErrors).length > 0) {
         setFieldErrors(nextFieldErrors);
       }
-      setError(getErrorMessage(err, "Could not prepare media lot. Please verify all inputs."));
+      setError(getErrorMessage(err, t("media.preparationDialog.errors.prepareFailed")));
     } finally {
       setSaving(false);
     }
@@ -457,11 +462,11 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <ScienceOutlinedIcon sx={{ color: theme.palette.primary.main }} />
         <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-          Prepare New Media Lot
+          {t("media.preparationDialog.title")}
         </Typography>
       </Box>
       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-        Record formulation, autoclave sterilization parameters, pH, and expiration for the new media lot.
+        {t("media.preparationDialog.subtitle")}
       </Typography>
     </Box>
   );
@@ -488,11 +493,11 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         <Stepper
           nonLinear
           activeStep={activeSection}
-          aria-label="Media preparation steps"
+          aria-label={t("media.preparationDialog.stepsAriaLabel")}
           sx={{ mb: 2 }}
           data-testid="media-step-indicator"
         >
-          {BENCH_SECTIONS.map((label, index) => (
+          {benchSections.map((label, index) => (
             <Step key={label}>
               <StepButton onClick={() => goToSection(index)}>{label}</StepButton>
             </Step>
@@ -508,13 +513,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
           sx={sectionWrapperSx}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-            1. PREPARATION DETAILS & INVENTORY STOCK
+            {t("media.preparationDialog.section1Heading")}
           </Typography>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
             <Stack spacing={1}>
               <ScanField
-                label="Scan dehydrated media stock lot"
+                label={t("media.preparationDialog.scanDehydratedLabel")}
                 expectedType="MaterialStockLot"
                 offeredIds={usableStock.map((m) => m.id)}
                 onSelect={(id) => setField("materialId", id)}
@@ -527,16 +532,22 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                   fullWidth
                   value={form.materialId ?? ""}
                   onChange={(e) => setField("materialId", e.target.value as number | "")}
-                  inputProps={{ "aria-label": "Dehydrated Media Stock (Inventory)" }}
+                  inputProps={{ "aria-label": t("media.preparationDialog.stockAriaLabel") }}
                 >
                   <MenuItem value="">
-                    <em>Dehydrated Media Stock (Inventory) *</em>
+                    <em>{t("media.preparationDialog.stockPlaceholder")}</em>
                   </MenuItem>
                   {usableStock.map((m) => {
                     const codePrefix = m.code ? `${m.code}: ` : "";
                     const label = m.mediaProductId == null
-                      ? `${codePrefix}${m.materialName}, batch ${m.batchNumber} (not linked to a media product - edit it in Inventory > Materials Stock)`
-                      : `${codePrefix}${m.materialName}, batch ${m.batchNumber} (${m.quantityRemaining} ${m.unit} left)`;
+                      ? t("media.preparationDialog.stockOptionUnlinked", { prefix: codePrefix, name: m.materialName, batch: m.batchNumber })
+                      : t("media.preparationDialog.stockOptionLinked", {
+                          prefix: codePrefix,
+                          name: m.materialName,
+                          batch: m.batchNumber,
+                          remaining: m.quantityRemaining,
+                          unit: m.unit
+                        });
 
                     return (
                       <MenuItem key={m.id} value={m.id} disabled={m.mediaProductId == null}>
@@ -555,14 +566,17 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     display: "block",
                     mt: 0.5
                   }}>
-                  Manufacturer: {selectedMaterial.manufacturerName} · Batch: {selectedMaterial.batchNumber}
+                  {t("media.preparationDialog.manufacturerBatch", {
+                    manufacturer: selectedMaterial.manufacturerName,
+                    batch: selectedMaterial.batchNumber
+                  })}
                 </Typography>
               )}
             </Stack>
 
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
               <NumericEntryField
-                label="Total Weight (g) *"
+                label={t("media.preparationDialog.totalWeightLabel")}
                 kind="decimal"
                 value={form.totalWeight ?? ""}
                 onChange={(v) => setField("totalWeight", v)}
@@ -570,13 +584,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 error={fieldErrors.totalWeight}
                 aria-describedby={hintDescribedBy("media-total-weight")}
               />
-              <FieldHint id="media-total-weight" label="Total Weight" hint={hints.totalWeight} />
+              <FieldHint id="media-total-weight" label={t("media.preparationDialog.totalWeightHintLabel")} hint={hints.totalWeight} />
             </Stack>
 
             <TextField
               size="small"
-              label="Total Volume *"
-              placeholder="e.g. 1000 mL or 2 L"
+              label={t("media.preparationDialog.totalVolumeLabel")}
+              placeholder={t("media.preparationDialog.totalVolumePlaceholder")}
               value={form.totalVolume ?? ""}
               onChange={(e) => setField("totalVolume", e.target.value)}
               error={Boolean(fieldErrors.totalVolume)}
@@ -594,7 +608,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
           sx={sectionWrapperSx}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-            2. STERILIZATION & AUTOCLAVE PARAMETERS
+            {t("media.preparationDialog.section2Heading")}
           </Typography>
           <Typography
             variant="caption"
@@ -603,13 +617,13 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               display: "block",
               mb: 1.5
             }}>
-            Select an autoclave and configured program. Load Type, Temperature, and Cycle Time are automatically set from Laboratory Configuration.
+            {t("media.preparationDialog.section2Desc")}
           </Typography>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
             <Stack spacing={1}>
               <ScanField
-                label="Scan autoclave"
+                label={t("media.preparationDialog.scanAutoclaveLabel")}
                 expectedType="EquipmentAsset"
                 offeredIds={autoclaves.map((a) => a.id)}
                 onSelect={(id) => {
@@ -627,10 +641,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                     onChange={(e) => {
                       void handleAutoclaveChange(e.target.value as number | "");
                     }}
-                    inputProps={{ "aria-label": "Autoclave" }}
+                    inputProps={{ "aria-label": t("media.preparationDialog.autoclaveAriaLabel") }}
                   >
                     <MenuItem value="">
-                      <em>Select Autoclave *</em>
+                      <em>{t("media.preparationDialog.selectAutoclave")}</em>
                     </MenuItem>
                     {autoclaves.map((a) => (
                       <MenuItem key={a.id} value={a.id}>
@@ -650,14 +664,19 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
                 disabled={!form.autoclaveEquipmentId || !Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0}
                 value={form.autoclaveProgramId ?? ""}
                 onChange={(e) => handleProgramChange(e.target.value as number | "")}
-                inputProps={{ "aria-label": "Autoclave program" }}
+                inputProps={{ "aria-label": t("media.preparationDialog.programAriaLabel") }}
               >
                 <MenuItem value="">
-                  <em>{!Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>
+                  <em>{!Array.isArray(autoclavePrograms) || autoclavePrograms.length === 0 ? t("media.preparationDialog.noActivePrograms") : t("media.preparationDialog.selectProgram")}</em>
                 </MenuItem>
                 {Array.isArray(autoclavePrograms) && autoclavePrograms.map((p) => (
                   <MenuItem key={p.id} value={p.id}>
-                    {p.programCode}: {p.programName} ({p.temperature}°C, {p.cycleTimeMinutes} min)
+                    {t("media.preparationDialog.programOption", {
+                      code: p.programCode,
+                      name: p.programName,
+                      temp: p.temperature,
+                      minutes: p.cycleTimeMinutes
+                    })}
                   </MenuItem>
                 ))}
               </Select>
@@ -666,36 +685,36 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
 
             <TextField
               size="small"
-              label="Load Type (Read-Only)"
+              label={t("media.preparationDialog.loadTypeLabel")}
               value={form.loadType ?? ""}
-              helperText="Configured in Laboratory Configuration"
+              helperText={t("media.preparationDialog.configuredInLabConfig")}
               slotProps={{
                 input: { readOnly: true }
               }}
             />
 
             <NumericEntryField
-              label="Temperature (°C) (Read-Only)"
+              label={t("media.preparationDialog.temperatureLabel")}
               kind="decimal"
               value={form.temperature === "" || form.temperature == null ? "" : String(form.temperature)}
               onChange={() => {}}
               readOnly
               unit="°C"
-              helperText="Configured in Laboratory Configuration"
+              helperText={t("media.preparationDialog.configuredInLabConfig")}
             />
 
             <NumericEntryField
-              label="Cycle Time (min) (Read-Only)"
+              label={t("media.preparationDialog.cycleTimeLabel")}
               kind="decimal"
               value={form.cycleTime === "" || form.cycleTime == null ? "" : String(form.cycleTime)}
               onChange={() => {}}
               readOnly
               unit="min"
-              helperText="Configured in Laboratory Configuration"
+              helperText={t("media.preparationDialog.configuredInLabConfig")}
             />
 
             <NumericEntryField
-              label="Cycle Number *"
+              label={t("media.preparationDialog.cycleNumberLabel")}
               kind="count"
               value={form.cycleNumber ?? ""}
               onChange={(v) => setField("cycleNumber", v)}
@@ -713,24 +732,24 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
           sx={sectionWrapperSx}
         >
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-            3. QUALITY SPECIFICATIONS & EXPIRY
+            {t("media.preparationDialog.section3Heading")}
           </Typography>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
               <NumericEntryField
-                label="pH (at 25°C) *"
+                label={t("media.preparationDialog.phLabel")}
                 kind="decimal"
                 value={form.ph ?? ""}
                 onChange={(v) => setField("ph", v)}
                 error={fieldErrors.ph}
                 aria-describedby={hintDescribedBy("media-ph")}
               />
-              <FieldHint id="media-ph" label="the lot's pH" hint={hints.ph} />
+              <FieldHint id="media-ph" label={t("media.preparationDialog.phHintLabel")} hint={hints.ph} />
             </Stack>
 
             <DateField
-              label="Expiry Date *"
+              label={t("media.preparationDialog.expiryDateLabel")}
               value={form.expiryDate ?? ""}
               onChange={(v) => setField("expiryDate", v)}
               error={Boolean(fieldErrors.expiryDate)}
@@ -766,7 +785,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         onClose={onClose}
         onSave={() => void submitPreparation()}
         saving={saving}
-        saveLabel="Save Prepared Lot"
+        saveLabel={t("media.preparationDialog.saveLabel")}
         dirty={isDirty}
         maxWidth="md"
       >
@@ -782,7 +801,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
         <DialogContent dividers>{formBody}</DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} variant="outlined" disabled={saving}>
-            Cancel
+            {t("media.preparationDialog.cancel")}
           </Button>
           <Button
             type="submit"
@@ -791,7 +810,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
             color="primary"
             sx={{ fontWeight: 700 }}
           >
-            {saving ? "Saving…" : "Save Prepared Lot"}
+            {saving ? t("media.preparationDialog.saving") : t("media.preparationDialog.saveLabel")}
           </Button>
         </DialogActions>
       </form>

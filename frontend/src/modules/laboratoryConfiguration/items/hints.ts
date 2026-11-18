@@ -1,4 +1,6 @@
+import type { TFunction } from "i18next";
 import type { Hint } from "../../../components/FieldHint";
+import { i18n } from "../../../i18n";
 
 // Field hints for the item form (AddItemDialog). Wording is taken from guide
 // chapter 31. Hints describe meaning and effect only; no limits or windows.
@@ -8,21 +10,25 @@ const PREPARATION = {
   heading: "31.2 Item Preparation Configuration and Controlled Documents"
 };
 
-export const hints = {
-  itemCode: {
-    text: "The unique code of the item. Item codes must be unique, and the comparison is case-sensitive.",
-    guide: ITEM_MASTER
-  },
-  sopNumber: {
-    text: "Optional. The number of the item's Standard Operating Procedure, if it has one.",
-    guide: PREPARATION
-  },
-  category: {
-    text: "Product, Raw Material or Packaging Material. Items are configured only for these categories; water, environmental monitoring, after cleaning and GPT have their own configuration pages.",
-    guide: ITEM_MASTER
-  },
-  assignedTests: {
-    text: "The tests assigned to this item. When a sample of this item is received, a test order is created for each of these tests that applies to the sample; tests declared not applicable are left out.",
-    guide: ITEM_MASTER
-  }
-} satisfies Record<string, Hint>;
+export function getItemHints(t: TFunction<"labConfig">) {
+  return {
+    itemCode: {
+      text: t("items.hints.itemCode"),
+      guide: ITEM_MASTER
+    },
+    sopNumber: {
+      text: t("items.hints.sopNumber"),
+      guide: PREPARATION
+    },
+    category: {
+      text: t("items.hints.category"),
+      guide: ITEM_MASTER
+    },
+    assignedTests: {
+      text: t("items.hints.assignedTests"),
+      guide: ITEM_MASTER
+    }
+  } satisfies Record<string, Hint>;
+}
+
+export const hints = getItemHints(i18n.getFixedT("en", "labConfig"));

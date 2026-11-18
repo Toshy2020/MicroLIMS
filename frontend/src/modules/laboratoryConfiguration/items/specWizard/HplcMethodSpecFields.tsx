@@ -9,6 +9,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import type {
   HplcMethodAnalyteResponse,
   HplcMethodImpurityResponse
@@ -38,6 +39,7 @@ export function RelatedSubstanceMethodFields({
   methodImpurities,
   loadingMethodAnalytes
 }: RelatedSubstanceProps) {
+  const { t } = useTranslation("labConfig");
   return (
     <Box
       sx={{
@@ -59,7 +61,7 @@ export function RelatedSubstanceMethodFields({
           mb: 1.5
         }}
       >
-        Related Substances (HPLC) Specification
+        {t("specWizard.hplcFields.relatedHeading")}
       </Typography>
       <Stack spacing={2}>
         <Box
@@ -73,11 +75,11 @@ export function RelatedSubstanceMethodFields({
           }}
         >
           <FormControl size="small" fullWidth required error={Boolean(errors.relatedSubstanceRow)}>
-            <InputLabel id="rs-row-label">Row *</InputLabel>
+            <InputLabel id="rs-row-label">{t("specWizard.hplcFields.rowLabel")}</InputLabel>
             <Select
               name="relatedSubstanceRow"
               labelId="rs-row-label"
-              label="Row *"
+              label={t("specWizard.hplcFields.rowLabel")}
               value={model.relatedSubstanceRow}
               onChange={(e) => {
                 const val = e.target.value as RelatedSubstanceRow;
@@ -98,10 +100,10 @@ export function RelatedSubstanceMethodFields({
                 set(patch);
               }}
             >
-              <MenuItem value="Named">Named impurity</MenuItem>
-              <MenuItem value="UnspecifiedEach">Any unspecified impurity</MenuItem>
-              <MenuItem value="Total">Total impurities</MenuItem>
-              <MenuItem value="TotalOthers">Total of others</MenuItem>
+              <MenuItem value="Named">{t("specWizard.methodStep.relatedRowLabels.Named")}</MenuItem>
+              <MenuItem value="UnspecifiedEach">{t("specWizard.methodStep.relatedRowLabels.UnspecifiedEach")}</MenuItem>
+              <MenuItem value="Total">{t("specWizard.methodStep.relatedRowLabels.Total")}</MenuItem>
+              <MenuItem value="TotalOthers">{t("specWizard.methodStep.relatedRowLabels.TotalOthers")}</MenuItem>
             </Select>
             {errors.relatedSubstanceRow && (
               <FormHelperText>{errors.relatedSubstanceRow}</FormHelperText>
@@ -115,11 +117,11 @@ export function RelatedSubstanceMethodFields({
               required
               error={Boolean(errors.hplcMethodImpurityId)}
             >
-              <InputLabel id="rs-impurity-picker-label">Impurity *</InputLabel>
+              <InputLabel id="rs-impurity-picker-label">{t("specWizard.hplcFields.impurityLabel")}</InputLabel>
               <Select
                 name="hplcMethodImpurityId"
                 labelId="rs-impurity-picker-label"
-                label="Impurity *"
+                label={t("specWizard.hplcFields.impurityLabel")}
                 value={model.hplcMethodImpurityId}
                 onChange={(e) => {
                   const id = Number(e.target.value);
@@ -133,17 +135,17 @@ export function RelatedSubstanceMethodFields({
               >
                 {loadingMethodAnalytes ? (
                   <MenuItem disabled value="">
-                    <em>Loading impurities...</em>
+                    <em>{t("specWizard.hplcFields.loadingImpurities")}</em>
                   </MenuItem>
                 ) : methodImpurities.length === 0 ? (
                   <MenuItem disabled value="">
-                    <em>No impurities configured in HPLC method</em>
+                    <em>{t("specWizard.hplcFields.noImpurities")}</em>
                   </MenuItem>
                 ) : (
                   methodImpurities.map((imp) => (
                     <MenuItem key={imp.id} value={imp.id}>
                       {imp.name}
-                      {imp.relativeRetention != null ? ` (RRT ${imp.relativeRetention})` : ""}
+                      {imp.relativeRetention != null ? t("specWizard.hplcFields.rrtSuffix", { rrt: imp.relativeRetention }) : ""}
                     </MenuItem>
                   ))
                 )}
@@ -156,10 +158,10 @@ export function RelatedSubstanceMethodFields({
 
           <TextField
             size="small"
-            label="Result Basis *"
-            value="% as is"
+            label={t("specWizard.hplcFields.resultBasisLabel")}
+            value={t("specWizard.methodStep.summary.percentAsIs")}
             slotProps={{ input: { readOnly: true } }}
-            helperText="Fixed basis for related substances"
+            helperText={t("specWizard.hplcFields.relatedResultBasisHelper")}
             fullWidth
           />
         </Box>
@@ -188,6 +190,7 @@ export function HplcAssayMethodFields({
   loadingMethodAnalytes,
   assignedTests
 }: HplcAssayProps) {
+  const { t } = useTranslation("labConfig");
   return (
     <Box
       sx={{
@@ -209,16 +212,16 @@ export function HplcAssayMethodFields({
           mb: 1.5
         }}
       >
-        HPLC Method Assay Specification
+        {t("specWizard.hplcFields.assayHeading")}
       </Typography>
       <Stack spacing={2}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <FormControl size="small" fullWidth required error={Boolean(errors.hplcMethodAnalyteId)}>
-            <InputLabel id="hplc-method-analyte-label">Analyte *</InputLabel>
+            <InputLabel id="hplc-method-analyte-label">{t("specWizard.hplcFields.analyteLabel")}</InputLabel>
             <Select
               name="hplcMethodAnalyteId"
               labelId="hplc-method-analyte-label"
-              label="Analyte *"
+              label={t("specWizard.hplcFields.analyteLabel")}
               value={model.hplcMethodAnalyteId}
               onChange={(e) => {
                 const id = Number(e.target.value);
@@ -231,7 +234,7 @@ export function HplcAssayMethodFields({
                       hplcParameterName(a.name, "MgPerUnit") === model.parameterName
                   );
                   const prevMatchesTest = assignedTests.some(
-                    (t) => t.displayName === model.parameterName || t.testCode === model.parameterName
+                    (tItem) => tItem.displayName === model.parameterName || tItem.testCode === model.parameterName
                   );
                   if (!model.parameterName.trim() || prevMatchesAnalyte || prevMatchesTest) {
                     patch.parameterName = hplcParameterName(chosen.name, model.resultBasis);
@@ -243,17 +246,17 @@ export function HplcAssayMethodFields({
             >
               {loadingMethodAnalytes ? (
                 <MenuItem disabled value="">
-                  <em>Loading method analytes...</em>
+                  <em>{t("specWizard.hplcFields.loadingAnalytes")}</em>
                 </MenuItem>
               ) : methodAnalytes.length === 0 ? (
                 <MenuItem disabled value="">
-                  <em>No analytes found in HPLC method</em>
+                  <em>{t("specWizard.hplcFields.noAnalytes")}</em>
                 </MenuItem>
               ) : (
                 methodAnalytes.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
                     {a.name}
-                    {a.wavelengthNm != null ? ` (${a.wavelengthNm} nm)` : ""}
+                    {a.wavelengthNm != null ? t("specWizard.hplcFields.wavelengthSuffix", { nm: a.wavelengthNm }) : ""}
                   </MenuItem>
                 ))
               )}
@@ -264,11 +267,11 @@ export function HplcAssayMethodFields({
           </FormControl>
 
           <FormControl size="small" fullWidth required error={Boolean(errors.resultBasis)}>
-            <InputLabel id="hplc-result-basis-label">Basis *</InputLabel>
+            <InputLabel id="hplc-result-basis-label">{t("specWizard.hplcFields.basisLabel")}</InputLabel>
             <Select
               name="resultBasis"
               labelId="hplc-result-basis-label"
-              label="Basis *"
+              label={t("specWizard.hplcFields.basisLabel")}
               value={model.resultBasis}
               onChange={(e) => {
                 const val = e.target.value as ResultBasis;
@@ -289,16 +292,16 @@ export function HplcAssayMethodFields({
                 set(patch);
               }}
             >
-              <MenuItem value="PercentLabelClaim">Assay %</MenuItem>
-              <MenuItem value="MgPerUnit">Amount per unit</MenuItem>
+              <MenuItem value="PercentLabelClaim">{t("specWizard.hplcFields.basisOptions.PercentLabelClaim")}</MenuItem>
+              <MenuItem value="MgPerUnit">{t("specWizard.hplcFields.basisOptions.MgPerUnit")}</MenuItem>
               {model.itemCategory === "RawMaterial" && (
-                <MenuItem value="PercentAsIs">% as is</MenuItem>
+                <MenuItem value="PercentAsIs">{t("specWizard.hplcFields.basisOptions.PercentAsIs")}</MenuItem>
               )}
               {model.itemCategory === "RawMaterial" && (
-                <MenuItem value="PercentDriedBasis">% dried basis</MenuItem>
+                <MenuItem value="PercentDriedBasis">{t("specWizard.hplcFields.basisOptions.PercentDriedBasis")}</MenuItem>
               )}
               {model.itemCategory === "RawMaterial" && (
-                <MenuItem value="PercentAnhydrousBasis">% anhydrous basis</MenuItem>
+                <MenuItem value="PercentAnhydrousBasis">{t("specWizard.hplcFields.basisOptions.PercentAnhydrousBasis")}</MenuItem>
               )}
             </Select>
             {errors.resultBasis && <FormHelperText>{errors.resultBasis}</FormHelperText>}
@@ -310,26 +313,26 @@ export function HplcAssayMethodFields({
             <TextField
               size="small"
               name="labelClaim"
-              label="Label Claim *"
+              label={t("specWizard.hplcFields.labelClaimLabel")}
               type="number"
               value={model.labelClaim}
               onChange={(e) => set({ labelClaim: e.target.value })}
               required
               error={Boolean(errors.labelClaim)}
-              helperText={errors.labelClaim || "Target amount per unit"}
+              helperText={errors.labelClaim || t("specWizard.hplcFields.labelClaimHelper")}
               slotProps={{ htmlInput: { step: "any", min: "0" } }}
               fullWidth
             />
             <TextField
               size="small"
               name="labelClaimUnit"
-              label="Label Claim Unit *"
+              label={t("specWizard.hplcFields.labelClaimUnitLabel")}
               value={model.labelClaimUnit}
               onChange={(e) => set({ labelClaimUnit: e.target.value, unit: e.target.value })}
               required
               error={Boolean(errors.labelClaimUnit)}
-              placeholder="e.g. mg, g, mcg"
-              helperText={errors.labelClaimUnit || "Unit for claim and result"}
+              placeholder={t("specWizard.hplcFields.labelClaimUnitPlaceholder")}
+              helperText={errors.labelClaimUnit || t("specWizard.hplcFields.labelClaimUnitHelper")}
               fullWidth
             />
           </Box>

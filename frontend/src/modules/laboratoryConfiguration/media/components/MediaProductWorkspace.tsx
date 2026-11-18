@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import KeyIcon from "@mui/icons-material/Key";
+import { useTranslation } from "../../../../i18n";
 import { monospaceFontFamily } from "../../../../theme/palette";
 import {
   MediaConfigurationItem,
@@ -54,6 +55,7 @@ export function MediaProductWorkspace({
   activeTab,
   onTabChange,
 }: MediaProductWorkspaceProps) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
 
   const yy = String(new Date().getFullYear()).slice(-2);
@@ -117,13 +119,13 @@ export function MediaProductWorkspace({
               sx={{ fontFamily: monospaceFontFamily, fontSize: 12, height: 22, fontWeight: 600 }}
             />
             <Chip
-              label={`${conditions.length} ${conditions.length === 1 ? "Condition" : "Conditions"}`}
+              label={t("media.productWorkspace.conditionCount", { count: conditions.length })}
               size="small"
               variant="outlined"
               sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
             />
             <Chip
-              label={`${configurations.length} ${configurations.length === 1 ? "Configuration" : "Configurations"}`}
+              label={t("media.productWorkspace.configurationCount", { count: configurations.length })}
               size="small"
               sx={{
                 fontSize: 12,
@@ -134,7 +136,7 @@ export function MediaProductWorkspace({
               }}
             />
             <Chip
-              label={`${product.batchCount} ${product.batchCount === 1 ? "Batch" : "Batches"}`}
+              label={t("media.productWorkspace.batchCount", { count: product.batchCount })}
               size="small"
               variant="outlined"
               sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
@@ -142,7 +144,12 @@ export function MediaProductWorkspace({
           </Stack>
         </Box>
 
-        <IconButton aria-label="Close workspace" size="small" onClick={onClose} title="Close Workspace">
+        <IconButton
+          aria-label={t("media.productWorkspace.closeAriaLabel")}
+          size="small"
+          onClick={onClose}
+          title={t("media.productWorkspace.closeTitle")}
+        >
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -155,13 +162,13 @@ export function MediaProductWorkspace({
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab label="Overview" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab label={t("media.productWorkspace.tabs.overview")} sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
-            label={`Incubation Conditions (${conditions.length})`}
+            label={t("media.productWorkspace.tabs.incubationConditions", { count: conditions.length })}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
           <Tab
-            label={`Configurations (${configurations.length})`}
+            label={t("media.productWorkspace.tabs.configurations", { count: configurations.length })}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
         </Tabs>
@@ -179,7 +186,7 @@ export function MediaProductWorkspace({
                       variant="caption"
                       sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}
                     >
-                      Media code
+                      {t("media.productWorkspace.mediaCodeLabel")}
                     </Typography>
                     <Typography
                       variant="body1"
@@ -196,7 +203,7 @@ export function MediaProductWorkspace({
                       onClick={onChangeCode}
                       sx={{ textTransform: "none", fontSize: 12 }}
                     >
-                      Change code
+                      {t("media.productWorkspace.changeCode")}
                     </Button>
                   )}
                 </Box>
@@ -207,7 +214,7 @@ export function MediaProductWorkspace({
                   variant="caption"
                   sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}
                 >
-                  Lot number format
+                  {t("media.productWorkspace.lotNumberFormatLabel")}
                 </Typography>
                 <Typography
                   variant="body1"
@@ -216,7 +223,7 @@ export function MediaProductWorkspace({
                   {`${product.code}/01/${yy}, ${product.code}/02/${yy} ...`}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 0.5 }}>
-                  Every lot prepared from this medium is numbered with its code.
+                  {t("media.productWorkspace.lotNumberFormatDesc")}
                 </Typography>
               </Paper>
 
@@ -225,7 +232,7 @@ export function MediaProductWorkspace({
                   variant="caption"
                   sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}
                 >
-                  Configurations
+                  {t("media.productWorkspace.configurationsLabel")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                   {configurations.length}
@@ -237,7 +244,7 @@ export function MediaProductWorkspace({
                   variant="caption"
                   sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}
                 >
-                  Stock batches
+                  {t("media.productWorkspace.stockBatchesLabel")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                   {product.batchCount}
@@ -247,18 +254,18 @@ export function MediaProductWorkspace({
 
             <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Configuration Summary
+                {t("media.productWorkspace.summaryTitle")}
               </Typography>
               <Stack spacing={1}>
                 {[
                   {
-                    label: "Incubation conditions:",
-                    value: `${conditions.length} ${conditions.length === 1 ? "condition" : "conditions"} defined →`,
+                    label: t("media.productWorkspace.summaryConditionsLabel"),
+                    value: t("media.productWorkspace.summaryConditionsCount", { count: conditions.length }),
                     tab: WORKSPACE_TABS.conditions,
                   },
                   {
-                    label: "Configurations:",
-                    value: `${configurations.length} ${configurations.length === 1 ? "configuration" : "configurations"} defined →`,
+                    label: t("media.productWorkspace.summaryConfigurationsLabel"),
+                    value: t("media.productWorkspace.summaryConfigurationsCount", { count: configurations.length }),
                     tab: WORKSPACE_TABS.configurations,
                   },
                 ].map((row) => (

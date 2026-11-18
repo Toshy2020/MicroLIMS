@@ -14,6 +14,8 @@ import {
 import { FormDialog } from "../../../../components/lab/FormDialog";
 import { LoadErrorAlert } from "../../../../components/LoadErrorAlert";
 import { ToneBadge } from "../../../../components/StatusBadge";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../../../i18n";
 import { Item, ItemService } from "../services/ItemService";
 import {
   SpecificationService,
@@ -40,14 +42,14 @@ const errorMessage = (err: unknown, fallback: string): string => {
   return e?.response?.data?.message || e?.message || fallback;
 };
 
-const statusBadge = (status: CopySpecificationsPreviewStatus) => {
+const statusBadge = (status: CopySpecificationsPreviewStatus, t: TFunction<"labConfig">) => {
   switch (status) {
     case "Ok":
-      return <ToneBadge tone="notDetected" label="Ok" />;
+      return <ToneBadge tone="notDetected" label={t("items.copySpecs.statuses.Ok")} />;
     case "AlreadyPresent":
-      return <ToneBadge tone="inconclusive" label="Already present" />;
+      return <ToneBadge tone="inconclusive" label={t("items.copySpecs.statuses.AlreadyPresent")} />;
     case "Invalid":
-      return <ToneBadge tone="detected" label="Invalid" />;
+      return <ToneBadge tone="detected" label={t("items.copySpecs.statuses.Invalid")} />;
   }
 };
 
@@ -58,6 +60,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
   onSpecsCreated,
   onCompleted
 }) => {
+  const { t } = useTranslation("labConfig");
   const [items, setItems] = useState<Item[] | null>(null);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [itemsAttempt, setItemsAttempt] = useState(0);
@@ -90,12 +93,12 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
         if (!cancelled) setItems(all);
       })
       .catch((err: unknown) => {
-        if (!cancelled) setItemsError(errorMessage(err, "The items could not be loaded."));
+        if (!cancelled) setItemsError(errorMessage(err, t("items.copySpecs.itemsLoadFallback")));
       });
     return () => {
       cancelled = true;
     };
-  }, [itemsAttempt]);
+  }, [itemsAttempt, t]);
 
   useEffect(() => {
     if (!source) return;
@@ -126,7 +129,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
         setTickedIds(new Set(rows.filter((r) => r.status === "Ok").map((r) => r.sourceSpecificationId)));
       })
       .catch((err: unknown) => {
-        if (!cancelled) setPreviewError(errorMessage(err, "The preview could not be loaded."));
+        if (!cancelled) setPreviewError(errorMessage(err, t("items.copySpecs.previewLoadFallback")));
       })
       .finally(() => {
         if (!cancelled) setPreviewLoading(false);
@@ -135,7 +138,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
     return () => {
       cancelled = true;
     };
-  }, [source, item.id, previewAttempt]);
+  }, [source, item.id, previewAttempt, t]);
 
   const pickSource = (picked: Item | null) => {
     setSource(picked);
@@ -185,7 +188,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
       const byId = new Map(updated.map((r) => [r.sourceSpecificationId, r] as const));
       setPreviewRows((prev) => (prev ? prev.map((row) => byId.get(row.sourceSpecificationId) ?? row) : updated));
     } catch (err: unknown) {
-      if (mountedRef.current) setPreviewError(errorMessage(err, "The preview could not be loaded."));
+      if (mountedRef.current) setPreviewError(errorMessage(err, t("items.copySpecs.previewLoadFallback")));
     } finally {
       if (mountedRef.current) setPreviewLoading(false);
     }
@@ -207,7 +210,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
       onClose();
     } catch (err: unknown) {
       if (mountedRef.current) {
-        setSaveError(errorMessage(err, "The specifications could not be copied."));
+        setSaveError(errorMessage(err, t("items.copySpecs.copyFailed")));
       }
     } finally {
       if (mountedRef.current) setSaving(false);
@@ -222,22 +225,21 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
   return (
     <FormDialog
       open
-      title={`Copy specifications to ${item.name} (${item.code})`}
+      title={t("items.copySpecs.title", { name: item.name, code: item.code })}
       onClose={handleClose}
       onSubmit={handleSave}
-      submitLabel="Save"
+      submitLabel={t("items.copySpecs.save")}
       submitting={saving}
       submitDisabled={orderedTickedIds.length === 0 || hasTickedInvalid || previewLoading || previewRows === null}
       error={saveError}
       maxWidth="md"
     >
       <Typography variant="body2" color="text.secondary">
-        Limits are copied exactly as they are on the source item. Parameters already present on this item are skipped,
-        and invalid rows must be unticked before saving. Each created specification is recorded in the audit trail.
+        {t("items.copySpecs.description")}
       </Typography>
 
       {itemsError ? (
-        <LoadErrorAlert message={`Items could not be loaded: ${itemsError}`} onRetry={() => setItemsAttempt((n) => n + 1)} />
+        <LoadErrorAlert message={t("items.copySpecs.itemsLoadError", { error: itemsError })} onRetry={() => setItemsAttempt((n) => n + 1)} />
       ) : (
         <Autocomplete
           options={(items ?? []).filter((i) => i.id !== item.id)}
@@ -247,13 +249,13 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
           onChange={(_, value) => pickSource(value)}
           getOptionLabel={(o) => `${o.name} (${o.code})`}
           isOptionEqualToValue={(a, b) => a.id === b.id}
-          renderInput={(params) => <TextField {...params} size="small" label="Copy from item" />}
+          renderInput={(params) => <TextField {...params} size="small" label={t("items.copySpecs.copyFromLabel")} />}
         />
       )}
 
       {source && previewError && (
         <LoadErrorAlert
-          message={`The preview for ${source.name} could not be loaded: ${previewError}`}
+          message={t("items.copySpecs.previewLoadError", { name: source.name, error: previewError })}
           onRetry={() => setPreviewAttempt((n) => n + 1)}
         />
       )}
@@ -261,19 +263,19 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
       {source && previewLoading && (
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }} role="status" aria-live="polite">
           <CircularProgress size={16} />
-          <Typography variant="body2">Loading preview</Typography>
+          <Typography variant="body2">{t("items.copySpecs.loadingPreview")}</Typography>
         </Stack>
       )}
 
       {source && !previewError && previewRows && (
         <Box>
           {previewRows.length === 0 ? (
-            <Alert severity="info">Nothing on {source.name} can be copied to {item.name}.</Alert>
+            <Alert severity="info">{t("items.copySpecs.nothingToCopy", { source: source.name, target: item.name })}</Alert>
           ) : (
             <Stack spacing={1}>
               <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
                 <Typography variant="caption" color="text.secondary">
-                  {orderedTickedIds.length} of {previewRows.length} selected
+                  {t("items.copySpecs.selectedCount", { selected: orderedTickedIds.length, total: previewRows.length })}
                 </Typography>
                 <Button
                   type="button"
@@ -283,20 +285,20 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
                   disabled={orderedTickedIds.length === 0 || previewLoading || saving}
                   sx={{ textTransform: "none" }}
                 >
-                  Preview
+                  {t("items.copySpecs.previewButton")}
                 </Button>
               </Stack>
 
               {hasTickedInvalid && (
                 <Alert severity="warning" role="status">
-                  One or more ticked specifications are invalid for {item.name}. Untick invalid rows before saving.
+                  {t("items.copySpecs.invalidWarning", { name: item.name })}
                 </Alert>
               )}
 
               <Stack spacing={0.75} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
                 {previewRows.map((row) => {
                   const spec = sourceSpecsById.get(row.sourceSpecificationId);
-                  const qualifiers = spec ? specQualifiers(spec) : [];
+                  const qualifiers = spec ? specQualifiers(spec, t) : [];
                   const isAlreadyPresent = row.status === "AlreadyPresent";
                   const label = rowLabel(row);
                   return (
@@ -309,7 +311,7 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
                             checked={tickedIds.has(row.sourceSpecificationId)}
                             disabled={saving || isAlreadyPresent}
                             onChange={() => toggle(row.sourceSpecificationId)}
-                            slotProps={{ input: { "aria-label": `Copy ${label}` } }}
+                            slotProps={{ input: { "aria-label": t("items.copySpecs.copyCheckboxAriaLabel", { label }) } }}
                           />
                         }
                         label={
@@ -321,9 +323,9 @@ export const CopySpecificationsDialog: React.FC<CopySpecificationsDialogProps> =
                                   {row.testCode}
                                 </Typography>
                               </Typography>
-                              {statusBadge(row.status)}
+                              {statusBadge(row.status, t)}
                             </Stack>
-                            {spec && <Typography sx={{ fontSize: 13 }}>{limitSummary(spec)}</Typography>}
+                            {spec && <Typography sx={{ fontSize: 13 }}>{limitSummary(spec, t)}</Typography>}
                             {qualifiers.length > 0 && (
                               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                                 {qualifiers.join(" · ")}

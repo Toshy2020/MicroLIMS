@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { i18n, useTranslation } from "../../../../i18n";
 import {
   Alert, Box, Button, Checkbox, IconButton, MenuItem, Select, Stack, Table, TableBody, TableCell, TableHead,
   TableRow, TextField, Typography
@@ -40,6 +41,7 @@ const localNow = () => {
 // or from a withdrawn batch) chosen in bulk, plus any other waste in the
 // same load. Signed electronically; eligibility is enforced server-side.
 export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
+  const { t } = useTranslation("labConfig");
   const [eligible, setEligible] = useState<BiologicalWasteEligible>({ thawedVials: [], withdrawnBatches: [] });
   const [autoclaves, setAutoclaves] = useState<{ id: number; name: string; code?: string }[]>([]);
   const [programs, setPrograms] = useState<AutoclaveProgram[]>([]);
@@ -59,7 +61,7 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
     setAutoclaveId(""); setProgramId(""); setPrograms([]); setCycleNumber(""); setCycleStartedAt(localNow());
     setThawIds([]); setBatchIds([]); setOthers([]); setNotes(""); setError(null);
     BiologicalWasteService.getEligible().then(setEligible)
-      .catch((e) => setError(serverMessage(e) ?? "Could not load the vials awaiting destruction."));
+      .catch((e) => setError(serverMessage(e) ?? t("biologicalWaste.dialog.loadError")));
     masterDataOptions.getEquipment("Autoclave").then(setAutoclaves).catch(() => setAutoclaves([]));
   }, [open]);
 
@@ -84,13 +86,13 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
 
   // Checked client-side for a quicker message only; the server repeats every check.
   const problem = (): string | null => {
-    if (autoclaveId === "") return "Select the autoclave.";
-    if (programId === "") return "Select the autoclave program.";
-    if (!cycleNumber.trim()) return "Enter the autoclave cycle number.";
-    if (!cycleStartedAt) return "Enter when the cycle started.";
-    if (itemCount === 0) return "Select at least one vial or add another waste item.";
+    if (autoclaveId === "") return t("biologicalWaste.dialog.selectAutoclave");
+    if (programId === "") return t("biologicalWaste.dialog.selectProgram");
+    if (!cycleNumber.trim()) return t("biologicalWaste.dialog.enterCycleNumber");
+    if (!cycleStartedAt) return t("biologicalWaste.dialog.enterCycleStart");
+    if (itemCount === 0) return t("biologicalWaste.dialog.needItem");
     if (others.some((o) => !o.description.trim() || !(Number(o.quantity) > 0) || !o.unit.trim()))
-      return "Every other waste item needs a description, a quantity above zero and a unit.";
+      return t("biologicalWaste.dialog.otherInvalid");
     return null;
   };
 
@@ -123,12 +125,12 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
         open={open && !signing}
         onClose={onClose}
         maxWidth="md"
-        title="Record Biological Waste Destruction"
+        title={t("biologicalWaste.dialog.title")}
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t("biologicalWaste.dialog.cancel")}</Button>
             <Button variant="contained" color="error" onClick={startSigning}>
-              Sign &amp; record ({itemCount} item{itemCount === 1 ? "" : "s"})
+              {t("biologicalWaste.dialog.signRecord", { count: itemCount })}
             </Button>
           </>
         }
@@ -136,38 +138,42 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
         <Stack spacing={2}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>AUTOCLAVE CYCLE</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("biologicalWaste.dialog.cycleHeading")}</Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1.5 }}>
             <Select size="small" displayEmpty value={autoclaveId}
               onChange={(e) => changeAutoclave(e.target.value)}
-              inputProps={{ "aria-label": "Autoclave" }}>
-              <MenuItem value=""><em>Autoclave</em></MenuItem>
+              inputProps={{ "aria-label": t("biologicalWaste.dialog.autoclave") }}>
+              <MenuItem value=""><em>{t("biologicalWaste.dialog.autoclave")}</em></MenuItem>
               {autoclaves.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}{a.code ? ` (${a.code})` : ""}</MenuItem>)}
             </Select>
             <Select size="small" displayEmpty value={programId} disabled={autoclaveId === ""}
               onChange={(e) => setProgramId(e.target.value)}
-              inputProps={{ "aria-label": "Autoclave program" }}>
-              <MenuItem value=""><em>Program</em></MenuItem>
+              inputProps={{ "aria-label": t("biologicalWaste.dialog.programAria") }}>
+              <MenuItem value=""><em>{t("biologicalWaste.dialog.program")}</em></MenuItem>
               {programs.map((p) => (
                 <MenuItem key={p.id} value={p.id}>{p.programCode}: {p.programName} ({p.loadType})</MenuItem>
               ))}
             </Select>
-            <TextField size="small" label="Cycle number" value={cycleNumber} onChange={(e) => setCycleNumber(e.target.value)} />
-            <TextField size="small" label="Cycle started" type="datetime-local" value={cycleStartedAt}
+            <TextField size="small" label={t("biologicalWaste.dialog.cycleNumber")} value={cycleNumber} onChange={(e) => setCycleNumber(e.target.value)} />
+            <TextField size="small" label={t("biologicalWaste.dialog.cycleStarted")} type="datetime-local" value={cycleStartedAt}
               onChange={(e) => setCycleStartedAt(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
           </Box>
           {program && (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {program.temperature}°C for {program.cycleTimeMinutes} min, load type {program.loadType}
+              {t("biologicalWaste.dialog.programSummary", {
+                temp: program.temperature,
+                minutes: program.cycleTimeMinutes,
+                loadType: program.loadType
+              })}
             </Typography>
           )}
 
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-            THAWED CRYOVIAL VIALS ELIGIBLE FOR DESTRUCTION
+            {t("biologicalWaste.dialog.vialsHeading")}
           </Typography>
           {eligible.thawedVials.length === 0 ? (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              No thawed vials are eligible. A thawed vial becomes eligible 24 hours after thawing, or at once when its batch is withdrawn.
+              {t("biologicalWaste.dialog.noEligible")}
             </Typography>
           ) : (
             <Table size="small">
@@ -177,10 +183,10 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
                     <Checkbox size="small" checked={allThawSelected}
                       indeterminate={thawIds.length > 0 && !allThawSelected}
                       onChange={() => setThawIds(allThawSelected ? [] : eligible.thawedVials.map((v) => v.thawEventId))}
-                      slotProps={{ input: { "aria-label": "Select all thawed vials" } }} />
+                      slotProps={{ input: { "aria-label": t("biologicalWaste.dialog.selectAllAria") } }} />
                   </TableCell>
-                  <TableCell>Batch</TableCell><TableCell>Organism</TableCell><TableCell>Thawed</TableCell>
-                  <TableCell>Eligible because</TableCell><TableCell>Used in</TableCell>
+                  <TableCell>{t("biologicalWaste.dialog.columns.batch")}</TableCell><TableCell>{t("biologicalWaste.dialog.columns.organism")}</TableCell><TableCell>{t("biologicalWaste.dialog.columns.thawed")}</TableCell>
+                  <TableCell>{t("biologicalWaste.dialog.columns.eligibleBecause")}</TableCell><TableCell>{t("biologicalWaste.dialog.columns.usedIn")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -188,11 +194,11 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
                   <TableRow key={v.thawEventId} hover onClick={() => toggle(thawIds, setThawIds, v.thawEventId)} sx={{ cursor: "pointer" }}>
                     <TableCell padding="checkbox">
                       <Checkbox size="small" checked={thawIds.includes(v.thawEventId)}
-                        slotProps={{ input: { "aria-label": `Destroy ${v.cryovialCode} vial thawed ${dt(v.thawedAt)}` } }} />
+                        slotProps={{ input: { "aria-label": t("biologicalWaste.dialog.destroyVialAria", { code: v.cryovialCode, date: dt(v.thawedAt) }) } }} />
                     </TableCell>
                     <TableCell>{v.cryovialCode}</TableCell>
                     <TableCell>{v.organismName}</TableCell>
-                    <TableCell>{dt(v.thawedAt)} by {v.thawedByName}</TableCell>
+                    <TableCell>{t("biologicalWaste.dialog.thawedBy", { date: dt(v.thawedAt), name: v.thawedByName })}</TableCell>
                     <TableCell>{v.eligibleBecause}</TableCell>
                     <TableCell>{v.usedInMediaLots.join(", ") || "—"}</TableCell>
                   </TableRow>
@@ -204,13 +210,13 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
           {eligible.withdrawnBatches.length > 0 && (
             <>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-                UNTHAWED VIALS OF WITHDRAWN BATCHES
+                {t("biologicalWaste.dialog.withdrawnHeading")}
               </Typography>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={tableHeadSx}>
                     <TableCell padding="checkbox" />
-                    <TableCell>Batch</TableCell><TableCell>Organism</TableCell><TableCell>Vials</TableCell>
+                    <TableCell>{t("biologicalWaste.dialog.columns.batch")}</TableCell><TableCell>{t("biologicalWaste.dialog.columns.organism")}</TableCell><TableCell>{t("biologicalWaste.dialog.columns.vials")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -218,7 +224,7 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
                     <TableRow key={b.cryovialId} hover onClick={() => toggle(batchIds, setBatchIds, b.cryovialId)} sx={{ cursor: "pointer" }}>
                       <TableCell padding="checkbox">
                         <Checkbox size="small" checked={batchIds.includes(b.cryovialId)}
-                          slotProps={{ input: { "aria-label": `Destroy the unthawed vials of ${b.cryovialCode}` } }} />
+                          slotProps={{ input: { "aria-label": t("biologicalWaste.dialog.destroyUnthawedAria", { code: b.cryovialCode }) } }} />
                       </TableCell>
                       <TableCell>{b.cryovialCode}</TableCell>
                       <TableCell>{b.organismName}</TableCell>
@@ -231,34 +237,41 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
           )}
 
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-            OTHER WASTE IN THE SAME CYCLE
+            {t("biologicalWaste.dialog.otherHeading")}
           </Typography>
           {others.map((o, i) => (
             <Stack key={i} direction="row" spacing={1} sx={{ alignItems: "center" }}>
-              <TextField size="small" label="Description" placeholder="e.g. Used GPT plates" value={o.description} sx={{ flex: 1 }}
+              <TextField size="small" label={t("biologicalWaste.dialog.description")} placeholder={t("biologicalWaste.dialog.descriptionPlaceholder")} value={o.description} sx={{ flex: 1 }}
                 onChange={(e) => setOthers(others.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)))} />
-              <TextField size="small" label="Quantity" type="number" value={o.quantity} sx={{ width: 110 }}
+              <TextField size="small" label={t("biologicalWaste.dialog.quantity")} type="number" value={o.quantity} sx={{ width: 110 }}
                 onChange={(e) => setOthers(others.map((x, j) => (j === i ? { ...x, quantity: e.target.value } : x)))} />
-              <TextField size="small" label="Unit" placeholder="plates" value={o.unit} sx={{ width: 120 }}
+              <TextField size="small" label={t("biologicalWaste.dialog.unit")} placeholder={t("biologicalWaste.dialog.unitPlaceholder")} value={o.unit} sx={{ width: 120 }}
                 onChange={(e) => setOthers(others.map((x, j) => (j === i ? { ...x, unit: e.target.value } : x)))} />
-              <IconButton aria-label="Remove item" onClick={() => setOthers(others.filter((_, j) => j !== i))}>
+              <IconButton aria-label={t("biologicalWaste.dialog.removeItem")} onClick={() => setOthers(others.filter((_, j) => j !== i))}>
                 <DeleteOutlineIcon fontSize="small" />
               </IconButton>
             </Stack>
           ))}
           <Box>
             <Button size="small" startIcon={<AddIcon />} onClick={() => setOthers([...others, { description: "", quantity: "", unit: "" }])}>
-              Add other waste
+              {t("biologicalWaste.dialog.addOther")}
             </Button>
           </Box>
 
-          <TextField size="small" label="Notes (optional)" multiline minRows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          <TextField size="small" label={t("biologicalWaste.dialog.notes")} multiline minRows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Stack>
       </FloatingDialog>
 
       <SignatureDialog
         open={signing}
-        meaningStatement={`I confirm that the ${itemCount} selected item(s) were destroyed as biological waste in autoclave cycle ${cycleNumber.trim()}.`}
+        meaningStatement={i18n.getFixedT("en", "labConfig")("biologicalWaste.dialog.signatureMeaning", {
+          count: itemCount,
+          cycle: cycleNumber.trim()
+        })}
+        meaningStatementTranslation={t("biologicalWaste.dialog.signatureMeaning", {
+          count: itemCount,
+          cycle: cycleNumber.trim()
+        })}
         onCancel={() => setSigning(false)}
         onConfirm={sign}
       />

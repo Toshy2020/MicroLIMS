@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
+import { i18n } from "../../../../i18n";
 import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
 import {
   laboratorySectionService,
@@ -600,5 +601,17 @@ describe("SpecificationWizard", () => {
     })) as HTMLInputElement;
     await waitFor(() => expect(paramInput.value).toBe("Total Aerobic Microbial Count"));
     expect((screen.getByDisplayValue("TAMC") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("renders the wizard title and parameter label in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig", "common"]);
+    try {
+      renderWizard();
+      expect(await screen.findByText("إضافة معيار مواصفات")).toBeTruthy();
+      expect(screen.getByRole("textbox", { name: "اسم المعيار *" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

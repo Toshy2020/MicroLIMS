@@ -20,6 +20,8 @@ import {
 } from "@mui/material";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../../../i18n";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { OrganismPicker } from "../../../../components/OrganismPicker";
 import { masterDataOptions, incubationConditionLabel } from "../../../../services/masterDataOptions";
@@ -32,13 +34,20 @@ import {
 } from "../types/mediaConfigurationTypes";
 import { OrganismOption } from "../../../../hooks/useOrganisms";
 
-const EVALUATION_TYPES = [
-  { value: "GrowthPromotion", label: "Growth Promotion" },
-  { value: "IndicationInhibition", label: "Indication / Inhibition" },
-  { value: "EnrichmentCharacteristics", label: "Enrichment Characteristics" },
-];
+function getEvaluationTypes(t: TFunction<"labConfig">) {
+  return [
+    { value: "GrowthPromotion", label: t("media.configurationDialog.evaluationTypes.growthPromotion") },
+    { value: "IndicationInhibition", label: t("media.configurationDialog.evaluationTypes.indicationInhibition") },
+    { value: "EnrichmentCharacteristics", label: t("media.configurationDialog.evaluationTypes.enrichmentCharacteristics") },
+  ];
+}
 
-const CHALLENGE_ROLES = ["Inhibition", "Indication"];
+function getChallengeRoles(t: TFunction<"labConfig">) {
+  return [
+    { value: "Inhibition", label: t("media.configurationDialog.challengeRoles.inhibition") },
+    { value: "Indication", label: t("media.configurationDialog.challengeRoles.indication") },
+  ];
+}
 
 const defaultInitialInoculum = (evalType: string) =>
   evalType === "IndicationInhibition" ? "" : "10^2";
@@ -63,6 +72,15 @@ export function MediaConfigurationDialog({
   onClose,
   onSuccess,
 }: MediaConfigurationDialogProps) {
+  const { t } = useTranslation("labConfig");
+  const evaluationTypes = getEvaluationTypes(t);
+  const challengeRoles = getChallengeRoles(t);
+  const roleLabel = (r: string | null | undefined) =>
+    r === "Inhibition"
+      ? t("media.configurationDialog.challengeRoles.inhibition")
+      : r === "Indication"
+      ? t("media.configurationDialog.challengeRoles.indication")
+      : r ?? "—";
   const [evaluationType, setEvaluationType] = useState("GrowthPromotion");
   const [conditionId, setConditionId] = useState<number | "">("");
   const [recoveryPercentMin, setRecoveryPercentMin] = useState<number | "">("");
@@ -134,7 +152,7 @@ export function MediaConfigurationDialog({
     const org = organisms.find((o) => o.id === selectedOrganismId);
     const newChallenge: StagedChallenge = {
       organismId: selectedOrganismId,
-      organismName: org?.scientificName ?? `Organism #${selectedOrganismId}`,
+      organismName: org?.scientificName ?? t("media.configurationDialog.organismFallback", { id: selectedOrganismId }),
       atccNumber: org?.atccNumber ?? undefined,
       challengeRole: evaluationType === "IndicationInhibition" ? (challengeRole || null) : null,
       expectedDescription:
@@ -148,7 +166,7 @@ export function MediaConfigurationDialog({
       (c) => c.organismId === newChallenge.organismId && c.challengeRole === newChallenge.challengeRole
     );
     if (duplicate) {
-      setError("This organism and role combination is already staged for this configuration.");
+      setError(t("media.configurationDialog.duplicateOrganismError"));
       return;
     }
 
@@ -168,13 +186,13 @@ export function MediaConfigurationDialog({
     setError(null);
 
     if (conditionId === "") {
-      setError("Choose an incubation condition.");
+      setError(t("media.configurationDialog.conditionRequiredError"));
       return;
     }
     if (evaluationType === "GrowthPromotion") {
       if (recoveryPercentMin !== "" && recoveryPercentMax !== "") {
         if (Number(recoveryPercentMin) > Number(recoveryPercentMax)) {
-          setError("Recovery % min cannot exceed max.");
+          setError(t("media.configurationDialog.recoveryRangeError"));
           return;
         }
       }
@@ -214,8 +232,8 @@ export function MediaConfigurationDialog({
       setError(
         msg ??
           (configToEdit
-            ? "Failed to update media configuration."
-            : "Failed to create media configuration.")
+            ? t("media.configurationDialog.updateError")
+            : t("media.configurationDialog.createError"))
       );
     } finally {
       setSaving(false);
@@ -228,14 +246,22 @@ export function MediaConfigurationDialog({
       onClose={onClose}
       maxWidth="md"
       titleSx={{ fontWeight: 700, fontSize: 16 }}
-      title={configToEdit ? `Edit configuration - ${product.name}` : `Add configuration - ${product.name}`}
+      title={
+        configToEdit
+          ? t("media.configurationDialog.editTitle", { name: product.name })
+          : t("media.configurationDialog.addTitle", { name: product.name })
+      }
       actions={
         <>
           <Button onClick={onClose} disabled={saving} color="inherit">
-            Cancel
+            {t("media.configurationDialog.cancel")}
           </Button>
           <Button variant="contained" onClick={handleSave} disabled={saving || conditions.length === 0}>
-            {saving ? "Saving..." : configToEdit ? "Save Changes" : "Save Configuration"}
+            {saving
+              ? t("media.configurationDialog.saving")
+              : configToEdit
+              ? t("media.configurationDialog.saveChanges")
+              : t("media.configurationDialog.saveConfiguration")}
           </Button>
         </>
       }
@@ -244,25 +270,25 @@ export function MediaConfigurationDialog({
         {error && <Alert severity="error">{error}</Alert>}
         {conditions.length === 0 && (
           <Alert severity="info">
-            {product.name} has no incubation conditions yet. Add one in the Incubation Conditions tab first.
+            {t("media.configurationDialog.noConditionsAlert", { name: product.name })}
           </Alert>
         )}
 
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-              Evaluation Type
+              {t("media.configurationDialog.evaluationTypeLabel")}
             </Typography>
             <Select
               size="small"
               fullWidth
               value={evaluationType}
               onChange={(e) => handleEvaluationTypeChange(e.target.value)}
-              inputProps={{ "aria-label": "Evaluation Type" }}
+              inputProps={{ "aria-label": t("media.configurationDialog.evaluationTypeLabel") }}
             >
-              {EVALUATION_TYPES.map((t) => (
-                <MenuItem key={t.value} value={t.value}>
-                  {t.label}
+              {evaluationTypes.map((et) => (
+                <MenuItem key={et.value} value={et.value}>
+                  {et.label}
                 </MenuItem>
               ))}
             </Select>
@@ -270,7 +296,7 @@ export function MediaConfigurationDialog({
 
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-              Incubation Condition
+              {t("media.configurationDialog.incubationConditionLabel")}
             </Typography>
             <Select<number | "">
               size="small"
@@ -279,10 +305,10 @@ export function MediaConfigurationDialog({
               value={conditionId}
               disabled={conditions.length === 0}
               onChange={(e) => setConditionId(e.target.value === "" ? "" : Number(e.target.value))}
-              inputProps={{ "aria-label": "Condition" }}
+              inputProps={{ "aria-label": t("media.configurationDialog.conditionAriaLabel") }}
             >
               <MenuItem value="">
-                <em>Select a condition *</em>
+                <em>{t("media.configurationDialog.selectCondition")}</em>
               </MenuItem>
               {conditions.map((c) => (
                 <MenuItem key={c.id} value={c.id}>
@@ -297,7 +323,7 @@ export function MediaConfigurationDialog({
               <TextField
                 size="small"
                 type="number"
-                label="Recovery Min (%)"
+                label={t("media.configurationDialog.recoveryMinLabel")}
                 placeholder="e.g. 70"
                 value={recoveryPercentMin}
                 onChange={(e) => setRecoveryPercentMin(e.target.value === "" ? "" : Number(e.target.value))}
@@ -306,7 +332,7 @@ export function MediaConfigurationDialog({
               <TextField
                 size="small"
                 type="number"
-                label="Recovery Max (%)"
+                label={t("media.configurationDialog.recoveryMaxLabel")}
                 placeholder="e.g. 200"
                 value={recoveryPercentMax}
                 onChange={(e) => setRecoveryPercentMax(e.target.value === "" ? "" : Number(e.target.value))}
@@ -320,7 +346,7 @@ export function MediaConfigurationDialog({
 
         {/* Challenge Organisms Sub-form */}
         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-          Challenge Organisms (Optional)
+          {t("media.configurationDialog.challengeSectionTitle")}
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2, alignItems: "center" }}>
@@ -332,14 +358,14 @@ export function MediaConfigurationDialog({
               displayEmpty
               value={challengeRole}
               onChange={(e) => setChallengeRole(e.target.value)}
-              inputProps={{ "aria-label": "Challenge Role" }}
+              inputProps={{ "aria-label": t("media.configurationDialog.selectRoleAriaLabel") }}
             >
               <MenuItem value="">
-                <em>Select Challenge Role *</em>
+                <em>{t("media.configurationDialog.selectRole")}</em>
               </MenuItem>
-              {CHALLENGE_ROLES.map((r) => (
-                <MenuItem key={r} value={r}>
-                  {r}
+              {challengeRoles.map((r) => (
+                <MenuItem key={r.value} value={r.value}>
+                  {r.label}
                 </MenuItem>
               ))}
             </Select>
@@ -348,8 +374,8 @@ export function MediaConfigurationDialog({
           {evaluationType === "IndicationInhibition" && challengeRole === "Indication" && (
             <TextField
               size="small"
-              label="Expected Colony Description *"
-              placeholder="e.g. Pink-red with precipitation"
+              label={t("media.configurationDialog.expectedDescriptionLabel")}
+              placeholder={t("media.configurationDialog.expectedDescriptionPlaceholder")}
               value={expectedDescription}
               onChange={(e) => setExpectedDescription(e.target.value)}
               required
@@ -358,8 +384,8 @@ export function MediaConfigurationDialog({
 
           <TextField
             size="small"
-            label="Initial Inoculum (CFU)"
-            placeholder="e.g. 10^2, ≤100, ≥1000"
+            label={t("media.configurationDialog.initialInoculumLabel")}
+            placeholder={t("media.configurationDialog.initialInoculumPlaceholder")}
             value={initialInoculum}
             onChange={(e) => setInitialInoculum(e.target.value)}
           />
@@ -372,7 +398,7 @@ export function MediaConfigurationDialog({
               disabled={!isAddChallengeValid}
               onClick={handleAddChallenge}
             >
-              Add Organism
+              {t("media.configurationDialog.addOrganism")}
             </Button>
           </Box>
         </Box>
@@ -383,11 +409,11 @@ export function MediaConfigurationDialog({
               <Table size="small">
                 <TableHead>
                   <TableRow sx={tableHeadSx}>
-                    <TableCell>Organism</TableCell>
-                    <TableCell>ATCC / Ref</TableCell>
-                    <TableCell>Role</TableCell>
-                    <TableCell>Expected Description</TableCell>
-                    <TableCell>Initial Inoculum</TableCell>
+                    <TableCell>{t("media.configurationDialog.columns.organism")}</TableCell>
+                    <TableCell>{t("media.configurationDialog.columns.atccRef")}</TableCell>
+                    <TableCell>{t("media.configurationDialog.columns.role")}</TableCell>
+                    <TableCell>{t("media.configurationDialog.columns.expectedDescription")}</TableCell>
+                    <TableCell>{t("media.configurationDialog.columns.initialInoculum")}</TableCell>
                     <TableCell align="right" />
                   </TableRow>
                 </TableHead>
@@ -396,11 +422,16 @@ export function MediaConfigurationDialog({
                     <TableRow key={idx}>
                       <TableCell sx={{ fontWeight: 500 }}>{c.organismName}</TableCell>
                       <TableCell>{c.atccNumber ?? "—"}</TableCell>
-                      <TableCell>{c.challengeRole ?? "—"}</TableCell>
+                      <TableCell>{roleLabel(c.challengeRole)}</TableCell>
                       <TableCell>{c.expectedDescription ?? "—"}</TableCell>
                       <TableCell>{c.initialInoculum ?? "—"}</TableCell>
                       <TableCell align="right">
-                        <IconButton aria-label={`Remove challenge organism ${idx + 1}`} size="small" color="error" onClick={() => handleRemoveChallenge(idx)}>
+                        <IconButton
+                          aria-label={t("media.configurationDialog.removeOrganismAriaLabel", { index: idx + 1 })}
+                          size="small"
+                          color="error"
+                          onClick={() => handleRemoveChallenge(idx)}
+                        >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>
                       </TableCell>

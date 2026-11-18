@@ -9,9 +9,10 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import type {
-  RelatedSubstanceRow,
   ResultBasis
 } from "../../specifications/services/SpecificationService";
 import { formatResultBasis } from "../components/copySpecifications";
@@ -32,13 +33,6 @@ import {
   type SpecWizardLookupData
 } from "./specHelpers";
 
-const RELATED_ROW_LABELS: Record<RelatedSubstanceRow, string> = {
-  Named: "Named impurity",
-  UnspecifiedEach: "Any unspecified impurity",
-  Total: "Total impurities",
-  TotalOthers: "Total of others"
-};
-
 interface MethodStepViewProps {
   model: SpecFormModel;
   set: (patch: Partial<SpecFormModel>) => void;
@@ -47,6 +41,7 @@ interface MethodStepViewProps {
 }
 
 function MethodStepView({ model, set, errors, lookup }: MethodStepViewProps) {
+  const { t } = useTranslation("labConfig");
   const flags = resolveSpecMethodFlags(model);
   const currentDef = lookup.testDefs[model.testCode];
   const methodId = currentDef?.hplcMethodId;
@@ -148,23 +143,23 @@ function MethodStepView({ model, set, errors, lookup }: MethodStepViewProps) {
               mb: 1.5
             }}
           >
-            UV Spectrophotometry Basis
+            {t("specWizard.methodStep.uvHeading")}
           </Typography>
           <FormControl size="small" fullWidth>
-            <InputLabel id="uv-spec-basis-label">Basis</InputLabel>
+            <InputLabel id="uv-spec-basis-label">{t("specWizard.methodStep.basisLabel")}</InputLabel>
             <Select
               name="resultBasis"
               labelId="uv-spec-basis-label"
-              label="Basis"
+              label={t("specWizard.methodStep.basisLabel")}
               value={model.resultBasis ?? ""}
               onChange={(e) => set({ resultBasis: e.target.value as ResultBasis | "" })}
             >
               <MenuItem value="">
-                <em>None</em>
+                <em>{t("specWizard.methodStep.none")}</em>
               </MenuItem>
-              <MenuItem value="PercentAsIs">% as is</MenuItem>
-              <MenuItem value="PercentDriedBasis">% dried basis</MenuItem>
-              <MenuItem value="PercentAnhydrousBasis">% anhydrous basis</MenuItem>
+              <MenuItem value="PercentAsIs">{t("specWizard.methodStep.uvBasis.PercentAsIs")}</MenuItem>
+              <MenuItem value="PercentDriedBasis">{t("specWizard.methodStep.uvBasis.PercentDriedBasis")}</MenuItem>
+              <MenuItem value="PercentAnhydrousBasis">{t("specWizard.methodStep.uvBasis.PercentAnhydrousBasis")}</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -206,7 +201,8 @@ function MethodStepView({ model, set, errors, lookup }: MethodStepViewProps) {
 
 function summarizeMethodStep(
   model: SpecFormModel,
-  lookup: SpecWizardLookupData
+  lookup: SpecWizardLookupData,
+  t: TFunction<"labConfig">
 ): { label: string; value: string; field: string }[] {
   const flags = resolveSpecMethodFlags(model);
   const { analytes, impurities } = getHplcMethodLists(
@@ -220,44 +216,44 @@ function summarizeMethodStep(
     if (flags.isRelatedSubstances) {
       rows.push({
         field: "relatedSubstanceRow",
-        label: "Related-substance row",
-        value: model.relatedSubstanceRow ? RELATED_ROW_LABELS[model.relatedSubstanceRow] : ""
+        label: t("specWizard.methodStep.summary.relatedSubstanceRow"),
+        value: model.relatedSubstanceRow ? t(`specWizard.methodStep.relatedRowLabels.${model.relatedSubstanceRow}`) : ""
       });
       if (model.relatedSubstanceRow === "Named") {
         const imp = impurities.find((i) => i.id === model.hplcMethodImpurityId);
         rows.push({
           field: "hplcMethodImpurityId",
-          label: "Impurity",
+          label: t("specWizard.methodStep.summary.impurity"),
           value: imp?.name ?? (model.hplcMethodImpurityId ? String(model.hplcMethodImpurityId) : "")
         });
       }
-      rows.push({ field: "resultBasis", label: "Result basis", value: "% as is" });
+      rows.push({ field: "resultBasis", label: t("specWizard.methodStep.summary.resultBasis"), value: t("specWizard.methodStep.summary.percentAsIs") });
     } else if (flags.isResidualSolvents) {
       const sol = analytes.find((a) => a.id === model.hplcMethodAnalyteId);
       rows.push({
         field: "hplcMethodAnalyteId",
-        label: "Solvent",
+        label: t("specWizard.methodStep.summary.solvent"),
         value: sol?.name ?? (model.hplcMethodAnalyteId ? String(model.hplcMethodAnalyteId) : "")
       });
-      rows.push({ field: "resultBasis", label: "Result basis", value: "ppm" });
+      rows.push({ field: "resultBasis", label: t("specWizard.methodStep.summary.resultBasis"), value: t("specWizard.methodStep.summary.ppm") });
     } else {
       const analyte = analytes.find((a) => a.id === model.hplcMethodAnalyteId);
       rows.push({
         field: "hplcMethodAnalyteId",
-        label: "Analyte",
+        label: t("specWizard.methodStep.summary.analyte"),
         value:
           analyte?.name ?? (model.hplcMethodAnalyteId ? String(model.hplcMethodAnalyteId) : "")
       });
       rows.push({
         field: "resultBasis",
-        label: "Result basis",
-        value: formatResultBasis(model.resultBasis) ?? ""
+        label: t("specWizard.methodStep.summary.resultBasis"),
+        value: formatResultBasis(model.resultBasis, false, t) ?? ""
       });
       if (model.resultBasis === "MgPerUnit") {
-        rows.push({ field: "labelClaim", label: "Label claim", value: model.labelClaim });
+        rows.push({ field: "labelClaim", label: t("specWizard.methodStep.summary.labelClaim"), value: model.labelClaim });
         rows.push({
           field: "labelClaimUnit",
-          label: "Label claim unit",
+          label: t("specWizard.methodStep.summary.labelClaimUnit"),
           value: model.labelClaimUnit
         });
       }
@@ -270,7 +266,7 @@ function summarizeMethodStep(
     );
     rows.push({
       field: "icpTestElementId",
-      label: "Element",
+      label: t("specWizard.methodStep.summary.element"),
       value: el?.symbol ?? (model.icpTestElementId ? String(model.icpTestElementId) : "")
     });
   }
@@ -278,14 +274,14 @@ function summarizeMethodStep(
   if (flags.isTitration) {
     rows.push({
       field: "resultBasis",
-      label: "Result basis",
-      value: formatResultBasis(model.resultBasis) ?? ""
+      label: t("specWizard.methodStep.summary.resultBasis"),
+      value: formatResultBasis(model.resultBasis, false, t) ?? ""
     });
     if (titrationBasisNeedsLabelClaim(model.resultBasis)) {
       rows.push({
         field: "labelClaim",
-        label: "Label claim",
-        value: model.labelClaim ? `${model.labelClaim} mg` : ""
+        label: t("specWizard.methodStep.summary.labelClaim"),
+        value: model.labelClaim ? t("specWizard.methodStep.summary.mgValue", { value: model.labelClaim }) : ""
       });
     }
   }
@@ -293,8 +289,8 @@ function summarizeMethodStep(
   if (flags.isUv && !flags.isUvLimit) {
     rows.push({
       field: "resultBasis",
-      label: "Result basis",
-      value: model.resultBasis ? (formatResultBasis(model.resultBasis) ?? model.resultBasis) : "None"
+      label: t("specWizard.methodStep.summary.resultBasis"),
+      value: model.resultBasis ? (formatResultBasis(model.resultBasis, false, t) ?? model.resultBasis) : t("specWizard.methodStep.none")
     });
   }
 
@@ -305,14 +301,15 @@ function summarizeMethodStep(
  * Builds the Method & Basis wizard step (omitted when the test has no method/basis fields).
  */
 export function createMethodStep(
-  getLookup: () => SpecWizardLookupData
+  getLookup: () => SpecWizardLookupData,
+  t: TFunction<"labConfig"> = i18n.getFixedT("en", "labConfig")
 ): WizardStep<SpecFormModel> {
   return {
     key: "method",
-    title: "Method & Basis",
+    title: t("specWizard.methodStep.title"),
     applies: methodStepApplies,
     validate: (model) => validateStep("method", model),
     render: (ctx) => <MethodStepView {...ctx} lookup={getLookup()} />,
-    summary: (model) => summarizeMethodStep(model, getLookup())
+    summary: (model) => summarizeMethodStep(model, getLookup(), t)
   };
 }

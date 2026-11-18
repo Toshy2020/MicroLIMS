@@ -7,6 +7,7 @@ import ToggleOffIcon from "@mui/icons-material/ToggleOff";
 import { MediaProductOption } from "../types/mediaConfigurationTypes";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { clickable } from "../../../../utils/clickable";
+import { useTranslation } from "../../../../i18n";
 
 interface MediaProductListProps {
   products: MediaProductOption[];
@@ -29,6 +30,7 @@ export function MediaProductList({
   isManager,
   emptyMessage,
 }: MediaProductListProps) {
+  const { t } = useTranslation("labConfig");
   const [pendingDelete, setPendingDelete] = useState<MediaProductOption | null>(null);
 
   if (products.length === 0) {
@@ -64,7 +66,7 @@ export function MediaProductList({
         open={pendingDelete != null}
         message={
           pendingDelete
-            ? `Delete media product "${pendingDelete.name}" (${pendingDelete.code})? This cannot be undone. A product that has configurations or stock batches can't be deleted.`
+            ? t("media.productList.deleteConfirm", { name: pendingDelete.name, code: pendingDelete.code })
             : ""
         }
         onCancel={() => setPendingDelete(null)}
@@ -96,6 +98,7 @@ function MediaProductRowCard({
   onSetActive: (product: MediaProductOption, value: boolean) => void;
   isManager: boolean;
 }) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
 
   return (
@@ -143,7 +146,7 @@ function MediaProductRowCard({
             }}
           >
             <Chip
-              label={`${product.configurationCount} ${product.configurationCount === 1 ? "Configuration" : "Configurations"}`}
+              label={t("media.productList.configCount", { count: product.configurationCount })}
               size="small"
               sx={{
                 fontSize: 12,
@@ -155,7 +158,7 @@ function MediaProductRowCard({
             />
 
             <Chip
-              label={`${product.batchCount} ${product.batchCount === 1 ? "Batch" : "Batches"}`}
+              label={t("media.productList.batchCount", { count: product.batchCount })}
               size="small"
               variant="outlined"
               sx={{
@@ -166,42 +169,42 @@ function MediaProductRowCard({
             />
 
             {product.isActive === false && (
-              <Chip label="Inactive" size="small" color="warning" variant="outlined" sx={{ fontSize: 12, fontWeight: 600, height: 20 }} />
+              <Chip label={t("media.productList.inactive")} size="small" color="warning" variant="outlined" sx={{ fontSize: 12, fontWeight: 600, height: 20 }} />
             )}
           </Stack>
         </Box>
 
         {isManager && (
           <Stack direction="row" spacing={0.5} onClick={(e) => e.stopPropagation()}>
-            <IconButton aria-label="Edit media product"
+            <IconButton aria-label={t("media.productList.editAriaLabel")}
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
                 onRename(product);
               }}
-              title="Rename Product"
+              title={t("media.productList.editTitle")}
             >
               <EditIcon fontSize="small" />
             </IconButton>
             <IconButton
-              aria-label={product.isActive === false ? "Activate media product" : "Deactivate media product"}
+              aria-label={product.isActive === false ? t("media.productList.activateAriaLabel") : t("media.productList.deactivateAriaLabel")}
               size="small"
               onClick={(e) => {
                 e.stopPropagation();
                 onSetActive(product, product.isActive === false);
               }}
-              title={product.isActive === false ? "Activate Product" : "Deactivate Product"}
+              title={product.isActive === false ? t("media.productList.activateTitle") : t("media.productList.deactivateTitle")}
             >
               {product.isActive === false ? <ToggleOffIcon fontSize="small" /> : <ToggleOnIcon fontSize="small" />}
             </IconButton>
-            <IconButton aria-label="Delete media product"
+            <IconButton aria-label={t("media.productList.deleteAriaLabel")}
               size="small"
               color="error"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(product);
               }}
-              title="Delete Product"
+              title={t("media.productList.deleteTitle")}
             >
               <DeleteIcon fontSize="small" />
             </IconButton>

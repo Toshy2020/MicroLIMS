@@ -12,6 +12,7 @@ import type { MediaEvaluationChallenge, ThawedVialOption } from "../types/mediaE
 import type { CryovialItem } from "../../cryovials/types/cryovialTypes";
 import type { MaterialItem } from "../../../inventory/materials/types/materialTypes";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
+import { i18n } from "../../../../i18n";
 
 vi.mock("../services/MediaEvaluationService", () => ({
   MediaEvaluationService: {
@@ -236,5 +237,18 @@ describe("ChallengeOrganismSourcePicker", () => {
     const combobox = within((screen.getByLabelText("Thawed vial or disk")).parentElement!).getByRole("combobox");
     expect(combobox.textContent).toContain("Select thawed vial or disk");
     expect((screen.getByRole("button", { name: "Assign" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("renders thaw controls in Arabic when Arabic is active", async () => {
+    service.getThawedVials.mockResolvedValue([]);
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig", "common"]);
+    try {
+      renderPicker();
+      expect(await screen.findByText("إذابة قارورة")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "إذابة واستخدام" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

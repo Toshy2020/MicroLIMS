@@ -1,4 +1,6 @@
 import { Box, Stack, TextField } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { resolveSpecMethodFlags, validateStep, type SpecFormModel } from "./specFormModel";
 
@@ -20,6 +22,7 @@ function UnitDilutionStepView({
   set: (patch: Partial<SpecFormModel>) => void;
   errors: Record<string, string>;
 }) {
+  const { t } = useTranslation("labConfig");
   const flags = resolveSpecMethodFlags(model);
   const unitLocked =
     flags.isRelatedSubstances ||
@@ -29,13 +32,13 @@ function UnitDilutionStepView({
     model.limitType === "WeightVariation";
 
   const unitHelperText = flags.isResidualSolvents
-    ? "Fixed unit for residual solvents"
+    ? t("specWizard.unitStep.fixedResidual")
     : flags.isIcpElementalImpurities
-    ? "Fixed unit for elemental impurities"
+    ? t("specWizard.unitStep.fixedIcp")
     : model.limitType === "WeightVariation"
-    ? "Fixed unit for weight variation"
+    ? t("specWizard.unitStep.fixedWeightVariation")
     : model.limitType === "DisintegrationTime"
-    ? "Fixed unit for disintegration time"
+    ? t("specWizard.unitStep.fixedDisintegration")
     : undefined;
 
   const showDilution =
@@ -51,24 +54,24 @@ function UnitDilutionStepView({
         <TextField
           size="small"
           name="unit"
-          label="Unit"
+          label={t("specWizard.unitStep.unitLabel")}
           value={effectiveUnitValue(model)}
           onChange={(e) => set({ unit: e.target.value })}
           disabled={unitLocked}
           error={Boolean(errors.unit)}
           helperText={errors.unit || unitHelperText}
-          placeholder="e.g. % w/w, CFU/g, pH units"
+          placeholder={t("specWizard.unitStep.unitPlaceholder")}
           fullWidth
         />
         <TextField
           size="small"
           name="referenceStandard"
-          label="Reference Standard"
+          label={t("specWizard.unitStep.referenceLabel")}
           value={model.referenceStandard}
           onChange={(e) => set({ referenceStandard: e.target.value })}
           error={Boolean(errors.referenceStandard)}
           helperText={errors.referenceStandard}
-          placeholder="e.g. USP <711>, EP 2.2.29, STP-VITC-01"
+          placeholder={t("specWizard.unitStep.referencePlaceholder")}
           fullWidth
         />
       </Box>
@@ -77,7 +80,7 @@ function UnitDilutionStepView({
         <TextField
           size="small"
           name="dilutionFactor"
-          label="Dilution Factor"
+          label={t("specWizard.unitStep.dilutionLabel")}
           type="number"
           value={model.dilutionFactor}
           onChange={(e) => set({ dilutionFactor: e.target.value })}
@@ -85,9 +88,9 @@ function UnitDilutionStepView({
           error={Boolean(errors.dilutionFactor)}
           helperText={
             errors.dilutionFactor ||
-            "DILUTION FACTOR: editable only for Count-Tiered parameters"
+            t("specWizard.unitStep.dilutionHelper")
           }
-          placeholder={model.limitType === "CountTiered" ? "e.g. 10" : "\u2014"}
+          placeholder={model.limitType === "CountTiered" ? t("specWizard.unitStep.dilutionPlaceholder") : "\u2014"}
           slotProps={{ htmlInput: { step: "1", min: "1" } }}
           fullWidth
         />
@@ -99,25 +102,27 @@ function UnitDilutionStepView({
 /**
  * Builds the Unit & Reference (and Dilution Factor for Count-Tiered) wizard step.
  */
-export function createUnitDilutionStep(): WizardStep<SpecFormModel> {
+export function createUnitDilutionStep(
+  t: TFunction<"labConfig"> = i18n.getFixedT("en", "labConfig")
+): WizardStep<SpecFormModel> {
   return {
     key: "unit",
-    title: "Unit & Reference",
+    title: t("specWizard.unitStep.title"),
     validate: (model) => validateStep("unit", model),
     render: (ctx) => <UnitDilutionStepView {...ctx} />,
     summary: (model) => {
       const rows = [
-        { field: "unit", label: "Unit", value: effectiveUnitValue(model).trim() },
+        { field: "unit", label: t("specWizard.unitStep.summary.unit"), value: effectiveUnitValue(model).trim() },
         {
           field: "referenceStandard",
-          label: "Reference standard",
+          label: t("specWizard.unitStep.summary.referenceStandard"),
           value: model.referenceStandard.trim()
         }
       ];
       if (model.limitType === "CountTiered") {
         rows.push({
           field: "dilutionFactor",
-          label: "Dilution factor",
+          label: t("specWizard.unitStep.summary.dilutionFactor"),
           value: model.dilutionFactor.trim() ? `\u00D7${model.dilutionFactor.trim()}` : ""
         });
       }

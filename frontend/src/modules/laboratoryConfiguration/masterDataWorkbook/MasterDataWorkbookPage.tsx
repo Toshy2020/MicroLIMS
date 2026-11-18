@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { i18n, useTranslation } from "../../../i18n";
 import { Alert, Button, Paper, Stack, Typography } from "@mui/material";
 import { LabPage, RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
@@ -14,6 +15,7 @@ import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 // second-person verify. Every rule is on the server; this page only
 // shows its report.
 export function MasterDataWorkbookPage() {
+  const { t } = useTranslation("labConfig");
   const [file, setFile] = useState<File | null>(null);
   const [report, setReport] = useState<WorkbookReport | null>(null);
   const [busy, setBusy] = useState(false);
@@ -29,7 +31,7 @@ export function MasterDataWorkbookPage() {
     if (!file) return;
     setBusy(true); setMessage(null);
     try { setReport(await api.validate(file)); }
-    catch (e: any) { setMessage({ text: e?.response?.data?.message ?? "The file could not be checked.", ok: false }); }
+    catch (e: any) { setMessage({ text: e?.response?.data?.message ?? t("masterDataWorkbook.checkError"), ok: false }); }
     finally { setBusy(false); }
   };
 
@@ -38,71 +40,76 @@ export function MasterDataWorkbookPage() {
       const result = await api.load(file, password, comment);
       setReport(result.report);
       if (result.committed) {
-        setMessage({ text: "Workbook loaded. A second person must now verify it.", ok: true });
+        setMessage({ text: t("masterDataWorkbook.loaded"), ok: true });
         setFile(null);
       } else {
-        setMessage({ text: "Nothing was loaded: the workbook has problems to fix.", ok: false });
+        setMessage({ text: t("masterDataWorkbook.notLoaded"), ok: false });
       }
     } else if (signing && signing !== "load") {
       await api.verify(signing.id, password, comment);
-      setMessage({ text: `Load of ${signing.fileName} verified. Its items are now active.`, ok: true });
+      setMessage({ text: t("masterDataWorkbook.verified", { fileName: signing.fileName }), ok: true });
     }
     setSigning(null); setComment("");
     await refresh();
   };
 
   const columns: RegisterColumn<MasterDataImport>[] = [
-    { key: "importedAt", label: "Loaded", sortable: true, render: (i) => formatDateTimeWithTimeZone(i.importedAt) },
-    { key: "importedBy", label: "Loaded by", sortable: true },
-    { key: "fileName", label: "File", render: (i) => <Button size="small" onClick={() => api.downloadFile(i)}>{i.fileName}</Button> },
-    { key: "sheets", label: "New records", render: (i) => i.sheets.reduce((n, s) => n + s.created, 0) },
-    { key: "status", label: "Status", render: (i) => (i.status === "Verified" ? `Verified by ${i.verifiedBy}` : "Waiting for verification") },
+    { key: "importedAt", label: t("masterDataWorkbook.columns.loaded"), sortable: true, render: (i) => formatDateTimeWithTimeZone(i.importedAt) },
+    { key: "importedBy", label: t("masterDataWorkbook.columns.loadedBy"), sortable: true },
+    { key: "fileName", label: t("masterDataWorkbook.columns.file"), render: (i) => <Button size="small" onClick={() => api.downloadFile(i)}>{i.fileName}</Button> },
+    { key: "sheets", label: t("masterDataWorkbook.columns.newRecords"), render: (i) => i.sheets.reduce((n, s) => n + s.created, 0) },
+    { key: "status", label: t("masterDataWorkbook.columns.status"), render: (i) => (i.status === "Verified" ? t("masterDataWorkbook.verifiedBy", { name: i.verifiedBy }) : t("masterDataWorkbook.waiting")) },
     {
       key: "actions", label: "",
-      render: (i) => i.status === "Loaded" ? <Button size="small" variant="outlined" onClick={() => setSigning(i)}>Verify</Button> : null,
+      render: (i) => i.status === "Loaded" ? <Button size="small" variant="outlined" onClick={() => setSigning(i)}>{t("masterDataWorkbook.verify")}</Button> : null,
     },
   ];
 
-  const verifyStatement = (i: MasterDataImport) =>
+  // The signed meaning is recorded in English; the page language only adds a translation beside it.
+  const verifyStatement = (i: MasterDataImport, tr: typeof t) =>
     i.itemsWithoutSpecifications.length > 0
-      ? `I verified this load against the approved source documents. Note: these items have no specifications yet and will become usable: ${i.itemsWithoutSpecifications.join(", ")}.`
-      : "I verified this load against the approved source documents.";
+      ? tr("masterDataWorkbook.verifyStatementNote", { items: i.itemsWithoutSpecifications.join(", ") })
+      : tr("masterDataWorkbook.verifyStatement");
+  const enT = i18n.getFixedT("en", "labConfig");
 
   return (
     <LabPage
-      title="Master Data Workbook"
-      subtitle="Load organisms, departments, rooms, water points, material master, media products, equipment, items and specifications from one Excel workbook."
-      actions={<Button variant="outlined" onClick={() => api.download()}>Download workbook</Button>}
+      title={t("masterDataWorkbook.title")}
+      subtitle={t("masterDataWorkbook.subtitle")}
+      actions={<Button variant="outlined" onClick={() => api.download()}>{t("masterDataWorkbook.download")}</Button>}
     >
       <Stack spacing={3}>
         {message && <Alert severity={message.ok ? "success" : "error"} onClose={() => setMessage(null)}>{message.text}</Alert>}
 
         <Paper sx={{ p: 2 }}>
-          <SectionTitle>1. Check the workbook</SectionTitle>
+          <SectionTitle>{t("masterDataWorkbook.step1")}</SectionTitle>
           <Stack direction="row" spacing={2} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap" }}>
             <Button variant="outlined" component="label">
-              Choose file
+              {t("masterDataWorkbook.chooseFile")}
               <input hidden type="file" accept=".xlsx" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setReport(null); }} />
             </Button>
-            <Typography variant="body2">{file?.name ?? "No file chosen"}</Typography>
-            <Button variant="contained" disabled={!file || busy} onClick={check}>{busy ? "Checking..." : "Check file"}</Button>
-            <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy} onClick={() => setSigning("load")}>Load and sign</Button>
+            <Typography variant="body2">{file?.name ?? t("masterDataWorkbook.noFile")}</Typography>
+            <Button variant="contained" disabled={!file || busy} onClick={check}>{busy ? t("masterDataWorkbook.checking") : t("masterDataWorkbook.checkFile")}</Button>
+            <Button variant="contained" color="success" disabled={!file || !canLoad(report) || busy} onClick={() => setSigning("load")}>{t("masterDataWorkbook.loadAndSign")}</Button>
           </Stack>
           {report && <Stack sx={{ mt: 2 }}><WorkbookReportTable report={report} /></Stack>}
         </Paper>
 
         <Paper sx={{ p: 2 }}>
-          <SectionTitle>2. Loads and verification</SectionTitle>
+          <SectionTitle>{t("masterDataWorkbook.step2")}</SectionTitle>
           <RegisterTable rows={imports} columns={columns} getRowId={(i) => i.id}
-            empty={{ title: "No workbook loads yet", description: "Check a workbook above, then load and sign it." }} />
+            empty={{ title: t("masterDataWorkbook.emptyTitle"), description: t("masterDataWorkbook.emptyDesc") }} />
         </Paper>
       </Stack>
 
       <SignatureDialog
         open={signing !== null}
         meaningStatement={signing === "load" || signing === null
-          ? "I am loading this master data workbook into MicroLIMS."
-          : verifyStatement(signing)}
+          ? enT("masterDataWorkbook.loadStatement")
+          : verifyStatement(signing, enT)}
+        meaningStatementTranslation={signing === "load" || signing === null
+          ? t("masterDataWorkbook.loadStatement")
+          : verifyStatement(signing, t)}
         showComment
         comment={comment}
         onCommentChange={setComment}

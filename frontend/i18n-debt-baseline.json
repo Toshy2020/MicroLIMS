@@ -1,5 +1,5 @@
 {
-  "total": 3241,
+  "total": 2295,
   "modules": {
     "components": 129,
     "modules/admin": 366,
@@ -14,7 +14,7 @@
     "modules/hplcWorkspace": 31,
     "modules/icpWorkspace": 10,
     "modules/inventory": 73,
-    "modules/laboratoryConfiguration": 1500,
+    "modules/laboratoryConfiguration": 554,
     "modules/messages": 31,
     "modules/navigation": 12,
     "modules/notifications": 39,

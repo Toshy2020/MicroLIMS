@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useTranslation } from "../../../../i18n";
+import { i18n, useTranslation } from "../../../../i18n";
 import { toast } from "sonner";
 import {
   HplcMethodService,
@@ -84,7 +84,7 @@ export function useHplcMethodDialogState({
         })
         .catch((err: unknown) => {
           const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-          setDialogError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethod.dialog.loadError"));
+          setDialogError(errObj.response?.data?.message ?? errObj.message ?? i18n.t("hplcMethod.dialog.loadError", { ns: "masterData" }));
         })
         .finally(() => {
           setLoadingMethod(false);
@@ -93,7 +93,9 @@ export function useHplcMethodDialogState({
       setLoadedEntity(null);
       setForm(createInitialHplcMethodFormState(defaultSectionId));
     }
-  }, [editingId, defaultSectionId, t]);
+    // The load-error text is read through i18n, not t: t changes with the language, and a new initForm would
+    // re-run the opening effect and reset the form the user is filling in.
+  }, [editingId, defaultSectionId]);
 
   useEffect(() => {
     if (open) {

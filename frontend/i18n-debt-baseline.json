@@ -1,5 +1,5 @@
 {
-  "total": 7571,
+  "total": 7516,
   "modules": {
     "components": 129,
     "modules/admin": 366,
@@ -19,7 +19,6 @@
     "modules/messages": 31,
     "modules/navigation": 12,
     "modules/notifications": 39,
-    "modules/oosTracking": 55,
     "modules/reports": 529,
     "modules/roles": 72,
     "modules/testingWorkspace": 305,

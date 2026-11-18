@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import type { AuditReviewScopeKind } from "../../services/auditTrailReviewService";
 
 export function formatDateTimeWithZone(iso: string | null | undefined): string {
@@ -17,9 +18,10 @@ export function formatDateTimeWithZone(iso: string | null | undefined): string {
 export function formatReviewScope(
   scopeKind: AuditReviewScopeKind,
   entityName: string | null,
-  recordId: string | null
+  recordId: string | null,
+  t?: TFunction<"auditReview">
 ): string {
-  if (scopeKind === "EntityName") return `Record type: ${entityName ?? "—"}`;
-  if (scopeKind === "Record") return `Record: ${entityName ?? "—"} #${recordId ?? "—"}`;
-  return "All";
+  if (scopeKind === "EntityName") return t ? t("scope.entityName", { name: entityName ?? "—" }) : `Record type: ${entityName ?? "—"}`;
+  if (scopeKind === "Record") return t ? t("scope.record", { name: entityName ?? "—", id: recordId ?? "—" }) : `Record: ${entityName ?? "—"} #${recordId ?? "—"}`;
+  return t ? t("scope.all") : "All";
 }

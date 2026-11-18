@@ -6,6 +6,7 @@ import type {
   StartAuditTrailReviewRequest
 } from "../../services/auditTrailReviewService";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
+import { useTranslation } from "../../i18n";
 
 interface StartReviewDialogProps {
   open: boolean;
@@ -18,6 +19,7 @@ const MAX_ENTITY_NAME_LENGTH = 150;
 const MAX_RECORD_ID_LENGTH = 100;
 
 export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialogProps) {
+  const { t } = useTranslation("auditReview");
   const [title, setTitle] = useState("");
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
@@ -49,20 +51,20 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
     const errors: Record<string, string> = {};
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      errors.title = "Title is required.";
+      errors.title = t("start.titleRequired");
     } else if (trimmedTitle.length > MAX_TITLE_LENGTH) {
-      errors.title = `Title must be ${MAX_TITLE_LENGTH} characters or fewer.`;
+      errors.title = t("start.titleTooLong", { max: MAX_TITLE_LENGTH });
     }
 
     const fromDate = periodFrom ? new Date(periodFrom) : null;
     const toDate = periodTo ? new Date(periodTo) : null;
     if (!fromDate || Number.isNaN(fromDate.getTime())) {
-      errors.periodFrom = "Period start is required.";
+      errors.periodFrom = t("start.fromRequired");
     }
     if (!toDate || Number.isNaN(toDate.getTime())) {
-      errors.periodTo = "Period end is required.";
+      errors.periodTo = t("start.toRequired");
     } else if (toDate.getTime() > Date.now()) {
-      errors.periodTo = "Review period end cannot be in the future.";
+      errors.periodTo = t("start.toFuture");
     }
     if (
       fromDate &&
@@ -71,23 +73,23 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
       !Number.isNaN(toDate.getTime()) &&
       fromDate.getTime() >= toDate.getTime()
     ) {
-      errors.periodFrom = "Review period start must be earlier than period end.";
+      errors.periodFrom = t("start.fromBeforeTo");
     }
 
     const trimmedEntity = entityName.trim();
     const trimmedRecordId = recordId.trim();
     if (scopeKind === "EntityName" || scopeKind === "Record") {
       if (!trimmedEntity) {
-        errors.entityName = "Record type is required.";
+        errors.entityName = t("start.entityRequired");
       } else if (trimmedEntity.length > MAX_ENTITY_NAME_LENGTH) {
-        errors.entityName = `Record type must be ${MAX_ENTITY_NAME_LENGTH} characters or fewer.`;
+        errors.entityName = t("start.entityTooLong", { max: MAX_ENTITY_NAME_LENGTH });
       }
     }
     if (scopeKind === "Record") {
       if (!trimmedRecordId) {
-        errors.recordId = "Record ID is required.";
+        errors.recordId = t("start.recordIdRequired");
       } else if (trimmedRecordId.length > MAX_RECORD_ID_LENGTH) {
-        errors.recordId = `Record ID must be ${MAX_RECORD_ID_LENGTH} characters or fewer.`;
+        errors.recordId = t("start.recordIdTooLong", { max: MAX_RECORD_ID_LENGTH });
       }
     }
 
@@ -114,7 +116,7 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
       await onSubmit(request);
       resetForm();
     } catch (err: unknown) {
-      setSubmitError(serverMessage(err) ?? getErrorMessage(err, "Could not start the audit trail review."));
+      setSubmitError(serverMessage(err) ?? getErrorMessage(err, t("start.error")));
     } finally {
       setSubmitting(false);
     }
@@ -123,15 +125,15 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
   return (
     <FormDialog
       open={open}
-      title="Start audit trail review"
+      title={t("start.title")}
       onClose={handleClose}
       onSubmit={handleSubmit}
-      submitLabel="Start review"
+      submitLabel={t("list.startReview")}
       submitting={submitting}
       error={submitError}
     >
       <TextField
-        label="Title"
+        label={t("start.titleLabel")}
         size="small"
         required
         fullWidth
@@ -143,7 +145,7 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
       />
 
       <TextField
-        label="Period from"
+        label={t("start.periodFrom")}
         type="datetime-local"
         size="small"
         required
@@ -156,7 +158,7 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
       />
 
       <TextField
-        label="Period to"
+        label={t("start.periodTo")}
         type="datetime-local"
         size="small"
         required
@@ -170,7 +172,7 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
 
       <TextField
         select
-        label="Scope"
+        label={t("start.scope")}
         size="small"
         required
         fullWidth
@@ -187,14 +189,14 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
           setFieldErrors((prev) => ({ ...prev, entityName: "", recordId: "" }));
         }}
       >
-        <MenuItem value="All">All</MenuItem>
-        <MenuItem value="EntityName">Record type</MenuItem>
-        <MenuItem value="Record">Record</MenuItem>
+        <MenuItem value="All">{t("start.scopeAll")}</MenuItem>
+        <MenuItem value="EntityName">{t("start.scopeEntity")}</MenuItem>
+        <MenuItem value="Record">{t("start.scopeRecord")}</MenuItem>
       </TextField>
 
       {(scopeKind === "EntityName" || scopeKind === "Record") && (
         <TextField
-          label="Record type"
+          label={t("start.scopeEntity")}
           size="small"
           required
           fullWidth
@@ -209,7 +211,7 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
 
       {scopeKind === "Record" && (
         <TextField
-          label="Record ID"
+          label={t("start.recordId")}
           size="small"
           required
           fullWidth

@@ -235,8 +235,8 @@ describe("PrimaryObservationMatrixPanel", () => {
     renderPanel(session, true);
     expect(await screen.findByText("Point A")).toBeTruthy();
     expect(screen.queryByRole("table")).toBeNull();
-    expect(screen.getByText("E. coli (ECOLI)")).toBeTruthy();
-    expect(screen.getByText("TAMC (TAMC)")).toBeTruthy();
+    expect(screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "E. coli (ECOLI)")).toBeTruthy();
+    expect(screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "TAMC (TAMC)")).toBeTruthy();
   });
 
   it("count cell uses NumericEntryField with the kind the result type requires", async () => {

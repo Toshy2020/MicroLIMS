@@ -24,6 +24,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import { Trans } from "react-i18next";
 import {
   PathogenTestingSessionDto,
   MatrixCellResultDto
@@ -32,11 +33,21 @@ import { PathogenSessionService } from "../services/PathogenSessionService";
 import { SharedTsbStatusCard } from "./SharedTsbStatusCard";
 import { brandColors } from "../../../theme";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   session: PathogenTestingSessionDto;
   onSessionCompleted: (updatedSession: PathogenTestingSessionDto) => void;
   onBackToMatrix: () => void;
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+    return apiErr.response?.data?.message ?? apiErr.message ?? fallback;
+  }
+  return fallback;
 }
 
 const formatDate = (d: string | null | undefined) =>
@@ -51,7 +62,8 @@ interface CellDerivationProps {
   expanded: boolean;
 }
 
-function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: CellDerivationProps) {
+function CellDerivationDetail({ cell, expanded }: CellDerivationProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   if (!cell || !expanded) return null;
 
@@ -64,17 +76,16 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
         p: 1.5,
         bgcolor: "background.default",
         borderRadius: 1.5,
-        borderLeft: `3px solid ${brandColors.sectionTitle}`,
         border: "1px solid",
         borderColor: "divider",
-        borderLeftWidth: 3,
+        borderInlineStart: `3px solid ${brandColors.sectionTitle}`,
         fontSize: 12,
-        textAlign: "left",
+        textAlign: "start",
         color: "text.secondary"
       }}
     >
       <Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.palette.primary.main, mb: 0.5 }}>
-        Evidence Chain & Derivation:
+        {t("pathogenSession.review.evidenceChainTitle")}
       </Typography>
 
       {!isQuant ? (
@@ -82,10 +93,10 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
           {/* Primary Observation */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-              1. Primary Plate Observation:
+              {t("pathogenSession.review.primaryObsStepTitle")}
             </Typography>
-            <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
-              Observation: <strong>{cell.primaryObservation || "No Growth recorded"}</strong>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1 }}>
+              {t("pathogenSession.review.observationPrefix")} <strong>{cell.primaryObservation || t("pathogenSession.review.noGrowthRecorded")}</strong>
             </Typography>
           </Box>
 
@@ -93,29 +104,51 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
           {cell.confirmatoryPlates && cell.confirmatoryPlates.length > 0 ? (
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                2. Confirmatory Plating ({cell.confirmatoryPlates.length} Media):
+                <Trans
+                  i18nKey="pathogenSession.review.confirmatoryPlatingTitle"
+                  ns="testingWorkspace"
+                  values={{ count: cell.confirmatoryPlates.length }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               {cell.confirmatoryPlates.map((plate) => (
-                <Box key={plate.id} sx={{ pl: 1, mt: 0.25 }}>
+                <Box key={plate.id} sx={{ ps: 1, mt: 0.25 }}>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    • Medium #{plate.mediumIndex + 1} ({plate.mediumName ?? "Selective Agar"}):{" "}
+                    <Trans
+                      i18nKey="pathogenSession.review.mediumItemLabel"
+                      ns="testingWorkspace"
+                      values={{ index: plate.mediumIndex + 1, name: plate.mediumName ?? t("pathogenSession.review.selectiveAgarFallback") }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />{" "}
                     <strong>{plate.observation}</strong>
                   </Typography>
                   {plate.expectedAppearanceSnapshot && (
-                    <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
-                      Expected: <em>{plate.expectedAppearanceSnapshot}</em>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1.25 }}>
+                      {t("pathogenSession.review.expectedPrefix")} <em>{plate.expectedAppearanceSnapshot}</em>
                     </Typography>
                   )}
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1.25 }}>
-                    Read at {formatDate(plate.recordedAtUtc)} by {plate.recordedByUserName ?? "Analyst"}
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1.25 }}>
+                    <Trans
+                      i18nKey="pathogenSession.review.readAtBy"
+                      ns="testingWorkspace"
+                      values={{
+                        date: formatDate(plate.recordedAtUtc),
+                        user: plate.recordedByUserName ?? t("pathogenSession.review.analystFallback")
+                      }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
                   </Typography>
                 </Box>
               ))}
             </Box>
           ) : (
             <Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", pl: 1 }}>
-                2. Confirmatory Plating: <em>Not required (resolved at primary plate)</em>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", ps: 1 }}>
+                <Trans
+                  i18nKey="pathogenSession.review.confirmatoryNotRequired"
+                  ns="testingWorkspace"
+                  components={{ em: <em /> }}
+                />
               </Typography>
             </Box>
           )}
@@ -123,15 +156,15 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
           {/* Agreement Evaluation */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-              3. Agreement Evaluation:
+              {t("pathogenSession.review.agreementEvalTitle")}
             </Typography>
-            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, pl: 1, fontWeight: 600 }}>
+            <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, ps: 1, fontWeight: 600 }}>
               {cell.resultDisplay?.includes("Detected (+)")
-                ? "All confirmatory media conforming → Detected (+)"
+                ? t("pathogenSession.review.agreementDetected")
                 : cell.resultDisplay?.includes("Not Detected (-)")
-                ? "All media non-conforming / no growth → Not Detected (-)"
+                ? t("pathogenSession.review.agreementNotDetected")
                 : cell.resultDisplay?.includes("Inconclusive")
-                ? "Media disagreement across plates → Inconclusive (Retest Required)"
+                ? t("pathogenSession.review.agreementInconclusive")
                 : cell.resultDisplay ?? "—"}
             </Typography>
           </Box>
@@ -139,10 +172,17 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
       ) : (
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-            Plate Colony Count:
+            {t("pathogenSession.review.plateColonyCountTitle")}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: theme.custom.status.info.text, pl: 1, fontWeight: 700 }}>
-            {cell.numericValue !== null ? `${cell.numericValue} CFU` : cell.resultDisplay}
+          <Typography sx={{ fontSize: 12, color: theme.custom.status.info.text, ps: 1, fontWeight: 700 }}>
+            {cell.numericValue !== null ? (
+              <Trans
+                i18nKey="pathogenSession.review.cfuValue"
+                ns="testingWorkspace"
+                values={{ value: cell.numericValue }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            ) : cell.resultDisplay}
           </Typography>
         </Box>
       )}
@@ -151,13 +191,22 @@ function CellDerivationDetail({ cell, testCode, testDisplayName, expanded }: Cel
 
       {/* Audit Stamp */}
       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-        Entered by: <strong>{cell.enteredByUserName ?? "Analyst"}</strong> at {formatDate(cell.enteredAt)}
+        <Trans
+          i18nKey="pathogenSession.review.enteredByAt"
+          ns="testingWorkspace"
+          values={{
+            user: cell.enteredByUserName ?? t("pathogenSession.review.analystFallback"),
+            date: formatDate(cell.enteredAt)
+          }}
+          components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+        />
       </Typography>
     </Box>
   );
 }
 
 export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -183,7 +232,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
 
   const handleCompleteSession = async () => {
     if (!isAllComplete) {
-      setError(`Cannot complete session: ${session.pendingResultCount} required results are still missing.`);
+      setError(t("pathogenSession.review.missingResultsError", { count: session.pendingResultCount }));
       return;
     }
     setError(null);
@@ -191,8 +240,8 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
     try {
       const completed = await PathogenSessionService.completeSession(session.sampleId);
       onSessionCompleted(completed);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to complete testing session.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("pathogenSession.review.completeSessionError")));
     } finally {
       setSubmitting(false);
     }
@@ -241,7 +290,12 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                 mb: 1
               }}>
               <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
-                Testing Session Review: {session.sampleReferenceNumber}
+                <Trans
+                  i18nKey="pathogenSession.review.title"
+                  ns="testingWorkspace"
+                  values={{ sampleRef: session.sampleReferenceNumber }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Chip
                 label={session.overallSessionStatusDisplay ?? session.overallSessionStatus}
@@ -250,7 +304,16 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
               />
             </Stack>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Program: <strong>{session.programName}</strong> · Area: <strong>{session.departmentOrAreaName}</strong> · Control: <strong>{session.controlNumber}</strong>
+              <Trans
+                i18nKey="pathogenSession.review.metadataSubtitle"
+                ns="testingWorkspace"
+                values={{
+                  program: session.programName,
+                  area: session.departmentOrAreaName,
+                  control: session.controlNumber
+                }}
+                components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
 
@@ -263,7 +326,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             disabled={submitting || !isAllComplete || isSessionCompleted}
             sx={{ px: 4, py: 1.25, fontWeight: 800, fontSize: 14 }}
           >
-            {isSessionCompleted ? "Session Completed & Submitted" : "Complete Testing Session"}
+            {isSessionCompleted ? t("pathogenSession.review.sessionCompletedButton") : t("pathogenSession.review.completeSessionButton")}
           </Button>
         </Stack>
       </Paper>
@@ -275,17 +338,27 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           severity="warning"
           action={
             <Button color="inherit" size="small" onClick={onBackToMatrix} disabled={isSessionCompleted}>
-              Edit Matrix
+              {t("pathogenSession.review.editMatrix")}
             </Button>
           }
         >
-          There are {session.pendingResultCount} missing results. Please complete all Location × Test entries before final completion.
+          <Trans
+            i18nKey="pathogenSession.review.missingResultsAlert"
+            ns="testingWorkspace"
+            values={{ count: session.pendingResultCount }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
         </Alert>
       )}
 
       {outcomeStats.inconclusive > 0 && (
         <Alert severity="warning" icon={<WarningAmberOutlinedIcon />} sx={{ fontWeight: 600 }}>
-          {outcomeStats.inconclusive} sampling location(s) resulted in <strong>Inconclusive (Retest)</strong> due to confirmatory plate media disagreement. These have been flagged for laboratory investigation / re-test.
+          <Trans
+            i18nKey="pathogenSession.review.inconclusiveAlert"
+            ns="testingWorkspace"
+            values={{ count: outcomeStats.inconclusive }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Alert>
       )}
 
@@ -305,11 +378,20 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           }}>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
-              Final Analytical Results Summary
+              {t("pathogenSession.review.resultsSummaryTitle")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              {session.completedResultCount} of {session.requiredResultCount} results verified ({session.locations.length} Locations × {session.assignedTests.length} Tests)
-              · Click any result badge to toggle evidence derivation details.
+              <Trans
+                i18nKey="pathogenSession.review.resultsSummarySubtitle"
+                ns="testingWorkspace"
+                values={{
+                  completed: session.completedResultCount,
+                  required: session.requiredResultCount,
+                  locations: session.locations.length,
+                  testCount: session.assignedTests.length
+                }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
 
@@ -323,7 +405,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
               disabled={isSessionCompleted}
               sx={{ fontWeight: 600 }}
             >
-              Modify Matrix
+              {t("pathogenSession.review.modifyMatrix")}
             </Button>
           </Stack>
         </Stack>
@@ -332,16 +414,21 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderColor: "divider" }}>
-                  Sampling Location ({session.locations.length})
+                <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderInlineEnd: "2px solid", borderColor: "divider" }}>
+                  <Trans
+                    i18nKey="pathogenSession.review.samplingLocationHeader"
+                    ns="testingWorkspace"
+                    values={{ count: session.locations.length }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </TableCell>
-                {session.assignedTests.map((t) => (
-                  <TableCell key={t.testCode} align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 180, borderRight: "1px solid", borderColor: "divider" }}>
+                {session.assignedTests.map((testItem) => (
+                  <TableCell key={testItem.testCode} align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 180, borderInlineEnd: "1px solid", borderColor: "divider" }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
-                      {t.testCode}
+                      <Ltr>{testItem.testCode}</Ltr>
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {t.displayName}
+                      {testItem.displayName}
                     </Typography>
                   </TableCell>
                 ))}
@@ -354,12 +441,12 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                   <TableCell
                     sx={{
                       position: "sticky",
-                      left: 0,
+                      insetInlineStart: 0,
                       zIndex: 2,
                       bgcolor: idx % 2 === 0 ? "background.paper" : "background.default",
                       fontWeight: 700,
                       fontSize: 13,
-                      borderRight: "2px solid",
+                      borderInlineEnd: "2px solid",
                       borderColor: "divider",
                       verticalAlign: "top",
                       py: 1.5
@@ -369,18 +456,18 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                       {loc.locationName}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {loc.locationType} {loc.gradeClassification ? `· Grade ${loc.gradeClassification}` : ""}
+                      {loc.locationType} {loc.gradeClassification ? t("pathogenSession.review.gradeSuffix", { grade: loc.gradeClassification }) : ""}
                     </Typography>
                   </TableCell>
 
                   {/* Test Cells with Clickable Derivation Expansion */}
-                  {session.assignedTests.map((t) => {
-                    const slocId = loc.testLocationMap[t.testCode] ?? loc.primarySampleLocationId;
+                  {session.assignedTests.map((testItem) => {
+                    const slocId = loc.testLocationMap[testItem.testCode] ?? loc.primarySampleLocationId;
                     const cell = session.resultMatrix.find(
-                      (c) => c.sampleLocationId === slocId && c.testCode === t.testCode
+                      (c) => c.sampleLocationId === slocId && c.testCode === testItem.testCode
                     );
 
-                    const key = `${slocId}_${t.testCode}`;
+                    const key = `${slocId}_${testItem.testCode}`;
                     const isExpanded = expandedCells.has(key);
 
                     const isDetected = cell?.resultCode === "DETECTED" || cell?.resultDisplay?.includes("Detected (+)");
@@ -390,10 +477,10 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
 
                     return (
                       <TableCell
-                        key={t.testCode}
+                        key={testItem.testCode}
                         align="center"
                         sx={{
-                          borderRight: "1px solid",
+                          borderInlineEnd: "1px solid",
                           borderColor: "divider",
                           verticalAlign: "top",
                           p: 1.25
@@ -403,9 +490,9 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                         {isDetected ? (
                           <Chip
                             icon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                            label="Detected (+)"
+                            label={t("pathogenSession.review.detectedBadge")}
                             size="small"
-                            onClick={() => toggleExpanded(slocId, t.testCode)}
+                            onClick={() => toggleExpanded(slocId, testItem.testCode)}
                             sx={{
                               fontWeight: 800,
                               bgcolor: theme.custom.status.detected.bg,
@@ -418,9 +505,9 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                         ) : isNotDetected ? (
                           <Chip
                             icon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                            label="Not Detected (-)"
+                            label={t("pathogenSession.review.notDetectedBadge")}
                             size="small"
-                            onClick={() => toggleExpanded(slocId, t.testCode)}
+                            onClick={() => toggleExpanded(slocId, testItem.testCode)}
                             sx={{
                               fontWeight: 700,
                               bgcolor: theme.custom.status.notDetected.bg,
@@ -431,12 +518,12 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                             }}
                           />
                         ) : isInconclusive ? (
-                          <Tooltip title="Disagreement across confirmatory media. Click for details.">
+                          <Tooltip title={t("pathogenSession.review.inconclusiveTooltip")}>
                             <Chip
                               icon={isExpanded ? <KeyboardArrowUpIcon /> : <WarningAmberOutlinedIcon sx={{ fontSize: 13 }} />}
-                              label="Inconclusive (Retest)"
+                              label={t("pathogenSession.review.inconclusiveBadge")}
                               size="small"
-                              onClick={() => toggleExpanded(slocId, t.testCode)}
+                              onClick={() => toggleExpanded(slocId, testItem.testCode)}
                               sx={{
                                 fontWeight: 800,
                                 bgcolor: theme.custom.status.action.bg,
@@ -450,9 +537,16 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                         ) : isCfu && cell?.numericValue !== null && cell?.numericValue !== undefined ? (
                           <Chip
                             icon={isExpanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                            label={`${cell.numericValue} CFU`}
+                            label={
+                              <Trans
+                                i18nKey="pathogenSession.review.cfuChip"
+                                ns="testingWorkspace"
+                                values={{ value: cell.numericValue }}
+                                components={{ ltr: <Ltr>{null}</Ltr> }}
+                              />
+                            }
                             size="small"
-                            onClick={() => toggleExpanded(slocId, t.testCode)}
+                            onClick={() => toggleExpanded(slocId, testItem.testCode)}
                             sx={{
                               fontWeight: 700,
                               bgcolor: theme.custom.status.info.bg,
@@ -464,47 +558,53 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                           />
                         ) : (
                           (() => {
-                            let label = "Pending";
+                            let label = t("pathogenSession.review.status.pending");
                             let bgcolor: string = theme.custom.status.detected.bg;
                             let color: string = theme.custom.status.detected.text;
                             let border = `1px solid ${theme.custom.status.detected.border}`;
 
                             if (cell?.cellState === "LOCKED_PREREQUISITE") {
-                              label = "Locked";
+                              label = t("pathogenSession.review.status.locked");
                               bgcolor = theme.custom.status.pending.bg;
                               color = theme.custom.status.pending.text;
                               border = `1px solid ${theme.custom.status.pending.border}`;
                             } else {
-                              switch (t.testSessionState) {
+                              switch (testItem.testSessionState) {
                                 case "WINDOW_NOT_CONFIGURED":
-                                  label = "Window Not Configured"; bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
+                                  label = t("pathogenSession.review.status.windowNotConfigured"); bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                                 case "TSB_INCUBATING":
-                                  label = "TSB Incubating"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
+                                  label = t("pathogenSession.review.status.tsbIncubating"); bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "DOWNSTREAM_INCUBATING":
-                                  label = "Plating In Progress"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
+                                  label = t("pathogenSession.review.status.platingInProgress"); bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "COUNT_INCUBATING":
-                                  label = "Incubating"; bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
+                                  label = t("pathogenSession.review.status.incubating"); bgcolor = theme.custom.status.info.bg; color = theme.custom.status.info.text; border = `1px solid ${theme.custom.status.info.border}`; break;
                                 case "READY_FOR_DOWNSTREAM":
-                                  label = "Ready to Read"; bgcolor = theme.custom.status.purple.bg; color = theme.custom.status.purple.text; border = `1px solid ${theme.custom.status.purple.border}`; break;
+                                  label = t("pathogenSession.review.status.readyToRead"); bgcolor = theme.custom.status.purple.bg; color = theme.custom.status.purple.text; border = `1px solid ${theme.custom.status.purple.border}`; break;
                                 case "AWAITING_RESULTS":
-                                  label = "Enter Result"; bgcolor = theme.custom.status.inconclusive.bg; color = theme.custom.status.inconclusive.text; border = `1px solid ${theme.custom.status.inconclusive.border}`; break;
+                                  label = t("pathogenSession.review.status.enterResult"); bgcolor = theme.custom.status.inconclusive.bg; color = theme.custom.status.inconclusive.text; border = `1px solid ${theme.custom.status.inconclusive.border}`; break;
                                 case "RESULTS_RECORDED":
-                                  label = "Pending Review"; bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
+                                  label = t("pathogenSession.review.status.pendingReview"); bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
                                 case "REVIEWED":
-                                  label = "Reviewed"; bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
+                                  label = t("pathogenSession.review.status.reviewed"); bgcolor = theme.custom.status.action.bg; color = theme.custom.status.action.text; border = `1px solid ${theme.custom.status.action.border}`; break;
                                 case "APPROVED":
-                                  label = "Approved"; bgcolor = theme.custom.status.notDetected.bg; color = theme.custom.status.notDetected.text; border = `1px solid ${theme.custom.status.notDetected.border}`; break;
+                                  label = t("pathogenSession.review.status.approved"); bgcolor = theme.custom.status.notDetected.bg; color = theme.custom.status.notDetected.text; border = `1px solid ${theme.custom.status.notDetected.border}`; break;
                                 case "REJECTED":
                                 case "VOIDED":
                                 case "CANCELLED":
-                                  label = t.testSessionState === "REJECTED" ? "Rejected" : t.testSessionState === "VOIDED" ? "Voided" : "Cancelled";
+                                  label = testItem.testSessionState === "REJECTED"
+                                    ? t("pathogenSession.review.status.rejected")
+                                    : testItem.testSessionState === "VOIDED"
+                                    ? t("pathogenSession.review.status.voided")
+                                    : t("pathogenSession.review.status.cancelled");
                                   bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                                 case "SUPERSEDED":
                                 case "ON_HOLD":
-                                  label = t.testSessionState === "SUPERSEDED" ? "Superseded" : "On Hold";
+                                  label = testItem.testSessionState === "SUPERSEDED"
+                                    ? t("pathogenSession.review.status.superseded")
+                                    : t("pathogenSession.review.status.onHold");
                                   bgcolor = theme.custom.status.inconclusive.bg; color = theme.custom.status.inconclusive.text; border = `1px solid ${theme.custom.status.inconclusive.border}`; break;
                                 default:
-                                  label = "Pending"; bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
+                                  label = t("pathogenSession.review.status.pending"); bgcolor = theme.custom.status.detected.bg; color = theme.custom.status.detected.text; border = `1px solid ${theme.custom.status.detected.border}`; break;
                               }
                             }
 
@@ -527,8 +627,8 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                         {/* Expandable Derivation Breakdown */}
                         <CellDerivationDetail
                           cell={cell}
-                          testCode={t.testCode}
-                          testDisplayName={t.displayName}
+                          testCode={testItem.testCode}
+                          testDisplayName={testItem.displayName}
                           expanded={isExpanded}
                         />
                       </TableCell>
@@ -553,11 +653,11 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
             }}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 20, color: theme.palette.primary.main }} />
             <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-              Audit & Traceability (ALCOA+ Compliance)
+              {t("pathogenSession.review.auditCardTitle")}
             </Typography>
           </Stack>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
-            All primary observations, confirmatory media selections, incubations, and multi-media agreement evaluations are contemporaneously signed and logged.
+            {t("pathogenSession.review.auditCardDesc")}
           </Typography>
 
           <Box
@@ -569,35 +669,52 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
           >
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-                Total Sampling Locations
+                {t("pathogenSession.review.totalSamplingLocations")}
               </Typography>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-                {session.locations.length}
+                <Ltr>{session.locations.length}</Ltr>
               </Typography>
             </Box>
 
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-                Results Verified
+                {t("pathogenSession.review.resultsVerifiedTitle")}
               </Typography>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: theme.custom.status.notDetected.text }}>
-                {session.completedResultCount} / {session.requiredResultCount} (100%)
+                <Trans
+                  i18nKey="pathogenSession.review.resultsVerifiedValue"
+                  ns="testingWorkspace"
+                  values={{ completed: session.completedResultCount, required: session.requiredResultCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
 
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-                Outcome Breakdown
+                {t("pathogenSession.review.outcomeBreakdownTitle")}
               </Typography>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                {outcomeStats.detected} Detected · {outcomeStats.notDetected} Not Detected
-                {outcomeStats.inconclusive > 0 ? ` · ${outcomeStats.inconclusive} Inconclusive` : ""}
+                <Trans
+                  i18nKey="pathogenSession.review.outcomeSummary"
+                  ns="testingWorkspace"
+                  values={{ detected: outcomeStats.detected, notDetected: outcomeStats.notDetected }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+                {outcomeStats.inconclusive > 0 && (
+                  <Trans
+                    i18nKey="pathogenSession.review.outcomeInconclusivePart"
+                    ns="testingWorkspace"
+                    values={{ count: outcomeStats.inconclusive }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                )}
               </Typography>
             </Box>
 
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-                Session Status
+                {t("pathogenSession.review.sessionStatusTitle")}
               </Typography>
               <Typography
                 sx={{
@@ -606,7 +723,7 @@ export function SessionReviewPanel({ session, onSessionCompleted, onBackToMatrix
                   color: isSessionCompleted ? theme.custom.status.notDetected.text : theme.custom.status.info.text
                 }}
               >
-                {isSessionCompleted ? "✓ Completed & Locked" : "Ready for Technical Review"}
+                {isSessionCompleted ? t("pathogenSession.review.sessionCompletedStatus") : t("pathogenSession.review.sessionReadyForReviewStatus")}
               </Typography>
             </Box>
           </Box>

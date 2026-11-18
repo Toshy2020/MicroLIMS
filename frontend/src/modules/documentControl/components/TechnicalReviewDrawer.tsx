@@ -1,5 +1,7 @@
 import { compactChipSx } from "../documentControlStyles";
 import React, { useState } from "react";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import {
   Drawer,
   Box,
@@ -57,6 +59,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
   onOpenComparison,
   hasEffectiveRevision = false
 }) => {
+  const { t } = useTranslation("documentControl");
   const [addFindingOpen, setAddFindingOpen] = useState(false);
   const [pageNumber, setPageNumber] = useState<number | "">("");
   const [sectionNumber, setSectionNumber] = useState("");
@@ -103,8 +106,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
       setSectionNumber("");
       setIsMandatory(true);
       onTaskUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to add finding.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("technicalReview.addFindingError")));
     } finally {
       setSubmitting(false);
     }
@@ -122,8 +125,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
       setAuthorResponse("");
       setActiveFinding(null);
       onTaskUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to submit response.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("technicalReview.respondError")));
     } finally {
       setSubmitting(false);
     }
@@ -141,8 +144,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
       setVerificationNotes("");
       setActiveFinding(null);
       onTaskUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to verify finding.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("technicalReview.verifyError")));
     } finally {
       setSubmitting(false);
     }
@@ -154,8 +157,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
     try {
       await documentReviewService.resolveFinding(findingId);
       onTaskUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to resolve finding.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("technicalReview.resolveError")));
     } finally {
       setSubmitting(false);
     }
@@ -172,8 +175,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
       setDecisionOpen(false);
       setReviewNotes("");
       onTaskUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to record review decision.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("technicalReview.decideError")));
     } finally {
       setSubmitting(false);
     }
@@ -182,13 +185,13 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
   const getStatusChip = (status: ReviewFindingStatus) => {
     switch (status) {
       case "Open":
-        return <Chip label="Open" size="small" color="error" variant="outlined" />;
+        return <Chip label={t("technicalReview.findingStatuses.Open")} size="small" color="error" variant="outlined" />;
       case "AuthorResponded":
-        return <Chip label="Author Responded" size="small" color="warning" />;
+        return <Chip label={t("technicalReview.findingStatuses.AuthorResponded")} size="small" color="warning" />;
       case "ReviewerVerified":
-        return <Chip label="Verified" size="small" color="info" />;
+        return <Chip label={t("technicalReview.findingStatuses.ReviewerVerified")} size="small" color="info" />;
       case "Resolved":
-        return <Chip label="Resolved" size="small" color="success" />;
+        return <Chip label={t("technicalReview.findingStatuses.Resolved")} size="small" color="success" />;
       default:
         return <Chip label={status} size="small" />;
     }
@@ -203,15 +206,15 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Technical Review
+              {t("technicalReview.title")}
             </Typography>
             <Typography variant="caption" sx={{
               color: "text.secondary"
             }}>
-              {reviewTask.companyDocumentCode} • Revision {reviewTask.revisionNumber}
+              {t("technicalReview.subtitle", { code: reviewTask.companyDocumentCode, rev: reviewTask.revisionNumber })}
             </Typography>
           </Box>
-          <IconButton aria-label="Close technical review" onClick={onClose} size="small">
+          <IconButton aria-label={t("technicalReview.closeAria")} onClick={onClose} size="small">
             <CloseIcon />
           </IconButton>
         </Box>
@@ -228,10 +231,10 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
         {isAuthor && (
           <Alert severity="warning" icon={<SecurityIcon />} sx={{ mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Segregation of Duties Enforcement (DC-URS-078)
+              {t("technicalReview.sodTitle")}
             </Typography>
             <Typography variant="caption">
-              You are the designated author/submitter of this revision. Per cGMP regulations, you cannot perform the technical review or resolve review findings.
+              {t("technicalReview.sodBody")}
             </Typography>
           </Alert>
         )}
@@ -243,7 +246,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               <Typography variant="body2" sx={{
                 color: "text.secondary"
               }}>
-                Review Status:
+                {t("technicalReview.overview.reviewStatus")}
               </Typography>
               <Chip
                 label={reviewTask.status}
@@ -261,7 +264,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               <Typography variant="body2" sx={{
                 color: "text.secondary"
               }}>
-                Assigned Reviewer:
+                {t("technicalReview.overview.assignedReviewer")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 {reviewTask.assignedReviewerFullName}
@@ -272,7 +275,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                 <Typography variant="body2" sx={{
                   color: "text.secondary"
                 }}>
-                  Due Date:
+                  {t("technicalReview.overview.dueDate")}
                 </Typography>
                 <Typography variant="body2">
                   {formatLabCalendarDate(reviewTask.dueDate)}
@@ -287,7 +290,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                     color: "text.secondary",
                     display: "block"
                   }}>
-                  Author Submission Notes:
+                  {t("technicalReview.overview.submissionNotes")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontStyle: "italic", mt: 0.5 }}>
                   "{reviewTask.submissionNotes}"
@@ -307,8 +310,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                   onClick={onOpenComparison}
                 >
                   {hasEffectiveRevision
-                    ? "Inspect Changes: Side-by-Side Dual PDF (DC-URS-067)"
-                    : "Inspect Proposed Revision PDF (DC-URS-067)"}
+                    ? t("technicalReview.overview.inspectDualPdf")
+                    : t("technicalReview.overview.inspectProposedPdf")}
                 </Button>
               </Box>
             )}
@@ -324,13 +327,13 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
               startIcon={<AddCommentIcon />}
               onClick={() => setAddFindingOpen(true)}
             >
-              Add Finding
+              {t("technicalReview.toolbar.addFinding")}
             </Button>
 
             <Tooltip
               title={
                 openMandatoryCount > 0
-                  ? `Cannot complete review while ${openMandatoryCount} mandatory finding(s) remain open.`
+                  ? t("technicalReview.toolbar.blockedTooltip", { count: openMandatoryCount })
                   : ""
               }
             >
@@ -346,7 +349,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                     setDecisionOpen(true);
                   }}
                 >
-                  Complete Review
+                  {t("technicalReview.toolbar.completeReview")}
                 </Button>
               </span>
             </Tooltip>
@@ -361,19 +364,19 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                 setDecisionOpen(true);
               }}
             >
-              Return
+              {t("technicalReview.toolbar.return")}
             </Button>
           </Box>
         )}
 
         {/* Findings List */}
         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-          Review Findings ({reviewTask.findings.length})
+          {t("technicalReview.findings.title", { count: reviewTask.findings.length })}
         </Typography>
 
         {reviewTask.findings.length === 0 ? (
           <Box sx={{ py: 4, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body2">No review findings recorded yet.</Typography>
+            <Typography variant="body2">{t("technicalReview.findings.empty")}</Typography>
           </Box>
         ) : (
           <Stack spacing={1.5} sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5 }}>
@@ -383,7 +386,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     {getStatusChip(f.status)}
                     {f.isMandatory && (
-                      <Chip label="Mandatory" size="small" color="error" sx={compactChipSx} />
+                      <Chip label={t("technicalReview.findings.mandatory")} size="small" color="error" sx={compactChipSx} />
                     )}
                   </Box>
                   <Typography variant="caption" sx={{
@@ -395,8 +398,8 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
 
                 {(f.pageNumber || f.sectionNumber) && (
                   <Typography variant="caption" sx={{ fontWeight: 600, color: "primary.main", display: "block", mb: 0.5 }}>
-                    {f.pageNumber ? `Page ${f.pageNumber} ` : ""}
-                    {f.sectionNumber ? `• Section ${f.sectionNumber}` : ""}
+                    {f.pageNumber ? t("technicalReview.findings.pageLabel", { page: f.pageNumber }) : ""}
+                    {f.sectionNumber ? t("technicalReview.findings.sectionLabel", { section: f.sectionNumber }) : ""}
                   </Typography>
                 )}
 
@@ -408,7 +411,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                 {f.authorResponse && (
                   <Box sx={{ bgcolor: "action.hover", p: 1, borderRadius: 1, mb: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Author Response ({f.authorResponseUsername}):
+                      {t("technicalReview.findings.authorResponse", { username: f.authorResponseUsername })}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 0.5 }}>
                       {f.authorResponse}
@@ -420,7 +423,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                 {f.reviewerVerificationNotes && (
                   <Box sx={{ bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "rgba(2, 136, 209, 0.08)", p: 1, borderRadius: 1, mb: 1, borderLeft: "3px solid", borderColor: "info.main" }}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: "info.main" }}>
-                      Reviewer Verification:
+                      {t("technicalReview.findings.reviewerVerification")}
                     </Typography>
                     <Typography variant="body2" sx={{ mt: 0.5 }}>
                       {f.reviewerVerificationNotes}
@@ -440,7 +443,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                         setRespondOpen(true);
                       }}
                     >
-                      Respond
+                      {t("technicalReview.findings.respond")}
                     </Button>
                   )}
 
@@ -456,16 +459,10 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                         setVerifyOpen(true);
                       }}
                     >
-                      Verify
+                      {t("technicalReview.findings.verify")}
                     </Button>
                   )}
 
-                  {/* Resolved is reachable only from ReviewerVerified - the
-                      author responds, the reviewer verifies, then the finding is
-                      resolved (ML-DC-FRS-1B-001 §3.3:251). This used to offer
-                      Resolve for any status except Resolved, so a finding could
-                      be closed straight from Open without the author ever
-                      answering it. The service now refuses that too. */}
                   {isReviewer && f.status === "ReviewerVerified" && isPendingOrInProgress && (
                     <Button
                       size="small"
@@ -474,7 +471,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                       startIcon={<CheckCircleOutlineIcon />}
                       onClick={() => handleResolve(f.id)}
                     >
-                      Resolve
+                      {t("technicalReview.findings.resolve")}
                     </Button>
                   )}
                 </Box>
@@ -486,12 +483,12 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
 
       {/* Add Finding Modal */}
       <Dialog open={addFindingOpen} onClose={() => setAddFindingOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Add Review Finding</DialogTitle>
+        <DialogTitle>{t("technicalReview.addModal.title")}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <Box sx={{ display: "flex", gap: 2 }}>
               <TextField
-                label="Page #"
+                label={t("technicalReview.addModal.pageLabel")}
                 type="number"
                 size="small"
                 value={pageNumber}
@@ -499,81 +496,81 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
                 sx={{ width: 100 }}
               />
               <TextField
-                label="Section #"
+                label={t("technicalReview.addModal.sectionLabel")}
                 size="small"
                 value={sectionNumber}
                 onChange={(e) => setSectionNumber(e.target.value)}
-                placeholder="e.g. 4.2"
+                placeholder={t("technicalReview.addModal.sectionPlaceholder")}
                 fullWidth
               />
             </Box>
             <TextField
-              label="Comment / Finding Details"
+              label={t("technicalReview.addModal.commentLabel")}
               multiline
               rows={4}
               required
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Describe the required clarification or technical correction..."
+              placeholder={t("technicalReview.addModal.commentPlaceholder")}
               fullWidth
             />
             <FormControlLabel
               control={<Checkbox checked={isMandatory} onChange={(e) => setIsMandatory(e.target.checked)} />}
-              label="Mandatory (blocks review completion until resolved)"
+              label={t("technicalReview.addModal.mandatoryLabel")}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddFindingOpen(false)}>Cancel</Button>
+          <Button onClick={() => setAddFindingOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={handleAddFinding} variant="contained" disabled={!commentText.trim() || submitting}>
-            Add Finding
+            {t("technicalReview.addModal.submit")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Author Respond Modal */}
       <Dialog open={respondOpen} onClose={() => setRespondOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Respond to Review Finding</DialogTitle>
+        <DialogTitle>{t("technicalReview.respondModal.title")}</DialogTitle>
         <DialogContent dividers>
           <TextField
-            label="Author Response Notes"
+            label={t("technicalReview.respondModal.label")}
             multiline
             rows={4}
             required
             value={authorResponse}
             onChange={(e) => setAuthorResponse(e.target.value)}
-            placeholder="Explain the changes made or provide technical clarification..."
+            placeholder={t("technicalReview.respondModal.placeholder")}
             fullWidth
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRespondOpen(false)}>Cancel</Button>
+          <Button onClick={() => setRespondOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={handleRespond} variant="contained" disabled={!authorResponse.trim() || submitting}>
-            Submit Response
+            {t("technicalReview.respondModal.submit")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Reviewer Verify Modal */}
       <Dialog open={verifyOpen} onClose={() => setVerifyOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Verify Finding Resolution</DialogTitle>
+        <DialogTitle>{t("technicalReview.verifyModal.title")}</DialogTitle>
         <DialogContent dividers>
           <TextField
-            label="Verification Notes"
+            label={t("technicalReview.verifyModal.label")}
             multiline
             rows={3}
             value={verificationNotes}
             onChange={(e) => setVerificationNotes(e.target.value)}
-            placeholder="Confirm that the author's change adequately satisfies the requirement..."
+            placeholder={t("technicalReview.verifyModal.placeholder")}
             fullWidth
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setVerifyOpen(false)}>Cancel</Button>
+          <Button onClick={() => setVerifyOpen(false)}>{t("common.cancel")}</Button>
           <Button onClick={handleVerify} variant="contained" color="info" disabled={submitting}>
-            Verify
+            {t("technicalReview.verifyModal.submit")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -581,7 +578,7 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
       {/* Review Decision Modal */}
       <Dialog open={decisionOpen} onClose={() => setDecisionOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>
-          {decisionType === "CompleteReview" ? "Complete Technical Review" : "Return for Correction"}
+          {decisionType === "CompleteReview" ? t("technicalReview.decisionModal.completeTitle") : t("technicalReview.decisionModal.returnTitle")}
         </DialogTitle>
         <DialogContent dividers>
           <Alert
@@ -589,28 +586,28 @@ export const TechnicalReviewDrawer: React.FC<TechnicalReviewDrawerProps> = ({
             sx={{ mb: 2, fontSize: "0.85rem" }}
           >
             {decisionType === "CompleteReview"
-              ? "Completing technical review will advance the document revision to 'AwaitingApproval'."
-              : "Returning will revert the document revision status back to 'Draft' so the author can modify content."}
+              ? t("technicalReview.decisionModal.completeInfo")
+              : t("technicalReview.decisionModal.returnInfo")}
           </Alert>
           <TextField
-            label="Summary Review Notes"
+            label={t("technicalReview.decisionModal.notesLabel")}
             multiline
             rows={3}
             value={reviewNotes}
             onChange={(e) => setReviewNotes(e.target.value)}
-            placeholder="Optional summary remarks for audit record..."
+            placeholder={t("technicalReview.decisionModal.notesPlaceholder")}
             fullWidth
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDecisionOpen(false)}>Cancel</Button>
+          <Button onClick={() => setDecisionOpen(false)}>{t("common.cancel")}</Button>
           <Button
             onClick={handleDecision}
             variant="contained"
             color={decisionType === "CompleteReview" ? "success" : "warning"}
             disabled={submitting}
           >
-            {submitting ? <CircularProgress size={24} /> : "Confirm Decision"}
+            {submitting ? <CircularProgress size={24} /> : t("technicalReview.decisionModal.confirm")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -590,5 +590,277 @@
     "reassign": "Reassign",
     "emptyTable": "No responsibilities need reassignment.",
     "reassignedToast": "{{code}}: {{role}} reassigned to {{user}}."
+  },
+  "approval": {
+    "loadError": "Failed to load approval inspection dossier.",
+    "mandatoryReasonError": "A mandatory justification of at least 10 characters is required for return or decline.",
+    "executeError": "Failed to execute approval decision.",
+    "title": "Approval Workspace: {{code}} Rev {{rev}}",
+    "taskStatus": "Task Status:",
+    "signedBannerTitle": "21 CFR Part 11 Electronic Signature Applied",
+    "signedBannerDetails": "Signed by <strong>{{name}}</strong> ({{username}}), Role: <strong>{{role}}</strong>, Meaning: <strong>{{meaning}}</strong>, Timestamp: <strong>{{timestamp}}</strong>",
+    "signatureNoticeTitle": "Approval Governed by 21 CFR Part 11 Electronic Signature",
+    "signatureNoticeBody": "Per FDA 21 CFR Part 11 and cGMP requirements, approving this document revision requires cryptographic re-authentication with your account password.",
+    "obsolescenceTitle": "Obsolescence Approval Dossier (DC-URS-052)",
+    "obsolescenceBody": "This approval task originated from a formal periodic review recommendation for document obsolescence. Approving this task will decommission the document and transition its status upon quality verification.",
+    "sodTitle": "Segregation of Duties Conflict Detected (DC-URS-078)",
+    "sodBody": "Current user was identified as either the document author or technical reviewer for this revision. Per 21 CFR Part 11 and cGMP rules, approval decision controls are locked. System Administrators are non-exempt.",
+    "tabs": {
+      "inspectionDossier": "Inspection Dossier",
+      "readinessChecklist": "Readiness Checklist",
+      "decisionControls": "Decision Controls"
+    },
+    "dossier": {
+      "metadataTitle": "Revision Metadata & Change Rationale",
+      "codeAndTitle": "Document Code / Title:",
+      "revSeqNumber": "Revision Sequence / Number:",
+      "revSeqValue": "Rev {{rev}} (Seq #{{seq}})",
+      "classification": "Classification:",
+      "reasonForRevision": "Reason for Revision:",
+      "changeReference": "Change Reference (CAPA/CR):",
+      "pdfEvidenceTitle": "Controlled PDF Evidence",
+      "pdfMeta": "SHA-256: {{sha}} | Size: {{size}} KB",
+      "compareDualPdf": "Compare Dual PDF",
+      "inspectRevisionPdf": "Inspect Revision PDF",
+      "inspectPdf": "Inspect PDF",
+      "noPdfBlocked": "No active Controlled PDF attached to this revision. Approval is blocked.",
+      "signatureRecordTitle": "21 CFR Part 11 Electronic Signature Record",
+      "signerName": "Signer Name:",
+      "username": "Username:",
+      "signerRole": "Signer Role:",
+      "meaningOfSignature": "Meaning of Signature:",
+      "signedTimestamp": "Signed Timestamp (UTC):",
+      "signerIp": "Signer IP Address:",
+      "signatureNote": "Signature Note / Comment:",
+      "sectionChangesTitle": "Structured Section Changes ({{count}})",
+      "noChangeItems": "No specific section change items recorded.",
+      "changeColumns": {
+        "section": "Section",
+        "title": "Title",
+        "description": "Description",
+        "rationale": "Rationale",
+        "status": "Status"
+      },
+      "impactTitle": "GMP Impact Assessment",
+      "impactCategories": {
+        "procedureOrMethod": "Procedure / Method",
+        "training": "Training",
+        "formsOrTemplates": "Forms / Templates",
+        "specifications": "Specifications",
+        "equipment": "Equipment",
+        "materialsOrMedia": "Materials / Media",
+        "validation": "Validation",
+        "regulatoryCommitment": "Regulatory Commitment",
+        "relatedDocuments": "Related Documents"
+      },
+      "impact": "IMPACT",
+      "noImpact": "NO IMPACT",
+      "noImpactInitial": "No impact assessment required for initial revision sequence #1.",
+      "reviewHistoryTitle": "Technical Review History & Findings",
+      "reviewerLine": "Reviewer: {{name}} ({{username}})",
+      "decisionLine": "Decision: {{decision}} on {{date}}",
+      "notesLine": "Notes: {{notes}}",
+      "findingsSummary": "Review Findings: {{total}} total, {{openMandatory}} mandatory unresolved"
+    },
+    "readiness": {
+      "readyTitle": "Ready for Approval",
+      "readyBody": "All mandatory technical review prerequisites, impact assessments, change items, and SoD constraints are fully satisfied.",
+      "blockedTitle": "Approval Blocked: Prerequisites Incomplete",
+      "blockedBody": "The following items must be resolved before this revision can be approved:",
+      "checklistTitle": "Prerequisite Verification Checklist",
+      "checks": {
+        "pdfAttached": "Active Controlled PDF Attached",
+        "reviewCompleted": "Technical Review Formally Completed",
+        "findingsResolved": "Mandatory Review Findings Resolved",
+        "impactCompleted": "GMP Impact Assessment Completed",
+        "changeItemsAddressed": "Originating Review Change Items Addressed",
+        "sodVerified": "Segregation of Duties Verified (Author ≠ Reviewer ≠ Approver)"
+      },
+      "verified": "VERIFIED",
+      "failed": "FAILED"
+    },
+    "decision": {
+      "selectTitle": "Select Approver Decision",
+      "designatedApprover": "Designated approver: {{name}} ({{username}})",
+      "approveObsolescence": "Approve Obsolescence",
+      "approveRevision": "Approve Revision",
+      "returnForCorrection": "Return for Correction",
+      "declineCancel": "Decline / Cancel",
+      "approvingTitle": "Approving Revision {{rev}}",
+      "futureEffectiveNote": "Document will transition to Future Effective status until scheduled activation on {{date}}. Current effective SOP remains active.",
+      "immediateEffectiveNote": "Document will transition to Effective immediately. The prior effective revision will be superseded in the same transaction.",
+      "effectiveDateLabel": "Effective Date",
+      "effectiveDateHelper": "Leave blank or select today for immediate activation; select a future date for deferred activation.",
+      "approvalNotesLabel": "Approval Notes (Optional)",
+      "approvalNotesPlaceholder": "Optional remarks or quality rationale...",
+      "returnTitle": "Return Revision for Author Correction",
+      "returnBody": "The revision status will revert to <strong>Draft</strong>. The author will be notified to revise documentation and address your feedback.",
+      "returnReasonLabel": "Mandatory Reason for Return (≥ 10 characters)",
+      "returnReasonPlaceholder": "Specify the corrections, missing evidence, or changes required...",
+      "declineTitle": "Decline & Cancel Revision",
+      "declineBody": "The revision status will transition to <strong>Cancelled</strong>. This action is terminal and will be permanently recorded in the regulatory audit trail.",
+      "declineReasonLabel": "Mandatory Reason for Rejection (≥ 10 characters)",
+      "declineReasonPlaceholder": "Specify the reason for declining and cancelling this proposed revision...",
+      "charsRequired": "{{count}} / 10 characters required.",
+      "close": "Close",
+      "processing": "Processing...",
+      "signAndApprove": "Sign & Approve...",
+      "confirmDecision": "Confirm {{decision}}"
+    },
+    "designatedApproverRole": "Designated Approver",
+    "signatureMeaning": "Approved"
+  },
+  "periodicReview": {
+    "loadError": "Failed to load review workspace.",
+    "addNoteError": "Failed to add review note.",
+    "resolveError": "Failed to resolve finding.",
+    "summaryMandatoryError": "A review summary of at least 10 characters is mandatory.",
+    "completeError": "Failed to complete periodic review.",
+    "title": "Periodic Review Workspace",
+    "subtitle": "{{code}}: {{title}} (Rev {{rev}})",
+    "closeAria": "Close periodic review workspace",
+    "sodWarning": "Segregation of Duties Enforcement: You are the author of Revision {{rev}}. You cannot record notes or complete this periodic review.",
+    "meta": {
+      "microLimsId": "MicroLIMS ID",
+      "effectiveRevision": "Effective Revision",
+      "reviewDueDate": "Review Due Date",
+      "overdue": "OVERDUE",
+      "reviewCycle": "Review Cycle",
+      "assignedReviewer": "Assigned Reviewer",
+      "unassigned": "Unassigned",
+      "status": "Status"
+    },
+    "pdfBar": {
+      "title": "Controlled Effective PDF",
+      "verified": "{{fileName}} (SHA-256 Verified)",
+      "none": "No active controlled PDF attached",
+      "inspectButton": "Inspect Controlled PDF"
+    },
+    "tabs": {
+      "notesAndFindings": "Review Notes & Findings ({{count}})",
+      "historicalReviews": "Independent Review History ({{count}})",
+      "outcomeAndDecision": "Outcome & Decision"
+    },
+    "findings": {
+      "recordTitle": "Record Page / Section Specific Review Finding",
+      "pageLabel": "Page #",
+      "sectionLabel": "Section #",
+      "noteLabel": "Review Note / Observation *",
+      "notePlaceholder": "Document observations, required updates, or verified points...",
+      "addNote": "Add Note",
+      "columns": {
+        "page": "Page #",
+        "section": "Section",
+        "note": "Note / Observation",
+        "recordedBy": "Recorded By",
+        "status": "Status",
+        "action": "Action"
+      },
+      "markResolvedTooltip": "Mark Resolved",
+      "markResolvedAria": "Mark finding resolved",
+      "empty": "No review notes or findings recorded yet."
+    },
+    "history": {
+      "columns": {
+        "reviewDate": "Review Date",
+        "revision": "Revision",
+        "outcome": "Outcome",
+        "reviewer": "Reviewer",
+        "summaryNotes": "Summary & Notes",
+        "findings": "Findings"
+      },
+      "notesCount": "{{count}} notes",
+      "empty": "No prior periodic reviews recorded for this document master."
+    },
+    "decision": {
+      "title": "Select Periodic Review Outcome",
+      "outcomeLabel": "Decision Outcome *",
+      "remainsValidOption": "<strong>Remains Valid</strong>: No changes required; advances next review date",
+      "revisionRequiredOption": "<strong>Revision Required</strong>: Findings transferred into new revision",
+      "obsolescenceOption": "<strong>Obsolescence Recommended</strong>: Route to quality approval workflow",
+      "remainsValidImpact": "<strong>Remains Valid Impact:</strong> Current effective revision will be preserved. No new revision will be created. The Next Review Date will be advanced by <strong>{{months}} months</strong>.",
+      "revisionRequiredImpact": "<strong>Revision Required Impact:</strong> Closes this review task and enables creating a new draft revision linked directly to this review. All {{count}} findings will be preserved for transfer into change items.",
+      "obsolescenceImpact": "<strong>Obsolescence Recommended Impact:</strong> Does NOT directly obsolete the document. Creates an Obsolescence Approval task routed to Quality Assurance and Document Controller for formal sign-off.",
+      "summaryLabel": "Review Summary & Conclusion *",
+      "summaryPlaceholder": "Provide a comprehensive summary of the review rationale, regulatory compliance verification, and outcome justification (minimum 10 characters)...",
+      "submit": "Submit & Complete Review"
+    },
+    "closeWorkspace": "Close Workspace"
+  },
+  "technicalReview": {
+    "addFindingError": "Failed to add finding.",
+    "respondError": "Failed to submit response.",
+    "verifyError": "Failed to verify finding.",
+    "resolveError": "Failed to resolve finding.",
+    "decideError": "Failed to record review decision.",
+    "findingStatuses": {
+      "Open": "Open",
+      "AuthorResponded": "Author Responded",
+      "ReviewerVerified": "Verified",
+      "Resolved": "Resolved"
+    },
+    "title": "Technical Review",
+    "subtitle": "{{code}} • Revision {{rev}}",
+    "closeAria": "Close technical review",
+    "sodTitle": "Segregation of Duties Enforcement (DC-URS-078)",
+    "sodBody": "You are the designated author/submitter of this revision. Per cGMP regulations, you cannot perform the technical review or resolve review findings.",
+    "overview": {
+      "reviewStatus": "Review Status:",
+      "assignedReviewer": "Assigned Reviewer:",
+      "dueDate": "Due Date:",
+      "submissionNotes": "Author Submission Notes:",
+      "inspectDualPdf": "Inspect Changes: Side-by-Side Dual PDF (DC-URS-067)",
+      "inspectProposedPdf": "Inspect Proposed Revision PDF (DC-URS-067)"
+    },
+    "toolbar": {
+      "addFinding": "Add Finding",
+      "blockedTooltip_one": "Cannot complete review while {{count}} mandatory finding remains open.",
+      "blockedTooltip_other": "Cannot complete review while {{count}} mandatory findings remain open.",
+      "completeReview": "Complete Review",
+      "return": "Return"
+    },
+    "findings": {
+      "title": "Review Findings ({{count}})",
+      "empty": "No review findings recorded yet.",
+      "mandatory": "Mandatory",
+      "pageLabel": "Page {{page}} ",
+      "sectionLabel": "• Section {{section}}",
+      "authorResponse": "Author Response ({{username}}):",
+      "reviewerVerification": "Reviewer Verification:",
+      "respond": "Respond",
+      "verify": "Verify",
+      "resolve": "Resolve"
+    },
+    "addModal": {
+      "title": "Add Review Finding",
+      "pageLabel": "Page #",
+      "sectionLabel": "Section #",
+      "sectionPlaceholder": "e.g. 4.2",
+      "commentLabel": "Comment / Finding Details",
+      "commentPlaceholder": "Describe the required clarification or technical correction...",
+      "mandatoryLabel": "Mandatory (blocks review completion until resolved)",
+      "submit": "Add Finding"
+    },
+    "respondModal": {
+      "title": "Respond to Review Finding",
+      "label": "Author Response Notes",
+      "placeholder": "Explain the changes made or provide technical clarification...",
+      "submit": "Submit Response"
+    },
+    "verifyModal": {
+      "title": "Verify Finding Resolution",
+      "label": "Verification Notes",
+      "placeholder": "Confirm that the author's change adequately satisfies the requirement...",
+      "submit": "Verify"
+    },
+    "decisionModal": {
+      "completeTitle": "Complete Technical Review",
+      "returnTitle": "Return for Correction",
+      "completeInfo": "Completing technical review will advance the document revision to 'AwaitingApproval'.",
+      "returnInfo": "Returning will revert the document revision status back to 'Draft' so the author can modify content.",
+      "notesLabel": "Summary Review Notes",
+      "notesPlaceholder": "Optional summary remarks for audit record...",
+      "confirm": "Confirm Decision"
+    }
   }
 }

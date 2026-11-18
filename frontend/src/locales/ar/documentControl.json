@@ -602,5 +602,281 @@
     "reassign": "إعادة إسناد",
     "emptyTable": "لا توجد مسؤوليات تحتاج إلى إعادة إسناد.",
     "reassignedToast": "{{code}}: تم إعادة إسناد {{role}} إلى {{user}}."
+  },
+  "approval": {
+    "loadError": "تعذّر تحميل ملف فحص الاعتماد.",
+    "mandatoryReasonError": "يلزم تقديم مبرر إلزامي لا يقل عن 10 أحرف للإرجاع أو الرفض.",
+    "executeError": "تعذّر تنفيذ قرار الاعتماد.",
+    "title": "مساحة عمل الاعتماد: {{code}} إصدار {{rev}}",
+    "taskStatus": "حالة المهمة:",
+    "signedBannerTitle": "تم تطبيق التوقيع الإلكتروني وفقًا لـ 21 CFR Part 11",
+    "signedBannerDetails": "تم التوقيع بواسطة <strong>{{name}}</strong> ({{username}})، الدور: <strong>{{role}}</strong>، معنى التوقيع: <strong>{{meaning}}</strong>، الطابع الزمني: <strong>{{timestamp}}</strong>",
+    "signatureNoticeTitle": "الاعتماد خاضع للتوقيع الإلكتروني وفقًا لـ 21 CFR Part 11",
+    "signatureNoticeBody": "وفقًا لمتطلبات FDA 21 CFR Part 11 وممارسات التصنيع الجيد (cGMP)، يتطلب اعتماد إصدار المستند هذا إعادة مصادقة تشفيرية بكلمة مرور حسابك.",
+    "obsolescenceTitle": "ملف اعتماد إلغاء الاستخدام (DC-URS-052)",
+    "obsolescenceBody": "نشأت مهمة الاعتماد هذه من توصية مراجعة دورية رسمية لإلغاء استخدام المستند. سيؤدي اعتماد هذه المهمة إلى إخراج المستند من الخدمة وتحديث حالته عند التحقق من الجودة.",
+    "sodTitle": "تم اكتشاف تعارض في فصل المهام (DC-URS-078)",
+    "sodBody": "تم تحديد المستخدم الحالي إما كمؤلف المستند أو كمراجع فني لهذا الإصدار. وفقًا لقواعد 21 CFR Part 11 وcGMP، تم قفل عناصر التحكم في قرار الاعتماد. ولا يُستثنى مسؤولو النظام.",
+    "tabs": {
+      "inspectionDossier": "ملف الفحص",
+      "readinessChecklist": "قائمة التحقق من الجاهزية",
+      "decisionControls": "ضوابط القرار"
+    },
+    "dossier": {
+      "metadataTitle": "بيانات الإصدار الوصفية ومبرر التغيير",
+      "codeAndTitle": "رمز المستند / العنوان:",
+      "revSeqNumber": "تسلسل الإصدار / الرقم:",
+      "revSeqValue": "إصدار {{rev}} (تسلسل #{{seq}})",
+      "classification": "التصنيف:",
+      "reasonForRevision": "سبب الإصدار:",
+      "changeReference": "مرجع التغيير (CAPA/CR):",
+      "pdfEvidenceTitle": "دليل ملف PDF المضبوط",
+      "pdfMeta": "SHA-256: {{sha}} | الحجم: {{size}} كيلوبايت",
+      "compareDualPdf": "مقارنة PDF المزدوج",
+      "inspectRevisionPdf": "فحص ملف PDF للإصدار",
+      "inspectPdf": "فحص PDF",
+      "noPdfBlocked": "لا يوجد ملف PDF مضبوط نشط مرفق بهذا الإصدار. الاعتماد محجوب.",
+      "signatureRecordTitle": "سجل التوقيع الإلكتروني 21 CFR Part 11",
+      "signerName": "اسم الموقّع:",
+      "username": "اسم المستخدم:",
+      "signerRole": "دور الموقّع:",
+      "meaningOfSignature": "معنى التوقيع:",
+      "signedTimestamp": "الطابع الزمني للتوقيع (UTC):",
+      "signerIp": "عنوان IP للموقّع:",
+      "signatureNote": "ملاحظة / تعليق التوقيع:",
+      "sectionChangesTitle": "تغييرات الأقسام المهيكلة ({{count}})",
+      "noChangeItems": "لم تُسجَّل بنود تغيير محددة للأقسام.",
+      "changeColumns": {
+        "section": "القسم",
+        "title": "العنوان",
+        "description": "الوصف",
+        "rationale": "المبرر",
+        "status": "الحالة"
+      },
+      "impactTitle": "تقييم أثر ممارسات التصنيع الجيد (GMP)",
+      "impactCategories": {
+        "procedureOrMethod": "الإجراء / الطريقة",
+        "training": "التدريب",
+        "formsOrTemplates": "النماذج / القوالب",
+        "specifications": "المواصفات",
+        "equipment": "المعدات",
+        "materialsOrMedia": "المواد / أوساط زرعية",
+        "validation": "التحقق من الصلاحية",
+        "regulatoryCommitment": "الالتزام التنظيمي",
+        "relatedDocuments": "المستندات ذات الصلة"
+      },
+      "impact": "يوجد أثر",
+      "noImpact": "لا يوجد أثر",
+      "noImpactInitial": "لا يلزم تقييم أثر لتسلسل الإصدار الأولي #1.",
+      "reviewHistoryTitle": "تاريخ المراجعة الفنية والملاحظات",
+      "reviewerLine": "المراجع: {{name}} ({{username}})",
+      "decisionLine": "القرار: {{decision}} في {{date}}",
+      "notesLine": "الملاحظات: {{notes}}",
+      "findingsSummary": "ملاحظات المراجعة: {{total}} إجمالي، {{openMandatory}} إلزامي غير محلول"
+    },
+    "readiness": {
+      "readyTitle": "جاهز للاعتماد",
+      "readyBody": "جميع متطلبات المراجعة الفنية الإلزامية وتقييمات الأثر وبنود التغيير وقيود فصل المهام مستوفاة بالكامل.",
+      "blockedTitle": "الاعتماد محجوب: المتطلبات الأساسية غير مكتملة",
+      "blockedBody": "يجب معالجة البنود التالية قبل اعتماد هذا الإصدار:",
+      "checklistTitle": "قائمة التحقق من المتطلبات الأساسية",
+      "checks": {
+        "pdfAttached": "ملف PDF مضبوط نشط مرفق",
+        "reviewCompleted": "اكتملت المراجعة الفنية رسميًا",
+        "findingsResolved": "تم حل ملاحظات المراجعة الإلزامية",
+        "impactCompleted": "اكتمل تقييم أثر GMP",
+        "changeItemsAddressed": "تمت معالجة بنود تغيير المراجعة الأصلية",
+        "sodVerified": "تم التحقق من فصل المهام (المؤلف ≠ المراجع ≠ المُعتمِد)"
+      },
+      "verified": "تم التحقق",
+      "failed": "فشل"
+    },
+    "decision": {
+      "selectTitle": "اختر قرار المُعتمِد",
+      "designatedApprover": "المُعتمِد المعيّن: {{name}} ({{username}})",
+      "approveObsolescence": "اعتماد إلغاء الاستخدام",
+      "approveRevision": "اعتماد الإصدار",
+      "returnForCorrection": "إرجاع للتصحيح",
+      "declineCancel": "رفض / إلغاء",
+      "approvingTitle": "اعتماد الإصدار {{rev}}",
+      "futureEffectiveNote": "سينتقل المستند إلى حالة ساري المفعول مستقبلاً حتى التفعيل المجدول في {{date}}. يظل إجراء التشغيل القياسي ساري المفعول الحالي نشطًا.",
+      "immediateEffectiveNote": "سينتقل المستند إلى حالة ساري المفعول فورًا. سيتم استبدال الإصدار ساري المفعول السابق في نفس المعاملة (مُستبدَل).",
+      "effectiveDateLabel": "تاريخ السريان",
+      "effectiveDateHelper": "اتركه فارغًا أو اختر اليوم للتفعيل الفوري؛ اختر تاريخًا مستقبليًا للتفعيل المؤجل.",
+      "approvalNotesLabel": "ملاحظات الاعتماد (اختياري)",
+      "approvalNotesPlaceholder": "ملاحظات اختيارية أو مبرر الجودة...",
+      "returnTitle": "إرجاع الإصدار لتصحيح المؤلف",
+      "returnBody": "ستعود حالة الإصدار إلى <strong>مسودة</strong>. سيتم إشعار المؤلف لتنقيح المستند ومعالجة ملاحظاتك.",
+      "returnReasonLabel": "السبب الإلزامي للإرجاع (≥ 10 أحرف)",
+      "returnReasonPlaceholder": "حدد التصحيحات أو الأدلة المفقودة أو التغييرات المطلوبة...",
+      "declineTitle": "رفض وإلغاء الإصدار",
+      "declineBody": "ستنتقل حالة الإصدار إلى <strong>ملغى</strong>. هذا الإجراء نهائي وسيتم تسجيله بشكل دائم في سجل التدقيق التنظيمي.",
+      "declineReasonLabel": "السبب الإلزامي للرفض (≥ 10 أحرف)",
+      "declineReasonPlaceholder": "حدد سبب رفض وإلغاء هذا الإصدار المقترح...",
+      "charsRequired": "{{count}} / 10 أحرف مطلوبة.",
+      "close": "إغلاق",
+      "processing": "جارٍ المعالجة...",
+      "signAndApprove": "توقيع واعتماد...",
+      "confirmDecision": "تأكيد {{decision}}"
+    },
+    "designatedApproverRole": "المُعتمِد المعيّن",
+    "signatureMeaning": "معتمد"
+  },
+  "periodicReview": {
+    "loadError": "تعذّر تحميل مساحة عمل المراجعة.",
+    "addNoteError": "تعذّرت إضافة ملاحظة المراجعة.",
+    "resolveError": "تعذّر إغلاق الملاحظة.",
+    "summaryMandatoryError": "يلزم تقديم ملخص مراجعة لا يقل عن 10 أحرف.",
+    "completeError": "تعذّر إكمال المراجعة الدورية.",
+    "title": "مساحة عمل المراجعة الدورية",
+    "subtitle": "{{code}}: {{title}} (إصدار {{rev}})",
+    "closeAria": "إغلاق مساحة عمل المراجعة الدورية",
+    "sodWarning": "إنفاذ فصل المهام: أنت مؤلف الإصدار {{rev}}. لا يمكنك تسجيل ملاحظات أو إكمال هذه المراجعة الدورية.",
+    "meta": {
+      "microLimsId": "معرّف MicroLIMS",
+      "effectiveRevision": "الإصدار ساري المفعول",
+      "reviewDueDate": "تاريخ استحقاق المراجعة",
+      "overdue": "متأخر",
+      "reviewCycle": "دورة المراجعة",
+      "assignedReviewer": "المراجع المُسنَد إليه",
+      "unassigned": "غير مُسنَد",
+      "status": "الحالة"
+    },
+    "pdfBar": {
+      "title": "ملف PDF المضبوط ساري المفعول",
+      "verified": "{{fileName}} (تم التحقق من SHA-256)",
+      "none": "لا يوجد ملف PDF مضبوط نشط مرفق",
+      "inspectButton": "فحص ملف PDF المضبوط"
+    },
+    "tabs": {
+      "notesAndFindings": "ملاحظات المراجعة والنتائج ({{count}})",
+      "historicalReviews": "تاريخ المراجعة المستقلة ({{count}})",
+      "outcomeAndDecision": "النتيجة والقرار"
+    },
+    "findings": {
+      "recordTitle": "تسجيل ملاحظة مراجعة خاصة بصفحة / قسم",
+      "pageLabel": "رقم الصفحة",
+      "sectionLabel": "رقم القسم",
+      "noteLabel": "ملاحظة المراجعة / المشاهدة *",
+      "notePlaceholder": "سجّل ملاحظات المستند أو التحديثات المطلوبة أو النقاط المتحقق منها...",
+      "addNote": "إضافة ملاحظة",
+      "columns": {
+        "page": "رقم الصفحة",
+        "section": "القسم",
+        "note": "الملاحظة / المشاهدة",
+        "recordedBy": "سُجِّل بواسطة",
+        "status": "الحالة",
+        "action": "الإجراء"
+      },
+      "markResolvedTooltip": "تحديد كمحلولة",
+      "markResolvedAria": "تحديد الملاحظة كمحلولة",
+      "empty": "لم تُسجَّل ملاحظات مراجعة بعد."
+    },
+    "history": {
+      "columns": {
+        "reviewDate": "تاريخ المراجعة",
+        "revision": "الإصدار",
+        "outcome": "النتيجة",
+        "reviewer": "المراجع",
+        "summaryNotes": "الملخص والملاحظات",
+        "findings": "الملاحظات"
+      },
+      "notesCount": "{{count}} ملاحظات",
+      "empty": "لم تُسجَّل مراجعات دورية سابقة لهذا المستند الرئيسي."
+    },
+    "decision": {
+      "title": "اختر نتيجة المراجعة الدورية",
+      "outcomeLabel": "نتيجة القرار *",
+      "remainsValidOption": "<strong>يبقى صالحًا</strong>: لا تلزم تغييرات؛ تقديم تاريخ المراجعة القادمة",
+      "revisionRequiredOption": "<strong>يتطلب إصدارًا جديدًا</strong>: نقل الملاحظات إلى إصدار جديد",
+      "obsolescenceOption": "<strong>يُوصى بإلغاء الاستخدام</strong>: التوجيه إلى مسار عمل اعتماد الجودة",
+      "remainsValidImpact": "<strong>أثر البقاء صالحًا:</strong> سيتم الحفاظ على الإصدار ساري المفعول الحالي. لن يُنشأ إصدار جديد. سيتم تقديم تاريخ المراجعة القادمة بمقدار <strong>{{months}} شهرًا</strong>.",
+      "revisionRequiredImpact": "<strong>أثر طلب إصدار جديد:</strong> يغلق مهمة المراجعة هذه ويتيح إنشاء مسودة إصدار جديد مرتبطة مباشرة بهذه المراجعة. سيتم حفظ جميع الملاحظات ({{count}}) لنقلها إلى بنود التغيير.",
+      "obsolescenceImpact": "<strong>أثر التوصية بإلغاء الاستخدام:</strong> لا يلغي المستند مباشرة. ينشئ مهمة اعتماد إلغاء الاستخدام موجّهة إلى ضمان الجودة ومراقب المستندات للتوقيع الرسمي.",
+      "summaryLabel": "ملخص المراجعة والخلاصة *",
+      "summaryPlaceholder": "قدّم ملخصًا شاملاً لمبرر المراجعة والتحقق من الامتثال التنظيمي ومبرر النتيجة (10 أحرف على الأقل)...",
+      "submit": "إرسال وإكمال المراجعة"
+    },
+    "closeWorkspace": "إغلاق مساحة العمل"
+  },
+  "technicalReview": {
+    "addFindingError": "تعذّرت إضافة الملاحظة.",
+    "respondError": "تعذّر إرسال الرد.",
+    "verifyError": "تعذّر التحقق من الملاحظة.",
+    "resolveError": "تعذّر إغلاق الملاحظة.",
+    "decideError": "تعذّر تسجيل قرار المراجعة.",
+    "findingStatuses": {
+      "Open": "مفتوحة",
+      "AuthorResponded": "رد المؤلف",
+      "ReviewerVerified": "تم التحقق",
+      "Resolved": "محلولة"
+    },
+    "title": "المراجعة الفنية",
+    "subtitle": "{{code}} • إصدار {{rev}}",
+    "closeAria": "إغلاق المراجعة الفنية",
+    "sodTitle": "إنفاذ فصل المهام (DC-URS-078)",
+    "sodBody": "أنت المؤلف / المُرسِل المعيّن لهذا الإصدار. وفقًا للوائح cGMP، لا يمكنك إجراء المراجعة الفنية أو حل ملاحظات المراجعة.",
+    "overview": {
+      "reviewStatus": "حالة المراجعة:",
+      "assignedReviewer": "المراجع المُسنَد إليه:",
+      "dueDate": "تاريخ الاستحقاق:",
+      "submissionNotes": "ملاحظات إرسال المؤلف:",
+      "inspectDualPdf": "فحص التغييرات: مقارنة PDF جنبًا إلى جنب (DC-URS-067)",
+      "inspectProposedPdf": "فحص ملف PDF للإصدار المقترح (DC-URS-067)"
+    },
+    "toolbar": {
+      "addFinding": "إضافة ملاحظة",
+      "blockedTooltip_zero": "لا يمكن إكمال المراجعة مع وجود ملاحظات إلزامية مفتوحة.",
+      "blockedTooltip_one": "لا يمكن إكمال المراجعة ما دامت ملاحظة إلزامية واحدة مفتوحة.",
+      "blockedTooltip_two": "لا يمكن إكمال المراجعة ما دامت ملاحظتان إلزاميتان مفتوحتين.",
+      "blockedTooltip_few": "لا يمكن إكمال المراجعة ما دامت {{count}} ملاحظات إلزامية مفتوحة.",
+      "blockedTooltip_many": "لا يمكن إكمال المراجعة ما دامت {{count}} ملاحظة إلزامية مفتوحة.",
+      "blockedTooltip_other": "لا يمكن إكمال المراجعة ما دامت {{count}} ملاحظة إلزامية مفتوحة.",
+      "completeReview": "إكمال المراجعة",
+      "return": "إرجاع"
+    },
+    "findings": {
+      "title": "ملاحظات المراجعة ({{count}})",
+      "empty": "لم تُسجَّل ملاحظات مراجعة بعد.",
+      "mandatory": "إلزامي",
+      "pageLabel": "صفحة {{page}} ",
+      "sectionLabel": "• قسم {{section}}",
+      "authorResponse": "رد المؤلف ({{username}}):",
+      "reviewerVerification": "تحقق المراجع:",
+      "respond": "رد",
+      "verify": "تحقق",
+      "resolve": "حل"
+    },
+    "addModal": {
+      "title": "إضافة ملاحظة مراجعة",
+      "pageLabel": "رقم الصفحة",
+      "sectionLabel": "رقم القسم",
+      "sectionPlaceholder": "مثال: 4.2",
+      "commentLabel": "التعليق / تفاصيل الملاحظة",
+      "commentPlaceholder": "صف التوضيح المطلوب أو التصحيح الفني...",
+      "mandatoryLabel": "إلزامي (يمنع إكمال المراجعة حتى يتم حله)",
+      "submit": "إضافة ملاحظة"
+    },
+    "respondModal": {
+      "title": "الرد على ملاحظة المراجعة",
+      "label": "ملاحظات رد المؤلف",
+      "placeholder": "اشرح التغييرات التي تم إجراؤها أو قدّم توضيحًا فنيًا...",
+      "submit": "إرسال الرد"
+    },
+    "verifyModal": {
+      "title": "التحقق من حل الملاحظة",
+      "label": "ملاحظات التحقق",
+      "placeholder": "أكّد أن تغيير المؤلف يفي بالمتطلب بشكل كافٍ...",
+      "submit": "تحقق"
+    },
+    "decisionModal": {
+      "completeTitle": "إكمال المراجعة الفنية",
+      "returnTitle": "إرجاع للتصحيح",
+      "completeInfo": "سيؤدي إكمال المراجعة الفنية إلى ترقية إصدار المستند إلى 'AwaitingApproval'.",
+      "returnInfo": "سيؤدي الإرجاع إلى إعادة حالة إصدار المستند إلى 'Draft' ليتمكن المؤلف من تعديل المحتوى.",
+      "notesLabel": "ملاحظات ملخص المراجعة",
+      "notesPlaceholder": "ملاحظات ملخص اختيارية لسجل التدقيق...",
+      "confirm": "تأكيد القرار"
+    }
   }
 }

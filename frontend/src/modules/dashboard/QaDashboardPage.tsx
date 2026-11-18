@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { useEffect, useState } from "react";
 import { Button } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -20,6 +21,7 @@ function isAbortError(err: unknown): boolean {
 }
 
 export function QaDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const { userId } = useAuth();
 
   const [reviews, setReviews] = useState<AuditTrailReviewListItemDto[] | null>(null);
@@ -66,14 +68,14 @@ export function QaDashboardPage() {
         setReviews(reviewsResult.data);
       } else if (!reviewsResult.aborted) {
         setReviews(null);
-        failed.push("Audit trail reviews");
+        failed.push("qa.sources.auditReviews");
       }
 
       if (approvalsResult.ok) {
         setPendingApprovals(approvalsResult.data);
       } else if (!approvalsResult.aborted) {
         setPendingApprovals(null);
-        failed.push("Document approvals");
+        failed.push("qa.sources.documentApprovals");
       }
 
       setFailedSources(failed);
@@ -93,35 +95,35 @@ export function QaDashboardPage() {
 
   const tiles: SummaryTile[] = [
     {
-      label: "Audit trail reviews in progress",
+      label: t("qa.tiles.auditInProgress"),
       value: inProgressCount ?? "—",
       tone: "info",
       icon: <FactCheckOutlinedIcon />,
-      hint: "Audit trail reviews currently in progress",
+      hint: t("qa.tiles.auditInProgressHint"),
       to: "/audit-trail-reviews"
     },
     {
-      label: "Open findings",
+      label: t("qa.tiles.openFindings"),
       value: openFindingsCount ?? "—",
       tone: openFindingsCount === null ? undefined : openFindingsCount > 0 ? "detected" : "notDetected",
       icon: <WarningAmberOutlinedIcon />,
-      hint: "Open findings across audit trail reviews",
+      hint: t("qa.tiles.openFindingsHint"),
       to: "/audit-trail-reviews"
     },
     {
-      label: "Documents waiting for my approval",
+      label: t("qa.tiles.documentsWaiting"),
       value: pendingApprovalsCount ?? "—",
       tone: pendingApprovalsCount && pendingApprovalsCount > 0 ? "action" : undefined,
       icon: <AssignmentTurnedInOutlinedIcon />,
-      hint: "Controlled documents awaiting your approval",
+      hint: t("qa.tiles.documentsWaitingHint"),
       to: "/document-control/library"
     }
   ];
 
   return (
     <LabPage
-      title="Quality Assurance Command Center"
-      subtitle="Audit trail oversight, open findings, and document approvals assigned to you."
+      title={t("qa.title")}
+      subtitle={t("qa.subtitle")}
       actions={
         <Button
           variant="outlined"
@@ -129,12 +131,12 @@ export function QaDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
       kpis={
         <>
-          <PartialOutageBanner sources={failedSources} onRetry={reload} />
+          <PartialOutageBanner sources={failedSources.map((k) => t(k))} onRetry={reload} />
           <KpiStrip tiles={tiles} loading={loading} />
         </>
       }

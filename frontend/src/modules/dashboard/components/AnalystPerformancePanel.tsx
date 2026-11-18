@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../i18n";
 import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import SpeedIcon from "@mui/icons-material/Speed";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
@@ -11,6 +12,7 @@ interface AnalystPerformancePanelProps {
 }
 
 export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProps) {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
 
@@ -20,7 +22,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
-      <SectionTitle>My Operational Performance</SectionTitle>
+      <SectionTitle>{t("performance.title")}</SectionTitle>
 
       <Stack direction="row" spacing={2} sx={{ flex: 1, alignItems: "center" }}>
         {/* On-time reading is an incubation figure - Microbiology only. */}
@@ -41,7 +43,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
               {onTimeRate}%
             </Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
-              On-Time Reading Rate
+              {t("performance.onTimeRate")}
             </Typography>
           </Box>
         )}
@@ -62,7 +64,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
             {trailing7d}
           </Typography>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
-            7-Day Completed Volume
+            {t("performance.completedVolume")}
           </Typography>
         </Box>
 
@@ -82,7 +84,7 @@ export function AnalystPerformancePanel({ metrics }: AnalystPerformancePanelProp
             {activeOrders}
           </Typography>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
-            Active Assigned Orders
+            {t("performance.activeOrders")}
           </Typography>
         </Box>
       </Stack>

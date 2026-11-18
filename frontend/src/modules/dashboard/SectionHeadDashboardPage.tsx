@@ -34,9 +34,14 @@ import { TestOrderStatusDonut } from "./components/TestOrderStatusDonut";
 import { tableHeadSx } from "../../theme";
 import { SummaryTiles } from "../../components/configHierarchy/SummaryTiles";
 import { SectionSelfAssignmentCard } from "./components/SectionSelfAssignmentCard";
-import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { useDashboardLab } from "./DashboardLabContext";
+import { useTranslation } from "../../i18n";
+
+// Kept as a key so the translated text is looked up at render, not stored in the effect.
+const SERVICE_ERROR_KEY = "sectionHead.serviceError";
 
 export function SectionHeadDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
 
@@ -67,7 +72,7 @@ export function SectionHeadDashboardPage() {
         setStatusDist(distData);
       })
       .catch(() => {
-        if (!cancelled) setError("The dashboard service did not respond. No laboratory data has been changed.");
+        if (!cancelled) setError(SERVICE_ERROR_KEY);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -88,7 +93,7 @@ export function SectionHeadDashboardPage() {
 
   if (!data) {
     return (
-      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+      <DashboardStateGate loading={loading} error={error === SERVICE_ERROR_KEY ? t(SERVICE_ERROR_KEY) : error} hasData={false} onRetry={reload}>
         {null}
       </DashboardStateGate>
     );
@@ -104,10 +109,10 @@ export function SectionHeadDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Section Head Command Center"
+        title={t("sectionHead.title")}
         subtitle={lab.code
-          ? `Operational overview, workflow bottlenecks and intervention tracking for the ${LAB_LABELS[lab.code]}.`
-          : "Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking."}
+          ? t("sectionHead.subtitleLab", { lab: t(`labName.${lab.code}`) })
+          : t("sectionHead.subtitle")}
       >
         <Button
           variant="outlined"
@@ -115,7 +120,7 @@ export function SectionHeadDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
         <Button
           component={Link}
@@ -123,30 +128,30 @@ export function SectionHeadDashboardPage() {
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
         >
-          Receiving & Testing Workspace
+          {t("sectionHead.workspace")}
         </Button>
       </PageHeader>
 
       {/* Tier 1: Laboratory Overview KPI Strip */}
       <SummaryTiles
         tiles={[
-          { label: "Active tests", value: data.activeTests, icon: <ScienceOutlinedIcon />, hint: "Tests in progress", to: lab.workspace("?status=Active") },
+          { label: t("tiles.activeTests"), value: data.activeTests, icon: <ScienceOutlinedIcon />, hint: t("tiles.activeTestsHint"), to: lab.workspace("?status=Active") },
           // Incubating and Ready to read are Microbiology only.
           ...(lab.isPhyschem
             ? []
             : [
-                { label: "Incubating", value: data.incubating, tone: "info" as const, icon: <ThermostatOutlinedIcon />, hint: "Tests incubating", to: lab.workspace("?view=kanban") },
-                { label: "Ready to read", value: data.readyToRead, tone: "action" as const, icon: <VisibilityOutlinedIcon />, hint: "Test readings pending", to: lab.workspace("?testStatus=ReadyToRead") }
+                { label: t("tiles.incubating"), value: data.incubating, tone: "info" as const, icon: <ThermostatOutlinedIcon />, hint: t("tiles.incubatingHint"), to: lab.workspace("?view=kanban") },
+                { label: t("tiles.readyToRead"), value: data.readyToRead, tone: "action" as const, icon: <VisibilityOutlinedIcon />, hint: t("tiles.readyToReadHint"), to: lab.workspace("?testStatus=ReadyToRead") }
               ]),
-          { label: "Pending review", value: data.pendingReview, tone: "action", icon: <RateReviewOutlinedIcon />, hint: "Samples awaiting review", to: lab.workspace("?status=UnderReview") },
-          { label: "Pending approval", value: data.pendingApproval, tone: "action", icon: <VerifiedUserOutlinedIcon />, hint: "Samples awaiting release", to: lab.workspace("?status=UnderApproval") },
-          { label: "Overdue", value: data.overdue, tone: "detected", icon: <AccessTimeOutlinedIcon />, hint: "More than 24h delay", to: lab.workspace("?urgency=overdue") },
+          { label: t("tiles.pendingReview"), value: data.pendingReview, tone: "action", icon: <RateReviewOutlinedIcon />, hint: t("tiles.pendingReviewHint"), to: lab.workspace("?status=UnderReview") },
+          { label: t("tiles.pendingApproval"), value: data.pendingApproval, tone: "action", icon: <VerifiedUserOutlinedIcon />, hint: t("tiles.pendingApprovalHint"), to: lab.workspace("?status=UnderApproval") },
+          { label: t("tiles.overdue"), value: data.overdue, tone: "detected", icon: <AccessTimeOutlinedIcon />, hint: t("tiles.overdueHint"), to: lab.workspace("?urgency=overdue") },
           {
-            label: "Attention items",
+            label: t("tiles.attentionItems"),
             value: data.attentionCount,
             tone: data.attentionCount > 0 ? "detected" : "notDetected",
             icon: <WarningAmberOutlinedIcon />,
-            hint: "Action required",
+            hint: t("tiles.attentionHint"),
             onClick: () => document.getElementById("attention-section")?.scrollIntoView({ behavior: "smooth" })
           }
         ]}
@@ -157,10 +162,10 @@ export function SectionHeadDashboardPage() {
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
           <Box>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-              Laboratory Workflow Pipeline & Bottlenecks
+              {t("pipeline.title")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Click any stage to inspect the active test orders in that stage.
+              {t("pipeline.intro")}
             </Typography>
           </Box>
         </Box>
@@ -173,15 +178,15 @@ export function SectionHeadDashboardPage() {
               carried no stage identity at all. An ordered sequence wants an
               ordinal ramp: one hue deepening stage by stage. */}
           {[
-            { label: lab.isPhyschem ? "Testing" : "Testing / Preparation", count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: lab.workspace("?status=Active"), unit: "tests", micro: false },
-            { label: "Incubation", count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: lab.workspace(), unit: "tests", micro: true },
-            { label: "Ready to Read", count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: lab.workspace("?testStatus=ReadyToRead"), unit: "tests", micro: true },
-            { label: "Scientific Review", count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: lab.workspace("?status=UnderReview"), unit: "samples", micro: false },
-            { label: "Final Approval", count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: lab.workspace("?status=UnderApproval"), unit: "samples", micro: false }
+            { label: lab.isPhyschem ? t("pipeline.testing") : t("pipeline.testingPreparation"), count: data.testingBottleneck, color: theme.custom.chartSequential[0], link: lab.workspace("?status=Active"), unit: t("pipeline.unitTests"), micro: false },
+            { label: t("pipeline.incubation"), count: data.incubationBottleneck, color: theme.custom.chartSequential[1], link: lab.workspace(), unit: t("pipeline.unitTests"), micro: true },
+            { label: t("pipeline.readyToRead"), count: data.readyToReadBottleneck, color: theme.custom.chartSequential[2], link: lab.workspace("?testStatus=ReadyToRead"), unit: t("pipeline.unitTests"), micro: true },
+            { label: t("pipeline.scientificReview"), count: data.reviewBottleneck, color: theme.custom.chartSequential[3], link: lab.workspace("?status=UnderReview"), unit: t("pipeline.unitSamples"), micro: false },
+            { label: t("pipeline.finalApproval"), count: data.approvalBottleneck, color: theme.custom.chartSequential[4], link: lab.workspace("?status=UnderApproval"), unit: t("pipeline.unitSamples"), micro: false }
           ]
             // Incubation stages are Microbiology only; numbering follows what is shown.
             .filter((stage) => !(lab.isPhyschem && stage.micro))
-            .map((stage, idx, shown) => ({ ...stage, label: `${idx + 1}. ${stage.label}`, cols: 12 / shown.length }))
+            .map((stage, idx, shown) => ({ ...stage, label: t("pipeline.numbered", { n: idx + 1, label: stage.label }), cols: 12 / shown.length }))
             .map((stage, idx) => (
             <Grid
               key={idx}
@@ -237,7 +242,7 @@ export function SectionHeadDashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
               <WarningAmberOutlinedIcon sx={{ color: theme.custom.status.detected.text }} />
               <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.custom.status.detected.text }}>
-                Laboratory Attention Required ({data.attentionItems.length})
+                {t("attention.title", { n: data.attentionItems.length })}
               </Typography>
             </Box>
             <Grid container spacing={1.5}>
@@ -289,7 +294,7 @@ export function SectionHeadDashboardPage() {
                         endIcon={<ArrowForwardOutlinedIcon />}
                         sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
                       >
-                        Intervene
+                        {t("attention.intervene")}
                       </Button>
                     </Paper>
                   </Grid>
@@ -302,10 +307,10 @@ export function SectionHeadDashboardPage() {
             <VerifiedUserOutlinedIcon sx={{ color: theme.custom.status.notDetected.text }} />
             <Box>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                All Laboratory Workflows Running Within Normal SLA
+                {t("attention.allClearTitle")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                No overdue test orders, delayed reviews, or unresolved critical exceptions currently require section head intervention.
+                {t("attention.allClearBody")}
               </Typography>
             </Box>
           </Paper>
@@ -324,10 +329,10 @@ export function SectionHeadDashboardPage() {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Box>
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-                  Review Queue ({data.reviewQueueCount})
+                  {t("review.title", { n: data.reviewQueueCount })}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Overdue:{" "}
+                  {t("review.overdue")}{" "}
                   <Typography
                     component={Link}
                     to={lab.workspace("?status=UnderReview&workload=reviewOverdue")}
@@ -341,7 +346,7 @@ export function SectionHeadDashboardPage() {
                   >
                     {data.reviewQueueOverdueCount}
                   </Typography>
-                  {" "}| Oldest: {data.reviewQueueOldestHours}h
+                  {" "}{t("review.oldest", { hours: data.reviewQueueOldestHours })}
                 </Typography>
               </Box>
               <Button
@@ -351,25 +356,25 @@ export function SectionHeadDashboardPage() {
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
               >
-                View Full Review Queue →
+                {t("review.viewAll")}
               </Button>
             </Box>
 
             {data.reviewQueueItems.length === 0 ? (
               <Typography sx={{ fontSize: 12, color: "text.secondary", py: 4, textAlign: "center" }}>
-                No results awaiting scientific review.
+                {t("review.empty")}
               </Typography>
             ) : (
               <Box sx={{ overflowX: "auto", flex: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst(s)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Worst Result</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Age</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.sampleRef")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.tests")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.analysts")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.worstResult")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.age")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("columns.action")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -449,7 +454,7 @@ export function SectionHeadDashboardPage() {
                             size="small"
                             sx={{ textTransform: "none", fontSize: 12, py: 0.2, fontWeight: 600 }}
                           >
-                            Review
+                            {t("review.action")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -471,10 +476,10 @@ export function SectionHeadDashboardPage() {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Box>
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-                  Approval Queue ({data.approvalQueueCount})
+                  {t("approval.title", { n: data.approvalQueueCount })}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Overdue:{" "}
+                  {t("review.overdue")}{" "}
                   <Typography
                     component={Link}
                     to={lab.workspace("?status=UnderApproval&workload=approvalOverdue")}
@@ -488,7 +493,7 @@ export function SectionHeadDashboardPage() {
                   >
                     {data.approvalQueueOverdueCount}
                   </Typography>
-                  {" "}| Oldest: {data.approvalQueueOldestHours}h
+                  {" "}{t("approval.oldest", { hours: data.approvalQueueOldestHours })}
                 </Typography>
               </Box>
               <Button
@@ -498,24 +503,24 @@ export function SectionHeadDashboardPage() {
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600, fontSize: 12 }}
               >
-                View Full Approval Queue →
+                {t("approval.viewAll")}
               </Button>
             </Box>
 
             {data.approvalQueueItems.length === 0 ? (
               <Typography sx={{ fontSize: 12, color: "text.secondary", py: 4, textAlign: "center" }}>
-                No samples awaiting final authorization.
+                {t("approval.empty")}
               </Typography>
             ) : (
               <Box sx={{ overflowX: "auto", flex: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Reviewer</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Age</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.sampleRef")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.tests")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.reviewer")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.age")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("columns.action")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -565,7 +570,7 @@ export function SectionHeadDashboardPage() {
                             color="success"
                             sx={{ textTransform: "none", fontSize: 12, py: 0.2, fontWeight: 600 }}
                           >
-                            Approve
+                            {t("approval.action")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -590,27 +595,27 @@ export function SectionHeadDashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
               <PeopleAltOutlinedIcon sx={{ color: theme.palette.primary.main }} />
               <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Analyst Workload Allocation
+                {t("workload.title")}
               </Typography>
             </Box>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
-              Active test assignment and daily operational capacity across laboratory staff. Click an analyst to filter workspace.
+              {t("workload.intro")}
             </Typography>
 
             {data.analystWorkloads.length === 0 ? (
               <Typography sx={{ fontSize: 12, color: "text.secondary", py: 3, textAlign: "center" }}>
-                No active laboratory analysts found.
+                {t("workload.empty")}
               </Typography>
             ) : (
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Active Assigned Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Overdue Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Completed Today</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Workspace</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("columns.analyst")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("workload.columns.activeAssigned")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("workload.columns.overdueTests")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("workload.columns.completedToday")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("workload.columns.workspace")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -636,7 +641,7 @@ export function SectionHeadDashboardPage() {
                         </TableCell>
                         <TableCell sx={{ fontSize: 12 }}>
                           <Chip
-                            label={`${a.activeCount} tests`}
+                            label={t("workload.testsCount", { n: a.activeCount })}
                             size="small"
                             sx={{ fontSize: 12, fontWeight: 600, bgcolor: "action.selected" }}
                           />
@@ -646,7 +651,7 @@ export function SectionHeadDashboardPage() {
                             <Chip
                               component={Link}
                               to={lab.workspace(`?analystId=${a.analystId}&urgency=overdue`)}
-                              label={`${a.overdueCount} overdue`}
+                              label={t("workload.overdueCount", { n: a.overdueCount })}
                               size="small"
                               clickable
                               sx={{ fontSize: 12, fontWeight: 700, bgcolor: theme.custom.status.detected.text + "22", color: theme.custom.status.detected.text }}
@@ -666,7 +671,7 @@ export function SectionHeadDashboardPage() {
                             size="small"
                             sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                           >
-                            Filter Tests →
+                            {t("workload.filter")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -690,26 +695,26 @@ export function SectionHeadDashboardPage() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <ThermostatOutlinedIcon sx={{ color: theme.palette.primary.main }} />
                 <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-                  Laboratory Incubation Status
+                  {t("incubation.title")}
                 </Typography>
               </Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
-                Active microbiological test incubations grouped by test type.
+                {t("incubation.intro")}
               </Typography>
 
               {data.incubationSummary.length === 0 ? (
                 <Typography sx={{ fontSize: 12, color: "text.secondary", py: 3, textAlign: "center" }}>
-                  No active test incubations.
+                  {t("incubation.empty")}
                 </Typography>
               ) : (
                 <Box sx={{ overflowX: "auto" }}>
                   <Table size="small">
                     <TableHead>
                       <TableRow sx={tableHeadSx}>
-                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Test Type</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Ready to Read</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Still Incubating</TableCell>
-                        <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("incubation.columns.testType")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("incubation.columns.readyToRead")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("incubation.columns.stillIncubating")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("columns.action")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -724,7 +729,7 @@ export function SectionHeadDashboardPage() {
                           <TableCell sx={{ fontSize: 12 }}>
                             {inc.readyToRead > 0 ? (
                               <Chip
-                                label={`${inc.readyToRead} ready`}
+                                label={t("incubation.readyCount", { n: inc.readyToRead })}
                                 size="small"
                                 sx={{ fontSize: 12, fontWeight: 700, bgcolor: theme.custom.status.notDetected.text + "22", color: theme.custom.status.notDetected.text }}
                               />
@@ -743,7 +748,7 @@ export function SectionHeadDashboardPage() {
                               size="small"
                               sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                             >
-                              Open →
+                              {t("incubation.open")}
                             </Button>
                           </TableCell>
                         </TableRow>

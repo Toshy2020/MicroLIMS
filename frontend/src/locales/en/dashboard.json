@@ -1,0 +1,267 @@
+{
+  "common": {
+    "refresh": "Refresh",
+    "samples": "samples",
+    "retry": "Retry"
+  },
+  "labName": {
+    "MICRO": "Microbiology Laboratory",
+    "FP": "Physicochemical Laboratory"
+  },
+  "dashboardPage": {
+    "label": "Laboratory dashboard"
+  },
+  "sectionHead": {
+    "title": "Section Head Command Center",
+    "subtitle": "Laboratory-wide operational overview, workflow bottlenecks, and intervention tracking.",
+    "subtitleLab": "Operational overview, workflow bottlenecks and intervention tracking for the {{lab}}.",
+    "workspace": "Receiving & Testing Workspace",
+    "serviceError": "The dashboard service did not respond. No laboratory data has been changed."
+  },
+  "tiles": {
+    "activeTests": "Active tests",
+    "activeTestsHint": "Tests in progress",
+    "incubating": "Incubating",
+    "incubatingHint": "Tests incubating",
+    "readyToRead": "Ready to read",
+    "readyToReadHint": "Test readings pending",
+    "pendingReview": "Pending review",
+    "pendingReviewHint": "Samples awaiting review",
+    "pendingApproval": "Pending approval",
+    "pendingApprovalHint": "Samples awaiting release",
+    "overdue": "Overdue",
+    "overdueHint": "More than 24h delay",
+    "attentionItems": "Attention items",
+    "attentionHint": "Action required"
+  },
+  "pipeline": {
+    "title": "Laboratory Workflow Pipeline & Bottlenecks",
+    "intro": "Click any stage to inspect the active test orders in that stage.",
+    "testing": "Testing",
+    "testingPreparation": "Testing / Preparation",
+    "unitTests": "tests",
+    "unitSamples": "samples",
+    "incubation": "Incubation",
+    "readyToRead": "Ready to Read",
+    "scientificReview": "Scientific Review",
+    "finalApproval": "Final Approval",
+    "numbered": "{{n}}. {{label}}"
+  },
+  "attention": {
+    "title": "Laboratory Attention Required ({{n}})",
+    "intervene": "Intervene",
+    "allClearTitle": "All Laboratory Workflows Running Within Normal SLA",
+    "allClearBody": "No overdue test orders, delayed reviews, or unresolved critical exceptions currently require section head intervention."
+  },
+  "review": {
+    "title": "Review Queue ({{n}})",
+    "overdue": "Overdue:",
+    "oldest": "| Oldest: {{hours}}h",
+    "viewAll": "View Full Review Queue →",
+    "empty": "No results awaiting scientific review.",
+    "action": "Review"
+  },
+  "approval": {
+    "title": "Approval Queue ({{n}})",
+    "oldest": "| Oldest: {{hours}}h",
+    "viewAll": "View Full Approval Queue →",
+    "empty": "No samples awaiting final authorization.",
+    "action": "Approve"
+  },
+  "columns": {
+    "sampleRef": "Sample / Ref",
+    "tests": "Tests",
+    "analysts": "Analyst(s)",
+    "worstResult": "Worst Result",
+    "age": "Age",
+    "action": "Action",
+    "reviewer": "Reviewer",
+    "analyst": "Analyst"
+  },
+  "workload": {
+    "title": "Laboratory Analyst Workload Allocation",
+    "intro": "Active test assignment and daily operational capacity across laboratory staff. Click an analyst to filter workspace.",
+    "empty": "No active laboratory analysts found.",
+    "columns": {
+      "activeAssigned": "Active Assigned Tests",
+      "overdueTests": "Overdue Tests",
+      "completedToday": "Completed Today",
+      "workspace": "Workspace"
+    },
+    "testsCount": "{{n}} tests",
+    "overdueCount": "{{n}} overdue",
+    "filter": "Filter Tests →"
+  },
+  "incubation": {
+    "title": "Laboratory Incubation Status",
+    "intro": "Active microbiological test incubations grouped by test type.",
+    "empty": "No active test incubations.",
+    "columns": {
+      "testType": "Test Type",
+      "readyToRead": "Ready to Read",
+      "stillIncubating": "Still Incubating"
+    },
+    "readyCount": "{{n}} ready",
+    "open": "Open →"
+  },
+  "analyst": {
+    "fallbackName": "Analyst",
+    "welcome": "Welcome back, {{name}}",
+    "subtitleLab": "Your prioritized work in the {{lab}} for today.",
+    "subtitle": "Your prioritized work for today.",
+    "partialPhyschem": "Some panels could not be loaded, so the throughput figures below may be incomplete.",
+    "partialMicro": "Some panels could not be loaded, so the incubation and throughput figures below may be incomplete.",
+    "openMyWork": "Open My Work",
+    "openMyWorkCount": "Open My Work ({{n}})",
+    "workspace": "Open Testing Workspace"
+  },
+  "admin": {
+    "title": "Administrator Command Center",
+    "subtitle": "System administration, access control, audit compliance, and laboratory operations.",
+    "subtitleLab": "System administration, access control, audit compliance and {{lab}} operations.",
+    "tiles": {
+      "totalSamples": "Total samples",
+      "totalTests": "Total tests",
+      "pendingTests": "Pending tests",
+      "reviewQueue": "Review queue",
+      "approvalQueue": "Approval queue",
+      "prepConfigs": "Prep configs pending",
+      "overdue": "Overdue (>24h)"
+    },
+    "serviceError": "The dashboard service did not respond. Your data has not been changed.",
+    "administration": "Administration"
+  },
+  "qa": {
+    "title": "Quality Assurance Command Center",
+    "subtitle": "Audit trail oversight, open findings, and document approvals assigned to you.",
+    "tiles": {
+      "auditInProgress": "Audit trail reviews in progress",
+      "auditInProgressHint": "Audit trail reviews currently in progress",
+      "openFindings": "Open findings",
+      "openFindingsHint": "Open findings across audit trail reviews",
+      "documentsWaiting": "Documents waiting for my approval",
+      "documentsWaitingHint": "Controlled documents awaiting your approval"
+    },
+    "sources": {
+      "auditReviews": "Audit trail reviews",
+      "documentApprovals": "Document approvals"
+    }
+  },
+  "reviewer": {
+    "title": "Reviewer Command Center",
+    "subtitle": "What results are waiting for your scientific review today?",
+    "subtitleLab": "Results in the {{lab}} waiting for your scientific review today.",
+    "workspace": "Open Testing Workspace",
+    "serviceError": "The dashboard service did not respond. Your review queue has not been changed.",
+    "tiles": {
+      "pendingReview": "Pending review",
+      "pendingReviewHint": "Samples awaiting scientific review",
+      "overdueReview": "Overdue review",
+      "overdueCaption": "in review >24 hours",
+      "overdueHint": "Samples in review for more than 24 hours",
+      "dueToday": "Due today",
+      "dueTodayCaption": "submitted today",
+      "dueTodayHint": "Submitted for review today",
+      "retests": "Retests in progress",
+      "retestsHint": "Retest samples not yet closed",
+      "completedToday": "Completed today",
+      "completedCaption": "by you",
+      "completedHint": "Reviewed by you today"
+    },
+    "attention": "Attention Required ({{n}})",
+    "reviewNow": "Review Now",
+    "queue": {
+      "title": "Central Review Queue ({{n}})",
+      "intro": "Samples whose tests are all complete, awaiting independent scientific review.",
+      "viewAll": "View Full Workspace →",
+      "clear": "Review Queue is Clear",
+      "clearBody": "No samples are currently waiting for scientific review."
+    },
+    "columns": {
+      "sampleRef": "Sample / Ref",
+      "itemLocation": "Item / Location",
+      "tests": "Tests",
+      "analysts": "Analyst(s)",
+      "worstResult": "Worst Result",
+      "inReview": "In Review",
+      "priority": "Priority",
+      "action": "Action"
+    },
+    "review": "Review",
+    "recent": {
+      "title": "Recently Reviewed",
+      "intro": "Historical scientific review audit trail.",
+      "empty": "No recent review history.",
+      "tests": "Tests: {{code}}"
+    }
+  },
+  "selfAssign": {
+    "fallbackLoad": "Could not load section self-assignment settings.",
+    "fallbackSave": "Could not update the self-assignment setting.",
+    "conflict": "Changed by someone else. The latest settings have been reloaded.",
+    "toast": {
+      "turned": "Taking tests from My Work turned {{state}} for {{section}}.",
+      "stateOn": "on",
+      "stateOff": "off"
+    },
+    "heading": "Taking tests from My Work",
+    "intro": "Control whether analysts in your sections can take unassigned tests directly from My Work. Changes require an audit reason (10–500 characters).",
+    "retry": "Retry",
+    "emptyTitle": "No sections assigned",
+    "emptyBody": "You are not currently assigned to any laboratory section.",
+    "chipOn": "On",
+    "chipOff": "Off",
+    "switchLabel": "Taking tests from My Work for {{name}}",
+    "dialog": {
+      "titleOn": "Turn on taking tests from My Work",
+      "titleOff": "Turn off taking tests from My Work",
+      "titleFallback": "Change reason",
+      "messageOn": "Allow analysts in {{section}} to take unassigned tests directly from My Work. Enter a reason (10–500 characters) for the audit trail.",
+      "messageOff": "Pause analyst self-assignment from My Work in {{section}}. Analysts must be assigned tests by a Section Head. Enter a reason (10–500 characters) for the audit trail.",
+      "confirmOn": "Turn on",
+      "confirmOff": "Turn off"
+    },
+    "lastChanged": {
+      "never": "Default setting (never changed)",
+      "carried": "Carried over from laboratory-wide setting · {{timestamp}}",
+      "by": "Last changed by {{name}} · {{timestamp}}"
+    }
+  },
+  "performance": {
+    "title": "My Operational Performance",
+    "onTimeRate": "On-Time Reading Rate",
+    "completedVolume": "7-Day Completed Volume",
+    "activeOrders": "Active Assigned Orders"
+  },
+  "completed": {
+    "title": "Completed Today",
+    "tests": "Tests Completed",
+    "media": "Media Lots Prepared"
+  },
+  "gate": {
+    "loadFailed": "Dashboard could not be loaded",
+    "empty": "No dashboard data is available yet."
+  },
+  "observation": {
+    "title": "Incubation & Observation",
+    "empty": "No active incubations running.",
+    "openWorkspace": "Open Workspace",
+    "readyToRead": "{{count}} Ready to Read",
+    "incubating": "{{count}} Incubating",
+    "activeTests_one": "{{count}} Active Test",
+    "activeTests_other": "{{count}} Active Tests"
+  },
+  "trend": {
+    "title": "Samples Received Trend",
+    "period": "Trend period",
+    "last3": "Last 3 months",
+    "last6": "Last 6 months",
+    "last12": "Last 12 months",
+    "samples": "Samples",
+    "testRequests": "Test Requests"
+  },
+  "donut": {
+    "title": "Test Order Status",
+    "empty": "No data yet."
+  }
+}

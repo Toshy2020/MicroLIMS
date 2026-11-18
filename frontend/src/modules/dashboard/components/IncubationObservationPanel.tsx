@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../i18n";
 import { Paper, Box, Typography, Stack, LinearProgress, useTheme } from "@mui/material";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -12,6 +13,7 @@ interface IncubationObservationPanelProps {
 }
 
 export function IncubationObservationPanel({ rows }: IncubationObservationPanelProps) {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
 
@@ -20,12 +22,12 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
       <SectionTitle
         tabs={[
           {
-            label: "Open Workspace",
+            label: t("observation.openWorkspace"),
             to: lab.workspace()
           }
         ]}
       >
-        Incubation &amp; Observation
+        {t("observation.title")}
       </SectionTitle>
 
       <Stack spacing={2} sx={{ flex: 1 }}>
@@ -49,7 +51,7 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
                   {r.testCode}
                 </Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                  {total} Active Test{total === 1 ? "" : "s"}
+                  {t("observation.activeTests", { count: total })}
                 </Typography>
               </Box>
 
@@ -71,14 +73,14 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <CheckCircleIcon sx={{ fontSize: 14, color: brandColors.ok }} />
                   <Typography sx={{ fontSize: 12, fontWeight: 600, color: brandColors.ok }}>
-                    {r.readyToRead} Ready to Read
+                    {t("observation.readyToRead", { count: r.readyToRead })}
                   </Typography>
                 </Box>
 
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <HourglassEmptyIcon sx={{ fontSize: 14, color: "text.secondary" }} />
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    {r.incubating} Incubating
+                    {t("observation.incubating", { count: r.incubating })}
                   </Typography>
                 </Box>
               </Box>
@@ -89,7 +91,7 @@ export function IncubationObservationPanel({ rows }: IncubationObservationPanelP
         {rows.length === 0 && (
           <Box sx={{ py: 3, textAlign: "center" }}>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              No active incubations running.
+              {t("observation.empty")}
             </Typography>
           </Box>
         )}

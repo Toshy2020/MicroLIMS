@@ -24,11 +24,15 @@ import { EmptyState } from "../../../components/lab";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { getFieldErrors } from "../../../utils/fieldErrors";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 interface PendingChange {
   section: SectionSelfAssignmentDto;
   nextEnabled: boolean;
 }
+
+// Kept as a key so the translated text is looked up at render, not stored in the effect.
+const LOAD_FALLBACK_KEY = "selfAssign.fallbackLoad";
 
 function isConflictError(err: unknown): boolean {
   if (axios.isAxiosError(err)) return err.response?.status === 409;
@@ -36,27 +40,28 @@ function isConflictError(err: unknown): boolean {
   return candidate?.response?.status === 409;
 }
 
-function extractReasonError(err: unknown): string {
+function extractReasonError(err: unknown, fallback: string): string {
   const fieldErrors = getFieldErrors(err);
   const reasonError = fieldErrors.find((f) => f.field.toLowerCase() === "reason");
   if (reasonError?.message.trim()) return reasonError.message;
   const firstFieldError = fieldErrors.find((f) => f.message.trim());
   if (firstFieldError?.message.trim()) return firstFieldError.message;
-  return getErrorMessage(err, "Could not update the self-assignment setting.");
+  return getErrorMessage(err, fallback);
 }
 
-function formatLastChanged(section: SectionSelfAssignmentDto): string {
+function formatLastChanged(section: SectionSelfAssignmentDto, t: (key: string, options?: Record<string, string>) => string): string {
   if (!section.changedAt) {
-    return "Default setting (never changed)";
+    return t("selfAssign.lastChanged.never");
   }
   const timestamp = formatDateTimeWithTimeZone(section.changedAt);
   if (!section.changedByName) {
-    return `Carried over from laboratory-wide setting · ${timestamp}`;
+    return t("selfAssign.lastChanged.carried", { timestamp });
   }
-  return `Last changed by ${section.changedByName} · ${timestamp}`;
+  return t("selfAssign.lastChanged.by", { name: section.changedByName, timestamp });
 }
 
 export function SectionSelfAssignmentCard() {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const headingId = useId();
   const canManage = useHasPermission(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
@@ -88,7 +93,7 @@ export function SectionSelfAssignmentCard() {
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted || axios.isCancel(err)) return;
-        setLoadError(getErrorMessage(err, "Could not load section self-assignment settings."));
+        setLoadError(getErrorMessage(err, LOAD_FALLBACK_KEY));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -134,18 +139,21 @@ export function SectionSelfAssignmentCard() {
       setConflictMessage(null);
       setPendingChange(null);
       toast.success(
-        `Taking tests from My Work turned ${updated.enabled ? "on" : "off"} for ${updated.sectionName}.`
+        t("selfAssign.toast.turned", {
+          state: updated.enabled ? t("selfAssign.toast.stateOn") : t("selfAssign.toast.stateOff"),
+          section: updated.sectionName
+        })
       );
     } catch (err: unknown) {
       if (isConflictError(err)) {
-        const message = "Changed by someone else. The latest settings have been reloaded.";
+        const message = t("selfAssign.conflict");
         setPendingChange(null);
         setReasonError(null);
         setConflictMessage(message);
         toast.error(message);
         reload();
       } else {
-        setReasonError(extractReasonError(err));
+        setReasonError(extractReasonError(err, t("selfAssign.fallbackSave")));
       }
     } finally {
       setSaving(false);
@@ -161,12 +169,11 @@ export function SectionSelfAssignmentCard() {
           component="h2"
           sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}
         >
-          Taking tests from My Work
+          {t("selfAssign.heading")}
         </Typography>
       </Box>
       <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
-        Control whether analysts in your sections can take unassigned tests directly from My Work.
-        Changes require an audit reason (10–500 characters).
+        {t("selfAssign.intro")}
       </Typography>
 
       {conflictMessage && (
@@ -191,16 +198,16 @@ export function SectionSelfAssignmentCard() {
               onClick={reload}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              Retry
+              {t("selfAssign.retry")}
             </Button>
           }
         >
-          {loadError}
+          {loadError === LOAD_FALLBACK_KEY ? t(LOAD_FALLBACK_KEY) : loadError}
         </Alert>
       ) : sections !== null && sections.length === 0 ? (
         <EmptyState
-          title="No sections assigned"
-          description="You are not currently assigned to any laboratory section."
+          title={t("selfAssign.emptyTitle")}
+          description={t("selfAssign.emptyBody")}
         />
       ) : (
         <Stack component="ul" spacing={1} sx={{ listStyle: "none", m: 0, p: 0 }}>
@@ -244,7 +251,7 @@ export function SectionSelfAssignmentCard() {
                         border: `1px solid ${tone.border}`
                       }}
                     >
-                      {section.enabled ? "On" : "Off"}
+                      {section.enabled ? t("selfAssign.chipOn") : t("selfAssign.chipOff")}
                     </Box>
                   </Box>
                   <Typography
@@ -256,7 +263,7 @@ export function SectionSelfAssignmentCard() {
                       fontVariantNumeric: "tabular-nums"
                     }}
                   >
-                    {formatLastChanged(section)}
+                    {formatLastChanged(section, t)}
                   </Typography>
                 </Box>
 
@@ -266,7 +273,7 @@ export function SectionSelfAssignmentCard() {
                   onChange={(_, checked) => openChangeDialog(section, checked)}
                   slotProps={{
                     input: {
-                      "aria-label": `Taking tests from My Work for ${section.sectionName}`
+                      "aria-label": t("selfAssign.switchLabel", { name: section.sectionName })
                     }
                   }}
                 />
@@ -280,17 +287,19 @@ export function SectionSelfAssignmentCard() {
         open={pendingChange !== null}
         title={
           pendingChange
-            ? `Turn ${pendingChange.nextEnabled ? "on" : "off"} taking tests from My Work`
-            : "Change reason"
+            ? pendingChange.nextEnabled
+              ? t("selfAssign.dialog.titleOn")
+              : t("selfAssign.dialog.titleOff")
+            : t("selfAssign.dialog.titleFallback")
         }
         message={
           pendingChange
             ? pendingChange.nextEnabled
-              ? `Allow analysts in ${pendingChange.section.sectionName} to take unassigned tests directly from My Work. Enter a reason (10–500 characters) for the audit trail.`
-              : `Pause analyst self-assignment from My Work in ${pendingChange.section.sectionName}. Analysts must be assigned tests by a Section Head. Enter a reason (10–500 characters) for the audit trail.`
+              ? t("selfAssign.dialog.messageOn", { section: pendingChange.section.sectionName })
+              : t("selfAssign.dialog.messageOff", { section: pendingChange.section.sectionName })
             : undefined
         }
-        confirmText={pendingChange?.nextEnabled ? "Turn on" : "Turn off"}
+        confirmText={pendingChange?.nextEnabled ? t("selfAssign.dialog.confirmOn") : t("selfAssign.dialog.confirmOff")}
         loading={saving}
         error={reasonError}
         onConfirm={handleConfirmChange}

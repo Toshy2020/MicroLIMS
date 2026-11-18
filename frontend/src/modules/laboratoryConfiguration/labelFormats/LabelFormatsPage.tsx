@@ -12,6 +12,7 @@ import {
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import axios from "axios";
 import { toast } from "sonner";
+import { i18n, useTranslation } from "../../../i18n";
 import { FormDialog, LabPage, RegisterTable, type RegisterColumn } from "../../../components/lab";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { ENTITY_TYPE_LABELS } from "../../../components/labels/entityTypeLabels";
@@ -100,6 +101,7 @@ function parseFiniteNumber(raw: string): number | null {
 }
 
 export function LabelFormatsPage() {
+  const { t } = useTranslation("labConfig");
   const [formats, setFormats] = useState<LabelFormat[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -131,7 +133,7 @@ export function LabelFormatsPage() {
       setFormats(data);
     } catch (err) {
       if (seq !== requestSeqRef.current || controller.signal.aborted || axios.isCancel(err)) return;
-      setLoadError(getErrorMessage(err, "Failed to load label formats."));
+      setLoadError(getErrorMessage(err, i18n.t("labelFormats.loadError", { ns: "labConfig" })));
     } finally {
       if (seq === requestSeqRef.current && !controller.signal.aborted) {
         setLoading(false);
@@ -170,10 +172,10 @@ export function LabelFormatsPage() {
     const heightMm = parseFiniteNumber(form.heightMm);
     const defaultCopies = parseFiniteNumber(form.defaultCopies);
 
-    if (widthMm === null) nextErrors.widthMm = "Enter a valid number.";
-    if (heightMm === null) nextErrors.heightMm = "Enter a valid number.";
+    if (widthMm === null) nextErrors.widthMm = t("labelFormats.invalidNumber");
+    if (heightMm === null) nextErrors.heightMm = t("labelFormats.invalidNumber");
     if (defaultCopies === null || !Number.isInteger(defaultCopies)) {
-      nextErrors.defaultCopies = "Enter a valid whole number.";
+      nextErrors.defaultCopies = t("labelFormats.invalidWhole");
     }
 
     setFieldErrors(nextErrors);
@@ -190,18 +192,18 @@ export function LabelFormatsPage() {
         layout: form.layout,
         defaultCopies
       });
-      toast.success(`${labelForEntityType(editing.entityType)} label format updated.`);
+      toast.success(t("labelFormats.updated", { type: labelForEntityType(editing.entityType) }));
       setEditing(null);
       await loadFormats();
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 409) {
-        setDialogError("Someone else changed this format. Reload and try again.");
+        setDialogError(t("labelFormats.conflict"));
       } else {
         const serverFieldErrors = extractFieldErrors(err);
         if (Object.keys(serverFieldErrors).length > 0) {
           setFieldErrors(serverFieldErrors);
         } else {
-          toast.error(getErrorMessage(err, "Failed to update label format."));
+          toast.error(getErrorMessage(err, t("labelFormats.updateError")));
         }
       }
     } finally {
@@ -212,44 +214,44 @@ export function LabelFormatsPage() {
   const columns = useMemo<RegisterColumn<LabelFormat>[]>(() => [
     {
       key: "entityType",
-      label: "Label Type",
+      label: t("labelFormats.columns.type"),
       render: (row) => labelForEntityType(row.entityType)
     },
     {
       key: "widthMm",
-      label: "Width",
+      label: t("labelFormats.columns.width"),
       numeric: true,
-      render: (row) => `${row.widthMm} mm`
+      render: (row) => t("labelFormats.mm", { value: row.widthMm })
     },
     {
       key: "heightMm",
-      label: "Height",
+      label: t("labelFormats.columns.height"),
       numeric: true,
-      render: (row) => `${row.heightMm} mm`
+      render: (row) => t("labelFormats.mm", { value: row.heightMm })
     },
     {
       key: "layout",
-      label: "Layout",
-      render: (row) => row.layout
+      label: t("labelFormats.columns.layout"),
+      render: (row) => t(`labelFormats.layouts.${row.layout}`, { defaultValue: row.layout })
     },
     {
       key: "defaultCopies",
-      label: "Default Labels",
+      label: t("labelFormats.columns.defaultLabels"),
       numeric: true,
       render: (row) => row.defaultCopies
     },
     {
       key: "actions",
-      label: "Actions",
+      label: t("labelFormats.columns.actions"),
       align: "right",
       width: 80,
       render: (row) => {
         const typeName = labelForEntityType(row.entityType);
         return (
-          <Tooltip title={`Edit ${typeName} label format`}>
+          <Tooltip title={t("labelFormats.editLabel", { type: typeName })}>
             <IconButton
               size="small"
-              aria-label={`Edit ${typeName} label format`}
+              aria-label={t("labelFormats.editLabel", { type: typeName })}
               onClick={(e) => {
                 e.stopPropagation();
                 openEdit(row);
@@ -261,12 +263,12 @@ export function LabelFormatsPage() {
         );
       }
     }
-  ], [openEdit]);
+  ], [openEdit, t]);
 
   return (
     <LabPage
-      title="Label Formats"
-      subtitle="Configure label dimensions, layouts, and default number of labels for each record type."
+      title={t("labelFormats.title")}
+      subtitle={t("labelFormats.subtitle")}
     >
       {!loading && loadError && (
         <LoadErrorAlert message={loadError} onRetry={() => void loadFormats()} />
@@ -279,23 +281,23 @@ export function LabelFormatsPage() {
           getRowId={(row) => row.id}
           loading={loading}
           empty={{
-            title: "No label formats configured",
-            description: "No label formats were returned by the server."
+            title: t("labelFormats.emptyTitle"),
+            description: t("labelFormats.emptyDesc")
           }}
         />
       )}
 
       <FormDialog
         open={editing !== null}
-        title={editing ? `Edit ${labelForEntityType(editing.entityType)} Label Format` : "Edit Label Format"}
+        title={editing ? t("labelFormats.dialogTitle", { type: labelForEntityType(editing.entityType) }) : t("labelFormats.dialogTitleGeneric")}
         onClose={handleClose}
         onSubmit={() => void handleSave()}
-        submitLabel="Save"
+        submitLabel={t("labelFormats.save")}
         submitting={saving}
         error={dialogError}
       >
         <TextField
-          label="Width (mm)"
+          label={t("labelFormats.widthLabel")}
           type="number"
           size="small"
           fullWidth
@@ -310,7 +312,7 @@ export function LabelFormatsPage() {
         />
 
         <TextField
-          label="Height (mm)"
+          label={t("labelFormats.heightLabel")}
           type="number"
           size="small"
           fullWidth
@@ -325,10 +327,10 @@ export function LabelFormatsPage() {
         />
 
         <FormControl fullWidth size="small" error={!!fieldErrors.layout}>
-          <InputLabel id="label-format-layout-label">Layout</InputLabel>
+          <InputLabel id="label-format-layout-label">{t("labelFormats.layoutLabel")}</InputLabel>
           <Select
             labelId="label-format-layout-label"
-            label="Layout"
+            label={t("labelFormats.layoutLabel")}
             value={form.layout}
             onChange={(e) => {
               setForm((prev) => ({ ...prev, layout: e.target.value as LabelLayout }));
@@ -337,7 +339,7 @@ export function LabelFormatsPage() {
           >
             {LAYOUT_OPTIONS.map((option) => (
               <MenuItem key={option} value={option}>
-                {option}
+                {t(`labelFormats.layouts.${option}`, { defaultValue: option })}
               </MenuItem>
             ))}
           </Select>
@@ -345,7 +347,7 @@ export function LabelFormatsPage() {
         </FormControl>
 
         <TextField
-          label="Default number of labels"
+          label={t("labelFormats.copiesLabel")}
           type="number"
           size="small"
           fullWidth

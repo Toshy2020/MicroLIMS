@@ -1611,5 +1611,38 @@
       "saving": "Saving...",
       "save": "Save working hours"
     }
+  },
+  "labelFormats": {
+    "loadError": "Failed to load label formats.",
+    "invalidNumber": "Enter a valid number.",
+    "invalidWhole": "Enter a valid whole number.",
+    "updated": "{{type}} label format updated.",
+    "conflict": "Someone else changed this format. Reload and try again.",
+    "updateError": "Failed to update label format.",
+    "columns": {
+      "type": "Label Type",
+      "width": "Width",
+      "height": "Height",
+      "layout": "Layout",
+      "defaultLabels": "Default Labels",
+      "actions": "Actions"
+    },
+    "mm": "{{value}} mm",
+    "layouts": {
+      "Standard": "Standard",
+      "Small": "Small"
+    },
+    "editLabel": "Edit {{type}} label format",
+    "title": "Label Formats",
+    "subtitle": "Configure label dimensions, layouts, and default number of labels for each record type.",
+    "emptyTitle": "No label formats configured",
+    "emptyDesc": "No label formats were returned by the server.",
+    "dialogTitle": "Edit {{type}} Label Format",
+    "dialogTitleGeneric": "Edit Label Format",
+    "save": "Save",
+    "widthLabel": "Width (mm)",
+    "heightLabel": "Height (mm)",
+    "layoutLabel": "Layout",
+    "copiesLabel": "Default number of labels"
   }
 }

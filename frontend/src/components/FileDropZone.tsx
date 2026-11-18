@@ -2,6 +2,8 @@ import { useRef, useState, useId, DragEvent } from "react";
 import { Box, Button, Typography } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import { useTranslation } from "../i18n";
+import { Ltr } from "./Ltr";
 
 interface FileDropZoneProps {
   file: File | null;
@@ -25,6 +27,7 @@ function formatBytes(bytes: number): string {
 // accepted formats and size spelled out. The server still validates type,
 // signature and size; this only tells the user the rules up front.
 export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled }: FileDropZoneProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
   const [dragOver, setDragOver] = useState(false);
@@ -58,7 +61,7 @@ export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled
         id={inputId}
         type="file"
         accept={accept}
-        aria-label={`Upload file. Accepted formats: ${formatsHint}`}
+        aria-label={t("components.fileDropZone.uploadAria", { formats: formatsHint })}
         style={{ display: "none" }}
         onChange={(e) => { onFile(e.target.files?.[0] ?? null); e.target.value = ""; }}
       />
@@ -66,16 +69,16 @@ export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1, flexWrap: "wrap" }}>
           <InsertDriveFileOutlinedIcon sx={{ color: "text.secondary" }} />
           <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{file.name}</Typography>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>({formatBytes(file.size)})</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>(<Ltr>{formatBytes(file.size)}</Ltr>)</Typography>
           <Button size="small" onClick={() => inputRef.current?.click()} disabled={disabled}>
-            Change file
+            {t("components.fileDropZone.changeFile")}
           </Button>
         </Box>
       ) : (
         <>
           <CloudUploadOutlinedIcon sx={{ fontSize: 32, color: "text.secondary" }} />
           <Typography sx={{ fontSize: 14, fontWeight: 600, mt: 0.5 }}>
-            Drag and drop your file here, or{" "}
+            {t("components.fileDropZone.dragDropPrefix")}{" "}
             <Button
               variant="text"
               size="small"
@@ -83,7 +86,7 @@ export function FileDropZone({ file, onFile, accept, formatsHint, note, disabled
               disabled={disabled}
               sx={{ p: 0, minWidth: 0, fontSize: 14, verticalAlign: "baseline" }}
             >
-              browse
+              {t("components.fileDropZone.browse")}
             </Button>
           </Typography>
         </>

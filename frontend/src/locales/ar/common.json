@@ -413,7 +413,7 @@
       "cannotPrint": "لا يمكن طباعة هذا السجل.",
       "copiesAria": "عدد الملصقات لـ {{code}}",
       "reasonLabel": "سبب إعادة الطباعة",
-      "reasonHelper": "10 أحرف على الأقل"
+      "reasonHelper": "{{min}} أحرف على الأقل"
     },
     "scanField": {
       "ambiguous": "يوجد أكثر من سجل يحمل هذا الرمز. اختره من القائمة.",
@@ -425,6 +425,8 @@
       "selected": "تم اختيار {{code}}",
       "resolvingAria": "جارٍ تحليل المسح",
       "scanButton": "مسح",
+      "keyboardConverted": "كانت لوحة المفاتيح بالعربية؛ تم تحويل الرمز.",
+      "resolveFailed": "تعذّر تحليل المسح.",
       "scanCamera": "المسح بالكاميرا"
     },
     "cameraScanDialog": {

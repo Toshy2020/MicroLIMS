@@ -1,5 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from "react";
 import { Box, Button, Paper, Stack, Typography } from "@mui/material";
+import { i18n } from "../i18n";
 import { reportClientError } from "../services/errorReporter";
 
 interface Props {
@@ -49,6 +50,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     // context. It also shows no error detail, which belongs in the admin
     // error log rather than on an analyst's screen.
     const { inline } = this.props;
+    const t = i18n.t.bind(i18n);
     return (
       <Box
         role="alert"
@@ -63,18 +65,18 @@ export class AppErrorBoundary extends Component<Props, State> {
         <Paper sx={{ p: 4, maxWidth: 520 }} {...(inline ? { variant: "outlined" as const } : { elevation: 3 })}>
           <Stack spacing={2}>
             <Typography variant="h6" component="h1">
-              {inline ? "This page could not be displayed" : "Something went wrong"}
+              {inline ? t("components.appErrorBoundary.inlineTitle") : t("components.appErrorBoundary.fullTitle")}
             </Typography>
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
               {inline
-                ? "An unexpected problem stopped this page from loading. The problem has been reported to your system administrator automatically. No work you had already saved is affected - you can reload the page or use the navigation to continue elsewhere."
-                : "This screen stopped responding and could not recover. The problem has been reported to your system administrator automatically. No work you had already saved is affected."}
+                ? t("components.appErrorBoundary.inlineBody")
+                : t("components.appErrorBoundary.fullBody")}
             </Typography>
             <Box>
               <Button variant="contained" onClick={this.handleReload} sx={{ textTransform: "none" }}>
-                Reload the page
+                {t("components.appErrorBoundary.reloadPage")}
               </Button>
             </Box>
           </Stack>

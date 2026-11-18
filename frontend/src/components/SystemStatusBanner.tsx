@@ -1,20 +1,23 @@
 import { useEffect, useRef } from "react";
 import { Alert, AlertTitle, Box } from "@mui/material";
+import { useTranslation } from "../i18n";
 import { useSystemStatus } from "../contexts/SystemStatusContext";
 
 // Presentational: also used by the Settings page to preview an announcement.
 export function AnnouncementAlert({ text, severity }: { text: string; severity: "info" | "warning" }) {
+  const { t } = useTranslation();
   return (
-    <Alert severity={severity} variant="filled" square role="status" aria-live="polite" aria-label="Announcement" sx={{ borderRadius: 0, width: "100%" }}>
+    <Alert severity={severity} variant="filled" square role="status" aria-live="polite" aria-label={t("components.systemStatusBanner.announcementAria")} sx={{ borderRadius: 0, width: "100%" }}>
       {text}
     </Alert>
   );
 }
 
 export function MaintenanceNotice({ message }: { message: string }) {
+  const { t } = useTranslation();
   return (
-    <Alert severity="warning" variant="filled" square role="alert" aria-label="Maintenance mode" sx={{ borderRadius: 0, width: "100%" }}>
-      <AlertTitle sx={{ mb: message ? 0.5 : 0 }}>Maintenance mode</AlertTitle>
+    <Alert severity="warning" variant="filled" square role="alert" aria-label={t("components.systemStatusBanner.maintenanceMode")} sx={{ borderRadius: 0, width: "100%" }}>
+      <AlertTitle sx={{ mb: message ? 0.5 : 0 }}>{t("components.systemStatusBanner.maintenanceMode")}</AlertTitle>
       {message}
     </Alert>
   );

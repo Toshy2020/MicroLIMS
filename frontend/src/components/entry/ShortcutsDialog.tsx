@@ -12,6 +12,8 @@ import {
   TableRow,
   Typography
 } from "@mui/material";
+import { useTranslation } from "../../i18n";
+import { Ltr } from "../Ltr";
 import { monospaceFontFamily } from "../../theme/palette";
 
 interface ShortcutsDialogProps {
@@ -22,25 +24,26 @@ interface ShortcutsDialogProps {
 
 interface ShortcutRow {
   keys: string;
-  action: string;
+  actionKey: string;
 }
 
 const GRID_SHORTCUTS: ShortcutRow[] = [
-  { keys: "Enter / Down", action: "Move to the same column in the next row" },
-  { keys: "Up", action: "Move to the same column in the previous row" },
-  { keys: "Left / Right", action: "Move to the previous / next cell when the caret is at the edge of the text" },
-  { keys: "Tab / Shift+Tab", action: "Move to the next / previous cell in reading order" },
-  { keys: "Ctrl+D", action: "Copy the value from the cell above" },
-  { keys: "Ctrl+Enter", action: "Save the form" },
-  { keys: "Escape", action: "Cancel edit or close the dialog" }
+  { keys: "Enter / Down", actionKey: "components.shortcutsDialog.enterDown" },
+  { keys: "Up", actionKey: "components.shortcutsDialog.up" },
+  { keys: "Left / Right", actionKey: "components.shortcutsDialog.leftRight" },
+  { keys: "Tab / Shift+Tab", actionKey: "components.shortcutsDialog.tabShiftTab" },
+  { keys: "Ctrl+D", actionKey: "components.shortcutsDialog.ctrlD" },
+  { keys: "Ctrl+Enter", actionKey: "components.shortcutsDialog.ctrlEnter" },
+  { keys: "Escape", actionKey: "components.shortcutsDialog.escape" }
 ];
 
 const GLOBAL_SHORTCUTS: ShortcutRow[] = [
-  { keys: "Ctrl+K", action: "Search MicroLIMS" },
-  { keys: "?", action: "Open keyboard shortcuts (when not typing in a field)" }
+  { keys: "Ctrl+K", actionKey: "components.shortcutsDialog.ctrlK" },
+  { keys: "?", actionKey: "components.shortcutsDialog.questionMark" }
 ];
 
 function ShortcutTable({ heading, rows }: { heading: string; rows: ShortcutRow[] }) {
+  const { t } = useTranslation();
   return (
     <Box sx={{ mb: 2, "&:last-of-type": { mb: 0 } }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.75 }}>
@@ -49,8 +52,8 @@ function ShortcutTable({ heading, rows }: { heading: string; rows: ShortcutRow[]
       <Table size="small" aria-label={heading}>
         <TableHead>
           <TableRow>
-            <TableCell sx={{ fontWeight: 600, width: "40%" }}>Key</TableCell>
-            <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+            <TableCell sx={{ fontWeight: 600, width: "40%" }}>{t("components.shortcutsDialog.keyColumn")}</TableCell>
+            <TableCell sx={{ fontWeight: 600 }}>{t("components.shortcutsDialog.actionColumn")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -71,10 +74,10 @@ function ShortcutTable({ heading, rows }: { heading: string; rows: ShortcutRow[]
                     whiteSpace: "nowrap"
                   }}
                 >
-                  {row.keys}
+                  <Ltr>{row.keys}</Ltr>
                 </Box>
               </TableCell>
-              <TableCell>{row.action}</TableCell>
+              <TableCell>{t(row.actionKey)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -84,6 +87,7 @@ function ShortcutTable({ heading, rows }: { heading: string; rows: ShortcutRow[]
 }
 
 export function ShortcutsDialog({ open, onClose, onExited }: ShortcutsDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog
       open={open}
@@ -95,14 +99,14 @@ export function ShortcutsDialog({ open, onClose, onExited }: ShortcutsDialogProp
       slotProps={{ transition: { onExited } }}
     >
       <DialogTitle id="shortcuts-dialog-title">
-        <Typography component="span" variant="h6">Keyboard shortcuts</Typography>
+        <Typography component="span" variant="h6">{t("components.shortcutsDialog.title")}</Typography>
       </DialogTitle>
       <DialogContent dividers>
-        <ShortcutTable heading="Data entry grids" rows={GRID_SHORTCUTS} />
-        <ShortcutTable heading="Global" rows={GLOBAL_SHORTCUTS} />
+        <ShortcutTable heading={t("components.shortcutsDialog.gridHeading")} rows={GRID_SHORTCUTS} />
+        <ShortcutTable heading={t("components.shortcutsDialog.globalHeading")} rows={GLOBAL_SHORTCUTS} />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} autoFocus>Close</Button>
+        <Button onClick={onClose} autoFocus>{t("actions.close")}</Button>
       </DialogActions>
     </Dialog>
   );

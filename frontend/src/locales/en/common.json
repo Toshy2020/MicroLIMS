@@ -377,7 +377,7 @@
       "cannotPrint": "This record cannot be printed.",
       "copiesAria": "Number of labels for {{code}}",
       "reasonLabel": "Reason for reprint",
-      "reasonHelper": "At least 10 characters"
+      "reasonHelper": "At least {{min}} characters"
     },
     "scanField": {
       "ambiguous": "More than one record has this code. Pick it from the list.",
@@ -389,6 +389,8 @@
       "selected": "Selected {{code}}",
       "resolvingAria": "Resolving scan",
       "scanButton": "Scan",
+      "keyboardConverted": "Keyboard was in Arabic; the code was converted.",
+      "resolveFailed": "Could not resolve scan.",
       "scanCamera": "Scan with camera"
     },
     "cameraScanDialog": {

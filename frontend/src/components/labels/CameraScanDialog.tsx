@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../i18n";
 import { FloatingDialog } from "../FloatingDialog";
 
 export interface CameraScanDialogProps {
@@ -61,22 +63,22 @@ async function createDetector(): Promise<BarcodeDetectorLike> {
   return new PonyfillDetector({ formats: [...REQUESTED_FORMATS] });
 }
 
-function describeCameraError(err: unknown): string {
+function describeCameraError(err: unknown, t: TFunction): string {
   if (err instanceof DOMException || err instanceof Error) {
     if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-      return "Camera permission was refused. Allow camera access in your browser settings and try again.";
+      return t("components.cameraScanDialog.permissionDenied");
     }
     if (err.name === "NotFoundError" || err.name === "OverconstrainedError" || err.name === "DevicesNotFoundError") {
-      return "No camera was found on this device.";
+      return t("components.cameraScanDialog.notFound");
     }
     if (err.name === "SecurityError") {
-      return "Camera scanning requires a secure (HTTPS) connection.";
+      return t("components.cameraScanDialog.httpsRequired");
     }
     if (err.message.trim()) {
       return err.message;
     }
   }
-  return "Could not start the camera.";
+  return t("components.cameraScanDialog.startFailed");
 }
 
 function stopMediaStream(stream: MediaStream | null): void {
@@ -87,6 +89,9 @@ function stopMediaStream(stream: MediaStream | null): void {
 }
 
 export function CameraScanDialog({ open, onClose, onDetected }: CameraScanDialogProps) {
+  const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -107,13 +112,13 @@ export function CameraScanDialog({ open, onClose, onDetected }: CameraScanDialog
     setError(null);
 
     if (!window.isSecureContext) {
-      setError("Camera scanning requires a secure (HTTPS) connection.");
+      setError(tRef.current("components.cameraScanDialog.httpsRequired"));
       return;
     }
 
     const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
     if (!getUserMedia) {
-      setError("Camera access is not available in this browser.");
+      setError(tRef.current("components.cameraScanDialog.browserUnsupported"));
       return;
     }
 
@@ -195,7 +200,7 @@ export function CameraScanDialog({ open, onClose, onDetected }: CameraScanDialog
         if (cancelled) return;
         stopMediaStream(streamRef.current);
         streamRef.current = null;
-        setError(describeCameraError(err));
+        setError(describeCameraError(err, tRef.current));
       }
     };
 
@@ -208,9 +213,9 @@ export function CameraScanDialog({ open, onClose, onDetected }: CameraScanDialog
     <FloatingDialog
       open={open}
       onClose={onClose}
-      title="Scan barcode with camera"
+      title={t("components.cameraScanDialog.title")}
       maxWidth="sm"
-      actions={<Button onClick={onClose}>Close</Button>}
+      actions={<Button onClick={onClose}>{t("actions.close")}</Button>}
     >
       <Stack spacing={1.5}>
         {error ? (
@@ -234,12 +239,12 @@ export function CameraScanDialog({ open, onClose, onDetected }: CameraScanDialog
                 playsInline
                 muted
                 autoPlay
-                aria-label="Camera barcode preview"
+                aria-label={t("components.cameraScanDialog.previewAria")}
                 sx={{ width: "100%", display: "block", maxHeight: 360, objectFit: "cover" }}
               />
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Point the rear camera at a Data Matrix or Code 128 label.
+              {t("components.cameraScanDialog.hint")}
             </Typography>
           </>
         )}

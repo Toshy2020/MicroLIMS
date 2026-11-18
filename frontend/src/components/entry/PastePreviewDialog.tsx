@@ -1,5 +1,7 @@
 import { useId, useMemo } from "react";
 import { Alert, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography, useTheme } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../i18n";
 import { FormDialog } from "../lab/FormDialog";
 
 export interface PasteColumn {
@@ -66,14 +68,14 @@ interface Analysis {
   extraColumns: number;
 }
 
-function analyse(plan: PastePlan, cells: string[][]): Analysis {
+function analyse(plan: PastePlan, cells: string[][], t: TFunction): Analysis {
   const empty = { rows: [], unmatched: [], problemCount: 0, extraColumns: 0 };
   if (plan.refusal) return { ...empty, refusal: plan.refusal };
-  if (cells.length === 0) return { ...empty, refusal: "There is nothing to paste." };
+  if (cells.length === 0) return { ...empty, refusal: t("components.pastePreviewDialog.nothingToPaste") };
   if (cells.length > plan.maxRows) {
     return {
       ...empty,
-      refusal: `The paste has ${cells.length} rows; at most ${plan.maxRows} rows can be pasted at once.`
+      refusal: t("components.pastePreviewDialog.tooManyRows", { rows: cells.length, max: plan.maxRows })
     };
   }
 
@@ -86,7 +88,7 @@ function analyse(plan: PastePlan, cells: string[][]): Analysis {
     source = matched.rows;
     unmatched = matched.unmatchedTargets;
   } else {
-    if (plan.columns.length === 0) return { ...empty, refusal: "There is no text or date column to paste into from this cell." };
+    if (plan.columns.length === 0) return { ...empty, refusal: t("components.pastePreviewDialog.noTextColumns") };
     extraColumns = cells.reduce((max, r) => Math.max(max, r.length - plan.columns.length), 0);
     source = cells.map((r) => ({
       target: null,
@@ -120,9 +122,10 @@ function analyse(plan: PastePlan, cells: string[][]): Analysis {
 // problem is listed beside its row, and Accept stays disabled until there is none.
 // Accepting only hands the values back; saving stays with the grid's own Save.
 export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const captionId = useId();
-  const analysis = useMemo(() => analyse(plan, cells), [plan, cells]);
+  const analysis = useMemo(() => analyse(plan, cells, t), [plan, cells, t]);
   const blocked = analysis.refusal !== null || analysis.problemCount > 0;
   const replaced = useMemo(() => {
     if (analysis.refusal !== null || !plan.replacing) return [];
@@ -141,7 +144,7 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
   const error =
     analysis.refusal ??
     (analysis.problemCount > 0
-      ? `${analysis.problemCount} ${analysis.problemCount === 1 ? "problem" : "problems"} must be fixed in the source data before this paste can be accepted. Nothing has been entered.`
+      ? t("components.pastePreviewDialog.problemsBlocking", { count: analysis.problemCount })
       : null);
 
   const submit = () => {
@@ -155,34 +158,34 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
       title={plan.title}
       onClose={onCancel}
       onSubmit={submit}
-      submitLabel="Accept"
+      submitLabel={t("components.pastePreviewDialog.accept")}
       submitDisabled={blocked}
       error={error}
       maxWidth="md"
       initialFocus="none"
     >
       <Typography variant="body2" color="text.secondary">
-        Check the pasted values. Accepting fills the grid only; nothing is saved until you save as usual.
+        {t("components.pastePreviewDialog.intro")}
       </Typography>
 
       {analysis.refusal === null && (
         <TableContainer
           tabIndex={0}
           role="region"
-          aria-label="Pasted rows, scrollable"
+          aria-label={t("components.pastePreviewDialog.tableRegionAria")}
           sx={{ maxHeight: "45vh", border: "1px solid", borderColor: "divider", borderRadius: 1 }}
         >
           <Table size="small" stickyHeader aria-labelledby={captionId}>
             <caption id={captionId} style={{ captionSide: "top", textAlign: "left", padding: "8px 16px" }}>
-              Paste preview, {analysis.rows.length} {analysis.rows.length === 1 ? "row" : "rows"}
+              {t("components.pastePreviewDialog.caption", { count: analysis.rows.length })}
             </caption>
             <TableHead>
               <TableRow>
-                <TableCell>Row</TableCell>
+                <TableCell>{t("components.pastePreviewDialog.rowColumn")}</TableCell>
                 {plan.columns.map((c) => (
                   <TableCell key={c.key}>{c.label}</TableCell>
                 ))}
-                <TableCell>Problem</TableCell>
+                <TableCell>{t("components.pastePreviewDialog.problemColumn")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -200,7 +203,7 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
                     </TableCell>
                   ))}
                   <TableCell sx={r.problems.length > 0 ? { color: theme.custom.status.detected.text } : undefined}>
-                    {r.problems.length > 0 ? r.problems.join(" ") : "None"}
+                    {r.problems.length > 0 ? r.problems.join(" ") : t("components.pastePreviewDialog.noProblem")}
                   </TableCell>
                 </TableRow>
               ))}
@@ -211,21 +214,29 @@ export function PastePreviewDialog({ open, plan, cells, onAccept, onCancel }: Pr
 
       {analysis.extraColumns > 0 && (
         <Typography variant="body2" role="status">
-          {analysis.extraColumns} more {analysis.extraColumns === 1 ? "column" : "columns"} in the paste than can be filled from this cell; the extra {analysis.extraColumns === 1 ? "column was" : "columns were"} not pasted.
+          {t("components.pastePreviewDialog.extraColumns", { count: analysis.extraColumns })}
         </Typography>
       )}
 
       {replaced.length > 0 && (
         <Alert severity="warning" role="status">
-          {`This will replace ${replacedCount} ${replacedCount === 1 ? "reading" : "readings"} already entered in ${replaced.length} ${replaced.length === 1 ? "row" : "rows"}. Check them before accepting.`}
+          {t("components.pastePreviewDialog.replaceWarning", {
+            readings: t("components.pastePreviewDialog.readingCount", { count: replacedCount }),
+            rows: t("components.pastePreviewDialog.rowCount", { count: replaced.length })
+          })}
         </Alert>
       )}
       <ListBlock
-        title="Readings that will be replaced"
-        items={replaced.map((r) => `${r.label} (${r.count} ${r.count === 1 ? "reading" : "readings"})`)}
+        title={t("components.pastePreviewDialog.replacedTitle")}
+        items={replaced.map((r) =>
+          t("components.pastePreviewDialog.replacedItem", {
+            label: r.label,
+            readings: t("components.pastePreviewDialog.readingCount", { count: r.count })
+          })
+        )}
       />
-      <ListBlock title="Left empty (not in the paste)" items={analysis.unmatched} />
-      <ListBlock title="Not pasted (choice columns, choose these by hand)" items={plan.notPasted ?? []} />
+      <ListBlock title={t("components.pastePreviewDialog.leftEmptyTitle")} items={analysis.unmatched} />
+      <ListBlock title={t("components.pastePreviewDialog.notPastedTitle")} items={plan.notPasted ?? []} />
     </FormDialog>
   );
 }

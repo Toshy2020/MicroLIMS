@@ -100,12 +100,20 @@ describe("isValidContainerCount", () => {
 });
 
 describe("buildContainerRows", () => {
-  it("builds new rows 1..n defaulting to conforms: true and empty observation", () => {
+  it("builds new rows 1..n with no choice made (conforms: null) and empty observation", () => {
     const rows = buildContainerRows([], 3);
     expect(rows).toEqual([
-      { index: 1, conforms: true, observation: "" },
-      { index: 2, conforms: true, observation: "" },
-      { index: 3, conforms: true, observation: "" }
+      { index: 1, conforms: null, observation: "" },
+      { index: 2, conforms: null, observation: "" },
+      { index: 3, conforms: null, observation: "" }
+    ]);
+  });
+
+  it("keeps an unchosen container unchosen when resizing", () => {
+    const rows = buildContainerRows([{ index: 1, conforms: null, observation: "" }], 2);
+    expect(rows).toEqual([
+      { index: 1, conforms: null, observation: "" },
+      { index: 2, conforms: null, observation: "" }
     ]);
   });
 
@@ -118,7 +126,7 @@ describe("buildContainerRows", () => {
     expect(expanded).toEqual([
       { index: 1, conforms: true, observation: "" },
       { index: 2, conforms: false, observation: "Damaged seal" },
-      { index: 3, conforms: true, observation: "" }
+      { index: 3, conforms: null, observation: "" }
     ]);
 
     const shrank = buildContainerRows(existing, 1);
@@ -225,5 +233,34 @@ describe("buildQualitativePayload", () => {
       { index: 2, conforms: false, observation: "Foreign particles visible" },
       { index: 3, conforms: false, observation: null }
     ]);
+  });
+});
+
+describe("an unchosen result never becomes a value", () => {
+  it("refuses to build a payload for a parameter with no choice", () => {
+    expect(() =>
+      buildQualitativePayload({
+        analysedAt: "2026-11-17T08:00",
+        password: "x",
+        isPerContainer: false,
+        parameters: [{ specificationId: 1, conforms: null }]
+      })
+    ).toThrow(/No result was chosen/);
+  });
+
+  it("refuses to build a payload for a container with no choice", () => {
+    expect(() =>
+      buildQualitativePayload({
+        analysedAt: "2026-11-17T08:00",
+        password: "x",
+        isPerContainer: true,
+        containerCount: 1,
+        parameters: [{ specificationId: 1, conforms: null, containers: [{ index: 1, conforms: null }] }]
+      })
+    ).toThrow(/No result was chosen/);
+  });
+
+  it("does not count an unchosen container as failed in the conclusion line", () => {
+    expect(getConclusionLine(2, [{ index: 1, conforms: null }, { index: 2, conforms: true }])).toBe("All 2 containers comply");
   });
 });

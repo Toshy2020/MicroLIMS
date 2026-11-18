@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -21,6 +21,7 @@ import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { useTranslation } from "../../i18n";
 import { useBenchMode } from "../../theme/BenchModeContext";
 import { toast } from "sonner";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
@@ -60,7 +61,7 @@ interface Props {
 
 interface QualitativeContainerRowState {
   index: number;
-  conforms: boolean;
+  conforms: boolean | null;
   observation: string;
 }
 
@@ -68,7 +69,7 @@ interface QualitativeRowState {
   specificationId: number;
   parameterName: string;
   specLimitText: string;
-  conforms: boolean;
+  conforms: boolean | null;
   observation: string;
   containers?: QualitativeContainerRowState[];
 }
@@ -87,9 +88,14 @@ interface QualitativeFormValues {
 
 interface QualitativeDraftRow {
   specificationId: number;
-  conforms: boolean;
+  conforms: boolean | null;
   observation: string;
   containers?: QualitativeContainerRowState[];
+}
+
+function aggregateContainerConforms(containers: QualitativeContainerRowState[]): boolean | null {
+  if (containers.length === 0 || containers.some((c) => c.conforms === null)) return null;
+  return containers.every((c) => c.conforms === true);
 }
 
 function pickQualitativeDraft(v: QualitativeFormValues): Partial<QualitativeFormValues> {
@@ -120,6 +126,8 @@ export function QualitativePanel({
   onRecorded,
   onClose
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
+  const signReasonId = useId();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -214,7 +222,7 @@ export function QualitativePanel({
             specificationId: s.id!,
             parameterName: s.parameterName || s.testCode,
             specLimitText: limitText,
-            conforms: true,
+            conforms: null,
             observation: "",
             containers: []
           };
@@ -266,7 +274,7 @@ export function QualitativePanel({
         return {
           ...r,
           containers: updatedContainers,
-          conforms: updatedContainers.every((c) => c.conforms)
+          conforms: aggregateContainerConforms(updatedContainers)
         };
       })
     );
@@ -313,7 +321,7 @@ export function QualitativePanel({
         return {
           ...r,
           containers: nextContainers,
-          conforms: nextContainers.every((c) => c.conforms)
+          conforms: aggregateContainerConforms(nextContainers)
         };
       })
     );
@@ -341,8 +349,11 @@ export function QualitativePanel({
 
       for (const r of rows) {
         if (!r.containers || r.containers.length !== count) return "Enter the number of containers received (1 to 200).";
+        if (r.containers.some((c) => c.conforms === null)) {
+          return t("qualitative.chooseEveryRow");
+        }
         for (const c of r.containers) {
-          if (!c.conforms) {
+          if (c.conforms === false) {
             if (!c.observation.trim()) return "Describe what each container that does not comply shows.";
           }
           if (c.observation.length > 500) return "An observation is longer than 500 characters.";
@@ -351,16 +362,20 @@ export function QualitativePanel({
       return null;
     }
 
-    // For every row: if !conforms, observation is required and <= 500 chars
+    if (rows.some((r) => r.conforms === null)) {
+      return t("qualitative.chooseEveryRow");
+    }
+
+    // For every row: if conforms === false, observation is required and <= 500 chars
     for (const r of rows) {
-      if (!r.conforms) {
+      if (r.conforms === false) {
         if (!r.observation.trim()) return "State the non-conformance for each parameter that does not comply.";
       }
       if (r.observation.length > 500) return "An observation is longer than 500 characters.";
     }
 
     return null;
-  }, [rows, analysedAt, isPerContainer, containerCountInput]);
+  }, [rows, analysedAt, isPerContainer, containerCountInput, t]);
   const isFormValid = formProblem === null;
 
   // Bench mode (a shared touch tablet): the entry is a full-screen form and is kept as a
@@ -390,13 +405,19 @@ export function QualitativePanel({
       prev.map((row) => {
         const found = savedRows.find((x) => x && x.specificationId === row.specificationId);
         if (!found) return row;
-        const containers = (Array.isArray(found.containers) ? found.containers : [])
-          .filter((c) => typeof c.index === "number" && typeof c.conforms === "boolean")
-          .map((c) => ({ index: c.index, conforms: c.conforms, observation: typeof c.observation === "string" ? c.observation : "" }));
+        const containers: QualitativeContainerRowState[] = (Array.isArray(found.containers) ? found.containers : [])
+          .filter((c) => typeof c.index === "number" && (typeof c.conforms === "boolean" || c.conforms === null))
+          .map((c) => ({
+            index: c.index,
+            conforms: typeof c.conforms === "boolean" ? c.conforms : null,
+            observation: typeof c.observation === "string" ? c.observation : ""
+          }));
         containerMemoryRef.current.set(row.specificationId, new Map(containers.map((c) => [c.index, { ...c }])));
         return {
           ...row,
-          conforms: typeof found.conforms === "boolean" ? found.conforms : row.conforms,
+          conforms: isPerContainer
+            ? aggregateContainerConforms(containers)
+            : (typeof found.conforms === "boolean" ? found.conforms : null),
           observation: typeof found.observation === "string" ? found.observation : row.observation,
           containers
         };
@@ -407,7 +428,7 @@ export function QualitativePanel({
   const benchDirty =
     comment.trim() !== "" ||
     containerCountInput !== "" ||
-    rows.some((r) => !r.conforms || r.observation.trim() !== "" || (r.containers ?? []).some((c) => !c.conforms || c.observation.trim() !== ""));
+    rows.some((r) => r.conforms !== null || r.observation.trim() !== "" || (r.containers ?? []).some((c) => c.conforms !== null || c.observation.trim() !== ""));
 
   const closeBench = async () => {
     // Leaving a form with entries was confirmed as a discard; an offered draft nobody accepted is left alone.
@@ -609,8 +630,11 @@ export function QualitativePanel({
                 if (!isCountValid) return null;
 
                 const parsedCount = Number(containerCountInput);
-                const conclusion = getConclusionLine(parsedCount, row.containers);
-                const allComply = !row.containers?.some((c) => !c.conforms);
+                const rowContainers = row.containers ?? [];
+                const allChosen = rowContainers.length === parsedCount && rowContainers.every((c) => c.conforms !== null);
+                const hasFailed = rowContainers.some((c) => c.conforms === false);
+                const allComply = allChosen && !hasFailed;
+                const conclusion = allChosen ? getConclusionLine(parsedCount, rowContainers) : null;
 
                 return (
                   <Box
@@ -618,9 +642,9 @@ export function QualitativePanel({
                     sx={{
                       p: 2,
                       border: "1px solid",
-                      borderColor: allComply ? "divider" : "error.light",
+                      borderColor: hasFailed ? "error.light" : "divider",
                       borderRadius: 1.5,
-                      bgcolor: allComply ? "background.paper" : "error.lighter",
+                      bgcolor: hasFailed ? "error.lighter" : "background.paper",
                       transition: "border-color 0.2s, background-color 0.2s"
                     }}
                   >
@@ -632,40 +656,42 @@ export function QualitativePanel({
                         Criteria: <strong>{row.specLimitText}</strong>
                       </Typography>
 
-                      {/* Read-only conclusion line */}
-                      <Box
-                        role="status"
-                        aria-live="polite"
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 1,
-                          bgcolor: allComply ? "action.hover" : "background.paper",
-                          border: "1px solid",
-                          borderColor: allComply ? "divider" : "error.main",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
-                          Conclusion:
-                        </Typography>
-                        <Typography
+                      {/* Read-only conclusion line (only once every container has a choice) */}
+                      {conclusion !== null && (
+                        <Box
+                          role="status"
+                          aria-live="polite"
                           sx={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: allComply ? "success.dark" : "error.dark"
+                            p: 1.5,
+                            borderRadius: 1,
+                            bgcolor: allComply ? "action.hover" : "background.paper",
+                            border: "1px solid",
+                            borderColor: allComply ? "divider" : "error.main",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1
                           }}
                         >
-                          {conclusion}
-                        </Typography>
-                      </Box>
+                          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
+                            Conclusion:
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: allComply ? "success.dark" : "error.dark"
+                            }}
+                          >
+                            {conclusion}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
 
                     {/* Container rows 1..n */}
                     <Stack spacing={1.5}>
                       {(row.containers || []).map((container) => {
-                        const obsRequired = !container.conforms;
+                        const obsRequired = container.conforms === false;
                         const obsMissing = obsRequired && !container.observation.trim();
 
                         return (
@@ -674,9 +700,9 @@ export function QualitativePanel({
                             sx={{
                               p: 1.5,
                               border: "1px solid",
-                              borderColor: container.conforms ? "divider" : "error.light",
+                              borderColor: container.conforms === false ? "error.light" : "divider",
                               borderRadius: 1,
-                              bgcolor: container.conforms ? "background.paper" : "rgba(211, 47, 47, 0.04)"
+                              bgcolor: container.conforms === false ? "rgba(211, 47, 47, 0.04)" : "background.paper"
                             }}
                           >
                             <Box
@@ -695,7 +721,7 @@ export function QualitativePanel({
 
                               <ToggleButtonGroup
                                 aria-label={`Container ${container.index} result`}
-                                value={container.conforms ? "complies" : "non-comply"}
+                                value={container.conforms === null ? null : container.conforms ? "complies" : "non-comply"}
                                 exclusive
                                 size={benchPanel ? "large" : "small"}
                                 onChange={(_, val) => {
@@ -772,7 +798,7 @@ export function QualitativePanel({
               }
 
               // Non-per-container: original rendering
-              const observationRequired = !row.conforms;
+              const observationRequired = row.conforms === false;
               const hasObservationError = observationRequired && !row.observation.trim();
 
               return (
@@ -781,9 +807,9 @@ export function QualitativePanel({
                   sx={{
                     p: 2,
                     border: "1px solid",
-                    borderColor: row.conforms ? "divider" : "error.light",
+                    borderColor: row.conforms === false ? "error.light" : "divider",
                     borderRadius: 1.5,
-                    bgcolor: row.conforms ? "background.paper" : "error.lighter",
+                    bgcolor: row.conforms === false ? "error.lighter" : "background.paper",
                     transition: "border-color 0.2s, background-color 0.2s"
                   }}
                 >
@@ -808,7 +834,7 @@ export function QualitativePanel({
 
                     {/* Complies / Does not comply toggle */}
                     <ToggleButtonGroup
-                      value={row.conforms ? "complies" : "non-comply"}
+                      value={row.conforms === null ? null : row.conforms ? "complies" : "non-comply"}
                       exclusive
                       size={benchPanel ? "large" : "small"}
                       aria-label={`Conformance for ${row.parameterName}`}
@@ -897,10 +923,16 @@ export function QualitativePanel({
 
         {/* Section 4: Action button (on a bench tablet the action bar of the full-screen form) */}
         {!benchPanel && (
-          <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            {formProblem && (
+              <Typography id={signReasonId} variant="body2" color="text.secondary">
+                {formProblem}
+              </Typography>
+            )}
             <Button
               variant="contained"
               disabled={!isFormValid}
+              aria-describedby={formProblem ? signReasonId : undefined}
               onClick={() => setSigning(true)}
               sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
             >

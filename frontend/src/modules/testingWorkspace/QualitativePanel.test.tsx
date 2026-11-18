@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
-import { screen, waitFor, cleanup } from "@testing-library/react";
+import { screen, waitFor, cleanup, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
@@ -135,7 +135,7 @@ describe("QualitativePanel per-container interaction", () => {
     // Commit via blur
     await user.tab();
 
-    // Now 3 container rows appear with accessible labels
+    // Now 3 container rows appear with accessible labels and no pre-selected choice
     const toggle1 = screen.getByLabelText("Container 1 result");
     const toggle2 = screen.getByLabelText("Container 2 result");
     const toggle3 = screen.getByLabelText("Container 3 result");
@@ -143,16 +143,25 @@ describe("QualitativePanel per-container interaction", () => {
     expect(toggle2).toBeTruthy();
     expect(toggle3).toBeTruthy();
 
-    // 3. Status role & conclusion line when all comply
-    const statusBox = screen.getByRole("status");
-    expect(statusBox).toBeTruthy();
-    expect(statusBox.textContent).toContain("All 3 containers comply");
-
-    // 4. Toggle container 2 to "Does not comply"
+    const compliesBtns = screen.getAllByRole("button", { name: /Complies/i });
     const nonComplyBtns = screen.getAllByRole("button", { name: /Does not comply/i });
+    for (const btn of [...compliesBtns, ...nonComplyBtns]) {
+      expect(btn.getAttribute("aria-pressed")).toBe("false");
+    }
+    // No conclusion shown and Sign stays disabled with reason until every container is chosen
+    expect(screen.queryByRole("status")).toBeNull();
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+
+    // 3. Choose Complies for containers 1 and 3, and Does not comply for container 2
+    await user.click(compliesBtns[0]);
+    await user.click(compliesBtns[2]);
     await user.click(nonComplyBtns[1]); // container 2
 
-    // Conclusion updates to single failing container wording
+    // Conclusion updates to single failing container wording once all containers have a choice
+    const statusBox = screen.getByRole("status");
+    expect(statusBox).toBeTruthy();
     expect(statusBox.textContent).toContain("Container 2 of 3 does not comply");
 
     // Observation for container 2 is now required
@@ -161,11 +170,11 @@ describe("QualitativePanel per-container interaction", () => {
     await user.type(obsInput2, "Foreign blue speck on surface");
     expect((obsInput2 as HTMLInputElement).value).toBe("Foreign blue speck on surface");
 
-    // 5. Toggle container 2 back to "Complies" -> observation is cleared and conclusion resets
-    const compliesBtns = screen.getAllByRole("button", { name: /Complies/i });
+    // 4. Toggle container 2 to "Complies" -> observation is cleared and conclusion updates
     await user.click(compliesBtns[1]); // container 2 complies
 
     expect(statusBox.textContent).toContain("All 3 containers comply");
+    expect(signBtn.disabled).toBe(false);
 
     // If container 2 is failed again, previous observation was cleared
     await user.click(nonComplyBtns[1]);
@@ -219,14 +228,20 @@ describe("QualitativePanel per-container interaction", () => {
     await user.type(countInput, "2");
     await user.tab();
 
-    // Fail container 1
+    // Fail container 1 and choose Complies for container 2
     const nonComplyBtns = screen.getAllByRole("button", { name: /Does not comply/i });
+    const compliesBtns = screen.getAllByRole("button", { name: /Complies/i });
     await user.click(nonComplyBtns[0]);
     const obs1 = screen.getByPlaceholderText("Describe what container 1 shows.");
     await user.type(obs1, "Particle observed");
 
-    const signBtn = screen.getByRole("button", { name: /Sign and record result/i });
-    expect((signBtn as HTMLButtonElement).disabled).toBe(false);
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i }) as HTMLButtonElement;
+    // Container 2 is still unchosen, so Sign stays disabled with the reason
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+
+    await user.click(compliesBtns[1]);
+    expect(signBtn.disabled).toBe(false);
     await signWith(user, "secret123");
 
     await waitFor(() => {
@@ -277,10 +292,19 @@ describe("payload to TestWorkflowService.recordQualitativeResult", () => {
     renderPanel(false);
     await screen.findByText(/Qualitative Observations/i);
 
+    const signBtn = screen.getByRole("button", { name: /Sign and record result/i }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+
+    await user.click(screen.getAllByRole("button", { name: /^Complies$/i })[0]);
     await user.type(screen.getAllByLabelText(/Observation \(optional\)/)[0], "  Fine white powder  ");
+    // Row 2 is still unchosen -> Sign still disabled
+    expect(signBtn.disabled).toBe(true);
+
     await user.click(screen.getAllByRole("button", { name: /Does not comply/i })[1]);
     await user.type(screen.getByLabelText(/Observation \(required\)/), "Faint odour");
     await user.type(screen.getByLabelText(/Comment \(optional\)/), "  checked twice  ");
+    expect(signBtn.disabled).toBe(false);
     await signWith(user, "secret123");
 
     await waitFor(() => expect(TestWorkflowService.recordQualitativeResult).toHaveBeenCalledTimes(1));
@@ -331,6 +355,7 @@ describe("QualitativePanel in bench mode", () => {
 
   async function failOdourAndComment(user: ReturnType<typeof userEvent.setup>) {
     await screen.findByText(/Qualitative Observations/i);
+    await user.click(screen.getAllByRole("button", { name: /^Complies$/i })[0]);
     await user.click(screen.getAllByRole("button", { name: /Does not comply/i })[1]);
     await user.type(screen.getByLabelText(/Observation \(required\)/), "Faint odour");
     await user.type(screen.getByLabelText(/Comment \(optional\)/), COMMENT);
@@ -459,5 +484,138 @@ describe("QualitativePanel in bench mode", () => {
     await failOdourAndComment(user);
     await new Promise((r) => setTimeout(r, 700));
     expect(await rawStoredDrafts()).toEqual([]);
+  });
+
+  it("restored draft keeps unchosen parameter rows unchosen", async () => {
+    const user = userEvent.setup();
+    const first = renderPanel(false, vi.fn(), true);
+    await screen.findByText(/Qualitative Observations/i);
+
+    // Choose Complies for Description only; leave Odour unchosen.
+    const descGroup = screen.getByLabelText("Conformance for Description");
+    await user.click(within(descGroup).getByRole("button", { name: /^Complies$/i }));
+
+    await new Promise((r) => setTimeout(r, 600));
+    await waitFor(async () => expect((await storedDraft())?.values).toBeDefined());
+
+    first.unmount();
+    renderPanel(false, vi.fn(), true);
+    await screen.findByRole("region", { name: "Unsaved entry found" });
+    await user.click(screen.getByRole("button", { name: "Restore entry" }));
+
+    const restoredDesc = screen.getByLabelText("Conformance for Description");
+    const restoredOdour = screen.getByLabelText("Conformance for Odour");
+    expect(within(restoredDesc).getByRole("button", { name: /^Complies$/i }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(restoredOdour).getByRole("button", { name: /^Complies$/i }).getAttribute("aria-pressed")).toBe("false");
+    expect(within(restoredOdour).getByRole("button", { name: /Does not comply/i }).getAttribute("aria-pressed")).toBe("false");
+
+    const signBtn = screen.getByRole("button", { name: "Sign and record result" }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+  });
+
+  it("restored draft keeps unchosen container rows unchosen", async () => {
+    const user = userEvent.setup();
+    vi.mocked(SpecificationService.getForTestOrder).mockResolvedValue([
+      { id: 101, testCode: "DESC", parameterName: "Description", expectedResultText: "White powder", displayOrder: 1 }
+    ] as never);
+
+    const first = renderPanel(true, vi.fn(), true);
+    await screen.findByText(/Qualitative Observations/i);
+
+    await user.click(screen.getByLabelText(/Containers received/i));
+    await user.click(screen.getByRole("button", { name: "2" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    // Choose Complies for container 1 only; leave container 2 unchosen.
+    const c1 = screen.getByLabelText("Container 1 result");
+    await user.click(within(c1).getByRole("button", { name: /^Complies$/i }));
+
+    await new Promise((r) => setTimeout(r, 600));
+    await waitFor(async () => expect((await storedDraft())?.values).toBeDefined());
+
+    first.unmount();
+    renderPanel(true, vi.fn(), true);
+    await screen.findByRole("region", { name: "Unsaved entry found" });
+    await user.click(screen.getByRole("button", { name: "Restore entry" }));
+
+    const restoredC1 = screen.getByLabelText("Container 1 result");
+    const restoredC2 = screen.getByLabelText("Container 2 result");
+    expect(within(restoredC1).getByRole("button", { name: /^Complies$/i }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(restoredC2).getByRole("button", { name: /^Complies$/i }).getAttribute("aria-pressed")).toBe("false");
+    expect(within(restoredC2).getByRole("button", { name: /Does not comply/i }).getAttribute("aria-pressed")).toBe("false");
+
+    const signBtn = screen.getByRole("button", { name: "Sign and record result" }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+  });
+});
+
+describe("explicit qualitative choice (no pre-selected default)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 9, 11, 9, 0, 30));
+    vi.mocked(SpecificationService.getForTestOrder).mockResolvedValue([
+      { id: 101, testCode: "DESC", parameterName: "Description", expectedResultText: "White powder", displayOrder: 1 },
+      { id: 102, testCode: "DESC", parameterName: "Odour", expectedResultText: "Odourless", displayOrder: 2 }
+    ] as never);
+    vi.mocked(ItemService.getAll).mockResolvedValue([]);
+    vi.mocked(laboratorySectionService.getSections).mockResolvedValue([]);
+    vi.mocked(EquipmentConfigurationService.getConfiguredSummary).mockResolvedValue([]);
+    vi.mocked(TestWorkflowService.recordQualitativeResult).mockResolvedValue({ outcomeSummary: "Pass", status: "Completed" } as never);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rows start unchosen, Sign is disabled with the reason tied via aria-describedby, and groups are keyboard operable", async () => {
+    const user = userEvent.setup();
+    renderPanel(false);
+    await screen.findByText(/Qualitative Observations/i);
+
+    const descGroup = screen.getByLabelText("Conformance for Description");
+    const odourGroup = screen.getByLabelText("Conformance for Odour");
+    const descComplies = within(descGroup).getByRole("button", { name: /^Complies$/i });
+    const descNonComply = within(descGroup).getByRole("button", { name: /Does not comply/i });
+    const odourComplies = within(odourGroup).getByRole("button", { name: /^Complies$/i });
+    const odourNonComply = within(odourGroup).getByRole("button", { name: /Does not comply/i });
+
+    for (const btn of [descComplies, descNonComply, odourComplies, odourNonComply]) {
+      expect(btn.getAttribute("aria-pressed")).toBe("false");
+    }
+
+    const signBtn = screen.getByRole("button", { name: "Sign and record result" }) as HTMLButtonElement;
+    expect(signBtn.disabled).toBe(true);
+    const reason = screen.getByText("Choose Complies or Does not comply for every row.");
+    expect(reason).toBeTruthy();
+    expect(signBtn.getAttribute("aria-describedby")).toBe(reason.getAttribute("id"));
+
+    // Keyboard operability: focus and press Space on Description Complies -> Odour still unchosen so Sign stays disabled
+    descComplies.focus();
+    await user.keyboard(" ");
+    expect(descComplies.getAttribute("aria-pressed")).toBe("true");
+    expect(signBtn.disabled).toBe(true);
+    expect(screen.getByText("Choose Complies or Does not comply for every row.")).toBeTruthy();
+
+    // Keyboard operability: focus and press Enter on Odour Complies -> all rows chosen, Sign enabled, reason gone
+    odourComplies.focus();
+    await user.keyboard("{Enter}");
+    expect(odourComplies.getAttribute("aria-pressed")).toBe("true");
+    expect(signBtn.disabled).toBe(false);
+    expect(screen.queryByText("Choose Complies or Does not comply for every row.")).toBeNull();
+
+    await signWith(user, "secret123");
+    await waitFor(() => expect(TestWorkflowService.recordQualitativeResult).toHaveBeenCalledTimes(1));
+    expect(TestWorkflowService.recordQualitativeResult).toHaveBeenCalledWith(42, {
+      analysedAt: new Date(2026, 9, 11, 9, 0).toISOString(),
+      equipmentId: null,
+      parameters: [
+        { specificationId: 101, conforms: true, observation: null },
+        { specificationId: 102, conforms: true, observation: null }
+      ],
+      password: "secret123",
+      comment: null
+    });
   });
 });

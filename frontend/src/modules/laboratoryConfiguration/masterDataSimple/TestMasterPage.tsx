@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { useTranslation } from "../../../i18n";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useTestDefinitions, TestDefinitionOption } from "../../../hooks/useTestDefinitions";
@@ -31,6 +32,7 @@ import { TestMasterWizard } from "./testWizard/TestMasterWizard";
 const OPEN_TEST_PARAM = "test";
 
 export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; area?: PageArea }) {
+  const { t: tr } = useTranslation("masterData");
   const { options: allOptions, loading: definitionsLoading, addWithSteps, update, setActive, reload } = useTestDefinitions();
   const isFp = lab === "fp";
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[lab];
@@ -148,23 +150,28 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
     setReasonSaving(true);
     setReasonDialogError(null);
     try {
-      const t = pendingReasonAction.test;
-      await setActive(t.id, !t.isActive, reason);
-      setMessage({ text: `Test "${t.code}" ${t.isActive ? "frozen" : "unfrozen"}.`, ok: true });
+      const test = pendingReasonAction.test;
+      await setActive(test.id, !test.isActive, reason);
+      setMessage({
+        text: test.isActive
+          ? tr("testMasterPage.frozenMsg", { code: test.code })
+          : tr("testMasterPage.unfrozenMsg", { code: test.code }),
+        ok: true
+      });
       setPendingReasonAction(null);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setReasonDialogError(err?.response?.data?.message ?? "Could not complete this change.");
+      setReasonDialogError(err?.response?.data?.message ?? tr("testMasterPage.changeError"));
     } finally {
       setReasonSaving(false);
     }
   };
 
   const columns: RegisterColumn<TestDefinitionOption>[] = [
-    { key: "code", label: "Code", sortable: true, render: (t) => <span style={{ fontFamily: monospaceFontFamily }}>{t.code}</span> },
+    { key: "code", label: tr("testMasterPage.columns.code"), sortable: true, render: (t) => <span style={{ fontFamily: monospaceFontFamily }}>{t.code}</span> },
     {
       key: "displayName",
-      label: "Display Name",
+      label: tr("testMasterPage.columns.displayName"),
       sortable: true,
       render: (t) => (
                     <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
@@ -174,7 +181,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="primary"
                           variant="outlined"
-                          label="HPLC Assay"
+                          label={tr("testMasterPage.badges.hplcAssay")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -183,7 +190,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="primary"
                           variant="outlined"
-                          label="ICP Assay"
+                          label={tr("testMasterPage.badges.icpAssay")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -192,7 +199,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="info"
                           variant="outlined"
-                          label="Dissolution"
+                          label={tr("testMasterPage.badges.dissolution")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -201,7 +208,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="info"
                           variant="outlined"
-                          label="Disintegration"
+                          label={tr("testMasterPage.badges.disintegration")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -210,7 +217,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="info"
                           variant="outlined"
-                          label="Weight Variation"
+                          label={tr("testMasterPage.badges.weightVariation")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
@@ -219,24 +226,24 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                           size="small"
                           color="primary"
                           variant="outlined"
-                          label={t.uvCalculationMode ? `UV · ${t.uvCalculationMode}` : "UV"}
+                          label={t.uvCalculationMode ? tr("testMasterPage.badges.uvWithMode", { mode: t.uvCalculationMode }) : tr("testMasterPage.badges.uv")}
                           sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                         />
                       )}
                       {t.requiresSystemSuitability && (
                         <Tooltip
                           title={[
-                            t.sstMaxRsdPercent != null ? `Max RSD: ${t.sstMaxRsdPercent}%` : null,
-                            t.sstMinResolution != null ? `Min Res: ${t.sstMinResolution}` : null,
-                            t.sstMaxTailingFactor != null ? `Max Tailing: ${t.sstMaxTailingFactor}` : null,
-                            t.sstMinTheoreticalPlates != null ? `Min Plates: ${t.sstMinTheoreticalPlates}` : null
-                          ].filter(Boolean).join(" | ") || "System suitability required"}
+                            t.sstMaxRsdPercent != null ? tr("testMasterPage.badges.sstMaxRsd", { value: t.sstMaxRsdPercent }) : null,
+                            t.sstMinResolution != null ? tr("testMasterPage.badges.sstMinRes", { value: t.sstMinResolution }) : null,
+                            t.sstMaxTailingFactor != null ? tr("testMasterPage.badges.sstMaxTailing", { value: t.sstMaxTailingFactor }) : null,
+                            t.sstMinTheoreticalPlates != null ? tr("testMasterPage.badges.sstMinPlates", { value: t.sstMinTheoreticalPlates }) : null
+                          ].filter(Boolean).join(" | ") || tr("testMasterPage.badges.sstTooltipFallback")}
                         >
                           <Chip
                             size="small"
                             color="info"
                             variant="outlined"
-                            label={`SST: ${t.methodAbbreviation ?? "Required"}`}
+                            label={tr("testMasterPage.badges.sst", { abbr: t.methodAbbreviation ?? tr("testMasterPage.badges.sstRequired") })}
                             sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         </Tooltip>
@@ -244,13 +251,13 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
                     </Stack>
       )
     },
-    { key: "section", label: "Section", sortable: true, sortValue: (t) => t.section?.name ?? "", render: (t) => t.section?.name ?? "—" },
+    { key: "section", label: tr("testMasterPage.columns.section"), sortable: true, sortValue: (t) => t.section?.name ?? "", render: (t) => t.section?.name ?? tr("common.dash") },
     {
       key: "isActive",
-      label: "Status",
+      label: tr("testMasterPage.columns.status"),
       sortable: true,
       sortValue: (t) => (t.isActive ? "Active" : "Frozen"),
-      render: (t) => <StatusBadge status={t.isActive ? "Active" : "Frozen"} />
+      render: (t) => <StatusBadge status={t.isActive ? "Active" : "Frozen"} label={t.isActive ? tr("testMasterPage.statusActive") : tr("testMasterPage.statusFrozen")} />
     }
   ];
 
@@ -263,16 +270,16 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
   return (
     <>
       <LabPage
-        title={isFp ? (area === "rmpm" ? "RM & PM Test Master" : "FP Test Master") : "Microbiology Test Master"}
+        title={isFp ? (area === "rmpm" ? tr("testMasterPage.titleRmPm") : tr("testMasterPage.titleFp")) : tr("testMasterPage.titleMicro")}
         subtitle={isFp
-          ? "Physicochemical tests: HPLC methods, equation type and system suitability criteria."
-          : "Microbiology tests available to assign to Items, Sampling Points, Rooms, and Machine Parts."}
-        actions={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>Add Test</Button>}
+          ? tr("testMasterPage.subtitleFp")
+          : tr("testMasterPage.subtitleMicro")}
+        actions={<Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>{tr("testMasterPage.addTest")}</Button>}
         filters={
           <FilterBar
             search={search}
             onSearch={setSearch}
-            placeholder="Search code, name, section"
+            placeholder={tr("testMasterPage.searchPlaceholder")}
             resultCount={visibleOptions.length}
             onRefresh={() => { void reload(); }}
           />
@@ -281,7 +288,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         {message && <Alert severity={message.ok ? "success" : "error"}>{message.text}</Alert>}
         {sectionsState === "failed" && (
           <LoadErrorAlert
-            message="The laboratory sections could not be loaded, so the tests cannot be sorted into this laboratory and none are shown."
+            message={tr("testMasterPage.sectionsLoadError")}
             onRetry={() => setSectionsReloadKey((k) => k + 1)}
           />
         )}
@@ -292,22 +299,22 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
           loading={sectionsState === "loading"}
           onRowClick={(t) => setExpandedId(t.id)}
           rowActions={(t) => [
-            { label: "Details & Workflow Steps", onClick: () => setExpandedId(t.id) },
-            { label: "Edit", onClick: () => startEdit(t) },
-            { label: "New from existing", onClick: () => startDuplicate(t) },
-            { label: t.isActive ? "Freeze" : "Unfreeze", onClick: () => { void toggleFreeze(t); }, danger: t.isActive }
+            { label: tr("testMasterPage.rowActions.detailsSteps"), onClick: () => setExpandedId(t.id) },
+            { label: tr("testMasterPage.rowActions.edit"), onClick: () => startEdit(t) },
+            { label: tr("testMasterPage.rowActions.newFromExisting"), onClick: () => startDuplicate(t) },
+            { label: t.isActive ? tr("testMasterPage.rowActions.freeze") : tr("testMasterPage.rowActions.unfreeze"), onClick: () => { void toggleFreeze(t); }, danger: t.isActive }
           ]}
           empty={{
-            title: "No tests found",
-            description: q ? "No test matches your search." : "Add a test to get started.",
-            action: q ? undefined : <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>Add Test</Button>
+            title: tr("testMasterPage.emptyTitle"),
+            description: q ? tr("testMasterPage.emptySearchDesc") : tr("testMasterPage.emptyDesc"),
+            action: q ? undefined : <Button variant="contained" startIcon={<AddIcon />} onClick={openCreateDialog}>{tr("testMasterPage.addTest")}</Button>
           }}
         />
       </LabPage>
 
       <FloatingDialog
         open={detailsTest !== null}
-        title={detailsTest ? `Details & Workflow Steps: ${detailsTest.code}` : ""}
+        title={detailsTest ? tr("testMasterPage.detailsTitle", { code: detailsTest.code }) : ""}
         onClose={() => setExpandedId(null)}
         maxWidth="lg"
       >
@@ -336,9 +343,9 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         onSaved={(saved, savedModel, mode) => {
           const savedCode = savedModel.code.trim();
           if (mode === "edit") {
-            setMessage({ text: `Test "${savedCode}" updated.`, ok: true });
+            setMessage({ text: tr("testMasterPage.updatedMsg", { code: savedCode }), ok: true });
           } else {
-            setMessage({ text: `Test "${savedCode}" added to the Test Master.`, ok: true });
+            setMessage({ text: tr("testMasterPage.addedMsg", { code: savedCode }), ok: true });
             // A new microbiology test with no workflow steps yet: open details straight away.
             if (!isFp && saved?.id != null && savedModel.steps.length === 0) {
               setExpandedId(saved.id);
@@ -352,16 +359,16 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         title={
           pendingReasonAction
             ? pendingReasonAction.test.isActive
-              ? `Freeze test "${pendingReasonAction.test.code}"?`
-              : `Unfreeze test "${pendingReasonAction.test.code}"?`
-            : "Reason for change"
+              ? tr("testMasterPage.freezeDialogTitle", { code: pendingReasonAction.test.code })
+              : tr("testMasterPage.unfreezeDialogTitle", { code: pendingReasonAction.test.code })
+            : tr("testMasterPage.reasonFallbackTitle")
         }
         message={
           pendingReasonAction?.test.isActive
-            ? "Freezing prevents this test from being selected for new work. Please record why it is being frozen."
-            : "Unfreezing makes this test available for new work again. Please record why it is being unfrozen."
+            ? tr("testMasterPage.freezeDialogMessage")
+            : tr("testMasterPage.unfreezeDialogMessage")
         }
-        confirmText={pendingReasonAction?.test.isActive ? "Freeze" : "Unfreeze"}
+        confirmText={pendingReasonAction?.test.isActive ? tr("testMasterPage.rowActions.freeze") : tr("testMasterPage.rowActions.unfreeze")}
         loading={reasonSaving}
         error={reasonDialogError}
         onConfirm={confirmReasonAction}

@@ -1,6 +1,11 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../i18n";
+
 // Titration test-master configuration: types, conditional-visibility rules and
 // client-side required-field hints. The server validates authoritatively
 // (TestDefinitionMasterDataService); these hints only save a round trip.
+
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
 
 export type TitrationType = "AcidBase" | "Redox" | "Complexometric" | "Precipitation" | "KarlFischer";
 export type TitrationMode = "Direct" | "Residual";
@@ -154,28 +159,28 @@ export const normaliseTitrationForm = (f: TitrationFormState): TitrationFormStat
 const positive = (s: string) => s.trim() !== "" && Number(s) > 0;
 
 // Required-field hints; returns the first problem or null.
-export const validateTitrationForm = (f: TitrationFormState): string | null => {
+export const validateTitrationForm = (f: TitrationFormState, t: TFunction = defaultT()): string | null => {
   const v = titrationVisibility(f);
-  if (!f.type) return "Titration type is required.";
-  if (!f.mode) return "Titration mode is required.";
-  if (!f.calculation) return "Calculation method is required.";
-  if (!f.endpoint) return "Endpoint is required.";
-  if (f.titrantSolutionMasterId === "") return "Titrant is required.";
+  if (!f.type) return t("titration.errors.typeRequired");
+  if (!f.mode) return t("titration.errors.modeRequired");
+  if (!f.calculation) return t("titration.errors.calculationRequired");
+  if (!f.endpoint) return t("titration.errors.endpointRequired");
+  if (f.titrantSolutionMasterId === "") return t("titration.errors.titrantRequired");
   const rep = Number(f.replicateCount);
-  if (!Number.isInteger(rep) || rep < 1 || rep > 10) return "Replicate count must be between 1 and 10 for Titration tests.";
-  if (f.maxRsdPercent.trim() !== "" && !(Number(f.maxRsdPercent) > 0)) return "Maximum RSD % must be greater than zero when set.";
-  if (v.indicator && f.indicatorEntryId === "") return "Indicator is required for a visual endpoint.";
-  if (v.factor && !positive(f.equivalencyFactor)) return "Equivalency factor (mg per mEq/mmol) must be greater than zero.";
+  if (!Number.isInteger(rep) || rep < 1 || rep > 10) return t("titration.errors.replicateRange");
+  if (f.maxRsdPercent.trim() !== "" && !(Number(f.maxRsdPercent) > 0)) return t("titration.errors.maxRsdPositive");
+  if (v.indicator && f.indicatorEntryId === "") return t("titration.errors.indicatorRequired");
+  if (v.factor && !positive(f.equivalencyFactor)) return t("titration.errors.factorPositive");
   if (v.excess && (f.excessSolutionMasterId === "" || !positive(f.excessVolumeMl))) {
-    return "Residual titration requires the excess titrant and its volume (mL).";
+    return t("titration.errors.excessRequired");
   }
-  if (f.type === "KarlFischer" && f.mode === "Residual") return "Karl Fischer cannot be a residual titration.";
-  if (f.calculation === "Relative" && f.mode !== "Direct") return "The relative method is Direct mode only.";
+  if (f.type === "KarlFischer" && f.mode === "Residual") return t("titration.errors.kfResidual");
+  if (f.calculation === "Relative" && f.mode !== "Direct") return t("titration.errors.relativeDirectOnly");
   if (v.standard) {
-    if (f.standardEntryId === "") return "Relative method requires the reference standard.";
+    if (f.standardEntryId === "") return t("titration.errors.standardRequired");
   }
   if (v.tempCorrection && f.tempCorrection && !positive(f.expansionCoefficient)) {
-    return "Expansion coefficient must be greater than zero when temperature correction is on.";
+    return t("titration.errors.expansionPositive");
   }
   return null;
 };

@@ -13,6 +13,7 @@ import {
   Paper
 } from "@mui/material";
 import { CarrierGas, HplcDetectorType } from "../services/HplcMethodService";
+import { useTranslation } from "react-i18next";
 import { SolutionMaster } from "../services/SolutionMasterService";
 import {
   CARRIER_GAS_OPTIONS,
@@ -87,6 +88,7 @@ export function GcConditionsSection({
   onHeadspaceTransferLineTemperatureCChange,
   onOvenStepsChange
 }: GcConditionsSectionProps) {
+  const { t } = useTranslation("masterData");
   const carrierGasError = errors["conditions.carrierGas"] ?? errors["carrier.carrierGas"];
   const flowRateError = errors["conditions.flowRateMlPerMin"] ?? errors["elution.flowRateMlPerMin"];
 
@@ -95,24 +97,24 @@ export function GcConditionsSection({
       {/* Carrier Gas, Inlet & Split */}
       <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-          Inlet &amp; Carrier Gas Conditions
+          {t("hplcMethod.gc.inletTitle")}
         </Typography>
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-          Specify carrier gas, inlet temperature, column flow velocity, and injection split ratio.
+          {t("hplcMethod.gc.inletSubtitle")}
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <FormControl size="small" fullWidth required error={Boolean(carrierGasError)}>
-            <InputLabel id="gc-carrier-gas-label">Carrier Gas *</InputLabel>
+            <InputLabel id="gc-carrier-gas-label">{t("hplcMethod.gc.carrierGasLabel")}</InputLabel>
             <Select
               labelId="gc-carrier-gas-label"
-              label="Carrier Gas *"
+              label={t("hplcMethod.gc.carrierGasLabel")}
               value={carrierGas}
               onChange={(e) => onCarrierGasChange(e.target.value as CarrierGas)}
             >
               {CARRIER_GAS_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(`hplcMethod.options.carrierGas.${opt.value}`, { defaultValue: opt.label })}
                 </MenuItem>
               ))}
             </Select>
@@ -121,41 +123,41 @@ export function GcConditionsSection({
 
           <TextField
             size="small"
-            label="Inlet Temperature (°C) *"
+            label={t("hplcMethod.gc.inletTempLabel")}
             type="number"
             value={inletTemperatureC}
             onChange={(e) => onInletTemperatureCChange(e.target.value)}
             required
-            placeholder="e.g. 200 or 250"
+            placeholder={t("hplcMethod.gc.inletTempPlaceholder")}
             error={Boolean(errors["conditions.inletTemperatureC"])}
-            helperText={errors["conditions.inletTemperatureC"] ?? "Injector port temperature"}
+            helperText={errors["conditions.inletTemperatureC"] ?? t("hplcMethod.gc.inletTempHelper")}
             slotProps={{ htmlInput: { min: 1, step: "any" } }}
             fullWidth
           />
 
           <TextField
             size="small"
-            label="Column Flow Rate (mL/min) *"
+            label={t("hplcMethod.gc.flowRateLabel")}
             type="number"
             value={flowRateMlPerMin}
             onChange={(e) => onFlowRateMlPerMinChange(e.target.value)}
             required
-            placeholder="e.g. 2.0"
+            placeholder={t("hplcMethod.gc.flowRatePlaceholder")}
             error={Boolean(flowRateError)}
-            helperText={flowRateError ?? "Carrier gas flow velocity"}
+            helperText={flowRateError ?? t("hplcMethod.gc.flowRateHelper")}
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
             fullWidth
           />
 
           <TextField
             size="small"
-            label="Split Ratio"
+            label={t("hplcMethod.gc.splitRatioLabel")}
             type="number"
             value={splitRatio}
             onChange={(e) => onSplitRatioChange(e.target.value)}
-            placeholder="Empty for splitless (e.g. 10 or 20 for 10:1, 20:1)"
+            placeholder={t("hplcMethod.gc.splitRatioPlaceholder")}
             error={Boolean(errors["conditions.splitRatio"])}
-            helperText={errors["conditions.splitRatio"] ?? "Leave blank for splitless injection"}
+            helperText={errors["conditions.splitRatio"] ?? t("hplcMethod.gc.splitRatioHelper")}
             slotProps={{ htmlInput: { min: 1, step: "any" } }}
             fullWidth
           />
@@ -165,24 +167,24 @@ export function GcConditionsSection({
       {/* Detection & Injection */}
       <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-          Detection &amp; Run Parameters
+          {t("hplcMethod.gc.detectionTitle")}
         </Typography>
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-          Specify detector type, detector temperature, autosampler injection volume, total run duration, and diluent.
+          {t("hplcMethod.gc.detectionSubtitle")}
         </Typography>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <FormControl size="small" fullWidth required error={Boolean(errors["detection.detectorType"])}>
-            <InputLabel id="gc-detector-type-label">Detector Type *</InputLabel>
+            <InputLabel id="gc-detector-type-label">{t("hplcMethod.gc.detectorTypeLabel")}</InputLabel>
             <Select
               labelId="gc-detector-type-label"
-              label="Detector Type *"
+              label={t("hplcMethod.gc.detectorTypeLabel")}
               value={detectorType}
               onChange={(e) => onDetectorTypeChange(e.target.value as HplcDetectorType)}
             >
               {GC_DETECTOR_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(`hplcMethod.options.gcDetector.${opt.value}`, { defaultValue: opt.label })}
                 </MenuItem>
               ))}
             </Select>
@@ -193,62 +195,62 @@ export function GcConditionsSection({
 
           <TextField
             size="small"
-            label="Detector Temperature (°C) *"
+            label={t("hplcMethod.gc.detectorTempLabel")}
             type="number"
             value={detectorTemperatureC}
             onChange={(e) => onDetectorTemperatureCChange(e.target.value)}
             required
-            placeholder="e.g. 250 or 300"
+            placeholder={t("hplcMethod.gc.detectorTempPlaceholder")}
             error={Boolean(errors["conditions.detectorTemperatureC"])}
-            helperText={errors["conditions.detectorTemperatureC"] ?? "Detector cell/flame temperature"}
+            helperText={errors["conditions.detectorTemperatureC"] ?? t("hplcMethod.gc.detectorTempHelper")}
             slotProps={{ htmlInput: { min: 1, step: "any" } }}
             fullWidth
           />
 
           <TextField
             size="small"
-            label="Injection Volume (µL) *"
+            label={t("hplcMethod.gc.injectionVolumeLabel")}
             type="number"
             value={injectionVolumeUl}
             onChange={(e) => onInjectionVolumeUlChange(e.target.value)}
             required
-            placeholder="e.g. 1"
+            placeholder={t("hplcMethod.gc.injectionVolumePlaceholder")}
             error={Boolean(errors["detection.injectionVolumeUl"])}
-            helperText={errors["detection.injectionVolumeUl"] ?? "Liquid or headspace gas volume"}
+            helperText={errors["detection.injectionVolumeUl"] ?? t("hplcMethod.gc.injectionVolumeHelper")}
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
             fullWidth
           />
 
           <TextField
             size="small"
-            label="Run Time (min) *"
+            label={t("hplcMethod.gc.runTimeLabel")}
             type="number"
             value={runTimeMin}
             onChange={(e) => onRunTimeMinChange(e.target.value)}
             required
-            placeholder="e.g. 25"
+            placeholder={t("hplcMethod.gc.runTimePlaceholder")}
             error={Boolean(errors["detection.runTimeMin"])}
-            helperText={errors["detection.runTimeMin"] ?? "Total GC acquisition time"}
+            helperText={errors["detection.runTimeMin"] ?? t("hplcMethod.gc.runTimeHelper")}
             slotProps={{ htmlInput: { min: 0.5, step: "any" } }}
             fullWidth
           />
 
           <FormControl size="small" fullWidth required error={Boolean(errors["solutions.diluent"])} sx={{ gridColumn: { xs: "1fr", sm: "1 / -1" } }}>
-            <InputLabel id="gc-diluent-solution-label">Diluent Solution *</InputLabel>
+            <InputLabel id="gc-diluent-solution-label">{t("hplcMethod.gc.diluentLabel")}</InputLabel>
             <Select
               labelId="gc-diluent-solution-label"
-              label="Diluent Solution *"
+              label={t("hplcMethod.gc.diluentLabel")}
               value={diluentSolutionId}
               onChange={(e) => onDiluentSolutionIdChange(Number(e.target.value) || "")}
             >
               {availableDiluents.length === 0 ? (
                 <MenuItem disabled value="">
-                  <em>No diluent solutions registered for this section</em>
+                  <em>{t("hplcMethod.gc.noDiluents")}</em>
                 </MenuItem>
               ) : (
                 availableDiluents.map((s) => (
                   <MenuItem key={s.id} value={s.id}>
-                    {s.name} {!s.isActive && "(Inactive)"}
+                    {s.name} {!s.isActive && t("hplcMethod.solutions.inactiveTag")}
                   </MenuItem>
                 ))
               )}
@@ -282,52 +284,52 @@ export function GcConditionsSection({
           }
           label={
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Headspace Sampler (USP &lt;467&gt; Static Headspace)
+              {t("hplcMethod.gc.headspaceTitle")}
             </Typography>
           }
         />
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: headspaceEnabled ? 2 : 0 }}>
-          Enable if samples are incubated and sampled via automated headspace autosampler.
+          {t("hplcMethod.gc.headspaceSubtitle")}
         </Typography>
 
         {headspaceEnabled && (
           <Box sx={{ mt: 1, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
             <TextField
               size="small"
-              label="Equilibration Temp (°C) *"
+              label={t("hplcMethod.gc.eqTempLabel")}
               type="number"
               value={headspaceEquilibrationTemperatureC}
               onChange={(e) => onHeadspaceEquilibrationTemperatureCChange(e.target.value)}
               required
-              placeholder="e.g. 80"
+              placeholder={t("hplcMethod.gc.eqTempPlaceholder")}
               error={Boolean(errors["headspace.equilibrationTemperatureC"])}
-              helperText={errors["headspace.equilibrationTemperatureC"] ?? "Oven incubation temperature"}
+              helperText={errors["headspace.equilibrationTemperatureC"] ?? t("hplcMethod.gc.eqTempHelper")}
               slotProps={{ htmlInput: { min: 1, step: "any" } }}
               fullWidth
             />
             <TextField
               size="small"
-              label="Equilibration Time (min) *"
+              label={t("hplcMethod.gc.eqTimeLabel")}
               type="number"
               value={headspaceEquilibrationMin}
               onChange={(e) => onHeadspaceEquilibrationMinChange(e.target.value)}
               required
-              placeholder="e.g. 45 or 60"
+              placeholder={t("hplcMethod.gc.eqTimePlaceholder")}
               error={Boolean(errors["headspace.equilibrationMin"])}
-              helperText={errors["headspace.equilibrationMin"] ?? "Vial incubation hold time"}
+              helperText={errors["headspace.equilibrationMin"] ?? t("hplcMethod.gc.eqTimeHelper")}
               slotProps={{ htmlInput: { min: 0.1, step: "any" } }}
               fullWidth
             />
             <TextField
               size="small"
-              label="Transfer Line Temp (°C) *"
+              label={t("hplcMethod.gc.transferLineLabel")}
               type="number"
               value={headspaceTransferLineTemperatureC}
               onChange={(e) => onHeadspaceTransferLineTemperatureCChange(e.target.value)}
               required
-              placeholder="e.g. 90 or 105"
+              placeholder={t("hplcMethod.gc.transferLinePlaceholder")}
               error={Boolean(errors["headspace.transferLineTemperatureC"])}
-              helperText={errors["headspace.transferLineTemperatureC"] ?? "Sample transfer line temperature"}
+              helperText={errors["headspace.transferLineTemperatureC"] ?? t("hplcMethod.gc.transferLineHelper")}
               slotProps={{ htmlInput: { min: 1, step: "any" } }}
               fullWidth
             />

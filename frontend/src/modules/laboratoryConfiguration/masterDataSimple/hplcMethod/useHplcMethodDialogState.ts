@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "../../../../i18n";
 import { toast } from "sonner";
 import {
   HplcMethodService,
@@ -45,6 +46,7 @@ export function useHplcMethodDialogState({
   onClose,
   onSuccess
 }: UseHplcMethodDialogStateProps) {
+  const { t } = useTranslation("masterData");
   const [tabIndex, setTabIndex] = useState(0);
   const [loadingMethod, setLoadingMethod] = useState(false);
   const [loadedEntity, setLoadedEntity] = useState<HplcMethodResponse | null>(null);
@@ -82,7 +84,7 @@ export function useHplcMethodDialogState({
         })
         .catch((err: unknown) => {
           const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-          setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not load method.");
+          setDialogError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethod.dialog.loadError"));
         })
         .finally(() => {
           setLoadingMethod(false);
@@ -91,7 +93,7 @@ export function useHplcMethodDialogState({
       setLoadedEntity(null);
       setForm(createInitialHplcMethodFormState(defaultSectionId));
     }
-  }, [editingId, defaultSectionId]);
+  }, [editingId, defaultSectionId, t]);
 
   useEffect(() => {
     if (open) {
@@ -131,11 +133,15 @@ export function useHplcMethodDialogState({
 
   const validationErrors = useMemo<HplcMethodErrors>(
     () =>
-      validateHplcMethodForm(form, {
-        isEditing: Boolean(editingId),
-        hasMultipleSections: mySections.length > 1
-      }),
-    [form, editingId, mySections.length]
+      validateHplcMethodForm(
+        form,
+        {
+          isEditing: Boolean(editingId),
+          hasMultipleSections: mySections.length > 1
+        },
+        t
+      ),
+    [form, editingId, mySections.length, t]
   );
   const errors = useMemo<HplcMethodErrors>(
     () => (showErrors ? validationErrors : {}),
@@ -316,13 +322,13 @@ export function useHplcMethodDialogState({
     try {
       await HplcMethodService.create(payload);
       const label = payload.technique === "Gc" ? "GC" : "HPLC";
-      toast.success(`${label} method "${payload.name}" created.`);
+      toast.success(t("hplcMethod.dialog.createSuccess", { tech: label, name: payload.name }));
       onClose();
       onSuccess();
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
       const label = payload.technique === "Gc" ? "GC" : "HPLC";
-      setDialogError(errObj.response?.data?.message ?? errObj.message ?? `Could not create ${label} method.`);
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethod.dialog.createError", { tech: label }));
     } finally {
       setSaving(false);
     }
@@ -363,7 +369,7 @@ export function useHplcMethodDialogState({
       const finalPayload: SaveHplcMethodRequest = { ...pendingPayload, reason: trimmedReason };
       await HplcMethodService.update(editingId, finalPayload, loadedEntity?.version);
       const label = finalPayload.technique === "Gc" ? "GC" : "HPLC";
-      toast.success(`${label} method "${finalPayload.name}" updated.`);
+      toast.success(t("hplcMethod.dialog.updateSuccess", { tech: label, name: finalPayload.name }));
       setReasonDialogOpen(false);
       setPendingPayload(null);
       onClose();
@@ -371,7 +377,7 @@ export function useHplcMethodDialogState({
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
       const label = pendingPayload.technique === "Gc" ? "GC" : "HPLC";
-      setDialogError(errObj.response?.data?.message ?? errObj.message ?? `Could not update ${label} method.`);
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethod.dialog.updateError", { tech: label }));
       setReasonDialogOpen(false);
     } finally {
       setSaving(false);

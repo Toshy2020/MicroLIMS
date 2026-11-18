@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import { HplcMethodFormState } from "./hplcMethodForm";
 import { HplcTechnique } from "../services/HplcMethodService";
 
@@ -69,7 +71,8 @@ export function hplcErrorTab(key: string, technique: HplcTechnique = "Hplc"): nu
 
 export function validateHplcMethodForm(
   form: HplcMethodFormState,
-  options: { isEditing: boolean; hasMultipleSections: boolean }
+  options: { isEditing: boolean; hasMultipleSections: boolean },
+  t: TFunction = i18n.getFixedT("en", "masterData")
 ): HplcMethodErrors {
   const errors: HplcMethodErrors = {};
   const add = (key: string, message: string) => {
@@ -82,25 +85,25 @@ export function validateHplcMethodForm(
   const isCleaningResidue = !isGc && form.resultMode === "CleaningResidue";
 
   if (isGc && form.resultMode === "RelatedSubstances") {
-    add("resultMode", "Related substances is available for HPLC methods only.");
+    add("resultMode", t("hplcMethod.validation.relatedSubstancesHplcOnly"));
   }
 
   if (isGc && form.resultMode === "CleaningResidue") {
-    add("resultMode", "Cleaning residue is available for HPLC methods only.");
+    add("resultMode", t("hplcMethod.validation.cleaningResidueHplcOnly"));
   }
 
   if (isCleaningResidue) {
     if (!form.productItemId) {
-      add("productItemId", "A finished product item is required for a cleaning-residue method.");
+      add("productItemId", t("hplcMethod.validation.cleaningProductRequired"));
     }
     const vol = Number(form.sampleSolutionVolumeMl);
     if (!form.sampleSolutionVolumeMl || isNaN(vol) || vol <= 0) {
-      add("sampleSolutionVolumeMl", "Extraction volume (mL) must be greater than zero.");
+      add("sampleSolutionVolumeMl", t("hplcMethod.validation.cleaningExtractionPositive"));
     }
     const usesCm2 = form.analytes.some((a) => a.macoUnit === "UgPerCm2");
     const swabArea = Number(form.swabAreaCm2);
     if (usesCm2 && (!form.swabAreaCm2 || isNaN(swabArea) || swabArea <= 0)) {
-      add("swabAreaCm2", "Swabbed area (cm²) must be greater than zero when an analyte uses µg/cm².");
+      add("swabAreaCm2", t("hplcMethod.validation.cleaningSwabAreaPositive"));
     }
   }
 
@@ -110,82 +113,82 @@ export function validateHplcMethodForm(
       (form.referenceSolutionPercent !== "" && form.referenceSolutionPercent != null) ||
       (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null);
     if (hasRsValues) {
-      add("resultMode", "Impurities and reference-solution values belong to related-substances methods only.");
+      add("resultMode", t("hplcMethod.validation.relatedSubstancesOnly"));
     }
   }
 
   if (form.internalStandardName && form.internalStandardName.trim()) {
     if (form.technique !== "Hplc" || form.resultMode !== "Assay") {
-      add("internalStandardName", "An internal standard applies to HPLC assay methods only.");
+      add("internalStandardName", t("hplcMethod.validation.internalStandardAssayOnly"));
     } else if (form.internalStandardName.trim().length > 100) {
-      add("internalStandardName", "Internal standard name cannot exceed 100 characters.");
+      add("internalStandardName", t("hplcMethod.validation.internalStandardMax"));
     }
   }
 
   const name = form.name.trim();
-  if (!name) add("name", "Method Name is required.");
+  if (!name) add("name", t("hplcMethod.validation.nameRequired"));
 
   const abbr = form.abbreviation.trim().toUpperCase();
-  if (!abbr) add("abbreviation", "Method Abbreviation is required.");
+  if (!abbr) add("abbreviation", t("hplcMethod.validation.abbreviationRequired"));
   else if (abbr.length < 2 || abbr.length > 20 || !/^[A-Z0-9-]+$/.test(abbr)) {
-    add("abbreviation", "Abbreviation must be 2–20 uppercase alphanumeric characters or hyphens.");
+    add("abbreviation", t("hplcMethod.validation.abbreviationInvalid"));
   }
 
   if (!options.isEditing && options.hasMultipleSections && !form.sectionId) {
-    add("sectionId", "Laboratory Section is required.");
+    add("sectionId", t("hplcMethod.validation.sectionRequired"));
   }
 
-  if (!form.effectiveDate) add("effectiveDate", "Effective Date is required.");
+  if (!form.effectiveDate) add("effectiveDate", t("hplcMethod.validation.effectiveDateRequired"));
 
-  if (!form.columnDesignation.trim()) add("column.designation", "Column Designation is required.");
+  if (!form.columnDesignation.trim()) add("column.designation", t("hplcMethod.validation.columnDesignationRequired"));
 
   const rawLength = form.columnLength;
   const colLength = Number(rawLength);
   if (!rawLength || isNaN(colLength) || colLength <= 0) {
-    add("column.lengthMm", "Column Length must be greater than zero.");
-    add("column.length", "Column Length must be greater than zero.");
+    add("column.lengthMm", t("hplcMethod.validation.columnLengthPositive"));
+    add("column.length", t("hplcMethod.validation.columnLengthPositive"));
   }
 
   const idMm = Number(form.columnInternalDiameterMm);
   if (!form.columnInternalDiameterMm || isNaN(idMm) || idMm <= 0) {
-    add("column.internalDiameterMm", "Column Internal Diameter must be greater than zero.");
+    add("column.internalDiameterMm", t("hplcMethod.validation.columnIdPositive"));
   }
 
   if (!isGc) {
     // HPLC Column & Operating Conditions
     const partUm = Number(form.particleSizeUm);
     if (!form.particleSizeUm || isNaN(partUm) || partUm <= 0) {
-      add("column.particleSizeUm", "Particle Size must be greater than zero.");
+      add("column.particleSizeUm", t("hplcMethod.validation.particleSizePositive"));
     }
     const colTemp = Number(form.columnTemperatureC);
     if (!form.columnTemperatureC || isNaN(colTemp) || colTemp <= 0) {
-      add("column.temperatureC", "Column Temperature must be greater than zero.");
+      add("column.temperatureC", t("hplcMethod.validation.columnTempPositive"));
     }
 
     const flow = Number(form.flowRateMlPerMin);
     if (!form.flowRateMlPerMin || isNaN(flow) || flow <= 0) {
-      add("elution.flowRateMlPerMin", "Flow Rate must be greater than zero.");
+      add("elution.flowRateMlPerMin", t("hplcMethod.validation.flowRatePositive"));
     }
     if (form.equilibrationMin !== "") {
       const eqMin = Number(form.equilibrationMin);
-      if (isNaN(eqMin) || eqMin < 0) add("elution.equilibrationMin", "Equilibration Time cannot be negative.");
+      if (isNaN(eqMin) || eqMin < 0) add("elution.equilibrationMin", t("hplcMethod.validation.equilibrationNonNegative"));
     }
 
-    if (!form.diluentSolutionId) add("solutions.diluent", "Diluent Solution is required.");
+    if (!form.diluentSolutionId) add("solutions.diluent", t("hplcMethod.validation.diluentRequired"));
 
     if (form.mobilePhases.length === 0) {
-      add("form.mobilePhases", "At least one Mobile Phase channel is required.");
+      add("form.mobilePhases", t("hplcMethod.validation.mobilePhaseRequired"));
     }
     const channelsUsed = new Set<string>();
     for (let i = 0; i < form.mobilePhases.length; i++) {
       const mp = form.mobilePhases[i];
-      if (!mp.channel) add(`solutions.${i}.channel`, `Channel label missing on mobile phase #${i + 1}.`);
+      if (!mp.channel) add(`solutions.${i}.channel`, t("hplcMethod.validation.channelMissing", { index: i + 1 }));
       else if (channelsUsed.has(mp.channel)) {
-        add(`solutions.${i}.channel`, `Channel ${mp.channel} is duplicated in mobile phases.`);
+        add(`solutions.${i}.channel`, t("hplcMethod.validation.channelDuplicate", { channel: mp.channel }));
       } else {
         channelsUsed.add(mp.channel);
       }
-      if (!mp.solutionMasterId) add(`solutions.${i}.solutionId`, `Select a solution master for Channel ${mp.channel}.`);
+      if (!mp.solutionMasterId) add(`solutions.${i}.solutionId`, t("hplcMethod.validation.channelSolutionRequired", { channel: mp.channel }));
     }
 
     if (form.elutionMode === "Isocratic") {
@@ -195,47 +198,52 @@ export function validateHplcMethodForm(
         let ratiosValid = true;
         form.mobilePhases.forEach((mp, i) => {
           if (mp.ratioPercent === "") {
-            add(`solutions.${i}.ratioPercent`, "All mobile phase ratios must be specified if any ratio is entered.");
+            add(`solutions.${i}.ratioPercent`, t("hplcMethod.validation.ratiosAllRequired"));
             ratiosValid = false;
             return;
           }
           const r = Number(mp.ratioPercent);
           if (isNaN(r) || r < 0) {
-            add(`solutions.${i}.ratioPercent`, "Mobile phase ratio must be 0 or greater.");
+            add(`solutions.${i}.ratioPercent`, t("hplcMethod.validation.ratioNonNegative"));
             ratiosValid = false;
             return;
           }
           sumRatio += r;
         });
         if (ratiosValid && Math.abs(sumRatio - 100) > 0.01) {
-          add("form.ratioSum", `Mobile phase ratios must sum to 100% (currently ${sumRatio.toFixed(1)}%).`);
+          add("form.ratioSum", t("hplcMethod.validation.ratioSum", { sum: sumRatio.toFixed(1) }));
         }
       }
     } else {
       // Gradient mode
       if (form.gradientSteps.length < 2) {
-        add("form.gradient", "Gradient elution requires at least two gradient steps.");
+        add("form.gradient", t("hplcMethod.validation.gradientMinSteps"));
       }
       let prevTime = -1;
       let prevValid = true;
       for (let i = 0; i < form.gradientSteps.length; i++) {
         const step = form.gradientSteps[i];
-        const t = Number(step.timeMin);
-        if (step.timeMin === "" || isNaN(t) || t < 0) {
-          add(`gradient.${i}.timeMin`, `Step #${i + 1} time must be 0 or greater.`);
+        const gt = Number(step.timeMin);
+        if (step.timeMin === "" || isNaN(gt) || gt < 0) {
+          add(`gradient.${i}.timeMin`, t("hplcMethod.validation.gradientTimeNonNegative", { index: i + 1 }));
           prevValid = false;
-        } else if (i === 0 && t !== 0) {
-          add(`gradient.${i}.timeMin`, "The first gradient step must start at time 0.0 min.");
-          prevTime = t;
+        } else if (i === 0 && gt !== 0) {
+          add(`gradient.${i}.timeMin`, t("hplcMethod.validation.gradientFirstZero"));
+          prevTime = gt;
           prevValid = true;
         } else {
-          if (i > 0 && prevValid && t <= prevTime) {
+          if (i > 0 && prevValid && gt <= prevTime) {
             add(
               `gradient.${i}.timeMin`,
-              `Step #${i + 1} time (${t} min) must be strictly greater than step #${i} (${prevTime} min).`
+              t("hplcMethod.validation.gradientTimeOrder", {
+                index: i + 1,
+                time: gt,
+                prevIndex: i,
+                prevTime
+              })
             );
           }
-          prevTime = t;
+          prevTime = gt;
           prevValid = true;
         }
 
@@ -247,80 +255,80 @@ export function validateHplcMethodForm(
         if (Math.abs(sum - 100) > 0.01) {
           add(
             `gradient.${i}.total`,
-            `Step #${i + 1} solvent percentages (A+B+C+D) must equal 100% (currently ${sum.toFixed(1)}%).`
+            t("hplcMethod.validation.gradientTotal100", { index: i + 1, sum: sum.toFixed(1) })
           );
         }
-        if (!channelsUsed.has("A") && pa > 0) add(`gradient.${i}.percentA`, `Step #${i + 1} specifies %A, but Channel A is not configured.`);
-        if (!channelsUsed.has("B") && pb > 0) add(`gradient.${i}.percentB`, `Step #${i + 1} specifies %B, but Channel B is not configured.`);
-        if (!channelsUsed.has("C") && pc > 0) add(`gradient.${i}.percentC`, `Step #${i + 1} specifies %C, but Channel C is not configured.`);
-        if (!channelsUsed.has("D") && pd > 0) add(`gradient.${i}.percentD`, `Step #${i + 1} specifies %D, but Channel D is not configured.`);
+        if (!channelsUsed.has("A") && pa > 0) add(`gradient.${i}.percentA`, t("hplcMethod.validation.gradientUnconfiguredChannel", { index: i + 1, channel: "A" }));
+        if (!channelsUsed.has("B") && pb > 0) add(`gradient.${i}.percentB`, t("hplcMethod.validation.gradientUnconfiguredChannel", { index: i + 1, channel: "B" }));
+        if (!channelsUsed.has("C") && pc > 0) add(`gradient.${i}.percentC`, t("hplcMethod.validation.gradientUnconfiguredChannel", { index: i + 1, channel: "C" }));
+        if (!channelsUsed.has("D") && pd > 0) add(`gradient.${i}.percentD`, t("hplcMethod.validation.gradientUnconfiguredChannel", { index: i + 1, channel: "D" }));
       }
     }
   } else {
     // GC Column & Conditions
     const filmUm = Number(form.filmThicknessUm);
     if (!form.filmThicknessUm || isNaN(filmUm) || filmUm <= 0) {
-      add("column.filmThicknessUm", "Film Thickness must be greater than zero.");
+      add("column.filmThicknessUm", t("hplcMethod.validation.filmThicknessPositive"));
     }
 
     if (!form.carrierGas) {
-      add("conditions.carrierGas", "Carrier Gas is required for a GC method.");
-      add("carrier.carrierGas", "Carrier Gas is required for a GC method.");
+      add("conditions.carrierGas", t("hplcMethod.validation.carrierGasRequired"));
+      add("carrier.carrierGas", t("hplcMethod.validation.carrierGasRequired"));
     }
 
     const flow = Number(form.flowRateMlPerMin);
     if (!form.flowRateMlPerMin || isNaN(flow) || flow <= 0) {
-      add("conditions.flowRateMlPerMin", "Column Flow Rate must be greater than zero.");
-      add("elution.flowRateMlPerMin", "Column Flow Rate must be greater than zero.");
+      add("conditions.flowRateMlPerMin", t("hplcMethod.validation.gcFlowRatePositive"));
+      add("elution.flowRateMlPerMin", t("hplcMethod.validation.gcFlowRatePositive"));
     }
 
     const inletT = Number(form.inletTemperatureC);
     if (!form.inletTemperatureC || isNaN(inletT) || inletT <= 0) {
-      add("conditions.inletTemperatureC", "Inlet Temperature must be greater than zero.");
+      add("conditions.inletTemperatureC", t("hplcMethod.validation.inletTempPositive"));
     }
 
     const detT = Number(form.detectorTemperatureC);
     if (!form.detectorTemperatureC || isNaN(detT) || detT <= 0) {
-      add("conditions.detectorTemperatureC", "Detector Temperature must be greater than zero.");
+      add("conditions.detectorTemperatureC", t("hplcMethod.validation.detectorTempPositive"));
     }
 
     if (form.splitRatio !== "" && form.splitRatio != null) {
       const split = Number(form.splitRatio);
       if (isNaN(split) || split < 1) {
-        add("conditions.splitRatio", "Split ratio must be 1 or more (leave empty for splitless).");
+        add("conditions.splitRatio", t("hplcMethod.validation.splitRatioMin"));
       }
     }
 
     if (!form.diluentSolutionId) {
-      add("solutions.diluent", "Diluent Solution is required.");
+      add("solutions.diluent", t("hplcMethod.validation.diluentRequired"));
     }
 
     // GC Oven Steps
     if (!form.ovenSteps || form.ovenSteps.length === 0) {
-      add("form.ovenSteps", "A GC method needs at least one oven program step.");
+      add("form.ovenSteps", t("hplcMethod.validation.ovenMinSteps"));
     } else {
       for (let i = 0; i < form.ovenSteps.length; i++) {
         const step = form.ovenSteps[i];
         const stepNum = i + 1;
         if (i === 0) {
           if (step.rateCPerMin !== "" && step.rateCPerMin != null) {
-            add("oven.0.rateCPerMin", "The first oven step is the initial temperature and has no ramp rate.");
+            add("oven.0.rateCPerMin", t("hplcMethod.validation.ovenFirstNoRamp"));
           }
         } else {
           const rate = Number(step.rateCPerMin);
           if (step.rateCPerMin === "" || isNaN(rate) || rate <= 0) {
-            add(`oven.${i}.rateCPerMin`, `Oven step #${stepNum}: the ramp rate must be greater than zero.`);
+            add(`oven.${i}.rateCPerMin`, t("hplcMethod.validation.ovenRampPositive", { index: stepNum }));
           }
         }
 
         const temp = Number(step.temperatureC);
         if (step.temperatureC === "" || isNaN(temp) || temp <= 0) {
-          add(`oven.${i}.temperatureC`, `Oven step #${stepNum}: temperature must be greater than zero.`);
+          add(`oven.${i}.temperatureC`, t("hplcMethod.validation.ovenTempPositive", { index: stepNum }));
         }
 
         const hold = Number(step.holdMin);
         if (step.holdMin === "" || isNaN(hold) || hold < 0) {
-          add(`oven.${i}.holdMin`, `Oven step #${stepNum}: hold time must be zero or greater.`);
+          add(`oven.${i}.holdMin`, t("hplcMethod.validation.ovenHoldNonNegative", { index: stepNum }));
         }
       }
     }
@@ -329,15 +337,15 @@ export function validateHplcMethodForm(
     if (form.headspaceEnabled) {
       const hsEqT = Number(form.headspaceEquilibrationTemperatureC);
       if (!form.headspaceEquilibrationTemperatureC || isNaN(hsEqT) || hsEqT <= 0) {
-        add("headspace.equilibrationTemperatureC", "Headspace equilibration temperature must be greater than zero.");
+        add("headspace.equilibrationTemperatureC", t("hplcMethod.validation.headspaceEqTempPositive"));
       }
       const hsEqMin = Number(form.headspaceEquilibrationMin);
       if (!form.headspaceEquilibrationMin || isNaN(hsEqMin) || hsEqMin <= 0) {
-        add("headspace.equilibrationMin", "Headspace equilibration time must be greater than zero.");
+        add("headspace.equilibrationMin", t("hplcMethod.validation.headspaceEqTimePositive"));
       }
       const hsLineT = Number(form.headspaceTransferLineTemperatureC);
       if (!form.headspaceTransferLineTemperatureC || isNaN(hsLineT) || hsLineT <= 0) {
-        add("headspace.transferLineTemperatureC", "Headspace transfer line temperature must be greater than zero.");
+        add("headspace.transferLineTemperatureC", t("hplcMethod.validation.headspaceTransferTempPositive"));
       }
     }
 
@@ -345,7 +353,7 @@ export function validateHplcMethodForm(
     if (isResidual) {
       const vol = Number(form.sampleSolutionVolumeMl);
       if (!form.sampleSolutionVolumeMl || isNaN(vol) || vol <= 0) {
-        add("sampleSolutionVolumeMl", "Sample solution volume is required for residual solvents.");
+        add("sampleSolutionVolumeMl", t("hplcMethod.validation.residualSampleVolRequired"));
       }
     }
   }
@@ -353,18 +361,18 @@ export function validateHplcMethodForm(
   // Related Substances fields
   if (isRelatedSubstances) {
     if (form.referenceSolutionPercent === "" || form.referenceSolutionPercent == null) {
-      add("referenceSolutionPercent", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+      add("referenceSolutionPercent", t("hplcMethod.validation.refSolutionPercentRange"));
     } else {
       const rsp = Number(form.referenceSolutionPercent);
       if (isNaN(rsp) || rsp <= 0 || rsp > 100) {
-        add("referenceSolutionPercent", "Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+        add("referenceSolutionPercent", t("hplcMethod.validation.refSolutionPercentRange"));
       }
     }
 
     if (form.disregardLimitPercent !== "" && form.disregardLimitPercent != null) {
       const dlp = Number(form.disregardLimitPercent);
       if (isNaN(dlp) || dlp < 0 || dlp > 100) {
-        add("disregardLimitPercent", "The disregard limit must be between 0 and 100 %.");
+        add("disregardLimitPercent", t("hplcMethod.validation.disregardLimitRange"));
       }
     }
 
@@ -374,13 +382,13 @@ export function validateHplcMethodForm(
       const impName = (imp.name || "").trim();
       const key = (field: string) => `impurities.${i}.${field}`;
       if (!impName) {
-        add(key("name"), "Each impurity needs a unique name.");
+        add(key("name"), t("hplcMethod.validation.impurityNameUnique"));
       } else if (impName.length > 100) {
-        add(key("name"), "Impurity names are at most 100 characters.");
+        add(key("name"), t("hplcMethod.validation.impurityNameMax"));
       } else {
         const lower = impName.toLowerCase();
         if (impurityNames.has(lower)) {
-          add(key("name"), "Each impurity needs a unique name.");
+          add(key("name"), t("hplcMethod.validation.impurityNameUnique"));
         }
         impurityNames.add(lower);
       }
@@ -388,16 +396,16 @@ export function validateHplcMethodForm(
       if (imp.relativeRetention !== "" && imp.relativeRetention != null) {
         const rrt = Number(imp.relativeRetention);
         if (isNaN(rrt) || rrt <= 0 || rrt > 100) {
-          add(key("relativeRetention"), "The relative retention must be greater than zero and at most 100.");
+          add(key("relativeRetention"), t("hplcMethod.validation.impurityRrtRange"));
         }
       }
 
       if (imp.correctionFactor === "" || imp.correctionFactor == null) {
-        add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
+        add(key("correctionFactor"), t("hplcMethod.validation.impurityCfRange"));
       } else {
         const cf = Number(imp.correctionFactor);
         if (isNaN(cf) || cf <= 0 || cf > 100) {
-          add(key("correctionFactor"), "The correction factor must be greater than zero and at most 100.");
+          add(key("correctionFactor"), t("hplcMethod.validation.impurityCfRange"));
         }
       }
     }
@@ -406,20 +414,20 @@ export function validateHplcMethodForm(
   // Common Detection fields
   const injVol = Number(form.injectionVolumeUl);
   if (!form.injectionVolumeUl || isNaN(injVol) || injVol <= 0) {
-    add("detection.injectionVolumeUl", "Injection Volume must be greater than zero.");
+    add("detection.injectionVolumeUl", t("hplcMethod.validation.injectionVolPositive"));
   }
   const runMin = Number(form.runTimeMin);
   if (!form.runTimeMin || isNaN(runMin) || runMin <= 0) {
-    add("detection.runTimeMin", "Run Time must be greater than zero.");
+    add("detection.runTimeMin", t("hplcMethod.validation.runTimePositive"));
   }
 
   // Analytes
   if (isRelatedSubstances) {
     if (form.analytes.length !== 1) {
-      add("form.analytes", "A related-substances method has exactly one analyte: the principal peak.");
+      add("form.analytes", t("hplcMethod.validation.relatedOneAnalyte"));
     }
   } else {
-    if (form.analytes.length === 0) add("form.analytes", "At least one Analyte is required.");
+    if (form.analytes.length === 0) add("form.analytes", t("hplcMethod.validation.analyteRequired"));
   }
 
   const analyteNames = new Set<string>();
@@ -427,26 +435,26 @@ export function validateHplcMethodForm(
     const a = form.analytes[i];
     const aName = a.name.trim();
     const key = (field: string) => `analytes.${i}.${field}`;
-    if (!aName) add(key("name"), `Analyte #${i + 1} name is required.`);
+    if (!aName) add(key("name"), t("hplcMethod.validation.analyteNameRequired", { index: i + 1 }));
     else {
       const lowerName = aName.toLowerCase();
-      if (analyteNames.has(lowerName)) add(key("name"), `Analyte name "${aName}" is duplicated.`);
+      if (analyteNames.has(lowerName)) add(key("name"), t("hplcMethod.validation.analyteNameDuplicate", { name: aName }));
       analyteNames.add(lowerName);
     }
 
     if (!isGc) {
       const wl = Number(a.wavelengthNm);
       if (!a.wavelengthNm || isNaN(wl) || wl < 190 || wl > 900) {
-        add(key("wavelengthNm"), `Analyte "${aName}" wavelength must be between 190 and 900 nm.`);
+        add(key("wavelengthNm"), t("hplcMethod.validation.analyteWavelengthRange", { name: aName }));
       }
     }
 
-    if (!a.standardEntryId) add(key("standardEntryId"), `Analyte "${aName}" must select a Reference Standard.`);
+    if (!a.standardEntryId) add(key("standardEntryId"), t("hplcMethod.validation.analyteStdRequired", { name: aName }));
 
     if (isResidual) {
       const stdConc = Number(a.standardConcentrationUgPerMl);
       if (!a.standardConcentrationUgPerMl || isNaN(stdConc) || stdConc <= 0) {
-        add(key("standardConcentrationUgPerMl"), `Analyte "${aName}" Standard Concentration (µg/mL) must be greater than zero.`);
+        add(key("standardConcentrationUgPerMl"), t("hplcMethod.validation.analyteStdConcPositive", { name: aName }));
       }
     } else if (isRelatedSubstances) {
       const twStd = Number(a.theoreticalWeightStdMg);
@@ -455,57 +463,57 @@ export function validateHplcMethodForm(
         (a.theoreticalWeightStdMg !== "" && !isNaN(twStd) && twStd > 0) ||
         (a.theoreticalWeightTestMg !== "" && !isNaN(twTest) && twTest > 0)
       ) {
-        add(key("theoreticalWeightStdMg"), "Theoretical weights are not used in a related-substances method.");
-        add(key("theoreticalWeightTestMg"), "Theoretical weights are not used in a related-substances method.");
+        add(key("theoreticalWeightStdMg"), t("hplcMethod.validation.analyteThWtUnused"));
+        add(key("theoreticalWeightTestMg"), t("hplcMethod.validation.analyteThWtUnused"));
       }
     } else if (isCleaningResidue) {
       const stdConc = Number(a.standardConcentrationUgPerMl);
       if (!a.standardConcentrationUgPerMl || isNaN(stdConc) || stdConc <= 0) {
-        add(key("standardConcentrationUgPerMl"), `Analyte "${aName}" Standard Concentration (µg/mL) must be greater than zero.`);
+        add(key("standardConcentrationUgPerMl"), t("hplcMethod.validation.analyteStdConcPositive", { name: aName }));
       }
       const maco = Number(a.macoLimit);
       if (!a.macoLimit || isNaN(maco) || maco <= 0) {
-        add(key("macoLimit"), `Analyte "${aName}" MACO limit must be greater than zero.`);
+        add(key("macoLimit"), t("hplcMethod.validation.analyteMacoPositive", { name: aName }));
       }
       if (!a.macoUnit) {
-        add(key("macoUnit"), `Analyte "${aName}" MACO unit is required.`);
+        add(key("macoUnit"), t("hplcMethod.validation.analyteMacoUnitRequired", { name: aName }));
       }
     } else {
       const twStd = Number(a.theoreticalWeightStdMg);
       if (!a.theoreticalWeightStdMg || isNaN(twStd) || twStd <= 0) {
-        add(key("theoreticalWeightStdMg"), `Analyte "${aName}" Theoretical Weight Std must be greater than zero.`);
+        add(key("theoreticalWeightStdMg"), t("hplcMethod.validation.analyteThWtStdPositive", { name: aName }));
       }
       const twTest = Number(a.theoreticalWeightTestMg);
       if (!a.theoreticalWeightTestMg || isNaN(twTest) || twTest <= 0) {
-        add(key("theoreticalWeightTestMg"), `Analyte "${aName}" Theoretical Weight Test must be greater than zero.`);
+        add(key("theoreticalWeightTestMg"), t("hplcMethod.validation.analyteThWtTestPositive", { name: aName }));
       }
       if (a.standardDilution !== "" && a.standardDilution != null) {
         const dil = Number(a.standardDilution);
         if (isNaN(dil) || dil <= 0) {
-          add(key("standardDilution"), `Analyte "${aName}" standard dilution must be greater than zero.`);
+          add(key("standardDilution"), t("hplcMethod.validation.analyteStdDilutionPositive", { name: aName }));
         }
       }
     }
 
     const stdInj = Number(a.standardInjections);
     if (!a.standardInjections || isNaN(stdInj) || stdInj < 1 || !Number.isInteger(stdInj)) {
-      add(key("standardInjections"), `Analyte "${aName}" Standard Injections must be an integer of at least 1.`);
+      add(key("standardInjections"), t("hplcMethod.validation.analyteStdInjectionsInt", { name: aName }));
     }
 
     // SST criteria (optional, but if given must be > 0)
     const checkPositive = (field: string, val: string | number, label: string) => {
       if (val !== "") {
         const n = Number(val);
-        if (isNaN(n) || n <= 0) add(key(field), `Analyte "${aName}" ${label} must be greater than zero.`);
+        if (isNaN(n) || n <= 0) add(key(field), t("hplcMethod.validation.analyteSstPositive", { name: aName, label }));
       }
     };
-    checkPositive("sstMaxRsdPercent", a.sstMaxRsdPercent, "Max RSD %");
-    checkPositive("sstMinResolution", a.sstMinResolution, "Min Resolution");
-    checkPositive("sstMaxTailingFactor", a.sstMaxTailingFactor, "Max Tailing Factor");
-    checkPositive("sstMinTheoreticalPlates", a.sstMinTheoreticalPlates, "Min Theoretical Plates");
-    checkPositive("sstMinRetentionFactor", a.sstMinRetentionFactor, "Min Retention Factor");
-    checkPositive("sstMinSignalToNoise", a.sstMinSignalToNoise, "Min Signal-to-Noise");
-    checkPositive("sstMinPeakToValley", a.sstMinPeakToValley, "Min Peak-to-Valley");
+    checkPositive("sstMaxRsdPercent", a.sstMaxRsdPercent, t("hplcMethod.validation.sstLabels.maxRsd"));
+    checkPositive("sstMinResolution", a.sstMinResolution, t("hplcMethod.validation.sstLabels.minResolution"));
+    checkPositive("sstMaxTailingFactor", a.sstMaxTailingFactor, t("hplcMethod.validation.sstLabels.maxTailing"));
+    checkPositive("sstMinTheoreticalPlates", a.sstMinTheoreticalPlates, t("hplcMethod.validation.sstLabels.minPlates"));
+    checkPositive("sstMinRetentionFactor", a.sstMinRetentionFactor, t("hplcMethod.validation.sstLabels.minRetention"));
+    checkPositive("sstMinSignalToNoise", a.sstMinSignalToNoise, t("hplcMethod.validation.sstLabels.minSn"));
+    checkPositive("sstMinPeakToValley", a.sstMinPeakToValley, t("hplcMethod.validation.sstLabels.minPv"));
   }
 
   return errors;

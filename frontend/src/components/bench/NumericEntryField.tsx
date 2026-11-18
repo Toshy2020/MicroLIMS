@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { Ref } from "react";
 import { InputAdornment, TextField } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { clearActiveField, NUMERIC_FIELD_ATTRIBUTE, setActiveField } from "./focusRegistry";
 import type { ActiveNumericField } from "./focusRegistry";
 
@@ -32,9 +33,9 @@ export function parseDecimal(text: string): number | null {
   return /^-?\d+(\.\d+)?$/.test(text) ? Number(text) : null;
 }
 
-const FORMAT_MESSAGE: Record<"count" | "decimal", string> = {
-  count: "Enter a whole number, 0 or more, using digits only.",
-  decimal: "Enter a number using digits, at most one decimal point and an optional leading minus sign."
+const FORMAT_MESSAGE_KEY: Record<"count" | "decimal", string> = {
+  count: "components.numericEntryField.countFormat",
+  decimal: "components.numericEntryField.decimalFormat"
 };
 
 export function NumericEntryField({
@@ -55,6 +56,7 @@ export function NumericEntryField({
   "aria-label": ariaLabel,
   "aria-describedby": ariaDescribedBy
 }: NumericEntryFieldProps) {
+  const { t } = useTranslation();
   const elementRef = useRef<HTMLInputElement | null>(null);
   const latest = useRef({ value, onChange, onNext, kind, maxLength });
   useEffect(() => {
@@ -70,7 +72,7 @@ export function NumericEntryField({
   }, []);
 
   const parsed = kind === "count" ? parseCount(value) : parseDecimal(value);
-  const formatError = !readOnly && value !== "" && parsed === null ? FORMAT_MESSAGE[kind] : undefined;
+  const formatError = !readOnly && value !== "" && parsed === null ? t(FORMAT_MESSAGE_KEY[kind]) : undefined;
   const message = error ?? formatError;
 
   const setRefs = (node: HTMLInputElement | null) => {

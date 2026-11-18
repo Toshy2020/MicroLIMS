@@ -13,12 +13,14 @@ import {
   Tooltip
 } from "@mui/material";
 import axios from "axios";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../i18n";
 import type { LabelEntityType, ScanResolveResponse } from "../../services/labelService";
 import { monospaceFontFamily } from "../../theme/palette";
 import type { StatusTone } from "../../theme/statusTokens";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { CameraScanDialog } from "./CameraScanDialog";
-import { ENTITY_TYPE_LABELS } from "./entityTypeLabels";
+import { entityTypeLabel } from "./entityTypeLabels";
 import { useScanResolve } from "./useScanResolve";
 
 export interface ScanFieldProps {
@@ -55,16 +57,17 @@ type EvaluatedScan =
 function evaluateScanResponse(
   response: ScanResolveResponse,
   expectedType: LabelEntityType,
-  offeredIds: readonly number[]
+  offeredIds: readonly number[],
+  t: TFunction
 ): EvaluatedScan {
   const layoutNotice = response.layoutCorrected
-    ? "Keyboard was in Arabic; the code was converted."
+    ? t("components.scanField.keyboardConverted")
     : null;
 
   if (response.outcome === "Ambiguous") {
     return {
       kind: "refusal",
-      message: "More than one record has this code. Pick it from the list.",
+      message: t("components.scanField.ambiguous"),
       hint: null,
       layoutNotice
     };
@@ -73,7 +76,7 @@ function evaluateScanResponse(
   if (response.outcome === "NotFound" || !response.match) {
     return {
       kind: "refusal",
-      message: "No record found for this code.",
+      message: t("components.scanField.notFound"),
       hint: response.hint?.trim() ? response.hint.trim() : null,
       layoutNotice
     };
@@ -82,11 +85,11 @@ function evaluateScanResponse(
   const { match } = response;
 
   if (match.entityType !== expectedType) {
-    const foundLabel = ENTITY_TYPE_LABELS[match.entityType] ?? match.entityType;
-    const expectedLabel = ENTITY_TYPE_LABELS[expectedType] ?? expectedType;
+    const foundLabel = entityTypeLabel(t, match.entityType);
+    const expectedLabel = entityTypeLabel(t, expectedType);
     return {
       kind: "refusal",
-      message: `This is a ${foundLabel}, not a ${expectedLabel}.`,
+      message: t("components.scanField.wrongType", { found: foundLabel, expected: expectedLabel }),
       hint: null,
       layoutNotice
     };
@@ -95,7 +98,7 @@ function evaluateScanResponse(
   if (!match.usable) {
     return {
       kind: "refusal",
-      message: match.blockedReason?.trim() || "This record cannot be used.",
+      message: match.blockedReason?.trim() || t("components.scanField.cannotUse"),
       hint: null,
       layoutNotice
     };
@@ -104,7 +107,7 @@ function evaluateScanResponse(
   if (expectedType === "EquipmentAsset" && match.linkedEquipmentId === null) {
     return {
       kind: "refusal",
-      message: `${match.code} is not linked to a workflow instrument. Pick it from the list.`,
+      message: t("components.scanField.notLinkedEquipment", { code: match.code }),
       hint: null,
       layoutNotice
     };
@@ -116,7 +119,7 @@ function evaluateScanResponse(
   if (candidateId === null || !offeredIds.includes(candidateId)) {
     return {
       kind: "refusal",
-      message: `${match.code} is not available for this step.`,
+      message: t("components.scanField.notAvailableStep", { code: match.code }),
       hint: null,
       layoutNotice
     };
@@ -125,13 +128,13 @@ function evaluateScanResponse(
   return {
     kind: "select",
     id: candidateId,
-    message: `Selected ${match.code}`,
+    message: t("components.scanField.selected", { code: match.code }),
     layoutNotice
   };
 }
 
-function resolveErrorMessage(err: unknown): string {
-  const fallback = "Could not resolve scan.";
+function resolveErrorMessage(err: unknown, t: TFunction): string {
+  const fallback = t("components.scanField.resolveFailed");
   if (axios.isAxiosError(err)) {
     return getErrorMessage(err, fallback);
   }
@@ -148,6 +151,7 @@ export function ScanField({
   onSelect,
   disabled = false
 }: ScanFieldProps) {
+  const { t } = useTranslation();
   const [value, setValue] = useState("");
   const [cameraOpen, setCameraOpen] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
@@ -182,7 +186,8 @@ export function ScanField({
       const evaluated = evaluateScanResponse(
         response,
         expectedTypeRef.current,
-        offeredIdsRef.current
+        offeredIdsRef.current,
+        t
       );
 
       if (evaluated.kind === "select") {
@@ -210,7 +215,7 @@ export function ScanField({
         role: "alert",
         severity: "error",
         tone: "detected",
-        message: resolveErrorMessage(err),
+        message: resolveErrorMessage(err, t),
         hint: null,
         layoutNotice: null
       });
@@ -242,7 +247,7 @@ export function ScanField({
               sx: { fontFamily: monospaceFontFamily },
               endAdornment: pending ? (
                 <InputAdornment position="end">
-                  <CircularProgress size={18} aria-label="Resolving scan" />
+                  <CircularProgress size={18} aria-label={t("components.scanField.resolvingAria")} />
                 </InputAdornment>
               ) : undefined
             }
@@ -257,15 +262,15 @@ export function ScanField({
           startIcon={<QrCodeScannerOutlinedIcon fontSize="small" />}
           sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
         >
-          Scan
+          {t("components.scanField.scanButton")}
         </Button>
         {hasCamera && (
-          <Tooltip title="Scan with camera">
+          <Tooltip title={t("components.scanField.scanCamera")}>
             <span>
               <IconButton
                 type="button"
                 size="small"
-                aria-label="Scan with camera"
+                aria-label={t("components.scanField.scanCamera")}
                 disabled={disabled}
                 onClick={() => setCameraOpen(true)}
               >

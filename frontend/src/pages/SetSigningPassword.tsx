@@ -7,8 +7,10 @@ import { authenticationService } from "../modules/authentication/services/authen
 import { PASSWORD_POLICY_RULES, PasswordPolicyChecklist } from "../modules/authentication/components/PasswordPolicyChecklist";
 import { useAuth } from "../contexts/AuthContext";
 import { getErrorMessage, serverMessage } from "../utils/errorMessage";
+import { useTranslation } from "../i18n";
 
 export function SetSigningPasswordPage() {
+  const { t } = useTranslation("account");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [newPasswordBlurred, setNewPasswordBlurred] = useState(false);
@@ -25,11 +27,11 @@ export function SetSigningPasswordPage() {
     setError(null);
 
     if (failedRules.length > 0) {
-      setError("Signing password does not meet the policy requirements below.");
+      setError(t("setSigningPassword.policyNotMet"));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("Signing password and confirmation do not match.");
+      setError(t("setSigningPassword.mismatch"));
       return;
     }
 
@@ -37,10 +39,10 @@ export function SetSigningPasswordPage() {
     try {
       await authenticationService.setSigningPassword(newPassword);
       clearSigningPasswordRequired();
-      toast.success("Signing password saved.");
+      toast.success(t("setSigningPassword.saved"));
       navigate("/");
     } catch (err: unknown) {
-      const message = serverMessage(err) ?? getErrorMessage(err, "Could not save signing password.");
+      const message = serverMessage(err) ?? getErrorMessage(err, t("setSigningPassword.saveFailed"));
       setError(message);
       toast.error(message);
     } finally {
@@ -51,8 +53,8 @@ export function SetSigningPasswordPage() {
   return (
     <>
       <PageHeader
-        title="Choose your signing password"
-        subtitle="Your signing password is used only for electronic signatures in MicroLIMS and must not be your company password."
+        title={t("setSigningPassword.title")}
+        subtitle={t("setSigningPassword.subtitle")}
       />
       <Paper sx={{ p: 3, maxWidth: 480 }}>
         <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -62,7 +64,7 @@ export function SetSigningPasswordPage() {
             </Alert>
           )}
           <TextField
-            label="New Signing Password"
+            label={t("setSigningPassword.newPassword")}
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -71,19 +73,19 @@ export function SetSigningPasswordPage() {
             required
           />
           <TextField
-            label="Confirm Signing Password"
+            label={t("setSigningPassword.confirmPassword")}
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             error={mismatch}
-            helperText={mismatch ? "Signing passwords do not match." : undefined}
+            helperText={mismatch ? t("setSigningPassword.passwordsDoNotMatch") : undefined}
           />
 
           <PasswordPolicyChecklist
             password={newPassword}
             blurred={newPasswordBlurred}
-            heading="Signing password must contain:"
+            heading={t("setSigningPassword.policyHeading")}
           />
 
           <Button
@@ -93,7 +95,7 @@ export function SetSigningPasswordPage() {
             disabled={submitting}
             startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
           >
-            {submitting ? "Saving..." : "Save Signing Password"}
+            {submitting ? t("setSigningPassword.saving") : t("setSigningPassword.save")}
           </Button>
         </Box>
       </Paper>

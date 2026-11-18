@@ -1,7 +1,7 @@
 {
-  "total": 7894,
+  "total": 7571,
   "modules": {
-    "components": 351,
+    "components": 129,
     "modules/admin": 366,
     "modules/auditReview": 61,
     "modules/auditSearch": 118,
@@ -24,7 +24,7 @@
     "modules/roles": 72,
     "modules/testingWorkspace": 305,
     "modules/users": 197,
-    "pages": 104,
+    "pages": 3,
     "pwa": 2
   }
 }

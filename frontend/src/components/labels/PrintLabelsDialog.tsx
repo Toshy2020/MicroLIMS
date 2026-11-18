@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Box, Link, Stack, TextField, Typography } from "@mui/material";
 import axios from "axios";
 import { toast } from "sonner";
+import { useTranslation } from "../../i18n";
 import {
   labelService,
   type LabelEntityType,
@@ -39,7 +40,7 @@ function parseCopies(raw: string): number | null {
   return num;
 }
 
-function extractPrintErrorMessage(err: unknown): string {
+function extractPrintErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { message?: unknown; errors?: unknown } | undefined;
     if (typeof data?.message === "string" && data.message.trim()) {
@@ -49,10 +50,11 @@ function extractPrintErrorMessage(err: unknown): string {
       return data.errors[0];
     }
   }
-  return getErrorMessage(err, "Could not generate label PDF.");
+  return getErrorMessage(err, fallback);
 }
 
 export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogProps) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<LabelPrintStatus[]>([]);
@@ -66,7 +68,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
   const [blockedPdfUrl, setBlockedPdfUrl] = useState<string | null>(null);
   const [retryNonce, setRetryNonce] = useState(0);
 
-  const targetsKey = targets.map((t) => targetKey(t.entityType, t.entityId)).join("|");
+  const targetsKey = targets.map((tg) => targetKey(tg.entityType, tg.entityId)).join("|");
 
   // Revoke any fallback blob URL when replaced, closed, or unmounted.
   useEffect(() => {
@@ -126,14 +128,14 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        setLoadError(getErrorMessage(err, "Could not load label print status."));
+        setLoadError(getErrorMessage(err, t("components.printLabelsDialog.loadFailed")));
         setLoading(false);
       });
 
     return () => {
       controller.abort();
     };
-  }, [open, targetsKey, retryNonce]);
+  }, [open, targetsKey, retryNonce, t]);
 
   const statusByKey = new Map<string, LabelPrintStatus>();
   for (const status of statuses) {
@@ -146,8 +148,8 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
   });
 
   const hasReprint = statuses.some((s) => s.printCount > 0);
-  const title = hasReprint ? "Reprint labels" : "Print labels";
-  const submitLabel = hasReprint ? "Reprint" : "Print";
+  const title = hasReprint ? t("components.printLabelsDialog.reprintTitle") : t("components.printLabelsDialog.printTitle");
+  const submitLabel = hasReprint ? t("components.printLabelsDialog.reprint") : t("components.printLabelsDialog.print");
   const submitDisabled = loading || Boolean(loadError) || printableTargets.length === 0 || Boolean(blockedPdfUrl);
 
   const handleSetAllChange = (value: string) => {
@@ -190,7 +192,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
       const key = targetKey(target.entityType, target.entityId);
       const parsed = parseCopies(copiesByKey[key] ?? "");
       if (parsed === null) {
-        nextRowErrors[key] = `Enter a whole number between ${MIN_COPIES} and ${MAX_COPIES}.`;
+        nextRowErrors[key] = t("components.printLabelsDialog.invalidCopies", { min: MIN_COPIES, max: MAX_COPIES });
       } else {
         itemsToPrint.push({
           entityType: target.entityType,
@@ -203,7 +205,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
     let nextReasonError: string | null = null;
     const trimmedReason = reason.trim();
     if (hasReprint && trimmedReason.length < MIN_REPRINT_REASON_LENGTH) {
-      nextReasonError = `Reason must be at least ${MIN_REPRINT_REASON_LENGTH} characters.`;
+      nextReasonError = t("components.printLabelsDialog.reasonTooShort", { min: MIN_REPRINT_REASON_LENGTH });
     }
 
     if (Object.keys(nextRowErrors).length > 0 || nextReasonError) {
@@ -219,7 +221,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
       const pdfBlob = await labelService.print(itemsToPrint, hasReprint ? trimmedReason : undefined);
       const url = URL.createObjectURL(pdfBlob);
       const popup = window.open(url);
-      toast.success("Labels ready to print");
+      toast.success(t("components.printLabelsDialog.readyToast"));
 
       if (popup) {
         let revoked = false;
@@ -235,7 +237,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
         setBlockedPdfUrl(url);
       }
     } catch (err) {
-      setSubmitError(extractPrintErrorMessage(err));
+      setSubmitError(extractPrintErrorMessage(err, t("components.printLabelsDialog.generateFailed")));
     } finally {
       setSubmitting(false);
     }
@@ -262,16 +264,16 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
         <Stack spacing={2}>
           {blockedPdfUrl && (
             <Alert severity="info">
-              Pop-up was blocked by your browser.{" "}
+              {t("components.printLabelsDialog.popupBlocked")}{" "}
               <Link href={blockedPdfUrl} target="_blank" rel="noopener noreferrer" underline="always">
-                Open label PDF
+                {t("components.printLabelsDialog.openPdf")}
               </Link>
             </Alert>
           )}
 
           {targets.length >= 2 && (
             <TextField
-              label="Set all to"
+              label={t("components.printLabelsDialog.setAllTo")}
               type="number"
               size="small"
               value={setAllValue}
@@ -328,7 +330,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
                           color: theme.custom.status.detected.text
                         })}
                       >
-                        {status.blockedReason ?? "This record cannot be printed."}
+                        {status.blockedReason ?? t("components.printLabelsDialog.cannotPrint")}
                       </Typography>
                     )}
                   </Box>
@@ -343,7 +345,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
                       helperText={rowError}
                       slotProps={{
                         htmlInput: {
-                          "aria-label": `Number of labels for ${target.code}`,
+                          "aria-label": t("components.printLabelsDialog.copiesAria", { code: target.code }),
                           min: MIN_COPIES,
                           max: MAX_COPIES,
                           step: 1,
@@ -360,7 +362,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
 
           {hasReprint && (
             <TextField
-              label="Reason for reprint"
+              label={t("components.printLabelsDialog.reasonLabel")}
               required
               multiline
               minRows={2}
@@ -371,7 +373,7 @@ export function PrintLabelsDialog({ open, targets, onClose }: PrintLabelsDialogP
                 setSubmitError(null);
               }}
               error={Boolean(reasonError)}
-              helperText={reasonError ?? "At least 10 characters"}
+              helperText={reasonError ?? t("components.printLabelsDialog.reasonHelper", { min: MIN_REPRINT_REASON_LENGTH })}
             />
           )}
         </Stack>

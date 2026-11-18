@@ -9,6 +9,9 @@ import {
   useTheme
 } from "@mui/material";
 import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
+import { useTranslation } from "../i18n";
+import { Ltr } from "./Ltr";
+import { getErrorMessage } from "../utils/errorMessage";
 import { FloatingDialog } from "./FloatingDialog";
 
 interface ReturnToAnalystDialogProps {
@@ -26,6 +29,7 @@ export function ReturnToAnalystDialog({
   onCancel,
   onConfirm
 }: ReturnToAnalystDialogProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -38,8 +42,8 @@ export function ReturnToAnalystDialog({
       const trimmed = reason.trim();
       await onConfirm(trimmed ? trimmed : undefined);
       setReason("");
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to return test to analyst.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("components.returnToAnalystDialog.failed")));
     } finally {
       setSubmitting(false);
     }
@@ -77,10 +81,10 @@ export function ReturnToAnalystDialog({
           </Box>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-              Return Test to Analyst
+              {t("components.returnToAnalystDialog.title")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Return count test for recount or result re-entry
+              {t("components.returnToAnalystDialog.subtitle")}
             </Typography>
           </Box>
         </>
@@ -88,7 +92,7 @@ export function ReturnToAnalystDialog({
       actions={
         <>
           <Button onClick={handleCancel} disabled={submitting}>
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -96,7 +100,7 @@ export function ReturnToAnalystDialog({
             onClick={handleConfirm}
             disabled={submitting}
           >
-            {submitting ? "Returning..." : "Confirm Return"}
+            {submitting ? t("components.returnToAnalystDialog.returning") : t("components.returnToAnalystDialog.confirm")}
           </Button>
         </>
       }
@@ -114,20 +118,20 @@ export function ReturnToAnalystDialog({
             }}
           >
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-              Test Order
+              {t("components.returnToAnalystDialog.testOrder")}
             </Typography>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary", mt: 0.25 }}>
-              {testCode}: {testDisplayName}
+              <Ltr>{testCode}</Ltr>: {testDisplayName}
             </Typography>
           </Box>
 
           <Alert severity="info" sx={{ fontSize: 12 }}>
-            Returning this test order will soft-supersede active count readings, reopen the incubation step, and return the test to the assigned analyst. If the parent sample is Under Review, it will revert to In Testing. If this is a loss on drying or water test, the assays that used its result are returned with it.
+            {t("components.returnToAnalystDialog.info")}
           </Alert>
 
           <TextField
-            label="Reason for Return (optional)"
-            placeholder="e.g. Plate count recount requested due to bubble artifact"
+            label={t("components.returnToAnalystDialog.reasonLabel")}
+            placeholder={t("components.returnToAnalystDialog.reasonPlaceholder")}
             multiline
             rows={3}
             fullWidth

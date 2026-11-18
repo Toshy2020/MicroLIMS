@@ -16,6 +16,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../../ConfirmationDialog";
+import { useTranslation } from "../../../i18n";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import { FavouriteStar } from "../../../modules/navigation/FavouriteStar";
 import { viewRoute } from "../../../modules/navigation/favourites";
@@ -35,6 +36,7 @@ export interface ViewsMenuProps {
 }
 
 export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
+  const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popoverId = useId();
@@ -87,7 +89,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
       await tableState.saveViewChanges();
       handleClose();
     } catch (err) {
-      toast.error(getErrorMessage(err, "Could not save view changes."));
+      toast.error(getErrorMessage(err, t("components.viewsMenu.saveChangesFailed")));
     }
   };
 
@@ -100,7 +102,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
       );
       await tableState.refreshViews();
     } catch (err) {
-      toast.error(getErrorMessage(err, "Could not update default view."));
+      toast.error(getErrorMessage(err, t("components.viewsMenu.setDefaultFailed")));
     } finally {
       setBusyId(null);
     }
@@ -118,15 +120,17 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
       }
       await tableState.refreshViews();
     } catch (err) {
-      toast.error(getErrorMessage(err, "Could not delete view."));
+      toast.error(getErrorMessage(err, t("components.viewsMenu.deleteFailed")));
     } finally {
       setDeleting(false);
     }
   };
 
   const triggerAriaLabel = activeView
-    ? `Views: ${activeView.name}${isViewModified ? " (modified)" : ""}`
-    : "Views";
+    ? isViewModified
+      ? t("components.viewsMenu.viewsModifiedAria", { name: activeView.name })
+      : t("components.viewsMenu.viewsNamedAria", { name: activeView.name })
+    : t("components.viewsMenu.views");
 
   const renderViewRow = (view: TableViewDto) => {
     const isActive = activeView?.id === view.id;
@@ -179,7 +183,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
             <FavouriteStar
               size="small"
               favourite={{ t: "v", table: tableKey, view: view.id }}
-              name={`view ${view.name}`}
+              name={t("components.viewsMenu.favouriteName", { name: view.name })}
             />
           )}
           <IconButton
@@ -187,8 +191,8 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
             disabled={isBusy}
             aria-label={
               view.isDefault
-                ? `Clear default for ${view.name}`
-                : `Set ${view.name} as default`
+                ? t("components.viewsMenu.clearDefaultAria", { name: view.name })
+                : t("components.viewsMenu.setDefaultAria", { name: view.name })
             }
             onClick={() => handleToggleDefault(view)}
             color={view.isDefault ? "primary" : "default"}
@@ -204,7 +208,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
               <IconButton
                 size="small"
                 disabled={isBusy}
-                aria-label={`Rename ${view.name}`}
+                aria-label={t("components.viewsMenu.renameAria", { name: view.name })}
                 onClick={() => openSaveDialog("rename", view.name, view)}
               >
                 <EditOutlinedIcon fontSize="small" />
@@ -212,7 +216,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
               <IconButton
                 size="small"
                 disabled={isBusy}
-                aria-label={`Delete ${view.name}`}
+                aria-label={t("components.viewsMenu.deleteAria", { name: view.name })}
                 onClick={() => {
                   setAnchorEl(null);
                   setDeleteTarget(view);
@@ -241,11 +245,11 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
         onClick={(e) => setAnchorEl(e.currentTarget)}
         sx={{ gap: 0.75 }}
       >
-        <span>{activeView ? activeView.name : "Views"}</span>
+        <span>{activeView ? activeView.name : t("components.viewsMenu.views")}</span>
         {isViewModified && (
           <Chip
             size="small"
-            label="Modified"
+            label={t("components.viewsMenu.modified")}
             color="warning"
             variant="outlined"
             sx={{ height: 20, fontSize: "0.7rem" }}
@@ -262,15 +266,15 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
       >
         <Box
           role="region"
-          aria-label="Saved views"
+          aria-label={t("components.viewsMenu.savedViewsAria")}
           sx={{ p: 1.5, minWidth: 280, maxWidth: 380 }}
         >
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            My views
+            {t("components.viewsMenu.myViews")}
           </Typography>
           {myViews.length === 0 ? (
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-              No personal views saved
+              {t("components.viewsMenu.noPersonalViews")}
             </Typography>
           ) : (
             <Stack role="list" spacing={0.5} sx={{ mb: 1 }}>
@@ -281,11 +285,11 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
           <Divider sx={{ my: 1 }} />
 
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Shared views
+            {t("components.viewsMenu.sharedViews")}
           </Typography>
           {sharedViews.length === 0 ? (
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-              No shared views
+              {t("components.viewsMenu.noSharedViews")}
             </Typography>
           ) : (
             <Stack role="list" spacing={0.5} sx={{ mb: 1 }}>
@@ -304,17 +308,17 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
                   variant="contained"
                   onClick={handleSaveChanges}
                 >
-                  Save changes
+                  {t("components.viewsMenu.saveChanges")}
                 </Button>
               ) : (
                 <Button
                   size="small"
                   variant="contained"
                   onClick={() =>
-                    openSaveDialog("copy", `${activeView.name} (copy)`)
+                    openSaveDialog("copy", t("components.viewsMenu.copyName", { name: activeView.name }))
                   }
                 >
-                  Save a copy
+                  {t("components.viewsMenu.saveCopy")}
                 </Button>
               ))}
             <Button
@@ -322,7 +326,7 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
               variant="outlined"
               onClick={() => openSaveDialog("create")}
             >
-              Save as new view
+              {t("components.viewsMenu.saveAsNew")}
             </Button>
           </Stack>
         </Box>
@@ -342,14 +346,14 @@ export function ViewsMenu({ tableKey, tableState }: ViewsMenuProps) {
       <ConfirmationDialog
         open={Boolean(deleteTarget)}
         destructive
-        title="Delete view"
+        title={t("components.viewsMenu.deleteTitle")}
         message={
           deleteTarget
-            ? `Delete saved view "${deleteTarget.name}"? This cannot be undone.`
+            ? t("components.viewsMenu.deleteMessage", { name: deleteTarget.name })
             : ""
         }
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t("components.viewsMenu.deleteConfirm")}
+        cancelText={t("actions.cancel")}
         loading={deleting}
         onCancel={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDelete}

@@ -19,6 +19,7 @@ import {
   TextField,
 } from "@mui/material";
 import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import {
   laboratorySectionService,
@@ -58,6 +59,7 @@ export function SaveViewDialog({
   onClose,
   onSaved,
 }: SaveViewDialogProps) {
+  const { t } = useTranslation();
   const auth = useOptionalAuth();
   const canShare =
     (auth?.permissions.includes(PERMISSIONS.TABLE_VIEWS_SHARE) ?? false) &&
@@ -109,10 +111,10 @@ export function SaveViewDialog({
 
   const title =
     mode === "rename"
-      ? "Rename view"
+      ? t("components.saveViewDialog.renameTitle")
       : mode === "copy"
-        ? "Save a copy"
-        : "Save view";
+        ? t("components.saveViewDialog.copyTitle")
+        : t("components.saveViewDialog.createTitle");
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -120,18 +122,18 @@ export function SaveViewDialog({
 
     const trimmed = name.trim();
     if (!trimmed) {
-      setNameError("View name is required.");
+      setNameError(t("components.saveViewDialog.nameRequired"));
       return;
     }
     if (trimmed.length > MAX_VIEW_NAME_LENGTH) {
       setNameError(
-        `View name must be ${MAX_VIEW_NAME_LENGTH} characters or fewer.`
+        t("components.saveViewDialog.nameTooLong", { max: MAX_VIEW_NAME_LENGTH })
       );
       return;
     }
 
     if (canShare && shareWithSection && !sectionId) {
-      setSectionError("Choose a section to share with.");
+      setSectionError(t("components.saveViewDialog.sectionRequired"));
       return;
     }
 
@@ -169,7 +171,7 @@ export function SaveViewDialog({
         setSectionError(serverSectionError);
         return;
       }
-      setFormError(getErrorMessage(err, "Could not save view."));
+      setFormError(getErrorMessage(err, t("components.saveViewDialog.saveFailed")));
     }
   };
 
@@ -187,7 +189,7 @@ export function SaveViewDialog({
           <Stack spacing={2} sx={{ pt: 1 }}>
             {formError && <Alert severity="error">{formError}</Alert>}
             <TextField
-              label="View name"
+              label={t("components.saveViewDialog.viewName")}
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
@@ -213,7 +215,7 @@ export function SaveViewDialog({
                       disabled={submitting}
                     />
                   }
-                  label="Share with section"
+                  label={t("components.saveViewDialog.shareWithSection")}
                 />
                 {shareWithSection && (
                   <FormControl
@@ -222,10 +224,10 @@ export function SaveViewDialog({
                     error={Boolean(sectionError)}
                     disabled={submitting || sectionsLoading}
                   >
-                    <InputLabel id={sectionLabelId}>Section</InputLabel>
+                    <InputLabel id={sectionLabelId}>{t("components.saveViewDialog.section")}</InputLabel>
                     <Select
                       labelId={sectionLabelId}
-                      label="Section"
+                      label={t("components.saveViewDialog.section")}
                       value={sectionId}
                       onChange={(e) => {
                         setSectionId(String(e.target.value));
@@ -249,7 +251,7 @@ export function SaveViewDialog({
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("actions.cancel")}
           </Button>
           <Button
             type="submit"
@@ -261,7 +263,7 @@ export function SaveViewDialog({
               ) : undefined
             }
           >
-            Save
+            {t("actions.save")}
           </Button>
         </DialogActions>
       </form>

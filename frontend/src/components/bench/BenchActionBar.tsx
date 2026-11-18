@@ -1,6 +1,7 @@
 import { useId } from "react";
 import type { ReactNode } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { BENCH_TARGET_GAP } from "../../theme/benchTheme";
 
 export interface BenchActionBarProps {
@@ -13,9 +14,11 @@ export interface BenchActionBarProps {
   keypad?: ReactNode;
 }
 
-export function BenchActionBar({ onCancel, onSave, onSaveAndNext, saving, saveLabel = "Save", saveDisabledReason, keypad }: BenchActionBarProps) {
+export function BenchActionBar({ onCancel, onSave, onSaveAndNext, saving, saveLabel, saveDisabledReason, keypad }: BenchActionBarProps) {
+  const { t } = useTranslation();
   const reasonId = useId();
   const blocked = saving || Boolean(saveDisabledReason);
+  const resolvedSaveLabel = saveLabel ?? t("components.benchActionBar.save");
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: `${BENCH_TARGET_GAP}px`, width: "100%" }}>
       {keypad}
@@ -26,11 +29,11 @@ export function BenchActionBar({ onCancel, onSave, onSaveAndNext, saving, saveLa
       )}
       <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: `${BENCH_TARGET_GAP}px` }}>
         <Button onClick={onCancel} disabled={saving}>
-          Cancel
+          {t("components.benchActionBar.cancel")}
         </Button>
         {onSaveAndNext && (
           <Button variant="outlined" onClick={() => { if (!blocked) onSaveAndNext(); }} disabled={blocked}>
-            Save and next
+            {t("components.benchActionBar.saveAndNext")}
           </Button>
         )}
         <Button
@@ -41,7 +44,7 @@ export function BenchActionBar({ onCancel, onSave, onSaveAndNext, saving, saveLa
           aria-busy={saving}
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {saveLabel}
+          {resolvedSaveLabel}
         </Button>
       </Box>
     </Box>

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField, ToggleButton, ToggleButtonGroup, Typography } from "@mui/material";
+import { useTranslation } from "../i18n";
+import type { EquipmentItem } from "../modules/inventory/equipment/types/equipmentTypes";
 import { EquipmentInventoryService } from "../modules/inventory/equipment/services/EquipmentInventoryService";
 import { useLaboratorySections } from "../hooks/useLaboratorySections";
 
@@ -24,9 +26,9 @@ export const isStorageLocationValid = (v: StorageLocationValue) =>
 export const storageLocationPayload = (v: StorageLocationValue) =>
   v.equipmentId !== "" ? { equipmentId: v.equipmentId, locationText: null } : { equipmentId: null, locationText: v.locationText.trim() };
 
-const isColdStorage = (e: any) => {
+const isColdStorage = (e: EquipmentItem) => {
   const type = (e.instrumentType || "").toLowerCase();
-  const inService = e.status === "InService" || e.status === 0 || e.status === "0";
+  const inService = String(e.status) === "InService" || String(e.status) === "0";
   return inService && (type.includes("refrigerator") || type.includes("freezer") || type.includes("fridge"));
 };
 
@@ -41,7 +43,8 @@ export function StorageLocationPicker({ value, onChange, disabled }: {
   onChange: (v: StorageLocationValue) => void;
   disabled?: boolean;
 }) {
-  const [equipment, setEquipment] = useState<any[]>([]);
+  const { t } = useTranslation();
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [failed, setFailed] = useState(false);
   const [mode, setMode] = useState<"equipment" | "area">(value.locationText ? "area" : "equipment");
 
@@ -51,7 +54,7 @@ export function StorageLocationPicker({ value, onChange, disabled }: {
   useEffect(() => {
     if (microSectionId == null) return;
     EquipmentInventoryService.getAll()
-      .then((data: any[]) => setEquipment((data || []).filter((e) => e.sectionId === microSectionId && isColdStorage(e))))
+      .then((data) => setEquipment((data || []).filter((e) => e.sectionId === microSectionId && isColdStorage(e))))
       .catch(() => setFailed(true));
   }, [microSectionId]);
 
@@ -68,16 +71,16 @@ export function StorageLocationPicker({ value, onChange, disabled }: {
           onChange(EMPTY_STORAGE_LOCATION);
         }}
       >
-        <ToggleButton value="equipment">Refrigerator / Freezer</ToggleButton>
-        <ToggleButton value="area">Other area</ToggleButton>
+        <ToggleButton value="equipment">{t("components.storageLocationPicker.equipmentMode")}</ToggleButton>
+        <ToggleButton value="area">{t("components.storageLocationPicker.areaMode")}</ToggleButton>
       </ToggleButtonGroup>
 
       {mode === "equipment" ? (
         <FormControl fullWidth size="small" disabled={disabled}>
-          <InputLabel id="storage-equipment">Storage equipment *</InputLabel>
+          <InputLabel id="storage-equipment">{t("components.storageLocationPicker.equipmentLabel")}</InputLabel>
           <Select
             labelId="storage-equipment"
-            label="Storage equipment *"
+            label={t("components.storageLocationPicker.equipmentLabel")}
             value={value.equipmentId}
             onChange={(e) => onChange({ equipmentId: Number(e.target.value), locationText: "" })}
           >
@@ -87,9 +90,9 @@ export function StorageLocationPicker({ value, onChange, disabled }: {
               </MenuItem>
             ))}
           </Select>
-          {failed && <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>Could not load storage equipment.</Typography>}
+          {failed && <Typography sx={{ fontSize: 12, color: "error.main", mt: 0.5 }}>{t("components.storageLocationPicker.loadFailed")}</Typography>}
           {!failed && equipment.length === 0 && (
-            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>No in-service refrigerator or freezer found.</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>{t("components.storageLocationPicker.noneFound")}</Typography>
           )}
         </FormControl>
       ) : (
@@ -97,8 +100,8 @@ export function StorageLocationPicker({ value, onChange, disabled }: {
           size="small"
           fullWidth
           disabled={disabled}
-          label="Storage area *"
-          placeholder="e.g. Media Storage Area - Shelf B"
+          label={t("components.storageLocationPicker.areaLabel")}
+          placeholder={t("components.storageLocationPicker.areaPlaceholder")}
           value={value.locationText}
           onChange={(e) => onChange({ equipmentId: "", locationText: e.target.value.slice(0, 200) })}
         />

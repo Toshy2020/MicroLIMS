@@ -4,10 +4,10 @@ import { Alert, Box, CircularProgress, Link, Stack, Typography } from "@mui/mate
 import { useAuth } from "../contexts/AuthContext";
 import { completeSignInSession } from "../modules/authentication/completeSignIn";
 import { ssoService } from "../modules/authentication/services/ssoService";
-
-const GENERIC_ERROR_MESSAGE = "Company sign-in did not complete. Try again or contact your administrator.";
+import { useTranslation } from "../i18n";
 
 export function SsoCompletePage() {
+  const { t } = useTranslation("account");
   const { login } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +15,8 @@ export function SsoCompletePage() {
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    document.title = "Company sign-in · MicroLIMS";
-  }, []);
+    document.title = t("ssoComplete.documentTitle");
+  }, [t]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -39,7 +39,7 @@ export function SsoCompletePage() {
     const code = params.get("code");
 
     if (errorParam || !code) {
-      setError(GENERIC_ERROR_MESSAGE);
+      setError(t("ssoComplete.genericError"));
       return;
     }
 
@@ -52,10 +52,10 @@ export function SsoCompletePage() {
       })
       .catch(() => {
         if (mountedRef.current) {
-          setError(GENERIC_ERROR_MESSAGE);
+          setError(t("ssoComplete.genericError"));
         }
       });
-  }, [login, navigate]);
+  }, [login, navigate, t]);
 
   return (
     <Box
@@ -72,14 +72,14 @@ export function SsoCompletePage() {
         {error ? (
           <Stack spacing={2}>
             <Typography component="h1" sx={{ fontSize: 22, fontWeight: 700 }}>
-              Company sign-in
+              {t("ssoComplete.title")}
             </Typography>
             <Alert severity="error" role="alert">
               {error}
             </Alert>
             <Box>
               <Link component={RouterLink} to="/login" underline="hover" sx={{ fontSize: 14 }}>
-                Back to sign in
+                {t("ssoComplete.backToSignIn")}
               </Link>
             </Box>
           </Stack>
@@ -87,7 +87,7 @@ export function SsoCompletePage() {
           <Stack spacing={2} sx={{ alignItems: "center" }} role="status" aria-live="polite">
             <CircularProgress size={28} />
             <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
-              Completing company sign-in…
+              {t("ssoComplete.completing")}
             </Typography>
           </Stack>
         )}

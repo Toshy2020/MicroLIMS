@@ -7,6 +7,7 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { mfaService } from "../modules/authentication/services/mfaService";
 import { ssoService } from "../modules/authentication/services/ssoService";
+import { renderInArabic, resetLanguage } from "../i18n/testUtils";
 import { LoginPage } from "./Login";
 
 vi.mock("../modules/authentication/services/authenticationService", () => ({
@@ -611,5 +612,30 @@ describe("LoginPage SSO modes", () => {
     expect(screen.getByLabelText(/^Username/)).toBeTruthy();
     expect(screen.getByLabelText(/^Password/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Sign In" })).toBeTruthy();
+  });
+});
+
+describe("LoginPage in Arabic", () => {
+  afterEach(async () => {
+    await resetLanguage();
+  });
+
+  it("renders sign-in form and brand panel in Arabic RTL", async () => {
+    vi.mocked(ssoService.getMode).mockResolvedValue("Off");
+    await renderInArabic(
+      <AuthProvider>
+        <MemoryRouter initialEntries={["/login"]}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+      ["common", "account"]
+    );
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(await screen.findByRole("heading", { level: 1, name: "تسجيل الدخول" })).toBeTruthy();
+    expect(screen.getByText("مراقبة الجودة الدوائية")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "تسجيل الدخول" })).toBeTruthy();
   });
 });

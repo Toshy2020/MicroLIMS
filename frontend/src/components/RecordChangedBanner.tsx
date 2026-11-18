@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Alert, Button } from "@mui/material";
+import { useTranslation } from "../i18n";
 import { useRecordChanged } from "../hooks/useRecordChanged";
 import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { ConfirmationDialog } from "./ConfirmationDialog";
@@ -17,6 +18,7 @@ export interface RecordChangedBannerProps {
  * itself: the user chooses, and is asked first when they have unsaved edits.
  */
 export function RecordChangedBanner({ type, id, dirty, onReload }: RecordChangedBannerProps) {
+  const { t } = useTranslation();
   const { changed, at, dismiss } = useRecordChanged(type, id);
   const [confirming, setConfirming] = useState(false);
 
@@ -42,18 +44,18 @@ export function RecordChangedBanner({ type, id, dirty, onReload }: RecordChanged
             size="small"
             onClick={() => (dirty ? setConfirming(true) : reload())}
           >
-            Reload
+            {t("components.recordChangedBanner.reload")}
           </Button>
         }
       >
-        {`This record was changed by another user at ${formatDateTimeWithTimeZone(at)}. Reload to see the latest.`}
+        {t("components.recordChangedBanner.message", { time: formatDateTimeWithTimeZone(at) })}
       </Alert>
       <ConfirmationDialog
         open={confirming}
         destructive
-        title="Reload this record?"
-        message="Discard your unsaved changes?"
-        confirmText="Discard and reload"
+        title={t("components.recordChangedBanner.confirmTitle")}
+        message={t("components.recordChangedBanner.confirmMessage")}
+        confirmText={t("components.recordChangedBanner.confirmButton")}
         onCancel={() => setConfirming(false)}
         onConfirm={reload}
       />

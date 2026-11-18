@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import { useTranslation } from "../../i18n";
 import { tableHeadSx } from "../../theme";
 
 export interface PendingBatchColumn<T> {
@@ -61,6 +62,7 @@ export function PendingBatchList<T extends { errors?: Record<string, string> }>(
   onDiscard,
   onRemoveRow
 }: PendingBatchListProps<T>) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   if (rows.length === 0) return null;
@@ -94,7 +96,7 @@ export function PendingBatchList<T extends { errors?: Record<string, string> }>(
         </Box>
         <Stack direction="row" spacing={1}>
           <Button variant="outlined" onClick={onDiscard} disabled={saving} sx={{ textTransform: "none" }}>
-            Discard
+            {t("components.pendingBatchList.discard")}
           </Button>
           <Button
             variant="contained"
@@ -103,7 +105,7 @@ export function PendingBatchList<T extends { errors?: Record<string, string> }>(
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
             sx={{ textTransform: "none", fontWeight: 700 }}
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? t("components.pendingBatchList.saving") : t("components.pendingBatchList.save")}
           </Button>
         </Stack>
       </Stack>
@@ -118,12 +120,12 @@ export function PendingBatchList<T extends { errors?: Record<string, string> }>(
         <Table size="small" stickyHeader aria-label={ariaLabel}>
           <TableHead sx={tableHeadSx}>
             <TableRow>
-              <TableCell>Row</TableCell>
+              <TableCell>{t("components.pendingBatchList.rowColumn")}</TableCell>
               {columns.map((c) => (
                 <TableCell key={c.key}>{c.label}</TableCell>
               ))}
-              <TableCell>Problem</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t("components.pendingBatchList.problemColumn")}</TableCell>
+              <TableCell align="right">{t("components.pendingBatchList.actionsColumn")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -144,14 +146,14 @@ export function PendingBatchList<T extends { errors?: Record<string, string> }>(
                     </TableCell>
                   ))}
                   <TableCell sx={hasProblem ? { color: theme.custom.status.detected.text, fontWeight: 600 } : undefined}>
-                    {hasProblem ? rowProblems.join(" ") : "None"}
+                    {hasProblem ? rowProblems.join(" ") : t("components.pendingBatchList.noProblem")}
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title="Remove row">
+                    <Tooltip title={t("components.pendingBatchList.removeRow")}>
                       <span>
                         <IconButton
                           size="small"
-                          aria-label={`Remove row ${i + 1} (${getRowLabel(r, i)})`}
+                          aria-label={t("components.pendingBatchList.removeRowAria", { row: i + 1, label: getRowLabel(r, i) })}
                           onClick={() => onRemoveRow(i)}
                           disabled={saving}
                         >

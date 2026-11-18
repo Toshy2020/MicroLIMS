@@ -12,6 +12,7 @@ import {
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
+import { useTranslation } from "../../../i18n";
 import type { TableColumnDefinition } from "./tableRegistry";
 
 export interface ColumnsMenuProps {
@@ -29,6 +30,7 @@ export function ColumnsMenu({
   onChange,
   onReset,
 }: ColumnsMenuProps) {
+  const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const popoverId = useId();
@@ -81,7 +83,7 @@ export function ColumnsMenu({
         aria-controls={open ? popoverId : undefined}
         onClick={(e) => setAnchorEl(e.currentTarget)}
       >
-        Columns
+        {t("components.columnsMenu.columns")}
       </Button>
       <Popover
         id={popoverId}
@@ -93,11 +95,11 @@ export function ColumnsMenu({
       >
         <Box
           role="region"
-          aria-label="Columns"
+          aria-label={t("components.columnsMenu.columns")}
           sx={{ p: 1.5, minWidth: 280, maxWidth: 360 }}
         >
           <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Columns
+            {t("components.columnsMenu.columns")}
           </Typography>
           <Stack spacing={0.5}>
             {orderedColumns.map((col) => {
@@ -139,7 +141,7 @@ export function ColumnsMenu({
                           color="text.secondary"
                           sx={{ display: "block" }}
                         >
-                          Required identifier column
+                          {t("components.columnsMenu.requiredIdentifier")}
                         </Typography>
                       )}
                     </Box>
@@ -147,7 +149,7 @@ export function ColumnsMenu({
                   <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
                     <IconButton
                       size="small"
-                      aria-label={`Move ${col.label} up`}
+                      aria-label={t("components.columnsMenu.moveUpAria", { label: col.label })}
                       disabled={!isVisible || visibleIndex <= 0}
                       onClick={() => moveColumn(col.key, -1)}
                     >
@@ -155,7 +157,7 @@ export function ColumnsMenu({
                     </IconButton>
                     <IconButton
                       size="small"
-                      aria-label={`Move ${col.label} down`}
+                      aria-label={t("components.columnsMenu.moveDownAria", { label: col.label })}
                       disabled={
                         !isVisible ||
                         visibleIndex < 0 ||
@@ -173,7 +175,7 @@ export function ColumnsMenu({
           <Divider sx={{ my: 1 }} />
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button size="small" onClick={onReset}>
-              Reset to default
+              {t("components.columnsMenu.resetToDefault")}
             </Button>
           </Box>
         </Box>

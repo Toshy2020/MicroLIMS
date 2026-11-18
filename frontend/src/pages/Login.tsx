@@ -15,10 +15,16 @@ import { MfaCodeField } from "../modules/authentication/components/MfaCodeField"
 import { RecoveryCodesPanel } from "../modules/authentication/components/RecoveryCodesPanel";
 import { monospaceFontFamily } from "../theme/palette";
 import { LoginBrandArt } from "./LoginBrandArt";
+import { useTranslation } from "../i18n";
+import { Ltr } from "../components/Ltr";
 
 const DEVICE_TOKEN_KEY = "microlims_device_token";
 const MFA_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const MAX_CHALLENGE_ATTEMPTS = 5;
+const BRAND_PREFIX = "Micro";
+const BRAND_SUFFIX = "LIMS";
+const APP_VERSION = "v0.1";
+const COMPLIANCE_BADGES = ["FDA 21 CFR Part 11", "EU GMP Annex 11"] as const;
 
 type LoginStep = "password" | "mfa" | "recoveryCodes" | "recoveryWarning";
 
@@ -77,6 +83,7 @@ export interface LoginPageProps {
 }
 
 export function LoginPage({ now = Date.now }: LoginPageProps) {
+  const { t } = useTranslation("account");
   const theme = useTheme();
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -117,8 +124,8 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
 
   // The tab otherwise keeps the title of the page the user signed out from.
   useEffect(() => {
-    document.title = "Sign in · MicroLIMS";
-  }, []);
+    document.title = t("login.documentTitle");
+  }, [t]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -133,13 +140,13 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
       .catch(() => {
         if (!controller.signal.aborted) {
           setSsoMode("Off");
-          setSsoModeNotice("Company sign-in status could not be checked. Use your laboratory account below.");
+          setSsoModeNotice(t("login.ssoCheckFailed"));
         }
       });
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (showEmergencyForm) {
@@ -184,21 +191,21 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
       setPassword("");
       setError(message);
       setStep("password");
-      setStepAnnouncement(message ?? "Returned to sign in.");
+      setStepAnnouncement(message ?? t("login.returnedToSignIn"));
     },
-    [clearMfaState]
+    [clearMfaState, t]
   );
 
   useEffect(() => {
     if (step !== "mfa" || challengeStartedAt === null) return;
     const remainingMs = Math.max(0, MFA_CHALLENGE_TTL_MS - (now() - challengeStartedAt));
     const timerId = window.setTimeout(() => {
-      resetToPasswordStep("Your sign-in took too long. Enter your password again.");
+      resetToPasswordStep(t("login.challengeExpired"));
     }, remainingMs);
     return () => {
       window.clearTimeout(timerId);
     };
-  }, [step, challengeStartedAt, now, resetToPasswordStep]);
+  }, [step, challengeStartedAt, now, resetToPasswordStep, t]);
 
   useEffect(() => {
     if (step === "mfa" && !isSubmitting && refocusMfaInputRef.current) {
@@ -236,7 +243,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
         setMfaToken(result.mfaToken ?? null);
         setChallengeStartedAt(now());
         setStep("mfa");
-        setStepAnnouncement("Two-factor authentication required. Enter the 6-digit code.");
+        setStepAnnouncement(t("login.mfaRequiredAnnouncement"));
         return;
       }
 
@@ -244,13 +251,13 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
     } catch (err: unknown) {
       const { status, message, hasResponse } = getApiErrorInfo(err);
       if (status === 401) {
-        setError("Invalid username or password.");
+        setError(t("login.invalidCredentials"));
       } else if (status !== undefined && status >= 500) {
-        setError("Laboratory authentication service error. Please try again later.");
+        setError(t("login.authServiceError"));
       } else if (!hasResponse) {
-        setError("Unable to reach the laboratory server. Check network connection.");
+        setError(t("login.serverUnreachable"));
       } else {
-        setError(message || "Login failed. Please check credentials.");
+        setError(message || t("login.loginFailed"));
       }
     } finally {
       setIsSubmitting(false);
@@ -262,7 +269,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
     if (isSubmitting || !mfaToken) return;
 
     if (challengeStartedAt !== null && now() - challengeStartedAt >= MFA_CHALLENGE_TTL_MS) {
-      resetToPasswordStep("Your sign-in took too long. Enter your password again.");
+      resetToPasswordStep(t("login.challengeExpired"));
       return;
     }
 
@@ -283,7 +290,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
       if (result.recoveryCodes && result.recoveryCodes.length > 0) {
         setPendingLoginResult(result);
         setStep("recoveryCodes");
-        setStepAnnouncement("Hardware token confirmed. Save your recovery codes before continuing.");
+        setStepAnnouncement(t("login.hardwareTokenConfirmed"));
         return;
       }
 
@@ -291,7 +298,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
         setPendingLoginResult(result);
         setStep("recoveryWarning");
         setStepAnnouncement(
-          `Recovery code accepted. ${result.recoveryCodesRemaining} recovery codes remaining.`
+          t("login.recoveryCodeAccepted", { count: result.recoveryCodesRemaining })
         );
         return;
       }
@@ -303,20 +310,20 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
         const nextAttempts = failedAttempts + 1;
         setFailedAttempts(nextAttempts);
         if (nextAttempts >= MAX_CHALLENGE_ATTEMPTS) {
-          resetToPasswordStep("Too many incorrect codes. Sign in again.");
+          resetToPasswordStep(t("login.tooManyAttempts"));
           return;
         }
         refocusMfaInputRef.current = true;
-        setMfaError(message || "The code is not correct.");
+        setMfaError(message || t("login.incorrectCode"));
       } else if (status !== undefined && status >= 500) {
         refocusMfaInputRef.current = true;
-        setMfaError("Laboratory authentication service error. Please try again later.");
+        setMfaError(t("login.authServiceError"));
       } else if (!hasResponse) {
         refocusMfaInputRef.current = true;
-        setMfaError("Unable to reach the laboratory server. Check network connection.");
+        setMfaError(t("login.serverUnreachable"));
       } else {
         refocusMfaInputRef.current = true;
-        setMfaError(message || "The code is not correct.");
+        setMfaError(message || t("login.incorrectCode"));
       }
     } finally {
       setIsSubmitting(false);
@@ -329,7 +336,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
     try {
       await completeSignIn(pendingLoginResult);
     } catch {
-      resetToPasswordStep("Unable to complete sign-in. Sign in again.");
+      resetToPasswordStep(t("login.unableToComplete"));
     } finally {
       setIsSubmitting(false);
     }
@@ -344,12 +351,12 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
       // Swallow
     } finally {
       setResetSubmitting(false);
-      setResetMessage("If that account exists, a reset link has been generated.");
+      setResetMessage(t("login.resetRequested"));
     }
   };
 
   const chrome = theme.custom.chrome;
-  const trustLabel = `Trust this computer for ${trustedDeviceHours} ${trustedDeviceHours === 1 ? "hour" : "hours"}`;
+  const trustLabel = t("login.trustComputer", { count: trustedDeviceHours });
 
   return (
     // Split screen: a brand panel (40%) saying what the system is, and the
@@ -367,7 +374,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
     >
       <Box
         component="section"
-        aria-label="About MicroLIMS"
+        aria-label={t("login.aboutBrandAria")}
         sx={{
           position: "relative",
           overflow: "hidden",
@@ -387,18 +394,18 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
             background: `radial-gradient(circle, ${chrome.brandBandGlow} 0%, transparent 70%)`
           }}
         />
-        <Typography sx={{ position: "relative", fontSize: { xs: 26, md: 30 }, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1.2 }}>
-          Micro<Box component="span" sx={{ fontWeight: 300, color: chrome.brandBandAccent }}>LIMS</Box>
+        <Typography dir="ltr" sx={{ position: "relative", fontSize: { xs: 26, md: 30 }, fontWeight: 700, letterSpacing: 0.5, lineHeight: 1.2 }}>
+          {BRAND_PREFIX}<Box component="span" sx={{ fontWeight: 300, color: chrome.brandBandAccent }}>{BRAND_SUFFIX}</Box>
         </Typography>
         <Box sx={{ position: "relative", my: { xs: 0, md: "auto" }, mt: { xs: 1.5 }, pt: { md: 4 } }}>
           <Typography component="h2" sx={{ fontSize: { xs: 18, md: 30 }, fontWeight: 700, lineHeight: 1.2, maxWidth: 420 }}>
-            Pharmaceutical Quality Control
+            {t("login.brandTagline")}
           </Typography>
           <Typography sx={{ display: { xs: "none", md: "block" }, mt: 1, fontSize: 16, color: chrome.brandBandMuted }}>
-            Laboratory Information Management System
+            {t("login.brandSubtitle")}
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: { xs: 1.5, md: 2.75 } }}>
-            {["FDA 21 CFR Part 11", "EU GMP Annex 11"].map((label) => (
+            {COMPLIANCE_BADGES.map((label) => (
               <Box
                 key={label}
                 component="span"
@@ -407,7 +414,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                   bgcolor: chrome.brandBandChipBg, border: `1px solid ${chrome.brandBandChipBorder}`
                 }}
               >
-                {label}
+                <Ltr>{label}</Ltr>
               </Box>
             ))}
           </Box>
@@ -416,7 +423,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
             art keeps the panel's aspect: 290/546 of the panel's 40vw width. */}
         <Box sx={{ display: { xs: "none", md: "block" }, flexShrink: 0, height: "21.3vw", position: "relative" }}>
           <Typography sx={{ position: "absolute", left: 0, bottom: 32, fontSize: 12, color: chrome.brandBandMuted }}>
-            v0.1
+            <Ltr>{APP_VERSION}</Ltr>
           </Typography>
         </Box>
         <LoginBrandArt
@@ -437,18 +444,18 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
           {forgotMode ? (
             <Box component="form" onSubmit={handleForgotSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
-                <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>Need help signing in?</Typography>
+                <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>{t("login.forgotHeading")}</Typography>
                 <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
-                  Enter your username and we'll generate a password reset request.
+                  {t("login.forgotSubtitle")}
                 </Typography>
               </Box>
               {resetMessage ? (
                 <Alert severity="info">{resetMessage}</Alert>
               ) : (
                 <>
-                  <TextField label="Username" value={resetUsername} onChange={(e) => setResetUsername(e.target.value)} autoFocus required />
+                  <TextField label={t("login.username")} value={resetUsername} onChange={(e) => setResetUsername(e.target.value)} autoFocus required />
                   <Button type="submit" variant="contained" size="large" disabled={resetSubmitting}>
-                    {resetSubmitting ? "Submitting..." : "Send Reset Link"}
+                    {resetSubmitting ? t("login.submitting") : t("login.sendResetLink")}
                   </Button>
                 </>
               )}
@@ -460,10 +467,10 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                   sx={{ fontSize: 14 }}
                   onClick={() => { setForgotMode(false); setResetMessage(null); setResetUsername(""); }}
                 >
-                  Back to sign in
+                  {t("login.backToSignIn")}
                 </Link>
                 <Link component={RouterLink} to="/admin-recovery" underline="hover" sx={{ fontSize: 14 }}>
-                  Have a recovery code from your administrator?
+                  {t("login.haveAdminRecoveryCode")}
                 </Link>
               </Stack>
             </Box>
@@ -471,18 +478,18 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
             <Box component="form" onSubmit={handleMfaSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box sx={{ mb: 1 }}>
                 <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>
-                  {useRecoveryCode ? "Enter a recovery code" : "Enter the 6-digit code"}
+                  {useRecoveryCode ? t("login.enterRecoveryCodeTitle") : t("login.enterMfaCodeTitle")}
                 </Typography>
                 <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
                   {useRecoveryCode
-                    ? "Enter one of your single-use recovery codes."
-                    : "Enter the code from your authenticator app or hardware token."}
+                    ? t("login.enterRecoveryCodeSubtitle")
+                    : t("login.enterMfaCodeSubtitle")}
                 </Typography>
               </Box>
               {mfaError && <Alert severity="error" role="alert">{mfaError}</Alert>}
               {useRecoveryCode ? (
                 <TextField
-                  label="Recovery code"
+                  label={t("login.recoveryCodeLabel")}
                   value={recoveryCode}
                   onChange={(e) => setRecoveryCode(e.target.value)}
                   disabled={isSubmitting}
@@ -524,7 +531,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                 startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
                 sx={{ mt: 0.5 }}
               >
-                {isSubmitting ? "Verifying…" : "Verify"}
+                {isSubmitting ? t("login.verifying") : t("login.verify")}
               </Button>
               <Stack spacing={1} sx={{ textAlign: "center" }}>
                 <Link
@@ -540,7 +547,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                     refocusMfaInputRef.current = true;
                   }}
                 >
-                  {useRecoveryCode ? "Use an authenticator code instead" : "Use a recovery code instead"}
+                  {useRecoveryCode ? t("login.useAuthenticatorInstead") : t("login.useRecoveryInstead")}
                 </Link>
                 <Link
                   component="button"
@@ -549,7 +556,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                   sx={{ fontSize: 14 }}
                   onClick={() => resetToPasswordStep(null)}
                 >
-                  Use a different account
+                  {t("login.useDifferentAccount")}
                 </Link>
               </Stack>
             </Box>
@@ -558,19 +565,17 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
               codes={pendingLoginResult.recoveryCodes}
               onDone={() => void handlePendingContinue()}
               submitting={isSubmitting}
-              introText="These codes are shown once. Store them safely in case you lose your token."
+              introText={t("login.recoveryCodesIntro")}
             />
           ) : step === "recoveryWarning" && pendingLoginResult ? (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>
-                Recovery code used
+                {t("login.recoveryCodeUsedTitle")}
               </Typography>
               <Alert severity="warning" role="alert">
                 {pendingLoginResult.recoveryCodesRemaining === 0
-                  ? "You have 0 recovery codes remaining. Generate new recovery codes in Profile → Security."
-                  : `You have ${pendingLoginResult.recoveryCodesRemaining} ${
-                      pendingLoginResult.recoveryCodesRemaining === 1 ? "recovery code" : "recovery codes"
-                    } remaining. You can generate a new set in Profile → Security.`}
+                  ? t("login.recoveryRemainingZero")
+                  : t("login.recoveryRemaining", { count: pendingLoginResult.recoveryCodesRemaining })}
               </Alert>
               <Button
                 type="button"
@@ -579,19 +584,19 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                 disabled={isSubmitting}
                 onClick={handlePendingContinue}
               >
-                {isSubmitting ? "Signing in…" : "Continue"}
+                {isSubmitting ? t("login.signingIn") : t("login.continue")}
               </Button>
             </Box>
           ) : (
             <Stack spacing={2}>
               <Box sx={{ mb: 1 }}>
-                <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>Sign in</Typography>
+                <Typography component="h1" sx={{ fontSize: 24, fontWeight: 700 }}>{t("login.signInHeading")}</Typography>
                 <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
                   {ssoMode === "OpenIdConnect"
-                    ? "Sign in with your company account."
+                    ? t("login.signInCompanyAccount")
                     : ssoMode === "ActiveDirectory"
-                      ? "Use your company account."
-                      : "Use your laboratory account."}
+                      ? t("login.useCompanyAccount")
+                      : t("login.useLabAccount")}
                 </Typography>
               </Box>
               {ssoModeNotice && <Alert severity="info">{ssoModeNotice}</Alert>}
@@ -603,7 +608,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                     variant="contained"
                     size="large"
                   >
-                    Sign in with your company account
+                    {t("login.ssoButton")}
                   </Button>
                   {!showEmergencyForm && (
                     <Box sx={{ textAlign: "center" }}>
@@ -613,7 +618,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                         size="small"
                         onClick={() => setShowEmergencyForm(true)}
                       >
-                        Emergency administrator sign-in
+                        {t("login.emergencyAdminSignIn")}
                       </Button>
                     </Box>
                   )}
@@ -623,7 +628,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                 <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {error && <Alert severity="error" role="alert">{error}</Alert>}
                   <TextField
-                    label={ssoMode === "ActiveDirectory" ? "Company username" : "Username"}
+                    label={ssoMode === "ActiveDirectory" ? t("login.companyUsername") : t("login.username")}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     inputRef={usernameInputRef}
@@ -632,7 +637,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                     required
                   />
                   <TextField
-                    label="Password"
+                    label={t("login.password")}
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -643,7 +648,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                         endAdornment: (
                           <InputAdornment position="end">
                             <IconButton
-                              aria-label={showPassword ? "Hide password" : "Show password"}
+                              aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
                               onClick={() => setShowPassword((prev) => !prev)}
                               edge="end"
                               size="small"
@@ -663,13 +668,13 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
                     startIcon={isSubmitting ? <CircularProgress size={18} color="inherit" /> : undefined}
                     sx={{ mt: 0.5 }}
                   >
-                    {isSubmitting ? "Signing in…" : "Sign In"}
+                    {isSubmitting ? t("login.signingIn") : t("login.signInButton")}
                   </Button>
                   {/* One way into recovery: the help screen offers both a reset
                       request and the administrator recovery-code route. */}
                   <Box sx={{ textAlign: "center" }}>
                     <Link component="button" type="button" underline="hover" sx={{ fontSize: 14 }} onClick={() => setForgotMode(true)}>
-                      Need help signing in?
+                      {t("login.forgotHeading")}
                     </Link>
                   </Box>
                 </Box>
@@ -681,7 +686,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
           <Typography
             sx={{ mt: 4.5, pt: 2, borderTop: 1, borderColor: "divider", textAlign: "center", fontSize: 12, color: "text.secondary" }}
           >
-            Authorised users only. Every sign-in attempt is recorded.
+            {t("login.auditNotice")}
           </Typography>
         </Box>
       </Box>

@@ -91,4 +91,30 @@ describe("Header language choice", () => {
     expect(html().getAttribute("lang")).toBe("en");
     expect(stored.get("language")).toBe("en");
   });
+
+  it("renders header controls and account menu labels in Arabic when Arabic is active", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window.navigator, "languages", "get").mockReturnValue(["ar"]);
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("ar");
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["common", "navigation"]);
+
+    render(
+      <PinnedLightTheme>
+        <BenchModeProvider><ThemeModeProvider><AuthProvider>
+          <LanguageProvider>
+            <MemoryRouter>
+              <Header labCodes={[]} />
+            </MemoryRouter>
+          </LanguageProvider>
+        </AuthProvider></ThemeModeProvider></BenchModeProvider>
+      </PinnedLightTheme>
+    );
+
+    await waitFor(() => expect(html().getAttribute("dir")).toBe("rtl"));
+    expect(screen.getByRole("button", { name: "البحث في MicroLIMS (Ctrl+K)" })).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /^قائمة الحساب/ }));
+    expect(await screen.findByRole("menuitem", { name: "ملفي الشخصي" })).toBeTruthy();
+    expect(screen.getByRole("menuitem", { name: "تسجيل الخروج" })).toBeTruthy();
+  });
 });

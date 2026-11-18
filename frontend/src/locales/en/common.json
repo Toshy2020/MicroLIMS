@@ -122,5 +122,294 @@
   "listSeparator": ", ",
   "gated": {
     "unavailable": "Reasons are unavailable right now"
+  },
+  "components": {
+    "viewsMenu": {
+      "saveChangesFailed": "Could not save view changes.",
+      "setDefaultFailed": "Could not update default view.",
+      "deleteFailed": "Could not delete view.",
+      "views": "Views",
+      "viewsNamedAria": "Views: {{name}}",
+      "viewsModifiedAria": "Views: {{name}} (modified)",
+      "favouriteName": "view {{name}}",
+      "clearDefaultAria": "Clear default for {{name}}",
+      "setDefaultAria": "Set {{name}} as default",
+      "renameAria": "Rename {{name}}",
+      "deleteAria": "Delete {{name}}",
+      "modified": "Modified",
+      "savedViewsAria": "Saved views",
+      "myViews": "My views",
+      "noPersonalViews": "No personal views saved",
+      "sharedViews": "Shared views",
+      "noSharedViews": "No shared views",
+      "saveChanges": "Save changes",
+      "copyName": "{{name}} (copy)",
+      "saveCopy": "Save a copy",
+      "saveAsNew": "Save as new view",
+      "deleteTitle": "Delete view",
+      "deleteMessage": "Delete saved view \"{{name}}\"? This cannot be undone.",
+      "deleteConfirm": "Delete"
+    },
+    "saveViewDialog": {
+      "renameTitle": "Rename view",
+      "copyTitle": "Save a copy",
+      "createTitle": "Save view",
+      "nameRequired": "View name is required.",
+      "nameTooLong": "View name must be {{max}} characters or fewer.",
+      "sectionRequired": "Choose a section to share with.",
+      "saveFailed": "Could not save view.",
+      "viewName": "View name",
+      "shareWithSection": "Share with section",
+      "section": "Section"
+    },
+    "columnsMenu": {
+      "columns": "Columns",
+      "requiredIdentifier": "Required identifier column",
+      "moveUpAria": "Move {{label}} up",
+      "moveDownAria": "Move {{label}} down",
+      "resetToDefault": "Reset to default"
+    },
+    "densityToggle": {
+      "rowDensityAria": "Row density",
+      "comfortable": "Comfortable",
+      "comfortableAria": "Comfortable density",
+      "compact": "Compact",
+      "compactAria": "Compact density",
+      "compactDisabledAria": "Compact density (disabled in bench mode)",
+      "compactDisabledTooltip": "Bench mode requires comfortable row spacing"
+    },
+    "bulkActionBar": {
+      "canBeActioned": "{{eligible}} of {{total}} can be {{action}}.",
+      "selectAllMatching": "Select all {{total}} that match",
+      "clear": "Clear"
+    },
+    "benchActionBar": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "saveAndNext": "Save and next"
+    },
+    "benchDialog": {
+      "discardTitle": "Discard entries?",
+      "discardMessage": "You have entries that are not saved. Closing now discards them.",
+      "discardConfirm": "Discard"
+    },
+    "benchKeypad": {
+      "ariaLabel": "Number keypad",
+      "decimalPoint": "Decimal point",
+      "backspace": "Backspace",
+      "minusSign": "Minus sign",
+      "next": "Next"
+    },
+    "connectionBanner": {
+      "offlineMessage": "No connection. Your entries are not saved to MicroLIMS. They are kept on this tablet until you can save.",
+      "restoredWithUnsaved_one": "Connection restored. You have {{count}} unsaved entry.",
+      "restoredWithUnsaved_other": "Connection restored. You have {{count}} unsaved entries.",
+      "restored": "Connection restored.",
+      "dismiss": "Dismiss"
+    },
+    "draftRestoreNotice": {
+      "regionAria": "Unsaved entry found",
+      "restore": "Restore entry",
+      "discard": "Discard",
+      "message": "An unsaved entry from {{date}} (tablet clock) was found on this tablet. It has not been saved to MicroLIMS.",
+      "confirmTitle": "Discard unsaved entry",
+      "confirmMessage": "Discard this unsaved entry? It exists only on this tablet and cannot be recovered."
+    },
+    "draftsMenu": {
+      "unknownAge": "unknown age",
+      "justNow": "just now",
+      "minutesAgo": "{{count}} min ago",
+      "hoursAgo": "{{count}} h ago",
+      "daysAgo": "{{count}} d ago",
+      "tooltip": "Unsaved entries on this tablet",
+      "buttonAria": "Unsaved entries on this tablet, {{count}}",
+      "subtitle": "Kept on this tablet only. Not saved to MicroLIMS until you save them.",
+      "openAria": "Open {{title}}",
+      "startedAt": "{{age}}. Started {{date}} (tablet clock)",
+      "rejectedPrefix": "Not saved: {{reason}}",
+      "serverRefused": "the server refused it",
+      "discardAria": "Discard {{title}}",
+      "otherUsersNote": "Another user has unsaved entries on this tablet",
+      "discardTitle": "Discard unsaved entry",
+      "discardMessage": "Discard the unsaved entry \"{{title}}\"? It exists only on this tablet and cannot be recovered.",
+      "discardConfirm": "Discard"
+    },
+    "numericEntryField": {
+      "countFormat": "Enter a whole number, 0 or more, using digits only.",
+      "decimalFormat": "Enter a number using digits, at most one decimal point and an optional leading minus sign."
+    },
+    "pastePreviewDialog": {
+      "nothingToPaste": "There is nothing to paste.",
+      "tooManyRows": "The paste has {{rows}} rows; at most {{max}} rows can be pasted at once.",
+      "noTextColumns": "There is no text or date column to paste into from this cell.",
+      "problemsBlocking_one": "{{count}} problem must be fixed in the source data before this paste can be accepted. Nothing has been entered.",
+      "problemsBlocking_other": "{{count}} problems must be fixed in the source data before this paste can be accepted. Nothing has been entered.",
+      "accept": "Accept",
+      "intro": "Check the pasted values. Accepting fills the grid only; nothing is saved until you save as usual.",
+      "tableRegionAria": "Pasted rows, scrollable",
+      "caption_one": "Paste preview, {{count}} row",
+      "caption_other": "Paste preview, {{count}} rows",
+      "rowColumn": "Row",
+      "problemColumn": "Problem",
+      "noProblem": "None",
+      "extraColumns_one": "{{count}} more column in the paste than can be filled from this cell; the extra column was not pasted.",
+      "extraColumns_other": "{{count}} more columns in the paste than can be filled from this cell; the extra columns were not pasted.",
+      "replaceWarning": "This will replace {{readings}} already entered in {{rows}}. Check them before accepting.",
+      "readingCount_one": "{{count}} reading",
+      "readingCount_other": "{{count}} readings",
+      "rowCount_one": "{{count}} row",
+      "rowCount_other": "{{count}} rows",
+      "replacedTitle": "Readings that will be replaced",
+      "replacedItem": "{{label}} ({{readings}})",
+      "leftEmptyTitle": "Left empty (not in the paste)",
+      "notPastedTitle": "Not pasted (choice columns, choose these by hand)"
+    },
+    "pendingBatchList": {
+      "discard": "Discard",
+      "saving": "Saving...",
+      "save": "Save",
+      "rowColumn": "Row",
+      "problemColumn": "Problem",
+      "actionsColumn": "Actions",
+      "noProblem": "None",
+      "removeRow": "Remove row",
+      "removeRowAria": "Remove row {{row}} ({{label}})"
+    },
+    "shortcutsDialog": {
+      "title": "Keyboard shortcuts",
+      "gridHeading": "Data entry grids",
+      "globalHeading": "Global",
+      "keyColumn": "Key",
+      "actionColumn": "Action",
+      "enterDown": "Move to the same column in the next row",
+      "up": "Move to the same column in the previous row",
+      "leftRight": "Move to the previous / next cell when the caret is at the edge of the text",
+      "tabShiftTab": "Move to the next / previous cell in reading order",
+      "ctrlD": "Copy the value from the cell above",
+      "ctrlEnter": "Save the form",
+      "escape": "Cancel edit or close the dialog",
+      "ctrlK": "Search MicroLIMS",
+      "questionMark": "Open keyboard shortcuts (when not typing in a field)"
+    },
+    "appErrorBoundary": {
+      "inlineTitle": "This page could not be displayed",
+      "fullTitle": "Something went wrong",
+      "inlineBody": "An unexpected problem stopped this page from loading. The problem has been reported to your system administrator automatically. No work you had already saved is affected - you can reload the page or use the navigation to continue elsewhere.",
+      "fullBody": "This screen stopped responding and could not recover. The problem has been reported to your system administrator automatically. No work you had already saved is affected.",
+      "reloadPage": "Reload the page"
+    },
+    "loadErrorAlert": {
+      "defaultHint": "Close and reopen this dialog to try again.",
+      "message_one": "Could not load {{lists}}. The list is shown empty because of this, not because nothing is available. {{hint}}",
+      "message_other": "Could not load {{lists}}. The lists are shown empty because of this, not because nothing is available. {{hint}}"
+    },
+    "recordChangedBanner": {
+      "reload": "Reload",
+      "message": "This record was changed by another user at {{time}}. Reload to see the latest.",
+      "confirmTitle": "Reload this record?",
+      "confirmMessage": "Discard your unsaved changes?",
+      "confirmButton": "Discard and reload"
+    },
+    "systemStatusBanner": {
+      "announcementAria": "Announcement",
+      "maintenanceMode": "Maintenance mode"
+    },
+    "returnToAnalystDialog": {
+      "failed": "Failed to return test to analyst.",
+      "title": "Return Test to Analyst",
+      "subtitle": "Return count test for recount or result re-entry",
+      "returning": "Returning...",
+      "confirm": "Confirm Return",
+      "testOrder": "Test Order",
+      "info": "Returning this test order will soft-supersede active count readings, reopen the incubation step, and return the test to the assigned analyst. If the parent sample is Under Review, it will revert to In Testing. If this is a loss on drying or water test, the assays that used its result are returned with it.",
+      "reasonLabel": "Reason for Return (optional)",
+      "reasonPlaceholder": "e.g. Plate count recount requested due to bubble artifact"
+    },
+    "auditHistoryDialog": {
+      "loadFailed": "The audit history could not be loaded.",
+      "title": "Audit History · {{entity}} #{{id}}",
+      "emptyTitle": "No audit entries recorded",
+      "emptyDescription": "No changes have been recorded for this record yet.",
+      "userId": "User #{{id}}"
+    },
+    "fileDropZone": {
+      "uploadAria": "Upload file. Accepted formats: {{formats}}",
+      "changeFile": "Change file",
+      "dragDropPrefix": "Drag and drop your file here, or",
+      "browse": "browse"
+    },
+    "filterBar": {
+      "defaultPlaceholder": "Search",
+      "clearSearch": "Clear search",
+      "resultCount_one": "{{count}} result",
+      "resultCount_other": "{{count}} results",
+      "refresh": "Refresh"
+    },
+    "criteriaCard": {
+      "title": "Acceptance criteria",
+      "parameter": "Parameter",
+      "criterion": "Acceptance criterion",
+      "unit": "Unit",
+      "source": "Source"
+    },
+    "storageLocationPicker": {
+      "equipmentMode": "Refrigerator / Freezer",
+      "areaMode": "Other area",
+      "equipmentLabel": "Storage equipment *",
+      "loadFailed": "Could not load storage equipment.",
+      "noneFound": "No in-service refrigerator or freezer found.",
+      "areaLabel": "Storage area *",
+      "areaPlaceholder": "e.g. Media Storage Area - Shelf B"
+    },
+    "printLabelsDialog": {
+      "generateFailed": "Could not generate label PDF.",
+      "loadFailed": "Could not load label print status.",
+      "reprintTitle": "Reprint labels",
+      "printTitle": "Print labels",
+      "reprint": "Reprint",
+      "print": "Print",
+      "invalidCopies": "Enter a whole number between {{min}} and {{max}}.",
+      "reasonTooShort": "Reason must be at least {{min}} characters.",
+      "readyToast": "Labels ready to print",
+      "popupBlocked": "Pop-up was blocked by your browser.",
+      "openPdf": "Open label PDF",
+      "setAllTo": "Set all to",
+      "cannotPrint": "This record cannot be printed.",
+      "copiesAria": "Number of labels for {{code}}",
+      "reasonLabel": "Reason for reprint",
+      "reasonHelper": "At least {{min}} characters"
+    },
+    "scanField": {
+      "ambiguous": "More than one record has this code. Pick it from the list.",
+      "notFound": "No record found for this code.",
+      "wrongType": "This is a {{found}}, not a {{expected}}.",
+      "cannotUse": "This record cannot be used.",
+      "notLinkedEquipment": "{{code}} is not linked to a workflow instrument. Pick it from the list.",
+      "notAvailableStep": "{{code}} is not available for this step.",
+      "selected": "Selected {{code}}",
+      "resolvingAria": "Resolving scan",
+      "scanButton": "Scan",
+      "keyboardConverted": "Keyboard was in Arabic; the code was converted.",
+      "resolveFailed": "Could not resolve scan.",
+      "scanCamera": "Scan with camera"
+    },
+    "cameraScanDialog": {
+      "permissionDenied": "Camera permission was refused. Allow camera access in your browser settings and try again.",
+      "notFound": "No camera was found on this device.",
+      "httpsRequired": "Camera scanning requires a secure (HTTPS) connection.",
+      "startFailed": "Could not start the camera.",
+      "browserUnsupported": "Camera access is not available in this browser.",
+      "title": "Scan barcode with camera",
+      "previewAria": "Camera barcode preview",
+      "hint": "Point the rear camera at a Data Matrix or Code 128 label."
+    },
+    "entityTypes": {
+      "Sample": "Sample",
+      "MediaLot": "Media lot",
+      "SolutionPreparation": "Solution preparation",
+      "Cryovial": "Cryovial",
+      "MaterialStockLot": "Material stock lot",
+      "EquipmentAsset": "Equipment"
+    }
   }
 }

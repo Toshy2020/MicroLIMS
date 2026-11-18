@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Box, Button, Typography, useTheme } from "@mui/material";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
 
 interface ConnectionBannerProps {
   online: boolean;
@@ -9,13 +11,17 @@ interface ConnectionBannerProps {
   unsavedCount: number;
 }
 
-export const OFFLINE_MESSAGE =
-  "No connection. Your entries are not saved to MicroLIMS. They are kept on this tablet until you can save.";
+export function getOfflineMessage(t: TFunction): string {
+  return t("components.connectionBanner.offlineMessage");
+}
+
+export const OFFLINE_MESSAGE = getOfflineMessage(i18n.getFixedT("en", "common"));
 
 // Tells the analyst, in words and an icon (never colour alone), that nothing is
 // being saved to the server. After a drop it announces the reconnection and the
 // number of unsaved entries; it never sends or saves anything itself.
 export function ConnectionBanner({ online, unsavedCount }: ConnectionBannerProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [sawOffline, setSawOffline] = useState(!online);
   const [dismissed, setDismissed] = useState(false);
@@ -47,7 +53,7 @@ export function ConnectionBanner({ online, unsavedCount }: ConnectionBannerProps
         >
           <WifiOffIcon fontSize="small" aria-hidden />
           <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
-            {OFFLINE_MESSAGE}
+            {getOfflineMessage(t)}
           </Typography>
         </Box>
       )}
@@ -71,12 +77,12 @@ export function ConnectionBanner({ online, unsavedCount }: ConnectionBannerProps
               <CheckCircleOutlinedIcon fontSize="small" aria-hidden />
               <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
                 {unsavedCount > 0
-                  ? `Connection restored. You have ${unsavedCount} unsaved ${unsavedCount === 1 ? "entry" : "entries"}.`
-                  : "Connection restored."}
+                  ? t("components.connectionBanner.restoredWithUnsaved", { count: unsavedCount })
+                  : t("components.connectionBanner.restored")}
               </Typography>
             </Box>
             <Button size="small" color="inherit" onClick={() => setDismissed(true)}>
-              Dismiss
+              {t("components.connectionBanner.dismiss")}
             </Button>
           </Box>
         )}

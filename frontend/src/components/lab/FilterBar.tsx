@@ -4,6 +4,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import type { ReactNode } from "react";
+import { useTranslation } from "../../i18n";
 
 const SEARCH_DEBOUNCE_MS = 250;
 
@@ -19,7 +20,9 @@ interface FilterBarProps {
   refreshing?: boolean;
 }
 
-export function FilterBar({ search, onSearch, placeholder = "Search", children, resultCount, onRefresh, refreshing }: FilterBarProps) {
+export function FilterBar({ search, onSearch, placeholder, children, resultCount, onRefresh, refreshing }: FilterBarProps) {
+  const { t } = useTranslation();
+  const searchPlaceholder = placeholder ?? t("components.filterBar.defaultPlaceholder");
   // Local text so typing is instant; the parent only sees the debounced value.
   const [text, setText] = useState(search);
   const onSearchRef = useRef(onSearch);
@@ -49,17 +52,17 @@ export function FilterBar({ search, onSearch, placeholder = "Search", children, 
           size="small"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={placeholder}
+          placeholder={searchPlaceholder}
           sx={{ minWidth: { xs: "100%", sm: 260 } }}
           slotProps={{
-            htmlInput: { "aria-label": placeholder },
+            htmlInput: { "aria-label": searchPlaceholder },
             input: {
               startAdornment: (
                 <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
               ),
               endAdornment: text ? (
                 <InputAdornment position="end">
-                  <IconButton size="small" aria-label="Clear search" onClick={clear} edge="end"><ClearIcon fontSize="small" /></IconButton>
+                  <IconButton size="small" aria-label={t("components.filterBar.clearSearch")} onClick={clear} edge="end"><ClearIcon fontSize="small" /></IconButton>
                 </InputAdornment>
               ) : undefined
             }
@@ -69,13 +72,13 @@ export function FilterBar({ search, onSearch, placeholder = "Search", children, 
         <Stack direction="row" spacing={1} sx={{ alignItems: "center", ml: "auto" }}>
           {resultCount !== undefined && (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              {resultCount} {resultCount === 1 ? "result" : "results"}
+              {t("components.filterBar.resultCount", { count: resultCount })}
             </Typography>
           )}
           {onRefresh && (
-            <Tooltip title="Refresh">
+            <Tooltip title={t("components.filterBar.refresh")}>
               <span>
-                <IconButton size="small" onClick={onRefresh} disabled={refreshing} aria-label="Refresh"><RefreshIcon /></IconButton>
+                <IconButton size="small" onClick={onRefresh} disabled={refreshing} aria-label={t("components.filterBar.refresh")}><RefreshIcon /></IconButton>
               </span>
             </Tooltip>
           )}

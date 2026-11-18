@@ -4,6 +4,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -101,27 +102,27 @@ public class MonitoringSettingsService
     private static void Validate(MonitoringSettingsRequest r)
     {
         if (r.WorkingWeekdays is < 1 or > 127)
-            throw new BusinessRuleException("Choose at least one working weekday.");
+            throw new BusinessRuleException(MessageCodes.MonitoringWorkingWeekdayRequired, "Choose at least one working weekday.");
         if (!Enum.IsDefined(r.LabWeekStartDay))
-            throw new BusinessRuleException("Invalid lab week start day.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidLabWeekStartDay, "Invalid lab week start day.");
         var tolerances = new[]
         {
             r.WaterEarlyToleranceDays, r.WaterLateToleranceDays, r.EmEarlyToleranceDays,
             r.EmLateToleranceDays, r.AcEarlyToleranceDays, r.AcLateToleranceDays
         };
         if (tolerances.Any(t => t is < 0 or > 14))
-            throw new BusinessRuleException("Tolerance days must be between 0 and 14.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidToleranceDays, "Tolerance days must be between 0 and 14.");
         if (r.WarningDayOfMonth is < 1 or > 28)
-            throw new BusinessRuleException("The warning day of the month must be between 1 and 28.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidWarningDayOfMonth, "The warning day of the month must be between 1 and 28.");
         if (r.GraceDays is < 0 or > 60)
-            throw new BusinessRuleException("Grace days must be between 0 and 60.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidGraceDays, "Grace days must be between 0 and 60.");
         if (r.DeviationDueDays is < 1 or > 365)
-            throw new BusinessRuleException("Days to close a deviation must be between 1 and 365.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidDeviationDueDays, "Days to close a deviation must be between 1 and 365.");
         if (r.FollowUpWindowDays is < 1 or > 30)
-            throw new BusinessRuleException("Follow-up sampling days must be between 1 and 30.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidFollowUpWindowDays, "Follow-up sampling days must be between 1 and 30.");
         if (r.MonthlyMinGapDays < 1 || r.MonthlyMinGapDays > r.MonthlyMaxGapDays
             || r.WeeklyMinGapDays < 1 || r.WeeklyMinGapDays > r.WeeklyMaxGapDays)
-            throw new BusinessRuleException("A minimum spacing must be at least 1 day and not exceed its maximum.");
+            throw new BusinessRuleException(MessageCodes.MonitoringInvalidSpacingRange, "A minimum spacing must be at least 1 day and not exceed its maximum.");
     }
 
     public async Task<List<LabCalendarDateResponse>> GetDatesAsync(int year) =>
@@ -134,7 +135,10 @@ public class MonitoringSettingsService
     public async Task<LabCalendarDateResponse> AddDateAsync(LabCalendarDateRequest r)
     {
         if (await _db.LabCalendarDates.AnyAsync(d => d.Date == r.Date))
-            throw new BusinessRuleException($"{r.Date:yyyy-MM-dd} is already a non-working date.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringDuplicateNonWorkingDate,
+                $"{r.Date:yyyy-MM-dd} is already a non-working date.",
+                new Dictionary<string, string> { ["date"] = r.Date.ToString("yyyy-MM-dd") });
 
         var row = new LabCalendarDate { Date = r.Date, Description = (r.Description ?? string.Empty).Trim() };
         _db.LabCalendarDates.Add(row);
@@ -145,7 +149,10 @@ public class MonitoringSettingsService
     public async Task RemoveDateAsync(int id)
     {
         var row = await _db.LabCalendarDates.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new NotFoundException($"Calendar date {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringCalendarDateNotFound,
+                $"Calendar date {id} not found.",
+                new Dictionary<string, string> { ["dateId"] = id.ToString() });
         _db.LabCalendarDates.Remove(row);
         await _db.SaveChangesAsync();
     }

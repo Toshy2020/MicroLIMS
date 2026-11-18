@@ -244,28 +244,18 @@ describe("EventDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     // Warning alert appears
-    expect(
-      await screen.findByText(
-        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
-      )
-    ).toBeTruthy();
+    const dupText = 'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.';
+    const matchDup = (_c: string, el: Element | null) => el?.tagName === "P" && el.textContent === dupText;
+    expect(await screen.findByText(matchDup)).toBeTruthy();
     expect(EquipmentPlanService.updateEvent).not.toHaveBeenCalled();
 
     // Clicking Back dismisses alert
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(
-      screen.queryByText(
-        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
-      )
-    ).toBeNull();
+    expect(screen.queryByText(matchDup)).toBeNull();
 
     // Click Save changes again and then Add anyway
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(
-      await screen.findByText(
-        'An event "Annual Calibration Visit" (Vendor visit) is already on 2026-11-05.'
-      )
-    ).toBeTruthy();
+    expect(await screen.findByText(matchDup)).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Add anyway" }));
 
@@ -316,7 +306,9 @@ describe("EventDialog", () => {
     // Duplicate alert is displayed
     expect(
       await screen.findByText(
-        'An event "Service engineer visit" (Vendor visit) is already on 2026-11-05.'
+        (_c, el) =>
+          el?.tagName === "P" &&
+          el.textContent === 'An event "Service engineer visit" (Vendor visit) is already on 2026-11-05.'
       )
     ).toBeTruthy();
 

@@ -1,6 +1,7 @@
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -28,7 +29,9 @@ public class WaterService
     {
         var errors = Validate(request);
         if (errors.Count > 0)
-            throw new BusinessRuleException(string.Join(" ", errors.Select(e => e.Message)));
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringSamplingTimeAfterReceipt,
+                string.Join(" ", errors.Select(e => e.Message)));
 
         var sample = await _workflow.ReceiveAsync(request);
         return TestingWorkspaceService.ToDto(sample);

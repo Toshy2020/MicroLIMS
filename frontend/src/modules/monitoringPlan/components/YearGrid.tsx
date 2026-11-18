@@ -1,5 +1,8 @@
 import { Box, ButtonBase, Typography, useTheme } from "@mui/material";
-import { MONTH_NAMES } from "../statusDisplay";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { MONTH_INDICES } from "../statusDisplay";
 import type { EquipmentMonthSummary, YearSummary } from "../types";
 import { StatusPill } from "./StatusPill";
 
@@ -23,13 +26,15 @@ export function YearGrid({
   onPick,
   onAddMonthEvent
 }: YearGridProps) {
+  const { t } = useTranslation("monitoring");
   const palette = useTheme().palette;
   const currentYear = year ?? summary?.year ?? Number(today.slice(0, 4));
   const currentMonth = today.startsWith(String(currentYear)) ? Number(today.slice(5, 7)) : null;
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }, gap: 1.5 }}>
-      {MONTH_NAMES.map((name, i) => {
+      {MONTH_INDICES.map((i) => {
+        const name = t(`months.${i}`);
         const m = summary?.months.find((x) => x.month === i + 1);
         const eq = equipmentSummary?.find((x) => x.month === i + 1);
 
@@ -47,12 +52,14 @@ export function YearGrid({
 
         return (
           <ButtonBase
-            key={name}
+            key={i}
             onClick={() => onPick(i)}
             aria-label={
               hasPlanned
-                ? `${name}: ${performed} of ${totalPlanned} performed${overdue > 0 ? `, ${overdue} overdue` : ""}`
-                : `${name}: nothing planned`
+                ? overdue > 0
+                  ? t("yearGrid.tileAriaPlannedOverdue", { month: name, performed, total: totalPlanned, overdue })
+                  : t("yearGrid.tileAriaPlanned", { month: name, performed, total: totalPlanned })
+                : t("yearGrid.tileAriaEmpty", { month: name })
             }
             sx={{
               p: 1.5,
@@ -61,20 +68,33 @@ export function YearGrid({
               border: 1,
               borderColor: current ? "primary.main" : "divider",
               borderRadius: 2,
-              boxShadow: current ? (t) => `inset 0 0 0 1px ${t.palette.primary.main}` : "none",
+              boxShadow: current ? (th) => `inset 0 0 0 1px ${th.palette.primary.main}` : "none",
               "&:hover": { bgcolor: "action.hover" }
             }}
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontWeight: 600 }}>{name}</Typography>
-              {current && <StatusPill tone="info" size="small">Now</StatusPill>}
+              {current && <StatusPill tone="info" size="small">{t("yearGrid.now")}</StatusPill>}
             </Box>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              {hasPlanned
-                ? `${performed} of ${totalPlanned} performed`
-                : eventsCount > 0
-                ? `${eventsCount} event(s)`
-                : "Nothing planned"}
+              {hasPlanned ? (
+                <Trans
+                  i18nKey="yearGrid.performedOfTotal"
+                  ns="monitoring"
+                  values={{ performed, total: totalPlanned }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              ) : eventsCount > 0 ? (
+                <Trans
+                  i18nKey="yearGrid.eventsCount"
+                  ns="monitoring"
+                  count={eventsCount}
+                  values={{ count: eventsCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              ) : (
+                t("yearGrid.nothingPlanned")
+              )}
             </Typography>
             {hasPlanned && (
               <>
@@ -87,12 +107,32 @@ export function YearGrid({
                   <Box sx={{ width: share(overdue), bgcolor: palette.error.main }} />
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
-                  {overdue > 0 && <StatusPill tone="detected" symbol="▲" size="small">{overdue} overdue</StatusPill>}
-                  {inProgress > 0 && <StatusPill tone="info" symbol="◐" size="small">{inProgress} in progress</StatusPill>}
-                  {upcoming > 0 && <StatusPill tone="pending" symbol="○" size="small">{upcoming} upcoming</StatusPill>}
-                  {skipped > 0 && <StatusPill tone="pending" symbol="–" size="small">{skipped} skipped</StatusPill>}
-                  {eventsCount > 0 && <StatusPill tone="info" symbol="★" size="small">{eventsCount} event(s)</StatusPill>}
-                  {performed === totalPlanned && <StatusPill tone="notDetected" symbol="✓" size="small">Complete</StatusPill>}
+                  {overdue > 0 && (
+                    <StatusPill tone="detected" symbol="▲" size="small">
+                      <Trans i18nKey="yearGrid.overdueCount" ns="monitoring" values={{ count: overdue }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    </StatusPill>
+                  )}
+                  {inProgress > 0 && (
+                    <StatusPill tone="info" symbol="◐" size="small">
+                      <Trans i18nKey="yearGrid.inProgressCount" ns="monitoring" values={{ count: inProgress }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    </StatusPill>
+                  )}
+                  {upcoming > 0 && (
+                    <StatusPill tone="pending" symbol="○" size="small">
+                      <Trans i18nKey="yearGrid.upcomingCount" ns="monitoring" values={{ count: upcoming }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    </StatusPill>
+                  )}
+                  {skipped > 0 && (
+                    <StatusPill tone="pending" symbol="–" size="small">
+                      <Trans i18nKey="yearGrid.skippedCount" ns="monitoring" values={{ count: skipped }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    </StatusPill>
+                  )}
+                  {eventsCount > 0 && (
+                    <StatusPill tone="info" symbol="★" size="small">
+                      <Trans i18nKey="yearGrid.eventsCount" ns="monitoring" count={eventsCount} values={{ count: eventsCount }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    </StatusPill>
+                  )}
+                  {performed === totalPlanned && <StatusPill tone="notDetected" symbol="✓" size="small">{t("yearGrid.complete")}</StatusPill>}
                 </Box>
               </>
             )}
@@ -115,7 +155,7 @@ export function YearGrid({
                     "&:hover": { bgcolor: "action.hover", textDecoration: "underline" }
                   }}
                 >
-                  Add event for this month
+                  {t("yearGrid.addMonthEvent")}
                 </ButtonBase>
               </Box>
             )}

@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { Box, ButtonBase, IconButton, Popover, Typography, useTheme } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import {
-  EQUIPMENT_STATUS_LABEL,
+  EQUIPMENT_STATUS_KEY,
   EQUIPMENT_STATUS_SYMBOL,
   EQUIPMENT_STATUS_TOKEN,
-  MONTH_NAMES,
-  STATUS_LABEL,
+  STATUS_KEY,
   STATUS_SYMBOL,
   STATUS_TOKEN,
-  WEEKDAY_LABELS,
+  WEEKDAY_INDICES,
   isWeekend,
   isoDate
 } from "../statusDisplay";
@@ -18,6 +20,7 @@ import { OccurrenceStatusChip } from "./OccurrenceStatusChip";
 import { StatusPill } from "./StatusPill";
 
 const VISIBLE_PER_DAY = 2;
+const EVENT_SYMBOL = "★";
 
 type GridItem =
   | { kind: "occurrence"; data: OccurrenceSummary }
@@ -25,6 +28,7 @@ type GridItem =
   | { kind: "event"; data: CalendarEventResponse };
 
 function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: OccurrenceSummary) => void }) {
+  const { t } = useTranslation("monitoring");
   const tokens = useTheme().custom.status[STATUS_TOKEN[o.status]];
   return (
     <ButtonBase
@@ -32,7 +36,7 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
         e.stopPropagation();
         onPick(o);
       }}
-      aria-label={`${o.target}${o.category === "Water" && o.labSectionCode ? ` (${o.labSectionCode})` : ""}, ${STATUS_LABEL[o.status]}`}
+      aria-label={`${o.target}${o.category === "Water" && o.labSectionCode ? ` (${o.labSectionCode})` : ""}, ${t(STATUS_KEY[o.status])}`}
       sx={{
         display: "flex", alignItems: "center", gap: 0.5, width: "100%", textAlign: "left", fontSize: 12, lineHeight: 1.4,
         px: 0.5, py: 0.25, mt: 0.375, borderRadius: 0.5, overflow: "hidden",
@@ -41,7 +45,9 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
       }}
     >
       <Box component="span" aria-hidden="true" sx={{ flex: "none", fontWeight: 700 }}>{STATUS_SYMBOL[o.status]}</Box>
-      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{o.target}</Box>
+      <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+        <Ltr>{o.target}</Ltr>
+      </Box>
       {o.category === "Water" && o.labSectionCode && (
         <Box
           component="span"
@@ -56,7 +62,7 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
             letterSpacing: "0.02em"
           }}
         >
-          {o.labSectionCode}
+          <Ltr>{o.labSectionCode}</Ltr>
         </Box>
       )}
     </ButtonBase>
@@ -64,20 +70,21 @@ function OccurrenceChip({ o, onPick }: { o: OccurrenceSummary; onPick: (o: Occur
 }
 
 function EquipmentTaskChip({
-  t,
+  task,
   onPick
 }: {
-  t: EquipmentTaskItem;
-  onPick?: (t: EquipmentTaskItem) => void;
+  task: EquipmentTaskItem;
+  onPick?: (task: EquipmentTaskItem) => void;
 }) {
-  const tokens = useTheme().custom.status[EQUIPMENT_STATUS_TOKEN[t.status]];
+  const { t } = useTranslation("monitoring");
+  const tokens = useTheme().custom.status[EQUIPMENT_STATUS_TOKEN[task.status]];
   return (
     <ButtonBase
       onClick={(e) => {
         e.stopPropagation();
-        onPick?.(t);
+        onPick?.(task);
       }}
-      aria-label={`${t.equipmentCode}, ${t.type}, ${EQUIPMENT_STATUS_LABEL[t.status]}`}
+      aria-label={`${task.equipmentCode}, ${task.type}, ${t(EQUIPMENT_STATUS_KEY[task.status])}`}
       sx={{
         display: "flex", alignItems: "center", gap: 0.5, width: "100%", textAlign: "left", fontSize: 12, lineHeight: 1.4,
         px: 0.5, py: 0.25, mt: 0.375, borderRadius: 0.5, overflow: "hidden",
@@ -86,10 +93,10 @@ function EquipmentTaskChip({
       }}
     >
       <Box component="span" aria-hidden="true" sx={{ flex: "none", fontWeight: 700 }}>
-        {EQUIPMENT_STATUS_SYMBOL[t.status]}
+        {EQUIPMENT_STATUS_SYMBOL[task.status]}
       </Box>
       <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-        {t.equipmentCode} · {t.type === "Calibration" ? "Cal" : "PM"}
+        <Ltr>{task.equipmentCode}</Ltr> · {task.type === "Calibration" ? t("monthGrid.calShort") : t("monthGrid.pmShort")}
       </Box>
     </ButtonBase>
   );
@@ -102,6 +109,7 @@ function EventChip({
   e: CalendarEventResponse;
   onPick?: (e: CalendarEventResponse) => void;
 }) {
+  const { t } = useTranslation("monitoring");
   const theme = useTheme();
   const tokens = e.reportPending ? theme.custom.status.inconclusive : theme.custom.status.info;
   return (
@@ -110,7 +118,7 @@ function EventChip({
         ev.stopPropagation();
         onPick?.(e);
       }}
-      aria-label={`${e.title}, Event`}
+      aria-label={`${e.title}, ${t("monthGrid.event")}`}
       sx={{
         display: "flex", alignItems: "center", gap: 0.5, width: "100%", textAlign: "left", fontSize: 12, lineHeight: 1.4,
         px: 0.5, py: 0.25, mt: 0.375, borderRadius: 0.5, overflow: "hidden",
@@ -119,7 +127,7 @@ function EventChip({
       }}
     >
       <Box component="span" aria-hidden="true" sx={{ flex: "none", fontWeight: 700 }}>
-        ★
+        {EVENT_SYMBOL}
       </Box>
       <Box component="span" sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {e.title}
@@ -156,6 +164,7 @@ export function MonthGrid({
   onPickEvent,
   onAddEvent
 }: MonthGridProps) {
+  const { t } = useTranslation("monitoring");
   const [more, setMore] = useState<{ anchor: HTMLElement; iso: string } | null>(null);
   const first = new Date(Date.UTC(year, month, 1));
   const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
@@ -168,9 +177,9 @@ export function MonthGrid({
     byDay.set(key, [...(byDay.get(key) ?? []), { kind: "occurrence", data: o }]);
   }
 
-  for (const t of tasks) {
-    const key = t.dueDate;
-    byDay.set(key, [...(byDay.get(key) ?? []), { kind: "task", data: t }]);
+  for (const task of tasks) {
+    const key = task.dueDate;
+    byDay.set(key, [...(byDay.get(key) ?? []), { kind: "task", data: task }]);
   }
 
   const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
@@ -185,13 +194,14 @@ export function MonthGrid({
 
   const cells: (number | null)[] = [...Array(lead).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   const moreItems = more ? byDay.get(more.iso) ?? [] : [];
+  const monthName = t(`months.${month}`);
 
   return (
     <>
       {monthEvents.length > 0 && (
         <Box sx={{ mb: 1.5, p: 1, bgcolor: "background.paper", borderRadius: 1, border: 1, borderColor: "divider" }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mb: 0.5 }}>
-            Events this month
+            {t("monthGrid.eventsThisMonth")}
           </Typography>
           <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
             {monthEvents.map((ev) => (
@@ -214,7 +224,7 @@ export function MonthGrid({
               >
                 <Typography sx={{ fontSize: 12, fontWeight: 500 }}>{ev.title}</Typography>
                 {ev.reportPending && (
-                  <StatusPill tone="inconclusive" size="small">Report pending</StatusPill>
+                  <StatusPill tone="inconclusive" size="small">{t("monthGrid.reportPending")}</StatusPill>
                 )}
               </ButtonBase>
             ))}
@@ -223,9 +233,9 @@ export function MonthGrid({
       )}
 
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 0.5 }}>
-        {WEEKDAY_LABELS.map((d, i) => (
-          <Typography key={d} sx={{ fontSize: 12, fontWeight: 600, textAlign: "center", color: isWeekend(i) ? "text.disabled" : "text.secondary" }}>
-            {d}
+        {WEEKDAY_INDICES.map((i) => (
+          <Typography key={i} sx={{ fontSize: 12, fontWeight: 600, textAlign: "center", color: isWeekend(i) ? "text.disabled" : "text.secondary" }}>
+            {t(`weekdays.${i}`)}
           </Typography>
         ))}
         {cells.map((day, i) => {
@@ -239,7 +249,7 @@ export function MonthGrid({
             <Box
               key={iso}
               role="group"
-              aria-label={`${day} ${MONTH_NAMES[month]}${isToday ? ", today" : ""}, ${items.length} item(s)`}
+              aria-label={t(isToday ? "monthGrid.dayAriaToday" : "monthGrid.dayAria", { day, month: monthName, count: items.length })}
               // Any day takes an event: click the free space of the cell, or its + button
               // (the keyboard path). Chips and "+N more" stop propagation.
               onClick={() => onAddEvent?.(iso)}
@@ -260,13 +270,13 @@ export function MonthGrid({
                     ...(isToday && { bgcolor: "primary.main", color: "primary.contrastText" })
                   }}
                 >
-                  {day}
+                  <Ltr>{day}</Ltr>
                 </Box>
                 {onAddEvent && (
                   <IconButton
                     className="add-event"
                     size="small"
-                    aria-label={`Add event on ${day} ${MONTH_NAMES[month]}`}
+                    aria-label={t("monthGrid.addEventOn", { day, month: monthName })}
                     onClick={(e) => {
                       e.stopPropagation();
                       onAddEvent(iso);
@@ -282,7 +292,7 @@ export function MonthGrid({
                   return <OccurrenceChip key={`occ-${item.data.id}`} o={item.data} onPick={onPick} />;
                 }
                 if (item.kind === "task") {
-                  return <EquipmentTaskChip key={`task-${item.data.id}`} t={item.data} onPick={onPickTask} />;
+                  return <EquipmentTaskChip key={`task-${item.data.id}`} task={item.data} onPick={onPickTask} />;
                 }
                 return <EventChip key={`evt-${item.data.id}`} e={item.data} onPick={onPickEvent} />;
               })}
@@ -295,7 +305,7 @@ export function MonthGrid({
                   }}
                   sx={{ mt: 0.375, px: 0.5, borderRadius: 0.5, fontSize: 12, fontWeight: 600, color: "primary.main", "&:hover": { bgcolor: "action.hover" } }}
                 >
-                  +{items.length - VISIBLE_PER_DAY} more
+                  {t("monthGrid.more", { count: items.length - VISIBLE_PER_DAY })}
                 </ButtonBase>
               )}
             </Box>
@@ -309,7 +319,14 @@ export function MonthGrid({
       >
         <Box sx={{ p: 1.5, width: 300, maxWidth: "calc(100vw - 32px)" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 0.5 }}>
-            {more ? `${Number(more.iso.slice(8))} ${MONTH_NAMES[month]} · ${moreItems.length} items` : ""}
+            {more ? (
+              <Trans
+                i18nKey="monthGrid.popoverHeader"
+                ns="monitoring"
+                values={{ day: Number(more.iso.slice(8)), month: monthName, count: moreItems.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            ) : ""}
           </Typography>
           {moreItems.map((item) => {
             if (item.kind === "occurrence") {
@@ -321,7 +338,7 @@ export function MonthGrid({
                   sx={{ display: "flex", width: "100%", justifyContent: "space-between", gap: 1, py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                    <Typography sx={{ fontSize: 13 }}>{o.target}</Typography>
+                    <Typography sx={{ fontSize: 13 }}><Ltr>{o.target}</Ltr></Typography>
                     {o.category === "Water" && o.labSectionCode && (
                       <Box
                         component="span"
@@ -335,7 +352,7 @@ export function MonthGrid({
                           letterSpacing: "0.02em"
                         }}
                       >
-                        {o.labSectionCode}
+                        <Ltr>{o.labSectionCode}</Ltr>
                       </Box>
                     )}
                   </Box>
@@ -344,17 +361,17 @@ export function MonthGrid({
               );
             }
             if (item.kind === "task") {
-              const t = item.data;
-              const tone = EQUIPMENT_STATUS_TOKEN[t.status];
-              const symbol = EQUIPMENT_STATUS_SYMBOL[t.status];
+              const task = item.data;
+              const tone = EQUIPMENT_STATUS_TOKEN[task.status];
+              const symbol = EQUIPMENT_STATUS_SYMBOL[task.status];
               return (
                 <ButtonBase
-                  key={`task-${t.id}`}
-                  onClick={() => { setMore(null); onPickTask?.(t); }}
+                  key={`task-${task.id}`}
+                  onClick={() => { setMore(null); onPickTask?.(task); }}
                   sx={{ display: "flex", width: "100%", justifyContent: "space-between", gap: 1, py: 0.5, px: 0.75, textAlign: "left", borderRadius: 1, "&:hover": { bgcolor: "action.hover" } }}
                 >
-                  <Typography sx={{ fontSize: 13 }}>{t.equipmentCode}</Typography>
-                  <StatusPill tone={tone} symbol={symbol} size="small">{t.status}</StatusPill>
+                  <Typography sx={{ fontSize: 13 }}><Ltr>{task.equipmentCode}</Ltr></Typography>
+                  <StatusPill tone={tone} symbol={symbol} size="small">{t(EQUIPMENT_STATUS_KEY[task.status])}</StatusPill>
                 </ButtonBase>
               );
             }
@@ -367,9 +384,9 @@ export function MonthGrid({
               >
                 <Typography sx={{ fontSize: 13 }}>{ev.title}</Typography>
                 {ev.reportPending ? (
-                  <StatusPill tone="inconclusive" size="small">Report pending</StatusPill>
+                  <StatusPill tone="inconclusive" size="small">{t("monthGrid.reportPending")}</StatusPill>
                 ) : (
-                  <StatusPill tone="info" size="small">Event</StatusPill>
+                  <StatusPill tone="info" size="small">{t("monthGrid.event")}</StatusPill>
                 )}
               </ButtonBase>
             );

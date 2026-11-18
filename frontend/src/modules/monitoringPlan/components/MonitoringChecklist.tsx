@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Box, Checkbox, FormControlLabel, Paper, Typography } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
 import { useHasPermission } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { MonitoringPlanService } from "../services/MonitoringPlanService";
 import { periodLabel } from "../statusDisplay";
@@ -11,6 +14,7 @@ import type { MonitoringChecklist as Checklist } from "../types";
 // this month and which are ticked to start with; this only reports the
 // analyst's choices through onChange.
 export function MonitoringChecklist({ sampleId, onChange }: { sampleId: number; onChange: (occurrenceIds: number[]) => void }) {
+  const { t } = useTranslation("monitoring");
   const allowed = useHasPermission(PERMISSIONS.MONITORING_PLAN_VIEW);
   const [checklist, setChecklist] = useState<Checklist | null>(null);
   const [ticked, setTicked] = useState<Record<number, boolean>>({});
@@ -44,9 +48,9 @@ export function MonitoringChecklist({ sampleId, onChange }: { sampleId: number; 
 
   return (
     <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
-      <Typography sx={{ fontWeight: 600, mb: 0.5 }}>Monitoring plan</Typography>
+      <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{t("checklist.title")}</Typography>
       <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-        Tick what this session fulfils. A ticked entry needs its tests selected below.
+        {t("checklist.subtitle")}
       </Typography>
       {sections.map((s) => (
         <Box key={s.key} sx={{ mb: 1 }}>
@@ -58,7 +62,11 @@ export function MonitoringChecklist({ sampleId, onChange }: { sampleId: number; 
               control={<Checkbox size="small" checked={!!ticked[o.occurrenceId]} onChange={() => toggle(o.occurrenceId)} />}
               label={
                 <Box>
-                  <Typography sx={{ fontSize: 14 }}>{o.target} · {periodLabel(o.periodKey)} (window ends {o.windowEnd})</Typography>
+                  <Typography sx={{ fontSize: 14 }}>
+                    <Ltr>{o.target}</Ltr> · {periodLabel(o.periodKey, t)} (
+                    <Trans i18nKey="checklist.windowEnds" ns="monitoring" values={{ date: o.windowEnd }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                    )
+                  </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                     {o.remainingItems.map((i) => i.label).join(", ")}
                   </Typography>

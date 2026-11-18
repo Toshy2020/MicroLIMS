@@ -1,5 +1,5 @@
 {
-  "total": 9431,
+  "total": 9142,
   "modules": {
     "components": 351,
     "modules/admin": 366,
@@ -17,7 +17,6 @@
     "modules/kpi": 124,
     "modules/laboratoryConfiguration": 2781,
     "modules/messages": 31,
-    "modules/monitoringPlan": 289,
     "modules/navigation": 12,
     "modules/notifications": 39,
     "modules/oosTracking": 55,

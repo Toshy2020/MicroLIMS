@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -261,18 +262,34 @@ public class MonitoringDeviationService
     {
         var reason = request.Reason?.Trim();
         if (string.IsNullOrEmpty(reason) || reason.Length < 5)
-            throw new BusinessRuleException("Give a reason of at least five characters.");
+            throw new BusinessRuleException(MessageCodes.MonitoringReasonTooShort, "Give a reason of at least five characters.");
         var ids = (request.DeviationIds ?? new List<int>()).Distinct().ToList();
-        if (ids.Count == 0) throw new BusinessRuleException("Choose at least one deviation to close.");
-        if (ids.Count > MaxPerRequest) throw new BusinessRuleException($"Close at most {MaxPerRequest} deviations at a time.");
+        if (ids.Count == 0)
+            throw new BusinessRuleException(MessageCodes.MonitoringChooseAtLeastOneDeviation, "Choose at least one deviation to close.");
+        if (ids.Count > MaxPerRequest)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringTooManyDeviationsToClose,
+                $"Close at most {MaxPerRequest} deviations at a time.",
+                new Dictionary<string, string> { ["max"] = MaxPerRequest.ToString() });
 
         var rows = await _db.MonitoringDeviations
             .Include(d => d.MonitoringOccurrence).ThenInclude(o => o!.Items)
             .Where(d => ids.Contains(d.Id)).ToListAsync();
         var missing = ids.Except(rows.Select(d => d.Id)).ToList();
-        if (missing.Count > 0) throw new NotFoundException($"Deviation(s) not found: {string.Join(", ", missing)}.");
+        if (missing.Count > 0)
+        {
+            var missingText = string.Join(", ", missing);
+            throw new NotFoundException(
+                MessageCodes.MonitoringDeviationsNotFound,
+                $"Deviation(s) not found: {missingText}.",
+                new Dictionary<string, string> { ["ids"] = missingText });
+        }
         var closed = rows.FirstOrDefault(d => d.Status != DeviationStatus.Open);
-        if (closed is not null) throw new BusinessRuleException($"{closed.Number} is already closed.");
+        if (closed is not null)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringDeviationAlreadyClosed,
+                $"{closed.Number} is already closed.",
+                new Dictionary<string, string> { ["number"] = closed.Number });
 
         foreach (var d in rows)
         {
@@ -280,7 +297,10 @@ public class MonitoringDeviationService
                 ? request.Closure is DeviationClosure.NotApplicableBeforeGoLive or DeviationClosure.Justified
                 : request.Closure == DeviationClosure.Investigated;
             if (!allowed)
-                throw new BusinessRuleException($"{d.Number} cannot be closed as '{request.Closure}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringDeviationClosureNotAllowed,
+                    $"{d.Number} cannot be closed as '{request.Closure}'.",
+                    new Dictionary<string, string> { ["number"] = d.Number, ["closure"] = request.Closure.ToString() });
         }
 
         var skipping = request.Closure == DeviationClosure.NotApplicableBeforeGoLive;
@@ -290,10 +310,16 @@ public class MonitoringDeviationService
             var details = await _status.ComputeAsync(occurrences);
             var started = rows.FirstOrDefault(d => details[d.MonitoringOccurrenceId].Items.Any(i => i.Progress != ItemProgress.None));
             if (started is not null)
-                throw new BusinessRuleException($"{started.Number}: a test was already started for this occurrence, so it cannot be closed as not applicable.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringDeviationTestAlreadyStarted,
+                    $"{started.Number}: a test was already started for this occurrence, so it cannot be closed as not applicable.",
+                    new Dictionary<string, string> { ["number"] = started.Number });
             var skipped = rows.FirstOrDefault(d => d.MonitoringOccurrence!.ExceptionState != OccurrenceExceptionState.None);
             if (skipped is not null)
-                throw new BusinessRuleException($"{skipped.Number}: this occurrence has already been skipped or retired.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringDeviationOccurrenceAlreadySkippedOrRetired,
+                    $"{skipped.Number}: this occurrence has already been skipped or retired.",
+                    new Dictionary<string, string> { ["number"] = skipped.Number });
         }
 
         await UnitOfWork.RunAsync(_db, async () =>

@@ -18,13 +18,17 @@ import {
   ToggleButtonGroup,
   Typography
 } from "@mui/material";
-import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { Trans } from "react-i18next";
+import { DateField } from "../../../components/DateField";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { serverMessage } from "../../../utils/errorMessage";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
-import { EVENT_TYPE_LABEL } from "../statusDisplay";
-import type { CalendarEventResponse, CalendarEventType, CreateCalendarEventRequest } from "../types";
 import { isDuplicateCalendarEvent } from "../eventDuplicates";
-import { DateField } from "../../../components/DateField";
+import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { EVENT_TYPE_KEY } from "../statusDisplay";
+import type { CalendarEventResponse, CalendarEventType, CreateCalendarEventRequest } from "../types";
 
 export interface AddEventDialogProps {
   open: boolean;
@@ -47,6 +51,7 @@ export function AddEventDialog({
   existingEvents,
   events
 }: AddEventDialogProps) {
+  const { t } = useTranslation("monitoring");
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
   const [title, setTitle] = useState("");
   const [dateMode, setDateMode] = useState<"day" | "month">(
@@ -58,7 +63,7 @@ export function AddEventDialog({
   const [equipmentList, setEquipmentList] = useState<EquipmentItem[]>([]);
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentItem | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; type: CalendarEventType; dateOrMonth: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -71,7 +76,7 @@ export function AddEventDialog({
       setSelectedEquipment(null);
       setNote("");
       setError(null);
-      setDuplicateWarning(null);
+      setDuplicateInfo(null);
       setBusy(false);
       EquipmentInventoryService.getAll()
         .then((items) => setEquipmentList(items || []))
@@ -81,7 +86,7 @@ export function AddEventDialog({
 
   const submitWithData = async (confirmDuplicate = false) => {
     if (!title.trim()) {
-      setError("Title is required.");
+      setError(t("errors.titleRequired"));
       return;
     }
 
@@ -100,16 +105,15 @@ export function AddEventDialog({
         })
       );
       if (isDup) {
-        const dateOrMonth = targetDate ?? targetMonth ?? "";
         setError(null);
-        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+        setDuplicateInfo({ title: title.trim(), type, dateOrMonth: targetDate ?? targetMonth ?? "" });
         return;
       }
     }
 
     setBusy(true);
     setError(null);
-    setDuplicateWarning(null);
+    setDuplicateInfo(null);
 
     const payload: CreateCalendarEventRequest = {
       type,
@@ -129,13 +133,12 @@ export function AddEventDialog({
       }
       onCreated?.();
       onClose();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.message ?? "";
+    } catch (err: unknown) {
+      const msg = serverMessage(err) ?? (err instanceof Error ? err.message : "");
       if (typeof msg === "string" && msg.startsWith("A matching event already exists")) {
-        const dateOrMonth = targetDate ?? targetMonth ?? "";
-        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+        setDuplicateInfo({ title: title.trim(), type, dateOrMonth: targetDate ?? targetMonth ?? "" });
       } else {
-        setError(msg || "Could not create the event.");
+        setError(msg || t("errors.createEvent"));
       }
     } finally {
       setBusy(false);
@@ -152,21 +155,30 @@ export function AddEventDialog({
   };
 
   const handleBack = () => {
-    setDuplicateWarning(null);
+    setDuplicateInfo(null);
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle>Add calendar event</DialogTitle>
+        <DialogTitle>{t("eventDialog.addTitle")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
             {error && <Alert severity="error">{error}</Alert>}
-            {duplicateWarning && (
+            {duplicateInfo && (
               <Alert severity="warning">
                 <Box>
                   <Typography variant="body2" sx={{ mb: 1 }}>
-                    {duplicateWarning}
+                    <Trans
+                      i18nKey="eventDialog.duplicateWarning"
+                      ns="monitoring"
+                      values={{
+                        title: duplicateInfo.title,
+                        type: t(EVENT_TYPE_KEY[duplicateInfo.type]),
+                        dateOrMonth: duplicateInfo.dateOrMonth
+                      }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
                   </Typography>
                   <Box sx={{ display: "flex", gap: 1 }}>
                     <Button
@@ -175,14 +187,14 @@ export function AddEventDialog({
                       onClick={handleAddAnyway}
                       disabled={busy}
                     >
-                      Add anyway
+                      {t("commonFields.addAnyway")}
                     </Button>
                     <Button
                       size="small"
                       onClick={handleBack}
                       disabled={busy}
                     >
-                      Back
+                      {t("commonFields.back")}
                     </Button>
                   </Box>
                 </Box>
@@ -190,29 +202,29 @@ export function AddEventDialog({
             )}
 
             <FormControl fullWidth size="small">
-              <InputLabel id="event-type-label">Event type</InputLabel>
+              <InputLabel id="event-type-label">{t("eventDialog.eventType")}</InputLabel>
               <Select
                 labelId="event-type-label"
                 value={type}
-                label="Event type"
+                label={t("eventDialog.eventType")}
                 onChange={(e) => setType(e.target.value as CalendarEventType)}
               >
-                {(Object.keys(EVENT_TYPE_LABEL) as CalendarEventType[]).map((t) => (
-                  <MenuItem key={t} value={t}>
-                    {EVENT_TYPE_LABEL[t]}
+                {(Object.keys(EVENT_TYPE_KEY) as CalendarEventType[]).map((k) => (
+                  <MenuItem key={k} value={k}>
+                    {t(EVENT_TYPE_KEY[k])}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
 
             <TextField
-              label="Title"
+              label={t("eventDialog.title")}
               required
               fullWidth
               size="small"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Annual balance calibration"
+              placeholder={t("eventDialog.titlePlaceholder")}
             />
 
             <Box>
@@ -232,24 +244,24 @@ export function AddEventDialog({
                 }}
               >
                 <ToggleButton value="day" sx={{ textTransform: "none" }}>
-                  On a day
+                  {t("eventDialog.onADay")}
                 </ToggleButton>
                 <ToggleButton value="month" sx={{ textTransform: "none" }}>
-                  Whole month
+                  {t("eventDialog.wholeMonth")}
                 </ToggleButton>
               </ToggleButtonGroup>
             </Box>
 
             {dateMode === "day" ? (
               <DateField
-                label="Specific date"
+                label={t("eventDialog.specificDate")}
                 fullWidth
                 value={date}
                 onChange={(v) => setDate(v)}
               />
             ) : (
               <TextField
-                label="Whole month"
+                label={t("eventDialog.wholeMonth")}
                 type="month"
                 size="small"
                 fullWidth
@@ -269,30 +281,30 @@ export function AddEventDialog({
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Instrument (optional)"
-                  placeholder="Search equipment register..."
+                  label={t("eventDialog.instrumentOptional")}
+                  placeholder={t("eventDialog.instrumentPlaceholder")}
                 />
               )}
             />
 
             <TextField
-              label="Note"
+              label={t("eventDialog.note")}
               multiline
               rows={3}
               fullWidth
               size="small"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Optional notes or details"
+              placeholder={t("eventDialog.notePlaceholder")}
             />
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={busy}>
-            Cancel
+            {t("commonFields.cancel")}
           </Button>
           <Button type="submit" variant="contained" disabled={busy || !title.trim()}>
-            Add event
+            {t("eventDialog.addEvent")}
           </Button>
         </DialogActions>
       </form>

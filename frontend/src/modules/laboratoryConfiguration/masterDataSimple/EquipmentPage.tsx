@@ -61,6 +61,7 @@ import {
 } from "./equipmentWizard/equipmentFormModel";
 import { EquipmentWizard } from "./equipmentWizard/EquipmentWizard";
 import { FP_ONLY_EQUIPMENT_TYPES, MICRO_EQUIPMENT_TYPES } from "./equipmentWizard/equipmentOptions";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 interface ApiErrorShape {
   response?: { data?: { error?: string; message?: string } };
@@ -786,7 +787,7 @@ export function EquipmentPage() {
                         <Typography variant="body2" sx={{
                           fontWeight: 600
                         }}>
-                          {selectedEquipment.calibrationDueDate ? new Date(selectedEquipment.calibrationDueDate).toLocaleDateString() : "—"}
+                          {selectedEquipment.calibrationDueDate ? formatLabCalendarDate(selectedEquipment.calibrationDueDate) : "—"}
                         </Typography>
                       </Box>
                       <Box>
@@ -845,7 +846,7 @@ export function EquipmentPage() {
                           <TableBody>
                             {safeSetPointHistory.map((h) => (
                               <TableRow key={h.id}>
-                                <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                                <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
                                 <TableCell align="right">{h.previousSetPoint} °C</TableCell>
                                 <TableCell align="right" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{h.newSetPoint} °C</TableCell>
                                 <TableCell>{h.changedByName}</TableCell>
@@ -1085,7 +1086,7 @@ export function EquipmentPage() {
                   <TableBody>
                     {safeSetPointHistory.map((h) => (
                       <TableRow key={`sp-${h.id}`}>
-                        <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                        <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>{selectedEquipment?.code ?? "Incubator"}</TableCell>
                         <TableCell><Chip size="small" label="Set Point" color="primary" variant="outlined" /></TableCell>
                         <TableCell>Set Point: {h.previousSetPoint} °C → {h.newSetPoint} °C</TableCell>
@@ -1321,7 +1322,7 @@ export function EquipmentPage() {
               <TableBody>
                 {Array.isArray(programHistory) && programHistory.map((h) => (
                   <TableRow key={h.id}>
-                    <TableCell>{new Date(h.changedAt).toLocaleString()}</TableCell>
+                    <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
                     <TableCell><Chip size="small" label={h.action} color={h.action === "Created" ? "success" : "info"} /></TableCell>
                     <TableCell>{h.newProgramName}</TableCell>
                     <TableCell>{h.newLoadType}</TableCell>

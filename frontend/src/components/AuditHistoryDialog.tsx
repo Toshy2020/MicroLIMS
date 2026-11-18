@@ -9,7 +9,7 @@ import {
   useTheme
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
-import { formatLabDateTime } from "../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { FloatingDialog } from "./FloatingDialog";
 import { DialogBodySkeleton } from "./DialogBodySkeleton";
 import { EmptyState } from "./lab/EmptyState";
@@ -141,7 +141,7 @@ export function AuditHistoryDialog({
                 </Box>
 
                 <Typography component="time" dateTime={entry.timestamp} sx={{ fontSize: 12.5, color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
-                  {formatLabDateTime(entry.timestamp)} UTC
+                  {formatDateTimeWithTimeZone(entry.timestamp)}
                 </Typography>
               </Box>
 

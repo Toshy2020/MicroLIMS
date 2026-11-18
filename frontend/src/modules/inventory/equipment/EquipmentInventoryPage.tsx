@@ -10,7 +10,7 @@ import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { TableSkeleton } from "../../../components/TableSkeleton";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
@@ -228,7 +228,7 @@ export function EquipmentInventoryPage() {
                   : "inherit"
               }}
             >
-              {eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—"}
+              {eq.calibrationDueDate ? formatLabCalendarDate(eq.calibrationDueDate) : "—"}
             </Box>
             {isOverdue && <StatusBadge status="Overdue" />}
             {isDueSoon && <StatusBadge status="Due Soon" />}
@@ -391,7 +391,7 @@ export function EquipmentInventoryPage() {
           { label: "Firmware", render: (eq) => eq.firmwareVersion || "—" },
           { label: "Code", render: (eq) => eq.code },
           { label: "Location", render: (eq) => eq.location },
-          { label: "Calibration Due", render: (eq) => (eq.calibrationDueDate ? formatLabDate(eq.calibrationDueDate) : "—") }
+          { label: "Calibration Due", render: (eq) => (eq.calibrationDueDate ? formatLabCalendarDate(eq.calibrationDueDate) : "—") }
         ]}
       />
 

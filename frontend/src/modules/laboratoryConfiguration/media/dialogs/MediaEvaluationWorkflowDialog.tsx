@@ -31,6 +31,7 @@ import { masterDataOptions, evaluationTypeLabel } from "../../../../services/mas
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { useLoadFailures } from "../../../../hooks/useLoadFailures";
 import { ChallengeOrganismSourcePicker } from "../../mediaEvaluation/components/ChallengeOrganismSourcePicker";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 interface Props {
   open: boolean;
@@ -333,7 +334,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                         {isReadyToRead(c) ? (
                           <span style={{ color: theme.custom.status.notDetected.text, fontWeight: 600 }}>Ready to read</span>
                         ) : (
-                          <span>Earliest reading: {new Date(c.incubation.expectedReadingAt!).toLocaleString()}</span>
+                          <span>Earliest reading: {formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}</span>
                         )}
                       </Typography>
                     ) : (
@@ -409,7 +410,7 @@ export function MediaEvaluationWorkflowDialog({ open, evaluationId, onClose, onU
                     ) : !isReadyToRead(c) ? (
                       <Alert severity="info" sx={{ mt: 1 }}>
                         {c.incubation
-                          ? `Incubation still in progress; result entry opens at ${new Date(c.incubation.expectedReadingAt!).toLocaleString()}.`
+                          ? `Incubation still in progress; result entry opens at ${formatDateTimeWithTimeZone(c.incubation.expectedReadingAt!)}.`
                           : "Record incubation before a result can be entered."}
                       </Alert>
                     ) : (

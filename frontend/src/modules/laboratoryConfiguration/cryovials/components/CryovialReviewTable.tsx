@@ -4,7 +4,7 @@ import type { RegisterColumn, RegisterRowAction } from "../../../../components/l
 import { TableToolbar } from "../../../../components/lab/table/TableToolbar";
 import type { UseTableState } from "../../../../components/lab/table/useTableState";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { formatLabDate } from "../../../../utils/formatDate";
+import { formatLabDate, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
 import { isMaterialExpiringSoon } from "../../../inventory/materials/components/MaterialKpiCards";
 import { monospaceFontFamily } from "../../../../theme/palette";
@@ -111,7 +111,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
       return (
         <>
           <Typography sx={{ fontSize: 12, fontWeight: expired || expiringSoon ? 700 : 500, whiteSpace: "nowrap" }}>
-            {formatLabDate(c.expiryDate)}
+            {formatLabCalendarDate(c.expiryDate)}
           </Typography>
           {expired && <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
           {expiringSoon && <Typography sx={{ fontSize: 12, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}

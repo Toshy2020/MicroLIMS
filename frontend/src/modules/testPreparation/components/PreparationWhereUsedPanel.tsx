@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import { tableHeadSx } from "../../../theme";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import {
   SamplePreparationService,
   type PreparationWhereUsedRow
@@ -75,7 +75,7 @@ export function PreparationWhereUsedPanel({ lot, title = "Used in test preparati
                   </TableCell>
                   <TableCell>{r.itemName}</TableCell>
                   <TableCell>{r.role}</TableCell>
-                  <TableCell>{formatLabDateTime(r.preparedAt)}</TableCell>
+                  <TableCell>{formatDateTimeWithTimeZone(r.preparedAt)}</TableCell>
                   <TableCell>{r.preparedByName ?? "—"}</TableCell>
                 </TableRow>
               ))}

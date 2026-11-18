@@ -6,6 +6,7 @@ import { serverMessage } from "../../../../utils/errorMessage";
 import type { MediaEvaluationChallenge, ThawedVialOption } from "../types/mediaEvaluationTypes";
 import type { CryovialItem } from "../../cryovials/types/cryovialTypes";
 import type { MaterialItem } from "../../../inventory/materials/types/materialTypes";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 interface Props {
   challenge: MediaEvaluationChallenge;
@@ -22,7 +23,7 @@ interface Props {
   onError: (text: string) => void;
 }
 
-const dt = (v: string) => new Date(v).toLocaleString();
+const dt = (v: string) => formatDateTimeWithTimeZone(v);
 
 // Step 1 of a media evaluation challenge: the organism source. A cryovial
 // source is always a specific thawed vial, so every result traces back to

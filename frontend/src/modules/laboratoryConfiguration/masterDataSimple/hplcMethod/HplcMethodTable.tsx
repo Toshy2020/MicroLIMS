@@ -3,6 +3,7 @@ import { Chip, Typography, Stack } from "@mui/material";
 import { RegisterTable, RegisterColumn } from "../../../../components/lab";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { HplcMethodListItem } from "../services/HplcMethodService";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 export interface HplcMethodTableProps {
   methods: HplcMethodListItem[];
@@ -130,7 +131,7 @@ export function HplcMethodTable({
       sortValue: (m) => new Date(m.lastModifiedAt).getTime(),
       render: (m) => (
         <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
-          {new Date(m.lastModifiedAt).toLocaleDateString()}
+          {formatDateTimeWithTimeZone(m.lastModifiedAt)}
         </Typography>
       )
     }

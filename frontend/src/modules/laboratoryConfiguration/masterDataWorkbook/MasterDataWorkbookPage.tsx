@@ -8,6 +8,7 @@ import { masterDataWorkbookService as api } from "./masterDataWorkbookService";
 import { WorkbookReportTable } from "./WorkbookReportTable";
 import { canLoad } from "./types";
 import type { MasterDataImport, WorkbookReport } from "./types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 // Master data workbook: download, check (dry run), load (signed) and
 // second-person verify. Every rule is on the server; this page only
@@ -51,7 +52,7 @@ export function MasterDataWorkbookPage() {
   };
 
   const columns: RegisterColumn<MasterDataImport>[] = [
-    { key: "importedAt", label: "Loaded", sortable: true, render: (i) => new Date(i.importedAt).toLocaleString() },
+    { key: "importedAt", label: "Loaded", sortable: true, render: (i) => formatDateTimeWithTimeZone(i.importedAt) },
     { key: "importedBy", label: "Loaded by", sortable: true },
     { key: "fileName", label: "File", render: (i) => <Button size="small" onClick={() => api.downloadFile(i)}>{i.fileName}</Button> },
     { key: "sheets", label: "New records", render: (i) => i.sheets.reduce((n, s) => n + s.created, 0) },

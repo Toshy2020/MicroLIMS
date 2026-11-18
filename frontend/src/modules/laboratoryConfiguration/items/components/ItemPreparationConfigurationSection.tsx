@@ -14,6 +14,7 @@ import {
 } from "../../../testPreparation/preparationMaterial";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 function MappingWarning() {
   return (
@@ -135,8 +136,8 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
             />
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {config.approvalStatus === "Approved" && config.approvedAt
-                ? `Approved by ${config.approvedByName ?? `User #${config.approvedByUserId}`} on ${new Date(config.approvedAt).toLocaleDateString()}`
-                : `Created by ${config.createdByName ?? `User #${config.createdByUserId}`} on ${new Date(config.createdAt).toLocaleDateString()}`}
+                ? `Approved by ${config.approvedByName ?? `User #${config.approvedByUserId}`} on ${formatDateTimeWithTimeZone(config.approvedAt)}`
+                : `Created by ${config.createdByName ?? `User #${config.createdByUserId}`} on ${formatDateTimeWithTimeZone(config.createdAt)}`}
             </Typography>
           </Box>
 

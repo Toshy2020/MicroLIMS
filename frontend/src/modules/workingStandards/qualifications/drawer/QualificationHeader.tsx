@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Typography, IconButton, Stack, Chip } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 import type { WorkingStandardQualificationDto } from "../../types";
 
 interface QualificationHeaderProps {
@@ -32,7 +32,7 @@ export const QualificationHeader: React.FC<QualificationHeaderProps> = ({
             <StatusBadge status={qualification.status} />
           </Stack>
           <Typography variant="body2" color="text.secondary">
-            Created on {formatLabDateTime(qualification.createdAt)}
+            Created on {formatDateTimeWithTimeZone(qualification.createdAt)}
             {qualification.createdByUserName && ` by ${qualification.createdByUserName}`}
           </Typography>
         </Box>

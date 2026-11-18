@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { tableHeadSx } from "../../../theme";
 import { PreparationStatusBadge } from "../components/PreparationStatusBadge";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { SolutionPreparationStatusHistoryResponse } from "../types";
 
 interface Props {
@@ -43,7 +43,7 @@ export function PreparationHistoryTable({ history }: Props) {
                 </Box>
               </TableCell>
               <TableCell>{h.changedByUserName || "Automatic System"}</TableCell>
-              <TableCell>{formatLabDateTime(h.changedAt)}</TableCell>
+              <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
               <TableCell>{h.reason || "—"}</TableCell>
             </TableRow>
           ))}

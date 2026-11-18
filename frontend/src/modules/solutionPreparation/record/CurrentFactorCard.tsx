@@ -4,7 +4,7 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HelpOutlinedIcon from "@mui/icons-material/HelpOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import type { CurrentFactorDto, CurrentFactorState } from "../types";
 
 interface CurrentFactorCardProps {
@@ -58,7 +58,7 @@ export function CurrentFactorCard({
 
   const validUntilText = (() => {
     if (state === "BeforeEachUse") return "Restandardize before each use";
-    if (currentFactor?.validUntil) return formatLabDate(currentFactor.validUntil);
+    if (currentFactor?.validUntil) return formatLabCalendarDate(currentFactor.validUntil);
     return "—";
   })();
 
@@ -130,7 +130,7 @@ export function CurrentFactorCard({
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {currentFactor?.standardizedAt
-              ? formatLabDateTime(currentFactor.standardizedAt)
+              ? formatDateTimeWithTimeZone(currentFactor.standardizedAt)
               : "—"}
           </Typography>
         </Box>

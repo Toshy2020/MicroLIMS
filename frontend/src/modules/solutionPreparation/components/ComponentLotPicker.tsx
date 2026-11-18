@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { ScanField } from "../../../components/labels/ScanField";
 import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
-import { formatLabDate } from "../../../utils/formatDate";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 import type { SolutionPreparationComponentResponse, LotOption } from "../types";
 
 interface Props {
@@ -117,7 +117,7 @@ export function ComponentLotPicker({
                     <em>(Choose stock lot)</em>
                   </MenuItem>
                   {lotOptions.map((lot) => {
-                    const expText = lot.expiryDate ? ` · Exp: ${formatLabDate(lot.expiryDate)}` : "";
+                    const expText = lot.expiryDate ? ` · Exp: ${formatLabCalendarDate(lot.expiryDate)}` : "";
                     const blockedText = !lot.usable ? ` [Blocked: ${lot.reason ?? "Not usable"}]` : "";
                     return (
                       <MenuItem key={lot.materialId} value={lot.materialId} disabled={!lot.usable}>
@@ -129,7 +129,7 @@ export function ComponentLotPicker({
                 {selectedLot && (
                   <FormHelperText sx={{ fontSize: 12 }}>
                     Available in lot: {selectedLot.quantityRemaining} {selectedLot.unit}
-                    {selectedLot.expiryDate && ` · Expires ${formatLabDate(selectedLot.expiryDate)}`}
+                    {selectedLot.expiryDate && ` · Expires ${formatLabCalendarDate(selectedLot.expiryDate)}`}
                   </FormHelperText>
                 )}
               </FormControl>

@@ -17,7 +17,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { brandColors } from "../../../../theme";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type {
@@ -234,7 +234,7 @@ export function EquipmentDetailsDialog({
                             : "inherit"
                         }}
                       >
-                        {equipment.calibrationDueDate ? formatLabDate(equipment.calibrationDueDate) : "—"}
+                        {equipment.calibrationDueDate ? formatLabCalendarDate(equipment.calibrationDueDate) : "—"}
                       </span>
                       {isOverdue && <StatusBadge status="Overdue" />}
                       {isDueSoon && <StatusBadge status="Due Soon" />}
@@ -282,7 +282,7 @@ export function EquipmentDetailsDialog({
                           <StatusBadge status={h.newStatus} />
                         </Box>
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          {formatLabDateTime(h.changedAt)}
+                          {formatDateTimeWithTimeZone(h.changedAt)}
                         </Typography>
                       </Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary", mt: 0.5 }}>

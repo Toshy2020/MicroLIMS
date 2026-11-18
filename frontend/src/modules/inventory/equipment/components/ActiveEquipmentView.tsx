@@ -16,7 +16,7 @@ import { monospaceFontFamily } from "../../../../theme/palette";
 import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
 } from "../services/EquipmentInventoryService";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { clickable } from "../../../../utils/clickable";
 import { DateField } from "../../../../components/DateField";
 
@@ -151,9 +151,9 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
   const whereColumns: RegisterColumn<WhereIsItResultDto["history"][number]>[] = [
     { key: "equipmentCode", label: "Equipment", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{h.equipmentCode} ({h.equipmentName})</Box> },
     { key: "activityType", label: "Activity", sortable: true },
-    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
+    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatDateTimeWithTimeZone(h.startedOn) },
     { key: "performedBy", label: "Started By", sortable: true },
-    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : "Active") },
+    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatDateTimeWithTimeZone(h.completedOn) : "Active") },
     { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
   ];
 
@@ -162,9 +162,9 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
     { key: "itemCode", label: "Item Code", sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{a.itemCode}</Box> },
     { key: "activityType", label: "Activity Type", sortable: true },
     { key: "mediaDescription", label: "Media / Description" },
-    { key: "startedOn", label: "Started On", sortable: true, render: (a) => formatLabDateTime(a.startedOn) },
+    { key: "startedOn", label: "Started On", sortable: true, render: (a) => formatDateTimeWithTimeZone(a.startedOn) },
     { key: "startedBy", label: "Started By", sortable: true },
-    { key: "expectedCompletion", label: "Expected Completion", sortable: true, render: (a) => (a.expectedCompletion ? formatLabDateTime(a.expectedCompletion) : "N/A") }
+    { key: "expectedCompletion", label: "Expected Completion", sortable: true, render: (a) => (a.expectedCompletion ? formatDateTimeWithTimeZone(a.expectedCompletion) : "N/A") }
   ];
 
   const historyColumns: RegisterColumn<EquipmentActivityDto>[] = [
@@ -172,9 +172,9 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
     { key: "itemCode", label: "Item Code", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{h.itemCode}</Box> },
     { key: "activityType", label: "Activity Type", sortable: true },
     { key: "mediaDescription", label: "Media / Description" },
-    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
+    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatDateTimeWithTimeZone(h.startedOn) },
     { key: "startedBy", label: "Started By", sortable: true },
-    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : <StatusBadge status="Active" />) },
+    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatDateTimeWithTimeZone(h.completedOn) : <StatusBadge status="Active" />) },
     { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
   ];
 
@@ -251,7 +251,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>
-                        Started: {formatLabDateTime(whereResult.currentActivity.startedOn)} | Analyst: {whereResult.currentActivity.startedBy}
+                        Started: {formatDateTimeWithTimeZone(whereResult.currentActivity.startedOn)} | Analyst: {whereResult.currentActivity.startedBy}
                       </Typography>
                     </Box>
                     <StatusBadge status="Active" label="Active / Current Location" />
@@ -460,7 +460,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     <Typography variant="body2" sx={{
                       fontWeight: 600
                     }}>
-                      {selectedEquipment.calibrationDueDate ? formatLabDate(selectedEquipment.calibrationDueDate) : "—"}
+                      {selectedEquipment.calibrationDueDate ? formatLabCalendarDate(selectedEquipment.calibrationDueDate) : "—"}
                     </Typography>
                   </Grid>
                   <Grid

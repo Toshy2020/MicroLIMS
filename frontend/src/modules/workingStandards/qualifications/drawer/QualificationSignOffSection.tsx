@@ -11,7 +11,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import UndoIcon from "@mui/icons-material/Undo";
 import RateReviewIcon from "@mui/icons-material/RateReview";
-import { formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 import type { WorkingStandardQualificationDto } from "../../types";
 import type { SignOffActionType } from "../SignOffDialog";
 
@@ -46,7 +46,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
             <Box>
               <Typography variant="caption" color="text.secondary">Prepared by:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {preparedByUserName} {preparedAt && `on ${formatLabDateTime(preparedAt)}`}
+                {preparedByUserName} {preparedAt && `on ${formatDateTimeWithTimeZone(preparedAt)}`}
               </Typography>
             </Box>
           )}
@@ -55,7 +55,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
             <Box>
               <Typography variant="caption" color="text.secondary">Reviewed by:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {reviewedByUserName} {reviewedAt && `on ${formatLabDateTime(reviewedAt)}`}
+                {reviewedByUserName} {reviewedAt && `on ${formatDateTimeWithTimeZone(reviewedAt)}`}
               </Typography>
             </Box>
           )}
@@ -64,7 +64,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
             <Box>
               <Typography variant="caption" color="text.secondary">Approved by:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
-                {approvedByUserName} {approvedAt && `on ${formatLabDateTime(approvedAt)}`}
+                {approvedByUserName} {approvedAt && `on ${formatDateTimeWithTimeZone(approvedAt)}`}
               </Typography>
             </Box>
           )}
@@ -73,7 +73,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
             <Box>
               <Typography variant="caption" color="text.secondary">Rejected by:</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
-                {rejectedByUserName} {rejectedAt && `on ${formatLabDateTime(rejectedAt)}`}
+                {rejectedByUserName} {rejectedAt && `on ${formatDateTimeWithTimeZone(rejectedAt)}`}
               </Typography>
             </Box>
           )}

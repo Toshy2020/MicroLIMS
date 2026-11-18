@@ -19,6 +19,7 @@ import {
   ItemStmDto,
 } from "../modules/laboratoryConfiguration/items/services/ItemStmService";
 import { documentControlService } from "../modules/documentControl/services/documentControlService";
+import { formatLabCalendarDate } from "../utils/formatDate";
 
 interface ItemStmPanelProps {
   itemId: number;
@@ -26,11 +27,7 @@ interface ItemStmPanelProps {
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  return formatLabCalendarDate(dateStr);
 }
 
 export function ItemStmPanel({ itemId }: ItemStmPanelProps) {

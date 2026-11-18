@@ -124,3 +124,37 @@ describe("MaterialLotDetailsDialog label printing", () => {
     );
   });
 });
+
+describe("MaterialLotDetailsDialog calendar dates", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    seedPermissions([PERMISSIONS.MATERIALS_MANAGE]);
+    vi.mocked(MaterialService.getDocuments).mockResolvedValue([]);
+    vi.mocked(SolutionPreparationService.getByLot).mockResolvedValue([]);
+    vi.mocked(SamplePreparationService.getWhereUsed).mockResolvedValue([]);
+    vi.mocked(labelService.getStatus).mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+    vi.unstubAllEnvs();
+  });
+
+  it.each(["America/Los_Angeles", "Pacific/Honolulu"])("shows the expiry as the same calendar day in %s", async (zone) => {
+    vi.stubEnv("TZ", zone);
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <AuthProvider>
+          <MemoryRouter>
+            <MaterialLotDetailsDialog open={true} material={{ ...sampleMaterial, expiryDate: "2028-10-01T00:00:00Z" }} onClose={vi.fn()} />
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+    const expiry = (await screen.findByText("Expiry")).parentElement as HTMLElement;
+    expect(expiry.textContent).toContain("01 Oct 2028");
+    expect(expiry.textContent).not.toMatch(/\d{2}:\d{2}/);
+  });
+});

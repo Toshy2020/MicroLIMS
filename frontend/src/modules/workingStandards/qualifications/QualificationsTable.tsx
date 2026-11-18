@@ -14,7 +14,7 @@ import {
 } from "@mui/material";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { WorkingStandardQualificationDto } from "../types";
 
 interface QualificationsTableProps {
@@ -107,7 +107,7 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
               </TableCell>
               <TableCell>
                 <Typography sx={{ fontSize: 12 }}>
-                  {formatLabDateTime(q.createdAt)}
+                  {formatDateTimeWithTimeZone(q.createdAt)}
                 </Typography>
                 {q.createdByUserName && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>

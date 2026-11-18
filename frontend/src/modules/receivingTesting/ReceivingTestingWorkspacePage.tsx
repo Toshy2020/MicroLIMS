@@ -899,7 +899,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       await exportRegisterRows({
         tableKey,
         rows: samples,
-        columns: sampleExportColumns(tableState.state.columns),
+        columns: sampleExportColumns(tableState.state.columns, {
+          canSelectTests: false, // the workspace register offers no test-selection action
+          canAssign: permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)
+        }),
         getRowId: (sample) => sample.sampleId,
         filters: tableState.state.filters,
         search: tableState.state.search,

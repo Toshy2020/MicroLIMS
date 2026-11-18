@@ -219,7 +219,7 @@ describe("RegisterTable selection and audited CSV export", () => {
     expect(text.startsWith("\uFEFF")).toBe(true);
     const lines = text.slice(1).split("\r\n");
     expect(lines[0]).toContain("Exported by,Ada Analyst");
-    expect(lines[1]).toContain("Exported at,2031-05-06T07:08:09Z (Africa/Cairo)");
+    expect(lines[1]).toContain("Exported at,2031-05-06T07:08:09Z (UTC)");
     expect(lines[2]).toContain("List,Equipment");
     expect(lines[3]).toContain("Filters,");
     expect(lines[4]).toContain("Rows,1");

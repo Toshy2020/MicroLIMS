@@ -11,6 +11,9 @@ export interface ExportColumn<T> {
   label: string;
   // Used when the row has no value under `key`.
   sortValue?: (row: T) => string | number | null | undefined;
+  // What the CSV carries for this column, as the screen shows it (formatted dates, labels, text of a rendered
+  // cell). Takes precedence over the raw row value and over sortValue, which may be an epoch or an enum.
+  exportValue?: (row: T) => string | number | null | undefined;
 }
 
 export interface ExportRowsOptions<T> {
@@ -55,7 +58,7 @@ export async function exportRegisterRows<T>({ tableKey, rows, columns, getRowId,
 
   const headerRows: string[][] = [
     ["Exported by", logResult.exportedBy],
-    ["Exported at", `${logResult.serverTimeUtc} (${logResult.timeZoneId})`],
+    ["Exported at", `${logResult.serverTimeUtc} (UTC)`],
     ["List", def?.title ?? tableKey],
     ["Filters", filterParts.length > 0 ? filterParts.join("; ") : "None"],
     ["Rows", String(rows.length)],
@@ -64,6 +67,10 @@ export async function exportRegisterRows<T>({ tableKey, rows, columns, getRowId,
 
   const dataRows = rows.map((row) =>
     columns.map((col) => {
+      if (col.exportValue) {
+        const ev = col.exportValue(row);
+        return ev !== undefined && ev !== null ? String(ev) : "";
+      }
       const raw = (row as Record<string, unknown>)[col.key];
       if (raw !== undefined && raw !== null) return String(raw);
       if (col.sortValue) {

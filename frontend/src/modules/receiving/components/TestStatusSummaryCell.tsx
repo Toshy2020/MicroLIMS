@@ -112,6 +112,13 @@ function getSummaryText(
   return { text: summary, tone: "purple", isDirectAction: false };
 }
 
+// The summary chip's text for a sample, as the register shows it (also what a CSV export carries).
+export function testSummaryText(t: TFunction<"receiving">, sample: SampleRecord): string {
+  const tests = sample.assignedTests || [];
+  const awaiting = Boolean(sample.awaitingTestSelection) && tests.length === 0;
+  return getSummaryText(t, tests, sample.preparationStatus, sample.status, awaiting).text;
+}
+
 export function TestStatusSummaryCell({ sample, onTestClick, onViewAllTests, onPrepareSample, onSelectTests }: Props) {
   const { t } = useTranslation("receiving");
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);

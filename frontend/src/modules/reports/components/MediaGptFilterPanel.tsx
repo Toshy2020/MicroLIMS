@@ -4,6 +4,7 @@ import {
   Button, Link, Typography, Stack, useTheme
 } from "@mui/material";
 import { EvaluationOutcome, EvaluationType, MediaGptFilterOptions, MediaGptSearchParams } from "../types/mediaGptTypes";
+import { useTranslation } from "../../../i18n";
 
 interface MediaGptFilterPanelProps {
   filterOptions: MediaGptFilterOptions | null;
@@ -22,16 +23,17 @@ export function MediaGptFilterPanel({
   onReset,
   searchInputRef
 }: MediaGptFilterPanelProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
 
   return (
     <Paper sx={{ p: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-          Media / GPT Filters
+          {t("mediaGpt.filters.title")}
         </Typography>
         <Link component="button" type="button" onClick={onReset} sx={{ fontSize: 13 }} underline="hover">
-          Reset
+          {t("mediaGpt.filters.reset")}
         </Link>
       </Box>
 
@@ -39,37 +41,37 @@ export function MediaGptFilterPanel({
         <TextField
           fullWidth
           size="small"
-          label="Search"
-          placeholder="Lot Number, Media Type..."
+          label={t("mediaGpt.filters.searchLabel")}
+          placeholder={t("mediaGpt.filters.searchPlaceholder")}
           value={draft.search ?? ""}
           onChange={(e) => onChange({ search: e.target.value || undefined })}
           inputRef={searchInputRef}
         />
 
         <FormControl fullWidth size="small">
-          <InputLabel>Evaluation Type</InputLabel>
+          <InputLabel>{t("mediaGpt.filters.evaluationType")}</InputLabel>
           <Select
-            label="Evaluation Type"
+            label={t("mediaGpt.filters.evaluationType")}
             value={draft.evaluationType ?? ""}
             onChange={(e) => onChange({ evaluationType: (e.target.value || undefined) as EvaluationType | undefined })}
-            inputProps={{ "aria-label": "Evaluation Type" }}
+            inputProps={{ "aria-label": t("mediaGpt.filters.evaluationType") }}
           >
-            <MenuItem value="">All Evaluation Types</MenuItem>
-            <MenuItem value="GrowthPromotion">Growth Promotion (GPT)</MenuItem>
-            <MenuItem value="IndicationInhibition">Indication / Inhibition</MenuItem>
-            <MenuItem value="EnrichmentCharacteristics">Enrichment Characteristics</MenuItem>
+            <MenuItem value="">{t("mediaGpt.filters.allEvaluationTypes")}</MenuItem>
+            <MenuItem value="GrowthPromotion">{t("mediaGpt.filters.growthPromotion")}</MenuItem>
+            <MenuItem value="IndicationInhibition">{t("mediaGpt.filters.indicationInhibition")}</MenuItem>
+            <MenuItem value="EnrichmentCharacteristics">{t("mediaGpt.filters.enrichmentCharacteristics")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Media Type</InputLabel>
+          <InputLabel>{t("mediaGpt.filters.mediaType")}</InputLabel>
           <Select
-            label="Media Type"
+            label={t("mediaGpt.filters.mediaType")}
             value={draft.mediaType ?? ""}
             onChange={(e) => onChange({ mediaType: e.target.value || undefined })}
-            inputProps={{ "aria-label": "Media Type" }}
+            inputProps={{ "aria-label": t("mediaGpt.filters.mediaType") }}
           >
-            <MenuItem value="">All Media Types</MenuItem>
+            <MenuItem value="">{t("mediaGpt.filters.allMediaTypes")}</MenuItem>
             {(filterOptions?.mediaTypes ?? []).map((m) => (
               <MenuItem key={m} value={m}>{m}</MenuItem>
             ))}
@@ -77,31 +79,31 @@ export function MediaGptFilterPanel({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Evaluation Outcome</InputLabel>
+          <InputLabel>{t("mediaGpt.filters.evaluationOutcome")}</InputLabel>
           <Select
-            label="Evaluation Outcome"
+            label={t("mediaGpt.filters.evaluationOutcome")}
             value={draft.outcome ?? ""}
             onChange={(e) => onChange({ outcome: (e.target.value || undefined) as EvaluationOutcome | undefined })}
-            inputProps={{ "aria-label": "Evaluation Outcome" }}
+            inputProps={{ "aria-label": t("mediaGpt.filters.evaluationOutcome") }}
           >
-            <MenuItem value="">All Outcomes</MenuItem>
-            <MenuItem value="Conform">Conform</MenuItem>
-            <MenuItem value="NonConform">NonConform</MenuItem>
+            <MenuItem value="">{t("mediaGpt.filters.allOutcomes")}</MenuItem>
+            <MenuItem value="Conform">{t("mediaGpt.filters.conform")}</MenuItem>
+            <MenuItem value="NonConform">{t("mediaGpt.filters.nonConform")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Approval Status</InputLabel>
+          <InputLabel>{t("mediaGpt.filters.approvalStatus")}</InputLabel>
           <Select
-            label="Approval Status"
+            label={t("mediaGpt.filters.approvalStatus")}
             value={draft.approvalStatus ?? ""}
-            onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as any })}
-            inputProps={{ "aria-label": "Approval Status" }}
+            onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as MediaGptSearchParams["approvalStatus"] })}
+            inputProps={{ "aria-label": t("mediaGpt.filters.approvalStatus") }}
           >
-            <MenuItem value="">All Statuses</MenuItem>
-            <MenuItem value="PendingReview">Pending Review</MenuItem>
-            <MenuItem value="Approved">Approved</MenuItem>
-            <MenuItem value="Rejected">Rejected</MenuItem>
+            <MenuItem value="">{t("mediaGpt.filters.allStatuses")}</MenuItem>
+            <MenuItem value="PendingReview">{t("mediaGpt.filters.pendingReview")}</MenuItem>
+            <MenuItem value="Approved">{t("mediaGpt.filters.approved")}</MenuItem>
+            <MenuItem value="Rejected">{t("mediaGpt.filters.rejected")}</MenuItem>
           </Select>
         </FormControl>
 
@@ -113,10 +115,10 @@ export function MediaGptFilterPanel({
             onClick={onSearch}
             sx={{ fontWeight: 700 }}
           >
-            Search Media Lots
+            {t("mediaGpt.filters.searchLots")}
           </Button>
           <Button variant="outlined" onClick={onReset} sx={{ fontWeight: 600 }}>
-            Clear
+            {t("mediaGpt.filters.clear")}
           </Button>
         </Stack>
       </Stack>

@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Chip, Stack, Typography } from "@mui/material";
 import FunctionsIcon from "@mui/icons-material/Functions";
 import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { masterDataOptions, EquationTypeDto } from "../../../services/masterDataOptions";
 
-const columns: RegisterColumn<EquationTypeDto>[] = [
+const getColumns = (t: ReturnType<typeof useTranslation>["t"]): RegisterColumn<EquationTypeDto>[] => [
   {
     key: "name",
-    label: "Type / Name",
+    label: t("equationTypes.columns.name"),
     sortable: true,
     width: 200,
     render: (type) => (
@@ -20,14 +21,14 @@ const columns: RegisterColumn<EquationTypeDto>[] = [
   },
   {
     key: "code",
-    label: "Code",
+    label: t("equationTypes.columns.code"),
     sortable: true,
     width: 140,
     render: (type) => <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.8rem" }}>{type.code}</Box>
   },
   {
     key: "formulaText",
-    label: "Formula Text",
+    label: t("equationTypes.columns.formulaText"),
     render: (type) =>
       type.formulaText ? (
         <Box
@@ -44,12 +45,12 @@ const columns: RegisterColumn<EquationTypeDto>[] = [
           {type.formulaText}
         </Box>
       ) : (
-        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>None</Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>{t("equationTypes.none")}</Typography>
       )
   },
   {
     key: "requiredInputs",
-    label: "Required Inputs",
+    label: t("equationTypes.columns.requiredInputs"),
     width: 280,
     render: (type) =>
       type.requiredInputs && type.requiredInputs.length > 0 ? (
@@ -59,12 +60,14 @@ const columns: RegisterColumn<EquationTypeDto>[] = [
           ))}
         </Stack>
       ) : (
-        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>None</Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>{t("equationTypes.none")}</Typography>
       )
   }
 ];
 
 export function EquationTypesPage() {
+  const { t } = useTranslation("masterData");
+  const columns = useMemo(() => getColumns(t), [t]);
   const [equationTypes, setEquationTypes] = useState<EquationTypeDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,32 +84,33 @@ export function EquationTypesPage() {
       })
       .catch((e: unknown) => {
         const errObj = e as { response?: { data?: { message?: string } }; message?: string };
-        setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load equation types.");
+        setError(errObj.response?.data?.message ?? errObj.message ?? t("equationTypes.loadError"));
         setLoading(false);
       });
   };
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return equationTypes;
-    return equationTypes.filter((t) =>
-      [t.name, t.code, t.formulaText, ...(t.requiredInputs ?? [])].some((v) => v?.toLowerCase().includes(q))
+    return equationTypes.filter((et) =>
+      [et.name, et.code, et.formulaText, ...(et.requiredInputs ?? [])].some((v) => v?.toLowerCase().includes(q))
     );
   }, [equationTypes, search]);
 
   return (
     <LabPage
-      title="Equation Types"
-      subtitle="Predefined mathematical formulas and required calculation parameters for analytical test methods and system suitability."
+      title={t("equationTypes.title")}
+      subtitle={t("equationTypes.subtitle")}
       filters={
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search name, code or formula"
+          placeholder={t("equationTypes.searchPlaceholder")}
           resultCount={filtered.length}
           onRefresh={loadData}
           refreshing={loading}
@@ -117,11 +121,11 @@ export function EquationTypesPage() {
       <RegisterTable
         columns={columns}
         rows={filtered}
-        getRowId={(t) => t.code}
+        getRowId={(et) => et.code}
         loading={loading}
         empty={{
-          title: search ? "No matching equation types" : "No equation types found",
-          description: search ? "Try a different search term." : undefined
+          title: search ? t("equationTypes.emptyMatching") : t("equationTypes.emptyTitle"),
+          description: search ? t("equationTypes.emptyDesc") : undefined
         }}
       />
     </LabPage>

@@ -9,10 +9,12 @@ import {
   FormHelperText
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
+import { Ltr } from "../../../../components/Ltr";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialDocument } from "../types/materialTypes";
-import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
 import { clickable } from "../../../../utils/clickable";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export function SupersedeMaterialDocumentDialog({ open, document, materialId, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("inventory");
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -42,12 +45,12 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
 
     const ext = selected.name.substring(selected.name.lastIndexOf(".")).toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setFileError(`File type '${ext}' is not supported. Allowed: PDF, JPG, JPEG, PNG, WEBP, TIFF.`);
+      setFileError(t("materials.upload.unsupported", { ext }));
       setFile(null);
       return;
     }
     if (selected.size > MAX_SIZE_BYTES) {
-      setFileError("File exceeds the 25 MB limit.");
+      setFileError(t("materials.upload.tooBig"));
       setFile(null);
       return;
     }
@@ -57,15 +60,16 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
   const handleSubmit = async () => {
     setReasonError(false);
     if (!reason.trim()) { setReasonError(true); return; }
-    if (!file) { setFileError("Please select a replacement file."); return; }
+    if (!file) { setFileError(t("materials.supersede.selectFile")); return; }
 
     setSubmitting(true);
     setError(null);
     try {
       await MaterialService.supersedeDocument(document.id, materialId, file, reason.trim());
       onSuccess();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Supersession failed. Please try again.");
+    } catch (caught: unknown) {
+      const err = caught as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? t("materials.supersede.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -80,11 +84,11 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
   return (
     <FloatingDialog
       open={open}
-      title="Supersede Document"
+      title={t("materials.supersede.title")}
       onClose={handleClose}
       actions={
         <>
-          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={handleClose} disabled={submitting}>{t("common.cancel")}</Button>
           <Button
             id="supersede-doc-submit"
             variant="contained"
@@ -92,7 +96,7 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
             onClick={handleSubmit}
             disabled={submitting || !file || !reason.trim()}
           >
-            {submitting ? "Superseding…" : "Supersede"}
+            {submitting ? t("materials.supersede.submitting") : t("materials.supersede.submit")}
           </Button>
         </>
       }
@@ -101,18 +105,17 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Alert severity="info" sx={{ mb: 2, fontSize: 12 }}>
-        The existing document ({document.originalFileName}) will be marked <strong>Superseded</strong> and remain historically accessible.
-        A new Current document will be created from the replacement file.
+        <Trans i18nKey="materials.supersede.info" ns="inventory" values={{ name: document.originalFileName }} components={{ b: <strong />, ltr: <Ltr>{null}</Ltr> }} />
       </Alert>
 
       <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>
-        Document Type: <strong>{MATERIAL_DOCUMENT_TYPE_LABELS[document.documentType]}</strong>
+        <Trans i18nKey="materials.supersede.docType" ns="inventory" values={{ type: t(`docTypes.${document.documentType}`) }} components={{ b: <strong /> }} />
       </Typography>
 
       {/* Reason */}
       <TextField
         id="supersede-reason"
-        label="Reason for Supersession *"
+        label={t("materials.supersede.reason")}
         fullWidth
         size="small"
         multiline
@@ -120,7 +123,7 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
         value={reason}
         onChange={(e) => { setReason(e.target.value); setReasonError(false); }}
         error={reasonError}
-        helperText={reasonError ? "A reason is required." : undefined}
+        helperText={reasonError ? t("materials.supersede.reasonRequired") : undefined}
         sx={{ mb: 2 }}
       />
 
@@ -144,7 +147,7 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
-        {...clickable(() => fileRef.current?.click(), { label: "Choose a replacement file" })}
+        {...clickable(() => fileRef.current?.click(), { label: t("materials.supersede.chooseAria") })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", fontSize: 28 }} />
         {file ? (
@@ -156,7 +159,7 @@ export function SupersedeMaterialDocumentDialog({ open, document, materialId, on
           </>
         ) : (
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Click to select the replacement file (PDF, JPG, PNG, WEBP, TIFF · max 25 MB)
+            {t("materials.supersede.clickToSelect")}
           </Typography>
         )}
       </Box>

@@ -11,6 +11,8 @@ import {
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
 import { formatLabCalendarDate } from "../../../../utils/formatDate";
@@ -43,6 +45,7 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
+  const { t } = useTranslation("inventory");
   useTrackRecent("material", open ? material?.id : null);
   const [eligibility, setEligibility] = useState<CoeEligibilityResult | null>(null);
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
@@ -85,7 +88,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
     <>
       <FloatingDialog
         open={open}
-        title="Lot Details"
+        title={t("materials.lot.title")}
         onClose={onClose}
         actions={
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
@@ -103,7 +106,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
               size="small"
               onClick={() => setUploadOpen(true)}
             >
-              Upload Document
+              {t("materials.lot.upload")}
             </Button>
           </Stack>
         }
@@ -127,20 +130,20 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
         </Box>
 
         <Box sx={{ mb: 2 }}>
-          <MetaRow label="Manufacturer" value={material.manufacturerName || "—"} />
-          <MetaRow label="Stock ID" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.stockId ?? "—"}</span>} />
-          <MetaRow label="Batch / Lot" value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.batchNumber}</span>} />
-          <MetaRow label="Received" value={formatLabCalendarDate(material.receivingDate)} />
-          <MetaRow label="Expiry" value={material.expiryDate ? formatLabCalendarDate(material.expiryDate) : "None"} />
+          <MetaRow label={t("materials.lot.manufacturer")} value={material.manufacturerName || "—"} />
+          <MetaRow label={t("materials.lot.stockId")} value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.stockId ?? "—"}</span>} />
+          <MetaRow label={t("materials.lot.batchLot")} value={<span style={{ fontFamily: "monospace", fontWeight: 700 }}>{material.batchNumber}</span>} />
+          <MetaRow label={t("materials.lot.received")} value={formatLabCalendarDate(material.receivingDate)} />
+          <MetaRow label={t("materials.lot.expiry")} value={material.expiryDate ? formatLabCalendarDate(material.expiryDate) : t("materials.lot.none")} />
           {material.materialType === "ReferenceStandard" && (
-            <MetaRow label="Purity" value={material.purity != null ? `${material.purity}%` : "—"} />
+            <MetaRow label={t("materials.lot.purity")} value={material.purity != null ? `${material.purity}%` : "—"} />
           )}
-          <MetaRow label="Quantity" value={`${material.quantityRemaining} / ${material.quantityReceived} ${material.unit}`} />
+          <MetaRow label={t("materials.lot.quantity")} value={`${material.quantityRemaining} / ${material.quantityReceived} ${material.unit}`} />
           <MetaRow
-            label="Status"
+            label={t("materials.lot.status")}
             value={
               <Chip
-                label={isExpired ? "Expired" : material.status === "Depleted" ? "Depleted" : "In Stock"}
+                label={isExpired ? t("status.Expired") : material.status === "Depleted" ? t("status.Depleted") : t("status.InStock")}
                 size="small"
                 color={isExpired ? "error" : material.status === "Depleted" ? "default" : "success"}
                 variant="outlined"
@@ -150,7 +153,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
           />
           {isExpired && (
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5, fontStyle: "italic" }}>
-              Historical, lot expired
+              {t("materials.lot.historical")}
             </Typography>
           )}
         </Box>
@@ -161,11 +164,11 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
             {eligibilityLoading ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
                 <CircularProgress size={14} />
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Checking COA status…</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("materials.lot.checkingCoa")}</Typography>
               </Box>
             ) : eligibilityFailed ? (
               <Alert severity="error" sx={{ mb: 2 }}>
-                The COA status of this lot could not be checked. Close and reopen the lot to try again.
+                {t("materials.lot.coaFailed")}
               </Alert>
             ) : eligibility ? (
               <Alert
@@ -176,13 +179,13 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
               >
                 {eligibility.hasCurrentCoa ? (
                   <Typography sx={{ fontSize: 12 }}>
-                    <strong>COA Requirement Satisfied</strong>: a current COA is on file.
+                    <Trans i18nKey="materials.lot.coaSatisfied" ns="inventory" components={{ b: <strong /> }} />
                   </Typography>
                 ) : (
                   <Stack spacing={0.25}>
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>COA Required</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{t("materials.lot.coaRequired")}</Typography>
                     <Typography sx={{ fontSize: 12 }}>
-                      This lot cannot be used until a current COA is available. Upload a COA to enable consumption.
+                      {t("materials.lot.coaCannotUse")}
                     </Typography>
                   </Stack>
                 )}
@@ -194,7 +197,7 @@ export function MaterialLotDetailsDialog({ open, material, onClose }: Props) {
         <Divider sx={{ mb: 2 }} />
 
         {/* ---- Document List ---- */}
-        <Typography sx={{ fontWeight: 600, fontSize: 13, mb: 1.5 }}>Documents</Typography>
+        <Typography sx={{ fontWeight: 600, fontSize: 13, mb: 1.5 }}>{t("materials.lot.documents")}</Typography>
         <MaterialDocumentList
           materialId={material.id}
           isExpired={isExpired}

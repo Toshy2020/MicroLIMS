@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Stack, TextField, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../../i18n";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { MaterialService } from "../services/MaterialService";
@@ -14,7 +16,20 @@ interface MaterialReleaseDialogProps {
 
 // Release gate for a lot in a category that needs approval before use. The server refuses the
 // person who received the lot and shows its message in the signature dialog.
+// The recorded meaning of the signature is always the English text; the screen language only adds a translation.
+const tEn = i18n.getFixedT("en", "inventory");
+
+function buildLabel(tf: TFunction, material: MaterialItem): string {
+  return tf("materials.release.lotLabel", { name: material.materialName, lot: material.batchNumber });
+}
+
+function buildMeaning(tf: TFunction, label: string, approved: boolean, comment: string): string {
+  if (!approved) return tf("materials.release.meaningReject", { label, comment });
+  return comment ? tf("materials.release.meaningApproveComment", { label, comment }) : tf("materials.release.meaningApprove", { label });
+}
+
 export function MaterialReleaseDialog({ open, material, onClose, onSuccess }: MaterialReleaseDialogProps) {
+  const { t } = useTranslation("inventory");
   const [decision, setDecision] = useState<"approve" | "reject">("approve");
   const [comment, setComment] = useState("");
   const [signatureOpen, setSignatureOpen] = useState(false);
@@ -31,15 +46,14 @@ export function MaterialReleaseDialog({ open, material, onClose, onSuccess }: Ma
 
   const approved = decision === "approve";
   const trimmedComment = comment.trim();
-  const label = `${material.materialName} (lot ${material.batchNumber})`;
-  const meaningStatement = approved
-    ? `I am releasing ${label} for use.${trimmedComment ? ` Comment: ${trimmedComment}` : ""}`
-    : `I am rejecting ${label}; it can't be used. Comment: ${trimmedComment}`;
+  const label = buildLabel(t, material);
+  const meaningStatement = buildMeaning(tEn, buildLabel(tEn, material), approved, trimmedComment);
+  const meaningStatementTranslation = buildMeaning(t, label, approved, trimmedComment);
 
   const handleConfirmSignature = async (password: string) => {
     await MaterialService.release(material.id, { password, approved, comment: trimmedComment || null });
     setSignatureOpen(false);
-    onSuccess(approved ? `${label} released for use.` : `${label} rejected.`);
+    onSuccess(approved ? t("materials.release.released", { label }) : t("materials.release.rejectedMessage", { label }));
     onClose();
   };
 
@@ -47,49 +61,50 @@ export function MaterialReleaseDialog({ open, material, onClose, onSuccess }: Ma
     <>
       <FloatingDialog
         open={open && !signatureOpen}
-        title={`Release Lot: ${material.materialName}`}
+        title={t("materials.release.title", { name: material.materialName })}
         onClose={onClose}
         maxWidth="xs"
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t("common.cancel")}</Button>
             <Button
               variant="contained"
               disabled={!approved && !trimmedComment}
               onClick={() => setSignatureOpen(true)}
             >
-              Continue to sign
+              {t("materials.release.continue")}
             </Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            This lot can't be used until a second person releases it. Lot {material.batchNumber}
-            {material.categoryName ? `, ${material.categoryName}` : ""}.
+            {material.categoryName
+              ? t("materials.release.introCategory", { lot: material.batchNumber, category: material.categoryName })
+              : t("materials.release.intro", { lot: material.batchNumber })}
           </Typography>
           <FormControl>
-            <FormLabel id="material-release-decision-label">Decision</FormLabel>
+            <FormLabel id="material-release-decision-label">{t("materials.release.decision")}</FormLabel>
             <RadioGroup
               row
               aria-labelledby="material-release-decision-label"
               value={decision}
               onChange={(e) => setDecision(e.target.value as "approve" | "reject")}
             >
-              <FormControlLabel value="approve" control={<Radio />} label="Approve" />
-              <FormControlLabel value="reject" control={<Radio />} label="Reject" />
+              <FormControlLabel value="approve" control={<Radio />} label={t("materials.release.approve")} />
+              <FormControlLabel value="reject" control={<Radio />} label={t("materials.release.reject")} />
             </RadioGroup>
           </FormControl>
           <TextField
-            label="Comment"
+            label={t("materials.release.comment")}
             required={!approved}
             multiline
             rows={3}
             size="small"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder={approved ? "Optional" : "Say why this lot is rejected..."}
-            helperText={approved ? undefined : "Required to reject."}
+            placeholder={approved ? t("materials.release.optional") : t("materials.release.rejectPlaceholder")}
+            helperText={approved ? undefined : t("materials.release.requiredToReject")}
           />
         </Stack>
       </FloatingDialog>
@@ -97,6 +112,7 @@ export function MaterialReleaseDialog({ open, material, onClose, onSuccess }: Ma
       <SignatureDialog
         open={open && signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSignatureOpen(false)}
         onConfirm={handleConfirmSignature}
       />

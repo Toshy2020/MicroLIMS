@@ -1,0 +1,199 @@
+{
+  "common": {
+    "cancel": "Cancel"
+  },
+  "types": {
+    "DehydratedMedia": "Dehydrated Media",
+    "LyophilizedMicroorganism": "Lyophilized Microorganism",
+    "Supplement": "Supplement",
+    "AntibioticDisc": "Antibiotic Disc",
+    "IdentificationKit": "Identification Kit",
+    "IdentificationReagent": "Identification Reagent",
+    "Chemical": "Chemical",
+    "Indicator": "Indicator",
+    "ReferenceBuffer": "Reference Buffer",
+    "DisposableTool": "Disposable Tool",
+    "Other": "Other",
+    "ReferenceStandard": "Reference Standard",
+    "WorkingStandard": "Working Standard",
+    "PrimaryStandard": "Primary Standard",
+    "OtherMaterial": "Other material"
+  },
+  "docTypes": {
+    "COA": "Certificate of Analysis (COA)",
+    "SupplierCertificate": "Supplier Certificate",
+    "Specification": "Specification",
+    "SDS": "Safety Data Sheet (SDS)",
+    "Other": "Other"
+  },
+  "docStatus": {
+    "Current": "Current",
+    "Superseded": "Superseded",
+    "Voided": "Voided"
+  },
+  "status": {
+    "InStock": "In Stock",
+    "LowStock": "Low Stock",
+    "Depleted": "Depleted",
+    "Expired": "Expired"
+  },
+  "materials": {
+    "page": {
+      "title": "Materials Stock",
+      "subtitle": "Media, discs, kits, reagents, chemicals, disposables: receiving, expiry, and quantity received/remaining.",
+      "print": "Print (excludes expired / depleted)",
+      "add": "Add to Stock",
+      "loadError": "Failed to load materials stock.",
+      "notLinked": "Not linked to a media product",
+      "purity": "Purity: {{value}}%",
+      "awaitingRelease": "Awaiting release",
+      "rejected": "Rejected"
+    },
+    "columns": {
+      "type": "Type",
+      "materialName": "Material Name",
+      "manufacturer": "Manufacturer",
+      "stockId": "Stock ID",
+      "batchLot": "Batch/Lot No.",
+      "received": "Received",
+      "expiry": "Expiry",
+      "code": "Code",
+      "location": "Location",
+      "storageCondition": "Storage Condition",
+      "qtyReceived": "Qty Received",
+      "qtyRemaining": "Qty Remaining",
+      "minStock": "Min Stock",
+      "status": "Status"
+    },
+    "actions": {
+      "lotDetails": "Lot details and documents",
+      "edit": "Edit material",
+      "release": "Release",
+      "audit": "Audit history"
+    },
+    "empty": {
+      "filteredTitle": "No materials matching the selected filter criteria",
+      "filteredDescription": "Reset the filters to see all stock.",
+      "title": "No materials in stock",
+      "description": "Receive the first material lot."
+    },
+    "kpi": {
+      "total": "Total Items",
+      "outOfStock": "Out of Stock",
+      "expiringSoon": "Expiring Soon",
+      "filtered": "{{label}} (filtered)"
+    },
+    "filter": {
+      "placeholder": "Search by name, lot no., code...",
+      "type": "Type",
+      "allTypes": "All Types",
+      "earlierLots": "{{type}} (earlier lots)",
+      "category": "Category: {{name}}",
+      "manufacturer": "Manufacturer",
+      "allManufacturers": "All Manufacturers",
+      "location": "Location",
+      "allLocations": "All Locations",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "expiry": "Expiry",
+      "allExpiry": "All Expiry",
+      "expiring30": "Expiring in 30 Days",
+      "expiring60": "Expiring in 60 Days",
+      "valid": "Valid / Unexpired",
+      "reset": "Reset"
+    },
+    "release": {
+      "title": "Release Lot: {{name}}",
+      "continue": "Continue to sign",
+      "intro": "This lot can't be used until a second person releases it. Lot {{lot}}.",
+      "introCategory": "This lot can't be used until a second person releases it. Lot {{lot}}, {{category}}.",
+      "decision": "Decision",
+      "approve": "Approve",
+      "reject": "Reject",
+      "comment": "Comment",
+      "optional": "Optional",
+      "rejectPlaceholder": "Say why this lot is rejected...",
+      "requiredToReject": "Required to reject.",
+      "lotLabel": "{{name}} (lot {{lot}})",
+      "meaningApprove": "I am releasing {{label}} for use.",
+      "meaningApproveComment": "I am releasing {{label}} for use. Comment: {{comment}}",
+      "meaningReject": "I am rejecting {{label}}; it can't be used. Comment: {{comment}}",
+      "released": "{{label}} released for use.",
+      "rejectedMessage": "{{label}} rejected."
+    },
+    "lot": {
+      "title": "Lot Details",
+      "upload": "Upload Document",
+      "manufacturer": "Manufacturer",
+      "stockId": "Stock ID",
+      "batchLot": "Batch / Lot",
+      "received": "Received",
+      "expiry": "Expiry",
+      "none": "None",
+      "purity": "Purity",
+      "quantity": "Quantity",
+      "status": "Status",
+      "historical": "Historical, lot expired",
+      "checkingCoa": "Checking COA status…",
+      "coaFailed": "The COA status of this lot could not be checked. Close and reopen the lot to try again.",
+      "coaSatisfied": "<b>COA Requirement Satisfied</b>: a current COA is on file.",
+      "coaRequired": "COA Required",
+      "coaCannotUse": "This lot cannot be used until a current COA is available. Upload a COA to enable consumption.",
+      "documents": "Documents"
+    },
+    "docs": {
+      "loadFailed": "Failed to load documents.",
+      "viewFailed": "Failed to retrieve document. Please try again.",
+      "none": "No documents have been uploaded for this lot.",
+      "uploadedBy": "Uploaded by {{name}} · {{date}}",
+      "voided": "Voided: {{reason}}",
+      "superseded": "Superseded: {{reason}}",
+      "view": "View / Download",
+      "supersede": "Supersede (Replace)",
+      "void": "Void"
+    },
+    "preps": {
+      "title": "Consumed by Preparations",
+      "checking": "Checking preparations...",
+      "none": "No preparations have consumed this lot.",
+      "code": "Code",
+      "solution": "Solution",
+      "prepared": "Prepared",
+      "status": "Status",
+      "inProgress": "#{{id}} (In Progress)"
+    },
+    "upload": {
+      "title": "Upload Document",
+      "submit": "Upload",
+      "uploading": "Uploading…",
+      "failed": "Upload failed. Please try again.",
+      "unsupported": "File type '{{ext}}' is not supported. Allowed: PDF, JPG, JPEG, PNG, WEBP, TIFF.",
+      "tooBig": "File exceeds the 25 MB limit.",
+      "selectFile": "Please select a file.",
+      "docType": "Document Type *",
+      "chooseAria": "Choose a file to upload",
+      "clickToSelect": "Click to select a file",
+      "formats": "PDF, JPG, JPEG, PNG, WEBP, TIFF · max 25 MB"
+    },
+    "supersede": {
+      "title": "Supersede Document",
+      "submit": "Supersede",
+      "submitting": "Superseding…",
+      "failed": "Supersession failed. Please try again.",
+      "selectFile": "Please select a replacement file.",
+      "info": "The existing document (<ltr>{{name}}</ltr>) will be marked <b>Superseded</b> and remain historically accessible. A new Current document will be created from the replacement file.",
+      "docType": "Document Type: <b>{{type}}</b>",
+      "reason": "Reason for Supersession *",
+      "reasonRequired": "A reason is required.",
+      "chooseAria": "Choose a replacement file",
+      "clickToSelect": "Click to select the replacement file (PDF, JPG, PNG, WEBP, TIFF · max 25 MB)"
+    },
+    "void": {
+      "title": "Void Document",
+      "submitting": "Voiding…",
+      "failed": "Void operation failed. Please try again.",
+      "info": "The document <b><ltr>{{name}}</ltr></b> will be marked <b>Voided</b>. The file and metadata are retained for audit purposes but this document will no longer satisfy any COA requirement.",
+      "reason": "Reason for Voiding *"
+    }
+  }
+}

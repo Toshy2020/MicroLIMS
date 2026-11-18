@@ -1,0 +1,199 @@
+{
+  "common": {
+    "cancel": "إلغاء"
+  },
+  "types": {
+    "DehydratedMedia": "أوساط زرعية مجففة",
+    "LyophilizedMicroorganism": "كائن دقيق مجفف بالتجميد",
+    "Supplement": "مكمّل",
+    "AntibioticDisc": "قرص مضاد حيوي",
+    "IdentificationKit": "عدة تعريف",
+    "IdentificationReagent": "كاشف تعريف",
+    "Chemical": "مادة كيميائية",
+    "Indicator": "مؤشر",
+    "ReferenceBuffer": "محلول منظِّم مرجعي",
+    "DisposableTool": "أداة للاستعمال مرة واحدة",
+    "Other": "أخرى",
+    "ReferenceStandard": "معيار مرجعي",
+    "WorkingStandard": "معيار عمل",
+    "PrimaryStandard": "معيار أولي",
+    "OtherMaterial": "مادة أخرى"
+  },
+  "docTypes": {
+    "COA": "شهادة التحليل (COA)",
+    "SupplierCertificate": "شهادة المورّد",
+    "Specification": "مواصفات",
+    "SDS": "صحيفة بيانات السلامة (SDS)",
+    "Other": "أخرى"
+  },
+  "docStatus": {
+    "Current": "ساري",
+    "Superseded": "مُستبدَل",
+    "Voided": "مُبطل"
+  },
+  "status": {
+    "InStock": "في المخزون",
+    "LowStock": "مخزون منخفض",
+    "Depleted": "مستنفد",
+    "Expired": "منتهي الصلاحية"
+  },
+  "materials": {
+    "page": {
+      "title": "مخزون المواد",
+      "subtitle": "أوساط زرعية وأقراص وعُدد وكواشف ومواد كيميائية ومستهلكات: الاستلام وانتهاء الصلاحية والكمية المستلمة/المتبقية.",
+      "print": "طباعة (تستثني المنتهية الصلاحية / المستنفدة)",
+      "add": "إضافة إلى المخزون",
+      "loadError": "تعذّر تحميل مخزون المواد.",
+      "notLinked": "غير مرتبط بمنتج أوساط زرعية",
+      "purity": "النقاء: {{value}}%",
+      "awaitingRelease": "بانتظار الإفراج",
+      "rejected": "مرفوض"
+    },
+    "columns": {
+      "type": "النوع",
+      "materialName": "اسم المادة",
+      "manufacturer": "المُصنِّع",
+      "stockId": "معرّف المخزون",
+      "batchLot": "رقم الدفعة/التشغيلة",
+      "received": "تاريخ الاستلام",
+      "expiry": "انتهاء الصلاحية",
+      "code": "الرمز",
+      "location": "الموقع",
+      "storageCondition": "ظروف التخزين",
+      "qtyReceived": "الكمية المستلمة",
+      "qtyRemaining": "الكمية المتبقية",
+      "minStock": "الحد الأدنى للمخزون",
+      "status": "الحالة"
+    },
+    "actions": {
+      "lotDetails": "تفاصيل التشغيلة والمستندات",
+      "edit": "تعديل المادة",
+      "release": "إفراج",
+      "audit": "سجل التدقيق"
+    },
+    "empty": {
+      "filteredTitle": "لا توجد مواد تطابق معايير التصفية المحددة",
+      "filteredDescription": "أعد ضبط عوامل التصفية لعرض كامل المخزون.",
+      "title": "لا توجد مواد في المخزون",
+      "description": "استلم أول تشغيلة مواد."
+    },
+    "kpi": {
+      "total": "إجمالي العناصر",
+      "outOfStock": "نفد من المخزون",
+      "expiringSoon": "تنتهي صلاحيتها قريبًا",
+      "filtered": "{{label}} (مُصفّى)"
+    },
+    "filter": {
+      "placeholder": "ابحث بالاسم أو رقم التشغيلة أو الرمز...",
+      "type": "النوع",
+      "allTypes": "كل الأنواع",
+      "earlierLots": "{{type}} (تشغيلات سابقة)",
+      "category": "الفئة: {{name}}",
+      "manufacturer": "المُصنِّع",
+      "allManufacturers": "كل المُصنِّعين",
+      "location": "الموقع",
+      "allLocations": "كل المواقع",
+      "status": "الحالة",
+      "allStatuses": "كل الحالات",
+      "expiry": "انتهاء الصلاحية",
+      "allExpiry": "كل تواريخ انتهاء الصلاحية",
+      "expiring30": "تنتهي صلاحيتها خلال 30 يومًا",
+      "expiring60": "تنتهي صلاحيتها خلال 60 يومًا",
+      "valid": "سارية / غير منتهية الصلاحية",
+      "reset": "إعادة ضبط"
+    },
+    "release": {
+      "title": "إفراج التشغيلة: {{name}}",
+      "continue": "المتابعة إلى التوقيع",
+      "intro": "لا يمكن استعمال هذه التشغيلة حتى يفرج عنها شخص ثانٍ. التشغيلة {{lot}}.",
+      "introCategory": "لا يمكن استعمال هذه التشغيلة حتى يفرج عنها شخص ثانٍ. التشغيلة {{lot}}، {{category}}.",
+      "decision": "القرار",
+      "approve": "اعتماد",
+      "reject": "رفض",
+      "comment": "تعليق",
+      "optional": "اختياري",
+      "rejectPlaceholder": "اذكر سبب رفض هذه التشغيلة...",
+      "requiredToReject": "مطلوب عند الرفض.",
+      "lotLabel": "{{name}} (التشغيلة {{lot}})",
+      "meaningApprove": "أقوم بإفراج {{label}} للاستعمال.",
+      "meaningApproveComment": "أقوم بإفراج {{label}} للاستعمال. تعليق: {{comment}}",
+      "meaningReject": "أرفض {{label}}؛ لا يمكن استعماله. تعليق: {{comment}}",
+      "released": "تم إفراج {{label}} للاستعمال.",
+      "rejectedMessage": "تم رفض {{label}}."
+    },
+    "lot": {
+      "title": "تفاصيل التشغيلة",
+      "upload": "رفع مستند",
+      "manufacturer": "المُصنِّع",
+      "stockId": "معرّف المخزون",
+      "batchLot": "الدفعة / التشغيلة",
+      "received": "تاريخ الاستلام",
+      "expiry": "انتهاء الصلاحية",
+      "none": "لا يوجد",
+      "purity": "النقاء",
+      "quantity": "الكمية",
+      "status": "الحالة",
+      "historical": "سجل تاريخي، التشغيلة منتهية الصلاحية",
+      "checkingCoa": "جارٍ التحقق من حالة COA…",
+      "coaFailed": "تعذّر التحقق من حالة COA لهذه التشغيلة. أغلق التشغيلة وأعد فتحها للمحاولة مرة أخرى.",
+      "coaSatisfied": "<b>استُوفي متطلب COA</b>: توجد COA سارية في الملف.",
+      "coaRequired": "COA مطلوبة",
+      "coaCannotUse": "لا يمكن استعمال هذه التشغيلة قبل توفر COA سارية. ارفع COA لتمكين الاستهلاك.",
+      "documents": "المستندات"
+    },
+    "docs": {
+      "loadFailed": "تعذّر تحميل المستندات.",
+      "viewFailed": "تعذّر استرجاع المستند. حاول مرة أخرى.",
+      "none": "لم يُرفع أي مستند لهذه التشغيلة.",
+      "uploadedBy": "رُفع بواسطة {{name}} · {{date}}",
+      "voided": "مُبطل: {{reason}}",
+      "superseded": "مُستبدَل: {{reason}}",
+      "view": "عرض / تنزيل",
+      "supersede": "استبدال (إحلال)",
+      "void": "إبطال"
+    },
+    "preps": {
+      "title": "المستهلكة في التحضيرات",
+      "checking": "جارٍ التحقق من التحضيرات...",
+      "none": "لم يستهلك أي تحضير هذه التشغيلة.",
+      "code": "الرمز",
+      "solution": "المحلول",
+      "prepared": "تاريخ التحضير",
+      "status": "الحالة",
+      "inProgress": "#{{id}} (قيد التنفيذ)"
+    },
+    "upload": {
+      "title": "رفع مستند",
+      "submit": "رفع",
+      "uploading": "جارٍ الرفع…",
+      "failed": "فشل الرفع. حاول مرة أخرى.",
+      "unsupported": "نوع الملف '{{ext}}' غير مدعوم. الأنواع المسموحة: PDF وJPG وJPEG وPNG وWEBP وTIFF.",
+      "tooBig": "حجم الملف يتجاوز الحد البالغ 25 ميغابايت.",
+      "selectFile": "يرجى اختيار ملف.",
+      "docType": "نوع المستند *",
+      "chooseAria": "اختر ملفًا لرفعه",
+      "clickToSelect": "انقر لاختيار ملف",
+      "formats": "PDF وJPG وJPEG وPNG وWEBP وTIFF · الحد الأقصى 25 ميغابايت"
+    },
+    "supersede": {
+      "title": "استبدال المستند",
+      "submit": "استبدال",
+      "submitting": "جارٍ الاستبدال…",
+      "failed": "فشل الاستبدال. حاول مرة أخرى.",
+      "selectFile": "يرجى اختيار الملف البديل.",
+      "info": "سيُوسم المستند الحالي (<ltr>{{name}}</ltr>) بأنه <b>مُستبدَل</b> ويبقى متاحًا للرجوع إليه تاريخيًا. وسيُنشأ مستند ساري جديد من الملف البديل.",
+      "docType": "نوع المستند: <b>{{type}}</b>",
+      "reason": "سبب الاستبدال *",
+      "reasonRequired": "السبب مطلوب.",
+      "chooseAria": "اختر ملفًا بديلًا",
+      "clickToSelect": "انقر لاختيار الملف البديل (PDF وJPG وPNG وWEBP وTIFF · الحد الأقصى 25 ميغابايت)"
+    },
+    "void": {
+      "title": "إبطال المستند",
+      "submitting": "جارٍ الإبطال…",
+      "failed": "فشل الإبطال. حاول مرة أخرى.",
+      "info": "سيُوسم المستند <b><ltr>{{name}}</ltr></b> بأنه <b>مُبطل</b>. يُحتفظ بالملف وبياناته الوصفية لأغراض التدقيق، لكن هذا المستند لن يستوفي بعد الآن أي متطلب COA.",
+      "reason": "سبب الإبطال *"
+    }
+  }
+}

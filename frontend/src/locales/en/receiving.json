@@ -325,6 +325,7 @@
     "saving": "Saving...",
     "save": "Save Assignment",
     "retry": "Retry",
+    "close": "Close",
     "referenceNumber": "Reference Number:",
     "batchControl": "Batch / Control No.:",
     "currentAssignment": "Current Assignment:",

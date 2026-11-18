@@ -24,6 +24,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { Ltr } from "../../../components/Ltr";
 import { useTranslation } from "../../../i18n";
 import { assignedAnalystNames } from "../utils/assignedAnalysts";
+import axios from "axios";
 import { getErrorMessage } from "../../../utils/errorMessage";
 
 interface AssignAnalystDialogProps {
@@ -91,6 +92,14 @@ export function AnalystPicker({
 // picker per test plus a shortcut that fills every test the chosen person
 // may take. Only the choices the server returned are offered; it re-checks
 // every rule (section membership, Section Heads assign only themselves).
+// The server answered and said no (a business rule such as "Tests with a result cannot be reassigned."):
+// repeating the request gives the same answer. A missing response, a timeout, throttling or a 5xx may pass on retry.
+function isPermanentRefusal(err: unknown): boolean {
+  if (!axios.isAxiosError(err) || !err.response) return false;
+  const { status } = err.response;
+  return status >= 400 && status < 500 && status !== 408 && status !== 429;
+}
+
 export function AssignAnalystDialog({
   open,
   sample,
@@ -106,10 +115,13 @@ export function AssignAnalystDialog({
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // What the Retry button repeats; null when the refusal is final and only Close is offered.
+  const [retryAction, setRetryAction] = useState<"load" | "save" | null>(null);
 
   const loadOptions = async () => {
     if (!sample) return;
     setError(null);
+    setRetryAction(null);
     setLoading(true);
     try {
       const loaded = await ReceiveService.getAssignmentOptions(sample.sampleId);
@@ -117,6 +129,7 @@ export function AssignAnalystDialog({
       setSelections(Object.fromEntries(loaded.tests.map((test) => [test.testOrderId, valueOf(test.assignedAnalystId)])));
     } catch (err: unknown) {
       setOptions(null);
+      setRetryAction(isPermanentRefusal(err) ? null : "load");
       setError(
         getErrorMessage(
           err,
@@ -164,6 +177,7 @@ export function AssignAnalystDialog({
       return;
     }
     setError(null);
+    setRetryAction(null);
     setSubmitting(true);
 
     try {
@@ -178,6 +192,7 @@ export function AssignAnalystDialog({
       onAssigned(updated);
       onClose();
     } catch (err: unknown) {
+      setRetryAction(isPermanentRefusal(err) ? null : "save");
       setError(getErrorMessage(err, t("assignAnalyst.saveFailed")));
     } finally {
       setSubmitting(false);
@@ -279,9 +294,15 @@ export function AssignAnalystDialog({
             severity="error"
             sx={{ mb: 2 }}
             action={
-              <Button color="inherit" size="small" onClick={loadOptions}>
-                {t("assignAnalyst.retry")}
-              </Button>
+              retryAction ? (
+                <Button color="inherit" size="small" onClick={retryAction === "load" ? loadOptions : handleSubmit}>
+                  {t("assignAnalyst.retry")}
+                </Button>
+              ) : (
+                <Button color="inherit" size="small" onClick={onClose}>
+                  {t("assignAnalyst.close")}
+                </Button>
+              )
             }
           >
             {error}

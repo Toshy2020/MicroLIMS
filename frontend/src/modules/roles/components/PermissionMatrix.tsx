@@ -1,6 +1,8 @@
 import { Box, Paper, Typography, Checkbox, FormControlLabel, Tooltip, Stack } from "@mui/material";
 import { PermissionRecord, SodRules } from "../services/RoleService";
 import { MetaBadge, ToneBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 // "TestWorkflow.Execute" -> module "TestWorkflow", tier "Execute". Module
 // grouping per the spec: everything before the first ".".
@@ -20,8 +22,6 @@ const MODULE_ORDER = [
   "Users", "Roles", "Audit", "Reporting", "Samples", "Signatures",
   "TestWorkflow", "Cryovials", "Materials", "Equipment", "Items", "MasterData"
 ];
-
-const QA_FORBIDDEN_REASON = "Not available to a Quality Assurance role";
 
 interface PermissionMatrixProps {
   permissions: PermissionRecord[];
@@ -45,6 +45,7 @@ function conflictingCode(code: string, checkedCodes: Set<string>, rules: SodRule
 }
 
 export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules, qaForbiddenCodes }: PermissionMatrixProps) {
+  const { t } = useTranslation("roles");
   const groups = new Map<string, PermissionRecord[]>();
   for (const p of permissions) {
     const mod = moduleOf(p.code);
@@ -74,7 +75,7 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
               const reasonId = isQaForbidden ? `qa-forbidden-${p.code.replace(/[^a-zA-Z0-9_-]/g, "-")}` : undefined;
               return (
               <Box key={p.code} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5, py: 0.25 }}>
-                <Tooltip title={blockedBy ? `Cannot be combined with ${blockedBy}: a role may not hold both system administration and GxP execution or approval.` : ""}>
+                <Tooltip title={blockedBy ? t("matrix.cannotCombine", { code: blockedBy }) : ""}>
                   {/* Span wrapper: a disabled control does not fire the hover Tooltip listens for. */}
                   <Box component="span" sx={{ flex: 1 }}>
                     <FormControlLabel
@@ -93,14 +94,14 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
                       }
                       label={
                         <Box>
-                          <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{p.code}</Typography>
+                          <Typography sx={{ fontSize: 13, fontWeight: 600 }}><Ltr>{p.code}</Ltr></Typography>
                           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{p.description}</Typography>
                         </Box>
                       }
                     />
                     {isQaForbidden && (
                       <Typography id={reasonId} sx={{ fontSize: 12, color: "text.secondary", pl: 3.5 }}>
-                        {QA_FORBIDDEN_REASON}
+                        {t("matrix.qaForbidden")}
                       </Typography>
                     )}
                   </Box>
@@ -108,13 +109,13 @@ export function PermissionMatrix({ permissions, checkedCodes, onToggle, sodRules
                 <Tooltip
                   title={
                     p.isEnforced
-                      ? "This permission alone controls access - the endpoints it covers check it directly."
-                      : "Access on screens covered by this permission still follows the role's underlying base type, not this checkbox, until that screen is migrated to the new permission system."
+                      ? t("matrix.enforcedTip")
+                      : t("matrix.legacyTip")
                   }
                 >
                   {/* Span wrapper: Tooltip needs a child that holds a ref. */}
                   <Box component="span" sx={{ flexShrink: 0 }}>
-                    {p.isEnforced ? <MetaBadge label="Enforced" /> : <ToneBadge tone="action" label="Legacy-only" />}
+                    {p.isEnforced ? <MetaBadge label={t("matrix.enforced")} /> : <ToneBadge tone="action" label={t("matrix.legacyOnly")} />}
                   </Box>
                 </Tooltip>
               </Box>

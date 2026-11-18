@@ -18,7 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added batch sample receiving, duplicate batch+control rule, grid navigation/paste, and receiving last-choice defaults (URS-RCV-013, URS-RCV-014). |
 | 0.3 | 2026-11-17 | AI coding agent, draft from code | Added bulk analyst assignment requirement (URS-RCV-015). |
-| 0.4 | 2026-11-18 | AI coding agent, draft from code | Restricted analyst assignment, reassignment and unassignment to tests without an entered/submitted result (URS-RCV-011). |
+| 0.4 | 2026-11-18 | AI coding agent, draft from code | Restricted analyst assignment, reassignment and unassignment to tests whose result has not yet been submitted (URS-RCV-011). |
 
 ## Requirements
 
@@ -85,7 +85,7 @@ Each requirement is a need that the code as built serves. Gaps found in the code
 **Status:** Active
 
 ### URS-RCV-011
-**Requirement:** The system shall let a user who holds the assign-analyst permission assign, reassign or unassign an analyst on each test of a sample only before a result is entered or submitted for that test (decided 2026-11-18), and shall allow only active, unlocked users of the Analyst, Reviewer or Section Head role who are members of the test's laboratory.
+**Requirement:** The system shall let a user who holds the assign-analyst permission assign, reassign or unassign an analyst on each test of a sample only before the test's result is submitted (decided 2026-11-18), and shall allow only active, unlocked users of the Analyst, Reviewer or Section Head role who are members of the test's laboratory.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 211.25 (to be confirmed by QA)
 **Status:** Active

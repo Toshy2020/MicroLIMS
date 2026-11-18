@@ -709,7 +709,10 @@ public class UvRecorderTests
         await Record(db, asIs, Payload(asIs, Param(asIs.Specs[0], 0.49m)));
         Assert.Equal(ApprovalStatus.ResultEntered, (await db.TestOrders.FindAsync(dried.Order.Id))!.Status);
 
-        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, s.UserId, null);
+        var reviewer = new User { Username = $"urev_{Guid.NewGuid():N}"[..14], FullName = "UV Reviewer", PasswordHash = "x", IsActive = true };
+        db.Users.Add(reviewer);
+        await db.SaveChangesAsync();
+        await TestServiceFactory.SampleReview(db).ReturnToAnalystAsync(lodOrder.Id, reviewer.Id, null);
 
         var driedOrder = await db.TestOrders.AsNoTracking().SingleAsync(o => o.Id == dried.Order.Id);
         Assert.Equal(WorkflowStep.Running, driedOrder.CurrentStep);

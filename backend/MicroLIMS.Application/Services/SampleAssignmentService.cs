@@ -39,23 +39,21 @@ public class SampleAssignmentService
 
     private static bool IsClosed(TestOrder t) => t.IsSuperseded || ClosedStatuses.Contains(t.Status);
 
-    // A test order has a result once its status or workflow step has moved past testing
-    // (ResultEntered / Reviewed / Ready / Reviewed / Approved) or a non-invalidated Result row exists.
-    internal static bool HasResult(TestOrder t, IReadOnlySet<int>? ordersWithResultRows = null) =>
+    // A test order's result is complete and submitted once its status leaves Pending/InProgress
+    // (ResultEntered, Reviewed, RetestRequested, etc.) or its step reaches Ready or later.
+    // Intermediate readings/steps saved while InProgress do not block reassignment.
+    internal static bool HasResult(TestOrder t) =>
         t.Status is not (ApprovalStatus.Pending or ApprovalStatus.InProgress)
-        || t.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved
-        || t.Results.Any(r => r.InvalidatedAt == null)
-        || (ordersWithResultRows is not null && ordersWithResultRows.Contains(t.Id));
+        || t.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved;
 
-    private static bool IsOpen(TestOrder t, IReadOnlySet<int>? ordersWithResultRows = null) =>
-        !IsClosed(t) && !HasResult(t, ordersWithResultRows);
+    private static bool IsOpen(TestOrder t) => !IsClosed(t) && !HasResult(t);
 
     // Assignment is a write, so the scope is membership for everyone (never null).
     private static bool InScope(IReadOnlyList<int>? scope, int sectionId) => scope is null || scope.Contains(sectionId);
 
-    // Whole sample: the analyst takes every open test (no result entered) in the sections
+    // Whole sample: the analyst takes every open test (no submitted result) in the sections
     // they belong to (tests in other sections keep whoever is on them). A null analyst
-    // unassigns every open test without a result.
+    // unassigns every open test without a submitted result.
     public async Task<SampleDto> AssignAnalystAsync(
         int sampleId, int? analystUserId, int actingUserId, string? reason = null, CancellationToken ct = default)
     {
@@ -65,35 +63,15 @@ public class SampleAssignmentService
         return await LoadDtoAsync(sample);
     }
 
-    internal async Task<HashSet<int>> LoadOrderIdsWithResultsAsync(IEnumerable<TestOrder> orders, CancellationToken ct = default)
-    {
-        var ids = orders
-            .Where(t => !IsClosed(t) && !HasResult(t))
-            .Select(t => t.Id)
-            .Where(id => id != 0)
-            .Distinct()
-            .ToArray();
-        if (ids.Length == 0)
-            return new HashSet<int>();
-
-        var found = await _db.Results.AsNoTracking()
-            .Where(r => ids.Contains(r.TestOrderId))
-            .Select(r => r.TestOrderId)
-            .Distinct()
-            .ToListAsync(ct);
-        return found.ToHashSet();
-    }
-
     private static (List<TestOrder> Assignable, ActionCheck Check) EvaluateSampleAssignment(
         Sample sample,
-        IReadOnlyList<int>? actingScope,
-        IReadOnlySet<int>? ordersWithResultRows)
+        IReadOnlyList<int>? actingScope)
     {
         var inScope = sample.TestOrders
             .Where(t => !IsClosed(t) && InScope(actingScope, t.SectionId))
             .ToList();
         var assignable = inScope
-            .Where(t => !HasResult(t, ordersWithResultRows))
+            .Where(t => !HasResult(t))
             .ToList();
 
         if (assignable.Count > 0)
@@ -106,15 +84,13 @@ public class SampleAssignmentService
         return (assignable, check);
     }
 
-    // Whether the acting user can assign anything on the sample: it has an open test without a result
-    // in a section they belong to. Who is put on the tests is the user's choice, and
+    // Whether the acting user can assign anything on the sample: it has an open test without a submitted
+    // result in a section they belong to. Who is put on the tests is the user's choice, and
     // AnalystAssignmentRules judges it in the action. The sample carries its TestOrders.
     internal async Task<ActionCheck> CheckAssignAsync(Sample sample, int actingUserId, CancellationToken ct = default)
     {
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
-        var ordersWithResults = await LoadOrderIdsWithResultsAsync(
-            sample.TestOrders.Where(t => InScope(actingScope, t.SectionId)), ct);
-        return EvaluateSampleAssignment(sample, actingScope, ordersWithResults).Check;
+        return EvaluateSampleAssignment(sample, actingScope).Check;
     }
 
     internal async Task<List<(TestOrder Order, int? AnalystId)>> PrepareSampleAssignmentAsync(
@@ -123,14 +99,11 @@ public class SampleAssignmentService
         int actingUserId,
         IReadOnlyList<int>? actingScope = null,
         IReadOnlyList<int>? assigneeScope = null,
-        IReadOnlySet<int>? ordersWithResultRows = null,
         CancellationToken ct = default)
     {
         actingScope ??= await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
-        ordersWithResultRows ??= await LoadOrderIdsWithResultsAsync(
-            sample.TestOrders.Where(t => InScope(actingScope, t.SectionId)), ct);
 
-        var (open, check) = EvaluateSampleAssignment(sample, actingScope, ordersWithResultRows);
+        var (open, check) = EvaluateSampleAssignment(sample, actingScope);
         check.ThrowIfRefused();
 
         var targets = open;
@@ -159,8 +132,6 @@ public class SampleAssignmentService
 
         var sample = await LoadSampleAsync(sampleId, ct);
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
-        var ordersWithResults = await LoadOrderIdsWithResultsAsync(
-            sample.TestOrders.Where(t => InScope(actingScope, t.SectionId)), ct);
         var now = _time.GetUtcNow().UtcDateTime;
 
         var changes = new List<(TestOrder Order, int? AnalystId)>();
@@ -173,7 +144,7 @@ public class SampleAssignmentService
                 throw new BusinessRuleException($"{order.TestCode} is closed - its analyst can no longer be changed.");
             if (!InScope(actingScope, order.SectionId))
                 throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
-            if (HasResult(order, ordersWithResults))
+            if (HasResult(order))
                 throw new BusinessRuleException(MessageCodes.SampleCannotReassignWithResult, CannotReassignWithResultMessage);
 
             if (assignment.AnalystUserId is int assigneeId)
@@ -208,14 +179,12 @@ public class SampleAssignmentService
             sectionsByUser[candidate.Id] = await _scope.GetMemberSectionIdsAsync(candidate.Id, ct);
 
         var orders = sample.TestOrders.Where(t => !t.IsSuperseded).OrderBy(t => t.SectionId).ThenBy(t => t.TestCode).ToList();
-        var ordersWithResults = await LoadOrderIdsWithResultsAsync(
-            orders.Where(t => InScope(actingScope, t.SectionId)), ct);
         var assignedIds = orders.Where(t => t.AssignedAnalystId.HasValue).Select(t => t.AssignedAnalystId!.Value).Distinct().ToList();
         var names = await _db.Users.Where(u => assignedIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
         var tests = orders.Select(t =>
         {
-            var canAssign = IsOpen(t, ordersWithResults) && InScope(actingScope, t.SectionId);
+            var canAssign = IsOpen(t) && InScope(actingScope, t.SectionId);
             var eligible = canAssign
                 ? candidates.Where(c => InScope(sectionsByUser[c.Id], t.SectionId)).Select(c => c.Id).ToList()
                 : new List<int>();

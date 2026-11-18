@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-REV |
 | Title | Sample review, approval and segregation of duties functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-18 | AI coding agent, draft from code | Enforced segregation of duties on Return to Analyst (`CheckReturnToAnalystAsync` / `ReturnToAnalystCoreAsync`) so a user who performed the test cannot return it (FS-REV-002). |
 
 ## Scope and reading notes
 
@@ -36,10 +37,10 @@
 **Conflicts:** CONF-022, CONF-023, CONF-025
 
 ### FS-REV-002
-**Satisfies:** URS-REV-004
-**Function:** Return a test to the analyst (endpoint `POST api/samples/{id}/review/return-test`; permission `SamplesReview`). Inputs: test order ID, optional reason. The controller checks the user's write scope on the test order; the sample ID in the route is not used and is not compared with the order's sample. Runs in one transaction. Preconditions: the sample is not UnderApproval, Approved, Rejected, RetestRequested, Cancelled or Voided and the order's section is InTesting or UnderReview; the order status is ResultEntered; the test's workflow type is CountTest or an analysis workflow (other types, including observation-type pathogen tests, are refused). Count tests: all active count readings of the order are marked inactive (kept), and the latest incubation of the order is re-opened by clearing its completed time, completed-by user and outcome in the same row. Analysis tests: active analyses and active parameter results are marked inactive (kept). If the section was UnderReview it goes back to InTesting and the sample status is rolled up again. The order is moved to Incubating (count) or Running (analysis) through `WorkflowStateMachine` with a history note holding the reason. A `TestReturnEvent` row (order, reviewer, assigned analyst, reason, time) is added. For a moisture test (loss on drying or water content) every dependent assay of the same sample that used its result is returned too, and the call fails if any dependent assay is already past ResultEntered. The reason is optional, no password or signature is asked for, and no check is made that the reviewer did not perform the test.
-**Code:** `backend/MicroLIMS.Application/Services/SampleReviewService.cs` — `ReturnToAnalystCoreAsync`, `ReturnOrderAsync`; `backend/MicroLIMS.API/Controllers/SampleReviewController.cs` — `ReturnTestToAnalyst`
-**Verified by:** reading (not run)
+**Satisfies:** URS-REV-002, URS-REV-004
+**Function:** Return a test to the analyst (endpoint `POST api/samples/{id}/review/return-test`; permission `SamplesReview`). Inputs: test order ID, optional reason. The controller checks the user's write scope on the test order; the sample ID in the route is not used and is not compared with the order's sample. Runs in one transaction. Preconditions (`CheckReturnToAnalystAsync`, shared with `GET api/actions/test-order/{id}` for `review.return`): the sample is not UnderApproval, Approved, Rejected, RetestRequested, Cancelled or Voided and the order's section is InTesting or UnderReview; the order status is ResultEntered; segregation of duties via `SegregationOfDutiesGuard.DidUserPerformTestAsync(order.Id, actingUserId)` must be false, otherwise the call and `api/actions` refuse with `"You cannot review a sample you tested."` (`SignoffRefusalSentences.CannotReviewTested` / `MessageCodes.SampleCannotReviewTested`, decided 2026-11-18); the test's workflow type is CountTest or an analysis workflow (other types, including observation-type pathogen tests, are refused). Count tests: all active count readings of the order are marked inactive (kept), and the latest incubation of the order is re-opened by clearing its completed time, completed-by user and outcome in the same row. Analysis tests: active analyses and active parameter results are marked inactive (kept). If the section was UnderReview it goes back to InTesting and the sample status is rolled up again. The order is moved to Incubating (count) or Running (analysis) through `WorkflowStateMachine` with a history note holding the reason. A `TestReturnEvent` row (order, reviewer, assigned analyst, reason, time) is added. For a moisture test (loss on drying or water content) every dependent assay of the same sample that used its result is returned too, and the call fails if any dependent assay is already past ResultEntered. The reason is optional and no password or signature is asked for.
+**Code:** `backend/MicroLIMS.Application/Services/SampleReviewService.cs` — `ReturnToAnalystCoreAsync`, `CheckReturnToAnalystAsync`, `ReturnOrderAsync`; `backend/MicroLIMS.API/Controllers/SampleReviewController.cs` — `ReturnTestToAnalyst`; `backend/MicroLIMS.Application/Services/ActionAvailabilityService.cs` — `ForTestOrderAsync`
+**Verified by:** reading and `[PostgresFact]` integration tests (`ReturnToAnalystPostgresTests`, `ActionAvailabilityPostgresTests`, `ActionGuardCharacterisationPostgresTests`)
 **Conflicts:** CONF-024, CONF-025
 
 ### FS-REV-003

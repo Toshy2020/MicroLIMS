@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-REV |
 | Title | Sample review, approval and segregation of duties user requirements |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-18 | AI coding agent, draft from code | Required segregation of duties when returning a test to the analyst (URS-REV-004). |
 
 ## Requirements
 
@@ -40,7 +41,7 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Status:** Active
 
 ### URS-REV-004
-**Requirement:** The system shall let a reviewer return a count test or an analysis test to the analyst before the section is reviewed, shall keep the superseded results, and shall record the reviewer, the analyst, the time and the reason given.
+**Requirement:** The system shall let a reviewer who did not perform the test (decided 2026-11-18) return a count test or an analysis test to the analyst before the section is reviewed, shall keep the superseded results, and shall record the reviewer, the analyst, the time and the reason given.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(e) (to be confirmed by QA)
 **Status:** Active

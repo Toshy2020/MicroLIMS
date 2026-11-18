@@ -467,9 +467,13 @@ public class HplcMoisturePostgresTests
         var orderBefore = await db.TestOrders.FindAsync(s.Order.Id);
         Assert.Equal(ApprovalStatus.ResultEntered, orderBefore!.Status);
 
-        // Return the LOD order
+        // Return the LOD order (by a reviewer who did not perform the test)
+        var revRole = await db.Roles.FirstAsync(r => r.Type == RoleType.Reviewer);
+        var reviewer = new User { Username = $"hrev_{Guid.NewGuid():N}"[..14], FullName = "HPLC Reviewer", PasswordHash = "x", RoleId = revRole.Id, IsActive = true };
+        db.Users.Add(reviewer);
+        await db.SaveChangesAsync();
         var review = TestServiceFactory.SampleReview(db);
-        await review.ReturnToAnalystAsync(lodOrder.Id, s.UserId, "Re-drying required");
+        await review.ReturnToAnalystAsync(lodOrder.Id, reviewer.Id, "Re-drying required");
 
         await using var check = _fixture.CreateDbContext();
         // The LOD order was returned

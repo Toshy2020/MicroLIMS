@@ -268,21 +268,23 @@ public class SampleReviewService
             ?? throw new BusinessRuleException("Retention unit must be g, mg, kg, mL or L.");
     }
 
-    public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
-        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason)));
+    public Task<TestReturnEventResponse> ReturnToAnalystAsync(
+        int testOrderId, int reviewerId, string? reason, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason, ct)));
 
-    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(int testOrderId, int reviewerId, string? reason)
+    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(
+        int testOrderId, int reviewerId, string? reason, CancellationToken ct = default)
     {
-        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
-            .FirstOrDefaultAsync(s => s.Id == order.SampleId);
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
 
         // The moisture order's row is locked before its dependent assays are scanned (forAction), so an
         // assay being recorded against this result either commits before the scan (and is returned) or waits
         // and then finds the result returned.
-        var returnable = await CheckReturnToAnalystAsync(order, sample, forAction: true);
+        var returnable = await CheckReturnToAnalystAsync(order, sample, reviewerId, forAction: true, ct);
         returnable.Check.ThrowIfRefused();
         var sectionStatus = returnable.SectionStatus;
         var dependents = returnable.Dependents;
@@ -295,11 +297,11 @@ public class SampleReviewService
         var phrase = definition.MoistureRole == MoistureRole.LossOnDrying ? "loss on drying" : "water content";
         foreach (var dependent in dependents)
         {
-            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode);
+            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode, ct);
             await ReturnOrderAsync(dependent, dependentDefinition, sample, null, reviewerId, $"Recalculate: the {phrase} result was returned.");
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         return returnEvent;
     }
@@ -307,24 +309,28 @@ public class SampleReviewService
     private sealed record ReturnCheck(ActionCheck Check, SectionSignoffStatus SectionStatus, TestDefinition? Definition, List<TestOrder> Dependents);
 
     // The pre-conditions of returning a test to its analyst, in the order the action applies them: the test's
-    // section is not reviewed yet, a result is entered, the workflow can be returned, and no assay that read
-    // this moisture result is already reviewed. The reason is the reviewer's input and stays with the action.
-    public async Task<ActionCheck> CheckReturnToAnalystAsync(int testOrderId, CancellationToken ct = default)
+    // section is not reviewed yet, a result is entered, the acting user did not perform the test (SoD),
+    // the workflow can be returned, and no assay that read this moisture result is already reviewed.
+    // The reason is the reviewer's input and stays with the action.
+    public async Task<ActionCheck> CheckReturnToAnalystAsync(int testOrderId, int actingUserId, CancellationToken ct = default)
     {
         var order = await _db.TestOrders.AsNoTracking().FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException($"Test order {testOrderId} not found.");
         var sample = await _db.Samples.AsNoTracking().Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
-        return (await CheckReturnToAnalystAsync(order, sample, forAction: false, ct)).Check;
+        return (await CheckReturnToAnalystAsync(order, sample, actingUserId, forAction: false, ct)).Check;
     }
 
     // forAction: the action's own call - entities are tracked and the moisture order's row is locked. The
     // availability call reads without tracking and takes no lock.
-    private async Task<ReturnCheck> CheckReturnToAnalystAsync(TestOrder order, Sample? sample, bool forAction, CancellationToken ct = default)
+    private async Task<ReturnCheck> CheckReturnToAnalystAsync(
+        TestOrder order, Sample? sample, int actingUserId, bool forAction, CancellationToken ct = default)
     {
         var dependents = new List<TestOrder>();
         ReturnCheck Refused(string reason, SectionSignoffStatus status, TestDefinition? definition = null) =>
             new(ActionCheck.No(reason), status, definition, dependents);
+        ReturnCheck RefusedCoded(string code, string reason, SectionSignoffStatus status, TestDefinition? definition = null) =>
+            new(ActionCheck.No(code, reason), status, definition, dependents);
 
         // Review is per section: this test's own section must not have been
         // reviewed yet. A sample that is past review as a whole (every
@@ -343,6 +349,9 @@ public class SampleReviewService
 
         if (order.Status != ApprovalStatus.ResultEntered)
             return Refused($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.", sectionStatus);
+
+        if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, actingUserId, ct))
+            return RefusedCoded(MessageCodes.SampleCannotReviewTested, SignoffRefusalSentences.CannotReviewTested, sectionStatus);
 
         var definitions = forAction ? _db.TestDefinitions : _db.TestDefinitions.AsNoTracking();
         var definition = await definitions.FirstOrDefaultAsync(d => d.Code == order.TestCode, ct);

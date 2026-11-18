@@ -51,9 +51,6 @@ public class SampleBulkAssignmentService
 
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
         var assigneeScope = await _scope.GetMemberSectionIdsAsync(request.AnalystUserId, ct);
-        var ordersWithResults = await _assignmentService.LoadOrderIdsWithResultsAsync(
-            samplesById.Values.SelectMany(s => s.TestOrders).Where(t => actingScope is null || actingScope.Contains(t.SectionId)),
-            ct);
 
         var rows = new List<BulkAssignRowResult>(request.SampleIds.Count);
         var passing = new List<(Sample Sample, List<(TestOrder Order, int? AnalystId)> Changes)>();
@@ -74,7 +71,6 @@ public class SampleBulkAssignmentService
                     actingUserId,
                     actingScope,
                     assigneeScope,
-                    ordersWithResults,
                     ct);
 
                 passing.Add((sample, changes));

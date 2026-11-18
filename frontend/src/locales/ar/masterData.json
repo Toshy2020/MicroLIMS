@@ -1275,5 +1275,605 @@
       "maxRsdPositive": "يجب أن يكون الحد الأقصى لـ RSD % أكبر من الصفر.",
       "validityDaysNonNegative": "يجب أن تكون أيام صلاحية التقييس 0 أو أكثر."
     }
+  },
+  "testMaster": {
+    "icp": {
+      "sectionTitle": "إعدادات المقايسة بطريقة ICP",
+      "testTypeAria": "نوع اختبار ICP",
+      "modes": {
+        "impurity": "الشوائب العنصرية (ppm)",
+        "assay": "المقايسة (% من المستهدف)"
+      },
+      "modeHelp": {
+        "assay": "تُقارَن نتيجة الجهاز بالتركيز المستهدف لكل عنصر؛ وتحدد مواصفات الصنف حدود المقايسة.",
+        "impurity": "تُقيَّم نتيجة الجهاز (ppm) حسب مواصفات الصنف: ألا تزيد عن حد معين، حيث يعني 0 عدم الكشف."
+      },
+      "sampleFormAria": "شكل العينة",
+      "sampleForms": {
+        "solid": "صلبة",
+        "liquid": "سائلة"
+      },
+      "theoreticalWeight": "الوزن النظري (g)",
+      "theoreticalVolume": "الحجم النظري (mL)",
+      "thWt": "الوزن النظري",
+      "thVol": "الحجم النظري",
+      "specificGravity": "الكثافة النوعية",
+      "spGr": "الكثافة النوعية",
+      "elementsHeading": "العناصر",
+      "columns": {
+        "symbol": "الرمز",
+        "targetPpm": "التركيز المستهدف (ppm)",
+        "cleaningLimitPpm": "حد التنظيف (ppm)"
+      },
+      "placeholders": {
+        "symbol": "Zn",
+        "targetPpm": "10",
+        "cleaningLimitPpm": "اختياري"
+      },
+      "aria": {
+        "symbol": "رمز العنصر {{index}}",
+        "targetPpm": "التركيز المستهدف (ppm) للعنصر {{index}}",
+        "cleaningLimitPpm": "حد التنظيف (ppm) للعنصر {{index}}",
+        "removeElement": "إزالة العنصر {{index}}"
+      },
+      "addElement": "إضافة عنصر",
+      "validation": {
+        "addElement": "أضف عنصرًا واحدًا على الأقل.",
+        "theoreticalWeight": "أدخل الوزن النظري (g).",
+        "theoreticalVolume": "أدخل الحجم النظري (mL).",
+        "specificGravity": "أدخل الكثافة النوعية.",
+        "targetPpm": "أدخل التركيز المستهدف (ppm) للعنصر {{symbol}}."
+      }
+    },
+    "uv": {
+      "modes": {
+        "SpecificAbsorbanceAssay": {
+          "label": "المقايسة بالامتصاص النوعي (A1%)",
+          "description": "يحسب % كما هو = A × V / (A1% × W)"
+        },
+        "SpecificAbsorbanceValue": {
+          "label": "قيمة الامتصاص النوعي",
+          "description": "يحسب A(1%, 1 cm) = A × V / (W × 100)"
+        },
+        "StandardComparison": {
+          "label": "المقايسة مقابل مادة قياسية",
+          "description": "يحسب مقايسة التحضير مقارنةً بمادة قياسية مرجعية"
+        },
+        "AbsorbanceLimit": {
+          "label": "حد الامتصاص (مرجعي)",
+          "description": "اختبارات للتحقق من أن الامتصاص لا يزيد عن محلول مرجعي"
+        }
+      },
+      "sectionTitle": "معلمات مطيافية الأشعة فوق البنفسجية (UV)",
+      "calculationModeLabel": "وضع الحساب",
+      "standardMaterialLabel": "مادة قياسية",
+      "standardMaterialError": "تعذر تحميل المواد المعيارية.",
+      "standardMaterialHelper": "تُختار التشغيلات (معيار مرجعي أو معيار عمل معتمد) من هذه المادة فقط وقت التحليل",
+      "specificAbsorbanceLabel": "الامتصاص النوعي (A1%) *",
+      "specificAbsorbanceHelper": "قيمة A(1%, 1 cm) (مثال: 328 للريبوفلافين)",
+      "totalVolumeLabel": "الحجم الكلي (mL) *",
+      "totalVolumeHelper": "الحجم الكلي للعينة (مثال: 5000 لـ 1000 × 50 / 10)",
+      "standardVolumeLabel": "حجم المعيار (mL) *",
+      "standardVolumeHelper": "الحجم الكلي لتخفيف المعيار",
+      "replicateCountLabel": "عدد التكرارات *",
+      "replicateCountHelper": "عدد التكرارات (1 إلى 30)"
+    },
+    "stageReplicates": {
+      "heading": "التكرارات لكل مرحلة ({{count}} مُعد)",
+      "addButton": "إضافة تكرار مرحلة",
+      "columns": {
+        "stageRole": "دور المرحلة",
+        "sampleReplicates": "تكرارات العينة",
+        "actions": "الإجراءات"
+      },
+      "editAria": "تعديل التكرارات",
+      "editTitle": "تعديل التكرارات",
+      "deleteAria": "حذف قاعدة التكرار",
+      "deleteTitle": "حذف إعدادات التكرار",
+      "empty": "لم يتم إعداد تكرارات للمراحل بعد. انقر على «إضافة تكرار مرحلة» لإعداد أعداد التكرارات.",
+      "footnote": "مراحل الإنتاج التي لا تحتوي على صف مُعد لا تُعد مُعدّة لهذا الاختبار (وليست صفرًا). يجب أن تكون الأعداد صحيحة ≥ 1. تُضبط حقنات المعيار لـ HPLC في الطريقة.",
+      "dialog": {
+        "editTitle": "تعديل تكرارات المرحلة: {{role}}",
+        "addTitle": "إضافة تكرار مرحلة",
+        "cancel": "إلغاء",
+        "saving": "جارٍ الحفظ…",
+        "saveChanges": "حفظ التغييرات",
+        "add": "إضافة",
+        "stageRoleLabel": "دور المرحلة",
+        "sampleReplicatesLabel": "تكرارات العينة *",
+        "sampleReplicatesPlaceholder": "مثال: 2",
+        "sampleReplicatesHelper": "عدد صحيح ≥ 1"
+      },
+      "deleteDialog": {
+        "title": "حذف إعدادات تكرار المرحلة",
+        "message": "هل تريد حذف إعدادات تكرار المرحلة للدور «{{role}}»؟",
+        "confirm": "حذف"
+      },
+      "errors": {
+        "loadFailed": "تعذر تحميل تكرارات المراحل.",
+        "roleRequired": "دور مرحلة الإنتاج مطلوب.",
+        "replicatesRequired": "تكرارات العينة مطلوبة.",
+        "replicatesInteger": "يجب أن تكون تكرارات العينة عددًا صحيحًا أكبر من أو يساوي 1.",
+        "saveFailed": "تعذر حفظ إعدادات تكرار المرحلة.",
+        "deleteFailed": "تعذر حذف إعدادات تكرار المرحلة."
+      }
+    },
+    "constants": {
+      "workflowTypes": {
+        "CountTest": "اختبار عد",
+        "Observation": "ملاحظة",
+        "HplcMethodAssay": "المقايسة بطريقة HPLC",
+        "IcpMethodAssay": "المقايسة بطريقة ICP",
+        "Measurement": "قياس",
+        "Gravimetric": "وزني",
+        "Qualitative": "نوعي",
+        "Dissolution": "الذوبانية",
+        "Disintegration": "التفتت",
+        "WeightVariation": "تفاوت الوزن",
+        "Titration": "المعايرة الحجمية",
+        "UvSpectrophotometry": "مطيافية الأشعة فوق البنفسجية"
+      },
+      "equationTypes": {
+        "None": "لا شيء",
+        "HplcMethodAssay": "المقايسة بطريقة HPLC",
+        "IcpMethodAssay": "المقايسة بطريقة ICP",
+        "SystemSuitability": "ملاءمة النظام",
+        "Measurement": "قياس (pH، الكثافة…)",
+        "GravimetricLoss": "الفقد بالتجفيف / الفقد الوزني",
+        "GravimetricResidue": "الرماد / الباقي الوزني",
+        "Qualitative": "نوعي (المظهر، التحديد)",
+        "Dissolution": "الذوبانية (إنهاء HPLC، مراحل S1-S3)",
+        "Disintegration": "التفتت (الزمن لكل وحدة، على مراحل)",
+        "WeightVariation": "تفاوت الوزن (USP <2091>، على مراحل)",
+        "Titration": "المعايرة الحجمية (USP <541>)",
+        "UvSpectrophotometry": "مطيافية الأشعة فوق البنفسجية"
+      },
+      "phenotypicTypes": {
+        "Gram": "صبغة غرام",
+        "Catalase": "الكاتالاز",
+        "Oxidase": "الأوكسيداز",
+        "Coagulase": "الكوأغيولاز",
+        "Antibiogram": "فحص الحساسية للمضادات",
+        "IdentificationKit": "عدة التعريف"
+      },
+      "validation": {
+        "brothMediaRequired": "يجب أن تحتوي خطوة المرق على وسط زرعي واحد مخصص بالضبط ومحدد كمطلوب.",
+        "brothNoOrganism": "يجب ألا تستهدف خطوة المرق كائنًا دقيقًا.",
+        "selectivePlatingMediaRequired": "يجب أن تحتوي خطوة الزرع الانتقائي على وسط زرعي واحد مخصص بالضبط ومحدد كمطلوب.",
+        "selectivePlatingOrganismRequired": "يجب أن تستهدف خطوة الزرع الانتقائي كائنًا دقيقًا.",
+        "confirmatoryMediaRequired": "يجب أن تحتوي خطوة الزرع التأكيدي على وسط زرعي مسموح به واحد على الأقل.",
+        "confirmatoryOrganismRequired": "يجب أن تستهدف خطوة الزرع التأكيدي كائنًا دقيقًا.",
+        "biochemicalNoMedia": "يجب ألا تحتوي خطوة الاختبار الكيميائي الحيوي على أوساط زرعية مخصصة.",
+        "biochemicalNoOrganism": "يجب ألا تستهدف خطوة الاختبار الكيميائي الحيوي كائنًا دقيقًا.",
+        "biochemicalPhenotypicRequired": "يجب أن تحدد خطوة الاختبار الكيميائي الحيوي نوع اختبار ظاهري واحد على الأقل.",
+        "biochemicalDuplicatePhenotypic": "لا يمكن تعيين نفس نوع الاختبار الظاهري لهذه الخطوة أكثر من مرة.",
+        "nonBiochemicalNoPhenotypic": "خطوة الاختبار الكيميائي الحيوي فقط يمكنها تحديد نوع اختبار ظاهري.",
+        "plateCountMediaRequired": "مطلوب وسط زرعي واحد على الأقل لهذا النوع من الخطوات.",
+        "mediaProductRequired": "أوساط زرعية مطلوبة: كل صف وسط زرعي يحتاج إلى اختيار منتج.",
+        "mediaConditionRequired": "كل صف وسط زرعي يحتاج إلى شرط حضانة.",
+        "duplicateMedia": "لا يمكن تعيين نفس الوسط (وسط زرعي) لهذه الخطوة أكثر من مرة.",
+        "stage2Incomplete": "يجب أن تحدد الخطوة التي تتطلب نقل حضانة نطاق درجة الحرارة وساعات الحضانة للمرحلة 2.",
+        "stage2TempOrder": "يجب أن تكون درجة الحرارة الدنيا للمرحلة 2 أقل من الدرجة القصوى.",
+        "stage2HoursInvalid": "يجب أن يكون لنطاق ساعات الحضانة للمرحلة 2 حد أدنى موجب وحد أقصى لا يقل عن الحد الأدنى."
+      }
+    },
+    "workflowSteps": {
+      "copySuffix": "{{name}} (نسخة)",
+      "errors": {
+        "updateWorkflowTypeFailed": "تعذر تحديث نوع سير العمل.",
+        "stepNameAndPhenotypicRequired": "اسم الخطوة ونوع اختبار ظاهري واحد على الأقل مطلوبان.",
+        "stepNameRequired": "اسم الخطوة مطلوب.",
+        "onlyOneFinalStep": "يمكن تحديد خطوة واحدة فقط كخطوة نهائية.",
+        "updateStepFailed": "تعذر تحديث هذه الخطوة.",
+        "addStepFailed": "تعذر إضافة هذه الخطوة.",
+        "reorderStepFailed": "تعذر إعادة ترتيب هذه الخطوة.",
+        "deleteStepFailed": "تعذر حذف هذه الخطوة."
+      },
+      "header": {
+        "workflowType": "نوع سير العمل",
+        "workflowSteps": "خطوات سير العمل",
+        "workflowTypeAria": "نوع سير العمل"
+      },
+      "hplc": {
+        "title": "إعدادات المقايسة بطريقة HPLC",
+        "equationType": "نوع المعادلة",
+        "methodAbbreviation": "اختصار الطريقة",
+        "systemSuitability": "ملاءمة النظام",
+        "systemSuitabilityValue": "مطلوب (من دليل طريقة HPLC)",
+        "noStepsNote": "لا تحتوي اختبارات المقايسة بطريقة HPLC على خطوات سير عمل أو مواد محلَّلة محلية للاختبار: تُعدّ المعلمات والمواد المحلَّلة والأوزان القياسية ومعايير ملاءمة النظام مركزيًا في دليل طرق HPLC."
+      },
+      "icp": {
+        "title": "إعدادات المقايسة بطريقة ICP",
+        "testType": "نوع الاختبار",
+        "impurity": "الشوائب العنصرية (ppm)",
+        "assay": "المقايسة (% من المستهدف)",
+        "notConfigured": "غير مُعد",
+        "sampleBasis": "أساس العينة",
+        "thVol": "الحجم النظري {{amount}} mL × الكثافة {{sg}}",
+        "thWt": "الوزن النظري {{amount}} g",
+        "elements": "العناصر",
+        "noElements": "لا شيء - عدّل الاختبار لإضافتها",
+        "noStepsNote": "لا تحتوي اختبارات المقايسة بطريقة ICP على خطوات سير عمل أو مواد محلَّلة محلية للاختبار: تُحدد العناصر والتراكيز المستهدفة في الاختبار، ويُعاير كل تشغيل ويُوقّع في مساحة عمل ICP."
+      },
+      "measurement": {
+        "title": "إعدادات القياس",
+        "evaluationBasis": "أساس التقييم",
+        "replicateCount": "عدد التكرارات",
+        "noStepsNote": "لا تحتوي اختبارات القياس على خطوات سير عمل: تُدخل القراءات لكل معلمة مواصفات مباشرة."
+      },
+      "gravimetric": {
+        "title": "الإعدادات الوزنية",
+        "usesTare": "يستخدم وزن الوعاء الفارغ",
+        "yes": "نعم",
+        "no": "لا",
+        "conditionFields": "حقول الشروط",
+        "noneConfigured": "غير مُعد",
+        "noStepsNote": "لا تحتوي الاختبارات الوزنية على خطوات سير عمل: تُدخل أوزان الوعاء/العينة وحقول الشروط مباشرة."
+      },
+      "titration": {
+        "title": "إعدادات المعايرة الحجمية",
+        "type": "النوع",
+        "mode": "الوضع",
+        "calculation": "الحساب",
+        "endpoint": "نقطة النهاية",
+        "replicates": "التكرارات",
+        "noStepsNote": "لا تحتوي اختبارات المعايرة الحجمية على خطوات سير عمل: تُدخل أوزان التكرارات وأحجام المعاير مباشرة."
+      },
+      "uv": {
+        "title": "إعدادات مطيافية الأشعة فوق البنفسجية",
+        "calculationMode": "وضع الحساب",
+        "specificAbsorbance": "الامتصاص النوعي (A1%)",
+        "totalVolume": "الحجم الكلي (mL)",
+        "standardVolume": "حجم المادة القياسية (mL)",
+        "standardMaterial": "مادة قياسية",
+        "noStepsNote": "لا تحتوي اختبارات مطيافية الأشعة فوق البنفسجية على خطوات سير عمل: تُدخل قيم الامتصاص للتكرارات وأوزان العينة مباشرة."
+      },
+      "qualitative": {
+        "title": "الإعدادات النوعية",
+        "noStepsNote": "لا تحتوي الاختبارات النوعية على خطوات سير عمل: تُدخل ملاحظة المطابقة لكل معلمة مواصفات مباشرة."
+      },
+      "dissolution": {
+        "title": "إعدادات الذوبانية",
+        "requiredWithAbbr": "مطلوب ({{abbr}})",
+        "noAbbr": "بدون اختصار",
+        "required": "مطلوب",
+        "s1Offset": "إزاحة S1",
+        "s2MinOffset": "أدنى إزاحة لـ S2",
+        "s3MinOffset": "أدنى إزاحة لـ S3",
+        "s3MaxBelowS2": "أقصى عدد لـ S3 دون S2",
+        "unitsCount": "{{count}} وحدات",
+        "noStepsNote": "لا تحتوي اختبارات الذوبانية على خطوات سير عمل: تُدخل مساحات قمم الأوعية على مراحل (S1: 6، S2: +6، S3: +12) وحقول الشروط مباشرة."
+      },
+      "disintegration": {
+        "title": "إعدادات التفتت",
+        "stage1Units": "وحدات المرحلة 1",
+        "stage2Units": "وحدات المرحلة 2",
+        "maxS1Failures": "أقصى إخفاقات S1",
+        "minPassTotal": "أدنى مجموع للنجاح",
+        "noStepsNote": "لا تحتوي اختبارات التفتت على خطوات سير عمل: تُدخل أزمنة الوحدات على مراحل (S1: {{s1}}، S2: +{{s2}}) وحقول الشروط مباشرة."
+      },
+      "weightVariation": {
+        "title": "إعدادات تفاوت الوزن (USP <2091>)",
+        "unitCount": "عدد الوحدات",
+        "tabletsLabel": "الأقراص (النطاقات / الحد الأقصى خارج النطاق)",
+        "tabletsSummary": "≤{{b1Mg}}mg: {{b1Pct}}% | ≤{{b2Mg}}mg: {{b2Pct}}% | >324mg: {{b3Pct}}% (الحد الأقصى {{maxOut}} خارج النطاق)",
+        "capsulesLabel": "الكبسولات (الحدود / إعادة الاختبار)",
+        "capsulesSummary": "±{{inner}}% / ±{{outer}}% (S1: ≤{{s1Out}} نجاح، ≤{{s1Retest}} إعادة الاختبار +{{s2Extra}} وحدة، S2: ≤{{s2Out}} خارج النطاق)",
+        "noStepsNote": "لا تحتوي اختبارات تفاوت الوزن على خطوات سير عمل: تُدخل أوزان الوحدات (أو الوزن الإجمالي ووزن الغلاف) وحقول الشروط مباشرة."
+      },
+      "table": {
+        "step": "الخطوة",
+        "incubation": "حضانة",
+        "tempC": "الحرارة °C",
+        "stepType": "نوع الخطوة",
+        "media": "أوساط زرعية",
+        "organism": "الكائن الدقيق",
+        "status": "الحالة",
+        "final": "نهائية",
+        "twoStage": "مرحلتان",
+        "stage1Hours": "المرحلة 1: {{range}} س",
+        "stage2Hours": "المرحلة 2: {{min}}-{{max}} س",
+        "hoursSuffix": "{{range}} س",
+        "stage1Temp": "المرحلة 1: {{range}}",
+        "stage2Temp": "المرحلة 2: {{min}}-{{max}}",
+        "transfer": "نقل",
+        "needsConfigurationTooltip": "يفتقد هذا القالب إلى كائن دقيق أو وسط زرعي مطلوب (على الأرجح موروث من الترحيل السابق) وسيفشل في التحقق عند أول تشغيل من قبل محلل. عدّله لإكمال الإعدادات.",
+        "needsConfiguration": "يحتاج إلى إعداد",
+        "moveUp": "تحريك لأعلى",
+        "moveDown": "تحريك لأسفل",
+        "editStep": "تعديل الخطوة",
+        "duplicateStep": "تكرار الخطوة",
+        "deleteStep": "حذف الخطوة",
+        "empty": "لم يتم إعداد خطوات سير عمل بعد."
+      },
+      "form": {
+        "editStep": "تعديل الخطوة",
+        "addStep": "إضافة خطوة",
+        "stepName": "اسم الخطوة",
+        "stepNamePlaceholder": "مثال: TSB",
+        "phenotypicAria": "نوع الاختبار الظاهري",
+        "phenotypicPlaceholder": "نوع الاختبار الظاهري",
+        "add": "إضافة",
+        "stepTypeAria": "نوع الخطوة",
+        "finalStep": "خطوة نهائية",
+        "requiresTransfer": "يتطلب نقل حضانة",
+        "cancel": "إلغاء",
+        "saveChanges": "حفظ التغييرات",
+        "stage2Title": "حضانة المرحلة 2 (النقل)",
+        "stage2TempMin": "أدنى حرارة للمرحلة 2",
+        "stage2TempMax": "أقصى حرارة للمرحلة 2",
+        "stage2MinHours": "أدنى ساعات للمرحلة 2",
+        "stage2MaxHours": "أقصى ساعات للمرحلة 2",
+        "targetOrganismAria": "الكائن الدقيق المستهدف (مطلوب)",
+        "targetOrganismPlaceholder": "الكائن الدقيق المستهدف (مطلوب)",
+        "stepMedia": "أوساط زرعية للخطوة",
+        "singleMediaHint": "يسمح نوع الخطوة هذا بوسط زرعي واحد فقط.",
+        "replaceMediaInfo": "يستبدل الحفظ قائمة وسط زرعي الكاملة لهذه الخطوة بما هو معروض أدناه.",
+        "mediaHelp": "اختر منتج أوساط زرعية ثم أحد شروط الحضانة الخاصة به. يحدد الشرط درجة حرارة هذا الوسط (وسط زرعي) وساعات الحضانة. تُضاف الشروط ضمن دليل مواد الاختبار، تبويب الأوساط الزرعية.",
+        "cultureMediaProduct": "منتج أوساط زرعية",
+        "incubationConditionAria": "شرط الحضانة",
+        "incubationConditionPlaceholder": "شرط الحضانة",
+        "noConditions": "لا يحتوي هذا الوسط (وسط زرعي) على شروط حضانة بعد.",
+        "required": "مطلوب",
+        "order": "الترتيب {{order}}",
+        "removeMedium": "إزالة وسط زرعي",
+        "addMedium": "إضافة وسط زرعي"
+      },
+      "deleteDialog": {
+        "title": "حذف خطوة سير العمل",
+        "message": "هل أنت متأكد من أنك تريد حذف خطوة سير العمل هذه؟ لا يمكن التراجع عن هذا الإجراء.",
+        "confirm": "حذف الخطوة"
+      }
+    }
+  },
+  "testWizard": {
+    "wizard": {
+      "editTitle": "تعديل الاختبار «{{code}}»",
+      "duplicateTitle": "اختبار جديد من «{{code}}»",
+      "addFpTitle": "إضافة اختبار فيزيائي كيميائي",
+      "addMicroTitle": "إضافة اختبار ميكروبيولوجي",
+      "loadChildrenError": "تعذر تحميل مراحل وخطوات سير عمل الاختبار. حاول مرة أخرى.",
+      "noLongerExistsError": "لم يعد تعريف الاختبار موجودًا."
+    },
+    "basics": {
+      "title": "الأساسيات",
+      "codeLabel": "الرمز *",
+      "codeImmutableHelper": "لا يمكن تغيير رموز الاختبارات بعد الإنشاء.",
+      "codeNewHelper": "معرّف فريد يُستخدم في مواصفات الصنف والاختبار.",
+      "displayNameLabel": "اسم العرض *",
+      "coaOrderLabel": "ترتيب شهادة التحليل (اختياري)",
+      "coaOrderPlaceholder": "مثال: 1، 2، 3",
+      "coaOrderHelper": "الموضع في شهادة التحليل داخل مجموعة هذا الاختبار (1–9999)؛ تتبع الاختبارات بدون ترتيب أبجديًا.",
+      "sectionLabel": "القسم",
+      "selectSection": "اختر قسمًا",
+      "sectionChangeHint": "تحتفظ أوامر الاختبار الحالية بقسمها الحالي.",
+      "workflowTypeLabel": "نوع سير العمل",
+      "summary": {
+        "code": "الرمز",
+        "displayName": "اسم العرض",
+        "coaOrder": "ترتيب شهادة التحليل",
+        "section": "القسم",
+        "workflowType": "نوع سير العمل"
+      }
+    },
+    "stages": {
+      "title": "المراحل",
+      "heading": "التكرارات لكل مرحلة ({{count}} مُعد)",
+      "addButton": "إضافة تكرار مرحلة",
+      "columns": {
+        "stageRole": "دور المرحلة",
+        "sampleReplicates": "تكرارات العينة",
+        "actions": "الإجراءات"
+      },
+      "editAria": "تعديل التكرارات",
+      "deleteAria": "حذف قاعدة التكرار",
+      "empty": "لم يتم إعداد تكرارات للمراحل بعد. انقر على «إضافة تكرار مرحلة» لإعداد أعداد التكرارات.",
+      "footnote": "مراحل الإنتاج التي لا تحتوي على صف مُعد لا تُعد مُعدّة لهذا الاختبار (وليست صفرًا). يجب أن تكون الأعداد صحيحة ≥ 1. تُضبط حقنات المعيار لـ HPLC في الطريقة.",
+      "dialog": {
+        "editTitle": "تعديل تكرارات المرحلة: {{role}}",
+        "addTitle": "إضافة تكرار مرحلة",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "add": "إضافة",
+        "stageRoleLabel": "دور المرحلة",
+        "sampleReplicatesLabel": "تكرارات العينة *",
+        "sampleReplicatesPlaceholder": "مثال: 2",
+        "sampleReplicatesHelper": "عدد صحيح ≥ 1"
+      },
+      "errors": {
+        "roleRequired": "دور مرحلة الإنتاج مطلوب.",
+        "replicatesRequired": "تكرارات العينة مطلوبة.",
+        "replicatesInteger": "يجب أن تكون تكرارات العينة عددًا صحيحًا أكبر من أو يساوي 1."
+      },
+      "summary": {
+        "label": "التكرارات لكل مرحلة",
+        "none": "لا شيء"
+      }
+    },
+    "steps": {
+      "title": "الخطوات",
+      "newTestFallback": "اختبار جديد",
+      "description": "أعدّ خطوات سير العمل المرتبة و أوساط زرعية مسموح بها لهذا الاختبار الميكروبيولوجي. يمكنك إضافة الخطوات الآن أو بعد إنشاء الاختبار.",
+      "summary": {
+        "label": "خطوات سير العمل",
+        "none": "لم يتم الإعداد بعد"
+      }
+    },
+    "typeSettings": {
+      "title": "إعدادات النوع",
+      "equationTypeLabel": "نوع المعادلة",
+      "hplcHeaderDissolution": "طريقة HPLC (تزود معيار الذوبانية)",
+      "hplcHeaderAssay": "إعدادات المقايسة بطريقة HPLC",
+      "hplcMethodLabel": "طريقة HPLC",
+      "hplcMethodRequiredLabel": "طريقة HPLC *",
+      "selectHplcMethod": "اختر طريقة HPLC",
+      "inactiveSuffix": " (غير نشط)",
+      "hplcMethodHelper": "اختر طريقة HPLC الرئيسية النشطة التي تحدد ظروف الكروماتوغرافيا والمواد المحلَّلة لهذا الاختبار.",
+      "methodAbbreviationLabel": "اختصار الطريقة",
+      "methodAbbreviationHelperDissolution": "تحتفظ الذوبانية باختصارها الخاص.",
+      "methodAbbreviationHelperAssay": "يُملأ تلقائيًا من طريقة HPLC المختارة (للقراءة فقط).",
+      "qualitativeInfo": "اختبار نوعي: يسجل ملاحظة المطابقة مقابل المواصفات مباشرة (بدون تكرارات أو خطوات).",
+      "recordedPerContainer": "يُسجل لكل عبوة",
+      "summary": {
+        "equationType": "نوع المعادلة",
+        "hplcMethod": "طريقة HPLC",
+        "replicateCount": "عدد التكرارات",
+        "titrationType": "نوع المعايرة الحجمية",
+        "icpElements": "عناصر ICP",
+        "area": "المجال"
+      }
+    },
+    "preview": {
+      "ariaLabel": "معاينة المحلل",
+      "title": "ما سيراه المحلل",
+      "chip": "معاينة — للإعدادات فقط",
+      "mediaLabel": "أوساط زرعية:",
+      "incubationLabel": "حضانة:",
+      "stageReplicatesLabel": "تكرارات المرحلة:",
+      "analystEntersLabel": "يدخل المحلل:",
+      "stepFallback": "الخطوة {{index}}",
+      "mediaFallback": "أوساط زرعية #{{id}}",
+      "hours": "{{min}}–{{max}} س",
+      "hoursAtTemp": "{{hours}} عند {{tempMin}}–{{tempMax}} °C",
+      "previewContextName": "معاينة"
+    },
+    "helpers": {
+      "sectionFallback": "القسم #{{id}}",
+      "methodFallback": "طريقة #{{id}}"
+    },
+    "typeBlocks": {
+      "disintegration": {
+        "title": "قبول التفتت (USP <701> / EP 2.9.1)",
+        "stage1Units": "وحدات المرحلة 1",
+        "stage2Units": "وحدات المرحلة 2",
+        "maxS1Failures": "أقصى إخفاقات S1",
+        "minPassTotal": "أدنى مجموع للنجاح",
+        "default6": "الافتراضي: 6",
+        "default12": "الافتراضي: 12",
+        "default2": "الافتراضي: 2 (0..S1-1)",
+        "default16": "الافتراضي: 16 (1..S1+S2)",
+        "conditionFields": "حقول الشروط",
+        "conditionPlaceholder": "وسط زرعي،الحرارة (°C)،الأقراص",
+        "conditionHelper": "مفصولة بفواصل (وسط زرعي)، مثال: Medium,Temperature (°C),Discs"
+      },
+      "dissolution": {
+        "title": "إزاحات قبول الذوبانية (USP <711> / EP 2.9.3)",
+        "s1Offset": "S1: كل وحدة ≥ Q + ",
+        "s2MinOffset": "S2: لا وحدة < Q − ",
+        "s3MinOffset": "S3: لا وحدة < Q − ",
+        "s3MaxBelowS2": "S3: أقصى وحدات < قيمة Q − S2",
+        "default5": "الافتراضي: 5 (%)",
+        "default15": "الافتراضي: 15 (%)",
+        "default25": "الافتراضي: 25 (%)",
+        "default2Units": "الافتراضي: 2 (وحدات)",
+        "conditionFields": "حقول الشروط",
+        "conditionPlaceholder": "الجهاز،RPM،وسط زرعي،الحرارة (°C)،الزمن (دقيقة)",
+        "conditionHelper": "مفصولة بفواصل (وسط زرعي)، مثال: Apparatus,RPM,Medium,Temperature (°C),Time (min)",
+        "requiresSystemSuitability": "يتطلب ملاءمة النظام (المعيار من تشغيل HPLC المخصص)",
+        "methodAbbreviation": "اختصار الطريقة",
+        "methodAbbreviationPlaceholder": "مثال: VIT-C",
+        "methodAbbreviationHelper": "1–20 حرفًا أبجديًا رقميًا كبيرًا أو واصلة (تُحوَّل تلقائيًا لأحرف كبيرة)"
+      },
+      "gravimetric": {
+        "title": "الإعدادات الوزنية",
+        "replicateCount": "عدد التكرارات *",
+        "replicateHelper": "التكرارات لكل معلمة (1–30)",
+        "usesTare": "يستخدم وزن الوعاء الفارغ",
+        "conditionFields": "حقول الشروط",
+        "conditionPlaceholder": "مثال: الحرارة (°C)،الزمن (س)",
+        "conditionHelper": "مفصولة بفواصل، مثال: Temperature (°C),Time (h)",
+        "moistureRole": "دور الرطوبة",
+        "moistureNone": "لا شيء",
+        "moistureLod": "الفقد بالتجفيف"
+      },
+      "measurement": {
+        "title": "إعدادات القياس",
+        "replicateCount": "عدد التكرارات *",
+        "replicateHelper": "التكرارات لكل معلمة (1–30)",
+        "evaluationBasis": "أساس التقييم *",
+        "basisMean": "المتوسط",
+        "basisEachValue": "كل قيمة",
+        "basisMin": "الحد الأدنى",
+        "basisMax": "الحد الأقصى"
+      },
+      "weightVariation": {
+        "title": "قبول تفاوت الوزن (USP <2091>)",
+        "unitCount": "عدد الوحدات (المرحلة 1)",
+        "default20": "الافتراضي: 20",
+        "tablets": "الأقراص",
+        "band1MaxMg": "الحد الأقصى للنطاق 1 (mg)",
+        "default130": "الافتراضي: 130",
+        "band1Percent": "انحراف النطاق 1 (%)",
+        "default10": "الافتراضي: 10",
+        "band2MaxMg": "الحد الأقصى للنطاق 2 (mg)",
+        "default324": "الافتراضي: 324",
+        "band2Percent": "انحراف النطاق 2 (%)",
+        "default7_5": "الافتراضي: 7.5",
+        "band3Percent": "انحراف النطاق 3 (%)",
+        "default5": "الافتراضي: 5 (> النطاق 2)",
+        "maxOutside": "الحد الأقصى خارج النطاق",
+        "default2": "الافتراضي: 2",
+        "capsules": "الكبسولات",
+        "innerLimit": "الحد الداخلي (%)",
+        "outerLimit": "الحد الخارجي (%)",
+        "default25": "الافتراضي: 25",
+        "s1MaxOutside": "أقصى خارج النطاق في المرحلة 1",
+        "default2Pass": "الافتراضي: 2 (نجاح بدون إعادة الاختبار)",
+        "s1MaxForRetest": "الحد الأقصى في المرحلة 1 لإعادة الاختبار",
+        "default6Retest": "الافتراضي: 6 (يتأهل لـ S2)",
+        "s2ExtraUnits": "وحدات المرحلة 2 الإضافية",
+        "default40": "الافتراضي: 40",
+        "s2MaxOutside": "أقصى خارج النطاق في المرحلة 2",
+        "default6Total": "الافتراضي: 6 (عبر S1+S2)",
+        "conditionFields": "حقول الشروط",
+        "conditionPlaceholder": "معرف الميزان،الحرارة (°C)",
+        "conditionHelper": "مفصولة بفواصل، مثال: Balance ID,Temperature (°C)"
+      }
+    },
+    "validation": {
+      "groupRequired": "{{group}}: «{{label}}» مطلوب.",
+      "groupNumber": "{{group}}: يجب أن يكون «{{label}}» رقمًا.",
+      "groups": {
+        "dissolution": "الذوبانية",
+        "disintegration": "التفتت",
+        "weightVariation": "تفاوت الوزن"
+      },
+      "codeAndNameRequired": "الرمز واسم العرض مطلوبان معًا.",
+      "sectionRequired": "قسم المختبر مطلوب.",
+      "coaOrderInvalid": "يجب أن يكون ترتيب شهادة التحليل عددًا صحيحًا من 1 إلى 9999، أو فارغًا.",
+      "methodAbbreviationRequired": "اختصار الطريقة مطلوب عند تفعيل ملاءمة النظام.",
+      "methodAbbreviationInvalid": "يجب أن يتكون اختصار الطريقة من 1 إلى 20 حرفًا أبجديًا رقميًا كبيرًا أو واصلة.",
+      "dissolutionOffsetsNonNegative": "يجب أن تكون إزاحات مراحل الذوبانية أكبر من أو تساوي الصفر.",
+      "conditionFieldsMax": "لا يمكن أن تتجاوز حقول الشروط 500 حرف.",
+      "disintegrationUnitsMin": "يجب أن تكون وحدات مراحل التفتت أكبر من أو تساوي 1.",
+      "disintegrationMaxS1Range": "يجب أن يكون الحد الأقصى لإخفاقات المرحلة 1 للتفتت بين 0 و{{max}}.",
+      "disintegrationMinPassRange": "يجب أن يكون الحد الأدنى لمجموع النجاح للتفتت بين 1 و{{max}}.",
+      "wvUnitsMin": "يجب أن يكون عدد وحدات تفاوت الوزن والوحدات الإضافية أكبر من أو يساوي 1.",
+      "wvOutsideNonNegative": "يجب أن يكون الحد الأقصى لعدد الوحدات خارج النطاق في تفاوت الوزن أكبر من أو يساوي 0.",
+      "wvBandWeightsPositive": "يجب أن تكون حدود أوزان نطاقات أقراص تفاوت الوزن أكبر من الصفر.",
+      "wvPercentagesPositive": "يجب أن تكون النسب المئوية لتفاوت الوزن أكبر من الصفر.",
+      "wvBandOrder": "يجب أن يكون الحد الأقصى للنطاق 1 لأقراص تفاوت الوزن أقل من الحد الأقصى للنطاق 2.",
+      "wvCapsulePercentOrder": "يجب أن تكون النسبة المئوية الداخلية لكبسولات تفاوت الوزن أقل من النسبة المئوية الخارجية.",
+      "wvCapsuleS1Order": "يجب أن يكون الحد الأقصى خارج النطاق للمرحلة 1 لكبسولات تفاوت الوزن أقل من الحد الأقصى للمرحلة 1 لإعادة الاختبار، والذي يجب أن يكون أقل من أو يساوي عدد الوحدات.",
+      "wvCapsuleS2Max": "يجب أن يكون الحد الأقصى خارج النطاق للمرحلة 2 لكبسولات تفاوت الوزن أقل من إجمالي الوحدات ({{total}}).",
+      "uvModeRequired": "يحتاج اختبار UV إلى وضع حساب.",
+      "replicateRange": "يجب أن يكون عدد التكرارات بين 1 و30.",
+      "uvAbsorbancePositive": "يحتاج وضع UV هذا إلى امتصاص نوعي أكبر من 0.",
+      "uvTotalVolumePositive": "يحتاج وضع UV هذا إلى حجم كلي أكبر من 0.",
+      "uvStandardVolumePositive": "يحتاج اختبار UV مقابل معيار إلى حجم معيار أكبر من 0.",
+      "uvStandardMaterialRequired": "المادة القياسية مطلوبة للمقايسة مقابل مادة قياسية.",
+      "hplcMethodRequired": "طريقة HPLC مطلوبة لاختبارات المقايسة بطريقة HPLC.",
+      "measurementReplicateRange": "يجب أن يكون عدد التكرارات بين 1 و30 لاختبارات القياس.",
+      "measurementBasisRequired": "أساس التقييم مطلوب لاختبارات القياس.",
+      "gravimetricReplicateRange": "يجب أن يكون عدد التكرارات بين 1 و30 للاختبارات الوزنية.",
+      "gravimetricEquationInvalid": "يجب أن يكون نوع المعادلة GravimetricLoss أو GravimetricResidue للاختبارات الوزنية.",
+      "stageRoleRequired": "دور مرحلة الإنتاج مطلوب.",
+      "stageRoleDuplicate": "دور المرحلة «{{role}}» مكرر.",
+      "stageReplicatesRequired": "تكرارات العينة مطلوبة.",
+      "stageReplicatesInteger": "يجب أن تكون تكرارات العينة عددًا صحيحًا أكبر من أو يساوي 1.",
+      "stepNameRequired": "الخطوة {{index}}: اسم الخطوة مطلوب.",
+      "stepErrorPrefix": "{{stepName}}: {{error}}",
+      "onlyOneFinalStep": "يمكن تحديد خطوة واحدة فقط كخطوة نهائية."
+    }
   }
 }

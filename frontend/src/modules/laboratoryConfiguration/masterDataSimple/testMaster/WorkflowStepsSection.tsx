@@ -6,6 +6,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ContentCopyOutlinedIcon from "@mui/icons-material/ContentCopyOutlined";
 import DeleteIcon from "@mui/icons-material/Delete";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { useTranslation } from "react-i18next";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
@@ -81,6 +82,7 @@ export function WorkflowStepsSection({
   onDraftStepsChange?: (steps: DraftWorkflowStep[]) => void;
   onDraftWorkflowTypeChange?: (workflowType: string) => void;
 }) {
+  const { t } = useTranslation("masterData");
   const isDraftMode = draftSteps !== undefined && onDraftStepsChange !== undefined;
   const [steps, setSteps] = useState<WorkflowStepItem[]>([]);
   const [organisms, setOrganisms] = useState<Array<{ id: number; scientificName: string; commonName?: string }>>([]);
@@ -163,7 +165,7 @@ export function WorkflowStepsSection({
       onWorkflowTypeChanged();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? "Could not update the workflow type.");
+      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.updateWorkflowTypeFailed"));
     }
   };
 
@@ -180,7 +182,7 @@ export function WorkflowStepsSection({
   const startDuplicateStep = (s: WorkflowStepItem) => {
     setEditingStepId(null);
     setEditingDraftIndex(null);
-    setForm({ ...stepToFormState(s), stepName: `${s.stepName} (copy)`, isFinalStep: false });
+    setForm({ ...stepToFormState(s), stepName: t("testMaster.workflowSteps.copySuffix", { name: s.stepName }), isFinalStep: false });
     setError(null);
     stepNameInputRef.current?.focus();
   };
@@ -246,10 +248,10 @@ export function WorkflowStepsSection({
   const saveStep = async () => {
     setError(null);
     if (!form.stepName || (isBiochemical && !form.phenotypicTestType && form.phenotypicTestTypes.length === 0)) {
-      setError(isBiochemical ? "Step Name and at least one Phenotypic Test Type are required." : "Step Name is required.");
+      setError(isBiochemical ? t("testMaster.workflowSteps.errors.stepNameAndPhenotypicRequired") : t("testMaster.workflowSteps.errors.stepNameRequired"));
       return;
     }
-    const validationError = validateStepForm(form);
+    const validationError = validateStepForm(form, t);
     if (validationError) {
       setError(validationError);
       return;
@@ -282,7 +284,7 @@ export function WorkflowStepsSection({
     };
     if (isDraftMode && onDraftStepsChange) {
       if (form.isFinalStep && sortedDraftSteps.some((s, idx) => s.isFinalStep && idx !== editingDraftIndex)) {
-        setError("Only one step can be marked as the final step.");
+        setError(t("testMaster.workflowSteps.errors.onlyOneFinalStep"));
         return;
       }
       const org = form.targetOrganismId != null ? organisms.find((o) => o.id === form.targetOrganismId) : null;
@@ -337,7 +339,7 @@ export function WorkflowStepsSection({
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? `Could not ${editingStepId ? "update" : "add"} this step.`);
+      setError(err?.response?.data?.message ?? (editingStepId ? t("testMaster.workflowSteps.errors.updateStepFailed") : t("testMaster.workflowSteps.errors.addStepFailed")));
     }
   };
 
@@ -358,7 +360,7 @@ export function WorkflowStepsSection({
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? "Could not reorder this step.");
+      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.reorderStepFailed"));
     }
   };
 
@@ -379,7 +381,7 @@ export function WorkflowStepsSection({
       await loadSteps();
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
-      setError(err?.response?.data?.message ?? "Could not delete this step.");
+      setError(err?.response?.data?.message ?? t("testMaster.workflowSteps.errors.deleteStepFailed"));
     }
   };
 
@@ -393,59 +395,59 @@ export function WorkflowStepsSection({
           mb: 1.5
         }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          {["Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration", "UvSpectrophotometry"].includes(test.workflowType) ? "Workflow Type" : "Workflow Steps"}
+          {["Measurement", "Gravimetric", "Qualitative", "HplcMethodAssay", "IcpMethodAssay", "Titration", "UvSpectrophotometry"].includes(test.workflowType) ? t("testMaster.workflowSteps.header.workflowType") : t("testMaster.workflowSteps.header.workflowSteps")}
         </Typography>
         {/* Only step-driven tests can switch; every other workflow is set by the test type. */}
         {["CountTest", "Observation"].includes(test.workflowType) && (
-          <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": "Workflow type" }}>
-            {workflowTypes.filter((w) => w === "CountTest" || w === "Observation").map((w) => <MenuItem key={w} value={w}>{WORKFLOW_TYPE_LABELS[w] ?? w}</MenuItem>)}
+          <Select size="small" value={test.workflowType} onChange={(e) => changeWorkflowType(e.target.value)} inputProps={{ "aria-label": t("testMaster.workflowSteps.header.workflowTypeAria") }}>
+            {workflowTypes.filter((w) => w === "CountTest" || w === "Observation").map((w) => <MenuItem key={w} value={w}>{t(`testMaster.constants.workflowTypes.${w}`, { defaultValue: WORKFLOW_TYPE_LABELS[w] ?? w })}</MenuItem>)}
           </Select>
         )}
       </Stack>
       {test.workflowType === "HplcMethodAssay" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>HPLC Method Assay Configuration</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>{t("testMaster.workflowSteps.hplc.title")}</Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "HplcMethodAssay"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "HplcMethodAssay"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "HplcMethodAssay"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Method Abbreviation</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.methodAbbreviation")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.methodAbbreviation ?? "—"}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>Required (from HPLC Method Master)</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.systemSuitability")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("testMaster.workflowSteps.hplc.systemSuitabilityValue")}</Typography>
             </Box>
           </Stack>
         </Box>
       )}
       {test.workflowType === "IcpMethodAssay" && (
         <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>ICP Assay Configuration</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>{t("testMaster.workflowSteps.icp.title")}</Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center" }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Test type</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.icp.testType")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {test.icpMode === "Impurity" ? "Elemental impurity (ppm)" : test.icpMode === "Assay" ? "Assay (% of target)" : "Not configured"}
+                {test.icpMode === "Impurity" ? t("testMaster.workflowSteps.icp.impurity") : test.icpMode === "Assay" ? t("testMaster.workflowSteps.icp.assay") : t("testMaster.workflowSteps.icp.notConfigured")}
               </Typography>
             </Box>
             {test.icpMode === "Assay" && (
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Sample basis</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.icp.sampleBasis")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
                   {test.icpSampleForm === "Liquid"
-                    ? `Th.Vol ${test.icpTheoreticalAmount ?? "—"} mL × Sp.gr ${test.icpSpecificGravity ?? "—"}`
-                    : `Th.Wt ${test.icpTheoreticalAmount ?? "—"} g`}
+                    ? t("testMaster.workflowSteps.icp.thVol", { amount: test.icpTheoreticalAmount ?? "—", sg: test.icpSpecificGravity ?? "—" })
+                    : t("testMaster.workflowSteps.icp.thWt", { amount: test.icpTheoreticalAmount ?? "—" })}
                 </Typography>
               </Box>
             )}
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Elements</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.icp.elements")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
                 {(test.icpElements ?? []).length === 0
-                  ? "None - edit the test to add them"
+                  ? t("testMaster.workflowSteps.icp.noElements")
                   : (test.icpElements ?? [])
                       .map((e) => (test.icpMode === "Assay" && e.targetPpm != null ? `${e.symbol} (${e.targetPpm} ppm)` : e.symbol))
                       .join(", ")}
@@ -458,74 +460,74 @@ export function WorkflowStepsSection({
 
       {test.workflowType === "HplcMethodAssay" ? (
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-          HPLC Method Assay tests have no workflow steps or local test analytes: parameters, analytes, standard weights, and system suitability criteria are configured centrally in HPLC Methods Master.
+          {t("testMaster.workflowSteps.hplc.noStepsNote")}
         </Typography>
       ) : test.workflowType === "IcpMethodAssay" ? (
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
-          ICP assay tests have no workflow steps or local test analytes: the elements and target concentrations are set on the test, and each run is calibrated and signed in the ICP Workspace.
+          {t("testMaster.workflowSteps.icp.noStepsNote")}
         </Typography>
       ) : test.workflowType === "Measurement" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Measurement Configuration
+            {t("testMaster.workflowSteps.measurement.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Measurement"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "Measurement"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "Measurement"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Evaluation Basis</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.measurement.evaluationBasis")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.evaluationBasis ?? "Mean"}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicate Count</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.measurement.replicateCount")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.replicateCount ?? 1}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Measurement tests have no workflow steps: readings are entered per specification parameter directly.
+            {t("testMaster.workflowSteps.measurement.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "Gravimetric" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Gravimetric Configuration
+            {t("testMaster.workflowSteps.gravimetric.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "GravimetricLoss"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "GravimetricLoss"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "GravimetricLoss"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicate Count</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.measurement.replicateCount")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.replicateCount ?? 1}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Uses Tare</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.usesTare ? "Yes" : "No"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.gravimetric.usesTare")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.usesTare ? t("testMaster.workflowSteps.gravimetric.yes") : t("testMaster.workflowSteps.gravimetric.no")}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
-              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.gravimetric.conditionFields")}</Typography>
+              <Typography variant="body2">{test.conditionFields || t("testMaster.workflowSteps.gravimetric.noneConfigured")}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Gravimetric tests have no workflow steps: container/sample weights and condition fields are entered directly.
+            {t("testMaster.workflowSteps.gravimetric.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "Titration" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Titration Configuration
+            {t("testMaster.workflowSteps.titration.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             {[
-              ["Type", test.titrationType],
-              ["Mode", test.titrationMode],
-              ["Calculation", test.titrationCalculation],
-              ["Endpoint", test.titrationEndpoint],
-              ["Replicates", test.replicateCount]
+              [t("testMaster.workflowSteps.titration.type"), test.titrationType],
+              [t("testMaster.workflowSteps.titration.mode"), test.titrationMode],
+              [t("testMaster.workflowSteps.titration.calculation"), test.titrationCalculation],
+              [t("testMaster.workflowSteps.titration.endpoint"), test.titrationEndpoint],
+              [t("testMaster.workflowSteps.titration.replicates"), test.replicateCount]
             ].map(([label, value]) => (
               <Box key={String(label)}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{label}</Typography>
@@ -534,22 +536,22 @@ export function WorkflowStepsSection({
             ))}
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Titration tests have no workflow steps: replicate weights and titrant volumes are entered directly.
+            {t("testMaster.workflowSteps.titration.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "UvSpectrophotometry" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            UV Spectrophotometry Configuration
+            {t("testMaster.workflowSteps.uv.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             {[
-              ["Calculation Mode", test.uvCalculationMode],
-              ["Specific Absorbance (A1%)", test.uvSpecificAbsorbance],
-              ["Total Volume (mL)", test.uvTotalVolumeMl],
-              ["Standard Volume (mL)", test.uvStandardVolumeMl],
-              ["Standard Material", test.uvStandardEntryName],
-              ["Replicates", test.replicateCount]
+              [t("testMaster.workflowSteps.uv.calculationMode"), test.uvCalculationMode],
+              [t("testMaster.workflowSteps.uv.specificAbsorbance"), test.uvSpecificAbsorbance],
+              [t("testMaster.workflowSteps.uv.totalVolume"), test.uvTotalVolumeMl],
+              [t("testMaster.workflowSteps.uv.standardVolume"), test.uvStandardVolumeMl],
+              [t("testMaster.workflowSteps.uv.standardMaterial"), test.uvStandardEntryName],
+              [t("testMaster.workflowSteps.titration.replicates"), test.replicateCount]
             ].filter(([, value]) => value !== undefined && value !== null && value !== "").map(([label, value]) => (
               <Box key={String(label)}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{label}</Typography>
@@ -558,133 +560,147 @@ export function WorkflowStepsSection({
             ))}
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            UV spectrophotometry tests have no workflow steps: replicate absorbances and sample weights are entered directly.
+            {t("testMaster.workflowSteps.uv.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "Qualitative" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Qualitative Configuration
+            {t("testMaster.workflowSteps.qualitative.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Qualitative"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "Qualitative"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "Qualitative"] ?? test.equationType ?? "" })}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Qualitative tests have no workflow steps: compliance observation is entered per specification parameter directly.
+            {t("testMaster.workflowSteps.qualitative.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "Dissolution" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Dissolution Configuration
+            {t("testMaster.workflowSteps.dissolution.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Dissolution"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "Dissolution"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "Dissolution"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>System Suitability</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.systemSuitability")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {test.requiresSystemSuitability ? `Required (${test.methodAbbreviation ?? "No abbr"})` : "Required"}
+                {test.requiresSystemSuitability ? t("testMaster.workflowSteps.dissolution.requiredWithAbbr", { abbr: test.methodAbbreviation ?? t("testMaster.workflowSteps.dissolution.noAbbr") }) : t("testMaster.workflowSteps.dissolution.required")}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S1 Offset</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.dissolution.s1Offset")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>≥ Q + {test.dissolutionS1Offset ?? 5} %</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S2 Min Offset</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.dissolution.s2MinOffset")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>&lt; Q − {test.dissolutionS2MinOffset ?? 15} %</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S3 Min Offset</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.dissolution.s3MinOffset")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>&lt; Q − {test.dissolutionS3MinOffset ?? 25} %</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>S3 Max Below S2</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.dissolutionS3MaxBelowS2Min ?? 2} units</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.dissolution.s3MaxBelowS2")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("testMaster.workflowSteps.dissolution.unitsCount", { count: test.dissolutionS3MaxBelowS2Min ?? 2 })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
-              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.gravimetric.conditionFields")}</Typography>
+              <Typography variant="body2">{test.conditionFields || t("testMaster.workflowSteps.gravimetric.noneConfigured")}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Dissolution tests have no workflow steps: staged vessel peak areas (S1: 6, S2: +6, S3: +12) and condition fields are entered directly.
+            {t("testMaster.workflowSteps.dissolution.noStepsNote")}
           </Typography>
         </Box>
       ) : test.workflowType === "Disintegration" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Disintegration Configuration
+            {t("testMaster.workflowSteps.disintegration.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "Disintegration"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "Disintegration"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "Disintegration"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Stage 1 Units</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.disintegration.stage1Units")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationStage1Units ?? 6}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Stage 2 Units</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.disintegration.stage2Units")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationStage2Units ?? 12}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Max S1 Failures</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.disintegration.maxS1Failures")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationMaxStage1Failures ?? 2}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Min Pass Total</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.disintegration.minPassTotal")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.disintegrationMinPassTotal ?? 16}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
-              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.gravimetric.conditionFields")}</Typography>
+              <Typography variant="body2">{test.conditionFields || t("testMaster.workflowSteps.gravimetric.noneConfigured")}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Disintegration tests have no workflow steps: staged unit times (S1: {test.disintegrationStage1Units ?? 6}, S2: +{test.disintegrationStage2Units ?? 12}) and condition fields are entered directly.
+            {t("testMaster.workflowSteps.disintegration.noStepsNote", { s1: test.disintegrationStage1Units ?? 6, s2: test.disintegrationStage2Units ?? 12 })}
           </Typography>
         </Box>
       ) : test.workflowType === "WeightVariation" ? (
         <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "primary.main" }}>
-            Weight Variation Configuration (USP &lt;2091&gt;)
+            {t("testMaster.workflowSteps.weightVariation.title")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap", alignItems: "center", mb: 1 }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equation Type</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>{EQUATION_TYPE_LABELS[test.equationType ?? "WeightVariation"] ?? test.equationType}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.hplc.equationType")}</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t(`testMaster.constants.equationTypes.${test.equationType ?? "WeightVariation"}`, { defaultValue: EQUATION_TYPE_LABELS[test.equationType ?? "WeightVariation"] ?? test.equationType ?? "" })}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Unit Count</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.weightVariation.unitCount")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{test.wvUnitCount ?? 20}</Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Tablets (Bands / Max Out)</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.weightVariation.tabletsLabel")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                &le;{test.wvTabletBand1MaxMg ?? 130}mg: {test.wvTabletBand1Percent ?? 10}% | &le;{test.wvTabletBand2MaxMg ?? 324}mg: {test.wvTabletBand2Percent ?? 7.5}% | &gt;324mg: {test.wvTabletBand3Percent ?? 5}% (max {test.wvTabletMaxOutside ?? 2} out)
+                {t("testMaster.workflowSteps.weightVariation.tabletsSummary", {
+                  b1Mg: test.wvTabletBand1MaxMg ?? 130,
+                  b1Pct: test.wvTabletBand1Percent ?? 10,
+                  b2Mg: test.wvTabletBand2MaxMg ?? 324,
+                  b2Pct: test.wvTabletBand2Percent ?? 7.5,
+                  b3Pct: test.wvTabletBand3Percent ?? 5,
+                  maxOut: test.wvTabletMaxOutside ?? 2
+                })}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Capsules (Limits / Retest)</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.weightVariation.capsulesLabel")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                &plusmn;{test.wvCapsuleInnerPercent ?? 10}% / &plusmn;{test.wvCapsuleOuterPercent ?? 25}% (S1: &le;{test.wvCapsuleS1MaxOutside ?? 2} pass, &le;{test.wvCapsuleS1MaxForRetest ?? 6} retest +{test.wvCapsuleS2ExtraUnits ?? 40} units, S2: &le;{test.wvCapsuleS2MaxOutside ?? 6} out)
+                {t("testMaster.workflowSteps.weightVariation.capsulesSummary", {
+                  inner: test.wvCapsuleInnerPercent ?? 10,
+                  outer: test.wvCapsuleOuterPercent ?? 25,
+                  s1Out: test.wvCapsuleS1MaxOutside ?? 2,
+                  s1Retest: test.wvCapsuleS1MaxForRetest ?? 6,
+                  s2Extra: test.wvCapsuleS2ExtraUnits ?? 40,
+                  s2Out: test.wvCapsuleS2MaxOutside ?? 6
+                })}
               </Typography>
             </Box>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Condition Fields</Typography>
-              <Typography variant="body2">{test.conditionFields || "None configured"}</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("testMaster.workflowSteps.gravimetric.conditionFields")}</Typography>
+              <Typography variant="body2">{test.conditionFields || t("testMaster.workflowSteps.gravimetric.noneConfigured")}</Typography>
             </Box>
           </Stack>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Weight Variation tests have no workflow steps: unit weights (or gross and shell weights) and condition fields are entered directly.
+            {t("testMaster.workflowSteps.weightVariation.noStepsNote")}
           </Typography>
         </Box>
       ) : (
@@ -694,9 +710,9 @@ export function WorkflowStepsSection({
           <Table size="small" sx={{ mb: 1.5 }}>
             <TableHead>
               <TableRow sx={tableHeadSx}>
-                <TableCell>#</TableCell><TableCell>Step</TableCell><TableCell>Incubation</TableCell>
-                <TableCell>Temp °C</TableCell><TableCell>Step Type</TableCell><TableCell>Media</TableCell><TableCell>Organism</TableCell>
-                <TableCell>Status</TableCell><TableCell>Final</TableCell><TableCell /></TableRow>
+                <TableCell>#</TableCell><TableCell>{t("testMaster.workflowSteps.table.step")}</TableCell><TableCell>{t("testMaster.workflowSteps.table.incubation")}</TableCell>
+                <TableCell>{t("testMaster.workflowSteps.table.tempC")}</TableCell><TableCell>{t("testMaster.workflowSteps.table.stepType")}</TableCell><TableCell>{t("testMaster.workflowSteps.table.media")}</TableCell><TableCell>{t("testMaster.workflowSteps.table.organism")}</TableCell>
+                <TableCell>{t("testMaster.workflowSteps.table.status")}</TableCell><TableCell>{t("testMaster.workflowSteps.table.final")}</TableCell><TableCell /></TableRow>
             </TableHead>
             <TableBody>
               {effectiveSteps.map((s, i) => {
@@ -715,7 +731,7 @@ export function WorkflowStepsSection({
                             size="small"
                             color="primary"
                             variant="outlined"
-                            label="2-Stage"
+                            label={t("testMaster.workflowSteps.table.twoStage")}
                             sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         )}
@@ -724,18 +740,18 @@ export function WorkflowStepsSection({
                     <TableCell>
                       {isTwoStage && stage2 ? (
                         <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
-                          <div>Stage 1: {stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h</div>
-                          <div>Stage 2: {stage2.incubationMinHours}-{stage2.incubationMaxHours}h</div>
+                          <div>{t("testMaster.workflowSteps.table.stage1Hours", { range: stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours") })}</div>
+                          <div>{t("testMaster.workflowSteps.table.stage2Hours", { min: stage2.incubationMinHours, max: stage2.incubationMaxHours })}</div>
                         </Box>
                       ) : (
-                        `${stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours")}h`
+                        t("testMaster.workflowSteps.table.hoursSuffix", { range: stage1Ranges(s.stepMedia, "incubationMinHours", "incubationMaxHours") })
                       )}
                     </TableCell>
                     <TableCell>
                       {isTwoStage && stage2 ? (
                         <Box sx={{ fontSize: "0.8rem", lineHeight: 1.3 }}>
-                          <div>Stage 1: {stage1Ranges(s.stepMedia, "tempMin", "tempMax")}</div>
-                          <div>Stage 2: {stage2.tempMin}-{stage2.tempMax}</div>
+                          <div>{t("testMaster.workflowSteps.table.stage1Temp", { range: stage1Ranges(s.stepMedia, "tempMin", "tempMax") })}</div>
+                          <div>{t("testMaster.workflowSteps.table.stage2Temp", { min: stage2.tempMin, max: stage2.tempMax })}</div>
                         </Box>
                       ) : (
                         stage1Ranges(s.stepMedia, "tempMin", "tempMax")
@@ -750,7 +766,7 @@ export function WorkflowStepsSection({
                           <Chip
                             size="small"
                             color="secondary"
-                            label="Transfer"
+                            label={t("testMaster.workflowSteps.table.transfer")}
                             sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700 }}
                           />
                         )}
@@ -759,46 +775,46 @@ export function WorkflowStepsSection({
                     <TableCell>
                       {s.stepType === "BiochemicalTest"
                         ? (s.phenotypicTestTypes && s.phenotypicTestTypes.length > 0
-                            ? s.phenotypicTestTypes.map((t: string) => PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t).join(", ")
-                            : s.phenotypicTestType ? PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType : <em>—</em>)
+                            ? s.phenotypicTestTypes.map((pt: string) => t(`testMaster.constants.phenotypicTypes.${pt}`, { defaultValue: PHENOTYPIC_TEST_TYPE_LABELS[pt] ?? pt })).join(", ")
+                            : s.phenotypicTestType ? t(`testMaster.constants.phenotypicTypes.${s.phenotypicTestType}`, { defaultValue: PHENOTYPIC_TEST_TYPE_LABELS[s.phenotypicTestType] ?? s.phenotypicTestType }) : <em>—</em>)
                         : (s.stepMedia && s.stepMedia.length > 0 ? s.stepMedia.map((m) => m.mediaProductName).join(", ") : <em>—</em>)}
                     </TableCell>
                     <TableCell>{s.targetOrganism?.name ?? <em>—</em>}</TableCell>
                     <TableCell>
                       {stepNeedsConfiguration(s) && (
-                        <Tooltip title="This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.">
-                          <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label="Needs configuration" />
+                        <Tooltip title={t("testMaster.workflowSteps.table.needsConfigurationTooltip")}>
+                          <Chip size="small" color="warning" icon={<WarningAmberIcon fontSize="small" />} label={t("testMaster.workflowSteps.table.needsConfiguration")} />
                         </Tooltip>
                       )}
                     </TableCell>
-                    <TableCell>{s.isFinalStep ? "Yes" : "—"}</TableCell>
+                    <TableCell>{s.isFinalStep ? t("testMaster.workflowSteps.gravimetric.yes") : "—"}</TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Move up">
+                      <Tooltip title={t("testMaster.workflowSteps.table.moveUp")}>
                         <span>
-                          <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up", i)} aria-label="Move up">
+                          <IconButton size="small" disabled={i === 0} onClick={() => move(s.id, "up", i)} aria-label={t("testMaster.workflowSteps.table.moveUp")}>
                             <ArrowUpwardIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
-                      <Tooltip title="Move down">
+                      <Tooltip title={t("testMaster.workflowSteps.table.moveDown")}>
                         <span>
-                          <IconButton size="small" disabled={i === effectiveSteps.length - 1} onClick={() => move(s.id, "down", i)} aria-label="Move down">
+                          <IconButton size="small" disabled={i === effectiveSteps.length - 1} onClick={() => move(s.id, "down", i)} aria-label={t("testMaster.workflowSteps.table.moveDown")}>
                             <ArrowDownwardIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
-                      <Tooltip title="Edit step">
-                        <IconButton size="small" onClick={() => startEditStep(s, i)} aria-label="Edit step">
+                      <Tooltip title={t("testMaster.workflowSteps.table.editStep")}>
+                        <IconButton size="small" onClick={() => startEditStep(s, i)} aria-label={t("testMaster.workflowSteps.table.editStep")}>
                           <EditIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Duplicate step">
-                        <IconButton size="small" onClick={() => startDuplicateStep(s)} aria-label="Duplicate step">
+                      <Tooltip title={t("testMaster.workflowSteps.table.duplicateStep")}>
+                        <IconButton size="small" onClick={() => startDuplicateStep(s)} aria-label={t("testMaster.workflowSteps.table.duplicateStep")}>
                           <ContentCopyOutlinedIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete step">
-                        <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label="Delete step">
+                      <Tooltip title={t("testMaster.workflowSteps.table.deleteStep")}>
+                        <IconButton size="small" color="error" onClick={() => setStepToDelete(s.id)} aria-label={t("testMaster.workflowSteps.table.deleteStep")}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
@@ -815,10 +831,10 @@ export function WorkflowStepsSection({
           sx={{
             color: "text.secondary",
             mb: 1.5
-          }}>No workflow steps configured yet.</Typography>
+          }}>{t("testMaster.workflowSteps.table.empty")}</Typography>
       )}
 
-      <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1 }}>{editingStepId ? "Edit Step" : "Add Step"}</Typography>
+      <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1 }}>{editingStepId ? t("testMaster.workflowSteps.form.editStep") : t("testMaster.workflowSteps.form.addStep")}</Typography>
       <Stack useFlexGap
         direction="row"
         spacing={1.5}
@@ -826,7 +842,7 @@ export function WorkflowStepsSection({
           flexWrap: "wrap",
           alignItems: "center"
         }}>
-        <TextField size="small" label="Step Name" inputRef={stepNameInputRef} placeholder="e.g. TSB" value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
+        <TextField size="small" label={t("testMaster.workflowSteps.form.stepName")} inputRef={stepNameInputRef} placeholder={t("testMaster.workflowSteps.form.stepNamePlaceholder")} value={form.stepName ?? ""} onChange={(e) => setForm({ ...form, stepName: e.target.value })} sx={{ minWidth: 140 }} />
         {isBiochemical && (
           <Stack useFlexGap
             direction="row"
@@ -835,24 +851,24 @@ export function WorkflowStepsSection({
               alignItems: "center",
               flexWrap: "wrap"
             }}>
-            <Select size="small" displayEmpty value={pendingPhenotypicTest} onChange={(e) => setPendingPhenotypicTest(e.target.value as string)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": "Phenotypic Test Type" }}>
-              <MenuItem value=""><em>Phenotypic Test Type</em></MenuItem>
+            <Select size="small" displayEmpty value={pendingPhenotypicTest} onChange={(e) => setPendingPhenotypicTest(e.target.value as string)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": t("testMaster.workflowSteps.form.phenotypicAria") }}>
+              <MenuItem value=""><em>{t("testMaster.workflowSteps.form.phenotypicPlaceholder")}</em></MenuItem>
               {PHENOTYPIC_TEST_TYPES
-                .filter((t) => !form.phenotypicTestTypes.includes(t))
-                .map((t) => <MenuItem key={t} value={t}>{PHENOTYPIC_TEST_TYPE_LABELS[t]}</MenuItem>)}
+                .filter((pt) => !form.phenotypicTestTypes.includes(pt))
+                .map((pt) => <MenuItem key={pt} value={pt}>{t(`testMaster.constants.phenotypicTypes.${pt}`, { defaultValue: PHENOTYPIC_TEST_TYPE_LABELS[pt] ?? pt })}</MenuItem>)}
             </Select>
-            <Button size="small" variant="outlined" disabled={!pendingPhenotypicTest} onClick={addPhenotypicTest}>Add</Button>
-            {form.phenotypicTestTypes.map((t) => (
-              <Chip key={t} size="small" label={PHENOTYPIC_TEST_TYPE_LABELS[t] ?? t} onDelete={() => removePhenotypicTest(t)} />
+            <Button size="small" variant="outlined" disabled={!pendingPhenotypicTest} onClick={addPhenotypicTest}>{t("testMaster.workflowSteps.form.add")}</Button>
+            {form.phenotypicTestTypes.map((pt) => (
+              <Chip key={pt} size="small" label={t(`testMaster.constants.phenotypicTypes.${pt}`, { defaultValue: PHENOTYPIC_TEST_TYPE_LABELS[pt] ?? pt })} onDelete={() => removePhenotypicTest(pt)} />
             ))}
           </Stack>
         )}
-        <Select size="small" value={form.stepType} onChange={(e) => changeStepType(e.target.value)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": "Step type" }}>
-          {STEP_TYPES.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
+        <Select size="small" value={form.stepType} onChange={(e) => changeStepType(e.target.value)} sx={{ minWidth: 180 }} inputProps={{ "aria-label": t("testMaster.workflowSteps.form.stepTypeAria") }}>
+          {STEP_TYPES.map((st) => <MenuItem key={st} value={st}>{st}</MenuItem>)}
         </Select>
         <FormControlLabel
           control={<Checkbox checked={!!form.isFinalStep} onChange={(e) => setForm({ ...form, isFinalStep: e.target.checked })} />}
-          label="Final Step"
+          label={t("testMaster.workflowSteps.form.finalStep")}
         />
         {form.stepType === "PlateCount" && (
           <FormControlLabel
@@ -875,17 +891,17 @@ export function WorkflowStepsSection({
                 }
               />
             }
-            label="Requires incubation transfer"
+            label={t("testMaster.workflowSteps.form.requiresTransfer")}
           />
         )}
-        {editingStepId && <Button onClick={cancelEditStep}>Cancel</Button>}
-        <Button variant="contained" onClick={saveStep}>{editingStepId ? "Save Changes" : "Add Step"}</Button>
+        {editingStepId && <Button onClick={cancelEditStep}>{t("testMaster.workflowSteps.form.cancel")}</Button>}
+        <Button variant="contained" onClick={saveStep}>{editingStepId ? t("testMaster.workflowSteps.form.saveChanges") : t("testMaster.workflowSteps.form.addStep")}</Button>
       </Stack>
 
       {form.stepType === "PlateCount" && form.requiresIncubationTransfer && (
         <Box sx={{ mt: 1.5, p: 1.5, bgcolor: "background.paper", border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 12, mb: 1, color: "text.primary" }}>
-            Stage 2 Incubation (Transfer)
+            {t("testMaster.workflowSteps.form.stage2Title")}
           </Typography>
           <Stack useFlexGap
             direction="row"
@@ -897,7 +913,7 @@ export function WorkflowStepsSection({
             <TextField
               size="small"
               type="number"
-              label="Stage 2 Temp Min"
+              label={t("testMaster.workflowSteps.form.stage2TempMin")}
               value={form.stage2TempMin ?? ""}
               onChange={(e) => setForm({ ...form, stage2TempMin: e.target.value })}
               sx={{ width: 140 }}
@@ -905,7 +921,7 @@ export function WorkflowStepsSection({
             <TextField
               size="small"
               type="number"
-              label="Stage 2 Temp Max"
+              label={t("testMaster.workflowSteps.form.stage2TempMax")}
               value={form.stage2TempMax ?? ""}
               onChange={(e) => setForm({ ...form, stage2TempMax: e.target.value })}
               sx={{ width: 140 }}
@@ -913,7 +929,7 @@ export function WorkflowStepsSection({
             <TextField
               size="small"
               type="number"
-              label="Stage 2 Min Hours"
+              label={t("testMaster.workflowSteps.form.stage2MinHours")}
               value={form.stage2IncubationMinHours ?? ""}
               onChange={(e) => setForm({ ...form, stage2IncubationMinHours: e.target.value })}
               sx={{ width: 140 }}
@@ -921,7 +937,7 @@ export function WorkflowStepsSection({
             <TextField
               size="small"
               type="number"
-              label="Stage 2 Max Hours"
+              label={t("testMaster.workflowSteps.form.stage2MaxHours")}
               value={form.stage2IncubationMaxHours ?? ""}
               onChange={(e) => setForm({ ...form, stage2IncubationMaxHours: e.target.value })}
               sx={{ width: 140 }}
@@ -938,8 +954,8 @@ export function WorkflowStepsSection({
             alignItems: "center",
             mt: 1.5
           }}>
-          <Select<number | ""> size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }} inputProps={{ "aria-label": "Target Organism (required)" }}>
-            <MenuItem value=""><em>Target Organism (required)</em></MenuItem>
+          <Select<number | ""> size="small" displayEmpty value={form.targetOrganismId ?? ""} onChange={(e) => setForm({ ...form, targetOrganismId: e.target.value === "" ? null : Number(e.target.value) })} sx={{ minWidth: 220 }} inputProps={{ "aria-label": t("testMaster.workflowSteps.form.targetOrganismAria") }}>
+            <MenuItem value=""><em>{t("testMaster.workflowSteps.form.targetOrganismPlaceholder")}</em></MenuItem>
             {organisms.map((o) => <MenuItem key={o.id} value={o.id}>{o.scientificName}</MenuItem>)}
           </Select>
         </Stack>
@@ -954,16 +970,16 @@ export function WorkflowStepsSection({
               alignItems: "center",
               mb: 0.5
             }}>
-            <Typography sx={{ fontWeight: 700, fontSize: 12 }}>Step Media</Typography>
+            <Typography sx={{ fontWeight: 700, fontSize: 12 }}>{t("testMaster.workflowSteps.form.stepMedia")}</Typography>
             {isSingleMedia && <Typography variant="caption" sx={{
               color: "text.secondary"
-            }}>This step type allows exactly one medium.</Typography>}
+            }}>{t("testMaster.workflowSteps.form.singleMediaHint")}</Typography>}
           </Stack>
           {/* Update replaces the whole StepMedia set server-side (no merge) -
               flagged here so an admin editing an existing step isn't
               surprised that rows not shown in this list get removed. */}
           {!isDraftMode && editingStepId && (
-            <Alert severity="info" sx={{ mb: 1, maxWidth: 520 }}>Saving replaces this step&apos;s entire medium list with what&apos;s shown below.</Alert>
+            <Alert severity="info" sx={{ mb: 1, maxWidth: 520 }}>{t("testMaster.workflowSteps.form.replaceMediaInfo")}</Alert>
           )}
           <Typography
             variant="caption"
@@ -972,7 +988,7 @@ export function WorkflowStepsSection({
               display: "block",
               mb: 1
             }}>
-            Pick the culture media product, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added under Master Testing Materials, Culture Media tab.
+            {t("testMaster.workflowSteps.form.mediaHelp")}
           </Typography>
           <Stack spacing={1}>
             {form.stepMedia.map((row, idx) => {
@@ -987,7 +1003,7 @@ export function WorkflowStepsSection({
                     flexWrap: "wrap"
                   }}>
                   <MediaProductPicker
-                    label="Culture media product"
+                    label={t("testMaster.workflowSteps.form.cultureMediaProduct")}
                     value={row.mediaProductId === "" ? null : row.mediaProductId}
                     options={mediaProducts}
                     onChange={(id) => updateMediaRow(idx, { mediaProductId: id ?? "" })}
@@ -1000,8 +1016,8 @@ export function WorkflowStepsSection({
                     disabled={productConditions.length === 0}
                     onChange={(e) => updateMediaRow(idx, { mediaIncubationConditionId: e.target.value === "" ? "" : Number(e.target.value) })}
                     sx={{ minWidth: 240 }}
-                    inputProps={{ "aria-label": "Incubation condition" }}>
-                    <MenuItem value=""><em>Incubation condition</em></MenuItem>
+                    inputProps={{ "aria-label": t("testMaster.workflowSteps.form.incubationConditionAria") }}>
+                    <MenuItem value=""><em>{t("testMaster.workflowSteps.form.incubationConditionPlaceholder")}</em></MenuItem>
                     {productConditions.map((c) => (
                       <MenuItem key={c.id} value={c.id}>
                         {incubationConditionLabel(c)}
@@ -1010,20 +1026,20 @@ export function WorkflowStepsSection({
                   </Select>
                   {row.mediaProductId !== "" && productConditions.length === 0 && (
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      This medium has no incubation conditions yet.
+                      {t("testMaster.workflowSteps.form.noConditions")}
                     </Typography>
                   )}
                   {!isConfirmatory && (
                     <FormControlLabel
                       control={<Checkbox checked={row.isRequired} onChange={(e) => updateMediaRow(idx, { isRequired: e.target.checked })} />}
-                      label="Required"
+                      label={t("testMaster.workflowSteps.form.required")}
                     />
                   )}
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
-                  }}>Order {idx + 1}</Typography>
-                  <Tooltip title="Remove medium">
-                    <IconButton size="small" color="error" onClick={() => removeMediaRow(idx)} aria-label="Remove medium">
+                  }}>{t("testMaster.workflowSteps.form.order", { order: idx + 1 })}</Typography>
+                  <Tooltip title={t("testMaster.workflowSteps.form.removeMedium")}>
+                    <IconButton size="small" color="error" onClick={() => removeMediaRow(idx)} aria-label={t("testMaster.workflowSteps.form.removeMedium")}>
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -1031,7 +1047,7 @@ export function WorkflowStepsSection({
               );
             })}
           </Stack>
-          <Button size="small" sx={{ mt: 1 }} disabled={isSingleMedia && form.stepMedia.length >= 1} onClick={addMediaRow}>Add Medium</Button>
+          <Button size="small" sx={{ mt: 1 }} disabled={isSingleMedia && form.stepMedia.length >= 1} onClick={addMediaRow}>{t("testMaster.workflowSteps.form.addMedium")}</Button>
         </Box>
       )}
       </>
@@ -1039,9 +1055,9 @@ export function WorkflowStepsSection({
 
       <ConfirmationDialog
         open={stepToDelete !== null}
-        title="Delete Workflow Step"
-        message="Are you sure you want to delete this workflow step? This action cannot be undone."
-        confirmText="Delete Step"
+        title={t("testMaster.workflowSteps.deleteDialog.title")}
+        message={t("testMaster.workflowSteps.deleteDialog.message")}
+        confirmText={t("testMaster.workflowSteps.deleteDialog.confirm")}
         destructive
         onConfirm={async () => {
           if (stepToDelete !== null) {

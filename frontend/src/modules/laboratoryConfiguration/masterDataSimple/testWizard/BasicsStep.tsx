@@ -8,6 +8,9 @@ import {
   Stack,
   TextField
 } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { WORKFLOW_TYPES_BY_LAB, WORKFLOW_TYPE_LABELS } from "../testMaster/testMasterConstants";
 import { TestFormModel, validateStep, withWorkflowType } from "./testFormModel";
@@ -22,6 +25,7 @@ interface BasicsViewProps {
 }
 
 function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
+  const { t } = useTranslation("masterData");
   const isEditing = mode === "edit" || Boolean(model.editingId);
   const selectableSections = lookup.mySections.length > 0 ? lookup.mySections : lookup.sections;
   const workflowTypes = WORKFLOW_TYPES_BY_LAB[model.lab];
@@ -37,7 +41,7 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
       <TextField
         size="small"
         name="code"
-        label="Code *"
+        label={t("testWizard.basics.codeLabel")}
         value={model.code}
         onChange={(e) => set({ code: e.target.value })}
         disabled={isEditing}
@@ -47,15 +51,15 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
         helperText={
           errors.code ||
           (isEditing
-            ? "Test codes cannot be changed after creation."
-            : "Unique identifier used in Item specifications and testing.")
+            ? t("testWizard.basics.codeImmutableHelper")
+            : t("testWizard.basics.codeNewHelper"))
         }
       />
 
       <TextField
         size="small"
         name="displayName"
-        label="Display Name *"
+        label={t("testWizard.basics.displayNameLabel")}
         value={model.displayName}
         onChange={(e) => set({ displayName: e.target.value })}
         required
@@ -67,15 +71,15 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
       <TextField
         size="small"
         name="coaDisplayOrder"
-        label="CoA order (optional)"
-        placeholder="e.g. 1, 2, 3"
+        label={t("testWizard.basics.coaOrderLabel")}
+        placeholder={t("testWizard.basics.coaOrderPlaceholder")}
         value={model.coaDisplayOrder}
         onChange={(e) => set({ coaDisplayOrder: e.target.value })}
         fullWidth
         error={Boolean(errors.coaDisplayOrder)}
         helperText={
           errors.coaDisplayOrder ||
-          "Position on the Certificate of Analysis inside this test's group (1–9999); tests without an order follow alphabetically."
+          t("testWizard.basics.coaOrderHelper")
         }
       />
 
@@ -86,16 +90,16 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
           required
           error={Boolean(errors.sectionId)}
         >
-          <InputLabel id="dialog-section-label">Section</InputLabel>
+          <InputLabel id="dialog-section-label">{t("testWizard.basics.sectionLabel")}</InputLabel>
           <Select<number | "">
             labelId="dialog-section-label"
             name="sectionId"
-            label="Section"
+            label={t("testWizard.basics.sectionLabel")}
             value={model.sectionId}
             onChange={(e) => set({ sectionId: e.target.value === "" ? "" : Number(e.target.value) })}
           >
             <MenuItem value="">
-              <em>Select a section</em>
+              <em>{t("testWizard.basics.selectSection")}</em>
             </MenuItem>
             {selectableSections.map((s) => (
               <MenuItem key={s.sectionId} value={s.sectionId}>
@@ -108,22 +112,22 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
             model.editingSectionId !== null &&
             model.sectionId !== "" &&
             model.sectionId !== model.editingSectionId && (
-              <FormHelperText>Existing test orders keep their current section.</FormHelperText>
+              <FormHelperText>{t("testWizard.basics.sectionChangeHint")}</FormHelperText>
             )}
         </FormControl>
 
         <FormControl size="small" sx={{ flex: 1, minWidth: 200 }}>
-          <InputLabel id="dialog-workflow-type-label">Workflow Type</InputLabel>
+          <InputLabel id="dialog-workflow-type-label">{t("testWizard.basics.workflowTypeLabel")}</InputLabel>
           <Select
             labelId="dialog-workflow-type-label"
             name="workflowType"
-            label="Workflow Type"
+            label={t("testWizard.basics.workflowTypeLabel")}
             value={model.workflowType}
             onChange={(e) => set(withWorkflowType(model, e.target.value))}
           >
             {workflowTypes.map((w) => (
               <MenuItem key={w} value={w}>
-                {WORKFLOW_TYPE_LABELS[w] ?? w}
+                {t(`testMaster.constants.workflowTypes.${w}`, { defaultValue: WORKFLOW_TYPE_LABELS[w] ?? w })}
               </MenuItem>
             ))}
           </Select>
@@ -134,12 +138,13 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
 }
 
 export function createBasicsStep(
-  getLookup: () => TestWizardLookupData
+  getLookup: () => TestWizardLookupData,
+  getT: () => TFunction = () => i18n.getFixedT("en", "masterData")
 ): WizardStep<TestFormModel> {
   return {
     key: "basics",
-    title: "Basics",
-    validate: (model) => validateStep("basics", model),
+    title: getT()("testWizard.basics.title"),
+    validate: (model) => validateStep("basics", model, getT()),
     render: ({ model, set, errors, mode }) => (
       <BasicsStepView
         model={model}
@@ -150,16 +155,19 @@ export function createBasicsStep(
       />
     ),
     summary: (model) => {
+      const t = getT();
       const lookup = getLookup();
       const selectableSections = lookup.mySections.length > 0 ? lookup.mySections : lookup.sections;
       return [
-        { label: "Code", value: model.code.trim() || "—", field: "code" },
-        { label: "Display Name", value: model.displayName.trim() || "—", field: "displayName" },
-        { label: "CoA order", value: model.coaDisplayOrder.trim() || "—", field: "coaDisplayOrder" },
-        { label: "Section", value: sectionLabel(selectableSections, model.sectionId), field: "sectionId" },
+        { label: t("testWizard.basics.summary.code"), value: model.code.trim() || "—", field: "code" },
+        { label: t("testWizard.basics.summary.displayName"), value: model.displayName.trim() || "—", field: "displayName" },
+        { label: t("testWizard.basics.summary.coaOrder"), value: model.coaDisplayOrder.trim() || "—", field: "coaDisplayOrder" },
+        { label: t("testWizard.basics.summary.section"), value: sectionLabel(selectableSections, model.sectionId, t), field: "sectionId" },
         {
-          label: "Workflow Type",
-          value: WORKFLOW_TYPE_LABELS[model.workflowType] ?? model.workflowType,
+          label: t("testWizard.basics.summary.workflowType"),
+          value: t(`testMaster.constants.workflowTypes.${model.workflowType}`, {
+            defaultValue: WORKFLOW_TYPE_LABELS[model.workflowType] ?? model.workflowType
+          }),
           field: "workflowType"
         }
       ];

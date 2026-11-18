@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
+import { useTranslation } from "react-i18next";
 import type { IcpElementRow, IcpTestForm, IcpTestMode, IcpSampleForm } from "./icpTestConfig";
 
 export interface IcpTestFieldsProps {
@@ -26,6 +27,7 @@ export interface IcpTestFieldsProps {
 // The ICP part of the Test Master dialog: assay (% of target) or impurity (ppm against the item's limit),
 // the sample basis for the assay formula, and the elements the test reports.
 export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
+  const { t } = useTranslation("masterData");
   const set = (patch: Partial<IcpTestForm>) => onChange({ ...form, ...patch });
   const assay = form.mode === "Assay";
   const liquid = form.sampleForm === "Liquid";
@@ -34,7 +36,7 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
 
   return (
     <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>ICP Assay Configuration</Typography>
+      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>{t("testMaster.icp.sectionTitle")}</Typography>
       <Stack spacing={2}>
         <Box>
           <ToggleButtonGroup
@@ -42,15 +44,15 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
             exclusive
             value={form.mode}
             onChange={(_, v: IcpTestMode | null) => v && set({ mode: v })}
-            aria-label="ICP test type"
+            aria-label={t("testMaster.icp.testTypeAria")}
           >
-            <ToggleButton value="Assay" sx={{ textTransform: "none", px: 2.5 }}>Assay (% of target)</ToggleButton>
-            <ToggleButton value="Impurity" sx={{ textTransform: "none", px: 2.5 }}>Elemental impurity (ppm)</ToggleButton>
+            <ToggleButton value="Assay" sx={{ textTransform: "none", px: 2.5 }}>{t("testMaster.icp.modes.assay")}</ToggleButton>
+            <ToggleButton value="Impurity" sx={{ textTransform: "none", px: 2.5 }}>{t("testMaster.icp.modes.impurity")}</ToggleButton>
           </ToggleButtonGroup>
           <FormHelperText>
             {assay
-              ? "The instrument result is compared with each element's target concentration; the item specification sets the assay limits."
-              : "The instrument result (ppm) is judged by the item specification: not more than a limit, where 0 means not detected."}
+              ? t("testMaster.icp.modeHelp.assay")
+              : t("testMaster.icp.modeHelp.impurity")}
           </FormHelperText>
         </Box>
 
@@ -62,20 +64,20 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                 exclusive
                 value={form.sampleForm}
                 onChange={(_, v: IcpSampleForm | null) => v && set({ sampleForm: v })}
-                aria-label="Sample form"
+                aria-label={t("testMaster.icp.sampleFormAria")}
               >
-                <ToggleButton value="Solid" sx={{ textTransform: "none", px: 2.5 }}>Solid</ToggleButton>
-                <ToggleButton value="Liquid" sx={{ textTransform: "none", px: 2.5 }}>Liquid</ToggleButton>
+                <ToggleButton value="Solid" sx={{ textTransform: "none", px: 2.5 }}>{t("testMaster.icp.sampleForms.solid")}</ToggleButton>
+                <ToggleButton value="Liquid" sx={{ textTransform: "none", px: 2.5 }}>{t("testMaster.icp.sampleForms.liquid")}</ToggleButton>
               </ToggleButtonGroup>
             </Box>
             <TextField
               size="small"
               type="number"
               required
-              label={liquid ? "Theoretical volume (mL)" : "Theoretical weight (g)"}
+              label={liquid ? t("testMaster.icp.theoreticalVolume") : t("testMaster.icp.theoreticalWeight")}
               value={form.theoreticalAmount}
               onChange={(e) => set({ theoreticalAmount: e.target.value })}
-              helperText={liquid ? "Th.Vol" : "Th.Wt"}
+              helperText={liquid ? t("testMaster.icp.thVol") : t("testMaster.icp.thWt")}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               sx={{ width: 220 }}
             />
@@ -84,10 +86,10 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                 size="small"
                 type="number"
                 required
-                label="Specific gravity"
+                label={t("testMaster.icp.specificGravity")}
                 value={form.specificGravity}
                 onChange={(e) => set({ specificGravity: e.target.value })}
-                helperText="Sp.gr"
+                helperText={t("testMaster.icp.spGr")}
                 slotProps={{ htmlInput: { min: 0, step: "any" } }}
                 sx={{ width: 180 }}
               />
@@ -96,13 +98,13 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
         )}
 
         <Box>
-          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>Elements</Typography>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>{t("testMaster.icp.elementsHeading")}</Typography>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 120 }}>Symbol</TableCell>
-                {assay && <TableCell>Target concentration (ppm)</TableCell>}
-                <TableCell>Cleaning limit (ppm)</TableCell>
+                <TableCell sx={{ width: 120 }}>{t("testMaster.icp.columns.symbol")}</TableCell>
+                {assay && <TableCell>{t("testMaster.icp.columns.targetPpm")}</TableCell>}
+                <TableCell>{t("testMaster.icp.columns.cleaningLimitPpm")}</TableCell>
                 <TableCell sx={{ width: 56 }} />
               </TableRow>
             </TableHead>
@@ -114,8 +116,8 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                       size="small"
                       value={el.symbol}
                       onChange={(e) => updateElement(index, { symbol: e.target.value })}
-                      placeholder="Zn"
-                      slotProps={{ htmlInput: { maxLength: 3, "aria-label": `Element ${index + 1} symbol` } }}
+                      placeholder={t("testMaster.icp.placeholders.symbol")}
+                      slotProps={{ htmlInput: { maxLength: 3, "aria-label": t("testMaster.icp.aria.symbol", { index: index + 1 }) } }}
                       sx={{ width: 100 }}
                     />
                   </TableCell>
@@ -126,8 +128,8 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                         type="number"
                         value={el.targetPpm}
                         onChange={(e) => updateElement(index, { targetPpm: e.target.value })}
-                        placeholder="10"
-                        slotProps={{ htmlInput: { min: 0, step: "any", "aria-label": `Element ${index + 1} target ppm` } }}
+                        placeholder={t("testMaster.icp.placeholders.targetPpm")}
+                        slotProps={{ htmlInput: { min: 0, step: "any", "aria-label": t("testMaster.icp.aria.targetPpm", { index: index + 1 }) } }}
                         sx={{ width: 180 }}
                       />
                     </TableCell>
@@ -138,15 +140,15 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
                       type="number"
                       value={el.cleaningLimitPpm}
                       onChange={(e) => updateElement(index, { cleaningLimitPpm: e.target.value })}
-                      placeholder="Optional"
-                      slotProps={{ htmlInput: { min: 0, step: "any", "aria-label": `Element ${index + 1} cleaning limit ppm` } }}
+                      placeholder={t("testMaster.icp.placeholders.cleaningLimitPpm")}
+                      slotProps={{ htmlInput: { min: 0, step: "any", "aria-label": t("testMaster.icp.aria.cleaningLimitPpm", { index: index + 1 }) } }}
                       sx={{ width: 180 }}
                     />
                   </TableCell>
                   <TableCell>
                     <IconButton
                       size="small"
-                      aria-label={`Remove element ${index + 1}`}
+                      aria-label={t("testMaster.icp.aria.removeElement", { index: index + 1 })}
                       disabled={form.elements.length === 1}
                       onClick={() => set({ elements: form.elements.filter((_, i) => i !== index) })}
                     >
@@ -163,7 +165,7 @@ export function IcpTestFields({ form, onChange }: IcpTestFieldsProps) {
             onClick={() => set({ elements: [...form.elements, { symbol: "", targetPpm: "", cleaningLimitPpm: "" }] })}
             sx={{ mt: 1, textTransform: "none" }}
           >
-            Add element
+            {t("testMaster.icp.addElement")}
           </Button>
         </Box>
       </Stack>

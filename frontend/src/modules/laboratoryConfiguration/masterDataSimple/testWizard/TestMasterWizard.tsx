@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
 import type { WizardStep } from "../../../../components/config/useWizard";
@@ -109,6 +110,9 @@ function OpenTestMasterWizard({
   onClose,
   onSaved
 }: TestMasterWizardProps) {
+  const { t } = useTranslation("masterData");
+  const tRef = useRef(t);
+  tRef.current = t;
   const isEditing = Boolean(editingTest && editingTest.id != null);
   const sourceTest = editingTest ?? duplicateFrom ?? null;
   const onCloseRef = useRef(onClose);
@@ -211,7 +215,7 @@ function OpenTestMasterWizard({
         // Never carry on with empty stages or steps: a copy would silently lose them and an
         // edit would show a test without its workflow. Say so and close; the user can retry.
         if (cancelled) return;
-        toast.error(getErrorMessage(err, "Could not load the test's stages and workflow steps. Try again."));
+        toast.error(getErrorMessage(err, tRef.current("testWizard.wizard.loadChildrenError")));
         onCloseRef.current();
       });
     return () => {
@@ -255,13 +259,14 @@ function OpenTestMasterWizard({
 
   const steps = useMemo<WizardStep<TestFormModel>[]>(() => {
     const getLookup = () => lookupRef.current;
+    const getT = () => t;
     return [
-      createBasicsStep(getLookup),
-      createTypeSettingsStep(getLookup),
-      createStagesStep(),
-      createStepsStep()
+      createBasicsStep(getLookup, getT),
+      createTypeSettingsStep(getLookup, getT),
+      createStagesStep(getT),
+      createStepsStep(getT)
     ];
-  }, []);
+  }, [t]);
 
   const initialModel = useMemo<TestFormModel>(() => {
     if (editingTest) {
@@ -316,7 +321,7 @@ function OpenTestMasterWizard({
             const freshList: TestDefinitionOption[] = await masterDataOptions.getTestDefinitions();
             const fresh = freshList.find((t) => t.id === editingTest.id);
             if (!fresh) {
-              throw new Error("Test definition no longer exists.");
+              throw new Error(tRef.current("testWizard.wizard.noLongerExistsError"));
             }
             const [freshStages, freshSteps] = await Promise.all([
               needsStageFetch(lab, fresh.workflowType)
@@ -401,12 +406,12 @@ function OpenTestMasterWizard({
   );
 
   const title = editingTest
-    ? `Edit Test "${editingTest.code}"`
+    ? t("testWizard.wizard.editTitle", { code: editingTest.code })
     : duplicateFrom
-      ? `New Test from "${duplicateFrom.code}"`
+      ? t("testWizard.wizard.duplicateTitle", { code: duplicateFrom.code })
       : lab === "fp"
-        ? "Add Physicochemical Test"
-        : "Add Microbiology Test";
+        ? t("testWizard.wizard.addFpTitle")
+        : t("testWizard.wizard.addMicroTitle");
 
   const isReady = sourceChildren.ready && (!duplicateFrom || sectionsLoaded);
   const baseDraftKey = editingTest
@@ -436,7 +441,8 @@ function OpenTestMasterWizard({
         <AnalystPreview
           steps={previewModel(model, {
             mediaProducts: lookupRef.current.mediaProducts,
-            conditions: lookupRef.current.conditions
+            conditions: lookupRef.current.conditions,
+            t: tRef.current
           })}
         />
       )}

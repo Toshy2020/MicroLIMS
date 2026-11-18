@@ -1,10 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import { i18n } from "../../../../i18n";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { createEmptyTestFormModel } from "./testFormModel";
 import { AnalystPreview, previewModel } from "./AnalystPreview";
 
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage("en");
+});
 
 describe("AnalystPreview & previewModel", () => {
   it("orders steps by stepOrder and resolves media names and incubation windows from the unsaved model", () => {
@@ -200,5 +204,29 @@ describe("AnalystPreview & previewModel", () => {
     expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
     expect(screen.queryAllByRole("spinbutton")).toHaveLength(0);
+  });
+
+  it("renders Arabic labels when the language is switched to ar", async () => {
+    await i18n.loadNamespaces("masterData");
+    await i18n.changeLanguage("ar");
+    const steps = previewModel(
+      createEmptyTestFormModel({
+        lab: "fp",
+        workflowType: "Measurement",
+        displayName: "pH",
+        replicateCount: "2"
+      }),
+      { t: i18n.getFixedT("ar", "masterData") }
+    );
+
+    render(
+      <PinnedLightTheme>
+        <AnalystPreview steps={steps} />
+      </PinnedLightTheme>
+    );
+
+    const previewRegion = screen.getByLabelText("معاينة المحلل");
+    expect(within(previewRegion).getByText("ما سيراه المحلل")).toBeTruthy();
+    expect(within(previewRegion).getByText("معاينة — للإعدادات فقط")).toBeTruthy();
   });
 });

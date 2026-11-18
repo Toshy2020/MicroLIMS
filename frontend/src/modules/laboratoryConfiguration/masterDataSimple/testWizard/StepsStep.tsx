@@ -1,4 +1,7 @@
 import { Alert, Stack, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import { WORKFLOW_TYPES_BY_LAB } from "../testMaster/testMasterConstants";
@@ -12,11 +15,12 @@ interface StepsViewProps {
 }
 
 function StepsStepView({ model, set, errors }: StepsViewProps) {
+  const { t } = useTranslation("masterData");
   const syntheticTest: TestDefinitionOption = {
     id: model.editingId ?? 0,
     version: model.editingTest?.version,
     code: model.code.trim() || "NEW",
-    displayName: model.displayName.trim() || "New Test",
+    displayName: model.displayName.trim() || t("testWizard.steps.newTestFallback"),
     isActive: true,
     workflowType: model.workflowType,
     equationType: model.equationType
@@ -30,7 +34,7 @@ function StepsStepView({ model, set, errors }: StepsViewProps) {
         </Alert>
       )}
       <Typography variant="body2" sx={{ color: "text.secondary" }}>
-        Configure the ordered workflow steps and permitted culture media for this microbiology test. You can add steps now or after creating the test.
+        {t("testWizard.steps.description")}
       </Typography>
       <WorkflowStepsSection
         test={syntheticTest}
@@ -44,29 +48,34 @@ function StepsStepView({ model, set, errors }: StepsViewProps) {
   );
 }
 
-export function createStepsStep(): WizardStep<TestFormModel> {
+export function createStepsStep(
+  getT: () => TFunction = () => i18n.getFixedT("en", "masterData")
+): WizardStep<TestFormModel> {
   return {
     key: "steps",
-    title: "Steps",
+    title: getT()("testWizard.steps.title"),
     applies: (model) =>
       model.workflowType === "CountTest" || model.workflowType === "Observation",
-    validate: (model) => validateStep("steps", model),
+    validate: (model) => validateStep("steps", model, getT()),
     render: ({ model, set, errors }) => (
       <StepsStepView model={model} set={set} errors={errors} />
     ),
-    summary: (model) => [
-      {
-        label: "Workflow steps",
-        value:
-          model.steps.length > 0
-            ? model.steps
-                .slice()
-                .sort((a, b) => a.stepOrder - b.stepOrder)
-                .map((s) => `${s.stepOrder}. ${s.stepName} (${s.stepType})`)
-                .join(", ")
-            : "None configured yet",
-        field: "steps"
-      }
-    ]
+    summary: (model) => {
+      const t = getT();
+      return [
+        {
+          label: t("testWizard.steps.summary.label"),
+          value:
+            model.steps.length > 0
+              ? model.steps
+                  .slice()
+                  .sort((a, b) => a.stepOrder - b.stepOrder)
+                  .map((s) => `${s.stepOrder}. ${s.stepName} (${s.stepType})`)
+                  .join(", ")
+              : t("testWizard.steps.summary.none"),
+          field: "steps"
+        }
+      ];
+    }
   };
 }

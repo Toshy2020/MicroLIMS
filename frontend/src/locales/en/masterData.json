@@ -1255,5 +1255,605 @@
       "maxRsdPositive": "Max RSD % must be greater than zero.",
       "validityDaysNonNegative": "Standardization Validity Days must be 0 or greater."
     }
+  },
+  "testMaster": {
+    "icp": {
+      "sectionTitle": "ICP Assay Configuration",
+      "testTypeAria": "ICP test type",
+      "modes": {
+        "impurity": "Elemental impurity (ppm)",
+        "assay": "Assay (% of target)"
+      },
+      "modeHelp": {
+        "assay": "The instrument result is compared with each element's target concentration; the item specification sets the assay limits.",
+        "impurity": "The instrument result (ppm) is judged by the item specification: not more than a limit, where 0 means not detected."
+      },
+      "sampleFormAria": "Sample form",
+      "sampleForms": {
+        "solid": "Solid",
+        "liquid": "Liquid"
+      },
+      "theoreticalWeight": "Theoretical weight (g)",
+      "theoreticalVolume": "Theoretical volume (mL)",
+      "thWt": "Th.Wt",
+      "thVol": "Th.Vol",
+      "specificGravity": "Specific gravity",
+      "spGr": "Sp.gr",
+      "elementsHeading": "Elements",
+      "columns": {
+        "symbol": "Symbol",
+        "targetPpm": "Target concentration (ppm)",
+        "cleaningLimitPpm": "Cleaning limit (ppm)"
+      },
+      "placeholders": {
+        "symbol": "Zn",
+        "targetPpm": "10",
+        "cleaningLimitPpm": "Optional"
+      },
+      "aria": {
+        "symbol": "Element {{index}} symbol",
+        "targetPpm": "Element {{index}} target ppm",
+        "cleaningLimitPpm": "Element {{index}} cleaning limit ppm",
+        "removeElement": "Remove element {{index}}"
+      },
+      "addElement": "Add element",
+      "validation": {
+        "addElement": "Add at least one element.",
+        "theoreticalWeight": "Enter the theoretical weight (g).",
+        "theoreticalVolume": "Enter the theoretical volume (mL).",
+        "specificGravity": "Enter the specific gravity.",
+        "targetPpm": "Enter the target concentration (ppm) for {{symbol}}."
+      }
+    },
+    "uv": {
+      "modes": {
+        "SpecificAbsorbanceAssay": {
+          "label": "Specific Absorbance Assay (A1%)",
+          "description": "Calculates % as-is = A × V / (A1% × W)"
+        },
+        "SpecificAbsorbanceValue": {
+          "label": "Specific Absorbance Value",
+          "description": "Calculates A(1%, 1 cm) = A × V / (W × 100)"
+        },
+        "StandardComparison": {
+          "label": "Assay against Standard",
+          "description": "Calculates preparation assay compared to a reference standard"
+        },
+        "AbsorbanceLimit": {
+          "label": "Absorbance Limit (Reference)",
+          "description": "Tests whether absorbance is not greater than a reference solution"
+        }
+      },
+      "sectionTitle": "UV Spectrophotometry Parameters",
+      "calculationModeLabel": "Calculation mode",
+      "standardMaterialLabel": "Standard material",
+      "standardMaterialError": "Could not load the standard materials.",
+      "standardMaterialHelper": "Only lots (reference standard or approved working standard) of this material are picked at analysis time",
+      "specificAbsorbanceLabel": "Specific absorbance (A1%) *",
+      "specificAbsorbanceHelper": "A(1%, 1 cm) value (e.g. 328 for Riboflavin)",
+      "totalVolumeLabel": "Total volume (mL) *",
+      "totalVolumeHelper": "Sample total volume (e.g. 5000 for 1000 × 50 / 10)",
+      "standardVolumeLabel": "Standard volume (mL) *",
+      "standardVolumeHelper": "Standard dilution total volume",
+      "replicateCountLabel": "Replicate count *",
+      "replicateCountHelper": "Number of replicates (1 to 30)"
+    },
+    "stageReplicates": {
+      "heading": "Replicates per stage ({{count}} configured)",
+      "addButton": "Add Stage Replicate",
+      "columns": {
+        "stageRole": "Stage Role",
+        "sampleReplicates": "Sample Replicates",
+        "actions": "Actions"
+      },
+      "editAria": "Edit replicates",
+      "editTitle": "Edit Replicates",
+      "deleteAria": "Delete replicate rule",
+      "deleteTitle": "Delete Replicate Configuration",
+      "empty": "No stage replicates configured yet. Click \"Add Stage Replicate\" to configure replicate counts.",
+      "footnote": "Production stages without a configured row are not configured for this test (not zero). Counts must be integers ≥ 1. HPLC standard injections are set on the method.",
+      "dialog": {
+        "editTitle": "Edit Stage Replicates: {{role}}",
+        "addTitle": "Add Stage Replicate",
+        "cancel": "Cancel",
+        "saving": "Saving…",
+        "saveChanges": "Save Changes",
+        "add": "Add",
+        "stageRoleLabel": "Stage Role",
+        "sampleReplicatesLabel": "Sample Replicates *",
+        "sampleReplicatesPlaceholder": "e.g. 2",
+        "sampleReplicatesHelper": "Integer ≥ 1"
+      },
+      "deleteDialog": {
+        "title": "Delete Stage Replicate Configuration",
+        "message": "Delete stage replicate configuration for role \"{{role}}\"?",
+        "confirm": "Delete"
+      },
+      "errors": {
+        "loadFailed": "Could not load stage replicates.",
+        "roleRequired": "Production stage role is required.",
+        "replicatesRequired": "Sample replicates is required.",
+        "replicatesInteger": "Sample replicates must be an integer greater than or equal to 1.",
+        "saveFailed": "Could not save stage replicate configuration.",
+        "deleteFailed": "Could not delete stage replicate configuration."
+      }
+    },
+    "constants": {
+      "workflowTypes": {
+        "CountTest": "Count Test",
+        "Observation": "Observation",
+        "HplcMethodAssay": "HPLC method assay",
+        "IcpMethodAssay": "ICP method assay",
+        "Measurement": "Measurement",
+        "Gravimetric": "Gravimetric",
+        "Qualitative": "Qualitative",
+        "Dissolution": "Dissolution",
+        "Disintegration": "Disintegration",
+        "WeightVariation": "Weight Variation",
+        "Titration": "Titration (assay)",
+        "UvSpectrophotometry": "UV Spectrophotometry"
+      },
+      "equationTypes": {
+        "None": "None",
+        "HplcMethodAssay": "HPLC method assay",
+        "IcpMethodAssay": "ICP method assay",
+        "SystemSuitability": "System Suitability",
+        "Measurement": "Measurement (pH, density…)",
+        "GravimetricLoss": "Loss on drying / Gravimetric loss",
+        "GravimetricResidue": "Ash / Gravimetric residue",
+        "Qualitative": "Qualitative (appearance, ID)",
+        "Dissolution": "Dissolution (HPLC finish, staged S1-S3)",
+        "Disintegration": "Disintegration (time per unit, staged)",
+        "WeightVariation": "Weight Variation (USP <2091>, staged)",
+        "Titration": "Titration (USP <541>)",
+        "UvSpectrophotometry": "UV Spectrophotometry"
+      },
+      "phenotypicTypes": {
+        "Gram": "Gram Stain",
+        "Catalase": "Catalase",
+        "Oxidase": "Oxidase",
+        "Coagulase": "Coagulase",
+        "Antibiogram": "Antibiogram",
+        "IdentificationKit": "Identification Kit"
+      },
+      "validation": {
+        "brothMediaRequired": "A broth step must have exactly one assigned medium, marked as required.",
+        "brothNoOrganism": "A broth step must not target an organism.",
+        "selectivePlatingMediaRequired": "A selective plating step must have exactly one assigned medium, marked as required.",
+        "selectivePlatingOrganismRequired": "A selective plating step must target an organism.",
+        "confirmatoryMediaRequired": "A confirmatory plating step must have at least one permitted medium.",
+        "confirmatoryOrganismRequired": "A confirmatory plating step must target an organism.",
+        "biochemicalNoMedia": "A biochemical test step must have no assigned media.",
+        "biochemicalNoOrganism": "A biochemical test step must not target an organism.",
+        "biochemicalPhenotypicRequired": "A biochemical test step must specify at least one phenotypic test type.",
+        "biochemicalDuplicatePhenotypic": "The same phenotypic test type cannot be assigned to this step more than once.",
+        "nonBiochemicalNoPhenotypic": "Only a biochemical test step may specify a phenotypic test type.",
+        "plateCountMediaRequired": "At least one medium is required for this step type.",
+        "mediaProductRequired": "Every medium row needs a selected culture media product.",
+        "mediaConditionRequired": "Every medium row needs an incubation condition.",
+        "duplicateMedia": "The same medium cannot be assigned to this step more than once.",
+        "stage2Incomplete": "A step requiring incubation transfer must define stage 2's temperature and incubation-hours range.",
+        "stage2TempOrder": "Stage 2's minimum temperature must be below its maximum.",
+        "stage2HoursInvalid": "Stage 2's incubation-hours range must have a positive minimum and a maximum no less than the minimum."
+      }
+    },
+    "workflowSteps": {
+      "copySuffix": "{{name}} (copy)",
+      "errors": {
+        "updateWorkflowTypeFailed": "Could not update the workflow type.",
+        "stepNameAndPhenotypicRequired": "Step Name and at least one Phenotypic Test Type are required.",
+        "stepNameRequired": "Step Name is required.",
+        "onlyOneFinalStep": "Only one step can be marked as the final step.",
+        "updateStepFailed": "Could not update this step.",
+        "addStepFailed": "Could not add this step.",
+        "reorderStepFailed": "Could not reorder this step.",
+        "deleteStepFailed": "Could not delete this step."
+      },
+      "header": {
+        "workflowType": "Workflow Type",
+        "workflowSteps": "Workflow Steps",
+        "workflowTypeAria": "Workflow type"
+      },
+      "hplc": {
+        "title": "HPLC Method Assay Configuration",
+        "equationType": "Equation Type",
+        "methodAbbreviation": "Method Abbreviation",
+        "systemSuitability": "System Suitability",
+        "systemSuitabilityValue": "Required (from HPLC Method Master)",
+        "noStepsNote": "HPLC Method Assay tests have no workflow steps or local test analytes: parameters, analytes, standard weights, and system suitability criteria are configured centrally in HPLC Methods Master."
+      },
+      "icp": {
+        "title": "ICP Assay Configuration",
+        "testType": "Test type",
+        "impurity": "Elemental impurity (ppm)",
+        "assay": "Assay (% of target)",
+        "notConfigured": "Not configured",
+        "sampleBasis": "Sample basis",
+        "thVol": "Th.Vol {{amount}} mL × Sp.gr {{sg}}",
+        "thWt": "Th.Wt {{amount}} g",
+        "elements": "Elements",
+        "noElements": "None - edit the test to add them",
+        "noStepsNote": "ICP assay tests have no workflow steps or local test analytes: the elements and target concentrations are set on the test, and each run is calibrated and signed in the ICP Workspace."
+      },
+      "measurement": {
+        "title": "Measurement Configuration",
+        "evaluationBasis": "Evaluation Basis",
+        "replicateCount": "Replicate Count",
+        "noStepsNote": "Measurement tests have no workflow steps: readings are entered per specification parameter directly."
+      },
+      "gravimetric": {
+        "title": "Gravimetric Configuration",
+        "usesTare": "Uses Tare",
+        "yes": "Yes",
+        "no": "No",
+        "conditionFields": "Condition Fields",
+        "noneConfigured": "None configured",
+        "noStepsNote": "Gravimetric tests have no workflow steps: container/sample weights and condition fields are entered directly."
+      },
+      "titration": {
+        "title": "Titration Configuration",
+        "type": "Type",
+        "mode": "Mode",
+        "calculation": "Calculation",
+        "endpoint": "Endpoint",
+        "replicates": "Replicates",
+        "noStepsNote": "Titration tests have no workflow steps: replicate weights and titrant volumes are entered directly."
+      },
+      "uv": {
+        "title": "UV Spectrophotometry Configuration",
+        "calculationMode": "Calculation Mode",
+        "specificAbsorbance": "Specific Absorbance (A1%)",
+        "totalVolume": "Total Volume (mL)",
+        "standardVolume": "Standard Volume (mL)",
+        "standardMaterial": "Standard Material",
+        "noStepsNote": "UV spectrophotometry tests have no workflow steps: replicate absorbances and sample weights are entered directly."
+      },
+      "qualitative": {
+        "title": "Qualitative Configuration",
+        "noStepsNote": "Qualitative tests have no workflow steps: compliance observation is entered per specification parameter directly."
+      },
+      "dissolution": {
+        "title": "Dissolution Configuration",
+        "requiredWithAbbr": "Required ({{abbr}})",
+        "noAbbr": "No abbr",
+        "required": "Required",
+        "s1Offset": "S1 Offset",
+        "s2MinOffset": "S2 Min Offset",
+        "s3MinOffset": "S3 Min Offset",
+        "s3MaxBelowS2": "S3 Max Below S2",
+        "unitsCount": "{{count}} units",
+        "noStepsNote": "Dissolution tests have no workflow steps: staged vessel peak areas (S1: 6, S2: +6, S3: +12) and condition fields are entered directly."
+      },
+      "disintegration": {
+        "title": "Disintegration Configuration",
+        "stage1Units": "Stage 1 Units",
+        "stage2Units": "Stage 2 Units",
+        "maxS1Failures": "Max S1 Failures",
+        "minPassTotal": "Min Pass Total",
+        "noStepsNote": "Disintegration tests have no workflow steps: staged unit times (S1: {{s1}}, S2: +{{s2}}) and condition fields are entered directly."
+      },
+      "weightVariation": {
+        "title": "Weight Variation Configuration (USP <2091>)",
+        "unitCount": "Unit Count",
+        "tabletsLabel": "Tablets (Bands / Max Out)",
+        "tabletsSummary": "≤{{b1Mg}}mg: {{b1Pct}}% | ≤{{b2Mg}}mg: {{b2Pct}}% | >324mg: {{b3Pct}}% (max {{maxOut}} out)",
+        "capsulesLabel": "Capsules (Limits / Retest)",
+        "capsulesSummary": "±{{inner}}% / ±{{outer}}% (S1: ≤{{s1Out}} pass, ≤{{s1Retest}} retest +{{s2Extra}} units, S2: ≤{{s2Out}} out)",
+        "noStepsNote": "Weight Variation tests have no workflow steps: unit weights (or gross and shell weights) and condition fields are entered directly."
+      },
+      "table": {
+        "step": "Step",
+        "incubation": "Incubation",
+        "tempC": "Temp °C",
+        "stepType": "Step Type",
+        "media": "Media",
+        "organism": "Organism",
+        "status": "Status",
+        "final": "Final",
+        "twoStage": "2-Stage",
+        "stage1Hours": "Stage 1: {{range}}h",
+        "stage2Hours": "Stage 2: {{min}}-{{max}}h",
+        "hoursSuffix": "{{range}}h",
+        "stage1Temp": "Stage 1: {{range}}",
+        "stage2Temp": "Stage 2: {{min}}-{{max}}",
+        "transfer": "Transfer",
+        "needsConfigurationTooltip": "This template is missing a required organism or medium (likely inherited from the pre-refactor migration) and will fail validation the first time an analyst runs it. Edit it to complete the configuration.",
+        "needsConfiguration": "Needs configuration",
+        "moveUp": "Move up",
+        "moveDown": "Move down",
+        "editStep": "Edit step",
+        "duplicateStep": "Duplicate step",
+        "deleteStep": "Delete step",
+        "empty": "No workflow steps configured yet."
+      },
+      "form": {
+        "editStep": "Edit Step",
+        "addStep": "Add Step",
+        "stepName": "Step Name",
+        "stepNamePlaceholder": "e.g. TSB",
+        "phenotypicAria": "Phenotypic Test Type",
+        "phenotypicPlaceholder": "Phenotypic Test Type",
+        "add": "Add",
+        "stepTypeAria": "Step type",
+        "finalStep": "Final Step",
+        "requiresTransfer": "Requires incubation transfer",
+        "cancel": "Cancel",
+        "saveChanges": "Save Changes",
+        "stage2Title": "Stage 2 Incubation (Transfer)",
+        "stage2TempMin": "Stage 2 Temp Min",
+        "stage2TempMax": "Stage 2 Temp Max",
+        "stage2MinHours": "Stage 2 Min Hours",
+        "stage2MaxHours": "Stage 2 Max Hours",
+        "targetOrganismAria": "Target Organism (required)",
+        "targetOrganismPlaceholder": "Target Organism (required)",
+        "stepMedia": "Step Media",
+        "singleMediaHint": "This step type allows exactly one medium.",
+        "replaceMediaInfo": "Saving replaces this step's entire medium list with what's shown below.",
+        "mediaHelp": "Pick the culture media product, then one of its incubation conditions. The condition sets this medium's temperature and incubation hours. Conditions are added under Master Testing Materials, Culture Media tab.",
+        "cultureMediaProduct": "Culture media product",
+        "incubationConditionAria": "Incubation condition",
+        "incubationConditionPlaceholder": "Incubation condition",
+        "noConditions": "This medium has no incubation conditions yet.",
+        "required": "Required",
+        "order": "Order {{order}}",
+        "removeMedium": "Remove medium",
+        "addMedium": "Add Medium"
+      },
+      "deleteDialog": {
+        "title": "Delete Workflow Step",
+        "message": "Are you sure you want to delete this workflow step? This action cannot be undone.",
+        "confirm": "Delete Step"
+      }
+    }
+  },
+  "testWizard": {
+    "wizard": {
+      "editTitle": "Edit Test \"{{code}}\"",
+      "duplicateTitle": "New Test from \"{{code}}\"",
+      "addFpTitle": "Add Physicochemical Test",
+      "addMicroTitle": "Add Microbiology Test",
+      "loadChildrenError": "Could not load the test's stages and workflow steps. Try again.",
+      "noLongerExistsError": "Test definition no longer exists."
+    },
+    "basics": {
+      "title": "Basics",
+      "codeLabel": "Code *",
+      "codeImmutableHelper": "Test codes cannot be changed after creation.",
+      "codeNewHelper": "Unique identifier used in Item specifications and testing.",
+      "displayNameLabel": "Display Name *",
+      "coaOrderLabel": "CoA order (optional)",
+      "coaOrderPlaceholder": "e.g. 1, 2, 3",
+      "coaOrderHelper": "Position on the Certificate of Analysis inside this test's group (1–9999); tests without an order follow alphabetically.",
+      "sectionLabel": "Section",
+      "selectSection": "Select a section",
+      "sectionChangeHint": "Existing test orders keep their current section.",
+      "workflowTypeLabel": "Workflow Type",
+      "summary": {
+        "code": "Code",
+        "displayName": "Display Name",
+        "coaOrder": "CoA order",
+        "section": "Section",
+        "workflowType": "Workflow Type"
+      }
+    },
+    "stages": {
+      "title": "Stages",
+      "heading": "Replicates per stage ({{count}} configured)",
+      "addButton": "Add Stage Replicate",
+      "columns": {
+        "stageRole": "Stage Role",
+        "sampleReplicates": "Sample Replicates",
+        "actions": "Actions"
+      },
+      "editAria": "Edit replicates",
+      "deleteAria": "Delete replicate rule",
+      "empty": "No stage replicates configured yet. Click \"Add Stage Replicate\" to configure replicate counts.",
+      "footnote": "Production stages without a configured row are not configured for this test (not zero). Counts must be integers ≥ 1. HPLC standard injections are set on the method.",
+      "dialog": {
+        "editTitle": "Edit Stage Replicates: {{role}}",
+        "addTitle": "Add Stage Replicate",
+        "cancel": "Cancel",
+        "save": "Save",
+        "add": "Add",
+        "stageRoleLabel": "Stage Role",
+        "sampleReplicatesLabel": "Sample Replicates *",
+        "sampleReplicatesPlaceholder": "e.g. 2",
+        "sampleReplicatesHelper": "Integer ≥ 1"
+      },
+      "errors": {
+        "roleRequired": "Production stage role is required.",
+        "replicatesRequired": "Sample replicates is required.",
+        "replicatesInteger": "Sample replicates must be an integer greater than or equal to 1."
+      },
+      "summary": {
+        "label": "Replicates per stage",
+        "none": "None"
+      }
+    },
+    "steps": {
+      "title": "Steps",
+      "newTestFallback": "New Test",
+      "description": "Configure the ordered workflow steps and permitted culture media for this microbiology test. You can add steps now or after creating the test.",
+      "summary": {
+        "label": "Workflow steps",
+        "none": "None configured yet"
+      }
+    },
+    "typeSettings": {
+      "title": "Type Settings",
+      "equationTypeLabel": "Equation Type",
+      "hplcHeaderDissolution": "HPLC Method (supplies the dissolution standard)",
+      "hplcHeaderAssay": "HPLC Method Assay Configuration",
+      "hplcMethodLabel": "HPLC Method",
+      "hplcMethodRequiredLabel": "HPLC Method *",
+      "selectHplcMethod": "Select HPLC Method",
+      "inactiveSuffix": " (Inactive)",
+      "hplcMethodHelper": "Select the active master HPLC method that defines this test's chromatographic conditions and analytes.",
+      "methodAbbreviationLabel": "Method Abbreviation",
+      "methodAbbreviationHelperDissolution": "Dissolution keeps its own abbreviation.",
+      "methodAbbreviationHelperAssay": "Auto-populated from the selected HPLC method (read-only).",
+      "qualitativeInfo": "Qualitative test: records compliance observation against specifications directly (no replicates or steps).",
+      "recordedPerContainer": "Recorded per container",
+      "summary": {
+        "equationType": "Equation Type",
+        "hplcMethod": "HPLC Method",
+        "replicateCount": "Replicate Count",
+        "titrationType": "Titration Type",
+        "icpElements": "ICP Elements",
+        "area": "Area"
+      }
+    },
+    "preview": {
+      "ariaLabel": "Analyst preview",
+      "title": "What the analyst will see",
+      "chip": "Preview — configuration only",
+      "mediaLabel": "Media:",
+      "incubationLabel": "Incubation:",
+      "stageReplicatesLabel": "Stage replicates:",
+      "analystEntersLabel": "Analyst enters:",
+      "stepFallback": "Step {{index}}",
+      "mediaFallback": "Media #{{id}}",
+      "hours": "{{min}}–{{max}} h",
+      "hoursAtTemp": "{{hours}} at {{tempMin}}–{{tempMax}} °C",
+      "previewContextName": "Preview"
+    },
+    "helpers": {
+      "sectionFallback": "Section #{{id}}",
+      "methodFallback": "Method #{{id}}"
+    },
+    "typeBlocks": {
+      "disintegration": {
+        "title": "Disintegration Acceptance (USP <701> / EP 2.9.1)",
+        "stage1Units": "Stage 1 Units",
+        "stage2Units": "Stage 2 Units",
+        "maxS1Failures": "Max S1 Failures",
+        "minPassTotal": "Min Pass Total",
+        "default6": "Default: 6",
+        "default12": "Default: 12",
+        "default2": "Default: 2 (0..S1-1)",
+        "default16": "Default: 16 (1..S1+S2)",
+        "conditionFields": "Condition fields",
+        "conditionPlaceholder": "Medium,Temperature (°C),Discs",
+        "conditionHelper": "comma-separated, e.g. Medium,Temperature (°C),Discs"
+      },
+      "dissolution": {
+        "title": "Dissolution Acceptance Offsets (USP <711> / EP 2.9.3)",
+        "s1Offset": "S1: each unit ≥ Q + ",
+        "s2MinOffset": "S2: no unit < Q − ",
+        "s3MinOffset": "S3: no unit < Q − ",
+        "s3MaxBelowS2": "S3: max units < Q − S2 value",
+        "default5": "Default: 5 (%)",
+        "default15": "Default: 15 (%)",
+        "default25": "Default: 25 (%)",
+        "default2Units": "Default: 2 (units)",
+        "conditionFields": "Condition fields",
+        "conditionPlaceholder": "Apparatus,RPM,Medium,Temperature (°C),Time (min)",
+        "conditionHelper": "comma-separated, e.g. Apparatus,RPM,Medium,Temperature (°C),Time (min)",
+        "requiresSystemSuitability": "Requires system suitability (standard from the assigned HPLC run)",
+        "methodAbbreviation": "Method Abbreviation",
+        "methodAbbreviationPlaceholder": "e.g. VIT-C",
+        "methodAbbreviationHelper": "1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"
+      },
+      "gravimetric": {
+        "title": "Gravimetric Settings",
+        "replicateCount": "Replicate Count *",
+        "replicateHelper": "Replicates per parameter (1–30)",
+        "usesTare": "Uses tare (container weight)",
+        "conditionFields": "Condition fields",
+        "conditionPlaceholder": "e.g. Temperature (°C),Time (h)",
+        "conditionHelper": "comma-separated, e.g. Temperature (°C),Time (h)",
+        "moistureRole": "Moisture role",
+        "moistureNone": "None",
+        "moistureLod": "Loss on drying"
+      },
+      "measurement": {
+        "title": "Measurement Settings",
+        "replicateCount": "Replicate Count *",
+        "replicateHelper": "Replicates per parameter (1–30)",
+        "evaluationBasis": "Evaluation Basis *",
+        "basisMean": "Mean",
+        "basisEachValue": "Each Value",
+        "basisMin": "Minimum",
+        "basisMax": "Maximum"
+      },
+      "weightVariation": {
+        "title": "Weight Variation Acceptance (USP <2091>)",
+        "unitCount": "Unit Count (Stage 1)",
+        "default20": "Default: 20",
+        "tablets": "Tablets",
+        "band1MaxMg": "Band 1 Max (mg)",
+        "default130": "Default: 130",
+        "band1Percent": "Band 1 Deviation (%)",
+        "default10": "Default: 10",
+        "band2MaxMg": "Band 2 Max (mg)",
+        "default324": "Default: 324",
+        "band2Percent": "Band 2 Deviation (%)",
+        "default7_5": "Default: 7.5",
+        "band3Percent": "Band 3 Deviation (%)",
+        "default5": "Default: 5 (> Band 2)",
+        "maxOutside": "Max Outside Count",
+        "default2": "Default: 2",
+        "capsules": "Capsules",
+        "innerLimit": "Inner Limit (%)",
+        "outerLimit": "Outer Limit (%)",
+        "default25": "Default: 25",
+        "s1MaxOutside": "Stage 1 Max Outside",
+        "default2Pass": "Default: 2 (pass without retest)",
+        "s1MaxForRetest": "Stage 1 Max For Retest",
+        "default6Retest": "Default: 6 (qualifies for S2)",
+        "s2ExtraUnits": "Stage 2 Extra Units",
+        "default40": "Default: 40",
+        "s2MaxOutside": "Stage 2 Max Outside",
+        "default6Total": "Default: 6 (across S1+S2)",
+        "conditionFields": "Condition fields",
+        "conditionPlaceholder": "Balance ID,Temperature (°C)",
+        "conditionHelper": "comma-separated, e.g. Balance ID,Temperature (°C)"
+      }
+    },
+    "validation": {
+      "groupRequired": "{{group}}: \"{{label}}\" is required.",
+      "groupNumber": "{{group}}: \"{{label}}\" must be a number.",
+      "groups": {
+        "dissolution": "Dissolution",
+        "disintegration": "Disintegration",
+        "weightVariation": "Weight variation"
+      },
+      "codeAndNameRequired": "Both Code and Display Name are required.",
+      "sectionRequired": "Laboratory section is required.",
+      "coaOrderInvalid": "CoA order must be a whole number from 1 to 9999, or empty.",
+      "methodAbbreviationRequired": "Method abbreviation is required when system suitability is enabled.",
+      "methodAbbreviationInvalid": "Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.",
+      "dissolutionOffsetsNonNegative": "Dissolution stage offsets must be greater than or equal to zero.",
+      "conditionFieldsMax": "Condition fields cannot exceed 500 characters.",
+      "disintegrationUnitsMin": "Disintegration stage units must be greater than or equal to 1.",
+      "disintegrationMaxS1Range": "Disintegration maximum Stage 1 failures must be between 0 and {{max}}.",
+      "disintegrationMinPassRange": "Disintegration minimum pass total must be between 1 and {{max}}.",
+      "wvUnitsMin": "Weight variation unit count and extra units must be greater than or equal to 1.",
+      "wvOutsideNonNegative": "Weight variation maximum outside counts must be greater than or equal to 0.",
+      "wvBandWeightsPositive": "Weight variation tablet band weight limits must be greater than zero.",
+      "wvPercentagesPositive": "Weight variation percentages must be greater than zero.",
+      "wvBandOrder": "Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.",
+      "wvCapsulePercentOrder": "Weight variation capsule inner percentage must be less than outer percentage.",
+      "wvCapsuleS1Order": "Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.",
+      "wvCapsuleS2Max": "Weight variation capsule Stage 2 max outside must be less than total units ({{total}}).",
+      "uvModeRequired": "A UV test needs a calculation mode.",
+      "replicateRange": "Replicate count must be between 1 and 30.",
+      "uvAbsorbancePositive": "This UV mode needs a specific absorbance above 0.",
+      "uvTotalVolumePositive": "This UV mode needs a total volume above 0.",
+      "uvStandardVolumePositive": "A UV test against a standard needs a standard volume above 0.",
+      "uvStandardMaterialRequired": "The standard material is required for an assay against standard.",
+      "hplcMethodRequired": "HPLC method is required for HPLC method assay tests.",
+      "measurementReplicateRange": "Replicate count must be between 1 and 30 for Measurement tests.",
+      "measurementBasisRequired": "Evaluation basis is required for Measurement tests.",
+      "gravimetricReplicateRange": "Replicate count must be between 1 and 30 for Gravimetric tests.",
+      "gravimetricEquationInvalid": "Equation type must be GravimetricLoss or GravimetricResidue for Gravimetric tests.",
+      "stageRoleRequired": "Production stage role is required.",
+      "stageRoleDuplicate": "Duplicate stage role \"{{role}}\".",
+      "stageReplicatesRequired": "Sample replicates is required.",
+      "stageReplicatesInteger": "Sample replicates must be an integer greater than or equal to 1.",
+      "stepNameRequired": "Step {{index}}: Step Name is required.",
+      "stepErrorPrefix": "{{stepName}}: {{error}}",
+      "onlyOneFinalStep": "Only one step can be marked as the final step."
+    }
   }
 }

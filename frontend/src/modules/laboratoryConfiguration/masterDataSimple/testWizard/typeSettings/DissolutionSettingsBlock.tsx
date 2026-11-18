@@ -6,6 +6,7 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import type { TestFormModel } from "../testFormModel";
 
 interface Props {
@@ -15,11 +16,12 @@ interface Props {
 }
 
 export function DissolutionSettingsBlock({ model, set, errors }: Props) {
+  const { t } = useTranslation("masterData");
   return (
     <Stack spacing={2}>
       <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-          Dissolution Acceptance Offsets (USP &lt;711&gt; / EP 2.9.3)
+          {t("testWizard.typeBlocks.dissolution.title")}
         </Typography>
         <Stack spacing={2}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -27,24 +29,24 @@ export function DissolutionSettingsBlock({ model, set, errors }: Props) {
               size="small"
               type="number"
               name="dissolutionS1Offset"
-              label="S1: each unit ≥ Q + "
+              label={t("testWizard.typeBlocks.dissolution.s1Offset")}
               value={model.dissolutionS1Offset}
               onChange={(e) => set({ dissolutionS1Offset: e.target.value })}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               error={Boolean(errors.dissolutionS1Offset)}
-              helperText={errors.dissolutionS1Offset || "Default: 5 (%)"}
+              helperText={errors.dissolutionS1Offset || t("testWizard.typeBlocks.dissolution.default5")}
               sx={{ flex: 1 }}
             />
             <TextField
               size="small"
               type="number"
               name="dissolutionS2MinOffset"
-              label="S2: no unit < Q − "
+              label={t("testWizard.typeBlocks.dissolution.s2MinOffset")}
               value={model.dissolutionS2MinOffset}
               onChange={(e) => set({ dissolutionS2MinOffset: e.target.value })}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               error={Boolean(errors.dissolutionS2MinOffset)}
-              helperText={errors.dissolutionS2MinOffset || "Default: 15 (%)"}
+              helperText={errors.dissolutionS2MinOffset || t("testWizard.typeBlocks.dissolution.default15")}
               sx={{ flex: 1 }}
             />
           </Stack>
@@ -53,36 +55,36 @@ export function DissolutionSettingsBlock({ model, set, errors }: Props) {
               size="small"
               type="number"
               name="dissolutionS3MinOffset"
-              label="S3: no unit < Q − "
+              label={t("testWizard.typeBlocks.dissolution.s3MinOffset")}
               value={model.dissolutionS3MinOffset}
               onChange={(e) => set({ dissolutionS3MinOffset: e.target.value })}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               error={Boolean(errors.dissolutionS3MinOffset)}
-              helperText={errors.dissolutionS3MinOffset || "Default: 25 (%)"}
+              helperText={errors.dissolutionS3MinOffset || t("testWizard.typeBlocks.dissolution.default25")}
               sx={{ flex: 1 }}
             />
             <TextField
               size="small"
               type="number"
               name="dissolutionS3MaxBelowS2Min"
-              label="S3: max units < Q − S2 value"
+              label={t("testWizard.typeBlocks.dissolution.s3MaxBelowS2")}
               value={model.dissolutionS3MaxBelowS2Min}
               onChange={(e) => set({ dissolutionS3MaxBelowS2Min: e.target.value })}
               slotProps={{ htmlInput: { min: 0, step: 1 } }}
               error={Boolean(errors.dissolutionS3MaxBelowS2Min)}
-              helperText={errors.dissolutionS3MaxBelowS2Min || "Default: 2 (units)"}
+              helperText={errors.dissolutionS3MaxBelowS2Min || t("testWizard.typeBlocks.dissolution.default2Units")}
               sx={{ flex: 1 }}
             />
           </Stack>
           <TextField
             size="small"
             name="conditionFields"
-            label="Condition fields"
-            placeholder="Apparatus,RPM,Medium,Temperature (°C),Time (min)"
+            label={t("testWizard.typeBlocks.dissolution.conditionFields")}
+            placeholder={t("testWizard.typeBlocks.dissolution.conditionPlaceholder")}
             value={model.conditionFields}
             onChange={(e) => set({ conditionFields: e.target.value })}
             error={Boolean(errors.conditionFields)}
-            helperText={errors.conditionFields || "comma-separated, e.g. Apparatus,RPM,Medium,Temperature (°C),Time (min)"}
+            helperText={errors.conditionFields || t("testWizard.typeBlocks.dissolution.conditionHelper")}
             slotProps={{ htmlInput: { maxLength: 500 } }}
             fullWidth
           />
@@ -92,21 +94,21 @@ export function DissolutionSettingsBlock({ model, set, errors }: Props) {
       <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
         <FormControlLabel
           control={<Switch checked={model.requiresSystemSuitability} disabled />}
-          label="Requires system suitability (standard from the assigned HPLC run)"
+          label={t("testWizard.typeBlocks.dissolution.requiresSystemSuitability")}
         />
         <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderTopColor: "divider" }}>
           <TextField
             size="small"
             name="methodAbbreviation"
-            label="Method Abbreviation"
-            placeholder="e.g. VIT-C"
+            label={t("testWizard.typeBlocks.dissolution.methodAbbreviation")}
+            placeholder={t("testWizard.typeBlocks.dissolution.methodAbbreviationPlaceholder")}
             value={model.methodAbbreviation}
             onChange={(e) => set({ methodAbbreviation: e.target.value.toUpperCase() })}
             required
             fullWidth
             error={Boolean(errors.methodAbbreviation)}
             slotProps={{ htmlInput: { maxLength: 20 } }}
-            helperText={errors.methodAbbreviation || "1–20 uppercase alphanumeric characters or hyphens (auto-uppercased)"}
+            helperText={errors.methodAbbreviation || t("testWizard.typeBlocks.dissolution.methodAbbreviationHelper")}
           />
         </Box>
       </Box>

@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import type {
   CreateTestDefinitionPayload,
@@ -741,20 +743,25 @@ export function withEquationType(model: TestFormModel, next: string): TestFormMo
 // nothing is ever substituted for a missing value.
 function readRequiredNumbers(
   group: string,
-  fields: ReadonlyArray<readonly [key: MethodGroupKey, label: string, text: string]>
+  fields: ReadonlyArray<readonly [key: MethodGroupKey, label: string, text: string]>,
+  t: TFunction
 ): { error: string; field: MethodGroupKey } | { values: number[] } {
   const blank = fields.find(([, , text]) => text.trim() === "");
-  if (blank) return { error: `${group}: "${blank[1]}" is required.`, field: blank[0] };
+  if (blank) return { error: t("testWizard.validation.groupRequired", { group, label: blank[1] }), field: blank[0] };
   const values: number[] = [];
   for (const [key, label, text] of fields) {
     const n = Number(text);
-    if (!Number.isFinite(n)) return { error: `${group}: "${label}" must be a number.`, field: key };
+    if (!Number.isFinite(n)) return { error: t("testWizard.validation.groupNumber", { group, label }), field: key };
     values.push(n);
   }
   return { values };
 }
 
-export function validateStep(step: TestWizardStep, model: TestFormModel): Record<string, string> {
+export function validateStep(
+  step: TestWizardStep,
+  model: TestFormModel,
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): Record<string, string> {
   const errors: Record<string, string> = {};
 
   if (step === "basics") {
@@ -762,18 +769,18 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     const trimmedDisplayName = model.displayName.trim();
     if (!trimmedCode || !trimmedDisplayName) {
       if (!trimmedCode) {
-        errors.code = "Both Code and Display Name are required.";
+        errors.code = t("testWizard.validation.codeAndNameRequired");
       }
       if (!trimmedDisplayName) {
-        errors.displayName = "Both Code and Display Name are required.";
+        errors.displayName = t("testWizard.validation.codeAndNameRequired");
       }
     }
     if (model.sectionId === "") {
-      errors.sectionId = "Laboratory section is required.";
+      errors.sectionId = t("testWizard.validation.sectionRequired");
     }
     const trimmedCoaOrder = model.coaDisplayOrder.trim();
     if (trimmedCoaOrder !== "" && !/^[1-9]\d{0,3}$/.test(trimmedCoaOrder)) {
-      errors.coaDisplayOrder = "CoA order must be a whole number from 1 to 9999, or empty.";
+      errors.coaDisplayOrder = t("testWizard.validation.coaOrderInvalid");
     }
     return errors;
   }
@@ -794,17 +801,21 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     if (isDissolution) {
       const trimmedAbbr = model.methodAbbreviation.trim().toUpperCase();
       if (!trimmedAbbr) {
-        errors.methodAbbreviation = "Method abbreviation is required when system suitability is enabled.";
+        errors.methodAbbreviation = t("testWizard.validation.methodAbbreviationRequired");
       } else if (!/^[A-Z0-9-]{1,20}$/.test(trimmedAbbr)) {
-        errors.methodAbbreviation = "Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.";
+        errors.methodAbbreviation = t("testWizard.validation.methodAbbreviationInvalid");
       }
 
-      const read = readRequiredNumbers("Dissolution", [
-        ["dissolutionS1Offset", "S1: each unit ≥ Q +", model.dissolutionS1Offset],
-        ["dissolutionS2MinOffset", "S2: no unit < Q −", model.dissolutionS2MinOffset],
-        ["dissolutionS3MinOffset", "S3: no unit < Q −", model.dissolutionS3MinOffset],
-        ["dissolutionS3MaxBelowS2Min", "S3: max units < Q − S2 value", model.dissolutionS3MaxBelowS2Min]
-      ]);
+      const read = readRequiredNumbers(
+        t("testWizard.validation.groups.dissolution"),
+        [
+          ["dissolutionS1Offset", t("testWizard.typeBlocks.dissolution.s1Offset").trim(), model.dissolutionS1Offset],
+          ["dissolutionS2MinOffset", t("testWizard.typeBlocks.dissolution.s2MinOffset").trim(), model.dissolutionS2MinOffset],
+          ["dissolutionS3MinOffset", t("testWizard.typeBlocks.dissolution.s3MinOffset").trim(), model.dissolutionS3MinOffset],
+          ["dissolutionS3MaxBelowS2Min", t("testWizard.typeBlocks.dissolution.s3MaxBelowS2"), model.dissolutionS3MaxBelowS2Min]
+        ],
+        t
+      );
       if ("error" in read) {
         errors[read.field] = read.error;
       } else {
@@ -818,53 +829,61 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
               : s3 < 0
               ? "dissolutionS3MinOffset"
               : "dissolutionS3MaxBelowS2Min";
-          errors[badField] = "Dissolution stage offsets must be greater than or equal to zero.";
+          errors[badField] = t("testWizard.validation.dissolutionOffsetsNonNegative");
         } else if (model.conditionFields.length > 500) {
-          errors.conditionFields = "Condition fields cannot exceed 500 characters.";
+          errors.conditionFields = t("testWizard.validation.conditionFieldsMax");
         }
       }
     }
 
     if (isDisintegration) {
-      const read = readRequiredNumbers("Disintegration", [
-        ["disintegrationStage1Units", "Stage 1 Units", model.disintegrationStage1Units],
-        ["disintegrationStage2Units", "Stage 2 Units", model.disintegrationStage2Units],
-        ["disintegrationMaxStage1Failures", "Max S1 Failures", model.disintegrationMaxStage1Failures],
-        ["disintegrationMinPassTotal", "Min Pass Total", model.disintegrationMinPassTotal]
-      ]);
+      const read = readRequiredNumbers(
+        t("testWizard.validation.groups.disintegration"),
+        [
+          ["disintegrationStage1Units", t("testWizard.typeBlocks.disintegration.stage1Units"), model.disintegrationStage1Units],
+          ["disintegrationStage2Units", t("testWizard.typeBlocks.disintegration.stage2Units"), model.disintegrationStage2Units],
+          ["disintegrationMaxStage1Failures", t("testWizard.typeBlocks.disintegration.maxS1Failures"), model.disintegrationMaxStage1Failures],
+          ["disintegrationMinPassTotal", t("testWizard.typeBlocks.disintegration.minPassTotal"), model.disintegrationMinPassTotal]
+        ],
+        t
+      );
       if ("error" in read) {
         errors[read.field] = read.error;
       } else {
         const [s1, s2, maxFail, minPass] = read.values;
         if (s1 < 1 || s2 < 1) {
           errors[s1 < 1 ? "disintegrationStage1Units" : "disintegrationStage2Units"] =
-            "Disintegration stage units must be greater than or equal to 1.";
+            t("testWizard.validation.disintegrationUnitsMin");
         } else if (maxFail < 0 || maxFail >= s1) {
-          errors.disintegrationMaxStage1Failures = `Disintegration maximum Stage 1 failures must be between 0 and ${s1 - 1}.`;
+          errors.disintegrationMaxStage1Failures = t("testWizard.validation.disintegrationMaxS1Range", { max: s1 - 1 });
         } else if (minPass < 1 || minPass > s1 + s2) {
-          errors.disintegrationMinPassTotal = `Disintegration minimum pass total must be between 1 and ${s1 + s2}.`;
+          errors.disintegrationMinPassTotal = t("testWizard.validation.disintegrationMinPassRange", { max: s1 + s2 });
         } else if (model.conditionFields.length > 500) {
-          errors.conditionFields = "Condition fields cannot exceed 500 characters.";
+          errors.conditionFields = t("testWizard.validation.conditionFieldsMax");
         }
       }
     }
 
     if (isWeightVariation) {
-      const read = readRequiredNumbers("Weight variation", [
-        ["wvUnitCount", "Unit Count (Stage 1)", model.wvUnitCount],
-        ["wvTabletBand1MaxMg", "Band 1 Max (mg)", model.wvTabletBand1MaxMg],
-        ["wvTabletBand1Percent", "Band 1 Deviation (%)", model.wvTabletBand1Percent],
-        ["wvTabletBand2MaxMg", "Band 2 Max (mg)", model.wvTabletBand2MaxMg],
-        ["wvTabletBand2Percent", "Band 2 Deviation (%)", model.wvTabletBand2Percent],
-        ["wvTabletBand3Percent", "Band 3 Deviation (%)", model.wvTabletBand3Percent],
-        ["wvTabletMaxOutside", "Max Outside Count", model.wvTabletMaxOutside],
-        ["wvCapsuleInnerPercent", "Inner Limit (%)", model.wvCapsuleInnerPercent],
-        ["wvCapsuleOuterPercent", "Outer Limit (%)", model.wvCapsuleOuterPercent],
-        ["wvCapsuleS1MaxOutside", "Stage 1 Max Outside", model.wvCapsuleS1MaxOutside],
-        ["wvCapsuleS1MaxForRetest", "Stage 1 Max For Retest", model.wvCapsuleS1MaxForRetest],
-        ["wvCapsuleS2ExtraUnits", "Stage 2 Extra Units", model.wvCapsuleS2ExtraUnits],
-        ["wvCapsuleS2MaxOutside", "Stage 2 Max Outside", model.wvCapsuleS2MaxOutside]
-      ]);
+      const read = readRequiredNumbers(
+        t("testWizard.validation.groups.weightVariation"),
+        [
+          ["wvUnitCount", t("testWizard.typeBlocks.weightVariation.unitCount"), model.wvUnitCount],
+          ["wvTabletBand1MaxMg", t("testWizard.typeBlocks.weightVariation.band1MaxMg"), model.wvTabletBand1MaxMg],
+          ["wvTabletBand1Percent", t("testWizard.typeBlocks.weightVariation.band1Percent"), model.wvTabletBand1Percent],
+          ["wvTabletBand2MaxMg", t("testWizard.typeBlocks.weightVariation.band2MaxMg"), model.wvTabletBand2MaxMg],
+          ["wvTabletBand2Percent", t("testWizard.typeBlocks.weightVariation.band2Percent"), model.wvTabletBand2Percent],
+          ["wvTabletBand3Percent", t("testWizard.typeBlocks.weightVariation.band3Percent"), model.wvTabletBand3Percent],
+          ["wvTabletMaxOutside", t("testWizard.typeBlocks.weightVariation.maxOutside"), model.wvTabletMaxOutside],
+          ["wvCapsuleInnerPercent", t("testWizard.typeBlocks.weightVariation.innerLimit"), model.wvCapsuleInnerPercent],
+          ["wvCapsuleOuterPercent", t("testWizard.typeBlocks.weightVariation.outerLimit"), model.wvCapsuleOuterPercent],
+          ["wvCapsuleS1MaxOutside", t("testWizard.typeBlocks.weightVariation.s1MaxOutside"), model.wvCapsuleS1MaxOutside],
+          ["wvCapsuleS1MaxForRetest", t("testWizard.typeBlocks.weightVariation.s1MaxForRetest"), model.wvCapsuleS1MaxForRetest],
+          ["wvCapsuleS2ExtraUnits", t("testWizard.typeBlocks.weightVariation.s2ExtraUnits"), model.wvCapsuleS2ExtraUnits],
+          ["wvCapsuleS2MaxOutside", t("testWizard.typeBlocks.weightVariation.s2MaxOutside"), model.wvCapsuleS2MaxOutside]
+        ],
+        t
+      );
       if ("error" in read) {
         errors[read.field] = read.error;
       } else {
@@ -886,7 +905,7 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
 
         if (uCount < 1 || capS2Extra < 1) {
           errors[uCount < 1 ? "wvUnitCount" : "wvCapsuleS2ExtraUnits"] =
-            "Weight variation unit count and extra units must be greater than or equal to 1.";
+            t("testWizard.validation.wvUnitsMin");
         } else if (tabMaxOut < 0 || capS1Out < 0 || capS2Out < 0) {
           const badField: MethodGroupKey =
             tabMaxOut < 0
@@ -894,10 +913,10 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
               : capS1Out < 0
               ? "wvCapsuleS1MaxOutside"
               : "wvCapsuleS2MaxOutside";
-          errors[badField] = "Weight variation maximum outside counts must be greater than or equal to 0.";
+          errors[badField] = t("testWizard.validation.wvOutsideNonNegative");
         } else if (b1Mg <= 0 || b2Mg <= 0) {
           errors[b1Mg <= 0 ? "wvTabletBand1MaxMg" : "wvTabletBand2MaxMg"] =
-            "Weight variation tablet band weight limits must be greater than zero.";
+            t("testWizard.validation.wvBandWeightsPositive");
         } else if (b1Pct <= 0 || b2Pct <= 0 || b3Pct <= 0 || capInner <= 0 || capOuter <= 0) {
           const badField: MethodGroupKey =
             b1Pct <= 0
@@ -909,63 +928,63 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
               : capInner <= 0
               ? "wvCapsuleInnerPercent"
               : "wvCapsuleOuterPercent";
-          errors[badField] = "Weight variation percentages must be greater than zero.";
+          errors[badField] = t("testWizard.validation.wvPercentagesPositive");
         } else if (b1Mg >= b2Mg) {
-          errors.wvTabletBand1MaxMg = "Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.";
+          errors.wvTabletBand1MaxMg = t("testWizard.validation.wvBandOrder");
         } else if (capInner >= capOuter) {
           errors.wvCapsuleInnerPercent =
-            "Weight variation capsule inner percentage must be less than outer percentage.";
+            t("testWizard.validation.wvCapsulePercentOrder");
         } else if (capS1Out >= capS1Retest || capS1Retest > uCount) {
           errors.wvCapsuleS1MaxOutside =
-            "Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.";
+            t("testWizard.validation.wvCapsuleS1Order");
         } else if (capS2Out >= uCount + capS2Extra) {
-          errors.wvCapsuleS2MaxOutside = `Weight variation capsule Stage 2 max outside must be less than total units (${uCount + capS2Extra}).`;
+          errors.wvCapsuleS2MaxOutside = t("testWizard.validation.wvCapsuleS2Max", { total: uCount + capS2Extra });
         } else if (model.conditionFields.length > 500) {
-          errors.conditionFields = "Condition fields cannot exceed 500 characters.";
+          errors.conditionFields = t("testWizard.validation.conditionFieldsMax");
         }
       }
     }
 
     if (isUv) {
       if (!model.uvCalculationMode) {
-        errors.uvCalculationMode = "A UV test needs a calculation mode.";
+        errors.uvCalculationMode = t("testWizard.validation.uvModeRequired");
       } else {
         const rep = Number(model.replicateCount);
         if (!rep || rep < 1 || rep > 30) {
-          errors.replicateCount = "Replicate count must be between 1 and 30.";
+          errors.replicateCount = t("testWizard.validation.replicateRange");
         }
         if (model.uvCalculationMode === "SpecificAbsorbanceAssay") {
           const a1 = Number(model.uvSpecificAbsorbance);
           if (!model.uvSpecificAbsorbance || isNaN(a1) || a1 <= 0) {
-            errors.uvSpecificAbsorbance = "This UV mode needs a specific absorbance above 0.";
+            errors.uvSpecificAbsorbance = t("testWizard.validation.uvAbsorbancePositive");
           }
           const vol = Number(model.uvTotalVolumeMl);
           if (!model.uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-            errors.uvTotalVolumeMl = "This UV mode needs a total volume above 0.";
+            errors.uvTotalVolumeMl = t("testWizard.validation.uvTotalVolumePositive");
           }
         } else if (model.uvCalculationMode === "SpecificAbsorbanceValue") {
           const vol = Number(model.uvTotalVolumeMl);
           if (!model.uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-            errors.uvTotalVolumeMl = "This UV mode needs a total volume above 0.";
+            errors.uvTotalVolumeMl = t("testWizard.validation.uvTotalVolumePositive");
           }
         } else if (model.uvCalculationMode === "StandardComparison") {
           const vol = Number(model.uvTotalVolumeMl);
           if (!model.uvTotalVolumeMl || isNaN(vol) || vol <= 0) {
-            errors.uvTotalVolumeMl = "This UV mode needs a total volume above 0.";
+            errors.uvTotalVolumeMl = t("testWizard.validation.uvTotalVolumePositive");
           }
           const stdVol = Number(model.uvStandardVolumeMl);
           if (!model.uvStandardVolumeMl || isNaN(stdVol) || stdVol <= 0) {
-            errors.uvStandardVolumeMl = "A UV test against a standard needs a standard volume above 0.";
+            errors.uvStandardVolumeMl = t("testWizard.validation.uvStandardVolumePositive");
           }
           if (model.uvStandardEntryId === "") {
-            errors.uvStandardEntryId = "The standard material is required for an assay against standard.";
+            errors.uvStandardEntryId = t("testWizard.validation.uvStandardMaterialRequired");
           }
         }
       }
     }
 
     if (isTitration) {
-      const hint = validateTitrationForm(model.titration);
+      const hint = validateTitrationForm(model.titration, t);
       if (hint) {
         errors.titration = hint;
       }
@@ -978,7 +997,8 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
         model.workflowType,
         model.changeReason,
         isFp ? model.physchemArea : null,
-        model.moistureRole
+        model.moistureRole,
+        t
       );
       if (reasonCheck.error) {
         errors.changeReason = reasonCheck.error;
@@ -986,11 +1006,11 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     }
 
     if (isHplcMethodAssay && !model.hplcMethodId) {
-      errors.hplcMethodId = "HPLC method is required for HPLC method assay tests.";
+      errors.hplcMethodId = t("testWizard.validation.hplcMethodRequired");
     }
 
     if (isIcpMethodAssay) {
-      const icpProblem = validateIcpForm(model.icp);
+      const icpProblem = validateIcpForm(model.icp, t);
       if (icpProblem) {
         errors.icp = icpProblem;
       }
@@ -999,23 +1019,23 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     if (isMeasurement) {
       const rep = Number(model.replicateCount);
       if (!rep || rep < 1 || rep > 30) {
-        errors.replicateCount = "Replicate count must be between 1 and 30 for Measurement tests.";
+        errors.replicateCount = t("testWizard.validation.measurementReplicateRange");
       }
       if (!model.evaluationBasis) {
-        errors.evaluationBasis = "Evaluation basis is required for Measurement tests.";
+        errors.evaluationBasis = t("testWizard.validation.measurementBasisRequired");
       }
     }
 
     if (isGravimetric) {
       const rep = Number(model.replicateCount);
       if (!rep || rep < 1 || rep > 30) {
-        errors.replicateCount = "Replicate count must be between 1 and 30 for Gravimetric tests.";
+        errors.replicateCount = t("testWizard.validation.gravimetricReplicateRange");
       }
       if (model.equationType !== "GravimetricLoss" && model.equationType !== "GravimetricResidue") {
-        errors.equationType = "Equation type must be GravimetricLoss or GravimetricResidue for Gravimetric tests.";
+        errors.equationType = t("testWizard.validation.gravimetricEquationInvalid");
       }
       if (model.conditionFields.length > 500) {
-        errors.conditionFields = "Condition fields cannot exceed 500 characters.";
+        errors.conditionFields = t("testWizard.validation.conditionFieldsMax");
       }
     }
 
@@ -1026,22 +1046,22 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     const seenRoles = new Set<string>();
     for (const s of model.stages) {
       if (!s.role) {
-        errors.stages = "Production stage role is required.";
+        errors.stages = t("testWizard.validation.stageRoleRequired");
         return errors;
       }
       if (seenRoles.has(s.role)) {
-        errors.stages = `Duplicate stage role "${s.role}".`;
+        errors.stages = t("testWizard.validation.stageRoleDuplicate", { role: s.role });
         return errors;
       }
       seenRoles.add(s.role);
       const smpStr = s.sampleReplicates.trim();
       if (!smpStr) {
-        errors.stages = "Sample replicates is required.";
+        errors.stages = t("testWizard.validation.stageReplicatesRequired");
         return errors;
       }
       const smp = Number(smpStr);
       if (!Number.isInteger(smp) || smp < 1) {
-        errors.stages = "Sample replicates must be an integer greater than or equal to 1.";
+        errors.stages = t("testWizard.validation.stageReplicatesInteger");
         return errors;
       }
     }
@@ -1053,18 +1073,18 @@ export function validateStep(step: TestWizardStep, model: TestFormModel): Record
     for (let i = 0; i < model.steps.length; i++) {
       const s = model.steps[i];
       if (!s.stepName.trim()) {
-        errors.steps = `Step ${i + 1}: Step Name is required.`;
+        errors.steps = t("testWizard.validation.stepNameRequired", { index: i + 1 });
         return errors;
       }
-      const stepError = validateStepForm(s);
+      const stepError = validateStepForm(s, t);
       if (stepError) {
-        errors.steps = `${s.stepName}: ${stepError}`;
+        errors.steps = t("testWizard.validation.stepErrorPrefix", { stepName: s.stepName, error: stepError });
         return errors;
       }
       if (s.isFinalStep) finalCount++;
     }
     if (finalCount > 1) {
-      errors.steps = "Only one step can be marked as the final step.";
+      errors.steps = t("testWizard.validation.onlyOneFinalStep");
     }
     return errors;
   }

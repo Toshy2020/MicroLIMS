@@ -22,6 +22,9 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import type { ProductionStageRole } from "../../../../services/masterDataOptions";
@@ -36,6 +39,7 @@ interface StagesViewProps {
 }
 
 function StagesStepView({ model, set, errors }: StagesViewProps) {
+  const { t } = useTranslation("masterData");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [role, setRole] = useState<ProductionStageRole | "">("");
@@ -63,17 +67,17 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
 
   const handleSaveRow = () => {
     if (editingIndex === null && !role) {
-      setDialogError("Production stage role is required.");
+      setDialogError(t("testWizard.stages.errors.roleRequired"));
       return;
     }
     const smpStr = sampleReplicates.trim();
     if (!smpStr) {
-      setDialogError("Sample replicates is required.");
+      setDialogError(t("testWizard.stages.errors.replicatesRequired"));
       return;
     }
     const smp = Number(smpStr);
     if (!Number.isInteger(smp) || smp < 1) {
-      setDialogError("Sample replicates must be an integer greater than or equal to 1.");
+      setDialogError(t("testWizard.stages.errors.replicatesInteger"));
       return;
     }
 
@@ -105,7 +109,7 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
       <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
         <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-            Replicates per stage ({model.stages.length} configured)
+            {t("testWizard.stages.heading", { count: model.stages.length })}
           </Typography>
           <Button
             size="small"
@@ -114,7 +118,7 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
             onClick={openAdd}
             disabled={availableRoles.length === 0}
           >
-            Add Stage Replicate
+            {t("testWizard.stages.addButton")}
           </Button>
         </Stack>
 
@@ -122,9 +126,9 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
           <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
             <TableHead>
               <TableRow sx={tableHeadSx}>
-                <TableCell>Stage Role</TableCell>
-                <TableCell>Sample Replicates</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t("testWizard.stages.columns.stageRole")}</TableCell>
+                <TableCell>{t("testWizard.stages.columns.sampleReplicates")}</TableCell>
+                <TableCell align="right">{t("testWizard.stages.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -135,11 +139,11 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
                   </TableCell>
                   <TableCell>{r.sampleReplicates}</TableCell>
                   <TableCell align="right">
-                    <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(idx, r)}>
+                    <IconButton aria-label={t("testWizard.stages.editAria")} size="small" onClick={() => openEdit(idx, r)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
                     <IconButton
-                      aria-label="Delete replicate rule"
+                      aria-label={t("testWizard.stages.deleteAria")}
                       size="small"
                       color="error"
                       onClick={() => handleDeleteRow(idx)}
@@ -152,7 +156,7 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
               {model.stages.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={3} align="center" sx={{ py: 2, color: "text.secondary" }}>
-                    No stage replicates configured yet. Click &quot;Add Stage Replicate&quot; to configure replicate counts.
+                    {t("testWizard.stages.empty")}
                   </TableCell>
                 </TableRow>
               )}
@@ -161,7 +165,7 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
         </TableContainer>
 
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-          Production stages without a configured row are not configured for this test (not zero). Counts must be integers ≥ 1. HPLC standard injections are set on the method.
+          {t("testWizard.stages.footnote")}
         </Typography>
       </Box>
 
@@ -169,18 +173,18 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
         open={dialogOpen}
         title={
           editingIndex !== null && model.stages[editingIndex]
-            ? `Edit Stage Replicates: ${model.stages[editingIndex].role}`
-            : "Add Stage Replicate"
+            ? t("testWizard.stages.dialog.editTitle", { role: model.stages[editingIndex].role })
+            : t("testWizard.stages.dialog.addTitle")
         }
         onClose={() => setDialogOpen(false)}
         maxWidth="xs"
         actions={
           <>
             <Button onClick={() => setDialogOpen(false)} variant="outlined">
-              Cancel
+              {t("testWizard.stages.dialog.cancel")}
             </Button>
             <Button variant="contained" onClick={handleSaveRow}>
-              {editingIndex !== null ? "Save" : "Add"}
+              {editingIndex !== null ? t("testWizard.stages.dialog.save") : t("testWizard.stages.dialog.add")}
             </Button>
           </>
         }
@@ -188,16 +192,16 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
         {dialogError && <Alert severity="error" sx={{ mb: 2 }}>{dialogError}</Alert>}
         <Stack spacing={2} sx={{ pt: 1 }}>
           {editingIndex !== null ? (
-            <TextField size="small" label="Stage Role" value={role} disabled fullWidth />
+            <TextField size="small" label={t("testWizard.stages.dialog.stageRoleLabel")} value={role} disabled fullWidth />
           ) : (
             <FormControl size="small" fullWidth required>
-              <InputLabel id="wizard-stage-rep-role-label">Stage Role</InputLabel>
+              <InputLabel id="wizard-stage-rep-role-label">{t("testWizard.stages.dialog.stageRoleLabel")}</InputLabel>
               <Select<ProductionStageRole>
                 labelId="wizard-stage-rep-role-label"
-                label="Stage Role"
+                label={t("testWizard.stages.dialog.stageRoleLabel")}
                 value={role as ProductionStageRole}
                 onChange={(e) => setRole(e.target.value as ProductionStageRole)}
-                inputProps={{ "aria-label": "Stage Role" }}
+                inputProps={{ "aria-label": t("testWizard.stages.dialog.stageRoleLabel") }}
               >
                 {availableRoles.map((r) => (
                   <MenuItem key={r} value={r}>
@@ -210,12 +214,12 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
           <TextField
             size="small"
             type="number"
-            label="Sample Replicates *"
-            placeholder="e.g. 2"
+            label={t("testWizard.stages.dialog.sampleReplicatesLabel")}
+            placeholder={t("testWizard.stages.dialog.sampleReplicatesPlaceholder")}
             value={sampleReplicates}
             onChange={(e) => setSampleReplicates(e.target.value)}
             slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            helperText="Integer ≥ 1"
+            helperText={t("testWizard.stages.dialog.sampleReplicatesHelper")}
             required
             fullWidth
           />
@@ -225,25 +229,30 @@ function StagesStepView({ model, set, errors }: StagesViewProps) {
   );
 }
 
-export function createStagesStep(): WizardStep<TestFormModel> {
+export function createStagesStep(
+  getT: () => TFunction = () => i18n.getFixedT("en", "masterData")
+): WizardStep<TestFormModel> {
   return {
     key: "stages",
-    title: "Stages",
+    title: getT()("testWizard.stages.title"),
     applies: (model) =>
       model.lab === "fp" &&
       model.workflowType !== "Titration" &&
       model.workflowType !== "UvSpectrophotometry",
-    validate: (model) => validateStep("stages", model),
+    validate: (model) => validateStep("stages", model, getT()),
     render: ({ model, set, errors }) => <StagesStepView model={model} set={set} errors={errors} />,
-    summary: (model) => [
-      {
-        label: "Replicates per stage",
-        value:
-          model.stages.length > 0
-            ? model.stages.map((s) => `${s.role}: ${s.sampleReplicates}`).join(", ")
-            : "None",
-        field: "stages"
-      }
-    ]
+    summary: (model) => {
+      const t = getT();
+      return [
+        {
+          label: t("testWizard.stages.summary.label"),
+          value:
+            model.stages.length > 0
+              ? model.stages.map((s) => `${s.role}: ${s.sampleReplicates}`).join(", ")
+              : t("testWizard.stages.summary.none"),
+          field: "stages"
+        }
+      ];
+    }
   };
 }

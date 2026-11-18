@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type { LaboratorySection } from "../../../../services/laboratorySectionService";
 import type {
   CreateTestDefinitionStageReplicateRequest,
@@ -32,16 +34,24 @@ export interface TestWizardLookupData {
   organisms: OrganismOption[];
 }
 
-export function sectionLabel(sections: LaboratorySection[], sectionId: number | ""): string {
+export function sectionLabel(
+  sections: LaboratorySection[],
+  sectionId: number | "",
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): string {
   if (sectionId === "") return "—";
   const match = sections.find((s) => s.sectionId === sectionId);
-  return match ? `${match.sectionName} (${match.sectionCode})` : `Section #${sectionId}`;
+  return match ? `${match.sectionName} (${match.sectionCode})` : t("testWizard.helpers.sectionFallback", { id: sectionId });
 }
 
-export function hplcMethodLabel(methods: HplcMethodChoice[], id: number | ""): string {
+export function hplcMethodLabel(
+  methods: HplcMethodChoice[],
+  id: number | "",
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): string {
   if (id === "") return "—";
   const m = methods.find((item) => item.id === id);
-  return m ? `${m.name} (${m.abbreviation})` : `Method #${id}`;
+  return m ? `${m.name} (${m.abbreviation})` : t("testWizard.helpers.methodFallback", { id });
 }
 
 export interface StageOperationPlan {

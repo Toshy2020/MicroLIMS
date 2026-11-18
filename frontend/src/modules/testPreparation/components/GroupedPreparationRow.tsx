@@ -13,8 +13,11 @@ import {
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useAuth } from "../../../contexts/AuthContext";
+import { i18n, useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { PreparationStepsSummary } from "../PreparationStepsSummary";
 import { PreparationLotPicker } from "./PreparationLotPicker";
@@ -35,6 +38,7 @@ interface Props {
 // configuration change under Laboratory Configuration, not an analyst-side
 // override, exactly as in the single-sample ConfirmPreparationForm.
 export function GroupedPreparationRow({ group, onComplete }: Props) {
+  const { t } = useTranslation("testPreparation");
   const theme = useTheme();
   // The server decides; QC Manager (approval-only) simply is not offered the action.
   const canPrepare = useAuth().permissions.includes(PERMISSIONS.SAMPLES_PREPARE);
@@ -52,7 +56,8 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
     (!needsDiluentLot || diluentLotId != null) &&
     (!needsNeutralizerLot || neutralizerLotId != null);
 
-  const sampleWord = group.sampleCount === 1 ? "Sample" : "Samples";
+  const techniqueLabel = t(`techniques.${group.technique}`, { defaultValue: group.technique });
+  const tEn = i18n.getFixedT("en", "testPreparation");
 
   // Errors propagate to SignatureDialog, which surfaces the server message
   // and keeps itself open with the password cleared.
@@ -100,12 +105,12 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0, minWidth: 0 }}>
           <ScienceOutlinedIcon sx={{ fontSize: 18, color: "primary.main" }} />
           <Typography noWrap sx={{ fontWeight: 700, fontSize: "0.82rem" }}>
-            Test Preparation · {group.itemName}
+            {t("grouped.rowTitle", { itemName: group.itemName })}
           </Typography>
 
           <Chip
             size="small"
-            label={`× ${group.sampleCount} ${sampleWord}`}
+            label={t("grouped.sampleCountChip", { count: group.sampleCount })}
             sx={{
               height: 20,
               fontSize: "0.75rem",
@@ -118,7 +123,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
 
           <Chip
             size="small"
-            label={group.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
+            label={group.approvalStatus === "Approved" ? t("status.approved") : t("status.pendingApproval")}
             color={group.approvalStatus === "Approved" ? "success" : "warning"}
             sx={{ height: 20, fontSize: "0.75rem", fontWeight: 700, borderRadius: "4px" }}
           />
@@ -126,12 +131,13 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
 
         <Box sx={{ flex: 1, minWidth: 0, textAlign: "center", px: 1 }}>
           <Typography noWrap sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 500 }}>
-            {group.technique === "PourPlate" ? "Pour Plate" : group.technique} · Amount {group.amount}
-            {group.diluent ? ` · ${group.diluent}` : ""}
+            {group.diluent
+              ? t("grouped.summaryLineWithDiluent", { technique: techniqueLabel, amount: group.amount, diluent: group.diluent })
+              : t("grouped.summaryLine", { technique: techniqueLabel, amount: group.amount })}
           </Typography>
         </Box>
 
-        <IconButton aria-label={expanded ? "Collapse group" : "Expand group"} aria-expanded={Boolean(expanded)}
+        <IconButton aria-label={expanded ? t("grouped.collapseGroup") : t("grouped.expandGroup")} aria-expanded={Boolean(expanded)}
           size="small"
           onClick={(e) => {
             e.stopPropagation();
@@ -156,14 +162,19 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
         >
           <Box sx={{ mb: 1.5 }}>
             <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-              Samples to prepare ({group.sampleCount}):
+              <Trans
+                i18nKey="grouped.samplesToPrepare"
+                ns="testPreparation"
+                values={{ count: group.sampleCount }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
               {group.samples.map((s) => (
                 <Chip
                   key={s.sampleId}
                   size="small"
-                  label={s.batchNumber ? `${s.sampleReference} · ${s.batchNumber}` : s.sampleReference}
+                  label={<Ltr>{s.batchNumber ? `${s.sampleReference} · ${s.batchNumber}` : s.sampleReference}</Ltr>}
                   sx={{
                     height: 24,
                     fontSize: "0.75rem",
@@ -180,8 +191,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
 
           {group.approvalStatus === "PendingReview" && (
             <Alert severity="info" sx={{ mb: 1.5, py: 0.25, fontSize: "0.75rem" }}>
-              This item's preparation configuration is still awaiting Section Head approval. It is in effect and
-              can be confirmed now - approval is a separate review and does not hold up testing.
+              {t("confirm.pendingApprovalInfo")}
             </Alert>
           )}
 
@@ -192,7 +202,7 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           )}
 
           <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.75 }}>
-            Configured Preparation Steps
+            {t("grouped.configuredSteps")}
           </Typography>
 
           <PreparationStepsSummary
@@ -211,24 +221,22 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
           {lotsError && <Alert severity="error" sx={{ mt: 1.5, py: 0.25, fontSize: "0.75rem" }}>{lotsError}</Alert>}
           {(lots?.needsMaterialMapping || group.needsMaterialMapping) && (
             <Alert severity="warning" sx={{ mt: 1.5, py: 0.25, fontSize: "0.75rem" }}>
-              This item's diluent/neutralizer is not linked to master data, so no lot can be recorded. A Section
-              Head can link them under Laboratory Configuration → Items.
+              {t("grouped.needsMaterialMapping")}
             </Alert>
           )}
           {lots && !lots.needsMaterialMapping && (needsDiluentLot || needsNeutralizerLot) && (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5, mt: 1.5 }}>
               <Box sx={{ display: "grid", gap: 1, alignContent: "start" }}>
-                <PreparationLotPicker label="Diluent" group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} />
+                <PreparationLotPicker label={t("fields.diluent")} group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} />
               </Box>
               <Box sx={{ display: "grid", gap: 1, alignContent: "start" }}>
-                <PreparationLotPicker label="Neutralizer" group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} />
+                <PreparationLotPicker label={t("fields.neutralizer")} group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} />
               </Box>
             </Box>
           )}
 
           <Typography variant="caption" sx={{ display: "block", mt: 1.5, color: "text.secondary" }}>
-            Confirming records these exact values against every sample listed above, each with its own signature.
-            Later changes to the item's configuration will not alter those records.
+            {t("grouped.auditNote")}
           </Typography>
 
           {canPrepare && (
@@ -240,7 +248,13 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
               disabled={!lotsComplete}
               sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.75rem" }}
             >
-              Confirm &amp; Start Testing ({group.sampleCount} {sampleWord})
+              <Trans
+                i18nKey="grouped.confirmButton"
+                ns="testPreparation"
+                count={group.sampleCount}
+                values={{ count: group.sampleCount }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Button>
           </Box>
           )}
@@ -249,12 +263,16 @@ export function GroupedPreparationRow({ group, onComplete }: Props) {
 
       <SignatureDialog
         open={signing}
-        meaningStatement={
-          `I confirm the preparation steps shown above are the steps performed for all ${group.sampleCount} ` +
-          `${sampleWord.toLowerCase()} of ${group.itemName} listed in this group ` +
-          `(${group.samples.map((s) => s.sampleReference).join(", ")}). ` +
-          `The diluent and neutralizer lots selected apply to every sample in the group.`
-        }
+        meaningStatement={tEn("grouped.signatureMeaning", {
+          count: group.sampleCount,
+          itemName: group.itemName,
+          references: group.samples.map((s) => s.sampleReference).join(", ")
+        })}
+        meaningStatementTranslation={t("grouped.signatureMeaning", {
+          count: group.sampleCount,
+          itemName: group.itemName,
+          references: group.samples.map((s) => s.sampleReference).join(t("common:listSeparator"))
+        })}
         onCancel={() => setSigning(false)}
         onConfirm={confirm}
       />

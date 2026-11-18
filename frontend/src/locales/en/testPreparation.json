@@ -1,0 +1,101 @@
+{
+  "dialog": {
+    "title": "Preparation",
+    "loadConfigError": "Could not load this item's preparation configuration.",
+    "permissionMissing": "Preparing a sample needs the {{permission}} permission, which your role does not hold."
+  },
+  "actions": {
+    "confirmAndStart": "Confirm & Start Testing",
+    "startTesting": "Start Testing",
+    "starting": "Starting..."
+  },
+  "status": {
+    "approved": "Approved",
+    "pendingApproval": "Pending Approval"
+  },
+  "assignmentRule": "<strong>Sample Assignment Rule:</strong> This sample is currently assigned to <strong>{{names}}</strong>. Only an assigned analyst may prepare this sample, unless reassigned by an authorized Section Head.",
+  "userFallback": "User #{{id}}",
+  "fields": {
+    "sampleAmount": "Sample Amount",
+    "technique": "Technique",
+    "filtrationVolume": "Filtration Volume",
+    "filtrationVolumeMl": "Filtration Volume (ml)",
+    "washingVolume": "Washing Volume",
+    "washingVolumeMl": "Washing Volume (ml)",
+    "diluent": "Diluent",
+    "neutralizer": "Neutralizer",
+    "unitMl": "{{value}} ml"
+  },
+  "techniques": {
+    "PourPlate": "Pour Plate",
+    "Filtration": "Filtration"
+  },
+  "sources": {
+    "MediaProduct": "Media product",
+    "SolutionRecipe": "Solution recipe",
+    "MaterialEntry": "Material entry",
+    "ContainedInMedium": "Contained in the medium"
+  },
+  "withLot": "{{name}} — lot {{lotCode}}",
+  "confirm": {
+    "loadLotsError": "Could not load the available lots.",
+    "pendingApprovalInfo": "This item's preparation configuration is still awaiting Section Head approval. It is in effect and can be confirmed now - approval is a separate review and does not hold up testing.",
+    "configuredSteps": "Configured Preparation Steps",
+    "needsMaterialMapping": "This item's diluent/neutralizer is not linked to master data, so no lot can be recorded for this sample. A Section Head can link them under Laboratory Configuration → Items.",
+    "auditNote": "Confirming records these exact values against this sample. Later changes to the item's configuration will not alter this record.",
+    "signatureMeaning": "I confirm the preparation steps shown above are the steps performed for this sample."
+  },
+  "manual": {
+    "loadLotsError": "Could not load the lots for this selection.",
+    "saved": "Preparation saved.",
+    "thisItem": "This item",
+    "noConfigInfo": "<strong>{{itemName}}</strong> has no preparation configuration yet. What you enter here becomes its standing configuration for future samples, and is sent to the Section Head for approval - testing is not held up waiting for it.",
+    "signatureMeaning": "I confirm the preparation steps entered above are the steps performed for this sample, and are correct for this item."
+  },
+  "lotPicker": {
+    "label": "{{role}} lot",
+    "expires": "expires {{date}}",
+    "noneUsable": "No usable {{role}} lot of {{name}} is available."
+  },
+  "materialPicker": {
+    "sourceLabel": "{{role}} source",
+    "loadError": "Could not load the list.",
+    "loading": "Loading…"
+  },
+  "whereUsed": {
+    "defaultTitle": "Used in test preparation",
+    "loadError": "Could not load where this lot was used.",
+    "empty": "Not used in any test preparation yet.",
+    "columns": {
+      "sample": "Sample",
+      "item": "Item",
+      "role": "Role",
+      "preparedAt": "Prepared at",
+      "preparedBy": "Prepared by"
+    }
+  },
+  "samplingPointGrid": {
+    "selectAll": "Select All",
+    "selectedCount": "<ltr>{{count}}</ltr> selected",
+    "assignedTests": "Assigned Tests",
+    "noTestsConfigured": "No tests configured"
+  },
+  "grouped": {
+    "loadError": "Failed to load grouped preparation.",
+    "rowTitle": "Test Preparation · {{itemName}}",
+    "sampleCountChip_one": "× {{count}} Sample",
+    "sampleCountChip_other": "× {{count}} Samples",
+    "summaryLine": "{{technique}} · Amount {{amount}}",
+    "summaryLineWithDiluent": "{{technique}} · Amount {{amount}} · {{diluent}}",
+    "expandGroup": "Expand group",
+    "collapseGroup": "Collapse group",
+    "samplesToPrepare": "Samples to prepare (<ltr>{{count}}</ltr>):",
+    "configuredSteps": "Configured Preparation Steps",
+    "needsMaterialMapping": "This item's diluent/neutralizer is not linked to master data, so no lot can be recorded. A Section Head can link them under Laboratory Configuration → Items.",
+    "auditNote": "Confirming records these exact values against every sample listed above, each with its own signature. Later changes to the item's configuration will not alter those records.",
+    "confirmButton_one": "Confirm & Start Testing (<ltr>{{count}}</ltr> Sample)",
+    "confirmButton_other": "Confirm & Start Testing (<ltr>{{count}}</ltr> Samples)",
+    "signatureMeaning_one": "I confirm the preparation steps shown above are the steps performed for {{count}} sample of {{itemName}} listed in this group ({{references}}). The diluent and neutralizer lots selected apply to every sample in the group.",
+    "signatureMeaning_other": "I confirm the preparation steps shown above are the steps performed for all {{count}} samples of {{itemName}} listed in this group ({{references}}). The diluent and neutralizer lots selected apply to every sample in the group."
+  }
+}

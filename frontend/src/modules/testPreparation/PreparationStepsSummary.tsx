@@ -1,4 +1,6 @@
 import { Box, Paper, Typography } from "@mui/material";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import type { ItemPreparationConfiguration } from "./services/ItemPreparationConfigurationService";
 import { sourceLabel } from "./preparationMaterial";
 
@@ -14,20 +16,36 @@ export type PreparationSteps = Pick<
 // confirm dialogue, the grouped confirm row and the Item Configuration tab
 // so they can never describe the same protocol differently.
 export function PreparationStepsSummary({ config }: { config: PreparationSteps }) {
-  const fields: { label: string; value: string; note?: string | null }[] = [
-    { label: "Sample Amount", value: `${config.amount}` },
-    { label: "Technique", value: config.technique === "PourPlate" ? "Pour Plate" : config.technique },
-    { label: "Diluent", value: config.diluent || "—", note: sourceLabel(config.diluentSource) }
+  const { t } = useTranslation("testPreparation");
+  const fields: { label: string; value: string; ltrValue?: boolean; note?: string | null }[] = [
+    { label: t("fields.sampleAmount"), value: `${config.amount}`, ltrValue: true },
+    {
+      label: t("fields.technique"),
+      value: t(`techniques.${config.technique}`, { defaultValue: config.technique })
+    },
+    { label: t("fields.diluent"), value: config.diluent || "—", note: sourceLabel(config.diluentSource, t) }
   ];
 
   if (config.technique === "Filtration") {
     fields.push(
-      { label: "Filtration Volume", value: config.filtrationVolume != null ? `${config.filtrationVolume} ml` : "—" },
-      { label: "Washing Volume", value: config.washingVolume != null ? `${config.washingVolume} ml` : "—" }
+      {
+        label: t("fields.filtrationVolume"),
+        value: config.filtrationVolume != null ? t("fields.unitMl", { value: config.filtrationVolume }) : "—",
+        ltrValue: config.filtrationVolume != null
+      },
+      {
+        label: t("fields.washingVolume"),
+        value: config.washingVolume != null ? t("fields.unitMl", { value: config.washingVolume }) : "—",
+        ltrValue: config.washingVolume != null
+      }
     );
   }
 
-  fields.push({ label: "Neutralizer", value: config.neutralizer || "—", note: sourceLabel(config.neutralizerSource) });
+  fields.push({
+    label: t("fields.neutralizer"),
+    value: config.neutralizer || "—",
+    note: sourceLabel(config.neutralizerSource, t)
+  });
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
@@ -37,7 +55,7 @@ export function PreparationStepsSummary({ config }: { config: PreparationSteps }
             {f.label}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5 }}>
-            {f.value}
+            {f.ltrValue ? <Ltr>{f.value}</Ltr> : f.value}
           </Typography>
           {f.note && (
             <Typography variant="caption" sx={{ color: "text.secondary" }}>

@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import {
   SamplePreparationService,
   type ExcludedPreparationSample,
@@ -15,6 +17,7 @@ interface UseGroupedPreparationProps {
 // lists side by side: preparation first, then whatever incubation setup the
 // samples become eligible for once it is signed.
 export function useGroupedPreparation({ sampleIds, enabled = true }: UseGroupedPreparationProps) {
+  const { t } = useTranslation("testPreparation");
   const [groups, setGroups] = useState<GroupedPreparation[]>([]);
   const [excluded, setExcluded] = useState<ExcludedPreparationSample[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,12 +41,12 @@ export function useGroupedPreparation({ sampleIds, enabled = true }: UseGroupedP
       );
       setGroups(resp.groups || []);
       setExcluded(resp.excluded || []);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to load grouped preparation.");
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t("grouped.loadError")));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [enabled, sampleIdsKey]);
+  }, [enabled, sampleIdsKey, t]);
 
   useEffect(() => {
     if (enabled) {
@@ -61,6 +64,7 @@ export function useGroupedPreparation({ sampleIds, enabled = true }: UseGroupedP
 // pair per group, signed once for every sample in it). Fetched once, the
 // first time the group is opened.
 export function useGroupLotOptions(configurationId: number, enabled: boolean) {
+  const { t } = useTranslation("testPreparation");
   const [lots, setLots] = useState<PreparationLotOptions | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,11 +74,11 @@ export function useGroupLotOptions(configurationId: number, enabled: boolean) {
     setError(null);
     SamplePreparationService.getLotOptions({ configurationId })
       .then((o) => { if (!cancelled) setLots(o); })
-      .catch((e: any) => {
-        if (!cancelled) setError(e?.response?.data?.message ?? "Could not load the available lots.");
+      .catch((e: unknown) => {
+        if (!cancelled) setError(serverMessage(e) ?? t("confirm.loadLotsError"));
       });
     return () => { cancelled = true; };
-  }, [configurationId, enabled, lots]);
+  }, [configurationId, enabled, lots, t]);
 
   return { lots, error };
 }

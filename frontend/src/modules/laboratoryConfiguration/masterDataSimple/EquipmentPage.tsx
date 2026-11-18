@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import {
   Paper,
   TextField,
@@ -26,7 +27,8 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
-import { hints } from "./hints";
+import { getEquipmentHints } from "./hints";
+import { i18n, useTranslation } from "../../../i18n";
 import HistoryIcon from "@mui/icons-material/History";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import AddIcon from "@mui/icons-material/Add";
@@ -77,36 +79,39 @@ export {
   CDS_SOFTWARE_OPTIONS
 } from "./equipmentWizard/equipmentOptions";
 
-export const formatEquipmentType = (type: string | number): string => {
-  const map: Record<string, string> = {
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
+
+export const formatEquipmentType = (type: string | number, t: TFunction = defaultT()): string => {
+  const keyMap: Record<string, string> = {
     Incubator: "Incubator",
     "0": "Incubator",
     Autoclave: "Autoclave",
     "1": "Autoclave",
-    LafCabinet: "LAF Cabinet",
-    "2": "LAF Cabinet",
-    BiologicalSafetyCabinet: "Biological Safety Cabinet",
-    "3": "Biological Safety Cabinet",
-    WaterBath: "Water Bath",
-    "4": "Water Bath",
+    LafCabinet: "LafCabinet",
+    "2": "LafCabinet",
+    BiologicalSafetyCabinet: "BiologicalSafetyCabinet",
+    "3": "BiologicalSafetyCabinet",
+    WaterBath: "WaterBath",
+    "4": "WaterBath",
     Other: "Other",
     "5": "Other",
-    Hplc: "HPLC",
-    "6": "HPLC",
-    PhMeter: "pH Meter",
-    "7": "pH Meter",
+    Hplc: "Hplc",
+    "6": "Hplc",
+    PhMeter: "PhMeter",
+    "7": "PhMeter",
     Balance: "Balance",
     "8": "Balance",
-    IcpOes: "ICP-OES",
-    "9": "ICP-OES"
+    IcpOes: "IcpOes",
+    "9": "IcpOes"
   };
-  return map[String(type)] || String(type);
+  const key = keyMap[String(type)];
+  return key ? t(`equipmentTypes.${key}`) : String(type);
 };
 
 export { normalizeEquipmentTypeValue };
 
-export const formatCdsSoftware = (cds?: string | number | null): string => {
-  if (!cds) return "—";
+export const formatCdsSoftware = (cds?: string | number | null, t: TFunction = defaultT()): string => {
+  if (!cds) return t("common.dash");
   const map: Record<string, string> = {
     ShimadzuLabSolutions: "Shimadzu LabSolutions",
     "0": "Shimadzu LabSolutions",
@@ -123,6 +128,8 @@ export const formatCdsSoftware = (cds?: string | number | null): string => {
 const EQUIPMENT_TABS = ["configured", "programs", "history"] as const;
 
 export function EquipmentPage() {
+  const { t } = useTranslation("masterData");
+  const hints = useMemo(() => getEquipmentHints(t), [t]);
   const theme = useTheme();
   const { sectionName } = useLaboratorySections();
   // The tab used last time reopens (state key nav.tab.equipmentConfiguration).
@@ -243,7 +250,7 @@ export function EquipmentPage() {
       }
       console.error("Failed to load laboratory equipment configuration:", err);
       const message = err instanceof Error ? err.message : undefined;
-      setPageError(message || "Could not load laboratory equipment configuration.");
+      setPageError(message || t("equipmentPage.loadError"));
       setSummaryList([]);
       setInventoryList([]);
       setAllPrograms([]);
@@ -292,11 +299,11 @@ export function EquipmentPage() {
   const handleSaveSetPoint = async () => {
     if (!selectedEquipment) return;
     if (!newSetPoint || isNaN(Number(newSetPoint))) {
-      setDialogError("Please enter a valid numeric set point temperature.");
+      setDialogError(t("equipmentPage.incubator.invalidSetPoint"));
       return;
     }
     if (!setPointReason.trim()) {
-      setDialogError("Reason for Change is required for audit and ALCOA+ compliance.");
+      setDialogError(t("equipmentPage.incubator.reasonRequired"));
       return;
     }
 
@@ -312,7 +319,7 @@ export function EquipmentPage() {
       const updatedHistory = await EquipmentConfigurationService.getSetPointHistory(selectedEquipment.id);
       setSetPointHistory(Array.isArray(updatedHistory) ? updatedHistory : []);
     } catch (err: unknown) {
-      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not update set point.");
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? t("equipmentPage.incubator.updateError"));
     } finally {
       setSaving(false);
     }
@@ -328,7 +335,7 @@ export function EquipmentPage() {
       temperature: 121,
       cycleTimeMinutes: 15,
       isActive: true,
-      comment: "Initial program configuration"
+      comment: i18n.getFixedT("en", "masterData")("equipmentPage.autoclave.initialComment")
     });
     setDialogError(null);
     setProgramDialogOpen(true);
@@ -352,7 +359,7 @@ export function EquipmentPage() {
 
   const handleSaveProgram = async () => {
     if (!programForm.programCode || !programForm.programName || !programForm.loadType) {
-      setDialogError("Please fill out Program Code, Program Name, and Load Type.");
+      setDialogError(t("equipmentPage.autoclave.requiredFields"));
       return;
     }
 
@@ -373,7 +380,7 @@ export function EquipmentPage() {
       setProgramDialogOpen(false);
       await loadData();
     } catch (err: unknown) {
-      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Could not save program.");
+      setDialogError(asApiError(err).response?.data?.message ?? asApiError(err).message ?? t("equipmentPage.autoclave.saveError"));
     } finally {
       setSaving(false);
     }
@@ -381,13 +388,16 @@ export function EquipmentPage() {
 
   const handleToggleProgramStatus = async (prog: AutoclaveProgram) => {
     const newStatus = !prog.isActive;
-    const comment = newStatus ? "Activated program" : "Deactivated program";
+    const enT = i18n.getFixedT("en", "masterData");
+    const comment = newStatus
+      ? enT("equipmentPage.autoclave.activatedComment")
+      : enT("equipmentPage.autoclave.deactivatedComment");
     try {
       await EquipmentConfigurationService.setAutoclaveProgramStatus(prog.id, newStatus, comment);
       await loadData();
-      toast.success(newStatus ? "Program activated" : "Program deactivated");
+      toast.success(newStatus ? t("equipmentPage.autoclave.activatedToast") : t("equipmentPage.autoclave.deactivatedToast"));
     } catch (err: unknown) {
-      toast.error(asApiError(err).response?.data?.message ?? asApiError(err).message ?? "Status update failed.");
+      toast.error(asApiError(err).response?.data?.message ?? asApiError(err).message ?? t("equipmentPage.autoclave.statusUpdateFailed"));
     }
   };
 
@@ -464,11 +474,11 @@ export function EquipmentPage() {
     <>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <PageHeader
-          title="Laboratory Configuration: Equipment"
-          subtitle="Configure equipment used by this laboratory, set points, and autoclave programs."
+          title={t("equipmentPage.title")}
+          subtitle={t("equipmentPage.subtitle")}
         />
         <Stack direction="row" spacing={1}>
-          <IconButton aria-label="Refresh data" onClick={() => void loadData()} title="Refresh data">
+          <IconButton aria-label={t("equipmentPage.refreshAria")} onClick={() => void loadData()} title={t("equipmentPage.refreshAria")}>
             <RefreshIcon />
           </IconButton>
           <Button
@@ -477,7 +487,7 @@ export function EquipmentPage() {
             aria-expanded={pasteBarOpen}
             onClick={() => setPasteBarOpen((v) => !v)}
           >
-            Paste equipment
+            {t("equipmentPage.pasteEquipment")}
           </Button>
           <Button
             variant="contained"
@@ -485,13 +495,13 @@ export function EquipmentPage() {
             onClick={() => handleOpenAddEquipment()}
             color="primary"
           >
-            Add Equipment
+            {t("equipmentPage.addEquipment")}
           </Button>
           <Button
             variant="outlined"
             onClick={() => setInventoryDialogOpen(true)}
           >
-            Select from Inventory
+            {t("equipmentPage.selectFromInventory")}
           </Button>
         </Stack>
       </Box>
@@ -528,9 +538,9 @@ export function EquipmentPage() {
               textColor="primary"
               sx={{ borderBottom: 1, borderColor: "divider" }}
             >
-              <Tab label="Configured Equipment" />
-              <Tab label={`Autoclave Programs / Loads (${safeAllPrograms.length})`} />
-              <Tab label="Configuration History" />
+              <Tab label={t("equipmentPage.tabs.configured")} />
+              <Tab label={t("equipmentPage.tabs.programs", { count: safeAllPrograms.length })} />
+              <Tab label={t("equipmentPage.tabs.history")} />
             </Tabs>
           </Paper>
 
@@ -539,20 +549,20 @@ export function EquipmentPage() {
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "340px 1fr" }, gap: 3 }}>
               {/* Left Panel: Search & Equipment List */}
               <Paper sx={{ p: 2, height: "fit-content" }}>
-                <SectionTitle>Configured Equipment</SectionTitle>
+                <SectionTitle>{t("equipmentPage.configured.title")}</SectionTitle>
                 <Stack spacing={1.5} sx={{ mb: 2 }}>
                   <TextField
                     size="small"
-                    placeholder="Search by code or name…"
+                    placeholder={t("equipmentPage.configured.searchPlaceholder")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    slotProps={{ htmlInput: { "aria-label": "Search by code or name" } }}
+                    slotProps={{ htmlInput: { "aria-label": t("equipmentPage.configured.searchAria") } }}
                   />
-                  <Select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} inputProps={{ "aria-label": "Equipment type filter" }}>
-                    <MenuItem value="All">All Types</MenuItem>
-                    {MICRO_EQUIPMENT_TYPES.map((t) => (
-                      <MenuItem key={t.value} value={t.value}>
-                        {t.label}
+                  <Select size="small" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} inputProps={{ "aria-label": t("equipmentPage.configured.typeFilterAria") }}>
+                    <MenuItem value="All">{t("equipmentPage.configured.allTypes")}</MenuItem>
+                    {MICRO_EQUIPMENT_TYPES.map((mt) => (
+                      <MenuItem key={mt.value} value={mt.value}>
+                        {t(`equipmentTypes.${mt.value}`, { defaultValue: mt.label })}
                       </MenuItem>
                     ))}
                   </Select>
@@ -566,8 +576,8 @@ export function EquipmentPage() {
                     const isIncubator = eq.type === "Incubator" || eq.type === 0;
                     const isAutoclave = eq.type === "Autoclave" || eq.type === 1;
                     const isHplc = normalizeEquipmentTypeValue(eq.type) === "Hplc";
-                    const typeLabel = formatEquipmentType(eq.type);
-                    const sectionLabel = eq.section?.name || eq.section?.sectionName || sectionName(eq.sectionId) || "—";
+                    const typeLabel = formatEquipmentType(eq.type, t);
+                    const sectionLabel = eq.section?.name || eq.section?.sectionName || sectionName(eq.sectionId) || t("common.dash");
 
                     return (
                       <Box
@@ -611,7 +621,7 @@ export function EquipmentPage() {
                             fontSize: 12,
                             mt: 0.5
                           }}>
-                          Section: {sectionLabel}
+                          {t("equipmentPage.configured.sectionLine", { section: sectionLabel })}
                         </Typography>
                         {eq.vendor && (
                           <Typography
@@ -621,24 +631,26 @@ export function EquipmentPage() {
                               display: "block",
                               fontSize: 12
                             }}>
-                            Vendor: {eq.vendor}
+                            {t("equipmentPage.configured.vendorLine", { vendor: eq.vendor })}
                           </Typography>
                         )}
 
                         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                           {isIncubator && (
                             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
-                              Set Point: {eq.setPointTemperature ? `${eq.setPointTemperature} °C` : "—"}
+                              {t("equipmentPage.configured.setPointLine", {
+                                value: eq.setPointTemperature ? t("equipmentPage.tempValue", { value: eq.setPointTemperature }) : t("common.dash")
+                              })}
                             </Typography>
                           )}
                           {isAutoclave && (
                             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                              {eq.configuredProgramCount} Programs
+                              {t("equipmentPage.configured.programsCount", { count: eq.configuredProgramCount })}
                             </Typography>
                           )}
                           <Chip
                             size="small"
-                            label={eq.inventoryStatus ?? "In Service"}
+                            label={eq.inventoryStatus ?? t("common.inService")}
                             color={eq.inventoryStatus === "OutOfService" ? "error" : "success"}
                             sx={{ height: 20, fontSize: 12 }}
                           />
@@ -654,7 +666,7 @@ export function EquipmentPage() {
                         textAlign: "center",
                         py: 4
                       }}>
-                      No equipment configured for this laboratory.
+                      {t("equipmentPage.configured.noEquipment")}
                     </Typography>
                   )}
                   {safeSummaryList.length > 0 && filteredSummary.length === 0 && (
@@ -665,7 +677,7 @@ export function EquipmentPage() {
                         textAlign: "center",
                         py: 4
                       }}>
-                      No equipment matching search filter.
+                      {t("equipmentPage.configured.noMatch")}
                     </Typography>
                   )}
                 </Stack>
@@ -684,7 +696,7 @@ export function EquipmentPage() {
                         <Typography variant="body2" sx={{
                           color: "text.secondary"
                         }}>
-                          Equipment Configuration Details
+                          {t("equipmentPage.details.subtitle")}
                         </Typography>
                       </Box>
                       <Stack direction="row" spacing={1}>
@@ -695,7 +707,7 @@ export function EquipmentPage() {
                           onClick={handleOpenEditEquipment}
                           color="primary"
                         >
-                          Edit Equipment
+                          {t("equipmentPage.details.editEquipment")}
                         </Button>
                         <Button
                           variant="outlined"
@@ -703,7 +715,7 @@ export function EquipmentPage() {
                           startIcon={<ContentCopyIcon />}
                           onClick={handleOpenCopyEquipment}
                         >
-                          New from existing
+                          {t("equipmentPage.details.newFromExisting")}
                         </Button>
                         <Button
                           component={Link}
@@ -712,7 +724,7 @@ export function EquipmentPage() {
                           size="small"
                           startIcon={<OpenInNewIcon />}
                         >
-                          View in Inventory
+                          {t("equipmentPage.details.viewInInventory")}
                         </Button>
                       </Stack>
                     </Box>
@@ -721,82 +733,82 @@ export function EquipmentPage() {
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Equipment Type</Typography>
+                        }}>{t("equipmentPage.details.equipmentType")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
-                        }}>{formatEquipmentType(selectedEquipment.type)}</Typography>
+                        }}>{formatEquipmentType(selectedEquipment.type, t)}</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Laboratory Section</Typography>
+                        }}>{t("equipmentPage.details.laboratorySection")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
                         }}>
-                          {selectedEquipment.section?.name || selectedEquipment.section?.sectionName || sectionName(selectedEquipment.sectionId) || "—"}
+                          {selectedEquipment.section?.name || selectedEquipment.section?.sectionName || sectionName(selectedEquipment.sectionId) || t("common.dash")}
                         </Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Vendor / Manufacturer</Typography>
+                        }}>{t("equipmentPage.details.vendorManufacturer")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
                         }}>
-                          {selectedEquipment.vendor || selectedEquipment.manufacturerName || "—"}
+                          {selectedEquipment.vendor || selectedEquipment.manufacturerName || t("common.dash")}
                         </Typography>
                       </Box>
                       {normalizeEquipmentTypeValue(selectedEquipment.type) === "Hplc" && (
                         <Box>
                           <Typography variant="caption" sx={{
                             color: "text.secondary"
-                          }}>CDS Software</Typography>
+                          }}>{t("equipmentPage.details.cdsSoftware")}</Typography>
                           <Typography variant="body2" sx={{
                             fontWeight: 700,
                             color: "primary.main"
                           }}>
-                            {formatCdsSoftware(selectedEquipment.cdsSoftware)}
+                            {formatCdsSoftware(selectedEquipment.cdsSoftware, t)}
                           </Typography>
                         </Box>
                       )}
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Serial Number</Typography>
+                        }}>{t("equipmentPage.details.serialNumber")}</Typography>
                         <Typography
                           variant="body2"
                           sx={{
                             fontWeight: 700,
                             color: theme.palette.primary.main
                           }}>
-                          {selectedEquipment.serialNumber || "—"}
+                          {selectedEquipment.serialNumber || t("common.dash")}
                         </Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Location</Typography>
+                        }}>{t("equipmentPage.details.location")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
-                        }}>{selectedEquipment.inventoryLocation || selectedEquipment.location || "—"}</Typography>
+                        }}>{selectedEquipment.inventoryLocation || selectedEquipment.location || t("common.dash")}</Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Calibration Due Date</Typography>
+                        }}>{t("equipmentPage.details.calibrationDueDate")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
                         }}>
-                          {selectedEquipment.calibrationDueDate ? formatLabCalendarDate(selectedEquipment.calibrationDueDate) : "—"}
+                          {selectedEquipment.calibrationDueDate ? formatLabCalendarDate(selectedEquipment.calibrationDueDate) : t("common.dash")}
                         </Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Operational Status</Typography>
+                        }}>{t("equipmentPage.details.operationalStatus")}</Typography>
                         <Typography variant="body2" sx={{
                           fontWeight: 600
-                        }}>{selectedEquipment.inventoryStatus || "In Service"}</Typography>
+                        }}>{selectedEquipment.inventoryStatus || t("common.inService")}</Typography>
                       </Box>
                     </Box>
                   </Paper>
@@ -804,7 +816,7 @@ export function EquipmentPage() {
                   {/* Card 2: Configuration Specifics (Incubator vs Autoclave) */}
                   {(selectedEquipment.type === "Incubator" || selectedEquipment.type === 0) && (
                     <Paper sx={{ p: 2.5 }}>
-                      <SectionTitle>Incubator Configuration</SectionTitle>
+                      <SectionTitle>{t("equipmentPage.incubator.title")}</SectionTitle>
 
                       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", p: 2, bgcolor: "action.hover", borderRadius: 2, mb: 3 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -812,9 +824,9 @@ export function EquipmentPage() {
                           <Box>
                             <Typography variant="caption" sx={{
                               color: "text.secondary"
-                            }}>Current Set Point Temperature</Typography>
+                            }}>{t("equipmentPage.incubator.currentSetPoint")}</Typography>
                             <Typography sx={{ fontSize: 26, fontWeight: 800, color: theme.palette.primary.main }}>
-                              {selectedEquipment.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
+                              {selectedEquipment.setPointTemperature ? t("equipmentPage.tempValue", { value: selectedEquipment.setPointTemperature }) : t("equipmentPage.incubator.notConfigured")}
                             </Typography>
                           </Box>
                         </Box>
@@ -824,31 +836,31 @@ export function EquipmentPage() {
                           onClick={handleOpenEditSetPoint}
                           color="primary"
                         >
-                          Edit Set Point
+                          {t("equipmentPage.incubator.editSetPoint")}
                         </Button>
                       </Box>
 
                       <Typography sx={{ fontSize: 14, fontWeight: 700, mb: 1.5 }}>
-                        Set Point Change History
+                        {t("equipmentPage.incubator.historyTitle")}
                       </Typography>
 
                       <TableContainer>
                         <Table size="small">
                           <TableHead>
                             <TableRow sx={tableHeadSx}>
-                              <TableCell>Effective On</TableCell>
-                              <TableCell align="right">Previous</TableCell>
-                              <TableCell align="right">New</TableCell>
-                              <TableCell>Changed By</TableCell>
-                              <TableCell>Reason for Change</TableCell>
+                              <TableCell>{t("equipmentPage.incubator.columns.effectiveOn")}</TableCell>
+                              <TableCell align="right">{t("equipmentPage.incubator.columns.previous")}</TableCell>
+                              <TableCell align="right">{t("equipmentPage.incubator.columns.new")}</TableCell>
+                              <TableCell>{t("equipmentPage.incubator.columns.changedBy")}</TableCell>
+                              <TableCell>{t("equipmentPage.incubator.columns.reason")}</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
                             {safeSetPointHistory.map((h) => (
                               <TableRow key={h.id}>
                                 <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
-                                <TableCell align="right">{h.previousSetPoint} °C</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{h.newSetPoint} °C</TableCell>
+                                <TableCell align="right">{t("equipmentPage.tempValue", { value: h.previousSetPoint })}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>{t("equipmentPage.tempValue", { value: h.newSetPoint })}</TableCell>
                                 <TableCell>{h.changedByName}</TableCell>
                                 <TableCell>{h.reason}</TableCell>
                               </TableRow>
@@ -857,8 +869,8 @@ export function EquipmentPage() {
                               <TableRow>
                                 <TableCell colSpan={5} align="center" sx={{ color: setPointHistoryFailed ? "error.main" : "text.secondary", py: 3 }}>
                                   {setPointHistoryFailed
-                                    ? "The set point history could not be loaded. Select the incubator again to retry."
-                                    : "No set point changes recorded yet."}
+                                    ? t("equipmentPage.incubator.historyLoadError")
+                                    : t("equipmentPage.incubator.noHistory")}
                                 </TableCell>
                               </TableRow>
                             )}
@@ -871,7 +883,7 @@ export function EquipmentPage() {
                   {(selectedEquipment.type === "Autoclave" || selectedEquipment.type === 1) && (
                     <Paper sx={{ p: 2.5 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                        <SectionTitle>Configured Programs / Loads</SectionTitle>
+                        <SectionTitle>{t("equipmentPage.autoclave.title")}</SectionTitle>
                         <Button
                           variant="contained"
                           size="small"
@@ -879,7 +891,7 @@ export function EquipmentPage() {
                           onClick={handleOpenAddProgram}
                           color="primary"
                         >
-                          Add Program / Load
+                          {t("equipmentPage.autoclave.addProgram")}
                         </Button>
                       </Box>
 
@@ -887,13 +899,13 @@ export function EquipmentPage() {
                         <Table size="small">
                           <TableHead>
                             <TableRow sx={tableHeadSx}>
-                              <TableCell>Program</TableCell>
-                              <TableCell>Program / Load Name</TableCell>
-                              <TableCell>Load Type</TableCell>
-                              <TableCell align="right">Temperature</TableCell>
-                              <TableCell align="right">Cycle Time</TableCell>
-                              <TableCell>Status</TableCell>
-                              <TableCell align="center">Actions</TableCell>
+                              <TableCell>{t("equipmentPage.autoclave.columns.program")}</TableCell>
+                              <TableCell>{t("equipmentPage.autoclave.columns.programName")}</TableCell>
+                              <TableCell>{t("equipmentPage.autoclave.columns.loadType")}</TableCell>
+                              <TableCell align="right">{t("equipmentPage.autoclave.columns.temperature")}</TableCell>
+                              <TableCell align="right">{t("equipmentPage.autoclave.columns.cycleTime")}</TableCell>
+                              <TableCell>{t("equipmentPage.autoclave.columns.status")}</TableCell>
+                              <TableCell align="center">{t("equipmentPage.autoclave.columns.actions")}</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
@@ -902,18 +914,18 @@ export function EquipmentPage() {
                                 <TableCell sx={{ fontWeight: 700 }}>{p.programCode}</TableCell>
                                 <TableCell>{p.programName}</TableCell>
                                 <TableCell>{p.loadType}</TableCell>
-                                <TableCell align="right">{p.temperature} °C</TableCell>
-                                <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
+                                <TableCell align="right">{t("equipmentPage.tempValue", { value: p.temperature })}</TableCell>
+                                <TableCell align="right">{t("equipmentPage.autoclave.minUnit", { value: p.cycleTimeMinutes })}</TableCell>
                                 <TableCell>
                                   <Chip
                                     size="small"
-                                    label={p.isActive ? "Active" : "Inactive"}
+                                    label={p.isActive ? t("common.active") : t("common.inactive")}
                                     color={p.isActive ? "success" : "default"}
                                     sx={{ height: 20, fontSize: 12 }}
                                   />
                                 </TableCell>
                                 <TableCell align="center">
-                                  <Tooltip title="Edit Program">
+                                  <Tooltip title={t("equipmentPage.autoclave.editProgramTooltip")}>
                                     <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
                                       <EditIcon fontSize="small" />
                                     </IconButton>
@@ -924,9 +936,9 @@ export function EquipmentPage() {
                                     color={p.isActive ? "warning" : "success"}
                                     onClick={() => handleToggleProgramStatus(p)}
                                   >
-                                    {p.isActive ? "Deactivate" : "Activate"}
+                                    {p.isActive ? t("common.deactivate") : t("common.activate")}
                                   </Button>
-                                  <Tooltip title="View History">
+                                  <Tooltip title={t("equipmentPage.autoclave.viewHistoryTooltip")}>
                                     <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
                                       <HistoryIcon fontSize="small" />
                                     </IconButton>
@@ -937,7 +949,7 @@ export function EquipmentPage() {
                             {autoclaveProgramsForSelected.length === 0 && (
                               <TableRow>
                                 <TableCell colSpan={7} align="center" sx={{ color: "text.secondary", py: 3 }}>
-                                  No autoclave programs configured. Click "+ Add Program / Load" to configure one.
+                                  {t("equipmentPage.autoclave.noPrograms")}
                                 </TableCell>
                               </TableRow>
                             )}
@@ -949,24 +961,24 @@ export function EquipmentPage() {
 
                   {normalizeEquipmentTypeValue(selectedEquipment.type) === "Hplc" && (
                     <Paper sx={{ p: 2.5 }}>
-                      <SectionTitle>HPLC Chromatography System Configuration</SectionTitle>
+                      <SectionTitle>{t("equipmentPage.hplcSection.title")}</SectionTitle>
                       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mt: 1 }}>
                         <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>CDS Software Package</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("equipmentPage.hplcSection.cdsPackage")}</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 700, color: "primary.main" }}>
-                            {formatCdsSoftware(selectedEquipment.cdsSoftware)}
+                            {formatCdsSoftware(selectedEquipment.cdsSoftware, t)}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>Vendor / Instrument Model</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("equipmentPage.hplcSection.vendorModel")}</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            {selectedEquipment.vendor || selectedEquipment.manufacturerName || "—"}
+                            {selectedEquipment.vendor || selectedEquipment.manufacturerName || t("common.dash")}
                           </Typography>
                         </Box>
                         <Box>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>Connection Settings</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("equipmentPage.hplcSection.connectionSettings")}</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-                            {selectedEquipment.connectionSettings || "—"}
+                            {selectedEquipment.connectionSettings || t("common.dash")}
                           </Typography>
                         </Box>
                       </Box>
@@ -975,11 +987,11 @@ export function EquipmentPage() {
 
                   {selectedEquipment.type !== "Incubator" && selectedEquipment.type !== 0 && selectedEquipment.type !== "Autoclave" && selectedEquipment.type !== 1 && normalizeEquipmentTypeValue(selectedEquipment.type) !== "Hplc" && (
                     <Paper sx={{ p: 2.5 }}>
-                      <SectionTitle>Equipment Configuration</SectionTitle>
+                      <SectionTitle>{t("equipmentPage.generalSection.title")}</SectionTitle>
                       <Typography variant="body2" sx={{
                         color: "text.secondary"
                       }}>
-                        This equipment item is configured for general laboratory usage. Additional specific operational parameters may be set under Master Data.
+                        {t("equipmentPage.generalSection.description")}
                       </Typography>
                     </Paper>
                   )}
@@ -990,8 +1002,8 @@ export function EquipmentPage() {
                     color: "text.secondary"
                   }}>
                     {safeSummaryList.length === 0
-                      ? "No equipment configured for this laboratory."
-                      : "Select an equipment item from the list to view its configuration."}
+                      ? t("equipmentPage.configured.noEquipment")
+                      : t("equipmentPage.configured.selectPrompt")}
                   </Typography>
                 </Paper>
               )}
@@ -1001,19 +1013,19 @@ export function EquipmentPage() {
           {/* TAB 1: AUTOCLAVE PROGRAMS / LOADS OVERVIEW */}
           {activeTab === 1 && (
             <Paper sx={{ p: 2.5 }}>
-              <SectionTitle>All Configured Autoclave Programs / Loads</SectionTitle>
+              <SectionTitle>{t("equipmentPage.autoclave.allProgramsTitle")}</SectionTitle>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell>Autoclave</TableCell>
-                      <TableCell>Program Code</TableCell>
-                      <TableCell>Program / Load Name</TableCell>
-                      <TableCell>Load Type</TableCell>
-                      <TableCell align="right">Temperature</TableCell>
-                      <TableCell align="right">Cycle Time</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="center">Actions</TableCell>
+                      <TableCell>{t("equipmentPage.autoclave.allColumns.autoclave")}</TableCell>
+                      <TableCell>{t("equipmentPage.autoclave.allColumns.programCode")}</TableCell>
+                      <TableCell>{t("equipmentPage.autoclave.columns.programName")}</TableCell>
+                      <TableCell>{t("equipmentPage.autoclave.columns.loadType")}</TableCell>
+                      <TableCell align="right">{t("equipmentPage.autoclave.columns.temperature")}</TableCell>
+                      <TableCell align="right">{t("equipmentPage.autoclave.columns.cycleTime")}</TableCell>
+                      <TableCell>{t("equipmentPage.autoclave.columns.status")}</TableCell>
+                      <TableCell align="center">{t("equipmentPage.autoclave.columns.actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1023,22 +1035,22 @@ export function EquipmentPage() {
                         <TableCell>{p.programCode}</TableCell>
                         <TableCell>{p.programName}</TableCell>
                         <TableCell>{p.loadType}</TableCell>
-                        <TableCell align="right">{p.temperature} °C</TableCell>
-                        <TableCell align="right">{p.cycleTimeMinutes} min</TableCell>
+                        <TableCell align="right">{t("equipmentPage.tempValue", { value: p.temperature })}</TableCell>
+                        <TableCell align="right">{t("equipmentPage.autoclave.minUnit", { value: p.cycleTimeMinutes })}</TableCell>
                         <TableCell>
                           <Chip
                             size="small"
-                            label={p.isActive ? "Active" : "Inactive"}
+                            label={p.isActive ? t("common.active") : t("common.inactive")}
                             color={p.isActive ? "success" : "default"}
                           />
                         </TableCell>
                         <TableCell align="center">
-                          <Tooltip title="Edit Program">
+                          <Tooltip title={t("equipmentPage.autoclave.editProgramTooltip")}>
                             <IconButton size="small" onClick={() => handleOpenEditProgram(p)}>
                               <EditIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="View History">
+                          <Tooltip title={t("equipmentPage.autoclave.viewHistoryTooltip")}>
                             <IconButton size="small" onClick={() => handleViewProgramHistory(p)}>
                               <HistoryIcon fontSize="small" />
                             </IconButton>
@@ -1049,7 +1061,7 @@ export function EquipmentPage() {
                     {safeAllPrograms.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                          No autoclave programs configured across any autoclaves.
+                          {t("equipmentPage.autoclave.noProgramsAll")}
                         </TableCell>
                       </TableRow>
                     )}
@@ -1062,34 +1074,34 @@ export function EquipmentPage() {
           {/* TAB 2: CONFIGURATION HISTORY */}
           {activeTab === 2 && (
             <Paper sx={{ p: 2.5 }}>
-              <SectionTitle>Laboratory Configuration Change History</SectionTitle>
+              <SectionTitle>{t("equipmentPage.historyTab.title")}</SectionTitle>
               <Typography
                 variant="body2"
                 sx={{
                   color: "text.secondary",
                   mb: 2
                 }}>
-                Complete audit trail of incubator set point changes and autoclave program configuration events.
+                {t("equipmentPage.historyTab.subtitle")}
               </Typography>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell>Effective On</TableCell>
-                      <TableCell>Equipment Code</TableCell>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Details / Change</TableCell>
-                      <TableCell>Changed By</TableCell>
-                      <TableCell>Reason / Comment</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.effectiveOn")}</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.equipmentCode")}</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.category")}</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.detailsChange")}</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.changedBy")}</TableCell>
+                      <TableCell>{t("equipmentPage.historyTab.columns.reasonComment")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {safeSetPointHistory.map((h) => (
                       <TableRow key={`sp-${h.id}`}>
                         <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>{selectedEquipment?.code ?? "Incubator"}</TableCell>
-                        <TableCell><Chip size="small" label="Set Point" color="primary" variant="outlined" /></TableCell>
-                        <TableCell>Set Point: {h.previousSetPoint} °C → {h.newSetPoint} °C</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{selectedEquipment?.code ?? t("equipmentPage.historyTab.incubatorFallback")}</TableCell>
+                        <TableCell><Chip size="small" label={t("equipmentPage.historyTab.setPointChip")} color="primary" variant="outlined" /></TableCell>
+                        <TableCell>{t("equipmentPage.historyTab.setPointChange", { prev: h.previousSetPoint, next: h.newSetPoint })}</TableCell>
                         <TableCell>{h.changedByName}</TableCell>
                         <TableCell>{h.reason}</TableCell>
                       </TableRow>
@@ -1098,8 +1110,8 @@ export function EquipmentPage() {
                       <TableRow>
                         <TableCell colSpan={6} align="center" sx={{ py: 3, color: setPointHistoryFailed ? "error.main" : "text.secondary" }}>
                           {setPointHistoryFailed
-                            ? "The set point history could not be loaded. Select the incubator again to retry."
-                            : "Select an incubator equipment item under Configured Equipment to view its configuration history."}
+                            ? t("equipmentPage.incubator.historyLoadError")
+                            : t("equipmentPage.historyTab.selectIncubatorPrompt")}
                         </TableCell>
                       </TableRow>
                     )}
@@ -1132,11 +1144,11 @@ export function EquipmentPage() {
         onClose={() => setEditSetPointDialogOpen(false)}
         maxWidth="sm"
         titleSx={{ fontWeight: 700 }}
-        title="Edit Incubator Set Point"
+        title={t("equipmentPage.incubator.editDialogTitle")}
         actions={
           <>
             <Button onClick={() => setEditSetPointDialogOpen(false)} variant="outlined" disabled={saving}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleSaveSetPoint}
@@ -1144,7 +1156,7 @@ export function EquipmentPage() {
               disabled={saving}
               color="primary"
             >
-              {saving ? "Saving…" : "Save Changes"}
+              {saving ? t("common.saving") : t("common.saveChanges")}
             </Button>
           </>
         }
@@ -1154,7 +1166,7 @@ export function EquipmentPage() {
           <Box>
             <Typography variant="caption" sx={{
               color: "text.secondary"
-            }}>Equipment</Typography>
+            }}>{t("equipmentPage.incubator.equipmentLabel")}</Typography>
             <Typography variant="body1" sx={{
               fontWeight: 700
             }}>
@@ -1164,18 +1176,18 @@ export function EquipmentPage() {
           <Box>
             <Typography variant="caption" sx={{
               color: "text.secondary"
-            }}>Current Set Point</Typography>
+            }}>{t("equipmentPage.incubator.currentSetPointLabel")}</Typography>
             <Typography
               variant="body1"
               sx={{
                 fontWeight: 700,
                 color: "primary.main"
               }}>
-              {selectedEquipment?.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "Not Configured"}
+              {selectedEquipment?.setPointTemperature ? t("equipmentPage.tempValue", { value: selectedEquipment.setPointTemperature }) : t("equipmentPage.incubator.notConfigured")}
             </Typography>
           </Box>
           <TextField
-            label="New Set Point (°C) *"
+            label={t("equipmentPage.incubator.newSetPointLabel")}
             type="number"
             value={newSetPoint}
             onChange={(e) => setNewSetPoint(e.target.value)}
@@ -1186,8 +1198,8 @@ export function EquipmentPage() {
           />
           <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start" }}>
             <TextField
-              label="Reason for Change *"
-              placeholder="e.g. Seasonal adjustment / Routine calibration adjustment"
+              label={t("equipmentPage.incubator.reasonLabel")}
+              placeholder={t("equipmentPage.incubator.reasonPlaceholder")}
               value={setPointReason}
               onChange={(e) => setSetPointReason(e.target.value)}
               multiline
@@ -1195,7 +1207,7 @@ export function EquipmentPage() {
               fullWidth
               slotProps={{ input: { "aria-describedby": hintDescribedBy("equipment-reason-for-change") } }}
             />
-            <FieldHint id="equipment-reason-for-change" label="Reason for Change" hint={hints.reasonForChange} />
+            <FieldHint id="equipment-reason-for-change" label={t("equipmentPage.incubator.reasonHintLabel")} hint={hints.reasonForChange} />
           </Stack>
         </Stack>
       </FloatingDialog>
@@ -1206,11 +1218,11 @@ export function EquipmentPage() {
         onClose={() => setProgramDialogOpen(false)}
         maxWidth="sm"
         titleSx={{ fontWeight: 700 }}
-        title={programForm.id ? "Edit Autoclave Program / Load" : "Add Autoclave Program / Load"}
+        title={programForm.id ? t("equipmentPage.autoclave.editDialogTitle") : t("equipmentPage.autoclave.addDialogTitle")}
         actions={
           <>
             <Button onClick={() => setProgramDialogOpen(false)} variant="outlined" disabled={saving}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleSaveProgram}
@@ -1218,7 +1230,7 @@ export function EquipmentPage() {
               disabled={saving}
               color="primary"
             >
-              {saving ? "Saving…" : "Save Program"}
+              {saving ? t("common.saving") : t("equipmentPage.autoclave.saveProgram")}
             </Button>
           </>
         }
@@ -1228,7 +1240,7 @@ export function EquipmentPage() {
           <Box>
             <Typography variant="caption" sx={{
               color: "text.secondary"
-            }}>Autoclave Equipment</Typography>
+            }}>{t("equipmentPage.autoclave.autoclaveEquipment")}</Typography>
             <Typography variant="body1" sx={{
               fontWeight: 700
             }}>
@@ -1236,35 +1248,35 @@ export function EquipmentPage() {
             </Typography>
           </Box>
           <TextField
-            label="Program / Load Code *"
-            placeholder="e.g. P01"
+            label={t("equipmentPage.autoclave.programCodeLabel")}
+            placeholder={t("equipmentPage.autoclave.programCodePlaceholder")}
             value={programForm.programCode ?? ""}
             onChange={(e) => setProgramForm({ ...programForm, programCode: e.target.value })}
             fullWidth
           />
           <TextField
-            label="Program / Load Name *"
-            placeholder="e.g. Prepared Media"
+            label={t("equipmentPage.autoclave.programNameLabel")}
+            placeholder={t("equipmentPage.autoclave.programNamePlaceholder")}
             value={programForm.programName ?? ""}
             onChange={(e) => setProgramForm({ ...programForm, programName: e.target.value })}
             fullWidth
           />
           <TextField
-            label="Load Type *"
-            placeholder="e.g. Media / Glassware / Biohazard Waste"
+            label={t("equipmentPage.autoclave.loadTypeLabel")}
+            placeholder={t("equipmentPage.autoclave.loadTypePlaceholder")}
             value={programForm.loadType ?? ""}
             onChange={(e) => setProgramForm({ ...programForm, loadType: e.target.value })}
             fullWidth
           />
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
             <TextField
-              label="Temperature (°C) *"
+              label={t("equipmentPage.autoclave.temperatureLabel")}
               type="number"
               value={programForm.temperature ?? 121}
               onChange={(e) => setProgramForm({ ...programForm, temperature: Number(e.target.value) })}
             />
             <TextField
-              label="Cycle Time (min) *"
+              label={t("equipmentPage.autoclave.cycleTimeLabel")}
               type="number"
               value={programForm.cycleTimeMinutes ?? 15}
               onChange={(e) => setProgramForm({ ...programForm, cycleTimeMinutes: Number(e.target.value) })}
@@ -1274,14 +1286,14 @@ export function EquipmentPage() {
             value={programForm.isActive ? "Active" : "Inactive"}
             onChange={(e) => setProgramForm({ ...programForm, isActive: e.target.value === "Active" })}
             fullWidth
-            inputProps={{ "aria-label": "Program status" }}
+            inputProps={{ "aria-label": t("equipmentPage.autoclave.programStatusAria") }}
           >
-            <MenuItem value="Active">Active</MenuItem>
-            <MenuItem value="Inactive">Inactive</MenuItem>
+            <MenuItem value="Active">{t("common.active")}</MenuItem>
+            <MenuItem value="Inactive">{t("common.inactive")}</MenuItem>
           </Select>
           <TextField
-            label="Audit Comment / Reason *"
-            placeholder="Explain the reason for creating or modifying this program configuration"
+            label={t("equipmentPage.autoclave.commentLabel")}
+            placeholder={t("equipmentPage.autoclave.commentPlaceholder")}
             value={programForm.comment ?? ""}
             onChange={(e) => setProgramForm({ ...programForm, comment: e.target.value })}
             multiline
@@ -1297,10 +1309,10 @@ export function EquipmentPage() {
         onClose={() => setProgramHistoryDialogOpen(false)}
         maxWidth="md"
         titleSx={{ fontWeight: 700 }}
-        title={`Program History: ${selectedProgramCode}`}
+        title={t("equipmentPage.autoclave.historyDialogTitle", { code: selectedProgramCode })}
         actions={
           <Button onClick={() => setProgramHistoryDialogOpen(false)} variant="contained">
-            Close
+            {t("common.close")}
           </Button>
         }
       >
@@ -1308,15 +1320,15 @@ export function EquipmentPage() {
             <Table size="small">
               <TableHead>
                 <TableRow sx={tableHeadSx}>
-                  <TableCell>Date / Time</TableCell>
-                  <TableCell>Action</TableCell>
-                  <TableCell>Program Name</TableCell>
-                  <TableCell>Load Type</TableCell>
-                  <TableCell align="right">Temperature</TableCell>
-                  <TableCell align="right">Cycle Time</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Changed By</TableCell>
-                  <TableCell>Comment</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.dateTime")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.action")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.programName")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.loadType")}</TableCell>
+                  <TableCell align="right">{t("equipmentPage.autoclave.historyColumns.temperature")}</TableCell>
+                  <TableCell align="right">{t("equipmentPage.autoclave.historyColumns.cycleTime")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.status")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.changedBy")}</TableCell>
+                  <TableCell>{t("equipmentPage.autoclave.historyColumns.comment")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1326,9 +1338,9 @@ export function EquipmentPage() {
                     <TableCell><Chip size="small" label={h.action} color={h.action === "Created" ? "success" : "info"} /></TableCell>
                     <TableCell>{h.newProgramName}</TableCell>
                     <TableCell>{h.newLoadType}</TableCell>
-                    <TableCell align="right">{h.newTemperature} °C</TableCell>
-                    <TableCell align="right">{h.newCycleTimeMinutes} min</TableCell>
-                    <TableCell>{h.newIsActive ? "Active" : "Inactive"}</TableCell>
+                    <TableCell align="right">{t("equipmentPage.tempValue", { value: h.newTemperature })}</TableCell>
+                    <TableCell align="right">{t("equipmentPage.autoclave.minUnit", { value: h.newCycleTimeMinutes })}</TableCell>
+                    <TableCell>{h.newIsActive ? t("common.active") : t("common.inactive")}</TableCell>
                     <TableCell>{h.changedByName}</TableCell>
                     <TableCell>{h.comment}</TableCell>
                   </TableRow>
@@ -1336,7 +1348,7 @@ export function EquipmentPage() {
                 {(!Array.isArray(programHistory) || programHistory.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={9} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      No historical changes logged for this program.
+                      {t("equipmentPage.autoclave.noProgramHistory")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -1351,10 +1363,10 @@ export function EquipmentPage() {
         onClose={() => setInventoryDialogOpen(false)}
         maxWidth="md"
         titleSx={{ fontWeight: 700 }}
-        title="Select Equipment from Master Inventory"
+        title={t("equipmentPage.inventoryDialog.title")}
         actions={
           <Button onClick={() => setInventoryDialogOpen(false)} variant="outlined">
-            Close
+            {t("common.close")}
           </Button>
         }
       >
@@ -1364,18 +1376,18 @@ export function EquipmentPage() {
               color: "text.secondary",
               mb: 2
             }}>
-            Register physical equipment from Inventory into Laboratory Configuration. Master equipment identity and calibration remain managed by Inventory.
+            {t("equipmentPage.inventoryDialog.description")}
           </Typography>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow sx={tableHeadSx}>
-                  <TableCell>Equipment Code</TableCell>
-                  <TableCell>Instrument Type</TableCell>
-                  <TableCell>Manufacturer</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Action</TableCell>
+                  <TableCell>{t("equipmentPage.inventoryDialog.columns.equipmentCode")}</TableCell>
+                  <TableCell>{t("equipmentPage.inventoryDialog.columns.instrumentType")}</TableCell>
+                  <TableCell>{t("equipmentPage.inventoryDialog.columns.manufacturer")}</TableCell>
+                  <TableCell>{t("equipmentPage.inventoryDialog.columns.location")}</TableCell>
+                  <TableCell>{t("equipmentPage.inventoryDialog.columns.status")}</TableCell>
+                  <TableCell align="center">{t("equipmentPage.inventoryDialog.columns.action")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1399,7 +1411,7 @@ export function EquipmentPage() {
                           disabled={isAlreadyLinked}
                           onClick={() => handleConfigureInventoryEquipment(inv)}
                         >
-                          {isAlreadyLinked ? "Configured" : "Configure for Lab"}
+                          {isAlreadyLinked ? t("equipmentPage.inventoryDialog.configured") : t("equipmentPage.inventoryDialog.configureForLab")}
                         </Button>
                       </TableCell>
                     </TableRow>

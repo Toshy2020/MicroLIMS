@@ -1,4 +1,7 @@
 import { Box, Chip, List, ListItem, ListItemText, Paper, Stack, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../../i18n";
 import type {
   MediaIncubationConditionOption,
   MediaProductOption
@@ -24,6 +27,7 @@ export interface PreviewStep {
 export interface PreviewLookups {
   mediaProducts?: Pick<MediaProductOption, "id" | "name">[];
   conditions?: MediaIncubationConditionOption[];
+  t?: TFunction;
 }
 
 function buildStepIncubation(
@@ -63,14 +67,15 @@ function buildStepIncubation(
 
 function resolveMediaNames(
   step: DraftWorkflowStep,
-  mediaProducts?: Pick<MediaProductOption, "id" | "name">[]
+  mediaProducts?: Pick<MediaProductOption, "id" | "name">[],
+  t: TFunction = i18n.getFixedT("en", "masterData")
 ): string[] {
   return step.stepMedia
     .filter((m) => m.mediaProductId !== "" || m.mediaProductName)
     .map((m) => {
       if (m.mediaProductName) return m.mediaProductName;
       const found = mediaProducts?.find((p) => p.id === m.mediaProductId);
-      return found ? found.name : `Media #${m.mediaProductId}`;
+      return found ? found.name : t("testWizard.preview.mediaFallback", { id: m.mediaProductId });
     });
 }
 
@@ -82,6 +87,7 @@ function parseIntOrNull(value: string): number | null {
 }
 
 export function previewModel(model: TestFormModel, lookups?: PreviewLookups): PreviewStep[] {
+  const t = lookups?.t ?? i18n.getFixedT("en", "masterData");
   const stages = model.stages.map((s) => `${s.role}: ${s.sampleReplicates}`);
   const isStepDriven =
     model.workflowType === "CountTest" || model.workflowType === "Observation";
@@ -92,7 +98,11 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
       return [
         {
           order: 1,
-          name: model.displayName.trim() || WORKFLOW_TYPE_LABELS[model.workflowType] || model.workflowType,
+          name:
+            model.displayName.trim() ||
+            t(`testMaster.constants.workflowTypes.${model.workflowType}`, {
+              defaultValue: WORKFLOW_TYPE_LABELS[model.workflowType] ?? model.workflowType
+            }),
           media: [],
           stages,
           analystEnters: describeWorkflowAnalystEnters({
@@ -104,8 +114,8 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
 
     return sorted.map((step, index) => ({
       order: step.stepOrder > 0 ? step.stepOrder : index + 1,
-      name: step.stepName.trim() || `Step ${index + 1}`,
-      media: resolveMediaNames(step, lookups?.mediaProducts),
+      name: step.stepName.trim() || t("testWizard.preview.stepFallback", { index: index + 1 }),
+      media: resolveMediaNames(step, lookups?.mediaProducts, t),
       incubation: buildStepIncubation(step, lookups?.conditions),
       stages,
       analystEnters: describeWorkflowAnalystEnters({
@@ -130,8 +140,9 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
       order: 1,
       name:
         model.displayName.trim() ||
-        WORKFLOW_TYPE_LABELS[model.workflowType] ||
-        model.workflowType,
+        t(`testMaster.constants.workflowTypes.${model.workflowType}`, {
+          defaultValue: WORKFLOW_TYPE_LABELS[model.workflowType] ?? model.workflowType
+        }),
       media: [],
       stages,
       analystEnters: describeWorkflowAnalystEnters({
@@ -153,16 +164,16 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
   ];
 }
 
-function buildPreviewStripResponse(steps: PreviewStep[]): CurrentStepResponse {
+function buildPreviewStripResponse(steps: PreviewStep[], previewName: string): CurrentStepResponse {
   return {
     testOrderId: 0,
     step: null,
     stepNumber: null,
     totalSteps: steps.length,
-    testName: "Preview",
+    testName: previewName,
     workflowType: "Observation" as WorkflowType,
     sampleContext: {
-      sampleName: "Preview",
+      sampleName: previewName,
       batchNumber: null,
       controlNumber: null,
       reason: null,
@@ -178,22 +189,23 @@ function buildPreviewStripResponse(steps: PreviewStep[]): CurrentStepResponse {
   };
 }
 
-function formatIncubationWindow(incubation: PreviewStep["incubation"]): string | null {
+function formatIncubationWindow(incubation: PreviewStep["incubation"], t: TFunction): string | null {
   if (!incubation) return null;
-  const hours = `${incubation.minHours}–${incubation.maxHours} h`;
+  const hours = t("testWizard.preview.hours", { min: incubation.minHours, max: incubation.maxHours });
   if (incubation.tempMin != null && incubation.tempMax != null) {
-    return `${hours} at ${incubation.tempMin}–${incubation.tempMax} °C`;
+    return t("testWizard.preview.hoursAtTemp", { hours, tempMin: incubation.tempMin, tempMax: incubation.tempMax });
   }
   return hours;
 }
 
 export function AnalystPreview({ steps }: { steps: PreviewStep[] }) {
+  const { t } = useTranslation("masterData");
   const orderedSteps = steps.slice().sort((a, b) => a.order - b.order);
-  const previewCurrent = buildPreviewStripResponse(orderedSteps);
+  const previewCurrent = buildPreviewStripResponse(orderedSteps, t("testWizard.preview.previewContextName"));
 
   return (
     <Box
-      aria-label="Analyst preview"
+      aria-label={t("testWizard.preview.ariaLabel")}
       sx={{
         p: 2,
         bgcolor: "action.hover",
@@ -204,16 +216,16 @@ export function AnalystPreview({ steps }: { steps: PreviewStep[] }) {
     >
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          What the analyst will see
+          {t("testWizard.preview.title")}
         </Typography>
-        <Chip size="small" label="Preview — configuration only" color="info" variant="outlined" />
+        <Chip size="small" label={t("testWizard.preview.chip")} color="info" variant="outlined" />
       </Box>
 
       {orderedSteps.length > 0 && <StepChainStrip current={previewCurrent} />}
 
       <Stack spacing={1.5}>
         {orderedSteps.map((step) => {
-          const windowLabel = formatIncubationWindow(step.incubation);
+          const windowLabel = formatIncubationWindow(step.incubation, t);
           return (
             <Paper
               key={`${step.order}-${step.name}`}
@@ -227,26 +239,26 @@ export function AnalystPreview({ steps }: { steps: PreviewStep[] }) {
               <Stack spacing={0.5}>
                 {step.media.length > 0 && (
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    <strong>Media:</strong> {step.media.join(", ")}
+                    <strong>{t("testWizard.preview.mediaLabel")}</strong> {step.media.join(", ")}
                   </Typography>
                 )}
 
                 {windowLabel && (
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    <strong>Incubation:</strong> {windowLabel}
+                    <strong>{t("testWizard.preview.incubationLabel")}</strong> {windowLabel}
                   </Typography>
                 )}
 
                 {step.stages.length > 0 && (
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    <strong>Stage replicates:</strong> {step.stages.join(", ")}
+                    <strong>{t("testWizard.preview.stageReplicatesLabel")}</strong> {step.stages.join(", ")}
                   </Typography>
                 )}
 
                 {step.analystEnters.length > 0 && (
                   <Box>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12, mt: 0.5 }}>
-                      Analyst enters:
+                      {t("testWizard.preview.analystEntersLabel")}
                     </Typography>
                     <List dense disablePadding sx={{ pl: 2 }}>
                       {step.analystEnters.map((entry) => (

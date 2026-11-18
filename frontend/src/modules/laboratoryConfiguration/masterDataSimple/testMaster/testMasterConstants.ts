@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import { ProductionStageRole } from "../../../../services/masterDataOptions";
 
 // Microbiology and the Finished Product (chemistry) lab each have their own
@@ -109,45 +111,48 @@ export const defaultStepForm = (): StepFormState => ({
 // MicroLIMS.Application/Services/WorkflowTemplateValidator.cs) so the admin
 // gets immediate feedback - the server is still authoritative and any
 // rejection it returns is surfaced as-is.
-export function validateStepForm(form: StepFormState): string | null {
+export function validateStepForm(
+  form: StepFormState,
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): string | null {
   const isBroth = form.stepType === "BrothEnrichment" || form.stepType === "SelectiveBroth";
   const isSelectivePlating = form.stepType === "SelectivePlating";
   const isConfirmatory = form.stepType === "ConfirmatoryPlating";
   const isBiochemical = form.stepType === "BiochemicalTest";
 
   if (isBroth && (form.stepMedia.length !== 1 || !form.stepMedia[0].isRequired))
-    return "A broth step must have exactly one assigned medium, marked as required.";
+    return t("testMaster.constants.validation.brothMediaRequired");
   if (isBroth && form.targetOrganismId)
-    return "A broth step must not target an organism.";
+    return t("testMaster.constants.validation.brothNoOrganism");
   if (isSelectivePlating && (form.stepMedia.length !== 1 || !form.stepMedia[0].isRequired))
-    return "A selective plating step must have exactly one assigned medium, marked as required.";
+    return t("testMaster.constants.validation.selectivePlatingMediaRequired");
   if (isSelectivePlating && !form.targetOrganismId)
-    return "A selective plating step must target an organism.";
+    return t("testMaster.constants.validation.selectivePlatingOrganismRequired");
   if (isConfirmatory && form.stepMedia.length === 0)
-    return "A confirmatory plating step must have at least one permitted medium.";
+    return t("testMaster.constants.validation.confirmatoryMediaRequired");
   if (isConfirmatory && !form.targetOrganismId)
-    return "A confirmatory plating step must target an organism.";
+    return t("testMaster.constants.validation.confirmatoryOrganismRequired");
   if (isBiochemical && form.stepMedia.length > 0)
-    return "A biochemical test step must have no assigned media.";
+    return t("testMaster.constants.validation.biochemicalNoMedia");
   if (isBiochemical && form.targetOrganismId)
-    return "A biochemical test step must not target an organism.";
+    return t("testMaster.constants.validation.biochemicalNoOrganism");
   if (isBiochemical && !form.phenotypicTestType && form.phenotypicTestTypes.length === 0)
-    return "A biochemical test step must specify at least one phenotypic test type.";
+    return t("testMaster.constants.validation.biochemicalPhenotypicRequired");
   if (isBiochemical && new Set(form.phenotypicTestTypes).size !== form.phenotypicTestTypes.length)
-    return "The same phenotypic test type cannot be assigned to this step more than once.";
+    return t("testMaster.constants.validation.biochemicalDuplicatePhenotypic");
   if (!isBiochemical && (form.phenotypicTestType || form.phenotypicTestTypes.length > 0))
-    return "Only a biochemical test step may specify a phenotypic test type.";
+    return t("testMaster.constants.validation.nonBiochemicalNoPhenotypic");
   // Mirrors WorkflowTemplateValidator rule 8 - every non-biochemical step
   // needs at least one medium. Rules above already cover Broth/Selective/
   // Confirmatory; this is PlateCount's only media check.
   if (form.stepType === "PlateCount" && form.stepMedia.length === 0)
-    return "At least one medium is required for this step type.";
+    return t("testMaster.constants.validation.plateCountMediaRequired");
   for (const m of form.stepMedia) {
-    if (m.mediaProductId === "") return "Every medium row needs a selected culture media product.";
-    if (m.mediaIncubationConditionId === "") return "Every medium row needs an incubation condition.";
+    if (m.mediaProductId === "") return t("testMaster.constants.validation.mediaProductRequired");
+    if (m.mediaIncubationConditionId === "") return t("testMaster.constants.validation.mediaConditionRequired");
   }
   const productIds = form.stepMedia.map((m) => m.mediaProductId);
-  if (new Set(productIds).size !== productIds.length) return "The same medium cannot be assigned to this step more than once.";
+  if (new Set(productIds).size !== productIds.length) return t("testMaster.constants.validation.duplicateMedia");
 
   // Mirrors WorkflowTemplateValidator rule 7 - the server is still
   // authoritative, this only spares a round trip for the common case.
@@ -156,11 +161,11 @@ export function validateStepForm(form: StepFormState): string | null {
     if (stage2TempMin === undefined || stage2TempMin === "" || stage2TempMax === undefined || stage2TempMax === "" ||
         stage2IncubationMinHours === undefined || stage2IncubationMinHours === "" ||
         stage2IncubationMaxHours === undefined || stage2IncubationMaxHours === "")
-      return "A step requiring incubation transfer must define stage 2's temperature and incubation-hours range.";
+      return t("testMaster.constants.validation.stage2Incomplete");
     if (Number(stage2TempMin) >= Number(stage2TempMax))
-      return "Stage 2's minimum temperature must be below its maximum.";
+      return t("testMaster.constants.validation.stage2TempOrder");
     if (Number(stage2IncubationMinHours) <= 0 || Number(stage2IncubationMaxHours) < Number(stage2IncubationMinHours))
-      return "Stage 2's incubation-hours range must have a positive minimum and a maximum no less than the minimum.";
+      return t("testMaster.constants.validation.stage2HoursInvalid");
   }
   return null;
 }

@@ -23,6 +23,7 @@ import { HplcAnalytesSection } from "./HplcAnalytesSection";
 import { HplcImpuritiesSection } from "./HplcImpuritiesSection";
 import { GcConditionsSection } from "./GcConditionsSection";
 import { useHplcMethodDialogState } from "./useHplcMethodDialogState";
+import { useTranslation } from "../../../../i18n";
 
 export interface HplcMethodDialogProps {
   open: boolean;
@@ -83,6 +84,7 @@ export function HplcMethodDialog({
     onSuccess
   });
 
+  const { t } = useTranslation("masterData");
   const contentRef = useRef<HTMLDivElement>(null);
   const isGc = form.technique === "Gc";
 
@@ -114,15 +116,15 @@ export function HplcMethodDialog({
         open={open}
         title={
           editingId
-            ? `Edit ${isGc ? "GC" : "HPLC"} Method: ${form.name || loadedEntity?.name || ""}`
-            : `Add ${isGc ? "GC" : "HPLC"} Method Master`
+            ? t("hplcMethod.dialog.editTitle", { tech: isGc ? "GC" : "HPLC", name: form.name || loadedEntity?.name || "" })
+            : t("hplcMethod.dialog.addTitle", { tech: isGc ? "GC" : "HPLC" })
         }
         onClose={onClose}
         maxWidth="md"
         actions={
           <>
             <Button onClick={onClose} disabled={saving}>
-              Cancel
+              {t("hplcMethod.dialog.cancel")}
             </Button>
             <Button
               variant="contained"
@@ -130,7 +132,7 @@ export function HplcMethodDialog({
               disabled={saving || loadingMethod}
               sx={{ textTransform: "none", fontWeight: 600 }}
             >
-              {saving ? "Saving..." : editingId ? "Save Changes" : `Create ${isGc ? "GC" : "HPLC"} Method`}
+              {saving ? t("hplcMethod.dialog.saving") : editingId ? t("hplcMethod.dialog.saveChanges") : t("hplcMethod.dialog.createMethod", { tech: isGc ? "GC" : "HPLC" })}
             </Button>
           </>
         }
@@ -186,9 +188,9 @@ export function HplcMethodDialog({
                   onChange={(_, next) => setTabIndex(next)}
                   sx={{ borderBottom: 1, borderColor: "divider" }}
                 >
-                  <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel("GC Conditions & Oven", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel(`Analytes (${form.analytes.length})`, 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.column"), 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.gcConditions"), 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.analytes", { count: form.analytes.length }), 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
                 </Tabs>
               ) : (
                 // HPLC Tabs: Column (0), Elution & Detection (1), Solutions (2), Analytes (3)
@@ -197,10 +199,10 @@ export function HplcMethodDialog({
                   onChange={(_, next) => setTabIndex(next)}
                   sx={{ borderBottom: 1, borderColor: "divider" }}
                 >
-                  <Tab label={tabLabel("Column", 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel("Elution & Detection", 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel("Solutions", 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
-                  <Tab label={tabLabel(form.resultMode === "RelatedSubstances" ? "Analytes & Impurities" : `Analytes (${form.analytes.length})`, 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.column"), 0)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.elutionDetection"), 1)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(t("hplcMethod.dialog.tabs.solutions"), 2)} sx={{ textTransform: "none", fontWeight: 600 }} />
+                  <Tab label={tabLabel(form.resultMode === "RelatedSubstances" ? t("hplcMethod.dialog.tabs.analytesImpurities") : t("hplcMethod.dialog.tabs.analytes", { count: form.analytes.length }), 3)} sx={{ textTransform: "none", fontWeight: 600 }} />
                 </Tabs>
               )}
 
@@ -458,17 +460,17 @@ export function HplcMethodDialog({
 
       <ReasonDialog
         open={reasonDialogOpen}
-        title={`Confirm ${isGc ? "GC" : "HPLC"} Method Changes`}
+        title={t("hplcMethod.dialog.reasonTitle", { tech: isGc ? "GC" : "HPLC" })}
         onClose={() => {
           if (!saving) setReasonDialogOpen(false);
         }}
         onConfirm={handleConfirmEditWithReason}
-        confirmText="Save Method"
+        confirmText={t("hplcMethod.dialog.reasonConfirm")}
         loading={saving}
         reason={editReason}
         onReasonChange={setEditReason}
-        label="Reason for Change *"
-        placeholder={`Explain why this ${isGc ? "GC" : "HPLC"} method is being updated (required by data integrity standards)...`}
+        label={t("hplcMethod.dialog.reasonLabel")}
+        placeholder={t("hplcMethod.dialog.reasonPlaceholder", { tech: isGc ? "GC" : "HPLC" })}
         disabled={!editReason.trim() || saving}
       />
     </>

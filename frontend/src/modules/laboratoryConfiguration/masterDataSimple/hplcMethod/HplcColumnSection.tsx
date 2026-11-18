@@ -1,4 +1,5 @@
 import { Box, Typography, TextField, Stack } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { HplcTechnique } from "../services/HplcMethodService";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
@@ -45,6 +46,7 @@ export function HplcColumnSection({
   onColumnPartNumberChange,
   onColumnTemperatureCChange
 }: HplcColumnSectionProps) {
+  const { t } = useTranslation("masterData");
   const isGc = technique === "Gc";
   const lengthVal = columnLength ?? "";
   const handleLengthChange = (val: string) => {
@@ -57,37 +59,37 @@ export function HplcColumnSection({
   return (
     <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-        {isGc ? "Column Specifications (USP <621> / Capillary GC)" : "Column Specifications (USP <621>)"}
+        {isGc ? t("hplcMethod.column.titleGc") : t("hplcMethod.column.titleHplc")}
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
         {isGc
-          ? "Specify stationary phase designation (e.g. G43), capillary dimensions (length in metres, ID, film thickness), and brand/part number."
-          : "Specify stationary phase designation, column dimensions, brand/part number, and oven temperature."}
+          ? t("hplcMethod.column.subtitleGc")
+          : t("hplcMethod.column.subtitleHplc")}
       </Typography>
 
       <Stack spacing={2}>
         <Box sx={{ display: "grid", gridTemplateColumns: isGc ? "1fr" : { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <TextField
             size="small"
-            label="Column Designation *"
-            placeholder={isGc ? "e.g. G43 (USP G43 - 6% cyanopropylphenyl / 94% dimethylpolysiloxane)" : "e.g. L1 (C18), L7 (C8), L11"}
+            label={t("hplcMethod.column.designationLabel")}
+            placeholder={isGc ? t("hplcMethod.column.designationPlaceholderGc") : t("hplcMethod.column.designationPlaceholderHplc")}
             value={columnDesignation}
             onChange={(e) => onColumnDesignationChange(e.target.value)}
             required
             error={Boolean(errors["column.designation"])}
-            helperText={errors["column.designation"] ?? (isGc ? "USP designation (e.g. G43, G1, G27)" : "USP designation (e.g. L1)")}
+            helperText={errors["column.designation"] ?? (isGc ? t("hplcMethod.column.designationHelperGc") : t("hplcMethod.column.designationHelperHplc"))}
             fullWidth
           />
           {!isGc && (
             <TextField
               size="small"
-              label="Column Temperature (°C) *"
+              label={t("hplcMethod.column.temperatureLabel")}
               type="number"
               value={columnTemperatureC}
               onChange={(e) => onColumnTemperatureCChange?.(e.target.value)}
               required
               error={Boolean(errors["column.temperatureC"])}
-              helperText={errors["column.temperatureC"] ?? "Oven temperature in Celsius"}
+              helperText={errors["column.temperatureC"] ?? t("hplcMethod.column.temperatureHelper")}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               fullWidth
             />
@@ -97,55 +99,55 @@ export function HplcColumnSection({
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 2 }}>
           <TextField
             size="small"
-            label={isGc ? "Length (m) *" : "Length (mm) *"}
+            label={isGc ? t("hplcMethod.column.lengthLabelGc") : t("hplcMethod.column.lengthLabelHplc")}
             type="number"
             value={lengthVal}
             onChange={(e) => handleLengthChange(e.target.value)}
             required
-            placeholder={isGc ? "e.g. 30" : "e.g. 150"}
+            placeholder={isGc ? t("hplcMethod.column.lengthPlaceholderGc") : t("hplcMethod.column.lengthPlaceholderHplc")}
             error={Boolean(lengthError)}
-            helperText={lengthError ?? (isGc ? "Column length in metres (e.g. 30 m)" : "Column length in mm")}
+            helperText={lengthError ?? (isGc ? t("hplcMethod.column.lengthHelperGc") : t("hplcMethod.column.lengthHelperHplc"))}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
           <TextField
             size="small"
-            label="Internal Diameter (mm) *"
+            label={t("hplcMethod.column.idLabel")}
             type="number"
             value={columnInternalDiameterMm}
             onChange={(e) => onColumnInternalDiameterMmChange(e.target.value)}
             required
-            placeholder={isGc ? "e.g. 0.32 or 0.53" : "e.g. 4.6"}
+            placeholder={isGc ? t("hplcMethod.column.idPlaceholderGc") : t("hplcMethod.column.idPlaceholderHplc")}
             error={Boolean(errors["column.internalDiameterMm"])}
-            helperText={errors["column.internalDiameterMm"] ?? "Internal diameter in mm"}
+            helperText={errors["column.internalDiameterMm"] ?? t("hplcMethod.column.idHelper")}
             slotProps={{ htmlInput: { min: 0, step: "any" } }}
             fullWidth
           />
           {isGc ? (
             <TextField
               size="small"
-              label="Film Thickness (µm) *"
+              label={t("hplcMethod.column.filmThicknessLabel")}
               type="number"
               value={filmThicknessUm}
               onChange={(e) => onFilmThicknessUmChange?.(e.target.value)}
               required
-              placeholder="e.g. 1.8 or 0.25"
+              placeholder={t("hplcMethod.column.filmThicknessPlaceholder")}
               error={Boolean(errors["column.filmThicknessUm"])}
-              helperText={errors["column.filmThicknessUm"] ?? "Stationary phase film thickness (df)"}
+              helperText={errors["column.filmThicknessUm"] ?? t("hplcMethod.column.filmThicknessHelper")}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               fullWidth
             />
           ) : (
             <TextField
               size="small"
-              label="Particle Size (µm) *"
+              label={t("hplcMethod.column.particleSizeLabel")}
               type="number"
               value={particleSizeUm}
               onChange={(e) => onParticleSizeUmChange?.(e.target.value)}
               required
-              placeholder="e.g. 5"
+              placeholder={t("hplcMethod.column.particleSizePlaceholder")}
               error={Boolean(errors["column.particleSizeUm"])}
-              helperText={errors["column.particleSizeUm"] ?? "Packing particle size"}
+              helperText={errors["column.particleSizeUm"] ?? t("hplcMethod.column.particleSizeHelper")}
               slotProps={{ htmlInput: { min: 0, step: "any" } }}
               fullWidth
             />
@@ -155,16 +157,16 @@ export function HplcColumnSection({
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
           <TextField
             size="small"
-            label="Column Brand (Optional)"
-            placeholder={isGc ? "e.g. DB-624, HP-5, Rtx-Volatiles" : "e.g. Waters Symmetry, Agilent Zorbax"}
+            label={t("hplcMethod.column.brandLabel")}
+            placeholder={isGc ? t("hplcMethod.column.brandPlaceholderGc") : t("hplcMethod.column.brandPlaceholderHplc")}
             value={columnBrand}
             onChange={(e) => onColumnBrandChange(e.target.value)}
             fullWidth
           />
           <TextField
             size="small"
-            label="Column Part Number (Optional)"
-            placeholder={isGc ? "e.g. 123-1334" : "e.g. WAT045905"}
+            label={t("hplcMethod.column.partNumberLabel")}
+            placeholder={isGc ? t("hplcMethod.column.partNumberPlaceholderGc") : t("hplcMethod.column.partNumberPlaceholderHplc")}
             value={columnPartNumber}
             onChange={(e) => onColumnPartNumberChange(e.target.value)}
             fullWidth

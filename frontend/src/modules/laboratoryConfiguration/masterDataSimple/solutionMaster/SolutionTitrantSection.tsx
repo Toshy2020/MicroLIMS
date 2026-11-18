@@ -21,6 +21,7 @@ import {
   StandardizationMode
 } from "../services/SolutionMasterService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
+import { useTranslation } from "../../../../i18n";
 import { STRENGTH_UNIT_OPTIONS } from "./solutionForm";
 
 export interface SolutionTitrantSectionProps {
@@ -80,6 +81,7 @@ export function SolutionTitrantSection({
   onMaxRsdPercentChange,
   onValidityDaysChange
 }: SolutionTitrantSectionProps) {
+  const { t } = useTranslation("masterData");
   const theme = useTheme();
 
   return (
@@ -94,35 +96,35 @@ export function SolutionTitrantSection({
       }}
     >
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-        Titrant Standardization Settings (USP Volumetric Solutions)
+        {t("solutionMaster.titrant.title")}
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 2 }}>
-        Configure primary standard titration or secondary volumetric standardization criteria.
+        {t("solutionMaster.titrant.subtitle")}
       </Typography>
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
         <TextField
-          label="Nominal Strength"
+          label={t("solutionMaster.titrant.nominalStrengthLabel")}
           type="number"
           size="small"
           required
           value={nominalStrength}
           onChange={(e) => onNominalStrengthChange(e.target.value)}
-          placeholder="e.g. 0.1, 0.05"
+          placeholder={t("solutionMaster.titrant.nominalStrengthPlaceholder")}
           slotProps={{ htmlInput: { min: "0.00001", step: "any" } }}
         />
 
         <FormControl size="small" required>
-          <InputLabel id="titrant-strength-unit-select-label">Strength Unit</InputLabel>
+          <InputLabel id="titrant-strength-unit-select-label">{t("solutionMaster.titrant.strengthUnitLabel")}</InputLabel>
           <Select
             labelId="titrant-strength-unit-select-label"
-            label="Strength Unit"
+            label={t("solutionMaster.titrant.strengthUnitLabel")}
             value={strengthUnit}
             onChange={(e) => onStrengthUnitChange(e.target.value as TitrantStrengthUnit)}
           >
             {STRENGTH_UNIT_OPTIONS.map((u) => (
               <MenuItem key={u.value} value={u.value}>
-                {u.label}
+                {t(`solutionMaster.titrant.strengthUnits.${u.value}`, { defaultValue: u.label })}
               </MenuItem>
             ))}
           </Select>
@@ -131,7 +133,7 @@ export function SolutionTitrantSection({
         {/* Standardization Mode */}
         <FormControl component="fieldset" sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
           <FormLabel component="legend" sx={{ fontSize: 13, fontWeight: 600 }}>
-            Standardization Mode *
+            {t("solutionMaster.titrant.standardizationModeLabel")}
           </FormLabel>
           <RadioGroup
             row
@@ -141,12 +143,12 @@ export function SolutionTitrantSection({
             <FormControlLabel
               value="PrimaryStandard"
               control={<Radio size="small" />}
-              label="Primary Standard (Direct Weighing)"
+              label={t("solutionMaster.titrant.primaryStandardMode")}
             />
             <FormControlLabel
               value="AgainstVolumetricSolution"
               control={<Radio size="small" />}
-              label="Against Volumetric Solution (Secondary Titrant)"
+              label={t("solutionMaster.titrant.againstVolumetricMode")}
             />
           </RadioGroup>
         </FormControl>
@@ -155,10 +157,10 @@ export function SolutionTitrantSection({
         {standardizationMode === "PrimaryStandard" ? (
           <>
             <FormControl fullWidth size="small" required>
-              <InputLabel id="primary-standard-entry-label">Primary Standard</InputLabel>
+              <InputLabel id="primary-standard-entry-label">{t("solutionMaster.titrant.primaryStandardLabel")}</InputLabel>
               <Select
                 labelId="primary-standard-entry-label"
-                label="Primary Standard"
+                label={t("solutionMaster.titrant.primaryStandardLabel")}
                 value={standardEntryId}
                 onChange={(e) => onStandardEntryIdChange(e.target.value)}
               >
@@ -170,28 +172,28 @@ export function SolutionTitrantSection({
                     </MenuItem>
                   ))}
               </Select>
-              <FormHelperText>Primary Standards in section</FormHelperText>
+              <FormHelperText>{t("solutionMaster.titrant.primaryStandardHelper")}</FormHelperText>
             </FormControl>
 
             <TextField
-              label="Equivalence (mg/mL)"
+              label={t("solutionMaster.titrant.equivalenceLabel")}
               type="number"
               size="small"
               required
               value={equivalenceMgPerMl}
               onChange={(e) => onEquivalenceMgPerMlChange(e.target.value)}
-              placeholder="e.g. 20.422"
+              placeholder={t("solutionMaster.titrant.equivalencePlaceholder")}
               slotProps={{ htmlInput: { min: "0.0001", step: "any" } }}
-              helperText="mg of standard reacting per mL of nominal titrant"
+              helperText={t("solutionMaster.titrant.equivalenceHelper")}
             />
           </>
         ) : (
           /* Against Volumetric Solution Mode Inputs */
           <FormControl fullWidth size="small" required sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
-            <InputLabel id="reference-titrant-select-label">Reference Titrant</InputLabel>
+            <InputLabel id="reference-titrant-select-label">{t("solutionMaster.titrant.referenceTitrantLabel")}</InputLabel>
             <Select
               labelId="reference-titrant-select-label"
-              label="Reference Titrant"
+              label={t("solutionMaster.titrant.referenceTitrantLabel")}
               value={referenceSolutionId}
               onChange={(e) => onReferenceSolutionIdChange(e.target.value)}
             >
@@ -201,7 +203,7 @@ export function SolutionTitrantSection({
                 </MenuItem>
               ))}
             </Select>
-            <FormHelperText>Active titrant in current section (excluding self)</FormHelperText>
+            <FormHelperText>{t("solutionMaster.titrant.referenceTitrantHelper")}</FormHelperText>
           </FormControl>
         )}
 
@@ -213,68 +215,68 @@ export function SolutionTitrantSection({
               size="small"
             />
           }
-          label="Blank Titration Required"
+          label={t("solutionMaster.titrant.blankRequiredLabel")}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
 
         <TextField
-          label="Replicate Count"
+          label={t("solutionMaster.titrant.replicateCountLabel")}
           type="number"
           size="small"
           required
           value={replicateCount}
           onChange={(e) => onReplicateCountChange(e.target.value)}
-          placeholder="e.g. 3 or 6"
+          placeholder={t("solutionMaster.titrant.replicateCountPlaceholder")}
           slotProps={{ htmlInput: { min: "1", step: "1" } }}
-          helperText="Minimum runs required (e.g. 3)"
+          helperText={t("solutionMaster.titrant.replicateCountHelper")}
         />
 
         <TextField
-          label="Max RSD %"
+          label={t("solutionMaster.titrant.maxRsdLabel")}
           type="number"
           size="small"
           required
           value={maxRsdPercent}
           onChange={(e) => onMaxRsdPercentChange(e.target.value)}
-          placeholder="e.g. 0.20"
+          placeholder={t("solutionMaster.titrant.maxRsdPlaceholder")}
           slotProps={{ htmlInput: { min: "0.01", step: "0.01" } }}
-          helperText="Acceptable relative standard deviation %"
+          helperText={t("solutionMaster.titrant.maxRsdHelper")}
         />
 
         <TextField
-          label="Factor Min"
+          label={t("solutionMaster.titrant.factorMinLabel")}
           type="number"
           size="small"
           required
           value={factorMin}
           onChange={(e) => onFactorMinChange(e.target.value)}
-          placeholder="e.g. 0.97000"
+          placeholder={t("solutionMaster.titrant.factorMinPlaceholder")}
           slotProps={{ htmlInput: { min: "0.00001", step: "any" } }}
-          helperText="Lower acceptance factor limit"
+          helperText={t("solutionMaster.titrant.factorMinHelper")}
         />
 
         <TextField
-          label="Factor Max"
+          label={t("solutionMaster.titrant.factorMaxLabel")}
           type="number"
           size="small"
           required
           value={factorMax}
           onChange={(e) => onFactorMaxChange(e.target.value)}
-          placeholder="e.g. 1.03000"
+          placeholder={t("solutionMaster.titrant.factorMaxPlaceholder")}
           slotProps={{ htmlInput: { min: "0.00001", step: "any" } }}
-          helperText="Upper acceptance factor limit"
+          helperText={t("solutionMaster.titrant.factorMaxHelper")}
         />
 
         <TextField
-          label="Standardization Validity (Days)"
+          label={t("solutionMaster.titrant.validityDaysLabel")}
           type="number"
           size="small"
           required
           value={validityDays}
           onChange={(e) => onValidityDaysChange(e.target.value)}
-          placeholder="e.g. 30"
+          placeholder={t("solutionMaster.titrant.validityDaysPlaceholder")}
           slotProps={{ htmlInput: { min: "0", step: "1" } }}
-          helperText="0 = restandardize before each use"
+          helperText={t("solutionMaster.titrant.validityDaysHelper")}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
       </Box>

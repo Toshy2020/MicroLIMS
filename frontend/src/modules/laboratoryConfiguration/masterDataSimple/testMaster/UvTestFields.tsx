@@ -11,6 +11,8 @@ import {
   Typography
 } from "@mui/material";
 import type { UvCalculationMode } from "../../../../services/masterDataOptions";
+import { useTranslation } from "react-i18next";
+import "../../../../i18n";
 import { MaterialMasterService, MaterialMasterEntry } from "../services/MaterialMasterService";
 
 export interface UvTestFieldsProps {
@@ -69,6 +71,7 @@ export function UvTestFields({
   onReplicateCountChange,
   disabled = false
 }: UvTestFieldsProps) {
+  const { t } = useTranslation("masterData");
   const needsSpecificAbsorbance = mode === "SpecificAbsorbanceAssay";
   const needsTotalVolume =
     mode === "SpecificAbsorbanceAssay" ||
@@ -93,15 +96,15 @@ export function UvTestFields({
   return (
     <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
       <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary", mb: 1.5 }}>
-        UV Spectrophotometry Parameters
+        {t("testMaster.uv.sectionTitle")}
       </Typography>
 
       <Stack spacing={2}>
         <FormControl size="small" fullWidth required disabled={disabled}>
-          <InputLabel id="uv-calculation-mode-label">Calculation mode</InputLabel>
+          <InputLabel id="uv-calculation-mode-label">{t("testMaster.uv.calculationModeLabel")}</InputLabel>
           <Select
             labelId="uv-calculation-mode-label"
-            label="Calculation mode"
+            label={t("testMaster.uv.calculationModeLabel")}
             value={mode}
             onChange={(e) => onModeChange(e.target.value as UvCalculationMode)}
           >
@@ -109,10 +112,10 @@ export function UvTestFields({
               <MenuItem key={m.value} value={m.value}>
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {m.label}
+                    {t(`testMaster.uv.modes.${m.value}.label`)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                    {m.description}
+                    {t(`testMaster.uv.modes.${m.value}.description`)}
                   </Typography>
                 </Box>
               </MenuItem>
@@ -122,10 +125,10 @@ export function UvTestFields({
 
         {needsStandardVolume && (
           <FormControl size="small" fullWidth required disabled={disabled} error={loadError}>
-            <InputLabel id="uv-standard-entry-label">Standard material</InputLabel>
+            <InputLabel id="uv-standard-entry-label">{t("testMaster.uv.standardMaterialLabel")}</InputLabel>
             <Select
               labelId="uv-standard-entry-label"
-              label="Standard material"
+              label={t("testMaster.uv.standardMaterialLabel")}
               value={standardOptions.some((s) => s.id === standardEntryId) ? standardEntryId : ""}
               onChange={(e) => onStandardEntryIdChange(String(e.target.value) === "" ? "" : Number(e.target.value))}
             >
@@ -137,8 +140,8 @@ export function UvTestFields({
             </Select>
             <FormHelperText>
               {loadError
-                ? "Could not load the standard materials."
-                : "Only lots (reference standard or approved working standard) of this material are picked at analysis time"}
+                ? t("testMaster.uv.standardMaterialError")
+                : t("testMaster.uv.standardMaterialHelper")}
             </FormHelperText>
           </FormControl>
         )}
@@ -147,11 +150,11 @@ export function UvTestFields({
           {needsSpecificAbsorbance && (
             <TextField
               size="small"
-              label="Specific absorbance (A1%) *"
+              label={t("testMaster.uv.specificAbsorbanceLabel")}
               type="number"
               value={specificAbsorbance}
               onChange={(e) => onSpecificAbsorbanceChange(e.target.value)}
-              helperText="A(1%, 1 cm) value (e.g. 328 for Riboflavin)"
+              helperText={t("testMaster.uv.specificAbsorbanceHelper")}
               slotProps={{ htmlInput: { step: "any", min: "0" } }}
               required
               disabled={disabled}
@@ -162,11 +165,11 @@ export function UvTestFields({
           {needsTotalVolume && (
             <TextField
               size="small"
-              label="Total volume (mL) *"
+              label={t("testMaster.uv.totalVolumeLabel")}
               type="number"
               value={totalVolumeMl}
               onChange={(e) => onTotalVolumeMlChange(e.target.value)}
-              helperText="Sample total volume (e.g. 5000 for 1000 × 50 / 10)"
+              helperText={t("testMaster.uv.totalVolumeHelper")}
               slotProps={{ htmlInput: { step: "any", min: "0" } }}
               required
               disabled={disabled}
@@ -177,11 +180,11 @@ export function UvTestFields({
           {needsStandardVolume && (
             <TextField
               size="small"
-              label="Standard volume (mL) *"
+              label={t("testMaster.uv.standardVolumeLabel")}
               type="number"
               value={standardVolumeMl}
               onChange={(e) => onStandardVolumeMlChange(e.target.value)}
-              helperText="Standard dilution total volume"
+              helperText={t("testMaster.uv.standardVolumeHelper")}
               slotProps={{ htmlInput: { step: "any", min: "0" } }}
               required
               disabled={disabled}
@@ -191,11 +194,11 @@ export function UvTestFields({
 
           <TextField
             size="small"
-            label="Replicate count *"
+            label={t("testMaster.uv.replicateCountLabel")}
             type="number"
             value={replicateCount}
             onChange={(e) => onReplicateCountChange(e.target.value)}
-            helperText="Number of replicates (1 to 30)"
+            helperText={t("testMaster.uv.replicateCountHelper")}
             slotProps={{ htmlInput: { step: "1", min: "1", max: "30" } }}
             required
             disabled={disabled}

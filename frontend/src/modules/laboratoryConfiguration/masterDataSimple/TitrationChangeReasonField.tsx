@@ -1,5 +1,7 @@
 import React from "react";
+import type { TFunction } from "i18next";
 import { Box, TextField } from "@mui/material";
+import { i18n, useTranslation } from "../../../i18n";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import type { MoistureRole } from "../../../services/masterDataOptions";
 import {
@@ -63,10 +65,13 @@ export function hasTitrationSettingsChanged(
  * Validates the changeReason string (must be 5 to 500 characters).
  * Returns an error message or null if valid.
  */
-export function validateTitrationChangeReason(reason: string | null | undefined): string | null {
+export function validateTitrationChangeReason(
+  reason: string | null | undefined,
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): string | null {
   const trimmed = (reason ?? "").trim();
   if (!trimmed || trimmed.length < 5 || trimmed.length > 500) {
-    return "A reason for change is required when titration or moisture settings change (5 to 500 characters).";
+    return t("titration.changeReasonError");
   }
   return null;
 }
@@ -82,12 +87,13 @@ export function titrationChangeReasonCheck(
   currentWorkflowType: string,
   reason: string,
   currentArea?: PhyschemArea | null,
-  currentMoistureRole?: MoistureRole | null
+  currentMoistureRole?: MoistureRole | null,
+  t?: TFunction
 ): { required: boolean; error: string | null; payload: string | null } {
   const required = hasTitrationSettingsChanged(initialTest, currentForm, currentWorkflowType, currentArea, currentMoistureRole);
   return {
     required,
-    error: required ? validateTitrationChangeReason(reason) : null,
+    error: required ? validateTitrationChangeReason(reason, t) : null,
     payload: required ? reason.trim() : null
   };
 }
@@ -102,6 +108,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
   error,
   disabled = false
 }) => {
+  const { t } = useTranslation("masterData");
   return (
     <Box
       sx={{
@@ -114,8 +121,8 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
     >
       <TextField
         size="small"
-        label="Reason for Change"
-        placeholder="Enter reason for changing titration or moisture settings (5–500 characters)"
+        label={t("titration.changeReasonLabel")}
+        placeholder={t("titration.changeReasonPlaceholder")}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
@@ -123,7 +130,7 @@ export const TitrationChangeReasonField: React.FC<TitrationChangeReasonFieldProp
         multiline
         minRows={2}
         error={Boolean(error)}
-        helperText={error || "A reason for change is required when titration or moisture settings change (5–500 characters)."}
+        helperText={error || t("titration.changeReasonError")}
         slotProps={{ htmlInput: { minLength: 5, maxLength: 500 } }}
         disabled={disabled}
       />

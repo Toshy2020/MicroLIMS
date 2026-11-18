@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { SolutionType, ShelfLifeUnit, isGeneralSolutionType } from "../services/SolutionMasterService";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
+import { useTranslation } from "../../../../i18n";
 import { SOLUTION_TYPE_OPTIONS, SHELF_LIFE_UNIT_OPTIONS, SolutionFieldKey } from "./solutionForm";
 
 export interface SolutionGeneralSectionProps {
@@ -70,38 +71,39 @@ export function SolutionGeneralSection({
   onInstructionsChange,
   onSectionIdChange
 }: SolutionGeneralSectionProps) {
+  const { t } = useTranslation("masterData");
   const showSectionSelect = (!isEditing && mySections.length > 1) || (isEditing && sections.length > 0);
 
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: "background.default" }}>
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-        General Information
+        {t("solutionMaster.general.title")}
       </Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
         <TextField
-          label="Solution Name"
+          label={t("solutionMaster.general.nameLabel")}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           required
           fullWidth
           size="small"
-          placeholder="e.g. 0.1M Phosphate Buffer pH 3.0, Mobile Phase A"
+          placeholder={t("solutionMaster.general.namePlaceholder")}
           error={!!errors.name}
-          helperText={errors.name ?? "Descriptive name of the solution recipe"}
+          helperText={errors.name ?? t("solutionMaster.general.nameHelper")}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
 
         <FormControl fullWidth size="small" required>
-          <InputLabel id="solution-type-select-label">Solution Type</InputLabel>
+          <InputLabel id="solution-type-select-label">{t("solutionMaster.general.typeLabel")}</InputLabel>
           <Select
             labelId="solution-type-select-label"
-            label="Solution Type"
+            label={t("solutionMaster.general.typeLabel")}
             value={type}
             onChange={(e) => onTypeChange(e.target.value as SolutionType)}
           >
             {SOLUTION_TYPE_OPTIONS.map((opt) => (
               <MenuItem key={opt.value} value={opt.value}>
-                {opt.label}
+                {t(`solutionMasterPage.types.${opt.value}`, { defaultValue: opt.label })}
               </MenuItem>
             ))}
           </Select>
@@ -110,10 +112,10 @@ export function SolutionGeneralSection({
         {/* Laboratory Section Select (if creating and user has multiple sections, or display current) */}
         {showSectionSelect ? (
           <FormControl fullWidth size="small" required={!isEditing && mySections.length > 1} error={!!errors.section}>
-            <InputLabel id="solution-section-select-label">Laboratory Section</InputLabel>
+            <InputLabel id="solution-section-select-label">{t("solutionMaster.general.sectionLabel")}</InputLabel>
             <Select
               labelId="solution-section-select-label"
-              label="Laboratory Section"
+              label={t("solutionMaster.general.sectionLabel")}
               value={sectionId}
               onChange={(e) => onSectionIdChange(e.target.value)}
               disabled={isEditing}
@@ -137,7 +139,7 @@ export function SolutionGeneralSection({
                   onChange={(e) => onSterilizationRequiredChange?.(e.target.checked)}
                 />
               }
-              label="Sterilization (autoclave) required"
+              label={t("solutionMaster.general.sterilizationLabel")}
             />
             <FormControlLabel
               control={
@@ -146,14 +148,14 @@ export function SolutionGeneralSection({
                   onChange={(e) => onReleaseRequiredChange?.(e.target.checked)}
                 />
               }
-              label="Release required before use"
+              label={t("solutionMaster.general.releaseLabel")}
             />
           </Stack>
         )}
 
         <Stack direction="row" spacing={1} sx={{ gridColumn: { xs: "1", sm: "span 2" } }}>
           <TextField
-            label="Shelf Life Value"
+            label={t("solutionMaster.general.shelfLifeLabel")}
             type="number"
             value={shelfLifeValue}
             onChange={(e) => onShelfLifeValueChange(e.target.value)}
@@ -165,51 +167,51 @@ export function SolutionGeneralSection({
             slotProps={{ htmlInput: { min: "1", step: "1" } }}
           />
           <FormControl size="small" sx={{ width: 130 }} required>
-            <InputLabel id="shelf-life-unit-select-label">Unit</InputLabel>
+            <InputLabel id="shelf-life-unit-select-label">{t("solutionMaster.general.unitLabel")}</InputLabel>
             <Select
               labelId="shelf-life-unit-select-label"
-              label="Unit"
+              label={t("solutionMaster.general.unitLabel")}
               value={shelfLifeUnit}
               onChange={(e) => onShelfLifeUnitChange(e.target.value as ShelfLifeUnit)}
             >
               {SHELF_LIFE_UNIT_OPTIONS.map((u) => (
                 <MenuItem key={u.value} value={u.value}>
-                  {u.label}
+                  {t(`solutionMaster.general.shelfLifeUnits.${u.value}`, { defaultValue: u.label })}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <TextField
-            label="Final Volume (mL)"
+            label={t("solutionMaster.general.finalVolumeLabel")}
             type="number"
             value={finalVolumeMl}
             onChange={(e) => onFinalVolumeMlChange(e.target.value)}
             required
             size="small"
             fullWidth
-            placeholder="e.g. 1000"
+            placeholder={t("solutionMaster.general.finalVolumePlaceholder")}
             slotProps={{ htmlInput: { min: "0.1", step: "any" } }}
             error={!!errors.finalVolume}
-            helperText={errors.finalVolume ?? "Nominal total prepared volume in mL"}
+            helperText={errors.finalVolume ?? t("solutionMaster.general.finalVolumeHelper")}
           />
         </Stack>
 
         <TextField
-          label="Storage Condition"
+          label={t("solutionMaster.general.storageLabel")}
           value={storageCondition}
           onChange={(e) => onStorageConditionChange(e.target.value)}
           required
           fullWidth
           size="small"
-          placeholder="e.g. Store at 20-25°C in amber glass bottle"
+          placeholder={t("solutionMaster.general.storagePlaceholder")}
           error={!!errors.storage}
-          helperText={errors.storage ?? "Temperature, container, and light protection requirements"}
+          helperText={errors.storage ?? t("solutionMaster.general.storageHelper")}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
 
         <TextField
-          label="Preparation Instructions"
+          label={t("solutionMaster.general.instructionsLabel")}
           value={instructions}
           onChange={(e) => onInstructionsChange(e.target.value)}
           required
@@ -217,9 +219,9 @@ export function SolutionGeneralSection({
           multiline
           rows={3}
           size="small"
-          placeholder="Step-by-step preparation protocol, sonication, degassing, and filtering requirements..."
+          placeholder={t("solutionMaster.general.instructionsPlaceholder")}
           error={!!errors.instructions}
-          helperText={errors.instructions ?? "Detailed SOP instructions for the laboratory analyst"}
+          helperText={errors.instructions ?? t("solutionMaster.general.instructionsHelper")}
           sx={{ gridColumn: { xs: "1", sm: "span 2" } }}
         />
       </Box>

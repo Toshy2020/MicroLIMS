@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
+import { i18n } from "../../../../i18n";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
 import { masterDataUsageService } from "../../../../services/masterDataUsageService";
@@ -291,5 +292,18 @@ describe("EquipmentWizard", () => {
     expect(call[1]).toMatchObject({ location: "Room 202" });
     expect(call[2]).toBe(3);
     expect(call[3]).toBe("Moved to Room 202");
+  });
+
+  it("renders wizard title and step labels in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["common", "masterData"]);
+    try {
+      renderWizard();
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByText("إضافة معدات")).toBeTruthy();
+      expect(within(dialog).getByLabelText(/^اسم المعدات/)).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

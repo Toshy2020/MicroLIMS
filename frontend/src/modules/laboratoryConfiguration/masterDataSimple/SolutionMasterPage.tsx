@@ -20,6 +20,7 @@ import ScaleOutlinedIcon from "@mui/icons-material/ScaleOutlined";
 import { LabPage, FilterBar, RegisterTable, RegisterColumn } from "../../../components/lab";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import {
   SolutionMasterService,
   SolutionMaster,
@@ -35,6 +36,7 @@ import { SolutionMasterDialog } from "./solutionMaster/SolutionMasterDialog";
 import { ReasonDialog } from "./solutionMaster/ReasonDialog";
 
 export function SolutionMasterPage() {
+  const { t } = useTranslation("masterData");
   const { sections, sectionName } = useLaboratorySections();
 
   const [solutions, setSolutions] = useState<SolutionMaster[]>([]);
@@ -86,11 +88,11 @@ export function SolutionMasterPage() {
     } catch (err: unknown) {
       console.error("Failed to load solution masters:", err);
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not load solution masters.");
+      setError(errorObj.response?.data?.message ?? errorObj.message ?? t("solutionMasterPage.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -116,7 +118,7 @@ export function SolutionMasterPage() {
     if (!solutionToToggle) return;
     const trimmedReason = toggleReason.trim();
     if (!trimmedReason) {
-      setToggleError("A reason is required to activate or deactivate a solution master.");
+      setToggleError(t("solutionMasterPage.toggleReasonRequired"));
       return;
     }
 
@@ -130,12 +132,16 @@ export function SolutionMasterPage() {
         trimmedReason,
         solutionToToggle.version
       );
-      toast.success(`Solution master "${solutionToToggle.name}" ${nextActive ? "activated" : "deactivated"}.`);
+      toast.success(
+        nextActive
+          ? t("solutionMasterPage.toggledToast_activated", { name: solutionToToggle.name })
+          : t("solutionMasterPage.toggledToast_deactivated", { name: solutionToToggle.name })
+      );
       setSolutionToToggle(null);
       await loadData();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setToggleError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not update solution status.");
+      setToggleError(errorObj.response?.data?.message ?? errorObj.message ?? t("solutionMasterPage.toggleError"));
     } finally {
       setTogglingActive(false);
     }
@@ -171,20 +177,20 @@ export function SolutionMasterPage() {
     const fromHook = sectionName(secId);
     if (fromHook) return fromHook;
     const foundSec = sections.find((s) => s.sectionId === secId);
-    return foundSec?.sectionName ?? `Section #${secId}`;
+    return foundSec?.sectionName ?? t("solutionMasterPage.sectionFallback", { id: secId });
   };
 
   const renderTypeChip = (type: SolutionType) => {
     switch (type) {
       case "MobilePhase":
-        return <Chip icon={<WavesOutlinedIcon fontSize="small" />} label="Mobile Phase" size="small" color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
+        return <Chip icon={<WavesOutlinedIcon fontSize="small" />} label={t("solutionMasterPage.types.MobilePhase")} size="small" color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Diluent":
-        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label="Diluent" size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
+        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label={t("solutionMasterPage.types.Diluent")} size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Titrant":
-        return <Chip icon={<ScaleOutlinedIcon fontSize="small" />} label="Titrant" size="small" color="info" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
+        return <Chip icon={<ScaleOutlinedIcon fontSize="small" />} label={t("solutionMasterPage.types.Titrant")} size="small" color="info" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       case "Reagent":
       case "Neutralizer":
-        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label={type} size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
+        return <Chip icon={<OpacityOutlinedIcon fontSize="small" />} label={t(`solutionMasterPage.types.${type}`)} size="small" color="secondary" variant="outlined" sx={{ fontSize: 12, fontWeight: 600 }} />;
       default:
         return <Chip label={type} size="small" variant="outlined" sx={{ fontSize: 12 }} />;
     }
@@ -192,14 +198,14 @@ export function SolutionMasterPage() {
 
   const addButton = (
     <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenAdd} sx={{ fontWeight: 600, textTransform: "none" }}>
-      Add Solution
+      {t("solutionMasterPage.addSolution")}
     </Button>
   );
 
   const tableColumns: RegisterColumn<SolutionMaster>[] = [
     {
       key: "name",
-      label: "Name",
+      label: t("solutionMasterPage.columns.name"),
       sortable: true,
       render: (sol) => (
         <>
@@ -207,32 +213,34 @@ export function SolutionMasterPage() {
           <Stack useFlexGap direction="row" spacing={1} sx={{ mt: 0.5, flexWrap: "wrap" }}>
             {sol.phTarget != null && (
               <Typography variant="caption" color="text.secondary">
-                pH {sol.phTarget}{sol.phTolerance != null ? ` ± ${sol.phTolerance}` : ""}
+                {sol.phTolerance != null
+                  ? t("solutionMasterPage.phSpecTolerance", { target: sol.phTarget, tolerance: sol.phTolerance })
+                  : t("solutionMasterPage.phSpec", { target: sol.phTarget })}
               </Typography>
             )}
             {sol.type === "Titrant" && sol.nominalStrength != null && (
               <Typography variant="caption" color="text.secondary">
-                • {sol.nominalStrength} {sol.strengthUnit === "Molar" ? "M" : sol.strengthUnit === "MgWaterPerMl" ? "mg H2O/mL" : "N"} ({sol.standardizationMode === "PrimaryStandard" ? "Primary Standard" : "vs Volumetric Solution"})
+                • {sol.nominalStrength} {sol.strengthUnit === "Molar" ? "M" : sol.strengthUnit === "MgWaterPerMl" ? "mg H2O/mL" : "N"} ({sol.standardizationMode === "PrimaryStandard" ? t("solutionMasterPage.primaryStandard") : t("solutionMasterPage.vsVolumetricSolution")})
               </Typography>
             )}
           </Stack>
           {(sol.sterilizationRequired || sol.releaseRequired) && (
             <Stack useFlexGap direction="row" spacing={0.5} sx={{ mt: 0.5, flexWrap: "wrap" }}>
               {sol.sterilizationRequired && (
-                <Chip label="Autoclave" size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
+                <Chip label={t("solutionMasterPage.autoclaveBadge")} size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
               )}
               {sol.releaseRequired && (
-                <Chip label="Release" size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
+                <Chip label={t("solutionMasterPage.releaseBadge")} size="small" variant="outlined" sx={{ fontSize: 11, height: 20 }} />
               )}
             </Stack>
           )}
         </>
       )
     },
-    { key: "type", label: "Type", sortable: true, render: (sol) => renderTypeChip(sol.type) },
+    { key: "type", label: t("solutionMasterPage.columns.type"), sortable: true, render: (sol) => renderTypeChip(sol.type) },
     {
       key: "shelfLife",
-      label: "Shelf Life",
+      label: t("solutionMasterPage.columns.shelfLife"),
       render: (sol) => (
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
           {sol.shelfLifeValue} {sol.shelfLifeUnit}
@@ -241,18 +249,18 @@ export function SolutionMasterPage() {
     },
     {
       key: "finalVolumeMl",
-      label: "Final Volume",
+      label: t("solutionMasterPage.columns.finalVolume"),
       sortable: true,
       sortValue: (sol) => Number(sol.finalVolumeMl),
       render: (sol) => (
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {Number(sol.finalVolumeMl).toLocaleString()} mL
+          {t("solutionMasterPage.finalVolumeValue", { value: Number(sol.finalVolumeMl).toLocaleString() })}
         </Typography>
       )
     },
     {
       key: "components",
-      label: "Components",
+      label: t("solutionMasterPage.columns.components"),
       sortValue: (sol) => sol.components.length,
       render: (sol) => (
         <Tooltip
@@ -260,14 +268,14 @@ export function SolutionMasterPage() {
           title={
             <Box sx={{ p: 0.5 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-                Recipe Breakdown:
+                {t("solutionMasterPage.recipeBreakdown")}
               </Typography>
               {sol.components.map((c, i) => (
                 <Typography key={c.id ?? i} variant="caption" sx={{ display: "block" }}>
                   {c.kind === "Text"
                     ? `• ${c.text}`
                     : c.kind === "PreparedSolution"
-                      ? `• Prepared ${c.sourceSolutionName}: ${c.quantity} ${c.unit}`
+                      ? t("solutionMasterPage.preparedComponent", { name: c.sourceSolutionName, quantity: c.quantity, unit: c.unit })
                       : `• ${c.entryCode} - ${c.entryName}: ${c.quantity} ${c.unit}`}
                 </Typography>
               ))}
@@ -275,7 +283,7 @@ export function SolutionMasterPage() {
           }
         >
           <Chip
-            label={`${sol.components.length} ${sol.components.length === 1 ? "component" : "components"}`}
+            label={t("solutionMasterPage.componentsCount", { count: sol.components.length })}
             size="small"
             variant="outlined"
             sx={{ fontSize: 12, cursor: "pointer" }}
@@ -285,7 +293,7 @@ export function SolutionMasterPage() {
     },
     {
       key: "section",
-      label: "Section",
+      label: t("solutionMasterPage.columns.section"),
       sortable: true,
       sortValue: (sol) => resolveSectionDisplay(sol.sectionId, sol.sectionName),
       render: (sol) => (
@@ -294,10 +302,10 @@ export function SolutionMasterPage() {
     },
     {
       key: "isActive",
-      label: "Status",
+      label: t("solutionMasterPage.columns.status"),
       sortable: true,
       sortValue: (sol) => (sol.isActive ? 0 : 1),
-      render: (sol) => <StatusBadge status={sol.isActive ? "Active" : "Inactive"} />
+      render: (sol) => <StatusBadge status={sol.isActive ? "Active" : "Inactive"} label={sol.isActive ? t("common.active") : t("common.inactive")} />
     }
   ];
 
@@ -306,56 +314,56 @@ export function SolutionMasterPage() {
 
   return (
     <LabPage
-      title="Solutions Master"
-      subtitle="Manage master recipes for mobile phases, diluents, and volumetric titrants including component stoichiometry, shelf life, pH specifications, and standardization criteria."
+      title={t("solutionMasterPage.title")}
+      subtitle={t("solutionMasterPage.subtitle")}
       actions={addButton}
       filters={
         <FilterBar
           search={searchQuery}
           onSearch={setSearchQuery}
-          placeholder="Search name, recipe, storage, instructions..."
+          placeholder={t("solutionMasterPage.searchPlaceholder")}
           resultCount={filteredSolutions.length}
           onRefresh={loadData}
           refreshing={loading}
         >
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="solution-type-filter-label">Type</InputLabel>
+            <InputLabel id="solution-type-filter-label">{t("solutionMasterPage.typeLabel")}</InputLabel>
             <Select
               labelId="solution-type-filter-label"
-              label="Type"
+              label={t("solutionMasterPage.typeLabel")}
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as "ALL" | SolutionType)}
             >
-              <MenuItem value="ALL">All Types</MenuItem>
-              <MenuItem value="MobilePhase">Mobile Phase</MenuItem>
-              <MenuItem value="Diluent">Diluent</MenuItem>
-              <MenuItem value="Reagent">Reagent</MenuItem>
-              <MenuItem value="Neutralizer">Neutralizer</MenuItem>
-              <MenuItem value="Titrant">Titrant</MenuItem>
+              <MenuItem value="ALL">{t("solutionMasterPage.allTypes")}</MenuItem>
+              <MenuItem value="MobilePhase">{t("solutionMasterPage.types.MobilePhase")}</MenuItem>
+              <MenuItem value="Diluent">{t("solutionMasterPage.types.Diluent")}</MenuItem>
+              <MenuItem value="Reagent">{t("solutionMasterPage.types.Reagent")}</MenuItem>
+              <MenuItem value="Neutralizer">{t("solutionMasterPage.types.Neutralizer")}</MenuItem>
+              <MenuItem value="Titrant">{t("solutionMasterPage.types.Titrant")}</MenuItem>
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 150 }}>
-            <InputLabel id="solution-status-filter-label">Status</InputLabel>
+            <InputLabel id="solution-status-filter-label">{t("common.status")}</InputLabel>
             <Select
               labelId="solution-status-filter-label"
-              label="Status"
+              label={t("common.status")}
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as "ALL" | "ACTIVE" | "INACTIVE")}
             >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="ACTIVE">Active Only</MenuItem>
-              <MenuItem value="INACTIVE">Inactive Only</MenuItem>
+              <MenuItem value="ALL">{t("common.allStatuses")}</MenuItem>
+              <MenuItem value="ACTIVE">{t("common.activeOnly")}</MenuItem>
+              <MenuItem value="INACTIVE">{t("common.inactiveOnly")}</MenuItem>
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel id="solution-section-filter-label">Section</InputLabel>
+            <InputLabel id="solution-section-filter-label">{t("common.section")}</InputLabel>
             <Select
               labelId="solution-section-filter-label"
-              label="Section"
+              label={t("common.section")}
               value={sectionFilter}
               onChange={(e) => setSectionFilter(e.target.value)}
             >
-              <MenuItem value="ALL">All Sections</MenuItem>
+              <MenuItem value="ALL">{t("common.allSections")}</MenuItem>
               {sections.map((sec) => (
                 <MenuItem key={sec.sectionId} value={String(sec.sectionId)}>
                   {sec.sectionName}
@@ -375,17 +383,17 @@ export function SolutionMasterPage() {
         loading={loading}
         onRowClick={handleOpenEdit}
         rowActions={(sol) => [
-          { label: "Edit", onClick: () => handleOpenEdit(sol) },
+          { label: t("common.edit"), onClick: () => handleOpenEdit(sol) },
           sol.isActive
-            ? { label: "Deactivate", onClick: () => handleOpenToggleActive(sol), danger: true }
-            : { label: "Activate", onClick: () => handleOpenToggleActive(sol) }
+            ? { label: t("common.deactivate"), onClick: () => handleOpenToggleActive(sol), danger: true }
+            : { label: t("common.activate"), onClick: () => handleOpenToggleActive(sol) }
         ]}
         empty={
           filtersActive
-            ? { title: "No solution masters found", description: "Try adjusting your search or filters." }
+            ? { title: t("solutionMasterPage.emptyFilteredTitle"), description: t("solutionMasterPage.emptyFilteredDesc") }
             : {
-                title: "No solution masters found",
-                description: "Register your first mobile phase, diluent, or titrant master.",
+                title: t("solutionMasterPage.emptyTitle"),
+                description: t("solutionMasterPage.emptyDesc"),
                 action: addButton
               }
         }
@@ -407,24 +415,24 @@ export function SolutionMasterPage() {
       {/* Activate / Deactivate Confirmation Dialog with Reason */}
       <ReasonDialog
         open={Boolean(solutionToToggle)}
-        title={solutionToToggle?.isActive ? "Deactivate Solution Master" : "Activate Solution Master"}
+        title={solutionToToggle?.isActive ? t("solutionMasterPage.deactivateTitle") : t("solutionMasterPage.activateTitle")}
         onClose={() => { if (!togglingActive) setSolutionToToggle(null); }}
         onConfirm={handleConfirmToggleActive}
-        confirmText={solutionToToggle?.isActive ? "Deactivate Solution" : "Activate Solution"}
+        confirmText={solutionToToggle?.isActive ? t("solutionMasterPage.deactivateConfirm") : t("solutionMasterPage.activateConfirm")}
         confirmColor={solutionToToggle?.isActive ? "error" : "success"}
         loading={togglingActive}
-        loadingText="Updating..."
+        loadingText={t("common.updating")}
         error={toggleError}
         reason={toggleReason}
         onReasonChange={setToggleReason}
-        label="Reason *"
-        placeholder={solutionToToggle?.isActive ? "State the operational reason for deactivating this solution master..." : "State the operational reason for activating this solution master..."}
+        label={t("solutionMasterPage.reasonLabel")}
+        placeholder={solutionToToggle?.isActive ? t("solutionMasterPage.deactivatePlaceholder") : t("solutionMasterPage.activatePlaceholder")}
         disabled={!toggleReason.trim() || togglingActive}
       >
         <Alert severity={solutionToToggle?.isActive ? "warning" : "info"} sx={{ fontSize: 13 }}>
           {solutionToToggle?.isActive
-            ? `Are you sure you want to deactivate "${solutionToToggle?.name}"? Inactive solution masters cannot be selected for new preparations.`
-            : `Are you sure you want to activate "${solutionToToggle?.name}"?`}
+            ? t("solutionMasterPage.deactivateMessage", { name: solutionToToggle?.name ?? "" })
+            : t("solutionMasterPage.activateMessage", { name: solutionToToggle?.name ?? "" })}
         </Alert>
       </ReasonDialog>
     </LabPage>

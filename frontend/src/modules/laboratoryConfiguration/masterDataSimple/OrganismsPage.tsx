@@ -4,6 +4,7 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { LabPage, FilterBar, RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { useOrganisms, OrganismOption } from "../../../hooks/useOrganisms";
 import { ReferenceOrganismsSection } from "./ReferenceOrganismsSection";
@@ -14,6 +15,7 @@ import { ReferenceOrganismsSection } from "./ReferenceOrganismsSection";
 // fixes MediaEvaluationEngine.EnsureCryovialFitsChallengeAsync's organism matching:
 // comparing OrganismId (int) instead of free-typed OrganismName strings.
 export function OrganismsPage() {
+  const { t } = useTranslation("masterData");
   const { options, addNew, update, remove } = useOrganisms();
   const [scientificName, setScientificName] = useState("");
   const [atccNumber, setAtccNumber] = useState("");
@@ -34,13 +36,13 @@ export function OrganismsPage() {
   }, [options, search]);
 
   const columns: RegisterColumn<OrganismOption>[] = [
-    { key: "scientificName", label: "Scientific Name", sortable: true },
-    { key: "atccNumber", label: "ATCC No.", sortable: true, render: (o) => <span style={{ fontFamily: monospaceFontFamily }}>{o.atccNumber ?? "—"}</span> },
-    { key: "commonName", label: "Common Name", sortable: true, render: (o) => o.commonName ?? "—" },
+    { key: "scientificName", label: t("organisms.columns.scientificName"), sortable: true },
+    { key: "atccNumber", label: t("organisms.columns.atccNumber"), sortable: true, render: (o) => <span style={{ fontFamily: monospaceFontFamily }}>{o.atccNumber ?? t("common.dash")}</span> },
+    { key: "commonName", label: t("organisms.columns.commonName"), sortable: true, render: (o) => o.commonName ?? t("common.dash") },
     {
       key: "description",
-      label: "Description",
-      render: (o) => <span style={{ display: "block", maxWidth: 320, whiteSpace: "normal", wordBreak: "break-word" }}>{o.description ?? "—"}</span>
+      label: t("organisms.columns.description"),
+      render: (o) => <span style={{ display: "block", maxWidth: 320, whiteSpace: "normal", wordBreak: "break-word" }}>{o.description ?? t("common.dash")}</span>
     }
   ];
 
@@ -58,20 +60,21 @@ export function OrganismsPage() {
   const save = async () => {
     setMessage(null);
     if (!scientificName) {
-      setMessage({ text: "Scientific Name is required.", ok: false });
+      setMessage({ text: t("organisms.scientificNameRequired"), ok: false });
       return;
     }
     try {
       if (editingId) {
         await update(editingId, scientificName, atccNumber || null, commonName || null, description || null);
-        setMessage({ text: `Organism "${scientificName}" updated.`, ok: true });
+        setMessage({ text: t("organisms.updatedMsg", { name: scientificName }), ok: true });
       } else {
         await addNew(scientificName, atccNumber || null, commonName || null, description || null);
-        setMessage({ text: `Organism "${scientificName}" added.`, ok: true });
+        setMessage({ text: t("organisms.addedMsg", { name: scientificName }), ok: true });
       }
       cancelEdit();
-    } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? `Could not ${editingId ? "update" : "add"} this organism.`, ok: false });
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setMessage({ text: err?.response?.data?.message ?? (editingId ? t("organisms.updateError") : t("organisms.addError")), ok: false });
     }
   };
 
@@ -80,21 +83,22 @@ export function OrganismsPage() {
     try {
       await remove(o.id);
       setPendingDelete(null);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       setPendingDelete(null);
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this organism.", ok: false });
+      setMessage({ text: err?.response?.data?.message ?? t("organisms.deleteError"), ok: false });
     }
   };
 
   return (
     <>
       <LabPage
-        title="Organisms"
-        subtitle="The canonical organism list referenced by Media Challenge Specs, Materials, and Cryovials."
+        title={t("organisms.title")}
+        subtitle={t("organisms.subtitle")}
       >
         <Tabs value={tab} onChange={(_, v) => setTab(v)}>
-          <Tab value="species" label="Species" />
-          <Tab value="strains" label="Reference organisms" />
+          <Tab value="species" label={t("organisms.tabs.species")} />
+          <Tab value="strains" label={t("organisms.tabs.strains")} />
         </Tabs>
 
         {tab === "strains" && <ReferenceOrganismsSection species={options} />}
@@ -103,7 +107,7 @@ export function OrganismsPage() {
 
         {tab === "species" && <>
         <div>
-          <SectionTitle>{editingId ? "Edit Organism" : "Add Organism"}</SectionTitle>
+          <SectionTitle>{editingId ? t("organisms.editTitle") : t("organisms.addTitle")}</SectionTitle>
           <Paper sx={{ p: 2.5 }}>
             <Stack useFlexGap
               direction="row"
@@ -112,12 +116,12 @@ export function OrganismsPage() {
                 flexWrap: "wrap",
                 alignItems: "center"
               }}>
-              <TextField size="small" label="Scientific Name" placeholder="e.g. Escherichia coli" value={scientificName} onChange={(e) => setScientificName(e.target.value)} sx={{ minWidth: 240 }} />
-              <TextField size="small" label="ATCC No." placeholder="e.g. 25922" value={atccNumber} onChange={(e) => setAtccNumber(e.target.value)} sx={{ minWidth: 160 }} />
-              <TextField size="small" label="Common Name (optional)" value={commonName} onChange={(e) => setCommonName(e.target.value)} sx={{ minWidth: 200 }} />
-              <TextField size="small" label="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)} sx={{ minWidth: 260, flex: 1 }} />
-              {editingId && <Button onClick={cancelEdit}>Cancel</Button>}
-              <Button variant="contained" onClick={save}>{editingId ? "Save Changes" : "Add Organism"}</Button>
+              <TextField size="small" label={t("organisms.scientificNameLabel")} placeholder={t("organisms.scientificNamePlaceholder")} value={scientificName} onChange={(e) => setScientificName(e.target.value)} sx={{ minWidth: 240 }} />
+              <TextField size="small" label={t("organisms.atccLabel")} placeholder={t("organisms.atccPlaceholder")} value={atccNumber} onChange={(e) => setAtccNumber(e.target.value)} sx={{ minWidth: 160 }} />
+              <TextField size="small" label={t("organisms.commonNameLabel")} value={commonName} onChange={(e) => setCommonName(e.target.value)} sx={{ minWidth: 200 }} />
+              <TextField size="small" label={t("organisms.descriptionLabel")} value={description} onChange={(e) => setDescription(e.target.value)} sx={{ minWidth: 260, flex: 1 }} />
+              {editingId && <Button onClick={cancelEdit}>{t("common.cancel")}</Button>}
+              <Button variant="contained" onClick={save}>{editingId ? t("common.saveChanges") : t("organisms.addButton")}</Button>
             </Stack>
           </Paper>
         </div>
@@ -125,7 +129,7 @@ export function OrganismsPage() {
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search by name, ATCC no., description..."
+          placeholder={t("organisms.searchPlaceholder")}
           resultCount={visible.length}
         />
 
@@ -134,13 +138,13 @@ export function OrganismsPage() {
           rows={visible}
           getRowId={(o) => o.id}
           rowActions={(o) => [
-            { label: "Edit", onClick: () => startEdit(o) },
-            { label: "Delete", danger: true, onClick: () => setPendingDelete(o) }
+            { label: t("common.edit"), onClick: () => startEdit(o) },
+            { label: t("organisms.deleteAction"), danger: true, onClick: () => setPendingDelete(o) }
           ]}
           empty={
             search.trim()
-              ? { title: "No organisms match the search", description: "Clear the search to see all organisms." }
-              : { title: "No organisms yet", description: "Add the first organism using the form above." }
+              ? { title: t("organisms.emptyMatchingTitle"), description: t("organisms.emptyMatchingDesc") }
+              : { title: t("organisms.emptyTitle"), description: t("organisms.emptyDesc") }
           }
         />
         </>}
@@ -148,7 +152,7 @@ export function OrganismsPage() {
 
       <ConfirmationDialog
         open={pendingDelete != null}
-        message={pendingDelete ? `Delete organism "${pendingDelete.scientificName}"? This cannot be undone.` : ""}
+        message={pendingDelete ? t("organisms.deleteConfirm", { name: pendingDelete.scientificName }) : ""}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => pendingDelete && deleteOrganism(pendingDelete)}
       />

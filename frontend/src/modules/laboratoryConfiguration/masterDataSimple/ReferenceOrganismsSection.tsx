@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Button, Chip } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { toast } from "sonner";
+import { useTranslation } from "../../../i18n";
 import { FilterBar, RegisterTable } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
@@ -17,6 +18,7 @@ import { ChangeReferenceOrganismCodeDialog } from "./ChangeReferenceOrganismCode
 // Reference strains (culture collection + strain number) under the organism species list.
 // Lyophilized stock lots and cryovials are received against a strain.
 export function ReferenceOrganismsSection({ species }: { species: OrganismOption[] }) {
+  const { t } = useTranslation("masterData");
   const { permissions } = useAuth();
   const canManage = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
   const { sections } = useLaboratorySections();
@@ -36,11 +38,11 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
       setStrains(await ReferenceOrganismService.getAll());
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load reference organisms.");
+      setError(e.response?.data?.message ?? e.message ?? t("referenceOrganisms.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -53,16 +55,16 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
   }, [strains, search]);
 
   const columns: RegisterColumn<ReferenceOrganism>[] = [
-    { key: "code", label: "Code", sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily }}>{s.code}</span> },
-    { key: "organismScientificName", label: "Species", sortable: true, render: (s) => s.organismScientificName ?? "—" },
-    { key: "cultureCollection", label: "Collection", sortable: true },
-    { key: "strainNumber", label: "Strain No.", sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily }}>{s.strainNumber ?? "—"}</span> },
-    { key: "ownerSectionName", label: "Owner Lab", sortable: true, render: (s) => s.ownerSectionName ?? s.ownerSectionCode ?? "—" },
+    { key: "code", label: t("referenceOrganisms.columns.code"), sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily }}>{s.code}</span> },
+    { key: "organismScientificName", label: t("referenceOrganisms.columns.species"), sortable: true, render: (s) => s.organismScientificName ?? t("common.dash") },
+    { key: "cultureCollection", label: t("referenceOrganisms.columns.collection"), sortable: true },
+    { key: "strainNumber", label: t("referenceOrganisms.columns.strainNumber"), sortable: true, render: (s) => <span style={{ fontFamily: monospaceFontFamily }}>{s.strainNumber ?? t("common.dash")}</span> },
+    { key: "ownerSectionName", label: t("referenceOrganisms.columns.ownerLab"), sortable: true, render: (s) => s.ownerSectionName ?? s.ownerSectionCode ?? t("common.dash") },
     {
       key: "isActive",
-      label: "Status",
+      label: t("referenceOrganisms.columns.status"),
       sortable: true,
-      render: (s) => <Chip label={s.isActive ? "Active" : "Inactive"} size="small" color={s.isActive ? "success" : "default"} variant="outlined" sx={{ fontSize: 12 }} />
+      render: (s) => <Chip label={s.isActive ? t("common.active") : t("common.inactive")} size="small" color={s.isActive ? "success" : "default"} variant="outlined" sx={{ fontSize: 12 }} />
     }
   ];
 
@@ -71,19 +73,23 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
     const next = !toToggle.isActive;
     try {
       await ReferenceOrganismService.setActive(toToggle.id, next);
-      toast.success(`Reference organism "${toToggle.code}" ${next ? "activated" : "deactivated"}.`);
+      toast.success(
+        next
+          ? t("referenceOrganisms.toggledToast_activated", { code: toToggle.code })
+          : t("referenceOrganisms.toggledToast_deactivated", { code: toToggle.code })
+      );
       setToToggle(null);
       await load();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       setToToggle(null);
-      toast.error(e.response?.data?.message ?? e.message ?? "Could not update the reference organism status.");
+      toast.error(e.response?.data?.message ?? e.message ?? t("referenceOrganisms.toggleError"));
     }
   };
 
   const addButton = canManage ? (
     <Button variant="contained" startIcon={<AddIcon />} onClick={() => { setEditing(null); setDialogOpen(true); }}>
-      Add Reference Organism
+      {t("referenceOrganisms.addButton")}
     </Button>
   ) : undefined;
 
@@ -93,7 +99,7 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
       <FilterBar
         search={search}
         onSearch={setSearch}
-        placeholder="Search by code, species, collection, strain no...."
+        placeholder={t("referenceOrganisms.searchPlaceholder")}
         resultCount={visible.length}
         onRefresh={load}
         refreshing={loading}
@@ -107,16 +113,16 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
         getRowId={(s) => s.id}
         loading={loading}
         rowActions={(s) => [
-          { label: "Edit", onClick: () => { setEditing(s); setDialogOpen(true); }, disabled: !canManage || !s.canEdit },
-          ...(s.hasStock ? [{ label: "Change code", onClick: () => setToRecode(s), disabled: !canManage || !s.canEdit }] : []),
+          { label: t("common.edit"), onClick: () => { setEditing(s); setDialogOpen(true); }, disabled: !canManage || !s.canEdit },
+          ...(s.hasStock ? [{ label: t("referenceOrganisms.changeCodeAction"), onClick: () => setToRecode(s), disabled: !canManage || !s.canEdit }] : []),
           s.isActive
-            ? { label: "Deactivate", onClick: () => setToToggle(s), danger: true, disabled: !canManage || !s.canEdit }
-            : { label: "Activate", onClick: () => setToToggle(s), disabled: !canManage || !s.canEdit }
+            ? { label: t("common.deactivate"), onClick: () => setToToggle(s), danger: true, disabled: !canManage || !s.canEdit }
+            : { label: t("common.activate"), onClick: () => setToToggle(s), disabled: !canManage || !s.canEdit }
         ]}
         empty={
           search.trim()
-            ? { title: "No reference organisms match the search", description: "Clear the search to see all strains." }
-            : { title: "No reference organisms yet", description: "Add the first strain (species + culture collection + strain number).", action: addButton }
+            ? { title: t("referenceOrganisms.emptyMatchingTitle"), description: t("referenceOrganisms.emptyMatchingDesc") }
+            : { title: t("referenceOrganisms.emptyTitle"), description: t("referenceOrganisms.emptyDesc"), action: addButton }
         }
       />
 
@@ -133,19 +139,19 @@ export function ReferenceOrganismsSection({ species }: { species: OrganismOption
         open={Boolean(toRecode)}
         strain={toRecode}
         onClose={() => setToRecode(null)}
-        onSuccess={() => { toast.success("Reference organism code changed."); load(); }}
+        onSuccess={() => { toast.success(t("referenceOrganisms.codeChangedToast")); load(); }}
       />
 
       <ConfirmationDialog
         open={Boolean(toToggle)}
-        title={toToggle?.isActive ? "Deactivate Reference Organism" : "Activate Reference Organism"}
+        title={toToggle?.isActive ? t("referenceOrganisms.deactivateTitle") : t("referenceOrganisms.activateTitle")}
         message={
           toToggle?.isActive
-            ? `Deactivate "${toToggle.code} - ${toToggle.name}"? Inactive strains cannot be chosen for new stock lots.`
-            : `Activate "${toToggle?.code} - ${toToggle?.name}"?`
+            ? t("referenceOrganisms.deactivateMessage", { code: toToggle.code, name: toToggle.name })
+            : t("referenceOrganisms.activateMessage", { code: toToggle?.code ?? "", name: toToggle?.name ?? "" })
         }
         destructive={toToggle?.isActive}
-        confirmText={toToggle?.isActive ? "Deactivate" : "Activate"}
+        confirmText={toToggle?.isActive ? t("common.deactivate") : t("common.activate")}
         onConfirm={confirmToggle}
         onCancel={() => setToToggle(null)}
       />

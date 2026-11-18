@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useTranslation } from "react-i18next";
 import { GcOvenStepRowState } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 
@@ -26,6 +27,7 @@ export interface GcOvenProgramTableProps {
 }
 
 export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTableProps) {
+  const { t } = useTranslation("masterData");
   const handleStepChange = (
     index: number,
     field: keyof GcOvenStepRowState,
@@ -72,10 +74,10 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
         <div>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-            Column Oven Temperature Program
+            {t("hplcMethod.gc.oven.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Step 1 specifies the initial temperature (no ramp rate). Subsequent steps ramp at a set rate (°C/min) to target temperature with a dwell/hold time.
+            {t("hplcMethod.gc.oven.subtitle")}
           </Typography>
         </div>
         <Button
@@ -85,7 +87,7 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
           onClick={handleAddStep}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          Add Ramp Step
+          {t("hplcMethod.gc.oven.addStep")}
         </Button>
       </Stack>
 
@@ -99,10 +101,10 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ fontWeight: 600, width: 70 }}>Step</TableCell>
-              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>Ramp Rate (°C/min)</TableCell>
-              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>Temperature (°C) *</TableCell>
-              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>Hold Time (min) *</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 70 }}>{t("hplcMethod.gc.oven.columns.step")}</TableCell>
+              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>{t("hplcMethod.gc.oven.columns.rampRate")}</TableCell>
+              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>{t("hplcMethod.gc.oven.columns.temperature")}</TableCell>
+              <TableCell sx={{ fontWeight: 600, minWidth: 140 }}>{t("hplcMethod.gc.oven.columns.holdTime")}</TableCell>
               <TableCell align="right" sx={{ width: 60 }} />
             </TableRow>
           </TableHead>
@@ -116,18 +118,18 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
               return (
                 <TableRow key={idx}>
                   <TableCell sx={{ fontWeight: 600 }}>
-                    {isInitial ? "1 (Initial)" : idx + 1}
+                    {isInitial ? t("hplcMethod.gc.oven.initialStep") : idx + 1}
                   </TableCell>
                   <TableCell>
                     {isInitial ? (
                       <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic", pl: 1 }}>
-                        Initial (no ramp)
+                        {t("hplcMethod.gc.oven.initialNoRamp")}
                       </Typography>
                     ) : (
                       <TextField
                         size="small"
                         type="number"
-                        placeholder="e.g. 10"
+                        placeholder={t("hplcMethod.gc.oven.rampPlaceholder")}
                         value={step.rateCPerMin}
                         onChange={(e) => handleStepChange(idx, "rateCPerMin", e.target.value)}
                         error={Boolean(rateErr)}
@@ -141,7 +143,7 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
                     <TextField
                       size="small"
                       type="number"
-                      placeholder={isInitial ? "e.g. 40" : "e.g. 240"}
+                      placeholder={isInitial ? t("hplcMethod.gc.oven.tempInitialPlaceholder") : t("hplcMethod.gc.oven.tempRampPlaceholder")}
                       value={step.temperatureC}
                       onChange={(e) => handleStepChange(idx, "temperatureC", e.target.value)}
                       error={Boolean(tempErr)}
@@ -154,7 +156,7 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
                     <TextField
                       size="small"
                       type="number"
-                      placeholder="e.g. 5"
+                      placeholder={t("hplcMethod.gc.oven.holdPlaceholder")}
                       value={step.holdMin}
                       onChange={(e) => handleStepChange(idx, "holdMin", e.target.value)}
                       error={Boolean(holdErr)}
@@ -164,14 +166,14 @@ export function GcOvenProgramTable({ steps, errors, onChange }: GcOvenProgramTab
                     />
                   </TableCell>
                   <TableCell align="right">
-                    <Tooltip title={isInitial ? "Cannot delete initial temperature step" : "Delete step"}>
+                    <Tooltip title={isInitial ? t("hplcMethod.gc.oven.cannotDeleteInitial") : t("hplcMethod.gc.oven.deleteStep")}>
                       <span>
                         <IconButton
                           size="small"
                           color="error"
                           disabled={isInitial || steps.length <= 1}
                           onClick={() => handleRemoveStep(idx)}
-                          aria-label={`Delete oven step ${idx + 1}`}
+                          aria-label={t("hplcMethod.gc.oven.deleteAria", { index: idx + 1 })}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>

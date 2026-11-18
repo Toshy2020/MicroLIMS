@@ -12,6 +12,7 @@ import {
   Autocomplete
 } from "@mui/material";
 import { HplcTechnique, HplcResultMode } from "../services/HplcMethodService";
+import { useTranslation } from "react-i18next";
 import { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { HplcMethodErrors } from "./hplcMethodValidation";
 import { DateField } from "../../../../components/DateField";
@@ -63,6 +64,7 @@ export function HplcGeneralSection({
   onEffectiveDateChange,
   onSectionIdChange
 }: HplcGeneralSectionProps) {
+  const { t } = useTranslation("masterData");
   const isEditing = Boolean(editingId);
   const isGc = technique === "Gc";
 
@@ -73,7 +75,7 @@ export function HplcGeneralSection({
         {isEditing ? (
           <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-              Technique:
+              {t("hplcMethod.general.techniqueColon")}
             </Typography>
             <Chip
               label={technique.toUpperCase()}
@@ -84,15 +86,15 @@ export function HplcGeneralSection({
           </Stack>
         ) : (
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="method-technique-picker-label">Technique *</InputLabel>
+            <InputLabel id="method-technique-picker-label">{t("hplcMethod.general.techniqueLabel")}</InputLabel>
             <Select
               labelId="method-technique-picker-label"
-              label="Technique *"
+              label={t("hplcMethod.general.techniqueLabel")}
               value={technique}
               onChange={(e) => onTechniqueChange?.(e.target.value as HplcTechnique)}
             >
-              <MenuItem value="Hplc">HPLC (Liquid)</MenuItem>
-              <MenuItem value="Gc">GC (Gas)</MenuItem>
+              <MenuItem value="Hplc">{t("hplcMethod.general.techniqueHplc")}</MenuItem>
+              <MenuItem value="Gc">{t("hplcMethod.general.techniqueGc")}</MenuItem>
             </Select>
           </FormControl>
         )}
@@ -101,10 +103,10 @@ export function HplcGeneralSection({
           isEditing ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                Result Mode:
+                {t("hplcMethod.general.resultModeColon")}
               </Typography>
               <Chip
-                label={resultMode === "ResidualSolvents" ? "Residual Solvents" : "Assay"}
+                label={resultMode === "ResidualSolvents" ? t("hplcMethod.general.resultModeResidualSolvents") : t("hplcMethod.general.resultModeAssay")}
                 size="small"
                 variant="outlined"
                 color={resultMode === "ResidualSolvents" ? "warning" : "default"}
@@ -113,15 +115,15 @@ export function HplcGeneralSection({
             </Stack>
           ) : (
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="method-result-mode-picker-label">Result Mode *</InputLabel>
+              <InputLabel id="method-result-mode-picker-label">{t("hplcMethod.general.resultModeLabel")}</InputLabel>
               <Select
                 labelId="method-result-mode-picker-label"
-                label="Result Mode *"
+                label={t("hplcMethod.general.resultModeLabel")}
                 value={resultMode}
                 onChange={(e) => onResultModeChange?.(e.target.value as HplcResultMode)}
               >
-                <MenuItem value="Assay">Assay</MenuItem>
-                <MenuItem value="ResidualSolvents">Residual Solvents</MenuItem>
+                <MenuItem value="Assay">{t("hplcMethod.general.resultModeAssay")}</MenuItem>
+                <MenuItem value="ResidualSolvents">{t("hplcMethod.general.resultModeResidualSolvents")}</MenuItem>
               </Select>
             </FormControl>
           )
@@ -129,15 +131,15 @@ export function HplcGeneralSection({
           isEditing ? (
             <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                Result Mode:
+                {t("hplcMethod.general.resultModeColon")}
               </Typography>
               <Chip
                 label={
                   resultMode === "RelatedSubstances"
-                    ? "Related Substances"
+                    ? t("hplcMethod.general.resultModeRelatedSubstances")
                     : resultMode === "CleaningResidue"
-                    ? "Cleaning residue"
-                    : "Assay"
+                    ? t("hplcMethod.general.resultModeCleaningResidue")
+                    : t("hplcMethod.general.resultModeAssay")
                 }
                 size="small"
                 variant="outlined"
@@ -153,16 +155,16 @@ export function HplcGeneralSection({
             </Stack>
           ) : (
             <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel id="method-result-mode-picker-label">Result Mode *</InputLabel>
+              <InputLabel id="method-result-mode-picker-label">{t("hplcMethod.general.resultModeLabel")}</InputLabel>
               <Select
                 labelId="method-result-mode-picker-label"
-                label="Result Mode *"
+                label={t("hplcMethod.general.resultModeLabel")}
                 value={resultMode}
                 onChange={(e) => onResultModeChange?.(e.target.value as HplcResultMode)}
               >
-                <MenuItem value="Assay">Assay</MenuItem>
-                <MenuItem value="RelatedSubstances">Related Substances</MenuItem>
-                <MenuItem value="CleaningResidue">Cleaning residue</MenuItem>
+                <MenuItem value="Assay">{t("hplcMethod.general.resultModeAssay")}</MenuItem>
+                <MenuItem value="RelatedSubstances">{t("hplcMethod.general.resultModeRelatedSubstances")}</MenuItem>
+                <MenuItem value="CleaningResidue">{t("hplcMethod.general.resultModeCleaningResidue")}</MenuItem>
               </Select>
             </FormControl>
           )
@@ -171,13 +173,13 @@ export function HplcGeneralSection({
         {!isGc && resultMode === "Assay" && (
           <TextField
             size="small"
-            label="Internal standard"
-            placeholder="e.g. p-hydroxybenzoic acid"
+            label={t("hplcMethod.general.internalStandardLabel")}
+            placeholder={t("hplcMethod.general.internalStandardPlaceholder")}
             value={internalStandardName}
             onChange={(e) => onInternalStandardNameChange?.(e.target.value)}
             disabled={isEditing}
             error={Boolean(errors.internalStandardName)}
-            helperText={errors.internalStandardName ?? (isEditing ? "Fixed after creation" : "Optional")}
+            helperText={errors.internalStandardName ?? (isEditing ? t("hplcMethod.general.internalStandardFixed") : t("hplcMethod.general.internalStandardOptional"))}
             sx={{ minWidth: 220 }}
           />
         )}
@@ -190,7 +192,7 @@ export function HplcGeneralSection({
             getOptionLabel={(o) => (typeof o === "string" ? o : o.name ?? "")}
             value={
               finishedProductItems.find((i) => i.id === productItemId) ??
-              (productItemId ? { id: Number(productItemId), name: productItemName || `Product #${productItemId}` } : null)
+              (productItemId ? { id: Number(productItemId), name: productItemName || t("hplcMethod.general.productFallback", { id: productItemId }) } : null)
             }
             onChange={(_, val) => {
               onProductItemIdChange?.(val ? val.id : "");
@@ -199,16 +201,16 @@ export function HplcGeneralSection({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Finished Product *"
-                placeholder="Select Finished Product"
+                label={t("hplcMethod.general.finishedProductLabel")}
+                placeholder={t("hplcMethod.general.finishedProductPlaceholder")}
                 required
                 error={Boolean(errors.productItemId)}
-                helperText={errors.productItemId ?? "Finished product being cleaned"}
+                helperText={errors.productItemId ?? t("hplcMethod.general.finishedProductHelper")}
                 slotProps={{
                   ...params.slotProps,
                   htmlInput: {
                     ...params.slotProps?.htmlInput,
-                    "aria-label": "Finished Product"
+                    "aria-label": t("hplcMethod.general.finishedProductAria")
                   }
                 }}
               />
@@ -227,8 +229,8 @@ export function HplcGeneralSection({
       >
         <TextField
           size="small"
-          label="Method Name *"
-          placeholder={isGc ? "e.g. Residual Solvents by Headspace GC" : "e.g. Paracetamol Assay by HPLC"}
+          label={t("hplcMethod.general.methodNameLabel")}
+          placeholder={isGc ? t("hplcMethod.general.methodNamePlaceholderGc") : t("hplcMethod.general.methodNamePlaceholderHplc")}
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           required
@@ -238,18 +240,18 @@ export function HplcGeneralSection({
         />
         <TextField
           size="small"
-          label="Abbreviation *"
-          placeholder={isGc ? "e.g. RS-GC-01" : "e.g. PARA-ASSAY"}
+          label={t("hplcMethod.general.abbreviationLabel")}
+          placeholder={isGc ? t("hplcMethod.general.abbreviationPlaceholderGc") : t("hplcMethod.general.abbreviationPlaceholderHplc")}
           value={abbreviation}
           onChange={(e) => onAbbreviationChange(e.target.value.toUpperCase())}
           required
           error={Boolean(errors.abbreviation)}
-          helperText={errors.abbreviation ?? "2–20 characters (A–Z, 0–9, -)"}
+          helperText={errors.abbreviation ?? t("hplcMethod.general.abbreviationHelper")}
           slotProps={{ htmlInput: { maxLength: 20 } }}
           fullWidth
         />
         <DateField
-          label="Effective Date *"
+          label={t("hplcMethod.general.effectiveDateLabel")}
           value={effectiveDate}
           onChange={(v) => onEffectiveDateChange(v)}
           required
@@ -261,10 +263,10 @@ export function HplcGeneralSection({
 
       {!editingId && mySections.length > 1 && (
         <FormControl size="small" fullWidth required error={Boolean(errors.sectionId)}>
-          <InputLabel id="method-section-label">Laboratory Section *</InputLabel>
+          <InputLabel id="method-section-label">{t("hplcMethod.general.sectionLabel")}</InputLabel>
           <Select
             labelId="method-section-label"
-            label="Laboratory Section *"
+            label={t("hplcMethod.general.sectionLabel")}
             value={sectionId}
             onChange={(e) => onSectionIdChange(Number(e.target.value) || "")}
           >

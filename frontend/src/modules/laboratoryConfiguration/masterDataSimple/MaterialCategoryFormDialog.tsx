@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { i18n, useTranslation } from "../../../i18n";
 import { MATERIAL_UNITS } from "../../inventory/materials/types/materialTypes";
 import type { MaterialUnit } from "../../inventory/materials/types/materialTypes";
 import type { LaboratorySection } from "../../../services/laboratorySectionService";
@@ -34,6 +35,7 @@ interface MaterialCategoryFormDialogProps {
 // Creating or changing a category carries GMP rules (COA, release before use), so it always
 // takes a reason and an electronic signature; the server enforces both.
 export function MaterialCategoryFormDialog({ open, category, sections, onClose, onSuccess }: MaterialCategoryFormDialogProps) {
+  const { t } = useTranslation("masterData");
   const [name, setName] = useState("");
   const [codePrefix, setCodePrefix] = useState("");
   const [defaultUnit, setDefaultUnit] = useState<MaterialUnit>("Piece");
@@ -72,15 +74,19 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
 
   const handleContinue = () => {
     const next: typeof errors = {};
-    if (!trimmedName) next.name = "Name is required.";
-    if (!/^[A-Z]{2,5}$/.test(trimmedPrefix)) next.prefix = "Use 2 to 5 capital letters.";
+    if (!trimmedName) next.name = t("materialCategoryForm.nameRequired");
+    if (!/^[A-Z]{2,5}$/.test(trimmedPrefix)) next.prefix = t("materialCategoryForm.prefixInvalid");
     setErrors(next);
     if (Object.keys(next).length === 0) setSignatureOpen(true);
   };
 
+  const enT = i18n.getFixedT("en", "masterData");
   const meaningStatement = category
-    ? `I am changing the material category "${category.name}". The new rules apply to lots received afterwards. Reason: ${trimmedReason}`
-    : `I am creating the material category "${trimmedName}" (${trimmedPrefix}). Reason: ${trimmedReason}`;
+    ? enT("materialCategoryForm.meaningStatement_update", { name: category.name, reason: trimmedReason })
+    : enT("materialCategoryForm.meaningStatement_create", { name: trimmedName, prefix: trimmedPrefix, reason: trimmedReason });
+  const meaningStatementTranslation = category
+    ? t("materialCategoryForm.meaningStatement_update", { name: category.name, reason: trimmedReason })
+    : t("materialCategoryForm.meaningStatement_create", { name: trimmedName, prefix: trimmedPrefix, reason: trimmedReason });
 
   const handleConfirmSignature = async (password: string) => {
     const req = {
@@ -120,14 +126,14 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
     <>
       <FloatingDialog
         open={open && !signatureOpen}
-        title={category ? `Edit Category: ${category.name}` : "Add Material Category"}
+        title={category ? t("materialCategoryForm.editTitle", { name: category.name }) : t("materialCategoryForm.addTitle")}
         onClose={onClose}
         maxWidth="md"
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t("common.cancel")}</Button>
             <Button variant="contained" disabled={!trimmedName || !trimmedPrefix || !trimmedReason} onClick={handleContinue}>
-              Continue to sign
+              {t("materialCategoryForm.continueToSign")}
             </Button>
           </>
         }
@@ -135,16 +141,16 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
             <TextField
-              label="Name"
+              label={t("materialCategoryForm.nameLabel")}
               required
               size="small"
               value={name}
               onChange={(e) => { setErrors((x) => ({ ...x, name: undefined })); setName(e.target.value); }}
               error={!!errors.name}
-              helperText={errors.name ?? "e.g. Supplement, Filter Membrane, PPE"}
+              helperText={errors.name ?? t("materialCategoryForm.nameHelper")}
             />
             <TextField
-              label="Code prefix"
+              label={t("materialCategoryForm.prefixLabel")}
               required
               size="small"
               value={codePrefix}
@@ -154,15 +160,15 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
               helperText={
                 errors.prefix ??
                 (prefixFrozen
-                  ? "This category has master entries; its prefix can no longer change."
-                  : `Entry codes start with "${trimmedPrefix || "XXX"}-". Fixed once the category has entries.`)
+                  ? t("materialCategoryForm.prefixFrozenHelper")
+                  : t("materialCategoryForm.prefixHelper", { prefix: trimmedPrefix || "XXX" }))
               }
             />
             <FormControl size="small" required>
-              <InputLabel id="category-unit-label">Default unit</InputLabel>
+              <InputLabel id="category-unit-label">{t("materialCategoryForm.defaultUnitLabel")}</InputLabel>
               <Select
                 labelId="category-unit-label"
-                label="Default unit"
+                label={t("materialCategoryForm.defaultUnitLabel")}
                 value={defaultUnit}
                 onChange={(e) => setDefaultUnit(e.target.value as MaterialUnit)}
               >
@@ -172,29 +178,29 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
               </Select>
             </FormControl>
             <TextField
-              label="Default storage condition"
+              label={t("materialCategoryForm.defaultStorageLabel")}
               size="small"
               value={storage}
               onChange={(e) => setStorage(e.target.value)}
-              placeholder="e.g. 2-8 °C, protect from light"
-              helperText="Suggested at receipt; the receiver can change it."
+              placeholder={t("materialCategoryForm.defaultStoragePlaceholder")}
+              helperText={t("materialCategoryForm.defaultStorageHelper")}
             />
           </Box>
 
           <FormControl size="small">
-            <InputLabel id="category-sections-label">Available in sections</InputLabel>
+            <InputLabel id="category-sections-label">{t("materialCategoryForm.sectionsLabel")}</InputLabel>
             <Select
               labelId="category-sections-label"
-              label="Available in sections"
+              label={t("materialCategoryForm.sectionsLabel")}
               multiple
               displayEmpty
               value={sectionIds}
               onChange={(e) => setSectionIds(e.target.value as number[])}
-              input={<OutlinedInput label="Available in sections" />}
+              input={<OutlinedInput label={t("materialCategoryForm.sectionsLabel")} />}
               renderValue={(selected) =>
                 selected.length === 0
-                  ? "All sections"
-                  : selected.map((id) => sections.find((s) => s.sectionId === id)?.sectionName ?? `Section #${id}`).join(", ")
+                  ? t("materialCategories.allSections")
+                  : selected.map((id) => sections.find((s) => s.sectionId === id)?.sectionName ?? t("materialCategories.sectionFallback", { id })).join(", ")
               }
             >
               {sections.map((s) => (
@@ -204,26 +210,26 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
                 </MenuItem>
               ))}
             </Select>
-            <FormHelperText>Leave empty to offer the category to every section.</FormHelperText>
+            <FormHelperText>{t("materialCategoryForm.sectionsHelper")}</FormHelperText>
           </FormControl>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1 }}>
-            {rule("COA required before use", coaRequired, setCoaRequired, "A current certificate of analysis must be on file.")}
-            {rule("Expiry date required", expiryRequired, setExpiryRequired, "Receipt needs an expiry date.")}
-            {rule("Quantity tracked", quantityTracked, setQuantityTracked, "Stock is decremented as it is used.")}
-            {rule("Approval before use", approvalBeforeUse, setApprovalBeforeUse, "A second person releases each lot first.")}
-            {rule("Label required", labelRequired, setLabelRequired, "Receipt prompts to print the stock label.")}
+            {rule(t("materialCategoryForm.rules.coaLabel"), coaRequired, setCoaRequired, t("materialCategoryForm.rules.coaHint"))}
+            {rule(t("materialCategoryForm.rules.expiryLabel"), expiryRequired, setExpiryRequired, t("materialCategoryForm.rules.expiryHint"))}
+            {rule(t("materialCategoryForm.rules.quantityLabel"), quantityTracked, setQuantityTracked, t("materialCategoryForm.rules.quantityHint"))}
+            {rule(t("materialCategoryForm.rules.approvalLabel"), approvalBeforeUse, setApprovalBeforeUse, t("materialCategoryForm.rules.approvalHint"))}
+            {rule(t("materialCategoryForm.rules.labelLabel"), labelRequired, setLabelRequired, t("materialCategoryForm.rules.labelHint"))}
           </Box>
 
           <TextField
-            label="Reason"
+            label={t("materialCategoryForm.reasonLabel")}
             required
             multiline
             rows={2}
             size="small"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Enter the justification for this change..."
+            placeholder={t("materialCategoryForm.reasonPlaceholder")}
           />
         </Stack>
       </FloatingDialog>
@@ -231,6 +237,7 @@ export function MaterialCategoryFormDialog({ open, category, sections, onClose, 
       <SignatureDialog
         open={open && signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSignatureOpen(false)}
         onConfirm={handleConfirmSignature}
       />

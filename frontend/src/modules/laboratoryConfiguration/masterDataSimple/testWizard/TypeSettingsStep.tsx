@@ -12,6 +12,9 @@ import {
   TextField,
   Typography
 } from "@mui/material";
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
+import { i18n } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { TestAreaField } from "../TestAreaField";
 import {
@@ -62,6 +65,7 @@ function allowedEquationsFor(workflowType: string): string[] {
 }
 
 function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewProps) {
+  const { t } = useTranslation("masterData");
   const isFp = model.lab === "fp";
   const isDissolutionMethod = model.workflowType === "Dissolution";
   const firstError = Object.values(errors)[0];
@@ -76,17 +80,17 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
 
       {isFp && (
         <FormControl size="small" fullWidth error={Boolean(errors.equationType)}>
-          <InputLabel id="dialog-equation-type-label">Equation Type</InputLabel>
+          <InputLabel id="dialog-equation-type-label">{t("testWizard.typeSettings.equationTypeLabel")}</InputLabel>
           <Select
             labelId="dialog-equation-type-label"
             name="equationType"
-            label="Equation Type"
+            label={t("testWizard.typeSettings.equationTypeLabel")}
             value={model.equationType}
             onChange={(e) => set(withEquationType(model, e.target.value))}
           >
             {allowedEquationsFor(model.workflowType).map((eq) => (
               <MenuItem key={eq} value={eq}>
-                {EQUATION_TYPE_LABELS[eq] ?? eq}
+                {t(`testMaster.constants.equationTypes.${eq}`, { defaultValue: EQUATION_TYPE_LABELS[eq] ?? eq })}
               </MenuItem>
             ))}
           </Select>
@@ -97,15 +101,15 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
       {(model.workflowType === "HplcMethodAssay" || model.workflowType === "Dissolution") && (
         <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-            {isDissolutionMethod ? "HPLC Method (supplies the dissolution standard)" : "HPLC Method Assay Configuration"}
+            {isDissolutionMethod ? t("testWizard.typeSettings.hplcHeaderDissolution") : t("testWizard.typeSettings.hplcHeaderAssay")}
           </Typography>
           <Stack spacing={2}>
             <FormControl size="small" fullWidth required={!isDissolutionMethod} error={Boolean(errors.hplcMethodId)}>
-              <InputLabel id="dialog-hplc-method-label">{isDissolutionMethod ? "HPLC Method" : "HPLC Method *"}</InputLabel>
+              <InputLabel id="dialog-hplc-method-label">{isDissolutionMethod ? t("testWizard.typeSettings.hplcMethodLabel") : t("testWizard.typeSettings.hplcMethodRequiredLabel")}</InputLabel>
               <Select<number | "">
                 labelId="dialog-hplc-method-label"
                 name="hplcMethodId"
-                label={isDissolutionMethod ? "HPLC Method" : "HPLC Method *"}
+                label={isDissolutionMethod ? t("testWizard.typeSettings.hplcMethodLabel") : t("testWizard.typeSettings.hplcMethodRequiredLabel")}
                 value={model.hplcMethodId}
                 onChange={(e) => {
                   const val = e.target.value === "" ? "" : Number(e.target.value);
@@ -118,34 +122,34 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
                         : model.methodAbbreviation
                   });
                 }}
-                inputProps={{ "aria-label": "HPLC Method" }}
+                inputProps={{ "aria-label": t("testWizard.typeSettings.hplcMethodLabel") }}
               >
                 <MenuItem value="">
-                  <em>Select HPLC Method</em>
+                  <em>{t("testWizard.typeSettings.selectHplcMethod")}</em>
                 </MenuItem>
                 {lookup.hplcMethods
                   .filter((m) => m.isActive || m.id === model.hplcMethodId)
                   .map((m) => (
                     <MenuItem key={m.id} value={m.id}>
-                      {m.name} ({m.abbreviation}){!m.isActive ? " (Inactive)" : ""}
+                      {m.name} ({m.abbreviation}){!m.isActive ? t("testWizard.typeSettings.inactiveSuffix") : ""}
                     </MenuItem>
                   ))}
               </Select>
               <FormHelperText>
                 {errors.hplcMethodId ||
-                  "Select the active master HPLC method that defines this test's chromatographic conditions and analytes."}
+                  t("testWizard.typeSettings.hplcMethodHelper")}
               </FormHelperText>
             </FormControl>
 
             <TextField
               size="small"
-              label="Method Abbreviation"
+              label={t("testWizard.typeSettings.methodAbbreviationLabel")}
               value={model.methodAbbreviation}
               slotProps={{ input: { readOnly: true } }}
               helperText={
                 isDissolutionMethod
-                  ? "Dissolution keeps its own abbreviation."
-                  : "Auto-populated from the selected HPLC method (read-only)."
+                  ? t("testWizard.typeSettings.methodAbbreviationHelperDissolution")
+                  : t("testWizard.typeSettings.methodAbbreviationHelperAssay")
               }
               fullWidth
             />
@@ -175,7 +179,7 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
       {model.workflowType === "Qualitative" && (
         <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 600, fontSize: 13, color: "text.secondary", mb: 1.5 }}>
-            Qualitative test: records compliance observation against specifications directly (no replicates or steps).
+            {t("testWizard.typeSettings.qualitativeInfo")}
           </Typography>
           <FormControlLabel
             control={
@@ -184,7 +188,7 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
                 onChange={(e) => set({ perContainer: e.target.checked })}
               />
             }
-            label="Recorded per container"
+            label={t("testWizard.typeSettings.recordedPerContainer")}
           />
         </Box>
       )}
@@ -216,29 +220,33 @@ function TypeSettingsStepView({ model, set, errors, lookup }: TypeSettingsViewPr
 }
 
 export function createTypeSettingsStep(
-  getLookup: () => TestWizardLookupData
+  getLookup: () => TestWizardLookupData,
+  getT: () => TFunction = () => i18n.getFixedT("en", "masterData")
 ): WizardStep<TestFormModel> {
   return {
     key: "typeSettings",
-    title: "Type Settings",
+    title: getT()("testWizard.typeSettings.title"),
     applies: (model) => model.lab === "fp",
-    validate: (model) => validateStep("typeSettings", model),
+    validate: (model) => validateStep("typeSettings", model, getT()),
     render: ({ model, set, errors }) => (
       <TypeSettingsStepView model={model} set={set} errors={errors} lookup={getLookup()} />
     ),
     summary: (model) => {
+      const t = getT();
       const lookup = getLookup();
       const rows = [
         {
-          label: "Equation Type",
-          value: EQUATION_TYPE_LABELS[model.equationType] ?? model.equationType,
+          label: t("testWizard.typeSettings.summary.equationType"),
+          value: t(`testMaster.constants.equationTypes.${model.equationType}`, {
+            defaultValue: EQUATION_TYPE_LABELS[model.equationType] ?? model.equationType
+          }),
           field: "equationType"
         }
       ];
       if (model.workflowType === "HplcMethodAssay" || model.workflowType === "Dissolution") {
         rows.push({
-          label: "HPLC Method",
-          value: hplcMethodLabel(lookup.hplcMethods, model.hplcMethodId),
+          label: t("testWizard.typeSettings.summary.hplcMethod"),
+          value: hplcMethodLabel(lookup.hplcMethods, model.hplcMethodId, t),
           field: "hplcMethodId"
         });
       }
@@ -247,21 +255,21 @@ export function createTypeSettingsStep(
         model.workflowType === "Gravimetric" ||
         model.workflowType === "UvSpectrophotometry"
       ) {
-        rows.push({ label: "Replicate Count", value: model.replicateCount || "—", field: "replicateCount" });
+        rows.push({ label: t("testWizard.typeSettings.summary.replicateCount"), value: model.replicateCount || "—", field: "replicateCount" });
       }
       if (model.workflowType === "Titration") {
-        rows.push({ label: "Titration Type", value: model.titration.type || "—", field: "titration" });
-        rows.push({ label: "Replicate Count", value: model.titration.replicateCount || "—", field: "titration" });
+        rows.push({ label: t("testWizard.typeSettings.summary.titrationType"), value: model.titration.type || "—", field: "titration" });
+        rows.push({ label: t("testWizard.typeSettings.summary.replicateCount"), value: model.titration.replicateCount || "—", field: "titration" });
       }
       if (model.workflowType === "IcpMethodAssay") {
         rows.push({
-          label: "ICP Elements",
+          label: t("testWizard.typeSettings.summary.icpElements"),
           value: model.icp.elements.filter((e) => e.symbol.trim()).map((e) => e.symbol.trim()).join(", ") || "—",
           field: "icp"
         });
       }
       if (model.physchemArea) {
-        rows.push({ label: "Area", value: model.physchemArea, field: "physchemArea" });
+        rows.push({ label: t("testWizard.typeSettings.summary.area"), value: model.physchemArea, field: "physchemArea" });
       }
       return rows;
     }

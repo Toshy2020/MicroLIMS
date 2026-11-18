@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Autocomplete, Box, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
 import { FormDialog } from "../../../components/lab";
+import { useTranslation } from "../../../i18n";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import type { OrganismOption } from "../../../hooks/useOrganisms";
 import {
@@ -24,6 +25,7 @@ interface ReferenceOrganismDialogProps {
 // Add / edit a reference strain. Once a stock lot or cryovial uses it (hasStock) the server freezes
 // the code, species, collection and strain number, so they are read-only here.
 export function ReferenceOrganismDialog({ open, strain, species, sections, onClose, onSaved }: ReferenceOrganismDialogProps) {
+  const { t } = useTranslation("masterData");
   const [mySections, setMySections] = useState<LaboratorySection[]>([]);
   const [code, setCode] = useState("");
   const [organismId, setOrganismId] = useState<number | null>(null);
@@ -62,10 +64,10 @@ export function ReferenceOrganismDialog({ open, strain, species, sections, onClo
   const handleSave = async () => {
     const trimmedCode = code.trim().toUpperCase();
     const next: typeof errors = {};
-    if (!trimmedCode) next.code = "Code is required.";
-    else if (!strain && !trimmedCode.startsWith(REFERENCE_ORGANISM_CODE_PREFIX)) next.code = `Code must start with "${REFERENCE_ORGANISM_CODE_PREFIX}".`;
-    if (!organismId) next.species = "Species is required.";
-    if (!strain && mySections.length > 1 && !sectionId) next.section = "Owner lab is required.";
+    if (!trimmedCode) next.code = t("referenceOrganismDialog.codeRequired");
+    else if (!strain && !trimmedCode.startsWith(REFERENCE_ORGANISM_CODE_PREFIX)) next.code = t("referenceOrganismDialog.codePrefix", { prefix: REFERENCE_ORGANISM_CODE_PREFIX });
+    if (!organismId) next.species = t("referenceOrganismDialog.speciesRequired");
+    if (!strain && mySections.length > 1 && !sectionId) next.section = t("referenceOrganismDialog.ownerLabRequired");
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -81,11 +83,15 @@ export function ReferenceOrganismDialog({ open, strain, species, sections, onClo
     try {
       if (strain) await ReferenceOrganismService.update(strain.id, payload, strain.version);
       else await ReferenceOrganismService.create(payload);
-      onSaved(`Reference organism "${trimmedCode}" ${strain ? "updated" : "created"}.`);
+      onSaved(
+        strain
+          ? t("referenceOrganismDialog.savedMsg_updated", { code: trimmedCode })
+          : t("referenceOrganismDialog.savedMsg_created", { code: trimmedCode })
+      );
       onClose();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not save the reference organism.");
+      setError(e.response?.data?.message ?? e.message ?? t("referenceOrganismDialog.saveError"));
     } finally {
       setSaving(false);
     }
@@ -94,30 +100,30 @@ export function ReferenceOrganismDialog({ open, strain, species, sections, onClo
   return (
     <FormDialog
       open={open}
-      title={strain ? `Edit Reference Organism: ${strain.code}` : "Add Reference Organism"}
+      title={strain ? t("referenceOrganismDialog.editTitle", { code: strain.code }) : t("referenceOrganismDialog.addTitle")}
       onClose={onClose}
       onSubmit={handleSave}
-      submitLabel={saving ? "Saving..." : strain ? "Save Changes" : "Create Strain"}
+      submitLabel={saving ? t("referenceOrganismDialog.saving") : strain ? t("common.saveChanges") : t("referenceOrganismDialog.createStrain")}
       submitting={saving}
       error={error}
       maxWidth="sm"
     >
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
         <TextField
-          label="Code"
+          label={t("referenceOrganismDialog.codeLabel")}
           value={code}
           onChange={(e) => { setErrors((x) => ({ ...x, code: undefined })); setCode(e.target.value.toUpperCase()); }}
           required
           fullWidth
           size="small"
-          placeholder={`e.g. ${REFERENCE_ORGANISM_CODE_PREFIX}001`}
+          placeholder={t("referenceOrganismDialog.codePlaceholder", { prefix: REFERENCE_ORGANISM_CODE_PREFIX })}
           disabled={frozen}
           error={!!errors.code}
           helperText={
             errors.code ??
             (frozen
-              ? "This strain has stock; use Change code to change it."
-              : `Must start with "${REFERENCE_ORGANISM_CODE_PREFIX}" and be unique across all labs`)
+              ? t("referenceOrganismDialog.codeFrozenHelper")
+              : t("referenceOrganismDialog.codeHelper", { prefix: REFERENCE_ORGANISM_CODE_PREFIX }))
           }
         />
         <Autocomplete
@@ -129,31 +135,31 @@ export function ReferenceOrganismDialog({ open, strain, species, sections, onClo
           isOptionEqualToValue={(o, v) => o.id === v.id}
           onChange={(_e, v) => { setErrors((x) => ({ ...x, species: undefined })); setOrganismId(v?.id ?? null); }}
           renderInput={(params) => (
-            <TextField {...params} label="Species" required error={!!errors.species} helperText={errors.species ?? (frozen ? "Frozen: the strain has stock." : undefined)} />
+            <TextField {...params} label={t("referenceOrganismDialog.speciesLabel")} required error={!!errors.species} helperText={errors.species ?? (frozen ? t("referenceOrganismDialog.speciesFrozenHelper") : undefined)} />
           )}
         />
         <FormControl size="small" fullWidth disabled={frozen}>
-          <InputLabel id="reforg-collection-label">Culture collection</InputLabel>
-          <Select labelId="reforg-collection-label" label="Culture collection" value={collection} onChange={(e) => setCollection(e.target.value as CultureCollection)}>
+          <InputLabel id="reforg-collection-label">{t("referenceOrganismDialog.collectionLabel")}</InputLabel>
+          <Select labelId="reforg-collection-label" label={t("referenceOrganismDialog.collectionLabel")} value={collection} onChange={(e) => setCollection(e.target.value as CultureCollection)}>
             {CULTURE_COLLECTIONS.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
           </Select>
         </FormControl>
         <TextField
-          label="Strain number"
+          label={t("referenceOrganismDialog.strainNumberLabel")}
           value={strainNumber}
           onChange={(e) => setStrainNumber(e.target.value)}
           fullWidth
           size="small"
-          placeholder="e.g. 6538"
+          placeholder={t("referenceOrganismDialog.strainNumberPlaceholder")}
           disabled={frozen}
-          helperText={collection === "Other" ? "Optional for in-house or other sources" : undefined}
+          helperText={collection === "Other" ? t("referenceOrganismDialog.strainNumberOtherHelper") : undefined}
         />
         {(strain || mySections.length > 1) && (
           <FormControl fullWidth size="small" required={!strain} error={!!errors.section} disabled={Boolean(strain)}>
-            <InputLabel id="reforg-section-label">Owner Lab</InputLabel>
+            <InputLabel id="reforg-section-label">{t("referenceOrganismDialog.ownerLabLabel")}</InputLabel>
             <Select
               labelId="reforg-section-label"
-              label="Owner Lab"
+              label={t("referenceOrganismDialog.ownerLabLabel")}
               value={sectionId}
               onChange={(e) => { setErrors((x) => ({ ...x, section: undefined })); setSectionId(e.target.value as number); }}
             >

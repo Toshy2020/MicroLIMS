@@ -51,10 +51,11 @@ export function BenchKeypad({ onDigit, onBackspace, onNext, onMinus, allowDecima
 }
 
 // The keypad wired to whichever NumericEntryField has focus. Rendered only
-// in bench mode; outside it hardware / system keyboards are the input.
+// in bench mode and only while a numeric field has focus; outside bench mode it hardware / system keyboards are the input.
 export function RegistryBenchKeypad() {
   const theme = useTheme();
   const active = useSyncExternalStore(subscribeActiveField, getActiveField);
-  if (!theme.custom?.bench) return null;
+  // Only while a numeric entry field has focus; otherwise it would cover forms that have nothing to type.
+  if (!theme.custom?.bench || !active) return null;
   return <BenchKeypad onDigit={applyDigit} onBackspace={applyBackspace} onNext={applyNext} onMinus={applyMinus} allowDecimal={active?.kind === "decimal"} />;
 }

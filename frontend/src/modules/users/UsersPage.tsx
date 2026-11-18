@@ -5,9 +5,11 @@ import {
   TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
 import { tableHeadSx } from "../../theme";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { Ltr } from "../../components/Ltr";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import EditIcon from "@mui/icons-material/Edit";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -22,11 +24,13 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { PageHeader } from "../../components/PageHeader";
 import { SectionTitle } from "../../components/SectionTitle";
 import { UserService, UserRecord, SignInMethod } from "./services/UserService";
-import { SignInFields, LINK_STATE_LABELS } from "./SignInFields";
+import { SignInFields, getLinkStateLabels } from "./SignInFields";
 import { RelinkDirectoryDialog } from "./dialogs/RelinkDirectoryDialog";
 import LinkIcon from "@mui/icons-material/Link";
 import { RoleService, RoleRecord } from "../roles/services/RoleService";
 import { useAuth } from "../../contexts/AuthContext";
+import { i18n, useTranslation } from "../../i18n";
+import { serverMessage } from "../../utils/errorMessage";
 import { useLoadFailures } from "../../hooks/useLoadFailures";
 import { UserSectionsDialog } from "./dialogs/UserSectionsDialog";
 import { UserSessionsDialog } from "./dialogs/UserSessionsDialog";
@@ -42,6 +46,10 @@ import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 export function UsersPage() {
   const theme = useTheme();
+  const { t } = useTranslation("users");
+  const { t: tc } = useTranslation("common");
+  const tEn = i18n.getFixedT("en", "users");
+  const linkStateLabels = getLinkStateLabels(t);
   const { userId: currentUserId } = useAuth();
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -120,11 +128,11 @@ export function UsersPage() {
 
   const handleCreateUser = async () => {
     if (!fullName || !username || (!createIsDirectory && !password) || !roleId || !createReason.trim()) {
-      toast.error(createIsDirectory ? "Full Name, Username, Role, and a Reason are required." : "Full Name, Username, Password, Role, and a Reason are required.");
+      toast.error(createIsDirectory ? t("create.missingRequiredDirectory") : t("create.missingRequiredLocal"));
       return;
     }
     if (createIsDirectory && !directoryUsername.trim()) {
-      toast.error("A company username is required for company login.");
+      toast.error(t("create.missingDirectoryUsername"));
       return;
     }
     try {
@@ -133,12 +141,12 @@ export function UsersPage() {
         directoryUsername: createIsDirectory ? directoryUsername.trim() : null,
         isEmergencyAccount: isEmergency && isAdministratorRole(roleId)
       });
-      toast.success(`User "${username}" created successfully.`);
+      toast.success(t("create.success", { username }));
       setFullName(""); setUsername(""); setPassword(""); setEmail(""); setJobTitle(""); setRoleId(""); setCreateReason("");
       setSignInMethod("Local"); setDirectoryUsername(""); setIsEmergency(false);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not create user.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("create.error"));
     }
   };
 
@@ -158,11 +166,11 @@ export function UsersPage() {
   const handleSaveProfile = async () => {
     if (!editProfileUser) return;
     if (!editReason.trim()) {
-      toast.error("A reason is required to change a user's profile.");
+      toast.error(t("editProfile.reasonRequired"));
       return;
     }
     if (editProfileUser.signInMethod && editMethod === "Directory" && !editDirectoryUsername.trim()) {
-      toast.error("A company username is required for company login.");
+      toast.error(t("editProfile.directoryRequired"));
       return;
     }
     try {
@@ -175,11 +183,11 @@ export function UsersPage() {
       } else {
         await UserService.updateProfile(editProfileUser.id, editFullName, editUsername, editEmail || null, editJobTitle || null, editReason.trim(), editProfileUser.version);
       }
-      toast.success(`Profile updated for ${editUsername}.`);
+      toast.success(t("editProfile.success", { username: editUsername }));
       setEditProfileUser(null);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not update profile.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("editProfile.error"));
     }
   };
 
@@ -193,7 +201,7 @@ export function UsersPage() {
   // Opens the signature step; the change is sent only once the password is entered.
   const handleSaveRole = () => {
     if (!roleDialogUser || !newRoleId || !roleReason.trim()) {
-      toast.error("Selected Role and a Reason are required for role change.");
+      toast.error(t("roleChange.required"));
       return;
     }
     setSigning("role");
@@ -203,7 +211,7 @@ export function UsersPage() {
   const confirmRoleSignature = async (signaturePassword: string) => {
     if (!roleDialogUser || !newRoleId) return;
     await UserService.changeRole(roleDialogUser.id, Number(newRoleId), roleReason.trim(), signaturePassword);
-    toast.success(`Role changed for ${roleDialogUser.username}.`);
+    toast.success(t("roleChange.success", { username: roleDialogUser.username }));
     setSigning(null);
     setRoleDialogUser(null);
     load();
@@ -219,16 +227,18 @@ export function UsersPage() {
     if (!statusDialogUser) return;
     const newStatus = !statusDialogUser.isActive;
     if (!statusReason.trim()) {
-      toast.error(`A reason is required to ${newStatus ? "enable" : "disable"} a user account.`);
+      toast.error(newStatus ? t("statusDialog.enableReasonRequired") : t("statusDialog.disableReasonRequired"));
       return;
     }
     try {
       await UserService.setStatus(statusDialogUser.id, newStatus, statusReason.trim());
-      toast.success(`Account ${newStatus ? "enabled" : "disabled"} for ${statusDialogUser.username}.`);
+      toast.success(newStatus
+        ? t("statusDialog.enableSuccess", { username: statusDialogUser.username })
+        : t("statusDialog.disableSuccess", { username: statusDialogUser.username }));
       setStatusDialogUser(null);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not update account status.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("statusDialog.error"));
     }
   };
 
@@ -241,16 +251,16 @@ export function UsersPage() {
   const handleSaveUnlock = async () => {
     if (!unlockDialogUser) return;
     if (!unlockReason.trim()) {
-      toast.error("A reason is required to unlock a user account.");
+      toast.error(t("unlock.reasonRequired"));
       return;
     }
     try {
       await UserService.unlock(unlockDialogUser.id, unlockReason.trim());
-      toast.success(`Account unlocked for ${unlockDialogUser.username}.`);
+      toast.success(t("unlock.success", { username: unlockDialogUser.username }));
       setUnlockDialogUser(null);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not unlock account.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("unlock.error"));
     }
   };
 
@@ -263,16 +273,16 @@ export function UsersPage() {
   const handleSavePasswordReset = async () => {
     if (!resetDialogUser) return;
     if (!resetReason.trim()) {
-      toast.error("A reason is required to reset a user's password.");
+      toast.error(t("emailReset.reasonRequired"));
       return;
     }
     try {
       await UserService.initiatePasswordReset(resetDialogUser.id, resetReason.trim());
-      toast.success(`Password reset instructions initiated for ${resetDialogUser.username}.`);
+      toast.success(t("emailReset.success", { username: resetDialogUser.username }));
       setResetDialogUser(null);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not initiate password reset.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("emailReset.error"));
     }
   };
 
@@ -286,15 +296,15 @@ export function UsersPage() {
 
   const handleGenerateRecoveryCode = async () => {
     if (!adminRecoveryUser || !adminRecoveryReason) {
-      toast.error("A reason is required for admin-assisted password recovery.");
+      toast.error(t("adminRecovery.reasonRequired"));
       return;
     }
     try {
       const result = await UserService.adminPasswordRecovery(adminRecoveryUser.id, adminRecoveryReason);
       setGeneratedCode(result.recoveryCode);
-      toast.success(`Recovery code generated for ${adminRecoveryUser.username}.`);
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not generate recovery code.");
+      toast.success(t("adminRecovery.generatedSuccess", { username: adminRecoveryUser.username }));
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("adminRecovery.generateError"));
     }
   };
 
@@ -302,7 +312,7 @@ export function UsersPage() {
     if (generatedCode) {
       navigator.clipboard.writeText(generatedCode);
       setCodeCopied(true);
-      toast.success("Recovery code copied to clipboard.");
+      toast.success(t("adminRecovery.copiedToast"));
       setTimeout(() => setCodeCopied(false), 3000);
     }
   };
@@ -323,24 +333,24 @@ export function UsersPage() {
   const handleSaveForcePwd = async () => {
     if (!forcePwdUser) return;
     if (!forcePwdReason.trim()) {
-      toast.error("A reason is required to force a password change.");
+      toast.error(t("forcePassword.reasonRequired"));
       return;
     }
     try {
       await UserService.forcePasswordChange(forcePwdUser.id, forcePwdReason.trim());
-      toast.success(`Forced password change set for ${forcePwdUser.username}.`);
+      toast.success(t("forcePassword.success", { username: forcePwdUser.username }));
       setForcePwdUser(null);
       load();
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? "Could not force password change.");
+    } catch (err: unknown) {
+      toast.error(serverMessage(err) ?? t("forcePassword.error"));
     }
   };
 
   return (
     <>
-      <PageHeader title="User Management" subtitle="Manage system users, role assignments, security status, and account access." />
-      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
-      <SectionTitle>Create New User</SectionTitle>
+      <PageHeader title={t("page.title")} subtitle={t("page.subtitle")} />
+      <LoadFailuresAlert failed={failedLists} retryHint={t("page.retryHint")} sx={{ mb: 2 }} />
+      <SectionTitle>{t("create.sectionTitle")}</SectionTitle>
       <Paper sx={{ p: 2.5, mb: 3 }}>
         <Box
           component="form"
@@ -362,7 +372,7 @@ export function UsersPage() {
         >
           <TextField
             size="small"
-            label="Full Name"
+            label={t("fields.fullName")}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -370,7 +380,7 @@ export function UsersPage() {
           />
           <TextField
             size="small"
-            label="Username"
+            label={t("fields.username")}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -378,16 +388,16 @@ export function UsersPage() {
           />
           <TextField
             size="small"
-            label="Email"
+            label={t("fields.email")}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            helperText="Password reset destination"
+            helperText={t("create.emailHelper")}
             fullWidth
           />
           <TextField
             size="small"
-            label="Job Title"
+            label={t("fields.jobTitle")}
             value={jobTitle}
             onChange={(e) => setJobTitle(e.target.value)}
             fullWidth
@@ -395,11 +405,11 @@ export function UsersPage() {
           {!createIsDirectory && (
             <TextField
               size="small"
-              label="Password"
+              label={t("fields.password")}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              helperText="Min 8 chars"
+              helperText={t("create.passwordHelper")}
               required
               fullWidth
             />
@@ -410,17 +420,17 @@ export function UsersPage() {
             value={roleId}
             onChange={(e) => setRoleId(e.target.value)}
             fullWidth
-            inputProps={{ "aria-label": "Role" }}
+            inputProps={{ "aria-label": t("fields.role") }}
           >
-            <MenuItem value=""><em>Select Role *</em></MenuItem>
+            <MenuItem value=""><em>{t("create.selectRole")}</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
           </Select>
           <TextField
             size="small"
-            label="Reason"
+            label={t("fields.reason")}
             value={createReason}
             onChange={(e) => setCreateReason(e.target.value)}
-            helperText="Why this account is needed"
+            helperText={t("create.reasonHelper")}
             required
             fullWidth
           />
@@ -440,29 +450,29 @@ export function UsersPage() {
             color="primary"
             sx={{ height: 40, whiteSpace: "nowrap" }}
           >
-            Create User
+            {t("create.submit")}
           </Button>
         </Box>
       </Paper>
 
-      <SectionTitle>System Users</SectionTitle>
-      <Tabs value={view} onChange={(_, v) => { setUsers([]); setView(v); }} sx={{ mb: 1 }} aria-label="User status">
-        <Tab value="active" label="Active" />
-        <Tab value="inactive" label="Inactive" />
+      <SectionTitle>{t("list.sectionTitle")}</SectionTitle>
+      <Tabs value={view} onChange={(_, v) => { setUsers([]); setView(v); }} sx={{ mb: 1 }} aria-label={t("list.tabsLabel")}>
+        <Tab value="active" label={t("list.tabActive")} />
+        <Tab value="inactive" label={t("list.tabInactive")} />
       </Tabs>
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
-              <TableCell>User</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Role</TableCell>
-              <TableCell>Sign-in</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Security / Password</TableCell>
-              <TableCell>Second factor</TableCell>
-              <TableCell>Last Login</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t("list.columns.user")}</TableCell>
+              <TableCell>{t("list.columns.email")}</TableCell>
+              <TableCell>{t("list.columns.role")}</TableCell>
+              <TableCell>{t("list.columns.signIn")}</TableCell>
+              <TableCell>{t("list.columns.status")}</TableCell>
+              <TableCell>{t("list.columns.securityPassword")}</TableCell>
+              <TableCell>{t("list.columns.secondFactor")}</TableCell>
+              <TableCell>{t("list.columns.lastLogin")}</TableCell>
+              <TableCell align="right">{t("list.columns.actions")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -473,35 +483,35 @@ export function UsersPage() {
                 <TableRow key={u.id} hover>
                   <TableCell>
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{u.fullName}</Typography>
-                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label="You" size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 12 }} />}</Typography>
+                    <Typography sx={{ color: "text.secondary", fontSize: 12 }}>@{u.username} {isSelf && <Chip label={t("list.youBadge")} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: 12 }} />}</Typography>
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 13, fontStyle: u.email ? "normal" : "italic", color: u.email ? "text.primary" : "text.secondary" }}>
-                      {u.email ?? "No email"}
+                      {u.email ?? t("list.noEmail")}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <MetaBadge label={u.role?.name ?? "No role"} />
+                    <MetaBadge label={u.role?.name ?? t("list.noRole")} />
                   </TableCell>
                   <TableCell>
-                    <Typography sx={{ fontSize: 13 }}>{u.signInMethod === "Directory" ? "Company login" : "Laboratory login"}</Typography>
+                    <Typography sx={{ fontSize: 13 }}>{u.signInMethod === "Directory" ? t("fields.directoryLogin") : t("fields.localLogin")}</Typography>
                     {u.signInMethod === "Directory" && (
-                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{u.linkState ? (LINK_STATE_LABELS[u.linkState] ?? u.linkState) : "Link state unknown"}</Typography>
+                      <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{u.linkState ? (linkStateLabels[u.linkState] ?? u.linkState) : t("linkState.unknown")}</Typography>
                     )}
-                    {u.isEmergencyAccount && <Box sx={{ mt: 0.5 }}><ToneBadge tone="action" label="Emergency account" /></Box>}
+                    {u.isEmergencyAccount && <Box sx={{ mt: 0.5 }}><ToneBadge tone="action" label={t("fields.emergencyAccount")} /></Box>}
                   </TableCell>
                   <TableCell>
                     {u.isActive ? (
-                      <ToneBadge tone="notDetected" label="Active" />
+                      <ToneBadge tone="notDetected" label={t("list.statusActive")} />
                     ) : (
-                      <ToneBadge tone="detected" label="Disabled" />
+                      <ToneBadge tone="detected" label={t("list.statusDisabled")} />
                     )}
                   </TableCell>
                   <TableCell>
                     <Stack direction="column" spacing={0.5}>
-                      {u.isLocked && <Box><ToneBadge tone="action" label="Account Locked" /></Box>}
-                      {u.mustChangePassword && <Box><ToneBadge tone="info" label="Must Change Password" /></Box>}
-                      {!u.isLocked && !u.mustChangePassword && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Normal</Typography>}
+                      {u.isLocked && <Box><ToneBadge tone="action" label={t("list.accountLocked")} /></Box>}
+                      {u.mustChangePassword && <Box><ToneBadge tone="info" label={t("list.mustChangePassword")} /></Box>}
+                      {!u.isLocked && !u.mustChangePassword && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("list.securityNormal")}</Typography>}
                     </Stack>
                   </TableCell>
                   <TableCell>
@@ -513,14 +523,14 @@ export function UsersPage() {
                   </TableCell>
                   <TableCell>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {u.lastLoginAt ? formatDateTimeWithTimeZone(u.lastLoginAt) : "Never"}
+                      {u.lastLoginAt ? formatDateTimeWithTimeZone(u.lastLoginAt) : t("list.neverLoggedIn")}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     {view === "inactive" ? (
                       <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                        <Tooltip title="Reactivate Account">
-                          <IconButton aria-label="Reactivate Account" size="small" color="success" onClick={() => openStatusDialog(u)}>
+                        <Tooltip title={t("rowActions.reactivateAccount")}>
+                          <IconButton aria-label={t("rowActions.reactivateAccount")} size="small" color="success" onClick={() => openStatusDialog(u)}>
                             <BlockIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -529,63 +539,63 @@ export function UsersPage() {
                     <Stack direction="row" spacing={0.5} sx={{
                       justifyContent: "flex-end"
                     }}>
-                      <Tooltip title="Edit Profile">
-                        <IconButton size="small" onClick={() => openEditProfile(u)}><EditIcon fontSize="small" /></IconButton>
+                      <Tooltip title={t("rowActions.editProfile")}>
+                        <IconButton aria-label={t("rowActions.editProfile")} size="small" onClick={() => openEditProfile(u)}><EditIcon fontSize="small" /></IconButton>
                       </Tooltip>
 
-                      <Tooltip title="Laboratory Sections">
-                        <IconButton size="small" color="info" onClick={() => setSectionsUser(u)}>
+                      <Tooltip title={t("rowActions.laboratorySections")}>
+                        <IconButton aria-label={t("rowActions.laboratorySections")} size="small" color="info" onClick={() => setSectionsUser(u)}>
                           <AccountTreeIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title="Sessions">
-                        <IconButton aria-label="Sessions" size="small" onClick={() => setSessionsUser(u)}>
+                      <Tooltip title={t("rowActions.sessions")}>
+                        <IconButton aria-label={t("rowActions.sessions")} size="small" onClick={() => setSessionsUser(u)}>
                           <DevicesIcon fontSize="small" />
                         </IconButton>
                       </Tooltip>
 
-                      <Tooltip title={isSelf ? "System Administrators cannot change their own role" : "Change Role"}>
+                      <Tooltip title={isSelf ? t("rowActions.cannotChangeOwnRole") : t("rowActions.changeRole")}>
                         <span>
-                          <IconButton aria-label={isSelf ? "System Administrators cannot change their own role" : "Change Role"} size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
+                          <IconButton aria-label={isSelf ? t("rowActions.cannotChangeOwnRole") : t("rowActions.changeRole")} size="small" color="primary" disabled={isSelf} onClick={() => openChangeRole(u)}>
                             <PersonOutlineIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
 
-                      <Tooltip title={isSelf && u.isActive ? "System Administrators cannot disable their own account" : (u.isActive ? "Disable Account" : "Enable Account")}>
+                      <Tooltip title={isSelf && u.isActive ? t("rowActions.cannotDisableOwnAccount") : (u.isActive ? t("rowActions.disableAccount") : t("rowActions.enableAccount"))}>
                         <span>
-                          <IconButton aria-label={isSelf && u.isActive ? "System Administrators cannot disable their own account" : (u.isActive ? "Disable Account" : "Enable Account")} size="small" color={u.isActive ? "error" : "success"} disabled={isSelf && u.isActive} onClick={() => openStatusDialog(u)}>
+                          <IconButton aria-label={isSelf && u.isActive ? t("rowActions.cannotDisableOwnAccount") : (u.isActive ? t("rowActions.disableAccount") : t("rowActions.enableAccount"))} size="small" color={u.isActive ? "error" : "success"} disabled={isSelf && u.isActive} onClick={() => openStatusDialog(u)}>
                             <BlockIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
 
                       {u.isLocked && (
-                        <Tooltip title="Unlock Account">
-                          <IconButton size="small" color="warning" onClick={() => openUnlockDialog(u)}><LockOpenIcon fontSize="small" /></IconButton>
+                        <Tooltip title={t("rowActions.unlockAccount")}>
+                          <IconButton aria-label={t("rowActions.unlockAccount")} size="small" color="warning" onClick={() => openUnlockDialog(u)}><LockOpenIcon fontSize="small" /></IconButton>
                         </Tooltip>
                       )}
 
-                      <Tooltip title="Reset Password via Email">
-                        <IconButton size="small" color="secondary" onClick={() => openResetDialog(u)}><LockResetIcon fontSize="small" /></IconButton>
+                      <Tooltip title={t("rowActions.resetPasswordEmail")}>
+                        <IconButton aria-label={t("rowActions.resetPasswordEmail")} size="small" color="secondary" onClick={() => openResetDialog(u)}><LockResetIcon fontSize="small" /></IconButton>
                       </Tooltip>
 
-                      <Tooltip title={isSelf ? "Cannot use admin recovery on own account" : (!u.isActive ? "Enable user first to perform recovery" : "Admin-Assisted Password Recovery")}>
+                      <Tooltip title={isSelf ? t("rowActions.cannotRecoverOwnAccount") : (!u.isActive ? t("rowActions.enableFirstRecovery") : t("rowActions.adminRecovery"))}>
                         <span>
-                          <IconButton aria-label={isSelf ? "Cannot use admin recovery on own account" : (!u.isActive ? "Enable user first to perform recovery" : "Admin-Assisted Password Recovery")} size="small" color="warning" disabled={isSelf || !u.isActive} onClick={() => openAdminRecoveryDialog(u)}>
+                          <IconButton aria-label={isSelf ? t("rowActions.cannotRecoverOwnAccount") : (!u.isActive ? t("rowActions.enableFirstRecovery") : t("rowActions.adminRecovery"))} size="small" color="warning" disabled={isSelf || !u.isActive} onClick={() => openAdminRecoveryDialog(u)}>
                             <KeyIcon fontSize="small" />
                           </IconButton>
                         </span>
                       </Tooltip>
 
-                      <Tooltip title="Force Password Change at Next Login">
-                        <IconButton size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
+                      <Tooltip title={t("rowActions.forcePasswordChange")}>
+                        <IconButton aria-label={t("rowActions.forcePasswordChange")} size="small" color="info" onClick={() => openForcePwdDialog(u)}><SecurityIcon fontSize="small" /></IconButton>
                       </Tooltip>
 
                       {u.signInMethod === "Directory" && (
-                        <Tooltip title="Re-link company account">
-                          <IconButton aria-label={`Re-link company account for ${u.username}`} size="small" color="warning" onClick={() => setRelinkUser(u)}>
+                        <Tooltip title={t("rowActions.relinkCompany")}>
+                          <IconButton aria-label={t("rowActions.relinkCompanyFor", { username: u.username })} size="small" color="warning" onClick={() => setRelinkUser(u)}>
                             <LinkIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -593,9 +603,9 @@ export function UsersPage() {
 
                       {!isSelf && (
                         <>
-                          <Tooltip title="Reset second factor">
+                          <Tooltip title={t("rowActions.resetSecondFactor")}>
                             <IconButton
-                              aria-label={`Reset second factor for ${u.username}`}
+                              aria-label={t("rowActions.resetSecondFactorFor", { username: u.username })}
                               size="small"
                               color="error"
                               onClick={() => setResetMfaUser(u)}
@@ -603,9 +613,9 @@ export function UsersPage() {
                               <PhonelinkEraseIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Assign hardware token">
+                          <Tooltip title={t("rowActions.assignHardwareToken")}>
                             <IconButton
-                              aria-label={`Assign hardware token for ${u.username}`}
+                              aria-label={t("rowActions.assignHardwareTokenFor", { username: u.username })}
                               size="small"
                               color="primary"
                               onClick={() => setAssignTokenUser(u)}
@@ -630,19 +640,19 @@ export function UsersPage() {
         open={Boolean(editProfileUser)}
         onClose={() => setEditProfileUser(null)}
         maxWidth="xs"
-        title={`Edit Profile: ${editProfileUser?.username}`}
+        title={t("editProfile.title", { username: editProfileUser?.username ?? "" })}
         actions={
           <>
-            <Button onClick={() => setEditProfileUser(null)}>Cancel</Button>
-            <Button variant="contained" onClick={handleSaveProfile} disabled={!editReason.trim()}>Save Profile</Button>
+            <Button onClick={() => setEditProfileUser(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" onClick={handleSaveProfile} disabled={!editReason.trim()}>{t("editProfile.save")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <TextField label="Full Name" size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
-          <TextField label="Username" size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
-          <TextField label="Email" size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText="Required for email password resets" />
-          <TextField label="Job Title" size="small" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} fullWidth />
+          <TextField label={t("fields.fullName")} size="small" value={editFullName} onChange={(e) => setEditFullName(e.target.value)} fullWidth />
+          <TextField label={t("fields.username")} size="small" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} fullWidth />
+          <TextField label={t("fields.email")} size="small" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} fullWidth helperText={t("editProfile.emailHelper")} />
+          <TextField label={t("fields.jobTitle")} size="small" value={editJobTitle} onChange={(e) => setEditJobTitle(e.target.value)} fullWidth />
           {editProfileUser?.signInMethod && (
             <SignInFields
               idPrefix="edit"
@@ -655,7 +665,7 @@ export function UsersPage() {
               roleIsAdministrator={isAdministratorRole(editProfileUser.roleId)}
             />
           )}
-          <TextField label="Reason for Change" size="small" multiline rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
+          <TextField label={t("fields.reasonForChange")} size="small" multiline rows={2} value={editReason} onChange={(e) => setEditReason(e.target.value)} required fullWidth placeholder={t("fields.reasonPlaceholder")} />
         </Stack>
       </FloatingDialog>
 
@@ -664,21 +674,23 @@ export function UsersPage() {
         open={Boolean(roleDialogUser)}
         onClose={() => setRoleDialogUser(null)}
         maxWidth="xs"
-        title={`Change Role: ${roleDialogUser?.username}`}
+        title={t("roleChange.title", { username: roleDialogUser?.username ?? "" })}
         actions={
           <>
-            <Button onClick={() => setRoleDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason.trim()}>Change Role</Button>
+            <Button onClick={() => setRoleDialogUser(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" color="primary" onClick={handleSaveRole} disabled={!newRoleId || !roleReason.trim()}>{t("roleChange.submit")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Typography variant="body2">Current Role: <strong>{roleDialogUser?.role?.name ?? "None"}</strong></Typography>
-          <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty inputProps={{ "aria-label": "New Role" }}>
-            <MenuItem value=""><em>Select New Role</em></MenuItem>
+          <Typography variant="body2">
+            <Trans i18nKey="roleChange.currentRole" ns="users" values={{ role: roleDialogUser?.role?.name ?? t("roleChange.none") }} components={{ role: <strong /> }} />
+          </Typography>
+          <Select size="small" value={newRoleId} onChange={(e) => setNewRoleId(Number(e.target.value))} fullWidth displayEmpty inputProps={{ "aria-label": t("roleChange.newRoleLabel") }}>
+            <MenuItem value=""><em>{t("roleChange.selectNewRole")}</em></MenuItem>
             {roles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
           </Select>
-          <TextField label="Reason for Change" size="small" multiline rows={2} value={roleReason} onChange={(e) => setRoleReason(e.target.value)} required fullWidth placeholder="Mandatory administrative justification" />
+          <TextField label={t("fields.reasonForChange")} size="small" multiline rows={2} value={roleReason} onChange={(e) => setRoleReason(e.target.value)} required fullWidth placeholder={t("fields.reasonPlaceholder")} />
         </Stack>
       </FloatingDialog>
 
@@ -687,21 +699,26 @@ export function UsersPage() {
         open={Boolean(statusDialogUser)}
         onClose={() => setStatusDialogUser(null)}
         maxWidth="xs"
-        title={statusDialogUser?.isActive ? "Disable User Account" : "Reactivate User Account"}
+        title={statusDialogUser?.isActive ? t("statusDialog.disableTitle") : t("statusDialog.reactivateTitle")}
         actions={
           <>
-            <Button onClick={() => setStatusDialogUser(null)}>Cancel</Button>
+            <Button onClick={() => setStatusDialogUser(null)}>{tc("actions.cancel")}</Button>
             <Button variant="contained" color={statusDialogUser?.isActive ? "error" : "success"} onClick={handleSaveStatus} disabled={!statusReason.trim()}>
-              {statusDialogUser?.isActive ? "Disable Account" : "Reactivate Account"}
+              {statusDialogUser?.isActive ? t("statusDialog.disableButton") : t("statusDialog.reactivateButton")}
             </Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2">
-            Are you sure you want to {statusDialogUser?.isActive ? "disable" : "enable"} account <strong>{statusDialogUser?.fullName} (@{statusDialogUser?.username})</strong>?
+            <Trans
+              i18nKey={statusDialogUser?.isActive ? "statusDialog.disableConfirm" : "statusDialog.enableConfirm"}
+              ns="users"
+              values={{ fullName: statusDialogUser?.fullName ?? "", username: statusDialogUser?.username ?? "" }}
+              components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <TextField label={statusDialogUser?.isActive ? "Reason for Disabling" : "Reason for Enabling"} size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder="Mandatory justification" />
+          <TextField label={statusDialogUser?.isActive ? t("statusDialog.disableReasonLabel") : t("statusDialog.enableReasonLabel")} size="small" multiline rows={2} value={statusReason} onChange={(e) => setStatusReason(e.target.value)} required fullWidth placeholder={t("fields.reasonJustificationPlaceholder")} />
         </Stack>
       </FloatingDialog>
 
@@ -710,19 +727,24 @@ export function UsersPage() {
         open={Boolean(unlockDialogUser)}
         onClose={() => setUnlockDialogUser(null)}
         maxWidth="xs"
-        title="Unlock User Account"
+        title={t("unlock.title")}
         actions={
           <>
-            <Button onClick={() => setUnlockDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="warning" onClick={handleSaveUnlock} disabled={!unlockReason.trim()}>Unlock Account</Button>
+            <Button onClick={() => setUnlockDialogUser(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" color="warning" onClick={handleSaveUnlock} disabled={!unlockReason.trim()}>{t("unlock.submit")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2">
-            Unlock account for <strong>{unlockDialogUser?.fullName} (@{unlockDialogUser?.username})</strong>? This will clear failed login attempts and reset account lock.
+            <Trans
+              i18nKey="unlock.confirm"
+              ns="users"
+              values={{ fullName: unlockDialogUser?.fullName ?? "", username: unlockDialogUser?.username ?? "" }}
+              components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <TextField label="Reason for Unlock" size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} required fullWidth />
+          <TextField label={t("unlock.reasonLabel")} size="small" value={unlockReason} onChange={(e) => setUnlockReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
@@ -731,22 +753,27 @@ export function UsersPage() {
         open={Boolean(resetDialogUser)}
         onClose={() => setResetDialogUser(null)}
         maxWidth="xs"
-        title="Initiate Email Password Reset"
+        title={t("emailReset.title")}
         actions={
           <>
-            <Button onClick={() => setResetDialogUser(null)}>Cancel</Button>
-            <Button variant="contained" color="secondary" onClick={handleSavePasswordReset} disabled={!resetReason.trim()}>Send Reset Link</Button>
+            <Button onClick={() => setResetDialogUser(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" color="secondary" onClick={handleSavePasswordReset} disabled={!resetReason.trim()}>{t("emailReset.submit")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2">
-            Send password reset instructions to <strong>{resetDialogUser?.fullName} ({resetDialogUser?.email ?? "No email on file"})</strong>?
+            <Trans
+              i18nKey="emailReset.confirm"
+              ns="users"
+              values={{ fullName: resetDialogUser?.fullName ?? "", email: resetDialogUser?.email ?? t("emailReset.noEmailOnFile") }}
+              components={{ user: <strong /> }}
+            />
           </Typography>
           <Alert severity="info" sx={{ fontSize: 12 }}>
-            The system will generate a secure reset token link and send it via email. Plaintext passwords are never generated or shown to administrators.
+            {t("emailReset.info")}
           </Alert>
-          <TextField label="Reason for Reset" size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} required fullWidth />
+          <TextField label={t("emailReset.reasonLabel")} size="small" value={resetReason} onChange={(e) => setResetReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
@@ -755,23 +782,23 @@ export function UsersPage() {
         open={Boolean(adminRecoveryUser)}
         onClose={closeAdminRecoveryDialog}
         maxWidth="sm"
-        title="Administrator-Assisted Password Recovery"
+        title={t("adminRecovery.title")}
         actions={
           !generatedCode ? (
             <>
-              <Button onClick={closeAdminRecoveryDialog}>Cancel</Button>
+              <Button onClick={closeAdminRecoveryDialog}>{tc("actions.cancel")}</Button>
               <Button
                 variant="contained"
                 color="warning"
                 onClick={handleGenerateRecoveryCode}
                 disabled={!adminRecoveryReason}
               >
-                Generate Recovery Code
+                {t("adminRecovery.generate")}
               </Button>
             </>
           ) : (
             <Button variant="contained" onClick={closeAdminRecoveryDialog}>
-              Close & Done
+              {t("adminRecovery.closeDone")}
             </Button>
           )
         }
@@ -779,13 +806,18 @@ export function UsersPage() {
           {!generatedCode ? (
             <Stack spacing= {2} sx={{ mt: 1 }}>
               <Typography variant="body2">
-                Initiate administrator-assisted password recovery for user <strong>{adminRecoveryUser?.fullName} (@{adminRecoveryUser?.username})</strong>.
+                <Trans
+                  i18nKey="adminRecovery.intro"
+                  ns="users"
+                  values={{ fullName: adminRecoveryUser?.fullName ?? "", username: adminRecoveryUser?.username ?? "" }}
+                  components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Alert severity="warning" sx={{ fontSize: 12 }}>
-                This will generate a one-time 15-minute recovery code. The code will be displayed <strong>ONCE</strong> on this screen and must be communicated to the user via approved internal channels. Plaintext codes are never stored in the database.
+                <Trans i18nKey="adminRecovery.warning" ns="users" components={{ bold: <strong /> }} />
               </Alert>
               <TextField
-                label="Reason for Recovery (Mandatory)"
+                label={t("adminRecovery.reasonLabel")}
                 size="small"
                 multiline
                 rows={2}
@@ -793,18 +825,23 @@ export function UsersPage() {
                 onChange={(e) => setAdminRecoveryReason(e.target.value)}
                 required
                 fullWidth
-                placeholder="e.g. User forgot password and cannot access registered email."
+                placeholder={t("adminRecovery.reasonPlaceholder")}
               />
             </Stack>
           ) : (
             <Stack spacing={2.5} sx={{ mt: 1, alignItems: "center", textAlign: "center" }}>
               <Alert severity="success" sx={{ width: "100%" }}>
-                One-time recovery code generated successfully!
+                {t("adminRecovery.generatedBanner")}
               </Alert>
               <Typography variant="subtitle2" sx={{
                 color: "text.secondary"
               }}>
-                Provide this recovery code to <strong>{adminRecoveryUser?.fullName}</strong>:
+                <Trans
+                  i18nKey="adminRecovery.provideCodeTo"
+                  ns="users"
+                  values={{ fullName: adminRecoveryUser?.fullName ?? "" }}
+                  components={{ user: <strong /> }}
+                />
               </Typography>
               <Box
                 sx={{
@@ -837,12 +874,12 @@ export function UsersPage() {
                   startIcon={<ContentCopyIcon />}
                   onClick={handleCopyCode}
                 >
-                  {codeCopied ? "Copied!" : "Copy Code"}
+                  {codeCopied ? t("adminRecovery.copied") : t("adminRecovery.copyCode")}
                 </Button>
-                <Chip label="Expires in 15 minutes" color="warning" size="small" />
+                <Chip label={t("adminRecovery.expiresChip")} color="warning" size="small" />
               </Stack>
               <Alert severity="error" sx={{ fontSize: 12, textAlign: "left", width: "100%" }}>
-                <strong>IMPORTANT:</strong> This code will NOT be displayed again after closing this dialog. Ensure the code is transmitted securely to the user.
+                <Trans i18nKey="adminRecovery.importantNote" ns="users" components={{ bold: <strong /> }} />
               </Alert>
             </Stack>
           )}
@@ -853,26 +890,40 @@ export function UsersPage() {
         open={Boolean(forcePwdUser)}
         onClose={() => setForcePwdUser(null)}
         maxWidth="xs"
-        title="Force Password Change"
+        title={t("forcePassword.title")}
         actions={
           <>
-            <Button onClick={() => setForcePwdUser(null)}>Cancel</Button>
-            <Button variant="contained" color="info" onClick={handleSaveForcePwd} disabled={!forcePwdReason.trim()}>Force Password Change</Button>
+            <Button onClick={() => setForcePwdUser(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" color="info" onClick={handleSaveForcePwd} disabled={!forcePwdReason.trim()}>{t("forcePassword.submit")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Typography variant="body2">
-            Require <strong>{forcePwdUser?.fullName} (@{forcePwdUser?.username})</strong> to change their password on next login?
+            <Trans
+              i18nKey="forcePassword.confirm"
+              ns="users"
+              values={{ fullName: forcePwdUser?.fullName ?? "", username: forcePwdUser?.username ?? "" }}
+              components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <TextField label="Reason" size="small" value={forcePwdReason} onChange={(e) => setForcePwdReason(e.target.value)} required fullWidth />
+          <TextField label={t("fields.reason")} size="small" value={forcePwdReason} onChange={(e) => setForcePwdReason(e.target.value)} required fullWidth />
         </Stack>
       </FloatingDialog>
 
       {/* Electronic signature for the role change */}
       <SignatureDialog
         open={signing === "role"}
-        meaningStatement={`I am changing the role of ${roleDialogUser?.username ?? "this user"} to ${roles.find((r) => r.id === newRoleId)?.name ?? "the selected role"}. Reason: ${roleReason.trim()}`}
+        meaningStatement={tEn("roleChange.signatureMeaning", {
+          username: roleDialogUser?.username ?? tEn("roleChange.thisUser"),
+          roleName: roles.find((r) => r.id === newRoleId)?.name ?? tEn("roleChange.theSelectedRole"),
+          reason: roleReason.trim()
+        })}
+        meaningStatementTranslation={t("roleChange.signatureMeaning", {
+          username: roleDialogUser?.username ?? t("roleChange.thisUser"),
+          roleName: roles.find((r) => r.id === newRoleId)?.name ?? t("roleChange.theSelectedRole"),
+          reason: roleReason.trim()
+        })}
         onCancel={() => setSigning(null)}
         onConfirm={confirmRoleSignature}
       />

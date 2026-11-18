@@ -1,12 +1,18 @@
 import { Box, Checkbox, FormControlLabel, FormHelperText, MenuItem, TextField } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
 import type { SignInMethod } from "./services/UserService";
 
-export const LINK_STATE_LABELS: Record<string, string> = {
-  NotLinked: "Not linked",
-  LinkedNeverSignedIn: "Linked, never signed in",
-  Linked: "Linked",
-  SignInRefused: "Sign-in refused"
-};
+export function getLinkStateLabels(t: TFunction<"users">): Record<string, string> {
+  return {
+    NotLinked: t("linkState.NotLinked"),
+    LinkedNeverSignedIn: t("linkState.LinkedNeverSignedIn"),
+    Linked: t("linkState.Linked"),
+    SignInRefused: t("linkState.SignInRefused")
+  };
+}
+
+export const LINK_STATE_LABELS: Record<string, string> = getLinkStateLabels(i18n.getFixedT("en", "users"));
 
 interface SignInFieldsProps {
   idPrefix: string;
@@ -24,21 +30,22 @@ interface SignInFieldsProps {
 export function SignInFields({
   idPrefix, method, onMethodChange, directoryUsername, onDirectoryUsernameChange, emergency, onEmergencyChange, roleIsAdministrator
 }: SignInFieldsProps) {
+  const { t } = useTranslation("users");
   const reasonId = `${idPrefix}-emergency-reason`;
   return (
     <>
       <TextField
-        select size="small" label="Sign-in method" value={method} fullWidth
+        select size="small" label={t("fields.signInMethod")} value={method} fullWidth
         onChange={(e) => onMethodChange(e.target.value as SignInMethod)}
       >
-        <MenuItem value="Local">Laboratory login</MenuItem>
-        <MenuItem value="Directory">Company login</MenuItem>
+        <MenuItem value="Local">{t("fields.localLogin")}</MenuItem>
+        <MenuItem value="Directory">{t("fields.directoryLogin")}</MenuItem>
       </TextField>
       {method === "Directory" && (
         <TextField
-          size="small" label="Company username" value={directoryUsername} required fullWidth
+          size="small" label={t("fields.companyUsername")} value={directoryUsername} required fullWidth
           onChange={(e) => onDirectoryUsernameChange(e.target.value)}
-          error={!directoryUsername.trim()} helperText="The user's name in the company directory"
+          error={!directoryUsername.trim()} helperText={t("fields.companyUsernameHelper")}
         />
       )}
       <Box>
@@ -50,12 +57,12 @@ export function SignInFields({
               slotProps={{ input: { "aria-describedby": reasonId } }}
             />
           }
-          label="Emergency account"
+          label={t("fields.emergencyAccount")}
         />
         <FormHelperText id={reasonId}>
           {roleIsAdministrator
-            ? "A local sign-in kept for when the company directory is unavailable."
-            : "Only available when the role is System Administrator."}
+            ? t("fields.emergencyHelperAdmin")
+            : t("fields.emergencyHelperNonAdmin")}
         </FormHelperText>
       </Box>
     </>

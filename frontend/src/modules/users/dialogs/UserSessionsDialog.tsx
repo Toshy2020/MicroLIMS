@@ -2,11 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert, Box, Button, CircularProgress, Divider, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Tooltip, Typography
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
 import { EmptyState } from "../../../components/lab/EmptyState";
 import { PartialOutageBanner } from "../../../components/lab/PartialOutageBanner";
+import { useTranslation } from "../../../i18n";
 import { describeUserAgent } from "../../../utils/describeUserAgent";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -23,6 +26,8 @@ const fmt = (iso: string | null) => (iso ? formatDateTimeWithTimeZone(iso) : "-"
 
 // Active sign-in sessions (refresh tokens) and trusted computers of one user.
 export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
+  const { t } = useTranslation("users");
+  const { t: tc } = useTranslation("common");
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,11 +47,11 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
     try {
       setSessions(await UserService.getSessions(id));
     } catch (err) {
-      setError(serverMessage(err) ?? getErrorMessage(err, "Failed to load sessions."));
+      setError(serverMessage(err) ?? getErrorMessage(err, t("sessions.loadError")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const loadTrustedDevices = useCallback(async (id: number) => {
     devicesAbortRef.current?.abort();
@@ -92,11 +97,11 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
     setError(null);
     try {
       const { revokedCount } = await UserService.revokeSessions(user.id, reason.trim());
-      onRevoked(`Revoked ${revokedCount} session(s) for ${user.username}.`);
+      onRevoked(t("sessions.revokedSuccess", { count: revokedCount, username: user.username }));
       setReason("");
       await loadSessions(user.id);
     } catch (err) {
-      setError(serverMessage(err) ?? getErrorMessage(err, "Failed to revoke sessions."));
+      setError(serverMessage(err) ?? getErrorMessage(err, t("sessions.revokeError")));
     } finally {
       setRevoking(false);
     }
@@ -107,11 +112,11 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
     setRevokingDevice(true);
     try {
       await UserService.revokeTrustedDevice(user.id, revokeTarget.id);
-      toast.success("Trusted computer revoked.");
+      toast.success(t("sessions.revokeDeviceSuccess"));
       setRevokeTarget(null);
       await loadTrustedDevices(user.id);
     } catch (err) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not revoke trusted computer."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("sessions.revokeDeviceError")));
     } finally {
       setRevokingDevice(false);
     }
@@ -123,17 +128,17 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
         open={open}
         onClose={onClose}
         maxWidth="md"
-        title={`Sessions: ${user?.username ?? ""}`}
+        title={t("sessions.title", { username: user?.username ?? "" })}
         actions={
           <>
-            <Button onClick={onClose}>Close</Button>
+            <Button onClick={onClose}>{tc("actions.close")}</Button>
             <Button
               variant="contained"
               color="error"
               onClick={handleRevoke}
               disabled={!reason.trim() || revoking || sessions.length === 0}
             >
-              Revoke all sessions
+              {t("sessions.revokeAll")}
             </Button>
           </>
         }
@@ -143,35 +148,35 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
           {loading ? (
             <CircularProgress size={24} />
           ) : sessions.length === 0 ? (
-            <Typography variant="body2">No active sessions.</Typography>
+            <Typography variant="body2">{t("sessions.noActiveSessions")}</Typography>
           ) : (
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell>Signed in</TableCell>
-                  <TableCell>IP address</TableCell>
-                  <TableCell>Device</TableCell>
-                  <TableCell>Second factor</TableCell>
-                  <TableCell>Last used</TableCell>
-                  <TableCell>Expires</TableCell>
+                  <TableCell>{t("sessions.columns.signedIn")}</TableCell>
+                  <TableCell>{t("sessions.columns.ipAddress")}</TableCell>
+                  <TableCell>{t("sessions.columns.device")}</TableCell>
+                  <TableCell>{t("sessions.columns.secondFactor")}</TableCell>
+                  <TableCell>{t("sessions.columns.lastUsed")}</TableCell>
+                  <TableCell>{t("sessions.columns.expires")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {sessions.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell>{fmt(s.createdAt)}</TableCell>
-                    <TableCell>{s.createdIp ?? "-"}</TableCell>
+                    <TableCell><Ltr>{fmt(s.createdAt)}</Ltr></TableCell>
+                    <TableCell><Ltr>{s.createdIp ?? "-"}</Ltr></TableCell>
                     <TableCell sx={{ maxWidth: 260, wordBreak: "break-word" }}>{s.userAgent ?? "-"}</TableCell>
-                    <TableCell>{s.mfaVerified ? "Second factor: Yes" : "Second factor: No"}</TableCell>
-                    <TableCell>{fmt(s.lastUsedAt)}</TableCell>
-                    <TableCell>{fmt(s.expiresAt)}</TableCell>
+                    <TableCell>{s.mfaVerified ? t("sessions.mfaYes") : t("sessions.mfaNo")}</TableCell>
+                    <TableCell><Ltr>{fmt(s.lastUsedAt)}</Ltr></TableCell>
+                    <TableCell><Ltr>{fmt(s.expiresAt)}</Ltr></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
           <TextField
-            label="Reason (required to revoke)"
+            label={t("sessions.reasonLabel")}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             size="small"
@@ -179,33 +184,32 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
             multiline
           />
           <Typography variant="caption" color="text.secondary">
-            Revoking ends refresh immediately. An access token already issued remains valid until it expires
-            (see Security Policy: access token lifetime).
+            {t("sessions.revokeNote")}
           </Typography>
 
           <Divider />
 
           <Box>
             <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              Trusted computers
+              {t("sessions.trustedComputersTitle")}
             </Typography>
             {devicesLoading ? (
               <CircularProgress size={24} />
             ) : devicesFailed ? (
               <PartialOutageBanner
-                sources={["trusted computers"]}
+                sources={[t("sessions.trustedComputersSource")]}
                 onRetry={user ? () => void loadTrustedDevices(user.id) : undefined}
               />
             ) : trustedDevices.length === 0 ? (
               <EmptyState
-                title="No trusted computers"
-                description="Computers this user chooses to trust during sign-in will appear here."
+                title={t("sessions.noTrustedTitle")}
+                description={t("sessions.noTrustedDescription")}
               />
             ) : (
               <Stack spacing={1.25}>
                 {trustedDevices.map((device) => {
                   const browserLabel = describeUserAgent(device.userAgent);
-                  const ipLabel = device.createdIp || "Unknown IP";
+                  const ipLabel = device.createdIp || t("sessions.unknownIp");
                   return (
                     <Box
                       key={device.id}
@@ -221,27 +225,34 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
                       }}
                     >
                       <Box sx={{ minWidth: 0 }}>
-                        <Tooltip title={device.userAgent || "Unknown browser"}>
+                        <Tooltip title={device.userAgent || t("sessions.unknownBrowser")}>
                           <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                             {browserLabel}
                           </Typography>
                         </Tooltip>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                          IP: {ipLabel}
+                          {t("sessions.ipPrefix", { ip: ipLabel })}
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                          Trusted: {formatDateTimeWithTimeZone(device.createdAt)} · Expires:{" "}
-                          {formatDateTimeWithTimeZone(device.expiresAt)}
+                          <Trans
+                            i18nKey="sessions.trustedExpiry"
+                            ns="users"
+                            values={{
+                              trusted: formatDateTimeWithTimeZone(device.createdAt),
+                              expires: formatDateTimeWithTimeZone(device.expiresAt)
+                            }}
+                            components={{ trusted: <Ltr>{null}</Ltr>, expires: <Ltr>{null}</Ltr> }}
+                          />
                         </Typography>
                       </Box>
                       <Button
                         variant="outlined"
                         size="small"
                         color="error"
-                        aria-label={`Revoke ${browserLabel} (${ipLabel})`}
+                        aria-label={t("sessions.revokeAria", { browser: browserLabel, ip: ipLabel })}
                         onClick={() => setRevokeTarget(device)}
                       >
-                        Revoke
+                        {t("sessions.revoke")}
                       </Button>
                     </Box>
                   );
@@ -254,13 +265,17 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
 
       <ConfirmationDialog
         open={Boolean(revokeTarget)}
-        title="Revoke trusted computer"
-        confirmText="Revoke"
+        title={t("sessions.revokeDeviceTitle")}
+        confirmText={t("sessions.revoke")}
         destructive
         loading={revokingDevice}
         message={
           revokeTarget
-            ? `Next time ${user?.username ?? "this user"} signs in from ${describeUserAgent(revokeTarget.userAgent)} (${revokeTarget.createdIp || "Unknown IP"}), a 6-digit code will be required.`
+            ? t("sessions.revokeDeviceMessage", {
+                username: user?.username ?? t("sessions.thisUser"),
+                browser: describeUserAgent(revokeTarget.userAgent),
+                ip: revokeTarget.createdIp || t("sessions.unknownIp")
+              })
             : ""
         }
         onCancel={() => setRevokeTarget(null)}

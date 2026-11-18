@@ -1,6 +1,9 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { Box, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField, Typography } from "@mui/material";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { UserRecord, UserService } from "../services/UserService";
 
@@ -13,6 +16,8 @@ export interface RelinkDirectoryDialogProps {
 
 /** Clears a user's company account link so it can be linked again; a reason is mandatory. */
 export function RelinkDirectoryDialog({ open, user, onClose, onRelinked }: RelinkDirectoryDialogProps) {
+  const { t } = useTranslation("users");
+  const { t: tc } = useTranslation("common");
   const formId = useId();
   const messageId = useId();
   const [reason, setReason] = useState("");
@@ -30,11 +35,11 @@ export function RelinkDirectoryDialog({ open, user, onClose, onRelinked }: Relin
     setSubmitting(true);
     try {
       await UserService.relinkDirectory(user.id, trimmed);
-      toast.success(`Company account link reset for ${user.username}.`);
+      toast.success(t("relink.success", { username: user.username }));
       onRelinked();
       onClose();
     } catch (err: unknown) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not re-link the user."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("relink.error")));
     } finally {
       setSubmitting(false);
     }
@@ -42,29 +47,33 @@ export function RelinkDirectoryDialog({ open, user, onClose, onRelinked }: Relin
 
   return (
     <Dialog open={open} onClose={submitting ? undefined : onClose} maxWidth="xs" fullWidth aria-describedby={messageId}>
-      <DialogTitle>Re-link company account</DialogTitle>
+      <DialogTitle>{t("relink.title")}</DialogTitle>
       <DialogContent>
         <Box component="form" id={formId} onSubmit={submit} noValidate>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <Typography id={messageId} variant="body2">
-              Re-linking <strong>{user?.fullName} (@{user?.username})</strong> removes the current link to the company account.
-              The user must be linked again before signing in with the company login.
+              <Trans
+                i18nKey="relink.message"
+                ns="users"
+                values={{ fullName: user?.fullName ?? "", username: user?.username ?? "" }}
+                components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <TextField
-              label="Reason" size="small" multiline minRows={2} value={reason} required fullWidth
+              label={t("fields.reason")} size="small" multiline minRows={2} value={reason} required fullWidth
               onChange={(e) => setReason(e.target.value)} disabled={submitting}
-              placeholder="Why the link is being reset"
+              placeholder={t("relink.reasonPlaceholder")}
             />
           </Stack>
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={submitting} autoFocus>Cancel</Button>
+        <Button onClick={onClose} disabled={submitting} autoFocus>{tc("actions.cancel")}</Button>
         <Button
           type="submit" form={formId} variant="contained" disabled={submitting || !trimmed}
           startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          Re-link
+          {t("relink.submit")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -16,7 +16,10 @@ import {
   Divider,
   TextField
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { UserRecord } from "../services/UserService";
 import {
   getSections,
@@ -55,6 +58,8 @@ function getErrorMessageVerbatim(err: unknown, fallback: string): string {
 }
 
 export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSectionsDialogProps) {
+  const { t } = useTranslation("users");
+  const { t: tc } = useTranslation("common");
   const [sections, setSections] = useState<LaboratorySection[]>([]);
   const [memberships, setMemberships] = useState<UserMembership[]>([]);
   const [loading, setLoading] = useState(false);
@@ -80,12 +85,12 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         setMemberships(userMemberships || []);
       })
       .catch((err: unknown) => {
-        setError(getErrorMessageVerbatim(err, "Could not load laboratory sections or user memberships."));
+        setError(getErrorMessageVerbatim(err, t("sections.loadError")));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [open, user]);
+  }, [open, user, t]);
 
   // Group sections by department
   const departmentGroups: DepartmentGroup[] = [];
@@ -175,10 +180,10 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         };
       });
       await replaceUserMemberships(user.id, payload, reason.trim());
-      onSuccess(`Laboratory sections updated for "${user.username}".`);
+      onSuccess(t("sections.updateSuccess", { username: user.username }));
       onClose();
     } catch (err: unknown) {
-      setError(getErrorMessageVerbatim(err, "Could not update user memberships."));
+      setError(getErrorMessageVerbatim(err, t("sections.updateError")));
     } finally {
       setSaving(false);
     }
@@ -189,11 +194,11 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
       open={open}
       onClose={onClose}
       maxWidth="md"
-      title={`Laboratory Sections: ${user?.fullName ?? ""}`}
+      title={t("sections.title", { name: user?.fullName ?? "" })}
       actions={
         <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
           <Button onClick={onClose} disabled={saving} color="inherit">
-            Cancel
+            {tc("actions.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -205,7 +210,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
               "&:hover": { bgcolor: brandColors.pageTitle }
             }}
           >
-            {saving ? "Saving..." : "Save Memberships"}
+            {saving ? t("sections.saving") : t("sections.save")}
           </Button>
         </Box>
       }
@@ -217,12 +222,16 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
       )}
 
       <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-        Assign laboratory sections to <strong>{user?.fullName} (@{user?.username})</strong>.
-        Selecting the entire department grants access to all of its current and future sections.
+        <Trans
+          i18nKey="sections.intro"
+          ns="users"
+          values={{ fullName: user?.fullName ?? "", username: user?.username ?? "" }}
+          components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+        />
       </Typography>
 
       <TextField
-        label="Reason for Change"
+        label={t("fields.reasonForChange")}
         size="small"
         multiline
         rows={2}
@@ -230,7 +239,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         fullWidth
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        placeholder="Mandatory administrative justification"
+        placeholder={t("fields.reasonPlaceholder")}
         sx={{ mb: 2 }}
       />
 
@@ -240,7 +249,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         </Box>
       ) : departmentGroups.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No laboratory sections are configured in the system.
+          {t("sections.empty")}
         </Typography>
       ) : (
         <Stack spacing={2}>
@@ -267,7 +276,7 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
                   }
                   label={
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>
-                      {dept.departmentName} ({dept.departmentCode}): <em>All sections (entire department)</em>
+                      {dept.departmentName} ({dept.departmentCode}): <em>{t("sections.allSections")}</em>
                     </Typography>
                   }
                 />
@@ -332,12 +341,12 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
 
                         {showAreaSelect && (
                           <FormControl size="small" sx={{ minWidth: 120 }}>
-                            <InputLabel id={`area-select-label-${sec.sectionId}`}>Area</InputLabel>
+                            <InputLabel id={`area-select-label-${sec.sectionId}`}>{t("sections.area")}</InputLabel>
                             <Select
                               labelId={`area-select-label-${sec.sectionId}`}
                               id={`area-select-${sec.sectionId}`}
-                              aria-label="Area"
-                              label="Area"
+                              aria-label={t("sections.area")}
+                              label={t("sections.area")}
                               value={selectValue}
                               onChange={(e) =>
                                 handleAreaChange(dept.departmentId, sec.sectionId, e.target.value)
@@ -346,13 +355,13 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
                               data-testid="physchem-area-select"
                             >
                               <MenuItem value="FinishedProduct" sx={{ fontSize: 13 }}>
-                                FP
+                                {t("sections.areaFp")}
                               </MenuItem>
                               <MenuItem value="RawPackaging" sx={{ fontSize: 13 }}>
-                                RM & PM
+                                {t("sections.areaRmPm")}
                               </MenuItem>
                               <MenuItem value="Both" sx={{ fontSize: 13 }}>
-                                Both
+                                {t("sections.areaBoth")}
                               </MenuItem>
                             </Select>
                           </FormControl>

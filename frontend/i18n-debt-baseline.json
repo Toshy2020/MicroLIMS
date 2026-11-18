@@ -1,5 +1,5 @@
 {
-  "total": 6219,
+  "total": 6027,
   "modules": {
     "components": 129,
     "modules/admin": 366,
@@ -21,7 +21,7 @@
     "modules/reports": 529,
     "modules/roles": 72,
     "modules/testingWorkspace": 305,
-    "modules/users": 197,
+    "modules/users": 5,
     "pages": 3,
     "pwa": 2
   }

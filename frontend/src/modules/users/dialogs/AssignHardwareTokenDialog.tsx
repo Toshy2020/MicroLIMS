@@ -13,8 +13,12 @@ import {
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import type { TFunction } from "i18next";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import { Ltr } from "../../../components/Ltr";
 import { FormDialog } from "../../../components/lab/FormDialog";
+import { useTranslation } from "../../../i18n";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { UserRecord, UserService } from "../services/UserService";
 
@@ -35,25 +39,26 @@ interface FieldErrors {
   reason?: string;
 }
 
-function validateSeed(rawSeed: string, format: SeedFormat): string | null {
+function validateSeed(rawSeed: string, format: SeedFormat, t: TFunction<"users">): string | null {
   const trimmed = rawSeed.trim();
-  if (!trimmed) return "Enter the hardware token seed.";
+  if (!trimmed) return t("hardwareToken.validation.seedRequired");
   if (format === "hex") {
     const compact = trimmed.replace(/\s+/g, "");
     if (!/^[0-9a-fA-F]+$/.test(compact) || compact.length % 2 !== 0) {
-      return "Hex seeds must have an even number of hexadecimal characters.";
+      return t("hardwareToken.validation.hexEven");
     }
     return null;
   }
   const compact = trimmed.replace(/[\s-]+/g, "").replace(/=+$/, "");
   if (!compact || !/^[A-Z2-7]+$/i.test(compact)) {
-    return "Base32 seeds may contain letters A-Z and digits 2-7 only.";
+    return t("hardwareToken.validation.base32Chars");
   }
   return null;
 }
 
 /** Administrator dialog to assign a TOTP hardware token to another user without retaining the seed after submit. */
 export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: AssignHardwareTokenDialogProps) {
+  const { t } = useTranslation("users");
   const [serialNumber, setSerialNumber] = useState("");
   const [seed, setSeed] = useState("");
   const [showSeed, setShowSeed] = useState(false);
@@ -84,17 +89,17 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
     const errors: FieldErrors = {};
 
     if (!trimmedSerial) {
-      errors.serialNumber = "Enter the token serial number.";
+      errors.serialNumber = t("hardwareToken.validation.serialRequired");
     }
-    const seedError = validateSeed(seed, seedFormat);
+    const seedError = validateSeed(seed, seedFormat, t);
     if (seedError) {
       errors.seed = seedError;
     }
     if (stepSeconds !== 30 && stepSeconds !== 60) {
-      errors.stepSeconds = "Time step must be 30 or 60 seconds.";
+      errors.stepSeconds = t("hardwareToken.validation.stepInvalid");
     }
     if (!trimmedReason) {
-      errors.reason = "Enter a reason for assigning this token.";
+      errors.reason = t("hardwareToken.validation.reasonRequired");
     }
 
     if (Object.keys(errors).length > 0) {
@@ -113,11 +118,11 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
         stepSeconds,
         reason: trimmedReason
       });
-      toast.success(`Hardware token assigned to ${user.username}.`);
+      toast.success(t("hardwareToken.success", { username: user.username }));
       onAssigned();
       onClose();
     } catch (err: unknown) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not assign the hardware token."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("hardwareToken.error")));
     } finally {
       // Clear the seed immediately after every submission attempt, succeeded or failed.
       setSeed("");
@@ -131,20 +136,21 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
       open={open}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title="Assign hardware token"
-      submitLabel="Assign hardware token"
+      title={t("hardwareToken.title")}
+      submitLabel={t("hardwareToken.submit")}
       submitting={submitting}
       maxWidth="xs"
     >
       <Typography variant="body2">
-        Assign a hardware token to{" "}
-        <strong>
-          {user?.fullName} (@{user?.username})
-        </strong>
-        . At next sign-in the user will enter a code from the token to confirm it.
+        <Trans
+          i18nKey="hardwareToken.intro"
+          ns="users"
+          values={{ fullName: user?.fullName ?? "", username: user?.username ?? "" }}
+          components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+        />
       </Typography>
       <TextField
-        label="Serial number"
+        label={t("hardwareToken.serialNumber")}
         size="small"
         value={serialNumber}
         onChange={(e) => {
@@ -159,7 +165,7 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
       />
       <FormControl component="fieldset" disabled={submitting}>
         <FormLabel component="legend" sx={{ fontSize: 12 }}>
-          Seed format
+          {t("hardwareToken.seedFormat")}
         </FormLabel>
         <RadioGroup
           row
@@ -169,12 +175,12 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
             if (fieldErrors.seed) setFieldErrors((prev) => ({ ...prev, seed: undefined }));
           }}
         >
-          <FormControlLabel value="base32" control={<Radio size="small" />} label="Base32" />
-          <FormControlLabel value="hex" control={<Radio size="small" />} label="Hex" />
+          <FormControlLabel value="base32" control={<Radio size="small" />} label={t("hardwareToken.base32")} />
+          <FormControlLabel value="hex" control={<Radio size="small" />} label={t("hardwareToken.hex")} />
         </RadioGroup>
       </FormControl>
       <TextField
-        label="Seed"
+        label={t("hardwareToken.seed")}
         size="small"
         type={showSeed ? "text" : "password"}
         value={seed}
@@ -183,7 +189,7 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
           if (fieldErrors.seed) setFieldErrors((prev) => ({ ...prev, seed: undefined }));
         }}
         error={Boolean(fieldErrors.seed)}
-        helperText={fieldErrors.seed ?? "Cleared automatically once submitted."}
+        helperText={fieldErrors.seed ?? t("hardwareToken.seedHelper")}
         disabled={submitting}
         required
         fullWidth
@@ -193,7 +199,7 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
-                  aria-label={showSeed ? "Hide seed" : "Show seed"}
+                  aria-label={showSeed ? t("hardwareToken.hideSeed") : t("hardwareToken.showSeed")}
                   onClick={() => setShowSeed((prev) => !prev)}
                   edge="end"
                   size="small"
@@ -208,7 +214,7 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
       />
       <TextField
         select
-        label="Time step"
+        label={t("hardwareToken.timeStep")}
         size="small"
         value={stepSeconds}
         onChange={(e) => {
@@ -216,15 +222,15 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
           if (fieldErrors.stepSeconds) setFieldErrors((prev) => ({ ...prev, stepSeconds: undefined }));
         }}
         error={Boolean(fieldErrors.stepSeconds)}
-        helperText={fieldErrors.stepSeconds ?? "Match the token specification (30 or 60 seconds)."}
+        helperText={fieldErrors.stepSeconds ?? t("hardwareToken.timeStepHelper")}
         disabled={submitting}
         fullWidth
       >
-        <MenuItem value={30}>30 seconds</MenuItem>
-        <MenuItem value={60}>60 seconds</MenuItem>
+        <MenuItem value={30}>{t("hardwareToken.seconds30")}</MenuItem>
+        <MenuItem value={60}>{t("hardwareToken.seconds60")}</MenuItem>
       </TextField>
       <TextField
-        label="Reason"
+        label={t("fields.reason")}
         size="small"
         multiline
         minRows={2}
@@ -238,7 +244,7 @@ export function AssignHardwareTokenDialog({ open, user, onClose, onAssigned }: A
         disabled={submitting}
         required
         fullWidth
-        placeholder="Why a hardware token is being assigned"
+        placeholder={t("hardwareToken.reasonPlaceholder")}
       />
     </FormDialog>
   );

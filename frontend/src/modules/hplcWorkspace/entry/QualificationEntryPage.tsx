@@ -27,7 +27,7 @@ import { useTechnique } from "../useTechnique";
 import type { HplcQualificationEntryDto, HplcReplicateDto } from "../types";
 import { useBreadcrumb } from "../../../components/breadcrumbContext";
 import { Ltr } from "../../../components/Ltr";
-import { useTranslation } from "../../../i18n";
+import { i18n, useTranslation } from "../../../i18n";
 
 export function QualificationEntryPage() {
   const { t } = useTranslation("hplcWorkspace");
@@ -68,11 +68,13 @@ export function QualificationEntryPage() {
       setReplicates(reps);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? t("entry.qualPage.loadError"));
+      setError(e.response?.data?.message ?? e.message ?? i18n.t("entry.qualPage.loadError", { ns: "hplcWorkspace" }));
     } finally {
       setLoading(false);
     }
-  }, [sampleIdNum, t]);
+    // Texts are read through i18n, not t: a new t (language change) would reload the entry and
+    // overwrite the replicate values being typed.
+  }, [sampleIdNum]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

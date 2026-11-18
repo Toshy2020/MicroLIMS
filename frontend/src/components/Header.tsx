@@ -30,12 +30,19 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CloudOffOutlinedIcon from "@mui/icons-material/CloudOffOutlined";
 import { visuallyHidden } from "@mui/utils";
 import { LanguageMenuItems } from "./LanguageMenuItems";
+import { Ltr } from "./Ltr";
+import { useTranslation } from "../i18n";
 import { HelpMenu } from "../modules/help/HelpMenu";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import SwitchAccountIcon from "@mui/icons-material/SwitchAccount";
 import { NOTIFICATION_ROUTES, resolveNotificationTarget } from "../modules/notifications/notificationRoutes";
 
 export { NOTIFICATION_ROUTES };
+
+const BRAND_PREFIX = "Micro";
+const BRAND_SUFFIX = "LIMS";
+const SEARCH_SHORTCUT = "Ctrl+K";
+const NOTIFICATION_FILTERS = ["all", "unread"] as const;
 
 interface NotificationDto {
   id: number | null;
@@ -65,6 +72,7 @@ interface HeaderProps {
 }
 
 export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDraftCount = 0, draftsMenu }: HeaderProps) {
+  const { t } = useTranslation("navigation");
   const { mode, toggleMode } = useThemeMode();
   const { benchMode, setBenchMode } = useBenchMode();
   const theme = useTheme();
@@ -74,7 +82,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   const { username, fullName, jobTitle, role, roleName, logout } = useAuth();
   const { status: liveStatus } = useLive();
 
-  const displayName = fullName ?? username ?? "User";
+  const displayName = fullName ?? username ?? t("header.defaultUser");
   const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes, roleName);
 
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
@@ -192,18 +200,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {onToggleSidebar && (
-          <Tooltip title={isMobile ? "Toggle navigation menu" : (sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")}>
+          <Tooltip title={isMobile ? t("header.toggleMenu") : (sidebarCollapsed ? t("header.expandSidebar") : t("header.collapseSidebar"))}>
             <IconButton
               onClick={onToggleSidebar}
               sx={{ color: "inherit", p: 0.75, mr: 0.5 }}
-              aria-label="Toggle navigation menu"
+              aria-label={t("header.toggleMenu")}
             >
               <MenuIcon />
             </IconButton>
           </Tooltip>
         )}
-        <Typography sx={{ fontSize: { xs: 19, sm: 22 }, fontWeight: 700, letterSpacing: 0.5, userSelect: "none" }}>
-          Micro<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>LIMS</Box>
+        <Typography dir="ltr" sx={{ fontSize: { xs: 19, sm: 22 }, fontWeight: 700, letterSpacing: 0.5, userSelect: "none" }}>
+          {BRAND_PREFIX}<Box component="span" sx={{ fontWeight: 300, color: theme.custom.chrome.brandAccent }}>{BRAND_SUFFIX}</Box>
         </Typography>
       </Box>
 
@@ -224,29 +232,29 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
           cursor: "pointer",
           "&:hover": { bgcolor: theme.custom.chrome.topbarControlHoverBg }
         }}
-        aria-label="Search MicroLIMS (Ctrl+K)"
+        aria-label={t("header.searchShortcutAria")}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <SearchIcon sx={{ fontSize: 18, opacity: 0.8 }} />
-          <Typography sx={{ fontSize: 13, opacity: 0.85 }}>Search MicroLIMS...</Typography>
+          <Typography sx={{ fontSize: 13, opacity: 0.85 }}>{t("header.searchPlaceholder")}</Typography>
         </Box>
         <Box sx={{ fontSize: 11, border: `1px solid ${theme.custom.chrome.topbarBorder}`, bgcolor: theme.custom.chrome.topbarBg, px: 0.8, py: 0.2, borderRadius: 1 }}>
-          Ctrl+K
+          <Ltr>{SEARCH_SHORTCUT}</Ltr>
         </Box>
       </ButtonBase>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 } }}>
-        <Tooltip title="Search MicroLIMS">
+        <Tooltip title={t("header.searchButton")}>
           <IconButton
             onClick={() => setSearchOpen(true)}
             data-tour="global-search"
             sx={{ color: "inherit", display: { sm: "none" } }}
-            aria-label="Search MicroLIMS"
+            aria-label={t("header.searchButton")}
           >
             <SearchIcon />
           </IconButton>
         </Tooltip>
-        <Tooltip title="Bench mode: larger touch targets for tablets (this device only)">
+        <Tooltip title={t("header.benchModeTooltip")}>
           <Switch
             checked={benchMode}
             onChange={(_, checked) => setBenchMode(checked)}
@@ -255,10 +263,10 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               "& .MuiSwitch-thumb": { backgroundColor: "common.white", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" },
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: `${theme.custom.chrome.topbarSwitchTrack} !important`, opacity: 1 }
             }}
-            slotProps={{ input: { "aria-label": "Bench mode" } }}
+            slotProps={{ input: { "aria-label": t("header.benchModeLabel") } }}
           />
         </Tooltip>
-        <Tooltip title={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}>
+        <Tooltip title={mode === "dark" ? t("header.switchToLight") : t("header.switchToDark")}>
           <Switch
             checked={mode === "dark"}
             onChange={toggleMode}
@@ -270,7 +278,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: `${theme.custom.chrome.topbarSwitchTrack} !important`, opacity: 1 }
             }}
             slotProps={{
-              input: { "aria-label": mode === "dark" ? "Switch to light mode" : "Switch to dark mode" }
+              input: { "aria-label": mode === "dark" ? t("header.switchToLight") : t("header.switchToDark") }
             }}
           />
         </Tooltip>
@@ -281,16 +289,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             onClick={handleSwitchUser}
             sx={{ whiteSpace: "nowrap" }}
           >
-            Switch user
+            {t("header.switchUser")}
           </Button>
         )}
         {draftsMenu}
         {liveStatus === "offline" && (
-          <Tooltip title="Live updates are unavailable; checking for updates automatically">
+          <Tooltip title={t("header.liveUpdatesPausedTooltip")}>
             <Box
               component="span"
               role="status"
-              aria-label="Live updates paused"
+              aria-label={t("header.liveUpdatesPaused")}
               aria-live="polite"
               sx={{
                 display: "inline-flex",
@@ -309,17 +317,17 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               }}
             >
               <CloudOffOutlinedIcon aria-hidden="true" sx={{ fontSize: 14 }} />
-              Live updates paused
+              {t("header.liveUpdatesPaused")}
             </Box>
           </Tooltip>
         )}
         <HelpMenu />
-        <Tooltip title="Notifications">
+        <Tooltip title={t("header.notifications")}>
           <IconButton
             onClick={(e) => setBellAnchor(e.currentTarget)}
             data-tour="notifications"
             sx={{ color: "inherit" }}
-            aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
+            aria-label={unreadCount > 0 ? t("header.notificationsUnreadAria", { count: unreadCount }) : t("header.notifications")}
             aria-controls={bellAnchor ? "header-notifications-menu" : undefined}
             aria-haspopup="true"
             aria-expanded={Boolean(bellAnchor)}
@@ -349,18 +357,18 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               typed here are theirs, not the menu's type-ahead. */}
           <Box onKeyDown={(e) => e.stopPropagation()} sx={{ px: 2, pt: 1, pb: 0.75 }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 700 }}>Notifications</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 700 }}>{t("header.notifications")}</Typography>
               <Button
                 size="small"
                 onClick={handleMarkAllRead}
                 disabled={unreadCount === 0}
                 sx={{ fontSize: 12, textTransform: "none", minWidth: 0 }}
               >
-                Mark all as read
+                {t("header.markAllRead")}
               </Button>
             </Box>
-            <Box role="group" aria-label="Show notifications" sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
-              {(["all", "unread"] as const).map((f) => (
+            <Box role="group" aria-label={t("header.showNotificationsAria")} sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
+              {NOTIFICATION_FILTERS.map((f) => (
                 <Button
                   key={f}
                   size="small"
@@ -372,7 +380,9 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
                     bgcolor: notificationFilter === f ? "action.selected" : "transparent"
                   }}
                 >
-                  {f === "all" ? "All" : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ""}`}
+                  {f === "all"
+                    ? t("header.filterAll")
+                    : (unreadCount > 0 ? t("header.filterUnreadCount", { count: unreadCount }) : t("header.filterUnread"))}
                 </Button>
               ))}
             </Box>
@@ -381,8 +391,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
           {notificationsFailed && (
             <MenuItem disabled sx={{ whiteSpace: "normal", "&.Mui-disabled": { opacity: 1 } }}>
               <ListItemText
-                primary="Notifications could not be loaded"
-                secondary={notifications.length > 0 ? "The list below may be out of date. Retrying automatically." : "Retrying automatically every minute."}
+                primary={t("header.notificationsLoadFailed")}
+                secondary={notifications.length > 0 ? t("header.notificationsOutOfDate") : t("header.notificationsRetrying")}
                 slotProps={{ primary: { sx: { color: "error.main", fontSize: 13, fontWeight: 600 } } }}
               />
             </MenuItem>
@@ -390,8 +400,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
           {visibleNotifications.length === 0 && !notificationsFailed && (
             <MenuItem disabled sx={{ whiteSpace: "normal" }}>
               <ListItemText
-                primary={notificationFilter === "unread" && notifications.length > 0 ? "No unread notifications" : "No notifications"}
-                secondary="You are up to date - nothing needs your attention."
+                primary={notificationFilter === "unread" && notifications.length > 0 ? t("header.noUnreadNotifications") : t("header.noNotifications")}
+                secondary={t("header.notificationsUpToDate")}
               />
             </MenuItem>
           )}
@@ -406,14 +416,14 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
                 sx={{ whiteSpace: "normal", alignItems: "flex-start", gap: 1.25, py: 1 }}
               >
                 {warning
-                  ? <WarningAmberOutlinedIcon fontSize="small" sx={{ color: "warning.main", mt: 0.25 }} titleAccess="Warning" />
-                  : <InfoOutlinedIcon fontSize="small" sx={{ color: "info.main", mt: 0.25 }} titleAccess="Information" />}
+                  ? <WarningAmberOutlinedIcon fontSize="small" sx={{ color: "warning.main", mt: 0.25 }} titleAccess={t("header.warning")} />
+                  : <InfoOutlinedIcon fontSize="small" sx={{ color: "info.main", mt: 0.25 }} titleAccess={t("header.information")} />}
                 <ListItemText
                   sx={{ m: 0 }}
                   primary={
                     <>
                       <Box component="span" sx={visuallyHidden}>
-                        {warning ? "Warning: " : "Information: "}
+                        {warning ? t("header.warningPrefix") : t("header.informationPrefix")}
                       </Box>
                       {n.message}
                     </>
@@ -426,10 +436,10 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
                 {!n.isRead && (
                   <Box
                     component="span"
-                    title="Unread"
+                    title={t("header.unread")}
                     sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "primary.main", flexShrink: 0, mt: 0.75 }}
                   >
-                    <Box component="span" sx={visuallyHidden}>Unread</Box>
+                    <Box component="span" sx={visuallyHidden}>{t("header.unread")}</Box>
                   </Box>
                 )}
               </MenuItem>
@@ -443,14 +453,16 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             onClick={() => setBellAnchor(null)}
             sx={{ justifyContent: "center", fontWeight: 600, color: "primary.main" }}
           >
-            See all
+            {t("header.seeAll")}
           </MenuItem>
         </Menu>
 
-        <Tooltip title="Account">
+        <Tooltip title={t("header.account")}>
           <ButtonBase
             onClick={(e) => setProfileAnchor(e.currentTarget)}
-            aria-label={`Account menu for ${displayName}${unreadMessages > 0 ? `, ${unreadMessages} unread messages` : ""}`}
+            aria-label={unreadMessages > 0
+              ? t("header.accountMenuUnreadAria", { name: displayName, count: unreadMessages })
+              : t("header.accountMenuAria", { name: displayName })}
             aria-controls={profileAnchor ? "header-account-menu" : undefined}
             aria-haspopup="true"
             aria-expanded={Boolean(profileAnchor)}
@@ -479,7 +491,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               <Box sx={{ minWidth: 0, maxWidth: 220 }}>
                 <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
                 <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: theme.custom.chrome.topbarMutedText }}>
-                  {username ? `${username} · ${displayTitle}` : displayTitle}
+                  {username ? <><Ltr>{username}</Ltr> · {displayTitle}</> : displayTitle}
                 </Typography>
               </Box>
             )}
@@ -499,14 +511,14 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             <Typography sx={{ fontWeight: 600, fontSize: 14 }}>{displayName}</Typography>
             <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{displayTitle}</Typography>
             <Box component="dl" sx={{ m: 0, mt: 0.75, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1, fontSize: 12, color: "text.secondary", "& dd": { m: 0, color: "text.primary" } }}>
-              {username && (<><dt>User ID</dt><dd>{username}</dd></>)}
-              {(roleName || role) && (<><dt>Role</dt><dd>{formatRoleName(role, roleName)}</dd></>)}
+              {username && (<><dt>{t("header.userId")}</dt><dd><Ltr>{username}</Ltr></dd></>)}
+              {(roleName || role) && (<><dt>{t("header.role")}</dt><dd>{formatRoleName(role, roleName)}</dd></>)}
             </Box>
           </Box>
           <Divider />
           <MenuItem component={Link} to="/profile" onClick={() => setProfileAnchor(null)}>
             <ListItemIcon><PersonOutlineIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="My Profile" />
+            <ListItemText primary={t("item.myProfile")} />
           </MenuItem>
           <MenuItem component={Link} to="/messages" onClick={() => setProfileAnchor(null)}>
             <ListItemIcon>
@@ -514,32 +526,32 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
                 <MailOutlineIcon fontSize="small" />
               </Badge>
             </ListItemIcon>
-            <ListItemText primary={unreadMessages > 0 ? `Messages (${unreadMessages} unread)` : "Messages"} />
+            <ListItemText primary={unreadMessages > 0 ? t("header.messagesUnread", { count: unreadMessages }) : t("item.messages")} />
           </MenuItem>
           <MenuItem component={Link} to="/discussions" onClick={() => setProfileAnchor(null)}>
             <ListItemIcon><ForumOutlinedIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Discussions" />
+            <ListItemText primary={t("item.discussions")} />
           </MenuItem>
           <MenuItem component={Link} to="/change-password" onClick={() => setProfileAnchor(null)}>
             <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Change Password" />
+            <ListItemText primary={t("item.changePassword")} />
           </MenuItem>
           <Divider />
           <LanguageMenuItems onChosen={() => setProfileAnchor(null)} />
           <Divider />
           <MenuItem onClick={handleSignOut}>
             <ListItemIcon><LogoutIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Sign Out" />
+            <ListItemText primary={t("header.signOut")} />
           </MenuItem>
         </Menu>
       </Box>
       <GlobalSearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
       <ConfirmationDialog
         open={switchUserConfirmOpen}
-        title="Switch user"
+        title={t("header.switchUser")}
         destructive
-        confirmText="Switch user"
-        message={`You have ${unsavedDraftCount} unsaved ${unsavedDraftCount === 1 ? "entry" : "entries"} on this tablet. They stay on this tablet for the signed-in user and are not saved to MicroLIMS. Switch user anyway?`}
+        confirmText={t("header.switchUser")}
+        message={t("header.switchUserUnsaved", { count: unsavedDraftCount })}
         onCancel={() => setSwitchUserConfirmOpen(false)}
         onConfirm={() => {
           setSwitchUserConfirmOpen(false);

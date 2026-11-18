@@ -1,7 +1,7 @@
 {
-  "total": 1512,
+  "total": 1420,
   "modules": {
-    "components": 129,
+    "components": 37,
     "modules/admin": 13,
     "modules/auditReview": 2,
     "modules/auditSearch": 10,

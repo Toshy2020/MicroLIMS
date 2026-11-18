@@ -9,6 +9,7 @@ import {
   Stepper,
   Typography,
 } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { FloatingDialog } from "../FloatingDialog";
 import { ConfirmationDialog } from "../ConfirmationDialog";
 import { RecordChangedBanner } from "../RecordChangedBanner";
@@ -82,6 +83,7 @@ function focusFieldInContainer(container: HTMLElement | null, fieldName?: string
 export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
   const { open = true, title, mode, steps, usage, reasonRequired, extraReview, liveRecord, reloadOriginal } = props;
   const wizard = useWizard(props);
+  const { t } = useTranslation();
   const bodyRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -128,7 +130,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
             <Stepper
               activeStep={wizard.activeStepIndex}
               nonLinear={wizard.allVisited}
-              aria-label="Wizard steps"
+              aria-label={t("components.configWizard.stepsAria")}
             >
               {stepperItems.map((item, idx) => {
                 const isActive = idx === wizard.activeStepIndex;
@@ -191,11 +193,11 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
               onClick={wizard.goBack}
               disabled={wizard.activeStepIndex === 0 || wizard.saving}
             >
-              Back
+              {t("components.configWizard.back")}
             </Button>
             {!wizard.isReview ? (
               <Button type="button" variant="contained" onClick={wizard.goNext}>
-                Next
+                {t("components.configWizard.next")}
               </Button>
             ) : (
               <>
@@ -218,7 +220,7 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
                     wizard.saving ? <CircularProgress size={16} color="inherit" /> : undefined
                   }
                 >
-                  {wizard.saving ? "Saving..." : "Save"}
+                  {wizard.saving ? t("components.configWizard.saving") : t("components.configWizard.save")}
                 </Button>
               </>
             )}
@@ -287,9 +289,9 @@ export function ConfigWizard<M extends object>(props: ConfigWizardProps<M>) {
       <ConfirmationDialog
         open={wizard.confirmDiscardOpen}
         destructive
-        title="Discard unsaved changes?"
-        message="You have unsaved changes. Closing now discards them."
-        confirmText="Discard"
+        title={t("components.configWizard.discardTitle")}
+        message={t("components.configWizard.discardMessage")}
+        confirmText={t("components.configWizard.discard")}
         onCancel={wizard.cancelDiscard}
         onConfirm={() => void wizard.confirmDiscard()}
       />

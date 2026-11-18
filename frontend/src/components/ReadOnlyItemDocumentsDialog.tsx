@@ -15,6 +15,8 @@ import {
 } from "@mui/material";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useTranslation } from "../i18n";
+import { Ltr } from "./Ltr";
 import { CategoryBadge } from "./StatusBadge";
 import {
   ItemDocumentService,
@@ -44,6 +46,7 @@ export function ReadOnlyItemDocumentsDialog({
   category,
   onClose,
 }: ReadOnlyItemDocumentsDialogProps) {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<ItemDocumentDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +57,7 @@ export function ReadOnlyItemDocumentsDialog({
       setError(null);
       ItemDocumentService.getDocumentsForItem(itemId)
         .then(setDocuments)
-        .catch(() => setError("Failed to load item documents."))
+        .catch(() => setError("load"))
         .finally(() => setLoading(false));
     }
   }, [open, itemId]);
@@ -92,7 +95,7 @@ export function ReadOnlyItemDocumentsDialog({
       title={
         <Box>
           <Typography component="span" variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-            Controlled Item Documents
+            {t("components.readOnlyItemDocuments.title")}
           </Typography>
           <Stack
             direction="row"
@@ -116,7 +119,7 @@ export function ReadOnlyItemDocumentsDialog({
       }
       actions={
         <Button onClick={onClose} variant="contained" color="primary">
-          Close
+          {t("components.readOnlyItemDocuments.close")}
         </Button>
       }
     >
@@ -133,7 +136,7 @@ export function ReadOnlyItemDocumentsDialog({
             sx={{ fontWeight: 700, mb: 1, display: "flex", alignItems: "center", gap: 1 }}
           >
             <VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />
-            Verification Report
+            {t("components.readOnlyItemDocuments.verificationReport")}
           </Typography>
 
           {loading ? (
@@ -141,7 +144,7 @@ export function ReadOnlyItemDocumentsDialog({
               <CircularProgress size={24} />
             </Box>
           ) : error ? (
-            <Alert severity="error">{error}</Alert>
+            <Alert severity="error">{t("components.readOnlyItemDocuments.loadFailed")}</Alert>
           ) : (
             <>
               {currentVr ? (
@@ -161,7 +164,7 @@ export function ReadOnlyItemDocumentsDialog({
                   }}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 12 }}>
-                    No active Verification Report uploaded for this item.
+                    {t("components.readOnlyItemDocuments.noActiveReport")}
                   </Typography>
                 </Paper>
               )}
@@ -180,7 +183,7 @@ export function ReadOnlyItemDocumentsDialog({
                       variant="caption"
                       sx={{ fontWeight: 600, color: "text.secondary" }}
                     >
-                      Historical Verification Reports ({historicalVrs.length})
+                      {t("components.readOnlyItemDocuments.historical", { count: historicalVrs.length })}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails sx={{ pt: 0 }}>
@@ -220,6 +223,7 @@ function ReadOnlyDocumentCard({
   formatDateTime: (d?: string | null) => string;
   isHistorical?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Paper
       sx={{
@@ -260,7 +264,7 @@ function ReadOnlyDocumentCard({
             />
             {isHistorical && (
               <Chip
-                label="Superseded"
+                label={t("components.readOnlyItemDocuments.superseded")}
                 size="small"
                 color="warning"
                 sx={{ fontWeight: 600, fontSize: 12, height: 20 }}
@@ -269,10 +273,10 @@ function ReadOnlyDocumentCard({
           </Stack>
 
           <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 12 }}>
-            Effective: <strong>{formatDate(doc.effectiveDate)}</strong> • Size: {formatFileSize(doc.fileSizeBytes)}
+            {t("components.readOnlyItemDocuments.effective")} <strong><Ltr>{formatDate(doc.effectiveDate)}</Ltr></strong> • {t("components.readOnlyItemDocuments.size")} <Ltr>{formatFileSize(doc.fileSizeBytes)}</Ltr>
           </Typography>
           <Typography variant="caption" component="div" sx={{ color: "text.secondary", fontSize: 12 }}>
-            Uploaded by: <strong>{doc.uploadedByUserName}</strong> on {formatDateTime(doc.uploadedAt)}
+            {t("components.readOnlyItemDocuments.uploadedBy")} <strong>{doc.uploadedByUserName}</strong> {t("components.readOnlyItemDocuments.on")} <Ltr>{formatDateTime(doc.uploadedAt)}</Ltr>
           </Typography>
         </Box>
 

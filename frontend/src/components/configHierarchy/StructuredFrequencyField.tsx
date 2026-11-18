@@ -1,4 +1,6 @@
 import { MenuItem, Stack, TextField, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
 
 export type FrequencyKind = "" | "Daily" | "Weekly" | "Monthly";
 
@@ -52,14 +54,26 @@ export const frequencyRule = (v: FrequencyValue): FrequencyRulePayload =>
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-export function frequencyLabel(v: FrequencyValue | FrequencyColumns): string {
+// The stored weekday and month values stay English; only their display is translated.
+const weekdayText = (t: TFunction, day: string) => t(`components.structuredFrequency.weekdays.${day}`, { defaultValue: day });
+
+export function frequencyLabel(v: FrequencyValue | FrequencyColumns, t: TFunction = i18n.getFixedT("en", "common")): string {
   const f = "type" in v ? v : frequencyFrom(v);
   if (f.type === "") return "";
-  if (f.type === "Daily") return "Daily";
-  const unit = f.type === "Weekly" ? "week" : "month";
-  const base = f.interval === 1 ? (f.type === "Weekly" ? "Weekly" : "Monthly") : `Every ${f.interval} ${unit}s`;
-  const withWeek = f.type === "Monthly" && f.weekOfMonth !== "" ? `${base}, week ${f.weekOfMonth}` : base;
-  return f.weekday ? `${withWeek} on ${f.weekday}` : withWeek;
+  if (f.type === "Daily") return t("components.structuredFrequency.daily");
+  const base =
+    f.interval === 1
+      ? f.type === "Weekly"
+        ? t("components.structuredFrequency.weekly")
+        : t("components.structuredFrequency.monthly")
+      : f.type === "Weekly"
+        ? t("components.structuredFrequency.everyWeeks", { count: f.interval })
+        : t("components.structuredFrequency.everyMonths", { count: f.interval });
+  const withWeek =
+    f.type === "Monthly" && f.weekOfMonth !== ""
+      ? t("components.structuredFrequency.weekOfMonthSuffix", { base, week: f.weekOfMonth })
+      : base;
+  return f.weekday ? t("components.structuredFrequency.onWeekday", { base: withWeek, weekday: weekdayText(t, f.weekday) }) : withWeek;
 }
 
 interface Props {
@@ -75,9 +89,9 @@ interface Props {
 // Structured sampling frequency: daily (every working day), weekly or
 // monthly, every N, an optional weekday, a week of the month for monthly
 // rules and, for every-N-months rules, the month the cycle starts in.
-export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayRequired, inheritedHint, noneLabel = "No frequency" }: Props) {
+export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayRequired, inheritedHint, noneLabel }: Props) {
+  const { t } = useTranslation();
   const set = (patch: Partial<FrequencyValue>) => onChange({ ...value, ...patch });
-  const unit = value.type === "Weekly" ? "week(s)" : "month(s)";
 
   return (
     <Stack spacing={1.5}>
@@ -85,22 +99,22 @@ export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayReq
         select
         size="small"
         id={`${idPrefix}-type`}
-        label="Frequency"
+        label={t("components.structuredFrequency.frequency")}
         value={value.type}
         onChange={(e) => set({ type: e.target.value as FrequencyKind, anchorMonth: "", weekOfMonth: "", ...(e.target.value === "Daily" ? { interval: 1, weekday: "" } : {}) })}
         slotProps={{ select: { displayEmpty: true } }}
       >
-        <MenuItem value="">{noneLabel}</MenuItem>
-        <MenuItem value="Daily">Daily (working days)</MenuItem>
-        <MenuItem value="Weekly">Weekly</MenuItem>
-        <MenuItem value="Monthly">Monthly</MenuItem>
+        <MenuItem value="">{noneLabel ?? t("components.structuredFrequency.noFrequency")}</MenuItem>
+        <MenuItem value="Daily">{t("components.structuredFrequency.dailyWorkingDays")}</MenuItem>
+        <MenuItem value="Weekly">{t("components.structuredFrequency.weekly")}</MenuItem>
+        <MenuItem value="Monthly">{t("components.structuredFrequency.monthly")}</MenuItem>
       </TextField>
       {value.type === "" && inheritedHint && (
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{inheritedHint}</Typography>
       )}
       {value.type === "Daily" && (
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Due every working day of the lab week; days off in the lab calendar are skipped.
+          {t("components.structuredFrequency.dailyHint")}
         </Typography>
       )}
       {(value.type === "Weekly" || value.type === "Monthly") && (
@@ -109,7 +123,7 @@ export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayReq
             size="small"
             type="number"
             id={`${idPrefix}-interval`}
-            label={`Every N ${unit}`}
+            label={value.type === "Weekly" ? t("components.structuredFrequency.everyNWeeks") : t("components.structuredFrequency.everyNMonths")}
             value={value.interval}
             onChange={(e) => set({ interval: Math.max(1, Math.floor(Number(e.target.value) || 1)) })}
             slotProps={{ htmlInput: { min: 1, max: value.type === "Weekly" ? 52 : 12 } }}
@@ -119,16 +133,16 @@ export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayReq
             select
             size="small"
             id={`${idPrefix}-weekday`}
-            label={weekdayRequired && value.type === "Weekly" ? "Sampling weekday" : "Sampling weekday (optional)"}
+            label={weekdayRequired && value.type === "Weekly" ? t("components.structuredFrequency.samplingWeekday") : t("components.structuredFrequency.samplingWeekdayOptional")}
             required={weekdayRequired && value.type === "Weekly"}
             value={value.weekday}
             onChange={(e) => set({ weekday: e.target.value })}
             sx={{ flex: 1 }}
           >
-            <MenuItem value="">Any working day</MenuItem>
+            <MenuItem value="">{t("components.structuredFrequency.anyWorkingDay")}</MenuItem>
             {WEEKDAYS.map((d) => (
               <MenuItem key={d} value={d}>
-                {d}
+                {weekdayText(t, d)}
               </MenuItem>
             ))}
           </TextField>
@@ -139,15 +153,15 @@ export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayReq
           select
           size="small"
           id={`${idPrefix}-week-of-month`}
-          label="Week of the month"
+          label={t("components.structuredFrequency.weekOfMonthLabel")}
           value={value.weekOfMonth}
           onChange={(e) => set({ weekOfMonth: e.target.value === "" ? "" : Number(e.target.value) })}
-          helperText="Due any day in that lab week (Sunday to Saturday)."
+          helperText={t("components.structuredFrequency.weekOfMonthHelper")}
         >
-          <MenuItem value="">Any time in the month</MenuItem>
+          <MenuItem value="">{t("components.structuredFrequency.anyTimeInMonth")}</MenuItem>
           {[1, 2, 3, 4].map((w) => (
             <MenuItem key={w} value={w}>
-              Week {w}
+              {t("components.structuredFrequency.week", { week: w })}
             </MenuItem>
           ))}
         </TextField>
@@ -157,14 +171,14 @@ export function StructuredFrequencyField({ idPrefix, value, onChange, weekdayReq
           select
           size="small"
           id={`${idPrefix}-anchor`}
-          label="First month of the cycle"
+          label={t("components.structuredFrequency.firstMonth")}
           value={value.anchorMonth}
           onChange={(e) => set({ anchorMonth: e.target.value === "" ? "" : Number(e.target.value) })}
         >
-          <MenuItem value="">January</MenuItem>
+          <MenuItem value="">{t("components.structuredFrequency.months.January")}</MenuItem>
           {MONTHS.map((m, i) => (
             <MenuItem key={m} value={i + 1}>
-              {m}
+              {t(`components.structuredFrequency.months.${m}`)}
             </MenuItem>
           ))}
         </TextField>

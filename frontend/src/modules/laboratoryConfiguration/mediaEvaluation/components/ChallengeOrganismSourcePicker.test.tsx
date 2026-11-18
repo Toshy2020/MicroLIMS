@@ -245,7 +245,7 @@ describe("ChallengeOrganismSourcePicker", () => {
     await i18n.loadNamespaces(["labConfig", "common"]);
     try {
       renderPicker();
-      expect(await screen.findByText("إذابة أمبول")).toBeTruthy();
+      expect(await screen.findByText("إذابة قارورة")).toBeTruthy();
       expect(screen.getByRole("button", { name: "إذابة واستخدام" })).toBeTruthy();
     } finally {
       await i18n.changeLanguage("en");

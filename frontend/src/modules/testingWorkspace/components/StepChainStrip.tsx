@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Box, Tooltip, Typography, useTheme } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { CurrentStepResponse } from "../types/testWorkflowTypes";
 
 // A completed step whose outcome contains this is shown as failed. A
@@ -14,6 +15,7 @@ const INCONCLUSIVE_OUTCOME_MARKER = "Inconclusive";
 // row so it never wraps and pushes the step form down on a phone. A done
 // step's outcome is in its tooltip and accessible label. No click actions.
 export const StepChainStrip = memo(function StepChainStrip({ current }: { current: CurrentStepResponse }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const steps = current.allSteps ?? [];
   const completedByOrder = new Map((current.completedSteps ?? []).map((s) => [s.stepOrder, s]));
@@ -24,13 +26,13 @@ export const StepChainStrip = memo(function StepChainStrip({ current }: { curren
   if (steps.length === 0) return null;
 
   const headline = current.allStepsComplete
-    ? `All ${steps.length} steps complete`
+    ? t("pathogenSteps.chain.allComplete", { count: steps.length })
     : currentIndex >= 0
-      ? `Step ${currentIndex + 1} of ${steps.length}`
-      : `${completedByOrder.size} of ${steps.length} steps complete`;
+      ? t("pathogenSteps.chain.stepOf", { current: currentIndex + 1, total: steps.length })
+      : t("pathogenSteps.chain.someComplete", { done: completedByOrder.size, total: steps.length });
 
   return (
-    <Box component="nav" aria-label="Workflow progress" sx={{ mb: 2 }}>
+    <Box component="nav" aria-label={t("pathogenSteps.chain.workflowProgress")} sx={{ mb: 2 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, mb: 0.75 }}>
         <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>{headline}</Typography>
         {currentIndex >= 0 && !current.allStepsComplete && (
@@ -50,15 +52,17 @@ export const StepChainStrip = memo(function StepChainStrip({ current }: { curren
 
           let barColor = status.pending.border;
           let labelColor = theme.palette.text.secondary;
-          let stateText = "Not started";
+          let stateText = t("pathogenSteps.chain.notStarted");
           if (done) {
             barColor = isInconclusive ? status.detected.text : status.notDetected.text;
             labelColor = barColor;
-            stateText = done.outcome ? `Complete: ${done.outcome}` : "Complete";
+            stateText = done.outcome
+              ? t("pathogenSteps.chain.completeWithOutcome", { outcome: done.outcome })
+              : t("pathogenSteps.chain.complete");
           } else if (isCurrent) {
             barColor = theme.palette.primary.main;
             labelColor = theme.palette.primary.main;
-            stateText = "In progress";
+            stateText = t("pathogenSteps.chain.inProgress");
           }
 
           return (

@@ -24,6 +24,9 @@ import { brandColors } from "../../../theme";
 import { FieldHint, describedByWithHint } from "../../../components/FieldHint";
 import { hints } from "../hints";
 import { formatLabCalendarDate } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -31,10 +34,34 @@ interface Props {
   onNext: () => void;
 }
 
+interface ReleasedMediaOption {
+  id: number;
+  lotNumber?: string | null;
+  materialName?: string | null;
+  mediaTypeName?: string | null;
+  expiryDate?: string | null;
+}
+
+interface IncubatorOption {
+  id: number;
+  code?: string | null;
+  name?: string | null;
+  location?: string | null;
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+    return apiErr.response?.data?.message ?? apiErr.message ?? fallback;
+  }
+  return fallback;
+}
+
 export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
-  const [mediaLots, setMediaLots] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
+  const [mediaLots, setMediaLots] = useState<ReleasedMediaOption[]>([]);
+  const [incubators, setIncubators] = useState<IncubatorOption[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
 
   const [selectedMediaId, setSelectedMediaId] = useState<number | "">("");
@@ -47,25 +74,27 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
     setLoadingLookups(true);
     Promise.all([
-      masterDataOptions.getReleasedMedia().catch(() => []),
-      masterDataOptions.getEquipment("Incubator").catch(() => [])
+      masterDataOptions.getReleasedMedia().catch(() => [] as ReleasedMediaOption[]),
+      masterDataOptions.getEquipment("Incubator").catch(() => [] as IncubatorOption[])
     ])
       .then(([m, inc]) => {
-        setMediaLots(m ?? []);
-        setIncubators(inc ?? []);
-        if (m && m.length > 0 && !selectedMediaId) {
-          const tsbCandidate = m.find(
-            (item: any) =>
+        const mediaList: ReleasedMediaOption[] = m ?? [];
+        const incList: IncubatorOption[] = inc ?? [];
+        setMediaLots(mediaList);
+        setIncubators(incList);
+        if (mediaList.length > 0 && !selectedMediaId) {
+          const tsbCandidate = mediaList.find(
+            (item) =>
               item.lotNumber?.includes("TSB") ||
               item.materialName?.includes("Tryptic") ||
               item.materialName?.includes("TSB") ||
               item.mediaTypeName?.includes("Broth")
           );
           if (tsbCandidate) setSelectedMediaId(tsbCandidate.id);
-          else setSelectedMediaId(m[0].id);
+          else setSelectedMediaId(mediaList[0].id);
         }
-        if (inc && inc.length > 0 && !selectedIncubatorId) {
-          setSelectedIncubatorId(inc[0].id);
+        if (incList.length > 0 && !selectedIncubatorId) {
+          setSelectedIncubatorId(incList[0].id);
         }
       })
       .finally(() => setLoadingLookups(false));
@@ -73,7 +102,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
   const handleStartTsb = async () => {
     if (!selectedMediaId || !selectedIncubatorId) {
-      setError("Please select a valid released TSB media lot and an in-service incubator.");
+      setError(t("pathogenSession.tsbSetup.validationError"));
       return;
     }
     setError(null);
@@ -86,23 +115,23 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
       });
       const updated = await PathogenSessionService.getSession(session.sampleId);
       onUpdated(updated);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to start shared TSB enrichment.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("pathogenSession.tsbSetup.startError")));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const tsbTests = session.assignedTests.filter((t) => t.requiresTsb);
+  const tsbTests = session.assignedTests.filter((testItem) => testItem.requiresTsb);
 
   if (tsbTests.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2 }}>
         <Alert severity="info" sx={{ mb: 3 }}>
-          None of the assigned tests for this session require TSB broth enrichment. You may proceed directly to the test workflows and result matrix.
+          {t("pathogenSession.tsbSetup.noTsbInfo")}
         </Alert>
         <Button variant="contained" endIcon={<ArrowForwardIcon />} onClick={onNext}>
-          Proceed to Downstream Workflows
+          {t("pathogenSession.tsbSetup.proceedDownstream")}
         </Button>
       </Paper>
     );
@@ -140,18 +169,18 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                LOCKED: Execution in Progress
+                {t("pathogenSession.tsbSetup.lockedTitle")}
               </Typography>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                Shared TSB Enrichment parameters are locked and cannot be modified while execution is active.
+                {t("pathogenSession.tsbSetup.lockedDesc")}
               </Typography>
             </Box>
           </Stack>
 
           <Alert severity={session.sharedTsb.isCompleted ? "success" : "info"} sx={{ mb: 2.5 }}>
             {session.sharedTsb.isCompleted
-              ? "TSB Enrichment incubation has elapsed and is complete. You may proceed to downstream testing."
-              : "TSB Enrichment incubation is currently in progress. Downstream steps and final result entry remain locked until completion."}
+              ? t("pathogenSession.tsbSetup.lockedCompleteAlert")
+              : t("pathogenSession.tsbSetup.lockedInProgressAlert")}
           </Alert>
 
           <Stack direction="row" spacing={2} sx={{
@@ -164,7 +193,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
               onClick={onNext}
               sx={{ px: 3, fontWeight: 700 }}
             >
-              Next: Test Workflows
+              {t("pathogenSession.tsbSetup.nextTestWorkflows")}
             </Button>
           </Stack>
         </Paper>
@@ -198,10 +227,10 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
           </Box>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-              Start Shared TSB Enrichment
+              {t("pathogenSession.tsbSetup.startTitle")}
             </Typography>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Configure media and incubator once for the entire session. Required temperature and duration are governed by Test Master.
+              {t("pathogenSession.tsbSetup.startDesc")}
             </Typography>
           </Box>
         </Stack>
@@ -210,20 +239,31 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
 
         <Box sx={{ mb: 2.5, p: 2, bgcolor: "background.default", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mb: 1 }}>
-            APPLICABLE WORKFLOW SCOPE:
+            {t("pathogenSession.tsbSetup.applicableScope")}
           </Typography>
           <Stack direction="row" spacing={1} useFlexGap sx={{
             flexWrap: "wrap"
           }}>
             <Chip
-              label={`${session.totalLocations} Sampling Locations`}
+              label={
+                <Trans
+                  i18nKey="pathogenSession.tsbSetup.locationsChip"
+                  ns="testingWorkspace"
+                  values={{ count: session.totalLocations }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              }
               size="small"
               sx={{ bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 600 }}
             />
-            {tsbTests.map((t) => (
+            {tsbTests.map((testItem) => (
               <Chip
-                key={t.testCode}
-                label={`${t.testCode} (${t.displayName})`}
+                key={testItem.testCode}
+                label={
+                  <span>
+                    <Ltr>{testItem.testCode}</Ltr> ({testItem.displayName})
+                  </span>
+                }
                 size="small"
                 sx={{ bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 600 }}
               />
@@ -248,20 +288,24 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                 id="tsb-media-lot"
                 slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-media-lot", "tsb-media-lot") } }}
                 select
-                label="TSB Media Lot (GPT Passed & Released) *"
+                label={t("pathogenSession.tsbSetup.mediaLotLabel")}
                 value={selectedMediaId}
                 onChange={(e) => setSelectedMediaId(Number(e.target.value))}
-                helperText="Only active, unexpired, GPT-released lots are permitted"
+                helperText={t("pathogenSession.tsbSetup.mediaLotHelper")}
                 fullWidth
                 size="small"
               >
-                {mediaLots.map((m: any) => (
+                {mediaLots.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {formatLabCalendarDate(m.expiryDate)})
+                    {t("pathogenSession.tsbSetup.mediaLotOption", {
+                      lotNumber: m.lotNumber ?? "—",
+                      material: m.materialName ?? m.mediaTypeName ?? t("pathogenSession.tsbSetup.mediaLotFallback"),
+                      expiry: formatLabCalendarDate(m.expiryDate ?? "")
+                    })}
                   </MenuItem>
                 ))}
               </TextField>
-              <FieldHint id="tsb-media-lot" label="TSB Media Lot" hint={hints.tsbMediaLot} />
+              <FieldHint id="tsb-media-lot" label={t("pathogenSession.tsbSetup.mediaLotHintLabel")} hint={hints.tsbMediaLot} />
             </Stack>
 
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
@@ -269,31 +313,35 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                 id="tsb-incubator"
                 slotProps={{ select: { "aria-describedby": describedByWithHint("tsb-incubator", "tsb-incubator") } }}
                 select
-                label="Incubator Equipment (In-Service) *"
+                label={t("pathogenSession.tsbSetup.incubatorLabel")}
                 value={selectedIncubatorId}
                 onChange={(e) => setSelectedIncubatorId(Number(e.target.value))}
-                helperText="Select an operational, calibrated incubator"
+                helperText={t("pathogenSession.tsbSetup.incubatorHelper")}
                 fullWidth
                 size="small"
               >
-                {incubators.map((inc: any) => (
+                {incubators.map((inc) => (
                   <MenuItem key={inc.id} value={inc.id}>
-                    {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                    {t("pathogenSession.tsbSetup.incubatorOption", {
+                      code: inc.code ?? "—",
+                      name: inc.name ?? t("pathogenSession.tsbSetup.incubatorFallback"),
+                      location: inc.location ?? t("pathogenSession.tsbSetup.labFallback")
+                    })}
                   </MenuItem>
                 ))}
               </TextField>
-              <FieldHint id="tsb-incubator" label="Incubator Equipment (In-Service)" hint={hints.incubator} />
+              <FieldHint id="tsb-incubator" label={t("pathogenSession.tsbSetup.incubatorHintLabel")} hint={hints.incubator} />
             </Stack>
 
             {/* Read-Only Controlled Parameters from Test Master */}
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
                 id="tsb-required-temperature"
-                label="Required Incubation Temperature *"
-                value={session.sharedTsb.requiredTemperatureRange ?? "Not configured in Test Master"}
+                label={t("pathogenSession.tsbSetup.requiredTempLabel")}
+                value={session.sharedTsb.requiredTemperatureRange ?? t("pathogenSession.tsbSetup.notConfigured")}
                 helperText={session.sharedTsb.windowNotConfigured
-                  ? "A TSB test's medium has no incubation window in Test Master - a start on that medium is refused until it is set"
-                  : "Each test's own TSB medium from the approved Test Master workflow"}
+                  ? t("pathogenSession.tsbSetup.windowNotConfiguredHelper")
+                  : t("pathogenSession.tsbSetup.requiredTempHelper")}
                 error={Boolean(session.sharedTsb.windowNotConfigured)}
                 fullWidth
                 size="small"
@@ -302,15 +350,15 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                   input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-temperature", "tsb-required-temperature") }
                 }}
               />
-              <FieldHint id="tsb-required-temperature" label="Required Incubation Temperature" hint={hints.requiredTemperature} />
+              <FieldHint id="tsb-required-temperature" label={t("pathogenSession.tsbSetup.requiredTempHintLabel")} hint={hints.requiredTemperature} />
             </Stack>
 
             <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
               <TextField
                 id="tsb-required-time"
-                label="Required Incubation Time *"
-                value={session.sharedTsb.requiredDurationRange ?? "Not configured in Test Master"}
-                helperText="Each test keeps its own duration; the shared tube only starts them together"
+                label={t("pathogenSession.tsbSetup.requiredTimeLabel")}
+                value={session.sharedTsb.requiredDurationRange ?? t("pathogenSession.tsbSetup.notConfigured")}
+                helperText={t("pathogenSession.tsbSetup.requiredTimeHelper")}
                 error={Boolean(session.sharedTsb.windowNotConfigured)}
                 fullWidth
                 size="small"
@@ -319,7 +367,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
                   input: { readOnly: true, "aria-describedby": describedByWithHint("tsb-required-time", "tsb-required-time") }
                 }}
               />
-              <FieldHint id="tsb-required-time" label="Required Incubation Time" hint={hints.requiredTime} />
+              <FieldHint id="tsb-required-time" label={t("pathogenSession.tsbSetup.requiredTimeHintLabel")} hint={hints.requiredTime} />
             </Stack>
           </Box>
         )}
@@ -339,7 +387,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             disabled={submitting || loadingLookups || !selectedMediaId || !selectedIncubatorId}
             sx={{ px: 3, fontWeight: 700 }}
           >
-            Start TSB Enrichment
+            {t("pathogenSession.tsbSetup.startButton")}
           </Button>
 
           <Button
@@ -348,7 +396,7 @@ export function SharedTsbEnrichmentPanel({ session, onUpdated, onNext }: Props) 
             onClick={onNext}
             sx={{ px: 3, fontWeight: 600 }}
           >
-            Next: Test Workflows
+            {t("pathogenSession.tsbSetup.nextTestWorkflows")}
           </Button>
         </Stack>
       </Paper>

@@ -19,6 +19,9 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { PathogenTestingSessionDto, SessionAssignedTestDto } from "../types/pathogenSessionTypes";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -26,6 +29,7 @@ interface Props {
 }
 
 export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -36,7 +40,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
     <Stack spacing={3}>
       {isTsbIncubating && (
         <Alert severity="warning" icon={<LockOutlinedIcon />} sx={{ fontWeight: 600 }}>
-          Shared TSB Enrichment incubation is currently in progress. Downstream pathogen workflow steps and final result entry are strictly locked until TSB incubation completes.
+          {t("pathogenSession.downstream.tsbIncubatingAlert")}
         </Alert>
       )}
 
@@ -51,10 +55,15 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
           }}>
           <Box>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-              Assigned Test Workflows ({session.assignedTests.length})
+              <Trans
+                i18nKey="pathogenSession.downstream.title"
+                ns="testingWorkspace"
+                values={{ count: session.assignedTests.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Procedural workflow definitions configured from Test Master. Executed once per test for the session.
+              {t("pathogenSession.downstream.subtitle")}
             </Typography>
           </Box>
 
@@ -65,7 +74,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
             onClick={onNext}
             sx={{ px: 3, fontWeight: 700 }}
           >
-            Go to Result Matrix
+            {t("pathogenSession.downstream.goToResultMatrix")}
           </Button>
         </Stack>
 
@@ -85,17 +94,17 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
             }
           }}
         >
-          {session.assignedTests.map((t) => (
+          {session.assignedTests.map((testItem) => (
             <Tab
-              key={t.testCode}
+              key={testItem.testCode}
               label={
                 <Stack direction="row" spacing={1} sx={{
                   alignItems: "center"
                 }}>
-                  <span>{t.testCode}</span>
-                  {t.requiresTsb && (
+                  <Ltr>{testItem.testCode}</Ltr>
+                  {testItem.requiresTsb && (
                     <Chip
-                      label="TSB"
+                      label={t("pathogenSession.downstream.tsbChip")}
                       size="small"
                       sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text }}
                     />
@@ -124,10 +133,15 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
             >
               <Box>
                 <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-                  {selectedTest.displayName} ({selectedTest.testCode})
+                  {selectedTest.displayName} (<Ltr>{selectedTest.testCode}</Ltr>)
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Workflow Model: <strong>{selectedTest.workflowType}</strong> · Operational Scope: <strong>{session.totalLocations} Sampling Locations</strong>
+                  <Trans
+                    i18nKey="pathogenSession.downstream.testScope"
+                    ns="testingWorkspace"
+                    values={{ workflowType: selectedTest.workflowType, locations: session.totalLocations }}
+                    components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
               </Box>
               <Chip
@@ -143,7 +157,12 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
 
             {/* Workflow Steps Vertical Stepper */}
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary", mb: 2, textTransform: "uppercase" }}>
-              Configured Step Sequence ({selectedTest.steps.length} Steps)
+              <Trans
+                i18nKey="pathogenSession.downstream.configuredSteps"
+                ns="testingWorkspace"
+                values={{ count: selectedTest.steps.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
 
             <Box sx={{ maxWidth: 800 }}>
@@ -199,7 +218,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                           />
                           {isTsbStep && (
                             <Chip
-                              label={isTsbIncubating ? "TSB Incubating" : "Shared Session Step"}
+                              label={isTsbIncubating ? t("pathogenSession.downstream.tsbIncubatingChip") : t("pathogenSession.downstream.sharedStepChip")}
                               size="small"
                               sx={{
                                 fontSize: 12,
@@ -213,7 +232,7 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                           {isStepLocked && (
                             <Chip
                               icon={<LockOutlinedIcon sx={{ fontSize: 12 }} />}
-                              label="Locked until TSB Complete"
+                              label={t("pathogenSession.downstream.lockedChip")}
                               size="small"
                               sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 600 }}
                             />
@@ -231,23 +250,33 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                           >
                             <Box>
                               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                                Incubation Parameters
+                                {t("pathogenSession.downstream.incubationParams")}
                               </Typography>
                               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                                {s.temperatureMin} – {s.temperatureMax} °C ({s.incubationMinHours}–{s.incubationMaxHours} h)
+                                <Trans
+                                  i18nKey="pathogenSession.downstream.tempDuration"
+                                  ns="testingWorkspace"
+                                  values={{
+                                    min: s.temperatureMin,
+                                    max: s.temperatureMax,
+                                    minHours: s.incubationMinHours,
+                                    maxHours: s.incubationMaxHours
+                                  }}
+                                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                                />
                               </Typography>
                             </Box>
                             <Box>
                               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                                Target Medium
+                                {t("pathogenSession.downstream.targetMedium")}
                               </Typography>
                               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                                {s.mediaTypeName ?? "Standard Culture Media"}
+                                {s.mediaTypeName ?? t("pathogenSession.downstream.standardMediaFallback")}
                               </Typography>
                             </Box>
                             <Box>
                               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                                Execution State
+                                {t("pathogenSession.downstream.executionState")}
                               </Typography>
                               <Typography
                                 sx={{
@@ -257,10 +286,10 @@ export function DownstreamWorkflowsPanel({ session, onNext }: Props) {
                                 }}
                               >
                                 {isStepDone
-                                  ? "✓ Executed & Recorded"
+                                  ? t("pathogenSession.downstream.stateExecuted")
                                   : isStepLocked
-                                  ? "🔒 Locked (TSB Incubating)"
-                                  : "Pending Matrix Evaluation"}
+                                  ? t("pathogenSession.downstream.stateLocked")
+                                  : t("pathogenSession.downstream.statePending")}
                               </Typography>
                             </Box>
                           </Box>

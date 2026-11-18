@@ -8,6 +8,7 @@ import { masterDataOptions } from "../../../services/masterDataOptions";
 import { ScanField } from "../../../components/labels/ScanField";
 import { LastChoiceField } from "../../../components/entry/LastChoiceField";
 import { NumericEntryField } from "../../../components/bench/NumericEntryField";
+import { useTranslation } from "../../../i18n";
 
 // What the analyst records for a recipe that needs sterilization. Program, load type,
 // temperature and cycle time come from the configured autoclave program (as in Media
@@ -55,6 +56,7 @@ export function AutoclaveSection({
   equipmentIsDefault = false,
   onEquipmentChangedByUser
 }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const [autoclaves, setAutoclaves] = useState<AutoclaveOption[]>([]);
   const [programs, setPrograms] = useState<AutoclaveProgram[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -67,12 +69,12 @@ export function AutoclaveSection({
         if (active) setAutoclaves(Array.isArray(list) ? list : []);
       })
       .catch(() => {
-        if (active) setLoadError("Could not load the autoclave list.");
+        if (active) setLoadError(t("autoclave.loadError"));
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let active = true;
@@ -119,11 +121,10 @@ export function AutoclaveSection({
   return (
     <Box data-testid="autoclave-section">
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Autoclave
+        {t("autoclave.heading")}
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-        This recipe is sterilized. Select the autoclave and its configured program; load type, temperature and
-        cycle time come from Laboratory Configuration.
+        {t("autoclave.description")}
       </Typography>
       {loadError && (
         <Typography variant="caption" color="error" sx={{ display: "block", mb: 1 }}>
@@ -133,7 +134,7 @@ export function AutoclaveSection({
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
         <Stack spacing={1}>
           <ScanField
-            label="Scan autoclave"
+            label={t("autoclave.scanLabel")}
             expectedType="EquipmentAsset"
             offeredIds={autoclaves.map((a) => a.id)}
             onSelect={(id) => handleEquipment(id)}
@@ -147,10 +148,10 @@ export function AutoclaveSection({
                 disabled={disabled}
                 value={value.equipmentId}
                 onChange={(e) => handleEquipment(e.target.value === "" ? "" : Number(e.target.value))}
-                inputProps={{ "aria-label": "Autoclave" }}
+                inputProps={{ "aria-label": t("autoclave.ariaAutoclave") }}
               >
                 <MenuItem value="">
-                  <em>Select Autoclave *</em>
+                  <em>{t("autoclave.selectAutoclave")}</em>
                 </MenuItem>
                 {autoclaves.map((a) => (
                   <MenuItem key={a.id} value={a.id}>
@@ -171,23 +172,23 @@ export function AutoclaveSection({
             disabled={disabled || !value.equipmentId || programs.length === 0}
             value={selectedProgramId}
             onChange={(e) => handleProgram(e.target.value === "" ? "" : Number(e.target.value))}
-            inputProps={{ "aria-label": "Autoclave program" }}
+            inputProps={{ "aria-label": t("autoclave.ariaProgram") }}
           >
             <MenuItem value="">
-              <em>{programs.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>
+              <em>{programs.length === 0 ? t("autoclave.noPrograms") : t("autoclave.selectProgram")}</em>
             </MenuItem>
             {programs.map((p) => (
               <MenuItem key={p.id} value={p.id}>
-                {programLabel(p)} ({p.temperature}°C, {p.cycleTimeMinutes} min)
+                {t("autoclave.programOption", { label: programLabel(p), temp: p.temperature, time: p.cycleTimeMinutes })}
               </MenuItem>
             ))}
           </Select>
           {fieldErrors?.autoclaveProgram && <FormHelperText>{fieldErrors.autoclaveProgram}</FormHelperText>}
         </FormControl>
 
-        <TextField size="small" label="Load Type" value={value.loadType} slotProps={readOnly} />
+        <TextField size="small" label={t("autoclave.loadType")} value={value.loadType} slotProps={readOnly} />
         <NumericEntryField
-          label="Temperature (°C)"
+          label={t("autoclave.temperature")}
           kind="decimal"
           value={value.temperature === "" ? "" : String(value.temperature)}
           onChange={() => {}}
@@ -195,7 +196,7 @@ export function AutoclaveSection({
           unit="°C"
         />
         <NumericEntryField
-          label="Cycle Time (min)"
+          label={t("autoclave.cycleTime")}
           kind="decimal"
           value={value.cycleTime === "" ? "" : String(value.cycleTime)}
           onChange={() => {}}
@@ -203,7 +204,7 @@ export function AutoclaveSection({
           unit="min"
         />
         <NumericEntryField
-          label="Cycle Number *"
+          label={t("autoclave.cycleNumber")}
           kind="count"
           disabled={disabled}
           value={value.cycleNumber === "" ? "" : String(value.cycleNumber)}

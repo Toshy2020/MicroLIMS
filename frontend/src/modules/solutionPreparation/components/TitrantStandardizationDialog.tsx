@@ -8,8 +8,12 @@ import {
   Stack,
   TextField
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { i18n, useTranslation } from "../../../i18n";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { StandardizationResultView } from "./StandardizationResultView";
 import { ReplicateRowInputCard, ReplicateRowState, isSelectableLot } from "./ReplicateRowInputCard";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
@@ -35,6 +39,8 @@ export function TitrantStandardizationDialog({
   onClose,
   onSuccess
 }: Props) {
+  const { t } = useTranslation("solutionPreparation");
+  const tEn = i18n.getFixedT("en", "solutionPreparation");
   const recipe = useMemo<RecipeSnapshot | null>(() => {
     if (!preparation.recipeSnapshotJson) return null;
     try {
@@ -144,29 +150,29 @@ export function TitrantStandardizationDialog({
   };
 
   const validate = (): string | null => {
-    if (temperatureC.trim() !== "" && isNaN(Number(temperatureC))) return "Temperature must be a number.";
+    if (temperatureC.trim() !== "" && isNaN(Number(temperatureC))) return t("standardizationDialog.validation.temperatureNumber");
     for (let i = 0; i < rows.length; i++) {
       const r = rows[i];
       const repNo = i + 1;
       if (isPrimary) {
-        if (!r.standardMaterialId) return `Replicate ${repNo}: Standard lot is required.`;
+        if (!r.standardMaterialId) return t("standardizationDialog.validation.standardLotRequired", { rep: repNo });
         const w = parseFloat(r.standardWeightMg);
-        if (isNaN(w) || w <= 0) return `Replicate ${repNo}: Standard weight must be greater than zero.`;
+        if (isNaN(w) || w <= 0) return t("standardizationDialog.validation.standardWeightPositive", { rep: repNo });
       } else {
-        if (!r.referencePreparationId) return `Replicate ${repNo}: Reference preparation is required.`;
+        if (!r.referencePreparationId) return t("standardizationDialog.validation.referenceRequired", { rep: repNo });
         const v = parseFloat(r.referenceVolumeMl);
-        if (isNaN(v) || v <= 0) return `Replicate ${repNo}: Reference volume must be greater than zero.`;
+        if (isNaN(v) || v <= 0) return t("standardizationDialog.validation.referenceVolumePositive", { rep: repNo });
       }
 
       const titrantVol = parseFloat(r.titrantVolumeMl);
       if (isNaN(titrantVol) || titrantVol <= 0) {
-        return `Replicate ${repNo}: Titrant volume must be greater than zero.`;
+        return t("standardizationDialog.validation.titrantVolumePositive", { rep: repNo });
       }
 
       if (blankRequired) {
         const b = parseFloat(r.blankMl);
-        if (isNaN(b) || b < 0) return `Replicate ${repNo}: Blank volume cannot be negative.`;
-        if (titrantVol <= b) return `Replicate ${repNo}: Titrant volume must be greater than blank volume.`;
+        if (isNaN(b) || b < 0) return t("standardizationDialog.validation.blankNonNegative", { rep: repNo });
+        if (titrantVol <= b) return t("standardizationDialog.validation.titrantGreaterThanBlank", { rep: repNo });
       }
     }
     return null;
@@ -207,9 +213,7 @@ export function TitrantStandardizationDialog({
       setResult(data);
       onSuccess(data);
     } catch (err: unknown) {
-      const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = errorObj.response?.data?.message ?? errorObj.message ?? "Standardization failed.";
-      setValidationError(msg);
+      setValidationError(getErrorMessage(err, t("standardizationDialog.standardizationFailed")));
       throw err;
     } finally {
       setSubmitting(false);
@@ -217,8 +221,8 @@ export function TitrantStandardizationDialog({
   };
 
   const dialogTitle = result
-    ? "Standardization Result"
-    : `Standardize Titrant: ${preparation.code || preparation.solutionMasterName}`;
+    ? t("standardizationDialog.resultTitle")
+    : t("standardizationDialog.standardizeTitle", { label: preparation.code || preparation.solutionMasterName });
 
   return (
     <>
@@ -230,11 +234,11 @@ export function TitrantStandardizationDialog({
         actions={
           result ? (
             <Button variant="contained" onClick={onClose}>
-              Close
+              {t("standardizationDialog.close")}
             </Button>
           ) : (
             <>
-              <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+              <Button onClick={onClose} disabled={submitting}>{t("standardizationDialog.cancel")}</Button>
               <Button
                 variant="contained"
                 onClick={handleProceedToSign}
@@ -244,7 +248,7 @@ export function TitrantStandardizationDialog({
                   (isPrimary ? standardLots.length === 0 : referenceOptions.length === 0)
                 }
               >
-                {submitting ? "Submitting..." : "Sign & Submit"}
+                {submitting ? t("standardizationDialog.submitting") : t("standardizationDialog.signAndSubmit")}
               </Button>
             </>
           )
@@ -260,20 +264,33 @@ export function TitrantStandardizationDialog({
           <Stack spacing={2.5}>
             <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-                Standardization Parameters ({isPrimary ? "Primary Standard" : "Against Volumetric Solution"})
+                {t("standardizationDialog.parametersTitle", {
+                  mode: isPrimary ? t("standardizationDialog.modePrimary") : t("standardizationDialog.modeReference")
+                })}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Target Factor: {recipe?.factorMin ?? "—"} – {recipe?.factorMax ?? "—"} · Max RSD: {recipe?.maxRsdPercent ?? "—"}% · Replicates: {replicateCount} · Blank: {blankRequired ? "Required" : "None"}
+                <Trans
+                  i18nKey="standardizationDialog.parametersSummary"
+                  ns="solutionPreparation"
+                  values={{
+                    min: recipe?.factorMin ?? "—",
+                    max: recipe?.factorMax ?? "—",
+                    maxRsd: recipe?.maxRsdPercent ?? "—",
+                    replicates: replicateCount,
+                    blank: blankRequired ? t("standardizationDialog.blankRequired") : t("standardizationDialog.blankNone")
+                  }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
 
             <TextField
               size="small"
               type="number"
-              label="Temperature (°C)"
+              label={t("standardizationDialog.temperatureLabel")}
               value={temperatureC}
               onChange={(e) => setTemperatureC(e.target.value)}
-              helperText="Optional. Needed later for non-aqueous temperature volume correction."
+              helperText={t("standardizationDialog.temperatureHelper")}
               slotProps={{ htmlInput: { step: "any" } }}
               sx={{ maxWidth: 240 }}
             />
@@ -284,12 +301,14 @@ export function TitrantStandardizationDialog({
               <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}><CircularProgress size={24} /></Box>
             ) : optionsLoadFailed ? (
               <Alert severity="error">
-                The {isPrimary ? "standard lots" : "reference solution preparations"} could not be loaded. Close and reopen this dialog to try again.
+                {t("standardizationDialog.loadFailed", {
+                  target: isPrimary ? t("standardizationDialog.targetStandardLots") : t("standardizationDialog.targetReferencePreps")
+                })}
               </Alert>
             ) : isPrimary && standardLots.length === 0 ? (
-              <Alert severity="warning">No usable standard lots found for this titrant in inventory.</Alert>
+              <Alert severity="warning">{t("standardizationDialog.noStandardLots")}</Alert>
             ) : !isPrimary && referenceOptions.length === 0 ? (
-              <Alert severity="warning">No valid reference volumetric solution preparations found.</Alert>
+              <Alert severity="warning">{t("standardizationDialog.noReferencePreps")}</Alert>
             ) : (
               rows.map((row, idx) => (
                 <ReplicateRowInputCard
@@ -310,7 +329,8 @@ export function TitrantStandardizationDialog({
 
       <SignatureDialog
         open={open && signatureOpen}
-        meaningStatement="I confirm that this titrant was standardized according to SOP and that the titration values entered are accurate."
+        meaningStatement={tEn("standardizationDialog.signatureMeaning")}
+        meaningStatementTranslation={t("standardizationDialog.signatureMeaning")}
         showComment
         comment={signatureComment}
         onCommentChange={setSignatureComment}

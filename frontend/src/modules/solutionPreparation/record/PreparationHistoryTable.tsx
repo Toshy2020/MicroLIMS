@@ -9,6 +9,8 @@ import {
   Box,
   useTheme
 } from "@mui/material";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
 import { PreparationStatusBadge } from "../components/PreparationStatusBadge";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function PreparationHistoryTable({ history }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const theme = useTheme();
 
   return (
@@ -26,10 +29,10 @@ export function PreparationHistoryTable({ history }: Props) {
       <Table size="small">
         <TableHead sx={tableHeadSx(theme)}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Transition</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Changed By</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Changed At</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Reason / Note</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("historyTable.columns.transition")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("historyTable.columns.changedBy")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("historyTable.columns.changedAt")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("historyTable.columns.reason")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -42,8 +45,8 @@ export function PreparationHistoryTable({ history }: Props) {
                   <PreparationStatusBadge status={h.toStatus} />
                 </Box>
               </TableCell>
-              <TableCell>{h.changedByUserName || "Automatic System"}</TableCell>
-              <TableCell>{formatDateTimeWithTimeZone(h.changedAt)}</TableCell>
+              <TableCell>{h.changedByUserName || t("historyTable.automaticSystem")}</TableCell>
+              <TableCell><Ltr>{formatDateTimeWithTimeZone(h.changedAt)}</Ltr></TableCell>
               <TableCell>{h.reason || "—"}</TableCell>
             </TableRow>
           ))}

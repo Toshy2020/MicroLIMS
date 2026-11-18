@@ -1,4 +1,6 @@
 import { Alert, MenuItem, TextField } from "@mui/material";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { PreparationLotGroup } from "../services/SamplePreparationService";
 
@@ -15,6 +17,7 @@ interface Props {
 // stay visible but disabled, with the server's reason, so the analyst sees
 // why a lot they hold is not offered. Renders nothing when no lot is needed.
 export function PreparationLotPicker({ label, group, value, onChange, disabled }: Props) {
+  const { t } = useTranslation("testPreparation");
   if (!group.lotRequired) return null;
 
   const anyUsable = group.options.some((o) => o.usable);
@@ -25,7 +28,7 @@ export function PreparationLotPicker({ label, group, value, onChange, disabled }
         select
         required
         size="small"
-        label={`${label} lot`}
+        label={t("lotPicker.label", { role: label })}
         value={value ?? ""}
         disabled={disabled}
         helperText={group.name}
@@ -33,15 +36,15 @@ export function PreparationLotPicker({ label, group, value, onChange, disabled }
       >
         {group.options.map((o) => (
           <MenuItem key={o.id} value={o.id} disabled={!o.usable}>
-            {o.code}
-            {o.expiresAt ? ` · expires ${formatDateTimeWithTimeZone(o.expiresAt)}` : ""}
+            <Ltr>{o.code}</Ltr>
+            {o.expiresAt ? ` · ${t("lotPicker.expires", { date: formatDateTimeWithTimeZone(o.expiresAt) })}` : ""}
             {!o.usable && o.reason ? ` — ${o.reason}` : ""}
           </MenuItem>
         ))}
       </TextField>
       {!anyUsable && (
         <Alert severity="warning" sx={{ fontSize: 12 }}>
-          No usable {label.toLowerCase()} lot of {group.name} is available.
+          {t("lotPicker.noneUsable", { role: label.toLowerCase(), name: group.name })}
         </Alert>
       )}
     </>

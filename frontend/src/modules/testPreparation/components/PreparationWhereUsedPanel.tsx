@@ -4,7 +4,10 @@ import {
   TableContainer, TableHead, TableRow, Typography, useTheme
 } from "@mui/material";
 import { Link } from "react-router-dom";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
+import { serverMessage } from "../../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import {
   SamplePreparationService,
@@ -23,7 +26,8 @@ interface Props {
 
 // Every sample whose test-preparation diluent or neutralizer was this lot,
 // so a failed or recalled lot shows everything it touched.
-export function PreparationWhereUsedPanel({ lot, title = "Used in test preparation" }: Props) {
+export function PreparationWhereUsedPanel({ lot, title }: Props) {
+  const { t } = useTranslation("testPreparation");
   const theme = useTheme();
   const [rows, setRows] = useState<PreparationWhereUsedRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,8 +40,8 @@ export function PreparationWhereUsedPanel({ lot, title = "Used in test preparati
     setError(null);
     SamplePreparationService.getWhereUsed(lot)
       .then((r) => { if (!cancelled) setRows(r); })
-      .catch((e: any) => {
-        if (!cancelled) setError(e?.response?.data?.message ?? "Could not load where this lot was used.");
+      .catch((e: unknown) => {
+        if (!cancelled) setError(serverMessage(e) ?? t("whereUsed.loadError"));
       });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -45,12 +49,12 @@ export function PreparationWhereUsedPanel({ lot, title = "Used in test preparati
 
   return (
     <Box>
-      <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>{title}</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>{title ?? t("whereUsed.defaultTitle")}</Typography>
       {error && <Alert severity="error">{error}</Alert>}
       {!error && rows === null && <CircularProgress size={18} />}
       {rows !== null && rows.length === 0 && (
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Not used in any test preparation yet.
+          {t("whereUsed.empty")}
         </Typography>
       )}
       {rows !== null && rows.length > 0 && (
@@ -58,11 +62,11 @@ export function PreparationWhereUsedPanel({ lot, title = "Used in test preparati
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Sample</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Item</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Role</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Prepared at</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Prepared by</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("whereUsed.columns.sample")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("whereUsed.columns.item")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("whereUsed.columns.role")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("whereUsed.columns.preparedAt")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("whereUsed.columns.preparedBy")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -70,12 +74,12 @@ export function PreparationWhereUsedPanel({ lot, title = "Used in test preparati
                 <TableRow key={`${r.sampleId}-${r.role}`}>
                   <TableCell>
                     <MuiLink component={Link} to={`/samples/${r.sampleId}/report`} underline="hover">
-                      {r.sampleNumber}
+                      <Ltr>{r.sampleNumber}</Ltr>
                     </MuiLink>
                   </TableCell>
                   <TableCell>{r.itemName}</TableCell>
                   <TableCell>{r.role}</TableCell>
-                  <TableCell>{formatDateTimeWithTimeZone(r.preparedAt)}</TableCell>
+                  <TableCell><Ltr>{formatDateTimeWithTimeZone(r.preparedAt)}</Ltr></TableCell>
                   <TableCell>{r.preparedByName ?? "—"}</TableCell>
                 </TableRow>
               ))}

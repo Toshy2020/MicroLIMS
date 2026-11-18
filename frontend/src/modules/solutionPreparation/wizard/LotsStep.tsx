@@ -22,6 +22,10 @@ import { entryDefaultsService } from "../../../services/entryDefaultsService";
 import { NumericEntryField } from "../../../components/bench/NumericEntryField";
 import { useBenchMode } from "../../../theme/BenchModeContext";
 import { classifySaveFailure } from "../../testingWorkspace/benchSave";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
 import type {
   SolutionPreparationResponse,
@@ -73,6 +77,7 @@ export function LotsStep({
   onClearFieldError
 }: Props) {
   const { benchMode } = useBenchMode();
+  const { t } = useTranslation("solutionPreparation");
   const [activeSection, setActiveSection] = useState(0);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const recipe = useMemo<RecipeSnapshot | null>(() => {
@@ -196,12 +201,11 @@ export function LotsStep({
       setLotsMap(newMap);
       setSourcesMap(newSources);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to load lot options.");
+      setError(getErrorMessage(err, t("wizard.lotsStep.loadLotsError")));
     } finally {
       setLoadingLots(false);
     }
-  }, [preparation.id, preparation.components]);
+  }, [preparation.id, preparation.components, t]);
 
   useEffect(() => {
     loadLots();
@@ -281,8 +285,7 @@ export function LotsStep({
     } catch (err: unknown) {
       const failure = classifySaveFailure(err);
       if (benchMode && (failure.kind === "network" || failure.kind === "conflict")) return;
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to save draft.");
+      setError(getErrorMessage(err, t("wizard.lotsStep.saveDraftFailed")));
     }
   };
 
@@ -296,8 +299,7 @@ export function LotsStep({
     } catch (err: unknown) {
       const failure = classifySaveFailure(err);
       if (benchMode && (failure.kind === "network" || failure.kind === "conflict")) return;
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to save draft.");
+      setError(getErrorMessage(err, t("wizard.lotsStep.saveDraftFailed")));
     }
   };
 
@@ -311,8 +313,14 @@ export function LotsStep({
   }, [recipe, measuredPhText]);
 
   const benchSections = useMemo(
-    () => (needsAutoclave ? ["Components", "Autoclave", "Final Details"] : ["Components", "Final Details"]),
-    [needsAutoclave]
+    () => {
+      const components = t("wizard.lotsStep.benchSections.components");
+      const finalDetails = t("wizard.lotsStep.benchSections.finalDetails");
+      return needsAutoclave
+        ? [components, t("wizard.lotsStep.benchSections.autoclave"), finalDetails]
+        : [components, finalDetails];
+    },
+    [needsAutoclave, t]
   );
 
   const goToSection = (index: number) => {
@@ -330,11 +338,11 @@ export function LotsStep({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Step 2: Stock Lots & Quantities
+              {t("wizard.lotsStep.heading")}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {preparation.solutionMasterName}
-              {preparation.hplcMethodAbbreviation && ` · Method: ${preparation.hplcMethodAbbreviation}`}
+              {preparation.hplcMethodAbbreviation && t("wizard.lotsStep.methodSub", { method: preparation.hplcMethodAbbreviation })}
             </Typography>
           </Box>
           <Button
@@ -344,7 +352,7 @@ export function LotsStep({
             disabled={saving}
             startIcon={saving ? <CircularProgress size={14} /> : <SaveOutlinedIcon />}
           >
-            Save Draft
+            {t("wizard.lotsStep.saveDraft")}
           </Button>
         </Box>
 
@@ -358,7 +366,7 @@ export function LotsStep({
           <Stepper
             nonLinear
             activeStep={activeSection}
-            aria-label="Lots step sections"
+            aria-label={t("wizard.lotsStep.stepperAria")}
             data-testid="lots-step-indicator"
             sx={{ mb: 2 }}
           >
@@ -377,7 +385,12 @@ export function LotsStep({
           sx={sectionWrapperSx}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-            Components ({preparation.components.length})
+            <Trans
+              i18nKey="wizard.lotsStep.componentsCount"
+              ns="solutionPreparation"
+              values={{ count: preparation.components.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
 
           {preparation.components.map((c) => {
@@ -455,12 +468,12 @@ export function LotsStep({
           sx={sectionWrapperSx}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-            Final Preparation Details
+            {t("wizard.lotsStep.finalDetailsHeading")}
           </Typography>
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mb: 2, alignItems: "start" }}>
             <NumericEntryField
-              label="Final Volume *"
+              label={t("wizard.lotsStep.finalVolumeLabel")}
               kind="decimal"
               value={finalVolumeText}
               onChange={(v) => {
@@ -469,12 +482,12 @@ export function LotsStep({
               }}
               unit="mL"
               error={fieldErrors?.finalVolumeMl}
-              helperText={`Recipe target: ${recipe?.finalVolumeMl ?? "—"} mL`}
+              helperText={t("wizard.lotsStep.recipeTargetHelper", { value: recipe?.finalVolumeMl ?? "—" })}
             />
 
             {recipe?.phTarget != null ? (
               <NumericEntryField
-                label="Measured pH *"
+                label={t("wizard.lotsStep.measuredPhRequired")}
                 kind="decimal"
                 value={measuredPhText}
                 onChange={(v) => {
@@ -484,14 +497,18 @@ export function LotsStep({
                 error={
                   fieldErrors?.measuredPh ??
                   (phOutOfTolerance
-                    ? `pH ${measuredPhText} is outside target ${recipe.phTarget} ± ${recipe.phTolerance ?? 0}`
+                    ? t("wizard.lotsStep.phOutOfTolerance", { value: measuredPhText, target: recipe.phTarget, tolerance: recipe.phTolerance ?? 0 })
                     : undefined)
                 }
-                helperText={`Target: ${recipe.phTarget}${recipe.phTolerance ? ` ± ${recipe.phTolerance}` : ""}`}
+                helperText={
+                  recipe.phTolerance
+                    ? t("wizard.lotsStep.phTargetHelperTolerance", { target: recipe.phTarget, tolerance: recipe.phTolerance })
+                    : t("wizard.lotsStep.phTargetHelper", { target: recipe.phTarget })
+                }
               />
             ) : (
               <NumericEntryField
-                label="Measured pH (Optional)"
+                label={t("wizard.lotsStep.measuredPhOptional")}
                 kind="decimal"
                 value={measuredPhText}
                 onChange={(v) => {
@@ -499,7 +516,7 @@ export function LotsStep({
                   onClearFieldError?.("measuredPh");
                 }}
                 error={fieldErrors?.measuredPh}
-                helperText="Recipe does not specify a target pH"
+                helperText={t("wizard.lotsStep.phNotSpecifiedHelper")}
               />
             )}
           </Box>
@@ -507,7 +524,7 @@ export function LotsStep({
           {recipe?.instructions && (
             <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1, mb: 3 }}>
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-                Instructions:
+                {t("wizard.lotsStep.instructions")}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}>
                 {recipe.instructions}
@@ -524,7 +541,7 @@ export function LotsStep({
             endIcon={saving ? <CircularProgress size={16} /> : <ArrowForwardIcon />}
             sx={{ textTransform: "none", fontWeight: 700, px: 3 }}
           >
-            {saving ? "Saving..." : "Continue to Review"}
+            {saving ? t("wizard.lotsStep.saving") : t("wizard.lotsStep.continueToReview")}
           </Button>
         </Box>
       </Paper>

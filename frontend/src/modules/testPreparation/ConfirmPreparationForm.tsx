@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Alert, Typography, Chip, CircularProgress } from "@mui/material";
+import { Trans } from "react-i18next";
 import { SamplePreparationService, type PreparationLotOptions } from "./services/SamplePreparationService";
 import { PreparationLotPicker } from "./components/PreparationLotPicker";
 import { PreparationStepsSummary } from "./PreparationStepsSummary";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { useAuth } from "../../contexts/AuthContext";
+import { i18n, useTranslation } from "../../i18n";
+import { serverMessage } from "../../utils/errorMessage";
 import type { ItemPreparationConfiguration } from "./services/ItemPreparationConfigurationService";
 
 interface Props {
@@ -22,6 +25,7 @@ interface Props {
 // for as-is - correcting them is a Section Head configuration change under
 // Laboratory Configuration, not an analyst-side override here.
 export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
+  const { t } = useTranslation("testPreparation");
   const { userId } = useAuth();
   const [signing, setSigning] = useState(false);
   const [lots, setLots] = useState<PreparationLotOptions | null>(null);
@@ -37,11 +41,11 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
     setNeutralizerLotId(null);
     SamplePreparationService.getLotOptions({ sampleId: sample.sampleId })
       .then((o) => { if (!cancelled) setLots(o); })
-      .catch((e: any) => {
-        if (!cancelled) setLotsError(e?.response?.data?.message ?? "Could not load the available lots.");
+      .catch((e: unknown) => {
+        if (!cancelled) setLotsError(serverMessage(e) ?? t("confirm.loadLotsError"));
       });
     return () => { cancelled = true; };
-  }, [sample.sampleId]);
+  }, [sample.sampleId, t]);
 
   const needsDiluentLot = Boolean(lots?.diluent.lotRequired);
   const needsNeutralizerLot = Boolean(lots?.neutralizer.lotRequired);
@@ -71,26 +75,32 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
     <Box>
       {isAssignedToOther && (
         <Alert severity="warning" sx={{ mb: 2, fontSize: 13 }}>
-          <strong>Sample Assignment Rule:</strong> This sample is currently assigned to{" "}
-          <strong>{sample.assignedAnalystNames?.length ? sample.assignedAnalystNames.join(", ") : `User #${assignedIds[0]}`}</strong>.
-          Only an assigned analyst may prepare this sample, unless reassigned by an authorized Section Head.
+          <Trans
+            i18nKey="assignmentRule"
+            ns="testPreparation"
+            values={{
+              names: sample.assignedAnalystNames?.length
+                ? sample.assignedAnalystNames.join(t("common:listSeparator"))
+                : t("userFallback", { id: assignedIds[0] })
+            }}
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       )}
 
       {config.approvalStatus === "PendingReview" && (
         <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
-          This item's preparation configuration is still awaiting Section Head approval. It is in effect and
-          can be confirmed now - approval is a separate review and does not hold up testing.
+          {t("confirm.pendingApprovalInfo")}
         </Alert>
       )}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-          Configured Preparation Steps
+          {t("confirm.configuredSteps")}
         </Typography>
         <Chip
           size="small"
-          label={config.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
+          label={config.approvalStatus === "Approved" ? t("status.approved") : t("status.pendingApproval")}
           color={config.approvalStatus === "Approved" ? "success" : "warning"}
           sx={{ height: 20, fontSize: 12 }}
         />
@@ -104,35 +114,34 @@ export function ConfirmPreparationForm({ sample, config, onSaved }: Props) {
       )}
       {lots?.needsMaterialMapping && (
         <Alert severity="warning" sx={{ mt: 2, fontSize: 13 }}>
-          This item's diluent/neutralizer is not linked to master data, so no lot can be recorded for this
-          sample. A Section Head can link them under Laboratory Configuration → Items.
+          {t("confirm.needsMaterialMapping")}
         </Alert>
       )}
       {lots && !lots.needsMaterialMapping && (needsDiluentLot || needsNeutralizerLot) && (
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
           <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
-            <PreparationLotPicker label="Diluent" group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} disabled={isAssignedToOther} />
+            <PreparationLotPicker label={t("fields.diluent")} group={lots.diluent} value={diluentLotId} onChange={setDiluentLotId} disabled={isAssignedToOther} />
           </Box>
           <Box sx={{ display: "grid", gap: 1.5, alignContent: "start" }}>
-            <PreparationLotPicker label="Neutralizer" group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} disabled={isAssignedToOther} />
+            <PreparationLotPicker label={t("fields.neutralizer")} group={lots.neutralizer} value={neutralizerLotId} onChange={setNeutralizerLotId} disabled={isAssignedToOther} />
           </Box>
         </Box>
       )}
 
       <Typography variant="caption" sx={{ display: "block", mt: 2, color: "text.secondary" }}>
-        Confirming records these exact values against this sample. Later changes to the item's configuration
-        will not alter this record.
+        {t("confirm.auditNote")}
       </Typography>
 
       <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 3 }}>
         <Button variant="contained" onClick={() => setSigning(true)} disabled={isAssignedToOther || !lotsComplete}>
-          Confirm & Start Testing
+          {t("actions.confirmAndStart")}
         </Button>
       </Box>
 
       <SignatureDialog
         open={signing}
-        meaningStatement="I confirm the preparation steps shown above are the steps performed for this sample."
+        meaningStatement={i18n.getFixedT("en", "testPreparation")("confirm.signatureMeaning")}
+        meaningStatementTranslation={t("confirm.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={confirm}
       />

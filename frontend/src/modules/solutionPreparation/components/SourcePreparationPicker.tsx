@@ -14,7 +14,10 @@ import {
   Stack,
   Typography
 } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
 import { NumericEntryField, parseDecimal } from "../../../components/bench/NumericEntryField";
+import { useTranslation } from "../../../i18n";
 import { formatLabDate, formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { approvalStatusLabel } from "../releaseState";
 import type { SolutionPreparationComponentResponse, SourcePreparationOption } from "../types";
@@ -43,6 +46,7 @@ export function SourcePreparationPicker({
   onChangeQuantity,
   disabled = false
 }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const selected = useMemo(
     () => options.find((o) => o.preparationId === selectedPreparationId),
     [options, selectedPreparationId]
@@ -65,14 +69,21 @@ export function SourcePreparationPicker({
               {component.order}. {component.entryName}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Prepared solution
+              {t("sourcePicker.preparedSolution")}
             </Typography>
           </Box>
           {component.recipeQuantity != null && (
             <Chip
               size="small"
               variant="outlined"
-              label={`Recipe: ${component.recipeQuantity} ${recipeUnit}`}
+              label={
+                <Trans
+                  i18nKey="sourcePicker.recipe"
+                  ns="solutionPreparation"
+                  values={{ qty: component.recipeQuantity, unit: recipeUnit }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              }
               sx={{ fontWeight: 600, fontSize: 12 }}
             />
           )}
@@ -83,60 +94,62 @@ export function SourcePreparationPicker({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
               <CircularProgress size={16} />
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Loading prepared solutions...
+                {t("sourcePicker.loading")}
               </Typography>
             </Box>
           ) : options.length === 0 ? (
             <Alert severity="warning" sx={{ py: 0.5, fontSize: 12 }}>
-              No prepared solutions found for {component.entryName}.
+              {t("sourcePicker.empty", { name: component.entryName })}
             </Alert>
           ) : !hasUsable ? (
             <Alert severity="error" sx={{ py: 0.5, fontSize: 12 }}>
-              None of the prepared solutions can be used right now.
+              {t("sourcePicker.noneUsable")}
             </Alert>
           ) : null}
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "3fr 2fr" }, gap: 2 }}>
             <FormControl fullWidth size="small" disabled={disabled || loading || options.length === 0}>
-              <InputLabel id={`source-select-label-${component.id}`}>Select Prepared Solution *</InputLabel>
+              <InputLabel id={`source-select-label-${component.id}`}>{t("sourcePicker.selectLabel")}</InputLabel>
               <Select
                 labelId={`source-select-label-${component.id}`}
                 id={`source-select-${component.id}`}
                 value={selectedPreparationId ?? ""}
-                label="Select Prepared Solution *"
+                label={t("sourcePicker.selectLabel")}
                 onChange={(e) => {
                   const val = e.target.value;
                   onSelect(val ? Number(val) : null);
                 }}
               >
                 <MenuItem value="">
-                  <em>(Choose prepared solution)</em>
+                  <em>{t("sourcePicker.chooseOption")}</em>
                 </MenuItem>
                 {options.map((o) => {
                   const dates = [
-                    o.preparedAt ? `Prepared ${formatLabDate(o.preparedAt)}` : null,
-                    o.expiresAt ? `Exp ${formatDateTimeWithTimeZone(o.expiresAt)}` : null
+                    o.preparedAt ? t("sourcePicker.preparedDate", { date: formatLabDate(o.preparedAt) }) : null,
+                    o.expiresAt ? t("sourcePicker.expDate", { date: formatDateTimeWithTimeZone(o.expiresAt) }) : null
                   ].filter(Boolean);
-                  const release = approvalStatusLabel(o.approvalStatus);
+                  const release = approvalStatusLabel(o.approvalStatus, t);
                   return (
                     <MenuItem key={o.preparationId} value={o.preparationId} disabled={!o.usable}>
                       {o.code ?? `#${o.preparationId}`}
                       {dates.length > 0 ? ` · ${dates.join(" · ")}` : ""}
                       {release ? ` · ${release}` : ""}
-                      {!o.usable ? ` [Blocked: ${o.reason ?? "Not usable"}]` : ""}
+                      {!o.usable ? t("sourcePicker.blockedSuffix", { reason: o.reason ?? t("sourcePicker.notUsable") }) : ""}
                     </MenuItem>
                   );
                 })}
               </Select>
               {selected && (
                 <FormHelperText sx={{ fontSize: 12 }}>
-                  {selected.expiresAt ? `Expires ${formatDateTimeWithTimeZone(selected.expiresAt)}` : "No expiry date"}
+                  {selected.expiresAt
+                    ? t("sourcePicker.expiresHelper", { date: formatDateTimeWithTimeZone(selected.expiresAt) })
+                    : t("sourcePicker.noExpiryDate")}
                 </FormHelperText>
               )}
             </FormControl>
 
             <NumericEntryField
-              label="Quantity Used (optional)"
+              label={t("sourcePicker.quantityUsedOptional")}
               kind="decimal"
               value={qtyText}
               onChange={(val) => {
@@ -150,7 +163,7 @@ export function SourcePreparationPicker({
               }}
               disabled={disabled || !selectedPreparationId}
               unit={recipeUnit || undefined}
-              helperText="Recorded only; not deducted from the prepared bottle"
+              helperText={t("sourcePicker.quantityHelper")}
             />
           </Box>
         </Stack>

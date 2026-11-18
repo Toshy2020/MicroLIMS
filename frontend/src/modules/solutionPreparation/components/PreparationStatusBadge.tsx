@@ -5,6 +5,7 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { useTranslation } from "../../../i18n";
 import type { StatusTone } from "../../../theme/statusTokens";
 import type { SolutionPreparationStatus } from "../types";
 
@@ -20,31 +21,32 @@ interface StatusMeta {
 }
 
 export function PreparationStatusBadge({ status, size = "small" }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const theme = useTheme();
 
   const meta: Record<SolutionPreparationStatus, StatusMeta> = {
     InProgress: {
-      label: "In Progress",
+      label: t("statuses.InProgress"),
       tone: "info",
       icon: <HourglassEmptyOutlinedIcon sx={{ fontSize: size === "small" ? 13 : 15, mr: 0.5 }} />
     },
     Prepared: {
-      label: "Prepared",
+      label: t("statuses.Prepared"),
       tone: "notDetected",
       icon: <CheckCircleOutlinedIcon sx={{ fontSize: size === "small" ? 13 : 15, mr: 0.5 }} />
     },
     Expired: {
-      label: "Expired",
+      label: t("statuses.Expired"),
       tone: "detected",
       icon: <EventBusyOutlinedIcon sx={{ fontSize: size === "small" ? 13 : 15, mr: 0.5 }} />
     },
     Discarded: {
-      label: "Discarded",
+      label: t("statuses.Discarded"),
       tone: "action",
       icon: <DeleteOutlineOutlinedIcon sx={{ fontSize: size === "small" ? 13 : 15, mr: 0.5 }} />
     },
     Cancelled: {
-      label: "Cancelled",
+      label: t("statuses.Cancelled"),
       tone: "pending",
       icon: <CancelOutlinedIcon sx={{ fontSize: size === "small" ? 13 : 15, mr: 0.5 }} />
     }

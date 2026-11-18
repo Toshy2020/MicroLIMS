@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { tableHeadSx } from "../../../theme";
 import type { IncidentListItem } from "../types/errorMonitoringTypes";
 import { SEVERITY_COLORS } from "../types/errorMonitoringTypes";
@@ -83,8 +83,8 @@ export function IncidentTable({
                       </Stack>
                     </TableCell>
                     <TableCell align="right">{incident.occurrenceCount}</TableCell>
-                    <TableCell>{formatLabDateTime(incident.firstSeenUtc)}</TableCell>
-                    <TableCell>{formatLabDateTime(incident.lastSeenUtc)}</TableCell>
+                    <TableCell>{formatDateTimeWithTimeZone(incident.firstSeenUtc)}</TableCell>
+                    <TableCell>{formatDateTimeWithTimeZone(incident.lastSeenUtc)}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"

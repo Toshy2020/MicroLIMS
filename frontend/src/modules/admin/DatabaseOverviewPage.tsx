@@ -7,6 +7,7 @@ import {
   type BackupRun,
   type DatabaseOverview
 } from "./services/DatabaseOverviewService";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 // A successful backup this recent counts as current. Presentation only: the
 // backend reports the run, and this decides how the status is coloured.
@@ -22,9 +23,9 @@ export function backupStatusTone(backup: BackupRun | null, now: Date): BackupSta
 
 function backupMessage(backup: BackupRun | null, now: Date): string {
   if (!backup) return "No backup has been recorded yet.";
-  if (!backup.succeeded) return `Last backup failed at ${new Date(backup.finishedAtUtc).toLocaleString()}: ${backup.error ?? "unknown error"}`;
+  if (!backup.succeeded) return `Last backup failed at ${formatDateTimeWithTimeZone(backup.finishedAtUtc)}: ${backup.error ?? "unknown error"}`;
   const ageHours = (now.getTime() - new Date(backup.finishedAtUtc).getTime()) / 3600000;
-  const when = `${new Date(backup.finishedAtUtc).toLocaleString()} (${backup.fileName})`;
+  const when = `${formatDateTimeWithTimeZone(backup.finishedAtUtc)} (${backup.fileName})`;
   return ageHours <= 24
     ? `Last successful backup: ${when}.`
     : `Last successful backup is older than 24 hours: ${when}.`;

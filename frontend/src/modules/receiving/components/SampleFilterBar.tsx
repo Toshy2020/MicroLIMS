@@ -10,6 +10,7 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import { RECEIVING_CATEGORIES, SAMPLE_STATUS_OPTIONS, TEST_STATUS_OPTIONS } from "../constants/receivingConstants";
 import { DateField } from "../../../components/DateField";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 export type SampleFilterBarViewMode = "table" | "card" | "kanban";
 
@@ -69,8 +70,8 @@ export function SampleFilterBar({
     const o = TEST_STATUS_OPTIONS.find((x) => x.value === testStatusFilter);
     activeChips.push({ key: "testStatus", label: `Tests: ${o?.label ?? testStatusFilter}`, onDelete: () => onTestStatusFilterChange("ALL") });
   }
-  if (fromDate) activeChips.push({ key: "from", label: `From ${new Date(fromDate).toLocaleDateString()}`, onDelete: () => onFromDateChange("") });
-  if (toDate) activeChips.push({ key: "to", label: `To ${new Date(toDate).toLocaleDateString()}`, onDelete: () => onToDateChange("") });
+  if (fromDate) activeChips.push({ key: "from", label: `From ${formatLabCalendarDate(fromDate)}`, onDelete: () => onFromDateChange("") });
+  if (toDate) activeChips.push({ key: "to", label: `To ${formatLabCalendarDate(toDate)}`, onDelete: () => onToDateChange("") });
 
   return (
     <Paper

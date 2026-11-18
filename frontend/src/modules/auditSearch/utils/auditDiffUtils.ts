@@ -1,5 +1,6 @@
 import { FIELD_DISPLAY_NAMES } from "../types/auditTypes";
 import { lookupEnumLabel } from "./auditEnumLabels";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface FieldChange {
   key: string;
@@ -37,12 +38,7 @@ function formatAuditValue(val: any, entityName?: string, fieldKey?: string): str
     // Check if it's an ISO date string
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(val)) {
       try {
-        const d = new Date(val);
-        return d.toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric"
-        });
+        return formatDateTimeWithTimeZone(val, { seconds: true, english: true });
       } catch {
         return val;
       }

@@ -16,6 +16,7 @@ import { discussionService } from "../services/discussionService";
 import { DiscussionVersion } from "../types/discussionTypes";
 import { DiscussionCategoryBadge } from "./DiscussionCategoryBadge";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 interface Props {
   open: boolean;
@@ -90,7 +91,7 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
                     <DiscussionCategoryBadge category={ver.category} categoryName={ver.categoryName} />
                   </Box>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Archived on {new Date(ver.changedAt).toLocaleString()} by <strong>{ver.changedByName}</strong>
+                    Archived on {formatDateTimeWithTimeZone(ver.changedAt)} by <strong>{ver.changedByName}</strong>
                   </Typography>
                 </Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>

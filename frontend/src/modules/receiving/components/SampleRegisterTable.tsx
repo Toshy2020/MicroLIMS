@@ -42,6 +42,7 @@ import type { TableState } from "../../../components/lab/table/tableUrlCodec";
 import type { RowSelection } from "../../../components/lab/table/useRowSelection";
 import { useTableState, type UseTableState } from "../../../components/lab/table/useTableState";
 import type { ExportColumn } from "../../../components/lab/table/exportRows";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface SampleRegisterTableProps {
   samples: SampleRecord[];
@@ -409,14 +410,7 @@ function SampleRegisterTableInner({
 
   const formatReceivedDate = (d: string) => {
     try {
-      const date = new Date(d);
-      return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }

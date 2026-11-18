@@ -41,6 +41,7 @@ import {
 } from "./services/OosTrackingService";
 import { tableHeadSx } from "../../theme";
 import { FileDropZone } from "../../components/FileDropZone";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 const RETEST_TYPE_LABELS: Record<string, string> = {
   RetestRetainedSample: "Retest Retained Sample",
@@ -48,13 +49,7 @@ const RETEST_TYPE_LABELS: Record<string, string> = {
 };
 
 const formatDate = (d: string) =>
-  new Date(d).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  formatDateTimeWithTimeZone(d);
 
 // Mirrors MaterialDocumentFileValidator (the server is authoritative) and the
 // 25 MB MaterialDocuments:MaxFileSizeBytes default in appsettings.json.

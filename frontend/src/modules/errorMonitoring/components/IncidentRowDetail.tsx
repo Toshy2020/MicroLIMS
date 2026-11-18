@@ -3,7 +3,7 @@ import {
   Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography
 } from "@mui/material";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { ErrorMonitoringService } from "../services/ErrorMonitoringService";
 import type { ErrorSeverity, IncidentDetail, IncidentListItem } from "../types/errorMonitoringTypes";
 import { SEVERITIES, SEVERITY_COLORS } from "../types/errorMonitoringTypes";
@@ -95,7 +95,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              Resolved {detail.resolvedAtUtc ? formatLabDateTime(detail.resolvedAtUtc) : ""}
+              Resolved {detail.resolvedAtUtc ? formatDateTimeWithTimeZone(detail.resolvedAtUtc) : ""}
               {detail.resolvedByUserName ? ` by ${detail.resolvedByUserName}` : ""}
               {detail.resolutionNotes ? ` - ${detail.resolutionNotes}` : ""}
             </Typography>
@@ -129,7 +129,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
               <Typography variant="body2" sx={{
                 color: "text.secondary"
               }}>
-                {formatLabDateTime(log.occurredAtUtc)}
+                {formatDateTimeWithTimeZone(log.occurredAtUtc)}
               </Typography>
               {log.httpMethod && log.requestPath && (
                 <Typography variant="body2" sx={{

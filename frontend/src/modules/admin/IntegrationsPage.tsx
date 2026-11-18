@@ -8,14 +8,14 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
-import { formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { TestActionDialog } from "./TestActionDialog";
 import { TestSendOutcome } from "./TestSendOutcome";
 import { EmailDeliveryCard } from "./EmailDeliveryCard";
 import { IntegrationAgent, IntegrationsService, SmtpStatus, StorageProbeResult, StorageStatus } from "./services/IntegrationsService";
 
-const when = (v: string | null) => (v ? formatLabDateTime(v) : "Never");
+const when = (v: string | null) => (v ? formatDateTimeWithTimeZone(v) : "Never");
 
 const formatBytes = (bytes: number | null) => {
   if (bytes === null) return "Not reported";

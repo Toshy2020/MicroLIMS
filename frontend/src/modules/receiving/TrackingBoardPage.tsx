@@ -29,6 +29,7 @@ import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { DateField } from "../../components/DateField";
 import { visuallyHidden } from "@mui/utils";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 // Matched on section Code, never Id: Ids are database-assigned and differ
 // between installations. Codes are never renamed, only labels can change
@@ -166,7 +167,7 @@ export function TrackingBoardPage() {
 
   const formatReceivedDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }

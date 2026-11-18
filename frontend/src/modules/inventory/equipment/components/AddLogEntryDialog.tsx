@@ -18,8 +18,8 @@ import type {
   MaintenanceEntryType,
   MaintenanceLogEntryResponse
 } from "../types/equipmentTypes";
-import { MAINTENANCE_ENTRY_TYPE_LABELS } from "../types/equipmentTypes";
 import { DateField } from "../../../../components/DateField";
+import { useTranslation } from "../../../../i18n";
 
 interface Props {
   open: boolean;
@@ -36,6 +36,7 @@ export function AddLogEntryDialog({
   onClose,
   onSuccess
 }: Props) {
+  const { t, i18n } = useTranslation("inventory");
   const [entryType, setEntryType] = useState<MaintenanceEntryType>("PreventiveMaintenance");
   const [performedOn, setPerformedOn] = useState<string>("");
   const [workDone, setWorkDone] = useState<string>("");
@@ -62,25 +63,35 @@ export function AddLogEntryDialog({
     setError(null);
 
     if (!workDone.trim()) {
-      setError("Work done is required.");
+      setError(t("equipment.addLogDialog.errors.workDoneRequired"));
       return;
     }
     if (!performedOn) {
-      setError("Date performed is required.");
+      setError(t("equipment.addLogDialog.errors.dateRequired"));
       return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
     if (performedOn > today) {
-      setError("Date performed cannot be in the future.");
+      setError(t("equipment.addLogDialog.errors.dateFuture"));
       return;
     }
 
     setSigning(true);
   };
 
-  const typeLabel = MAINTENANCE_ENTRY_TYPE_LABELS[entryType];
-  const meaningStatement = `I confirm this ${typeLabel.toLowerCase()} entry for ${equipmentCode}, performed on ${performedOn}, is accurate.`;
+  const enT = i18n.getFixedT("en", "inventory");
+  const enTypeLabel = enT(`equipment.maintenance.entryTypes.${entryType}`);
+  const meaningStatement = enT("equipment.addLogDialog.meaningStatement", {
+    type: enTypeLabel.toLowerCase(),
+    code: equipmentCode,
+    date: performedOn
+  });
+  const meaningStatementTranslation = t("equipment.addLogDialog.meaningStatement", {
+    type: t(`equipment.maintenance.entryTypes.${entryType}`),
+    code: equipmentCode,
+    date: performedOn
+  });
 
   const handleSignConfirm = async (password: string) => {
     const payload: AddLogEntryRequest = {
@@ -102,13 +113,13 @@ export function AddLogEntryDialog({
     <>
       <FloatingDialog
         open={open && !signing}
-        title="Add Maintenance Log Entry"
+        title={t("equipment.addLogDialog.title")}
         onClose={onClose}
         maxWidth="sm"
         actions={
           <>
             <Button onClick={onClose} color="inherit">
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               id="add-log-entry-submit"
@@ -116,13 +127,13 @@ export function AddLogEntryDialog({
               onClick={handleContinueToSign}
               disabled={!canContinue}
             >
-              Continue to sign
+              {t("equipment.addLogDialog.continueToSign")}
             </Button>
           </>
         }
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-          Record preventive maintenance, breakdown repairs, or other service activities. All entries are electronically signed and append-only.
+          {t("equipment.addLogDialog.subtitle")}
         </Typography>
 
         {error && (
@@ -133,32 +144,32 @@ export function AddLogEntryDialog({
 
         <Stack spacing={2}>
           <FormControl size="small" fullWidth>
-            <InputLabel id="entry-type-label">Entry Type</InputLabel>
+            <InputLabel id="entry-type-label">{t("equipment.addLogDialog.entryType")}</InputLabel>
             <Select
               labelId="entry-type-label"
               id="log-entry-type-select"
               value={entryType}
-              label="Entry Type"
+              label={t("equipment.addLogDialog.entryType")}
               onChange={(e) => setEntryType(e.target.value as MaintenanceEntryType)}
             >
-              <MenuItem value="PreventiveMaintenance">Preventive Maintenance</MenuItem>
-              <MenuItem value="BreakdownRepair">Breakdown Repair</MenuItem>
-              <MenuItem value="Other">Other</MenuItem>
+              <MenuItem value="PreventiveMaintenance">{t("equipment.maintenance.entryTypes.PreventiveMaintenance")}</MenuItem>
+              <MenuItem value="BreakdownRepair">{t("equipment.maintenance.entryTypes.BreakdownRepair")}</MenuItem>
+              <MenuItem value="Other">{t("equipment.maintenance.entryTypes.Other")}</MenuItem>
             </Select>
           </FormControl>
 
           <DateField
-            label="Date Performed"
+            label={t("equipment.addLogDialog.datePerformed")}
             required
             fullWidth
             value={performedOn}
             onChange={(v) => setPerformedOn(v)}
-            helperText="Date when work was performed"
+            helperText={t("equipment.addLogDialog.datePerformedHelper")}
           />
 
           <TextField
             id="log-entry-work-done"
-            label="Work Done"
+            label={t("equipment.addLogDialog.workDone")}
             multiline
             rows={3}
             size="small"
@@ -166,31 +177,31 @@ export function AddLogEntryDialog({
             fullWidth
             value={workDone}
             onChange={(e) => setWorkDone(e.target.value)}
-            placeholder="Describe what work or servicing was performed"
+            placeholder={t("equipment.addLogDialog.workDonePlaceholder")}
           />
 
           <TextField
             id="log-entry-parts-replaced"
-            label="Parts Replaced (Optional)"
+            label={t("equipment.addLogDialog.partsReplaced")}
             multiline
             rows={2}
             size="small"
             fullWidth
             value={partsReplaced}
             onChange={(e) => setPartsReplaced(e.target.value)}
-            placeholder="List any components, filters, or parts replaced"
+            placeholder={t("equipment.addLogDialog.partsReplacedPlaceholder")}
           />
 
           <TextField
             id="log-entry-findings"
-            label="Findings (Optional)"
+            label={t("equipment.addLogDialog.findings")}
             multiline
             rows={2}
             size="small"
             fullWidth
             value={findings}
             onChange={(e) => setFindings(e.target.value)}
-            placeholder="Note any observations, issues found, or follow-up recommendations"
+            placeholder={t("equipment.addLogDialog.findingsPlaceholder")}
           />
         </Stack>
       </FloatingDialog>
@@ -198,6 +209,7 @@ export function AddLogEntryDialog({
       <SignatureDialog
         open={open && signing}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSigning(false)}
         onConfirm={handleSignConfirm}
       />

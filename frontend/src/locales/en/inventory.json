@@ -665,6 +665,121 @@
       "voidReasonPlaceholder": "Explain why this entry is being voided",
       "continueToSign": "Continue to sign",
       "voidMeaningStatement": "I am voiding logbook entry #{{id}} for {{code}}. Reason: {{reason}}."
+    },
+    "registerDialog": {
+      "editTitle": "Edit Equipment",
+      "createTitle": "Register Equipment",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "registerButton": "Register Equipment",
+      "section1": "1. Instrument Information",
+      "instrumentType": "Instrument Type",
+      "instrumentTypePlaceholder": "e.g. Incubator, Pipette, pH Meter, Balance",
+      "manufacturer": "Manufacturer",
+      "manufacturerPlaceholder": "e.g. Memmert, Mettler Toledo, Sartorius",
+      "equipmentCode": "Equipment Code",
+      "equipmentCodePlaceholder": "e.g. INC-F-ML-F-01-003",
+      "codeLocked": "Locked: a label has been printed",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Microbiology Lab Room 102",
+      "serialNumber": "Serial Number",
+      "serialNumberPlaceholder": "e.g. SN-8823941",
+      "firmwareVersion": "Firmware Version",
+      "firmwareVersionPlaceholder": "e.g. v2.4.1",
+      "laboratory": "Laboratory",
+      "noLaboratory": "No laboratory available",
+      "section2": "2. Calibration & Operational Status",
+      "calibrationDueDate": "Calibration Due Date",
+      "operationalStatus": "Operational Status",
+      "statusChangeCommentLabel": "Status Change Comment *",
+      "statusChangeCommentPlaceholder": "Provide a mandatory reason for changing the operational status (e.g., Sent for calibration, Returned from vendor maintenance, Decommissioned)",
+      "statusChangeCommentHelper": "Required whenever the operational status changes.",
+      "updatedSuccess": "Equipment updated successfully.",
+      "createdSuccess": "Equipment registered successfully.",
+      "saveError": "Could not save equipment.",
+      "errors": {
+        "requiredFields": "Instrument type, equipment code, and location are required.",
+        "laboratoryRequired": "Choose the laboratory this asset belongs to.",
+        "statusCommentRequired": "A comment explaining the operational status change is required."
+      }
+    },
+    "addLogDialog": {
+      "title": "Add Maintenance Log Entry",
+      "subtitle": "Record preventive maintenance, breakdown repairs, or other service activities. All entries are electronically signed and append-only.",
+      "continueToSign": "Continue to sign",
+      "entryType": "Entry Type",
+      "datePerformed": "Date Performed",
+      "datePerformedHelper": "Date when work was performed",
+      "workDone": "Work Done",
+      "workDonePlaceholder": "Describe what work or servicing was performed",
+      "partsReplaced": "Parts Replaced (Optional)",
+      "partsReplacedPlaceholder": "List any components, filters, or parts replaced",
+      "findings": "Findings (Optional)",
+      "findingsPlaceholder": "Note any observations, issues found, or follow-up recommendations",
+      "meaningStatement": "I confirm this {{type}} entry for {{code}}, performed on {{date}}, is accurate.",
+      "errors": {
+        "workDoneRequired": "Work done is required.",
+        "dateRequired": "Date performed is required.",
+        "dateFuture": "Date performed cannot be in the future."
+      }
+    },
+    "recordCalibrationDialog": {
+      "title": "Record Calibration",
+      "subtitle": "Attach a current calibration certificate, enter the calibration date, and electronically sign with your password.",
+      "continueToSign": "Continue to sign",
+      "certificateLabel": "Calibration Certificate",
+      "loadingCertificates": "Loading certificates...",
+      "noCertificates": "No current certificates found",
+      "uploadNew": "Upload New",
+      "certificateRequiredHint": "A current calibration certificate is required. Click \"Upload New\" to upload one.",
+      "calibrationDate": "Calibration Date",
+      "calibrationDateHelper": "Date when calibration was performed (cannot be in the future)",
+      "nextDueLabel": "Certificate Next-Due Date (Optional)",
+      "nextDueHelper": "When specified on the vendor certificate, overrides the calculated interval due date",
+      "meaningStatement": "I confirm the calibration of {{code}} on {{date}} is recorded with certificate {{fileName}}.",
+      "meaningStatementWithNextDue": "I confirm the calibration of {{code}} on {{date}} is recorded with certificate {{fileName}}, next due {{nextDue}}.",
+      "errors": {
+        "loadError": "Failed to load calibration certificates.",
+        "certificateRequired": "Please select a calibration certificate.",
+        "dateRequired": "Calibration date is required.",
+        "dateFuture": "Calibration date cannot be in the future."
+      }
+    },
+    "docDialogs": {
+      "unsupportedType": "File type '{{ext}}' is not supported. Allowed: PDF, JPG, JPEG, PNG, WEBP, TIFF.",
+      "maxSizeError": "File exceeds the 25 MB limit.",
+      "selectFileError": "Please select a file.",
+      "selectReplacementError": "Please select a replacement file.",
+      "reasonRequired": "A reason is required.",
+      "allowedTypesHint": "PDF, JPG, JPEG, PNG, WEBP, TIFF · max 25 MB",
+      "upload": {
+        "title": "Upload Calibration Certificate",
+        "uploading": "Uploading…",
+        "submit": "Upload",
+        "docType": "Document Type *",
+        "chooseAria": "Choose a file to upload",
+        "clickToSelect": "Click to select a file",
+        "failed": "Upload failed. Please try again."
+      },
+      "supersede": {
+        "title": "Supersede Calibration Certificate",
+        "submitting": "Superseding…",
+        "submit": "Supersede",
+        "notice": "The existing certificate ({{fileName}}) will be marked <bold>Superseded</bold> and remain historically accessible. A new Current certificate will be created from the replacement file.",
+        "docType": "Document Type: <bold>{{type}}</bold>",
+        "reasonLabel": "Reason for Supersession *",
+        "chooseAria": "Choose a replacement file",
+        "clickToSelect": "Click to select the replacement certificate (PDF, JPG, PNG, WEBP, TIFF · max 25 MB)",
+        "failed": "Supersession failed. Please try again."
+      },
+      "void": {
+        "title": "Void Calibration Certificate",
+        "submitting": "Voiding…",
+        "submit": "Void Certificate",
+        "warning": "The certificate <bold>{{fileName}}</bold> will be marked <bold>Voided</bold>. The file and metadata are retained for audit purposes.",
+        "reasonLabel": "Reason for Voiding *",
+        "failed": "Void operation failed. Please try again."
+      }
     }
   }
 }

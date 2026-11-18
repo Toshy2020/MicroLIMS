@@ -675,6 +675,121 @@
       "voidReasonPlaceholder": "اشرح سبب إبطال هذا الإدخال",
       "continueToSign": "المتابعة للتوقيع",
       "voidMeaningStatement": "أقوم بإبطال إدخال السجل رقم #{{id}} للمعدات {{code}}. السبب: {{reason}}."
+    },
+    "registerDialog": {
+      "editTitle": "تعديل المعدات",
+      "createTitle": "تسجيل معدات",
+      "saving": "جارٍ الحفظ...",
+      "saveChanges": "حفظ التغييرات",
+      "registerButton": "تسجيل معدات",
+      "section1": "1. معلومات الجهاز",
+      "instrumentType": "نوع الجهاز",
+      "instrumentTypePlaceholder": "مثل: حاضنة، ماصة، مقياس pH، ميزان",
+      "manufacturer": "المُصنِّع",
+      "manufacturerPlaceholder": "مثل: Memmert، Mettler Toledo، Sartorius",
+      "equipmentCode": "رمز المعدات",
+      "equipmentCodePlaceholder": "مثل: INC-F-ML-F-01-003",
+      "codeLocked": "مقفل: تم طباعة ملصق",
+      "location": "الموقع",
+      "locationPlaceholder": "مثل: مختبر الأحياء الدقيقة غرفة 102",
+      "serialNumber": "الرقم التسلسلي",
+      "serialNumberPlaceholder": "مثل: SN-8823941",
+      "firmwareVersion": "إصدار البرنامج الثابت",
+      "firmwareVersionPlaceholder": "مثل: v2.4.1",
+      "laboratory": "المختبر",
+      "noLaboratory": "لا يوجد مختبر متاح",
+      "section2": "2. المعايرة والحالة التشغيلية",
+      "calibrationDueDate": "تاريخ استحقاق المعايرة",
+      "operationalStatus": "الحالة التشغيلية",
+      "statusChangeCommentLabel": "تعليق تغيير الحالة *",
+      "statusChangeCommentPlaceholder": "قدّم سببًا إلزاميًا لتغيير الحالة التشغيلية (مثل: أُرسلت للمعايرة، عادت من صيانة المورّد، أُخرجت من الخدمة)",
+      "statusChangeCommentHelper": "مطلوب عند تغيير الحالة التشغيلية.",
+      "updatedSuccess": "تم تحديث المعدات بنجاح.",
+      "createdSuccess": "تم تسجيل المعدات بنجاح.",
+      "saveError": "تعذر حفظ المعدات.",
+      "errors": {
+        "requiredFields": "نوع الجهاز ورمز المعدات والموقع مطلوبة.",
+        "laboratoryRequired": "اختر المختبر الذي تتبع له هذه المعدات.",
+        "statusCommentRequired": "مطلوب تعليق يوضح سبب تغيير الحالة التشغيلية."
+      }
+    },
+    "addLogDialog": {
+      "title": "إضافة إدخال سجل صيانة",
+      "subtitle": "سجّل الصيانة الوقائية أو إصلاح الأعطال أو أنشطة الخدمة الأخرى. جميع الإدخالات موقَّعة إلكترونيًا ومخصصة للإضافة فقط.",
+      "continueToSign": "المتابعة للتوقيع",
+      "entryType": "نوع الإدخال",
+      "datePerformed": "تاريخ التنفيذ",
+      "datePerformedHelper": "تاريخ تنفيذ العمل",
+      "workDone": "العمل المنجز",
+      "workDonePlaceholder": "صف العمل أو الخدمة التي تم تنفيذها",
+      "partsReplaced": "الأجزاء المستبدلة (اختياري)",
+      "partsReplacedPlaceholder": "اذكر أي مكونات أو فلاتر أو أجزاء تم استبدالها",
+      "findings": "النتائج (اختياري)",
+      "findingsPlaceholder": "سجّل أي ملاحظات أو مشكلات تم العثور عليها أو توصيات للمتابعة",
+      "meaningStatement": "أؤكد أن إدخال {{type}} للمعدات {{code}}، المنفَّذ في {{date}}، دقيق.",
+      "errors": {
+        "workDoneRequired": "العمل المنجز مطلوب.",
+        "dateRequired": "تاريخ التنفيذ مطلوب.",
+        "dateFuture": "لا يمكن أن يكون تاريخ التنفيذ في المستقبل."
+      }
+    },
+    "recordCalibrationDialog": {
+      "title": "تسجيل معايرة",
+      "subtitle": "أرفق شهادة معايرة سارية، وأدخل تاريخ المعايرة، ثم وقّع إلكترونيًا بكلمة المرور.",
+      "continueToSign": "المتابعة للتوقيع",
+      "certificateLabel": "شهادة المعايرة",
+      "loadingCertificates": "جارٍ تحميل الشهادات...",
+      "noCertificates": "لم يتم العثور على شهادات سارية",
+      "uploadNew": "رفع جديد",
+      "certificateRequiredHint": "يلزم وجود شهادة معايرة سارية. انقر على \"رفع جديد\" لرفع شهادة.",
+      "calibrationDate": "تاريخ المعايرة",
+      "calibrationDateHelper": "تاريخ إجراء المعايرة (لا يمكن أن يكون في المستقبل)",
+      "nextDueLabel": "تاريخ الاستحقاق التالي بالشهادة (اختياري)",
+      "nextDueHelper": "عند تحديده في شهادة المورّد، يتجاوز تاريخ الاستحقاق المحسوب من الفترة",
+      "meaningStatement": "أؤكد تسجيل معايرة المعدات {{code}} بتاريخ {{date}} مع الشهادة {{fileName}}.",
+      "meaningStatementWithNextDue": "أؤكد تسجيل معايرة المعدات {{code}} بتاريخ {{date}} مع الشهادة {{fileName}}، الاستحقاق التالي {{nextDue}}.",
+      "errors": {
+        "loadError": "تعذر تحميل شهادات المعايرة.",
+        "certificateRequired": "يرجى اختيار شهادة معايرة.",
+        "dateRequired": "تاريخ المعايرة مطلوب.",
+        "dateFuture": "لا يمكن أن يكون تاريخ المعايرة في المستقبل."
+      }
+    },
+    "docDialogs": {
+      "unsupportedType": "نوع الملف '{{ext}}' غير مدعوم. المسموح: PDF، JPG، JPEG، PNG، WEBP، TIFF.",
+      "maxSizeError": "يتجاوز الملف حد 25 ميغابايت.",
+      "selectFileError": "يرجى اختيار ملف.",
+      "selectReplacementError": "يرجى اختيار ملف بديل.",
+      "reasonRequired": "السبب مطلوب.",
+      "allowedTypesHint": "PDF، JPG، JPEG، PNG، WEBP، TIFF · بحد أقصى 25 ميغابايت",
+      "upload": {
+        "title": "رفع شهادة معايرة",
+        "uploading": "جارٍ الرفع…",
+        "submit": "رفع",
+        "docType": "نوع المستند *",
+        "chooseAria": "اختر ملفًا للرفع",
+        "clickToSelect": "انقر لاختيار ملف",
+        "failed": "فشل الرفع. يرجى المحاولة مرة أخرى."
+      },
+      "supersede": {
+        "title": "استبدال شهادة المعايرة",
+        "submitting": "جارٍ الاستبدال…",
+        "submit": "استبدال",
+        "notice": "سيتم وسم الشهادة الحالية ({{fileName}}) كـ <bold>مُستبدَلة</bold> وستظل متاحة تاريخيًا. وسيتم إنشاء شهادة سارية جديدة من الملف البديل.",
+        "docType": "نوع المستند: <bold>{{type}}</bold>",
+        "reasonLabel": "سبب الاستبدال *",
+        "chooseAria": "اختر ملفًا بديلًا",
+        "clickToSelect": "انقر لاختيار الشهادة البديلة (PDF، JPG، PNG، WEBP، TIFF · بحد أقصى 25 ميغابايت)",
+        "failed": "فشل الاستبدال. يرجى المحاولة مرة أخرى."
+      },
+      "void": {
+        "title": "إبطال شهادة المعايرة",
+        "submitting": "جارٍ الإبطال…",
+        "submit": "إبطال الشهادة",
+        "warning": "سيتم وسم الشهادة <bold>{{fileName}}</bold> كـ <bold>مُبطَل</bold>. يُحتفَظ بالملف والبيانات الوصفية لأغراض التدقيق.",
+        "reasonLabel": "سبب الإبطال *",
+        "failed": "فشلت عملية الإبطال. يرجى المحاولة مرة أخرى."
+      }
     }
   }
 }

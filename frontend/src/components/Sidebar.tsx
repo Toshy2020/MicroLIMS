@@ -11,6 +11,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Link } from "react-router-dom";
 import { MenuGroup, MenuItem as MenuItemType } from "../routes/menuConfig";
 import { NavTrail } from "../routes/navigation";
+import { useLiveRefresh } from "../hooks/useLiveRefresh";
 import { myWorkService } from "../modules/myWork/services/myWorkService";
 import type { MyWorkSummary } from "../modules/myWork/myWorkTypes";
 import { SidebarFavourites } from "../modules/navigation/SidebarFavourites";
@@ -114,6 +115,15 @@ export function Sidebar({ mobileOpen, onMobileClose, collapsed, onToggleCollapse
       window.clearInterval(intervalId);
     };
   }, [hasMyWorkBadge, fetchMyWorkSummary]);
+
+  // The server signals "mywork" when a task is added, finished or reassigned
+  // for this user; the focus and interval refreshes above stay as the fallback.
+  useLiveRefresh({
+    kind: "mywork",
+    refetch: fetchMyWorkSummary,
+    fallbackMs: 0,
+    enabled: hasMyWorkBadge
+  });
 
   // Opening a deep link (or navigating from a notification) used to leave
   // the area holding the current page folded shut, so the active highlight

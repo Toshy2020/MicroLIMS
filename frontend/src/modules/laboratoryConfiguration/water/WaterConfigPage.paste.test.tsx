@@ -4,6 +4,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithTheme } from "../../../components/bench/benchTestUtils";
+import { i18n } from "../../../i18n";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import { WaterConfigPage } from "./WaterConfigPage";
 import type { WaterDept } from "./waterConfigTypes";
@@ -299,5 +300,20 @@ describe("WaterConfigPage paste", () => {
     await waitFor(() => expect(screen.queryByRole("table", { name: /paste preview/i })).toBeNull());
     expect(screen.queryByRole("table", { name: /pending sample locations/i })).toBeNull();
     expect(waterServiceMock.createSamplingPointsBatch).not.toHaveBeenCalled();
+  });
+});
+
+describe("WaterConfigPage language", () => {
+  it("opens the location panel with Arabic section headings when Arabic is active", async () => {
+    const user = userEvent.setup();
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      await renderPage();
+      await user.click(await screen.findByRole("button", { name: "إضافة موقع عينة" }));
+      expect(await screen.findByText("1 · تفاصيل الموقع")).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

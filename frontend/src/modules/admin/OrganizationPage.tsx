@@ -31,8 +31,10 @@ import type { DocumentDepartmentDto, DocumentSectionDto, OrganizationImpactDto }
 import { UserService, type UserRecord } from "../users/services/UserService";
 import { UserSectionsDialog } from "../users/dialogs/UserSectionsDialog";
 import { Trans } from "react-i18next";
-import { useTranslation } from "../../i18n";
+import { i18n, useTranslation } from "../../i18n";
 import type { TFunction } from "i18next";
+
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
 // What the one change dialog is doing. Every action states a reason; deactivating something that is still in use
 // shows what it would leave behind first and then needs the same reason plus an explicit confirmation.
@@ -88,12 +90,12 @@ function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onCl
     // Deactivation: look at what is still using it before asking for confirmation.
     let live = true;
     if (action.kind === "toggleDepartment" && action.department.isActive) {
-      documentControlService.getDepartmentImpact(action.department.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, t("org.impactDepartmentError"))); });
+      documentControlService.getDepartmentImpact(action.department.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, tl("org.impactDepartmentError"))); });
     } else if (action.kind === "toggleSection" && action.section.isActive) {
-      documentControlService.getSectionImpact(action.section.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, t("org.impactSectionError"))); });
+      documentControlService.getSectionImpact(action.section.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, tl("org.impactSectionError"))); });
     }
     return () => { live = false; };
-  }, [action, t]);
+  }, [action]);
 
   if (!action) return null;
 
@@ -203,11 +205,11 @@ export function OrganizationPage() {
     try {
       setDepartments(await documentControlService.getDepartments(true));
     } catch (e) {
-      setError(getErrorMessage(e, t("org.loadError")));
+      setError(getErrorMessage(e, tl("org.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

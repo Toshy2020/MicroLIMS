@@ -19,7 +19,7 @@ import {
 import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { Ltr } from "../../../components/Ltr";
-import { useTranslation } from "../../../i18n";
+import { i18n, useTranslation } from "../../../i18n";
 import { UserRecord } from "../services/UserService";
 import {
   getSections,
@@ -30,6 +30,8 @@ import {
   PhyschemArea
 } from "../../../services/laboratorySectionService";
 import { brandColors } from "../../../theme";
+
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "users", ...options });
 
 interface UserSectionsDialogProps {
   open: boolean;
@@ -85,12 +87,12 @@ export function UserSectionsDialog({ open, onClose, user, onSuccess }: UserSecti
         setMemberships(userMemberships || []);
       })
       .catch((err: unknown) => {
-        setError(getErrorMessageVerbatim(err, t("sections.loadError")));
+        setError(getErrorMessageVerbatim(err, tl("sections.loadError")));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, [open, user, t]);
+  }, [open, user]);
 
   // Group sections by department
   const departmentGroups: DepartmentGroup[] = [];

@@ -19,6 +19,8 @@ import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { serverMessage } from "../../utils/errorMessage";
 import { i18n, useTranslation } from "../../i18n";
 
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
+
 const withUnit = (value: string, unit: string | null) => (unit ? `${value} ${unit}` : value);
 
 // A list setting is stored comma-separated; show it readably and edit it one per line.
@@ -49,8 +51,8 @@ export function SettingsPage() {
   const load = useCallback(() => {
     SettingsService.getAll()
       .then((o) => { setSettings(o.settings); setFixedItems(o.fixedItems); })
-      .catch(() => setError(t("settings.loadError")));
-  }, [t]);
+      .catch(() => setError(tl("settings.loadError")));
+  }, []);
   useEffect(load, [load]);
 
   const openEdit = (s: SystemSetting) => {

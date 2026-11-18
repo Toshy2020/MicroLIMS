@@ -17,6 +17,8 @@ import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { Trans } from "react-i18next";
 import { Ltr } from "../../components/Ltr";
 import { i18n, useTranslation } from "../../i18n";
+
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 const messageOf = (e: unknown, fallback: string): string => serverMessage(e) ?? getErrorMessage(e, fallback);
 
 type StatusFilter = "All" | "Active" | "Inactive";
@@ -56,8 +58,8 @@ export function AccessReviewPage() {
   const loadList = useCallback(() => {
     AccessReviewService.list()
       .then(setReviews)
-      .catch(() => setError(t("accessReview.loadError")));
-  }, [t]);
+      .catch(() => setError(tl("accessReview.loadError")));
+  }, []);
   useEffect(loadList, [loadList]);
 
   const open = (id: number) => {

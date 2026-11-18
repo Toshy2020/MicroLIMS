@@ -2,6 +2,7 @@ import { ReactNode, useState } from "react";
 import { Alert, Button, Stack, TextField, Typography } from "@mui/material";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { getErrorMessage } from "../../utils/errorMessage";
+import { useTranslation } from "../../i18n";
 
 interface Props {
   open: boolean;
@@ -18,6 +19,8 @@ interface Props {
 // Reason prompt shared by the test-send and probe actions. The server enforces the
 // reason, the rate limit and the audit; this only collects the input and shows the outcome.
 export function TestActionDialog({ open, title, description, confirmLabel, addressLabel, onClose, onSubmit }: Props) {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
   const [reason, setReason] = useState("");
   const [address, setAddress] = useState("");
   const [busy, setBusy] = useState(false);
@@ -31,7 +34,7 @@ export function TestActionDialog({ open, title, description, confirmLabel, addre
     try {
       setOutcome(await onSubmit(reason.trim(), address.trim()));
     } catch (e) {
-      setError(getErrorMessage(e, "The action failed."));
+      setError(getErrorMessage(e, t("testAction.failed")));
     } finally {
       setBusy(false);
     }
@@ -45,7 +48,7 @@ export function TestActionDialog({ open, title, description, confirmLabel, addre
       title={title}
       actions={
         <>
-          <Button onClick={close}>Close</Button>
+          <Button onClick={close}>{tc("actions.close")}</Button>
           <Button variant="contained" onClick={submit} disabled={busy || !reason.trim() || (addressLabel !== undefined && !address.trim())}>
             {confirmLabel}
           </Button>
@@ -58,7 +61,7 @@ export function TestActionDialog({ open, title, description, confirmLabel, addre
           <TextField label={addressLabel} type="email" size="small" value={address} onChange={(e) => setAddress(e.target.value)} />
         )}
         <TextField
-          label="Reason" size="small" required multiline minRows={2} value={reason}
+          label={t("common.reason")} size="small" required multiline minRows={2} value={reason}
           onChange={(e) => setReason(e.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }}
         />
         {error && <Alert severity="error">{error}</Alert>}

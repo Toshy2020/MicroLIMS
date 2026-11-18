@@ -1,8 +1,8 @@
 {
-  "total": 5780,
+  "total": 5603,
   "modules": {
     "components": 129,
-    "modules/admin": 190,
+    "modules/admin": 13,
     "modules/auditReview": 61,
     "modules/auditSearch": 118,
     "modules/authentication": 59,

@@ -9,11 +9,13 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { Ltr } from "../../../components/Ltr";
 import { EmptyState } from "../../../components/lab/EmptyState";
 import { PartialOutageBanner } from "../../../components/lab/PartialOutageBanner";
-import { useTranslation } from "../../../i18n";
+import { i18n, useTranslation } from "../../../i18n";
 import { describeUserAgent } from "../../../utils/describeUserAgent";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { TrustedDeviceInfo, UserRecord, UserService, UserSession } from "../services/UserService";
+
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "users", ...options });
 
 interface Props {
   open: boolean;
@@ -47,11 +49,11 @@ export function UserSessionsDialog({ open, onClose, user, onRevoked }: Props) {
     try {
       setSessions(await UserService.getSessions(id));
     } catch (err) {
-      setError(serverMessage(err) ?? getErrorMessage(err, t("sessions.loadError")));
+      setError(serverMessage(err) ?? getErrorMessage(err, tl("sessions.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   const loadTrustedDevices = useCallback(async (id: number) => {
     devicesAbortRef.current?.abort();

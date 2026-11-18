@@ -2153,7 +2153,9 @@
       "sstMinPlates": "Min Theoretical Plates",
       "sstMinRetention": "Min Retention Factor (k')",
       "sstMinSn": "Min Signal-to-Noise",
-      "sstMinPv": "Min Peak-to-Valley"
+      "sstMinPv": "Min Peak-to-Valley",
+      "example": "e.g. {{value}}",
+      "inactiveSuffix": "(Inactive)"
     },
     "dialog": {
       "editTitle": "Edit {{tech}} Method: {{name}}",

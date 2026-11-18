@@ -1979,9 +1979,9 @@
       "runTimeHelper": "زمن التشغيل الكلي لكل حقنة"
     },
     "elution": {
-      "title": "معلمات الإزالة والتدفق",
-      "subtitle": "اضبط آلية الإزالة ومعدل التدفق وزمن التوازن وبرنامج التدرج إن وجد.",
-      "elutionModeLabel": "وضع الإزالة *",
+      "title": "معلمات الشطف والتدفق",
+      "subtitle": "اضبط آلية الشطف ومعدل التدفق وزمن التوازن وبرنامج التدرج إن وجد.",
+      "elutionModeLabel": "وضع الشطف *",
       "flowRateLabel": "معدل التدفق (mL/min) *",
       "flowRatePlaceholder": "مثال: 1.0",
       "flowRateHelper": "سرعة تدفق الطور المتحرك",
@@ -2165,7 +2165,7 @@
       "stdDilutionHelper": "الحجم الذي يُخفف إليه المعيار",
       "hideSst": "إخفاء معايير قبول SST",
       "showSst": "معايير قبول ملاءمة النظام (اختياري)",
-      "configuredSuffix": " (مُعد)",
+      "configuredSuffix": " (مُهيَّأ)",
       "sstHelp": "المعايير التي تُفحص أثناء تشغيلات ملاءمة النظام. الحقول الفارغة لا تُفرض.",
       "sstMaxRsd": "أقصى RSD (%)",
       "sstMinResolution": "أدنى دقة فصل",
@@ -2173,7 +2173,9 @@
       "sstMinPlates": "أدنى الصفائح النظرية",
       "sstMinRetention": "أدنى معامل احتفاظ (k')",
       "sstMinSn": "أدنى نسبة إشارة إلى ضجيج",
-      "sstMinPv": "أدنى نسبة قمة إلى وادٍ"
+      "sstMinPv": "أدنى نسبة قمة إلى وادٍ",
+      "example": "مثال: {{value}}",
+      "inactiveSuffix": "(غير نشط)"
     },
     "dialog": {
       "editTitle": "تعديل طريقة {{tech}}: {{name}}",
@@ -2186,7 +2188,7 @@
         "column": "العمود",
         "gcConditions": "شروط GC والفرن",
         "analytes": "المواد المحلَّلة ({{count}})",
-        "elutionDetection": "الإزالة والكشف",
+        "elutionDetection": "الشطف والكشف",
         "solutions": "المحاليل",
         "analytesImpurities": "المواد المحلَّلة والشوائب"
       },
@@ -2279,7 +2281,7 @@
       "ratiosAllRequired": "يجب تحديد جميع نسب الطور المتحرك إذا تم إدخال أي نسبة.",
       "ratioNonNegative": "يجب أن تكون نسبة الطور المتحرك 0 أو أكثر.",
       "ratioSum": "يجب أن يكون مجموع نسب الطور المتحرك 100% (حاليًا {{sum}}%).",
-      "gradientMinSteps": "تتطلب الإزالة المتدرجة خطوتين متدرجتين على الأقل.",
+      "gradientMinSteps": "يتطلب الشطف المتدرج خطوتين متدرجتين على الأقل.",
       "gradientTimeNonNegative": "يجب أن يكون زمن الخطوة #{{index}} 0 أو أكثر.",
       "gradientFirstZero": "يجب أن تبدأ خطوة التدرج الأولى عند الزمن 0.0 دقيقة.",
       "gradientTimeOrder": "يجب أن يكون زمن الخطوة #{{index}} ({{time}} دقيقة) أكبر تمامًا من الخطوة #{{prevIndex}} ({{prevTime}} دقيقة).",

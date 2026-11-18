@@ -5,6 +5,7 @@
   "Media.CannotApproveOwnLot": "You cannot approve a media lot you prepared or evaluated.",
   "Sample.CannotApproveReviewed": "You cannot approve a sample you reviewed.",
   "Sample.CannotApproveTested": "You cannot approve a sample you tested.",
+  "Sample.CannotReassignWithResult": "Tests with a result cannot be reassigned.",
   "Sample.CannotReviewTested": "You cannot review a sample you tested.",
   "Sample.DuplicateBatchAndControl": "A sample with this batch and control number is already registered.",
   "Sample.NoOpenTestsToAssign": "This sample has no open tests you can assign.",

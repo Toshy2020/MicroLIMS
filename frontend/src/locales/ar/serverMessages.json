@@ -5,6 +5,7 @@
   "Media.CannotApproveOwnLot": "لا يمكنك اعتماد دفعة من أوساط زرعية قمت بتحضيرها أو تقييمها.",
   "Sample.CannotApproveReviewed": "لا يمكنك اعتماد عينة قمت بمراجعتها.",
   "Sample.CannotApproveTested": "لا يمكنك اعتماد عينة قمت باختبارها.",
+  "Sample.CannotReassignWithResult": "لا يمكن إعادة إسناد اختبارات لها نتيجة.",
   "Sample.CannotReviewTested": "لا يمكنك مراجعة عينة قمت باختبارها.",
   "Sample.DuplicateBatchAndControl": "توجد عينة مسجلة بالفعل بنفس رقم الدفعة ورقم الضبط.",
   "Sample.NoOpenTestsToAssign": "لا توجد في هذه العينة اختبارات مفتوحة يمكنك إسنادها.",

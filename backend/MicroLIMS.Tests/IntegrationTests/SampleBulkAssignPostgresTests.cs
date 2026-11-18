@@ -12,6 +12,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Tests.ArchitectureTests;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -262,7 +263,7 @@ public class SampleBulkAssignPostgresTests
     }
 
     // The bulk path judges each row with the single path's own check, so what one accepts or refuses the other
-    // does too: a voided sample is refused with the same sentence, a sample under review is assigned by both.
+    // does too: a voided sample and a sample under review (result entered) are both refused with the same sentence.
     [PostgresFact]
     public async Task BulkAndSingleAssign_AgreeOnVoidedAndUnderReviewSamples()
     {
@@ -287,29 +288,37 @@ public class SampleBulkAssignPostgresTests
                 new BulkAssignRequest(new[] { voided.Id, underReview.Id }, analyst.Id, null), head.Id);
         }
 
-        string singleRefusal;
+        string singleVoidedRefusal, singleUnderReviewRefusal;
         await using (var actDb = _fixture.CreateDbContext())
         {
             var scope = new UserSectionScopeService(actDb);
             var clock = new FixedTimeProvider(new DateTimeOffset(Now));
             var single = new SampleAssignmentService(actDb, new TestingWorkspaceService(actDb, scope, clock), scope, clock);
-            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => single.AssignAnalystAsync(voidedForSingle.Id, analyst.Id, head.Id));
-            singleRefusal = ex.Message;
-            await single.AssignAnalystAsync(underReviewForSingle.Id, analyst.Id, head.Id);
+            var voidedEx = await Assert.ThrowsAsync<BusinessRuleException>(() => single.AssignAnalystAsync(voidedForSingle.Id, analyst.Id, head.Id));
+            singleVoidedRefusal = voidedEx.Message;
+            var reviewEx = await Assert.ThrowsAsync<BusinessRuleException>(() => single.AssignAnalystAsync(underReviewForSingle.Id, analyst.Id, head.Id));
+            singleUnderReviewRefusal = reviewEx.Message;
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, reviewEx.Code);
         }
+
+        Assert.Equal(0, result.AssignedCount);
+        Assert.Equal(2, result.RefusedCount);
 
         var voidedRow = Assert.Single(result.Rows, r => r.SampleId == voided.Id);
         Assert.False(voidedRow.Assigned);
-        Assert.Equal(singleRefusal, voidedRow.RefusedReason);
-        Assert.True(Assert.Single(result.Rows, r => r.SampleId == underReview.Id).Assigned);
+        Assert.Equal(singleVoidedRefusal, voidedRow.RefusedReason);
+
+        var underReviewRow = Assert.Single(result.Rows, r => r.SampleId == underReview.Id);
+        Assert.False(underReviewRow.Assigned);
+        Assert.Equal(singleUnderReviewRefusal, underReviewRow.RefusedReason);
+        Assert.Equal("Tests with a result cannot be reassigned.", underReviewRow.RefusedReason);
 
         Assert.Null((await PersistedAsync(voidedOrder.Id)).AssignedAnalystId);
         Assert.Empty(await AuditAsync(voidedOrder.Id));
-        Assert.Equal(analyst.Id, (await PersistedAsync(underReviewOrder.Id)).AssignedAnalystId);
-        Assert.Equal(analyst.Id, (await PersistedAsync(underReviewSingleOrder.Id)).AssignedAnalystId);
-        var audit = Assert.Single(await AuditAsync(underReviewOrder.Id));
-        Assert.Equal(head.Id, audit.UserId);
-        Assert.Equal("AssignedAnalyst", audit.Action);
+        Assert.Null((await PersistedAsync(underReviewOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(underReviewOrder.Id));
+        Assert.Null((await PersistedAsync(underReviewSingleOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(underReviewSingleOrder.Id));
     }
 
     [PostgresFact]
@@ -615,5 +624,240 @@ public class SampleBulkAssignPostgresTests
 
         Assert.Null((await PersistedAsync(o1.Id)).AssignedAnalystId);
         Assert.Empty(await AuditAsync(o1.Id));
+    }
+
+    private static SampleAssignmentService BuildSingleService(MicroLimsDbContext db)
+    {
+        var clock = new FixedTimeProvider(new DateTimeOffset(Now));
+        var scope = new UserSectionScopeService(db);
+        return new SampleAssignmentService(db, new TestingWorkspaceService(db, scope, clock), scope, clock);
+    }
+
+    [PostgresFact]
+    public async Task SingleWholeSampleAssign_WithResult_Refused_AndSkipsTestsWithResultWhenOthersOpen()
+    {
+        User head, originalAnalyst, otherAnalyst;
+        Sample readySample, resultRowSample, mixedSample;
+        TestOrder readyOrder, resultRowOrder, mixedOpenOrder, mixedDoneOrder;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            head = await NewUserAsync(arrangeDb, "head", RoleType.SectionHead, w.Micro);
+            originalAnalyst = await NewUserAsync(arrangeDb, "orig", RoleType.Analyst, w.Micro);
+            otherAnalyst = await NewUserAsync(arrangeDb, "other", RoleType.Analyst, w.Micro);
+
+            (readySample, readyOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, assignedTo: originalAnalyst.Id, status: ApprovalStatus.ResultEntered);
+            readyOrder.CurrentStep = WorkflowStep.Ready;
+
+            (resultRowSample, resultRowOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, assignedTo: originalAnalyst.Id, status: ApprovalStatus.InProgress);
+            arrangeDb.Results.Add(new Result
+            {
+                TestOrderId = resultRowOrder.Id,
+                RawValue = "12",
+                InterpretedValue = "12 CFU/g",
+                Type = ResultType.Numeric,
+                EnteredByUserId = originalAnalyst.Id,
+                EnteredAt = Now.AddMinutes(-15)
+            });
+
+            (mixedSample, mixedOpenOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, status: ApprovalStatus.Pending);
+            (_, mixedDoneOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, assignedTo: originalAnalyst.Id, status: ApprovalStatus.ResultEntered, existingSample: mixedSample);
+            mixedDoneOrder.CurrentStep = WorkflowStep.Ready;
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildSingleService(actDb);
+
+            var readyEx = await Assert.ThrowsAsync<BusinessRuleException>(
+                () => svc.AssignAnalystAsync(readySample.Id, otherAnalyst.Id, head.Id, "Late swap"));
+            Assert.Equal("Tests with a result cannot be reassigned.", readyEx.Message);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, readyEx.Code);
+
+            var unassignEx = await Assert.ThrowsAsync<BusinessRuleException>(
+                () => svc.AssignAnalystAsync(readySample.Id, null, head.Id, "Late unassign"));
+            Assert.Equal("Tests with a result cannot be reassigned.", unassignEx.Message);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, unassignEx.Code);
+
+            var rowEx = await Assert.ThrowsAsync<BusinessRuleException>(
+                () => svc.AssignAnalystAsync(resultRowSample.Id, otherAnalyst.Id, head.Id, "Row present"));
+            Assert.Equal("Tests with a result cannot be reassigned.", rowEx.Message);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, rowEx.Code);
+
+            await svc.AssignAnalystAsync(mixedSample.Id, otherAnalyst.Id, head.Id, "Assign remaining");
+        }
+
+        Assert.Equal(originalAnalyst.Id, (await PersistedAsync(readyOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(readyOrder.Id));
+
+        Assert.Equal(originalAnalyst.Id, (await PersistedAsync(resultRowOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(resultRowOrder.Id));
+
+        Assert.Equal(otherAnalyst.Id, (await PersistedAsync(mixedOpenOrder.Id)).AssignedAnalystId);
+        var mixedAudit = Assert.Single(await AuditAsync(mixedOpenOrder.Id));
+        Assert.Equal("AssignedAnalyst", mixedAudit.Action);
+        Assert.Equal(head.Id, mixedAudit.UserId);
+
+        Assert.Equal(originalAnalyst.Id, (await PersistedAsync(mixedDoneOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(mixedDoneOrder.Id));
+    }
+
+    [PostgresFact]
+    public async Task PerTestAssign_WithResult_Refused_NothingPersistedNoAudit()
+    {
+        User head, originalAnalyst, otherAnalyst;
+        Sample sample;
+        TestOrder openOrder, resultOrder;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            head = await NewUserAsync(arrangeDb, "head", RoleType.SectionHead, w.Micro);
+            originalAnalyst = await NewUserAsync(arrangeDb, "orig", RoleType.Analyst, w.Micro);
+            otherAnalyst = await NewUserAsync(arrangeDb, "other", RoleType.Analyst, w.Micro);
+
+            (sample, openOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.Pending);
+            (_, resultOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, assignedTo: originalAnalyst.Id, status: ApprovalStatus.ResultEntered, existingSample: sample);
+            resultOrder.CurrentStep = WorkflowStep.Ready;
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var svc = BuildSingleService(actDb);
+
+            // Reassigning the test with a result is refused.
+            var reassignEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.AssignTestsAsync(sample.Id, new[]
+                {
+                    new TestAnalystAssignment(openOrder.Id, otherAnalyst.Id),
+                    new TestAnalystAssignment(resultOrder.Id, otherAnalyst.Id)
+                }, head.Id, "Late swap"));
+            Assert.Equal("Tests with a result cannot be reassigned.", reassignEx.Message);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, reassignEx.Code);
+
+            // Unassigning the test with a result is also refused.
+            var unassignEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                svc.AssignTestsAsync(sample.Id, new[]
+                {
+                    new TestAnalystAssignment(resultOrder.Id, null)
+                }, head.Id, "Late clear"));
+            Assert.Equal("Tests with a result cannot be reassigned.", unassignEx.Message);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, unassignEx.Code);
+        }
+
+        Assert.Null((await PersistedAsync(openOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(openOrder.Id));
+        Assert.Equal(originalAnalyst.Id, (await PersistedAsync(resultOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(resultOrder.Id));
+    }
+
+    [PostgresFact]
+    public async Task BulkAssign_WithResultRow_Refused_NothingPersistedNoAudit()
+    {
+        User head, originalAnalyst, otherAnalyst;
+        Sample validSample, withResultSample;
+        TestOrder validOrder, withResultOrder;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            head = await NewUserAsync(arrangeDb, "head", RoleType.SectionHead, w.Micro);
+            originalAnalyst = await NewUserAsync(arrangeDb, "orig", RoleType.Analyst, w.Micro);
+            otherAnalyst = await NewUserAsync(arrangeDb, "other", RoleType.Analyst, w.Micro);
+
+            (validSample, validOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.InProgress);
+            (withResultSample, withResultOrder) = await NewSampleWithTestAsync(
+                arrangeDb, w, w.Micro, assignedTo: originalAnalyst.Id, status: ApprovalStatus.InProgress);
+            arrangeDb.Results.Add(new Result
+            {
+                TestOrderId = withResultOrder.Id,
+                RawValue = "5",
+                InterpretedValue = "5 CFU/g",
+                Type = ResultType.Numeric,
+                EnteredByUserId = originalAnalyst.Id,
+                EnteredAt = Now.AddMinutes(-5)
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        BulkAssignResult result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            result = await BuildBulkService(actDb).AssignAsync(
+                new BulkAssignRequest(new[] { validSample.Id, withResultSample.Id }, otherAnalyst.Id, "Bulk shift"),
+                head.Id);
+        }
+
+        Assert.Equal(1, result.AssignedCount);
+        Assert.Equal(1, result.RefusedCount);
+
+        var okRow = Assert.Single(result.Rows, r => r.SampleId == validSample.Id);
+        Assert.True(okRow.Assigned);
+        Assert.Null(okRow.RefusedReason);
+
+        var refusedRow = Assert.Single(result.Rows, r => r.SampleId == withResultSample.Id);
+        Assert.False(refusedRow.Assigned);
+        Assert.Equal("Tests with a result cannot be reassigned.", refusedRow.RefusedReason);
+
+        Assert.Equal(otherAnalyst.Id, (await PersistedAsync(validOrder.Id)).AssignedAnalystId);
+        Assert.Single(await AuditAsync(validOrder.Id));
+
+        Assert.Equal(originalAnalyst.Id, (await PersistedAsync(withResultOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(withResultOrder.Id));
+    }
+
+    [PostgresFact]
+    public async Task AssignBeforeResult_SinglePerTestAndBulk_SucceedsWithAuditRow()
+    {
+        User head, analyst1, analyst2;
+        Sample singleSample, perTestSample, bulkSample;
+        TestOrder singleOrder, perTestOrder, bulkOrder;
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            head = await NewUserAsync(arrangeDb, "head", RoleType.SectionHead, w.Micro);
+            analyst1 = await NewUserAsync(arrangeDb, "a1", RoleType.Analyst, w.Micro);
+            analyst2 = await NewUserAsync(arrangeDb, "a2", RoleType.Analyst, w.Micro);
+
+            (singleSample, singleOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.Pending);
+            (perTestSample, perTestOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, assignedTo: analyst1.Id, status: ApprovalStatus.InProgress);
+            perTestOrder.CurrentStep = WorkflowStep.Incubating;
+            (bulkSample, bulkOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.InProgress);
+            bulkOrder.CurrentStep = WorkflowStep.Running;
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var single = BuildSingleService(actDb);
+            await single.AssignAnalystAsync(singleSample.Id, analyst1.Id, head.Id, "Initial");
+            await single.AssignTestsAsync(perTestSample.Id, new[] { new TestAnalystAssignment(perTestOrder.Id, analyst2.Id) }, head.Id, "Before result");
+            var bulkResult = await BuildBulkService(actDb).AssignAsync(
+                new BulkAssignRequest(new[] { bulkSample.Id }, analyst2.Id, "Bulk before result"),
+                head.Id);
+            Assert.Equal(1, bulkResult.AssignedCount);
+            Assert.Equal(0, bulkResult.RefusedCount);
+        }
+
+        Assert.Equal(analyst1.Id, (await PersistedAsync(singleOrder.Id)).AssignedAnalystId);
+        var singleAudit = Assert.Single(await AuditAsync(singleOrder.Id));
+        Assert.Equal("AssignedAnalyst", singleAudit.Action);
+        Assert.Equal($"{singleOrder.TestCode}: {analyst1.FullName} | Reason: Initial", singleAudit.NewValue);
+
+        Assert.Equal(analyst2.Id, (await PersistedAsync(perTestOrder.Id)).AssignedAnalystId);
+        var perTestAudit = Assert.Single(await AuditAsync(perTestOrder.Id));
+        Assert.Equal("ReassignedAnalyst", perTestAudit.Action);
+        Assert.Equal($"{perTestOrder.TestCode}: {analyst1.FullName}", perTestAudit.PreviousValue);
+        Assert.Equal($"{perTestOrder.TestCode}: {analyst2.FullName} | Reason: Before result", perTestAudit.NewValue);
+
+        Assert.Equal(analyst2.Id, (await PersistedAsync(bulkOrder.Id)).AssignedAnalystId);
+        var bulkAudit = Assert.Single(await AuditAsync(bulkOrder.Id));
+        Assert.Equal("AssignedAnalyst", bulkAudit.Action);
+        Assert.Equal($"{bulkOrder.TestCode}: {analyst2.FullName} | Reason: Bulk before result", bulkAudit.NewValue);
     }
 }

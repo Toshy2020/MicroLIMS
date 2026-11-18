@@ -735,6 +735,13 @@ internal sealed class ActionGuardScenarios
             await AddSectionAsync(seed, second, ApprovalStatus.Pending, WorkflowStep.Waiting);
             return new Arranged(new Target(head.Id, seed.Sample.Id), "This sample has no open tests you can assign.");
         }),
+        Rule("every test in the section has a result", async () =>
+        {
+            var section = await SectionAsync();
+            var head = await HeadAsync(section);
+            var seed = await UnderReviewAsync(section);
+            return new Arranged(new Target(head.Id, seed.Sample.Id), "Tests with a result cannot be reassigned.");
+        }),
     };
 
     public IReadOnlyList<Refusal> TakeRefusals() => new[]

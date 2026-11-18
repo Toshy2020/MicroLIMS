@@ -33,8 +33,8 @@ interface AssignAnalystDialogProps {
 
 export const UNASSIGNED = "unassigned";
 
-// Mirrors SampleAssignmentService's closed statuses: these tests keep their analyst.
-const CLOSED_STATUSES = ["Approved", "Rejected", "Voided", "Cancelled"];
+// Mirrors SampleAssignmentService's non-assignable statuses: these tests keep their analyst.
+const LOCKED_STATUSES = ["ResultEntered", "Reviewed", "Approved", "Rejected", "Voided", "Cancelled", "RetestRequested"];
 
 const valueOf = (analystId: number | null) => (analystId == null ? UNASSIGNED : String(analystId));
 
@@ -233,7 +233,7 @@ export function AssignAnalystDialog({
             <Typography sx={{ fontSize: 13, color: "text.secondary" }} noWrap>
               {t.assignedAnalystName ?? "Unassigned"}
             </Typography>
-            <Chip size="small" label={CLOSED_STATUSES.includes(t.status) ? t.status : "Not your laboratory"} />
+            <Chip size="small" label={LOCKED_STATUSES.includes(t.status) ? t.status : "Not your laboratory"} />
           </Box>
         )}
       </Box>

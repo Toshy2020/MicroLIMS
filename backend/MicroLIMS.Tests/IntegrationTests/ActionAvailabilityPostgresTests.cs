@@ -14,6 +14,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -512,5 +513,50 @@ public class ActionAvailabilityPostgresTests
         Assert.True(Assert.Single(listed, a => a.Action == GatedActions.ApprovalApprove).Allowed);
         await _scenarios.ApproveAsync(target);
         await Case(GatedActions.ApprovalApprove).AssertDone(target);
+    }
+
+    [PostgresFact]
+    public async Task SampleAssign_WhenTestsHaveResult_ReportsRefusedWithSentenceAndCode()
+    {
+        var section = await _scenarios.SectionAsync();
+        var head = await _scenarios.HeadAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+
+        var underReview = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        var withResultRow = await _scenarios.InTestingAsync(section, orderStatus: ApprovalStatus.InProgress, step: WorkflowStep.Incubating, analystId: analyst.Id);
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            arrangeDb.Results.Add(new Result
+            {
+                TestOrderId = withResultRow.Orders[0].Id,
+                RawValue = "10",
+                InterpretedValue = "10 CFU/g",
+                Type = ResultType.Numeric,
+                EnteredByUserId = analyst.Id,
+                EnteredAt = ActionGuardScenarios.Now.AddMinutes(-10)
+            });
+            await arrangeDb.SaveChangesAsync();
+        }
+
+        var mixed = await _scenarios.InTestingAsync(section, orderStatus: ApprovalStatus.Pending, step: WorkflowStep.Waiting);
+        await _scenarios.AddSectionAsync(mixed, section, ApprovalStatus.ResultEntered, WorkflowStep.Ready, analystId: analyst.Id);
+
+        foreach (var sampleId in new[] { underReview.Sample.Id, withResultRow.Sample.Id })
+        {
+            var ok = Assert.IsType<OkObjectResult>(await GetAsync("sample", sampleId, head.Id));
+            var body = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(ok.Value);
+            Assert.NotNull(body.Data);
+            var assign = Assert.Single(body.Data, a => a.Action == GatedActions.SampleAssign);
+            Assert.False(assign.Allowed);
+            Assert.Equal("Tests with a result cannot be reassigned.", assign.Reason);
+            Assert.Equal(MessageCodes.SampleCannotReassignWithResult, assign.ReasonCode);
+        }
+
+        var mixedOk = Assert.IsType<OkObjectResult>(await GetAsync("sample", mixed.Sample.Id, head.Id));
+        var mixedBody = Assert.IsType<ApiResponse<IReadOnlyList<ActionAvailability>>>(mixedOk.Value);
+        Assert.NotNull(mixedBody.Data);
+        var mixedAssign = Assert.Single(mixedBody.Data, a => a.Action == GatedActions.SampleAssign);
+        Assert.True(mixedAssign.Allowed);
+        Assert.Null(mixedAssign.Reason);
     }
 }

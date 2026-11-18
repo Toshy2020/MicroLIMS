@@ -18,10 +18,15 @@ import { monospaceFontFamily } from "../../theme/palette";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithZone, formatReviewScope } from "./formatAuditDate";
 import { StartReviewDialog } from "./StartReviewDialog";
+import { i18n, useTranslation } from "../../i18n";
+
+const tl = (key: string): string => i18n.t(key, { ns: "auditReview" });
+
 
 const PAGE_SIZE = 25;
 
 export function AuditTrailReviewsPage() {
+  const { t } = useTranslation("auditReview");
   const navigate = useNavigate();
   const { permissions } = useAuth();
   const canReview = permissions.includes(PERMISSIONS.AUDIT_REVIEW);
@@ -33,7 +38,7 @@ export function AuditTrailReviewsPage() {
   const [reloadTick, setReloadTick] = useState(0);
   const [startOpen, setStartOpen] = useState(false);
 
-  const reload = useCallback(() => setReloadTick((t) => t + 1), []);
+  const reload = useCallback(() => setReloadTick((n) => n + 1), []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,7 +52,7 @@ export function AuditTrailReviewsPage() {
       })
       .catch((err: unknown) => {
         if (axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError")) return;
-        const msg = serverMessage(err) ?? getErrorMessage(err, "Could not load audit trail reviews.");
+        const msg = serverMessage(err) ?? getErrorMessage(err, tl("list.loadError"));
         setLoadError(msg);
         toast.error(msg);
       })
@@ -60,7 +65,7 @@ export function AuditTrailReviewsPage() {
 
   const handleStart = async (request: StartAuditTrailReviewRequest) => {
     const created = await auditTrailReviewService.start(request);
-    toast.success("Audit trail review started.");
+    toast.success(t("list.started"));
     setStartOpen(false);
     navigate(`/audit-trail-reviews/${created.id}`);
   };
@@ -68,7 +73,7 @@ export function AuditTrailReviewsPage() {
   const columns: RegisterColumn<AuditTrailReviewListItemDto>[] = [
     {
       key: "title",
-      label: "Title",
+      label: t("list.title_col"),
       sortable: true,
       render: (row) => (
         <Box sx={{ minWidth: 0 }}>
@@ -95,16 +100,16 @@ export function AuditTrailReviewsPage() {
             color="text.secondary"
             sx={{ fontFamily: monospaceFontFamily, fontVariantNumeric: "tabular-nums" }}
           >
-            ATR-{row.id} · Cut-off #{row.cutoffAuditLogId}
+            {t("list.cutoff", { id: row.id, cutoff: row.cutoffAuditLogId })}
           </Typography>
         </Box>
       )
     },
     {
       key: "scopeKind",
-      label: "Scope",
+      label: t("common.scope"),
       render: (row) => {
-        const text = formatReviewScope(row.scopeKind, row.scopeEntityName, row.scopeRecordId);
+        const text = formatReviewScope(row.scopeKind, row.scopeEntityName, row.scopeRecordId, t);
         return (
           <Tooltip title={text}>
             <Typography
@@ -125,20 +130,20 @@ export function AuditTrailReviewsPage() {
     },
     {
       key: "periodFromUtc",
-      label: "Period",
+      label: t("common.period"),
       sortable: true,
       render: (row) => (
         <Box sx={{ fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
           <Typography variant="body2">{formatDateTimeWithZone(row.periodFromUtc)}</Typography>
           <Typography variant="caption" color="text.secondary">
-            to {formatDateTimeWithZone(row.periodToUtc)}
+            {t("list.periodTo", { time: formatDateTimeWithZone(row.periodToUtc) })}
           </Typography>
         </Box>
       )
     },
     {
       key: "entryCount",
-      label: "Entries",
+      label: t("list.entries"),
       numeric: true,
       sortable: true,
       render: (row) => (
@@ -148,7 +153,7 @@ export function AuditTrailReviewsPage() {
           </Typography>
           {row.newerEntriesCount > 0 && (
             <Typography variant="caption" color="text.secondary">
-              +{row.newerEntriesCount} newer
+              {t("list.newer", { n: row.newerEntriesCount })}
             </Typography>
           )}
         </Box>
@@ -156,18 +161,18 @@ export function AuditTrailReviewsPage() {
     },
     {
       key: "findingCount",
-      label: "Findings",
+      label: t("common.findings"),
       numeric: true,
       sortable: true,
       render: (row) => (
         <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
-          {row.findingCount} ({row.openFindingCount} open)
+          {t("list.findingsOpen", { n: row.findingCount, open: row.openFindingCount })}
         </Typography>
       )
     },
     {
       key: "status",
-      label: "Status",
+      label: t("common.status"),
       sortable: true,
       render: (row) => (
         <Stack direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap" }}>
@@ -178,14 +183,14 @@ export function AuditTrailReviewsPage() {
     },
     {
       key: "startedAtUtc",
-      label: "Started / Signed",
+      label: t("list.startedSigned"),
       sortable: true,
       render: (row) => (
         <Box sx={{ fontVariantNumeric: "tabular-nums" }}>
           <Typography variant="body2">
             {row.status === "Signed"
-              ? `${row.signerFullName ?? "Signer"} · ${formatDateTimeWithZone(row.signedAtUtc)}`
-              : `${row.startedByName ?? `User #${row.startedByUserId}`} · ${formatDateTimeWithZone(row.startedAtUtc)}`}
+              ? `${row.signerFullName ?? t("list.signerFallback")} · ${formatDateTimeWithZone(row.signedAtUtc)}`
+              : `${row.startedByName ?? t("common.userNum", { id: row.startedByUserId })} · ${formatDateTimeWithZone(row.startedAtUtc)}`}
           </Typography>
         </Box>
       )
@@ -196,12 +201,12 @@ export function AuditTrailReviewsPage() {
 
   return (
     <LabPage
-      title="Audit Trail Reviews"
-      subtitle="Periodic GMP audit trail reviews with fixed scope, findings tracking, and 21 CFR Part 11 electronic signature."
+      title={t("list.title")}
+      subtitle={t("list.subtitle")}
       actions={
         canReview ? (
           <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => setStartOpen(true)}>
-            Start review
+            {t("list.startReview")}
           </Button>
         ) : undefined
       }
@@ -218,13 +223,13 @@ export function AuditTrailReviewsPage() {
         pageSize={PAGE_SIZE}
         onRowClick={(r) => navigate(`/audit-trail-reviews/${r.id}`)}
         empty={{
-          title: "No audit trail reviews yet",
+          title: t("list.emptyTitle"),
           description: canReview
-            ? "Start a periodic audit trail review to lock a time window and scope for inspection."
-            : "No periodic audit trail reviews have been started yet.",
+            ? t("list.emptyReviewer")
+            : t("list.emptyViewer"),
           action: canReview ? (
             <Button variant="contained" onClick={() => setStartOpen(true)}>
-              Start review
+              {t("list.startReview")}
             </Button>
           ) : undefined
         }}
@@ -233,13 +238,13 @@ export function AuditTrailReviewsPage() {
       {!loading && hasServerPagination && (
         <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end", alignItems: "center" }}>
           <Button size="small" variant="outlined" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
-            Previous page
+            {t("list.previousPage")}
           </Button>
           <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            Page {page}
+            {t("list.page", { n: page })}
           </Typography>
           <Button size="small" variant="outlined" disabled={reviews.length < PAGE_SIZE} onClick={() => setPage((p) => p + 1)}>
-            Next page
+            {t("list.nextPage")}
           </Button>
         </Stack>
       )}

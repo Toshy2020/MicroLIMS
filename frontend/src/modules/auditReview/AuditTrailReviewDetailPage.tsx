@@ -29,11 +29,17 @@ import type { AuditLogItem } from "../auditSearch/types/auditTypes";
 import { FindingDialog } from "./FindingDialog";
 import { formatDateTimeWithZone, formatReviewScope } from "./formatAuditDate";
 import { useBreadcrumb } from "../../components/breadcrumbContext";
+import { i18n, useTranslation } from "../../i18n";
+
+const tl = (key: string): string => i18n.t(key, { ns: "auditReview" });
+
 
 const ENTRIES_PAGE_SIZE_OPTIONS = [25, 50, 100];
 const MAX_COMMENT_LENGTH = 2000;
 
 export function AuditTrailReviewDetailPage() {
+  const { t } = useTranslation("auditReview");
+  const tEn = i18n.getFixedT("en", "auditReview");
   const { id } = useParams<{ id: string }>();
   const reviewId = Number(id);
   const theme = useTheme();
@@ -43,7 +49,7 @@ export function AuditTrailReviewDetailPage() {
   const [review, setReview] = useState<AuditTrailReviewDto | null>(null);
   const [reviewLoading, setReviewLoading] = useState(true);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  useBreadcrumb(review?.title ?? (reviewError ? "Review unavailable" : null));
+  useBreadcrumb(review?.title ?? (reviewError ? t("detail.unavailable") : null));
 
   const [entries, setEntries] = useState<AuditLogItem[]>([]);
   const [entriesTotalCount, setEntriesTotalCount] = useState(0);
@@ -67,12 +73,12 @@ export function AuditTrailReviewDetailPage() {
   const [conclusion, setConclusion] = useState("");
   const [exportingPdf, setExportingPdf] = useState(false);
 
-  const reloadReview = useCallback(() => setReloadReviewTick((t) => t + 1), []);
-  const reloadEntries = useCallback(() => setReloadEntriesTick((t) => t + 1), []);
+  const reloadReview = useCallback(() => setReloadReviewTick((n) => n + 1), []);
+  const reloadEntries = useCallback(() => setReloadEntriesTick((n) => n + 1), []);
 
   useEffect(() => {
     if (!Number.isFinite(reviewId) || reviewId <= 0) {
-      setReviewError("Invalid audit trail review identifier.");
+      setReviewError(tl("detail.invalidId"));
       setReviewLoading(false);
       return;
     }
@@ -88,7 +94,7 @@ export function AuditTrailReviewDetailPage() {
       })
       .catch((err: unknown) => {
         if (axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError")) return;
-        const msg = serverMessage(err) ?? getErrorMessage(err, "Could not load the audit trail review.");
+        const msg = serverMessage(err) ?? getErrorMessage(err, tl("detail.loadError"));
         setReviewError(msg);
         toast.error(msg);
       })
@@ -117,7 +123,7 @@ export function AuditTrailReviewDetailPage() {
       })
       .catch((err: unknown) => {
         if (axios.isCancel(err) || (err instanceof DOMException && err.name === "AbortError")) return;
-        const msg = serverMessage(err) ?? getErrorMessage(err, "Could not load audit trail entries.");
+        const msg = serverMessage(err) ?? getErrorMessage(err, tl("detail.entriesError"));
         setEntriesError(msg);
         toast.error(msg);
       })
@@ -146,8 +152,8 @@ export function AuditTrailReviewDetailPage() {
       auditLogId: findingEntry.id,
       note
     });
-    toast.success("Finding recorded.");
-    setStatusMessage(`Finding recorded for audit entry #${findingEntry.id}.`);
+    toast.success(t("common.findingRecorded"));
+    setStatusMessage(t("detail.findingStatus", { id: findingEntry.id }));
     setFindingEntry(null);
     reloadReview();
   };
@@ -157,24 +163,24 @@ export function AuditTrailReviewDetailPage() {
     setCloseSubmitError(null);
     const trimmed = closeComment.trim();
     if (!trimmed) {
-      setCloseFieldError("Closing comment is required.");
+      setCloseFieldError(t("detail.closeCommentRequired"));
       return;
     }
     if (trimmed.length > MAX_COMMENT_LENGTH) {
-      setCloseFieldError(`Closing comment must be ${MAX_COMMENT_LENGTH} characters or fewer.`);
+      setCloseFieldError(t("detail.closeCommentTooLong", { max: MAX_COMMENT_LENGTH }));
       return;
     }
     setCloseFieldError(null);
     setClosingSubmitting(true);
     try {
       await auditTrailReviewService.closeFinding(closingFinding.id, { comment: trimmed });
-      toast.success("Finding closed.");
-      setStatusMessage(`Finding #${closingFinding.id} closed.`);
+      toast.success(t("detail.findingClosed"));
+      setStatusMessage(t("detail.findingClosedStatus", { id: closingFinding.id }));
       setClosingFinding(null);
       setCloseComment("");
       reloadReview();
     } catch (err: unknown) {
-      setCloseSubmitError(serverMessage(err) ?? getErrorMessage(err, "Could not close the finding."));
+      setCloseSubmitError(serverMessage(err) ?? getErrorMessage(err, t("detail.closeError")));
     } finally {
       setClosingSubmitting(false);
     }
@@ -184,7 +190,7 @@ export function AuditTrailReviewDetailPage() {
     if (!review) return;
     const trimmedConclusion = conclusion.trim();
     if (trimmedConclusion.length > MAX_COMMENT_LENGTH) {
-      throw { response: { data: { message: `Conclusion must be ${MAX_COMMENT_LENGTH} characters or fewer.` } } };
+      throw { response: { data: { message: t("detail.conclusionTooLong", { max: MAX_COMMENT_LENGTH }) } } };
     }
     const signed = await auditTrailReviewService.sign(
       review.id,
@@ -194,8 +200,8 @@ export function AuditTrailReviewDetailPage() {
     setReview(signed);
     setSigningOpen(false);
     setConclusion("");
-    toast.success("Audit trail review signed.");
-    setStatusMessage("Audit trail review signed.");
+    toast.success(t("detail.signed"));
+    setStatusMessage(t("detail.signed"));
   };
 
   const handleExportPdf = async () => {
@@ -204,7 +210,7 @@ export function AuditTrailReviewDetailPage() {
     try {
       await auditTrailReviewService.exportPdf(review.id);
     } catch (err: unknown) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not export the audit trail review PDF."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("detail.exportError")));
     } finally {
       setExportingPdf(false);
     }
@@ -213,7 +219,7 @@ export function AuditTrailReviewDetailPage() {
   const entryColumns: RegisterColumn<AuditLogItem>[] = [
     {
       key: "id",
-      label: "Entry ID",
+      label: t("common.entryId"),
       numeric: true,
       nowrap: true,
       render: (row) => (
@@ -224,7 +230,7 @@ export function AuditTrailReviewDetailPage() {
     },
     {
       key: "timestamp",
-      label: "Timestamp",
+      label: t("detail.timestamp"),
       nowrap: true,
       render: (row) => (
         <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
@@ -234,7 +240,7 @@ export function AuditTrailReviewDetailPage() {
     },
     {
       key: "userName",
-      label: "User",
+      label: t("detail.user"),
       render: (row) => (
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>{row.userName}</Typography>
@@ -248,7 +254,7 @@ export function AuditTrailReviewDetailPage() {
     },
     {
       key: "entityName",
-      label: "Record",
+      label: t("detail.record"),
       render: (row) => (
         <Box>
           <Typography variant="body2">{row.entityName}</Typography>
@@ -260,12 +266,12 @@ export function AuditTrailReviewDetailPage() {
     },
     {
       key: "action",
-      label: "Action",
+      label: t("detail.action"),
       nowrap: true
     },
     {
       key: "reason",
-      label: "Reason",
+      label: t("detail.reason"),
       render: (row) => {
         const text = row.reason ?? "—";
         return (
@@ -282,7 +288,7 @@ export function AuditTrailReviewDetailPage() {
     },
     {
       key: "finding",
-      label: "Finding",
+      label: t("detail.finding"),
       render: (row) => {
         const existing = findingsByAuditLogId.get(row.id);
         return existing ? <StatusBadge status={existing.status} /> : "—";
@@ -292,7 +298,7 @@ export function AuditTrailReviewDetailPage() {
       ? [
           {
             key: "actions",
-            label: "Actions",
+            label: t("common.actions"),
             align: "right" as const,
             render: (row: AuditLogItem) => {
               const alreadyMarked = findingsByAuditLogId.has(row.id);
@@ -301,10 +307,10 @@ export function AuditTrailReviewDetailPage() {
                   size="small"
                   variant="outlined"
                   disabled={alreadyMarked}
-                  aria-label={`Mark audit entry ${row.id} as finding`}
+                  aria-label={t("detail.markFindingAria", { id: row.id })}
                   onClick={() => setFindingEntry(row)}
                 >
-                  Mark as finding
+                  {t("detail.markFinding")}
                 </Button>
               );
             }
@@ -317,10 +323,10 @@ export function AuditTrailReviewDetailPage() {
 
   return (
     <LabPage
-      title={review ? review.title : "Audit Trail Review"}
+      title={review ? review.title : t("detail.title")}
       subtitle={
         review
-          ? `Started by ${review.startedByName ?? `User #${review.startedByUserId}`} on ${formatDateTimeWithZone(review.startedAtUtc)}`
+          ? t("detail.startedBy", { name: review.startedByName ?? t("common.userNum", { id: review.startedByUserId }), time: formatDateTimeWithZone(review.startedAtUtc) })
           : undefined
       }
       actions={
@@ -331,7 +337,7 @@ export function AuditTrailReviewDetailPage() {
             variant="outlined"
             startIcon={<ArrowBackOutlinedIcon />}
           >
-            All reviews
+            {t("detail.allReviews")}
           </Button>
           {review && (
             <Button
@@ -340,7 +346,7 @@ export function AuditTrailReviewDetailPage() {
               disabled={exportingPdf}
               onClick={() => void handleExportPdf()}
             >
-              {exportingPdf ? "Exporting..." : "Export PDF"}
+              {exportingPdf ? t("detail.exporting") : t("detail.exportPdf")}
             </Button>
           )}
           {canSign && (
@@ -349,7 +355,7 @@ export function AuditTrailReviewDetailPage() {
               startIcon={<VerifiedUserOutlinedIcon />}
               onClick={() => setSigningOpen(true)}
             >
-              Sign review
+              {t("detail.signReview")}
             </Button>
           )}
         </Stack>
@@ -394,7 +400,7 @@ export function AuditTrailReviewDetailPage() {
               }}
             >
               <Box>
-                <Typography variant="caption" color="text.secondary">Scope</Typography>
+                <Typography variant="caption" color="text.secondary">{t("common.scope")}</Typography>
                 <Typography
                   variant="body2"
                   sx={{
@@ -402,17 +408,17 @@ export function AuditTrailReviewDetailPage() {
                     fontFamily: review.scopeKind === "All" ? undefined : monospaceFontFamily
                   }}
                 >
-                  {formatReviewScope(review.scopeKind, review.scopeEntityName, review.scopeRecordId)}
+                  {formatReviewScope(review.scopeKind, review.scopeEntityName, review.scopeRecordId, t)}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Period</Typography>
+                <Typography variant="caption" color="text.secondary">{t("common.period")}</Typography>
                 <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
                   {formatDateTimeWithZone(review.periodFromUtc)} – {formatDateTimeWithZone(review.periodToUtc)}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Cut-off audit ID</Typography>
+                <Typography variant="caption" color="text.secondary">{t("detail.cutoffId")}</Typography>
                 <Typography
                   variant="body2"
                   sx={{ fontWeight: 600, fontFamily: monospaceFontFamily, fontVariantNumeric: "tabular-nums" }}
@@ -421,7 +427,7 @@ export function AuditTrailReviewDetailPage() {
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Entries in scope</Typography>
+                <Typography variant="caption" color="text.secondary">{t("detail.entriesInScope")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                   {review.entryCount}
                 </Typography>
@@ -439,13 +445,13 @@ export function AuditTrailReviewDetailPage() {
                   border: `1px solid ${theme.custom.status.info.border}`
                 }}
               >
-                {review.newerEntriesCount} newer entries exist after this review&apos;s cut-off
+                {t("detail.newerEntries", { n: review.newerEntriesCount })}
               </Alert>
             )}
 
             {canReview && !isSigned && !isStarter && (
               <Alert severity="info" sx={{ mt: 2 }}>
-                Only the user who started this review ({review.startedByName ?? `User #${review.startedByUserId}`}) may sign it.
+                {t("detail.onlyStarter", { name: review.startedByName ?? t("common.userNum", { id: review.startedByUserId }) })}
               </Alert>
             )}
           </Paper>
@@ -461,7 +467,7 @@ export function AuditTrailReviewDetailPage() {
               }}
             >
               <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 700, mb: 1 }}>
-                Electronic Signature
+                {t("detail.eSignature")}
               </Typography>
               <Box
                 sx={{
@@ -472,34 +478,34 @@ export function AuditTrailReviewDetailPage() {
                 }}
               >
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Signed by</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("detail.signedBy")}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {review.signerFullName ?? "—"}
                     {review.signerUsername ? ` (${review.signerUsername})` : ""}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Signed at</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("detail.signedAt")}</Typography>
                   <Typography variant="body2" sx={{ fontVariantNumeric: "tabular-nums" }}>
                     {formatDateTimeWithZone(review.signedAtUtc)}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="caption" color="text.secondary">Meaning</Typography>
+                  <Typography variant="caption" color="text.secondary">{t("detail.meaning")}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600 }}>
                     {review.signatureMeaningText ?? "—"}
                   </Typography>
                 </Box>
               </Box>
               <Box>
-                <Typography variant="caption" color="text.secondary">Conclusion</Typography>
+                <Typography variant="caption" color="text.secondary">{t("common.conclusion")}</Typography>
                 <Typography variant="body2">{review.conclusion ?? "—"}</Typography>
               </Box>
             </Paper>
           )}
 
           <Box>
-            <SectionTitle>Audit Entries in Scope</SectionTitle>
+            <SectionTitle>{t("detail.entriesHeading")}</SectionTitle>
             {entriesError && <LoadErrorAlert message={entriesError} onRetry={reloadEntries} sx={{ mb: 1.5 }} />}
             <RegisterTable
               columns={entryColumns}
@@ -508,8 +514,8 @@ export function AuditTrailReviewDetailPage() {
               loading={entriesLoading}
               pageSize={25}
               empty={{
-                title: "No audit entries in this review scope",
-                description: "No audit log rows match the fixed period, scope, and cut-off ID."
+                title: t("detail.noEntriesTitle"),
+                description: t("detail.noEntriesDescription")
               }}
             />
             {!entriesLoading && showServerPagination && (
@@ -529,30 +535,30 @@ export function AuditTrailReviewDetailPage() {
           </Box>
 
           <Box>
-            <SectionTitle>Findings</SectionTitle>
+            <SectionTitle>{t("common.findings")}</SectionTitle>
             {review.findings.length === 0 ? (
               <Paper variant="outlined" sx={{ borderRadius: 2 }}>
                 <EmptyState
-                  title="No findings recorded"
+                  title={t("detail.noFindingsTitle")}
                   description={
                     isSigned
-                      ? "This review was signed with no findings recorded."
-                      : "No findings have been recorded for this review yet."
+                      ? t("detail.noFindingsSigned")
+                      : t("detail.noFindingsYet")
                   }
                 />
               </Paper>
             ) : (
               <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
                 <TableContainer>
-                  <Table size="small" aria-label="Audit trail review findings">
+                  <Table size="small" aria-label={t("detail.findingsTable")}>
                     <TableHead>
                       <TableRow sx={tableHeadSx(theme)}>
-                        <TableCell>Entry ID</TableCell>
-                        <TableCell>Note</TableCell>
-                        <TableCell>Recorded by</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Closure</TableCell>
-                        {canReview && !isSigned && <TableCell align="right">Actions</TableCell>}
+                        <TableCell>{t("common.entryId")}</TableCell>
+                        <TableCell>{t("detail.note")}</TableCell>
+                        <TableCell>{t("detail.recordedBy")}</TableCell>
+                        <TableCell>{t("common.status")}</TableCell>
+                        <TableCell>{t("detail.closure")}</TableCell>
+                        {canReview && !isSigned && <TableCell align="right">{t("common.actions")}</TableCell>}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -569,7 +575,7 @@ export function AuditTrailReviewDetailPage() {
                             </Tooltip>
                           </TableCell>
                           <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                            <Typography variant="body2">{f.recordedByName ?? `User #${f.recordedByUserId}`}</Typography>
+                            <Typography variant="body2">{f.recordedByName ?? t("common.userNum", { id: f.recordedByUserId })}</Typography>
                             <Typography variant="caption" color="text.secondary">
                               {formatDateTimeWithZone(f.recordedAtUtc)}
                             </Typography>
@@ -582,7 +588,7 @@ export function AuditTrailReviewDetailPage() {
                               <Box>
                                 <Typography variant="body2">{f.closedComment ?? "—"}</Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                  {f.closedByName ?? `User #${f.closedByUserId}`} · {formatDateTimeWithZone(f.closedAtUtc)}
+                                  {f.closedByName ?? t("common.userNum", { id: f.closedByUserId })} · {formatDateTimeWithZone(f.closedAtUtc)}
                                 </Typography>
                               </Box>
                             ) : (
@@ -595,7 +601,7 @@ export function AuditTrailReviewDetailPage() {
                                 <Button
                                   size="small"
                                   variant="outlined"
-                                  aria-label={`Close finding ${f.id}`}
+                                  aria-label={t("detail.closeFindingAria", { id: f.id })}
                                   onClick={() => {
                                     setClosingFinding(f);
                                     setCloseComment("");
@@ -603,7 +609,7 @@ export function AuditTrailReviewDetailPage() {
                                     setCloseSubmitError(null);
                                   }}
                                 >
-                                  Close finding
+                                  {t("detail.closeFinding")}
                                 </Button>
                               )}
                             </TableCell>
@@ -628,17 +634,17 @@ export function AuditTrailReviewDetailPage() {
 
       <FormDialog
         open={Boolean(closingFinding)}
-        title={`Close finding #${closingFinding?.id ?? ""}`}
+        title={t("detail.closeTitle", { id: closingFinding?.id ?? "" })}
         onClose={() => {
           if (!closingSubmitting) setClosingFinding(null);
         }}
         onSubmit={handleCloseFinding}
-        submitLabel="Close finding"
+        submitLabel={t("detail.closeFinding")}
         submitting={closingSubmitting}
         error={closeSubmitError}
       >
         <TextField
-          label="Closing comment"
+          label={t("detail.closingComment")}
           size="small"
           required
           multiline
@@ -657,9 +663,10 @@ export function AuditTrailReviewDetailPage() {
 
       <SignatureDialog
         open={signingOpen}
-        meaningStatement="I have reviewed the audit trail entries in scope and attest to the conclusion below."
+        meaningStatement={tEn("detail.signatureMeaning")}
+        meaningStatementTranslation={t("detail.signatureMeaning")}
         showComment
-        commentLabel="Conclusion"
+        commentLabel={t("common.conclusion")}
         commentRequired
         comment={conclusion}
         onCommentChange={setConclusion}

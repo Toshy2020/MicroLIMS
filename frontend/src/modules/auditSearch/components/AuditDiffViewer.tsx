@@ -2,6 +2,7 @@ import { Box, Typography, Chip, Tooltip, useTheme } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { computeAuditDiff } from "../utils/auditDiffUtils";
 import { clickable } from "../../../utils/clickable";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   action: string;
@@ -23,6 +24,7 @@ export function AuditDiffViewer({
   onViewAll
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("auditSearch");
   const changes = computeAuditDiff(action, previousValue, newValue, entityName);
 
   if (action === "Create") {
@@ -32,7 +34,7 @@ export function AuditDiffViewer({
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
             <Chip
-              label="CREATED"
+              label={t("diff.created")}
               size="small"
               sx={{
                 fontSize: 12,
@@ -45,7 +47,7 @@ export function AuditDiffViewer({
               }}
             />
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Initial record created
+              {t("diff.initialCreated")}
             </Typography>
           </Box>
           {displayProps && (
@@ -61,7 +63,7 @@ export function AuditDiffViewer({
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
           <Chip
-            label="NEW RECORD CREATED"
+            label={t("diff.newRecordCreated")}
             size="small"
             sx={{
               fontSize: 12,
@@ -93,7 +95,7 @@ export function AuditDiffViewer({
     return (
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Chip
-          label="DELETED"
+          label={t("diff.deleted")}
           size="small"
           sx={{
             fontSize: 12,
@@ -106,7 +108,7 @@ export function AuditDiffViewer({
           }}
         />
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Record permanently marked deleted
+          {t("diff.deletedNote")}
         </Typography>
       </Box>
     );
@@ -116,7 +118,7 @@ export function AuditDiffViewer({
   if (changes.length === 0) {
     return (
       <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-        No field value changes detected
+        {t("diff.noChanges")}
       </Typography>
     );
   }
@@ -177,7 +179,7 @@ export function AuditDiffViewer({
 
         {extraCount > 0 && (
           <Box sx={{ mt: 0.25 }}>
-            <Tooltip title="Click row to inspect all changed fields">
+            <Tooltip title={t("diff.clickRow")}>
               <Typography
                 component="span"
                 onClick={(e) => {
@@ -193,7 +195,7 @@ export function AuditDiffViewer({
                 }}
                 {...clickable(() => onViewAll?.())}
               >
-                +{extraCount} more changed {extraCount === 1 ? "field" : "fields"}
+                {t("diff.moreFields", { count: extraCount })}
               </Typography>
             </Tooltip>
           </Box>
@@ -221,14 +223,14 @@ export function AuditDiffViewer({
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.detected.bg, border: "1px solid", borderColor: theme.custom.status.detected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, fontWeight: 700 }}>PREVIOUS VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, fontWeight: 700 }}>{t("diff.previousValue")}</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, wordBreak: "break-word" }}>
                 {c.oldDisplay}
               </Typography>
             </Box>
             <ArrowForwardIcon sx={{ color: "text.secondary", fontSize: 16 }} />
             <Box sx={{ flex: 1, minWidth: 120, p: 1, bgcolor: theme.custom.status.notDetected.bg, border: "1px solid", borderColor: theme.custom.status.notDetected.border, borderRadius: 1 }}>
-              <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>NEW VALUE</Typography>
+              <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 700 }}>{t("diff.newValue")}</Typography>
               <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600, wordBreak: "break-word" }}>
                 {c.newDisplay}
               </Typography>

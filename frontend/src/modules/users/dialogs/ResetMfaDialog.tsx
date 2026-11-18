@@ -12,7 +12,10 @@ import {
   Typography
 } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { UserRecord, UserService } from "../services/UserService";
 
@@ -25,6 +28,8 @@ export interface ResetMfaDialogProps {
 
 /** Destructive confirmation dialog for resetting another user's second factor with mandatory reason. */
 export function ResetMfaDialog({ open, user, onClose, onReset }: ResetMfaDialogProps) {
+  const { t } = useTranslation("users");
+  const { t: tc } = useTranslation("common");
   const formId = useId();
   const messageId = useId();
   const [reason, setReason] = useState("");
@@ -45,11 +50,11 @@ export function ResetMfaDialog({ open, user, onClose, onReset }: ResetMfaDialogP
     setSubmitting(true);
     try {
       await UserService.resetMfa(user.id, trimmedReason);
-      toast.success(`Second factor reset for ${user.username}.`);
+      toast.success(t("resetMfa.success", { username: user.username }));
       onReset();
       onClose();
     } catch (err: unknown) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not reset the second factor."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("resetMfa.error")));
     } finally {
       setSubmitting(false);
     }
@@ -66,22 +71,21 @@ export function ResetMfaDialog({ open, user, onClose, onReset }: ResetMfaDialogP
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <WarningAmberRoundedIcon color="error" aria-hidden="true" />
-        Reset second factor
+        {t("resetMfa.title")}
       </DialogTitle>
       <DialogContent>
         <Box component="form" id={formId} onSubmit={handleSubmit} noValidate>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <Typography id={messageId} variant="body2">
-              Resetting the second factor for{" "}
-              <strong>
-                {user?.fullName} (@{user?.username})
-              </strong>{" "}
-              removes their authenticator app or hardware token, deletes all recovery codes, forgets all trusted
-              computers, and signs out all active sessions. They will have to set up a new second factor at next
-              sign-in with no fresh grace period.
+              <Trans
+                i18nKey="resetMfa.message"
+                ns="users"
+                values={{ fullName: user?.fullName ?? "", username: user?.username ?? "" }}
+                components={{ user: <strong />, ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <TextField
-              label="Reason"
+              label={t("fields.reason")}
               size="small"
               multiline
               minRows={2}
@@ -90,14 +94,14 @@ export function ResetMfaDialog({ open, user, onClose, onReset }: ResetMfaDialogP
               disabled={submitting}
               required
               fullWidth
-              placeholder="Why the second factor is being reset"
+              placeholder={t("resetMfa.reasonPlaceholder")}
             />
           </Stack>
         </Box>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={submitting} autoFocus>
-          Cancel
+          {tc("actions.cancel")}
         </Button>
         <Button
           type="submit"
@@ -107,7 +111,7 @@ export function ResetMfaDialog({ open, user, onClose, onReset }: ResetMfaDialogP
           disabled={submitting || !trimmedReason}
           startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          Reset second factor
+          {t("resetMfa.submit")}
         </Button>
       </DialogActions>
     </Dialog>

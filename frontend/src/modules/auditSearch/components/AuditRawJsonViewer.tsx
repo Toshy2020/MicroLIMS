@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   previousValue: string | null;
@@ -29,6 +30,7 @@ function formatJsonString(raw: string | null): string {
 
 export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("auditSearch");
   const [copied, setCopied] = useState(false);
 
   const prevFormatted = formatJsonString(previousValue);
@@ -52,7 +54,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 1 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-            Raw Stored Audit Values
+            {t("raw.title")}
           </Typography>
         </Box>
       </AccordionSummary>
@@ -66,7 +68,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
             onClick={copyBoth}
             sx={{ fontSize: 12, textTransform: "none" }}
           >
-            Copy Raw JSON
+            {t("raw.copy")}
           </Button>
         </Box>
 
@@ -74,7 +76,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
           {/* Previous Value */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.detected.text, mb: 0.5 }}>
-              Previous Value
+              {t("raw.previous")}
             </Typography>
             <Box
               component="pre"
@@ -98,7 +100,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
           {/* New Value */}
           <Box>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text, mb: 0.5 }}>
-              Current Value
+              {t("raw.current")}
             </Typography>
             <Box
               component="pre"
@@ -124,7 +126,7 @@ export function AuditRawJsonViewer({ previousValue, newValue }: Props) {
           open={copied}
           autoHideDuration={2000}
           onClose={() => setCopied(false)}
-          message="Raw JSON copied to clipboard"
+          message={t("raw.copied")}
         />
       </AccordionDetails>
     </Accordion>

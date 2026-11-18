@@ -20,6 +20,8 @@ import { FloatingDialog } from "../../components/FloatingDialog";
 import { ToneBadge } from "../../components/StatusBadge";
 import { tableHeadSx } from "../../theme";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../i18n";
 import {
   SsoAdminService,
   type DirectoryLinkCsvRow,
@@ -60,6 +62,8 @@ function parseCsvRows(raw: string): DirectoryLinkCsvRow[] {
 
 export function ImportDirectoryLinksDialog({ open, onClose, onImported }: ImportDirectoryLinksDialogProps) {
   const theme = useTheme();
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
   const [csvText, setCsvText] = useState("");
   const [parsedRows, setParsedRows] = useState<DirectoryLinkCsvRow[]>([]);
   const [previewRows, setPreviewRows] = useState<DirectoryLinkPreviewRow[]>([]);
@@ -93,7 +97,7 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
     try {
       setCsvText(await file.text());
     } catch (err: unknown) {
-      setError(getErrorMessage(err, "Could not read the file."));
+      setError(getErrorMessage(err, t("importLinks.readError")));
       return;
     }
     setPreviewRows([]);
@@ -108,11 +112,11 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
     setSummary(null);
     const rows = parseCsvRows(csvText);
     if (rows.length === 0) {
-      setError("Paste or upload at least one CSV row (username,companyUsername).");
+      setError(t("importLinks.needRows"));
       return;
     }
     if (rows.length > MAX_ROWS) {
-      setError(`Maximum ${MAX_ROWS} rows per import.`);
+      setError(t("importLinks.maxRows", { max: MAX_ROWS }));
       return;
     }
     setPreviewing(true);
@@ -121,7 +125,7 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
       setParsedRows(rows);
       setPreviewRows(res.rows);
     } catch (err: unknown) {
-      setError(serverMessage(err) ?? getErrorMessage(err, "Could not preview directory links."));
+      setError(serverMessage(err) ?? getErrorMessage(err, t("importLinks.previewError")));
     } finally {
       setPreviewing(false);
     }
@@ -136,11 +140,11 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
       setPreviewRows(res.rows);
       const count = res.applied ?? res.rows.filter((r) => r.status === "Ok").length;
       const skipped = res.rows.length - count;
-      setSummary(`Imported ${count} directory ${count === 1 ? "link" : "links"}${skipped > 0 ? `; ${skipped} ${skipped === 1 ? "row" : "rows"} skipped` : ""}.`);
+      setSummary(`${t("importLinks.summaryLink", { count })}${skipped > 0 ? t("importLinks.summarySkipped", { count: skipped }) : ""}.`);
       setDone(true);
       onImported();
     } catch (err: unknown) {
-      setError(serverMessage(err) ?? getErrorMessage(err, "Could not import directory links."));
+      setError(serverMessage(err) ?? getErrorMessage(err, t("importLinks.importError")));
     } finally {
       setImporting(false);
     }
@@ -151,22 +155,22 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
       open={open}
       onClose={handleClose}
       maxWidth="md"
-      title="Import directory links"
+      title={t("importLinks.title")}
       actions={
         <>
-          <Button onClick={handleClose}>Close</Button>
+          <Button onClick={handleClose}>{tc("actions.close")}</Button>
           <Button variant="outlined" onClick={handlePreview} disabled={previewing || !csvText.trim()}>
-            {previewing ? "Previewing..." : "Preview"}
+            {previewing ? t("importLinks.previewing") : t("importLinks.preview")}
           </Button>
           <Button variant="contained" onClick={handleImport} disabled={!canImport}>
-            {importing ? "Importing..." : "Import"}
+            {importing ? t("importLinks.importing") : t("importLinks.import")}
           </Button>
         </>
       }
     >
       <Stack spacing={2} sx={{ mt: 1 }}>
         <Typography variant="body2" color="text.secondary">
-          Paste CSV lines or upload a CSV file with columns <code>username,companyUsername</code> (maximum {MAX_ROWS} rows).
+          <Trans i18nKey="importLinks.intro" ns="admin" values={{ max: MAX_ROWS }} components={{ code: <code /> }} />
         </Typography>
 
         {error && <Alert severity="error" role="alert">{error}</Alert>}
@@ -174,13 +178,13 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
 
         <Box>
           <Button component="label" variant="outlined" size="small">
-            Upload CSV file
-            <input type="file" accept=".csv,text/csv" hidden aria-label="CSV file" onChange={handleFileChange} />
+            {t("importLinks.upload")}
+            <input type="file" accept=".csv,text/csv" hidden aria-label={t("importLinks.fileAria")} onChange={handleFileChange} />
           </Button>
         </Box>
 
         <TextField
-          label="CSV rows"
+          label={t("importLinks.csvRows")}
           multiline
           rows={5}
           value={csvText}
@@ -195,27 +199,27 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
         />
 
         <TextField
-          label="Reason for change"
+          label={t("common.reasonForChange")}
           required
           multiline
           minRows={2}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           slotProps={{ htmlInput: { maxLength: 500 } }}
-          helperText={reason.trim() ? " " : "A reason is required before importing (recorded in the audit trail)."}
+          helperText={reason.trim() ? " " : t("importLinks.reasonHelper")}
           fullWidth
         />
 
         {previewRows.length > 0 && (
           <>
             <TableContainer sx={{ maxHeight: 260 }}>
-              <Table size="small" aria-label="Directory link preview">
+              <Table size="small" aria-label={t("importLinks.previewTable")}>
                 <TableHead>
                   <TableRow sx={tableHeadSx(theme)}>
-                    <TableCell>Row</TableCell>
-                    <TableCell>Username</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Message</TableCell>
+                    <TableCell>{t("importLinks.row")}</TableCell>
+                    <TableCell>{t("companySignIn.username")}</TableCell>
+                    <TableCell>{t("common.status")}</TableCell>
+                    <TableCell>{t("importLinks.message")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -241,7 +245,7 @@ export function ImportDirectoryLinksDialog({ open, onClose, onImported }: Import
                     onChange={(e) => setSkipInvalidRows(e.target.checked)}
                   />
                 }
-                label="Skip invalid rows"
+                label={t("importLinks.skipInvalid")}
               />
             )}
           </>

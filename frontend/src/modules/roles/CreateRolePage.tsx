@@ -14,14 +14,18 @@ import { Role as RoleType } from "../../contexts/AuthContext";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import { formatRoleName } from "../../utils/userDisplay";
 import { useBreadcrumb } from "../../components/breadcrumbContext";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { i18n, useTranslation } from "../../i18n";
 
 const BASE_TYPES: RoleType[] = ["SystemAdministrator", "SectionHead", "Reviewer", "Analyst", "QcManager", "Qa"];
-const STEPS = ["Name", "Base Type", "Permissions", "Review"];
+const STEP_KEYS = ["name", "baseType", "permissions", "review"] as const;
 
 export function CreateRolePage() {
+  const { t } = useTranslation("roles");
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
-  useBreadcrumb("New role");
+  useBreadcrumb(t("create.breadcrumb"));
 
   const [existingRoles, setExistingRoles] = useState<RoleRecord[]>([]);
   const [allPermissions, setAllPermissions] = useState<PermissionRecord[]>([]);
@@ -126,7 +130,7 @@ export function CreateRolePage() {
   // The permission grant is electronically signed, so creating opens the signature step.
   const handleSubmit = () => {
     if (!reason.trim()) {
-      setError("A reason is required to create a role.");
+      setError(t("create.reasonRequired"));
       return;
     }
     setError(null);
@@ -155,22 +159,22 @@ export function CreateRolePage() {
   return (
     <>
       <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/roles")} sx={{ mb: 1 }}>
-        Back to Roles
+        {t("common.backToRoles")}
       </Button>
-      <PageHeader title="Create Role" subtitle="Define a new role's identity, base type, and granted permissions." />
+      <PageHeader title={t("create.title")} subtitle={t("create.subtitle")} />
 
       <Stepper activeStep={step} sx={{ mb: 3 }}>
-        {STEPS.map((label) => <Step key={label}><StepLabel>{label}</StepLabel></Step>)}
+        {STEP_KEYS.map((key) => <Step key={key}><StepLabel>{t(`create.steps.${key}`)}</StepLabel></Step>)}
       </Stepper>
 
-      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
+      <LoadFailuresAlert failed={failedLists} retryHint={t("common.retryHint")} sx={{ mb: 2 }} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {step === 0 && (
         <Paper sx={{ p: 2.5 }}>
           <Stack spacing={2} sx={{ maxWidth: 480 }}>
-            <TextField label="Role Name" size="small" value={name} onChange={(e) => setName(e.target.value)} autoFocus required fullWidth />
-            <TextField label="Description" size="small" value={description} onChange={(e) => setDescription(e.target.value)} multiline rows={3} fullWidth />
+            <TextField label={t("create.roleName")} size="small" value={name} onChange={(e) => setName(e.target.value)} autoFocus required fullWidth />
+            <TextField label={t("create.description")} size="small" value={description} onChange={(e) => setDescription(e.target.value)} multiline rows={3} fullWidth />
           </Stack>
         </Paper>
       )}
@@ -178,13 +182,11 @@ export function CreateRolePage() {
       {step === 1 && (
         <Paper sx={{ p: 2.5 }}>
           <Alert severity="info" sx={{ mb: 2.5 }}>
-            New roles are currently based on one of the built-in types for compatibility with parts of the system
-            not yet migrated to the new permission model. Permissions marked "Enforced" in the next step apply fully;
-            everything else follows <strong>{formatRoleName(baseType)}</strong>'s existing behavior.
+            <Trans i18nKey="create.baseTypeInfo" ns="roles" values={{ role: formatRoleName(baseType) }} components={{ role: <strong /> }} />
           </Alert>
           <RadioGroup value={baseType} onChange={(e) => handleBaseTypeChange(e.target.value as RoleType)}>
-            {BASE_TYPES.map((t) => (
-              <FormControlLabel key={t} value={t} control={<Radio />} label={formatRoleName(t)} />
+            {BASE_TYPES.map((type) => (
+              <FormControlLabel key={type} value={type} control={<Radio />} label={formatRoleName(type)} />
             ))}
           </RadioGroup>
         </Paper>
@@ -194,21 +196,21 @@ export function CreateRolePage() {
         <>
           <Paper sx={{ p: 2.5, mb: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>
-              Starting point: {formatRoleName(baseType)}'s current permissions (edit freely below)
+              {t("create.startingPoint", { role: formatRoleName(baseType) })}
             </Typography>
             <Stack direction="row" spacing={1.5} sx={{
               alignItems: "center"
             }}>
-              <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Or clone permissions from any existing role:</Typography>
+              <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("create.cloneIntro")}</Typography>
               <Select
                 size="small"
                 displayEmpty
                 value={cloneFromRoleId}
                 onChange={(e) => handleCloneFrom(Number(e.target.value))}
                 sx={{ minWidth: 220 }}
-                inputProps={{ "aria-label": "Role to clone" }}
+                inputProps={{ "aria-label": t("create.cloneAria") }}
               >
-                <MenuItem value=""><em>Select a role to clone</em></MenuItem>
+                <MenuItem value=""><em>{t("create.cloneSelect")}</em></MenuItem>
                 {existingRoles.map((r) => <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>)}
               </Select>
             </Stack>
@@ -227,53 +229,54 @@ export function CreateRolePage() {
         <Paper sx={{ p: 2.5 }}>
           <Stack spacing={2}>
             <Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>Name</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>{t("create.reviewName")}</Typography>
               <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{name}</Typography>
             </Box>
             {description && (
               <Box>
-                <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>Description</Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>{t("create.reviewDescription")}</Typography>
                 <Typography sx={{ fontSize: 14 }}>{description}</Typography>
               </Box>
             )}
             <Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>Base Type</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>{t("create.reviewBaseType")}</Typography>
               <Typography sx={{ fontSize: 14 }}>{formatRoleName(baseType)}</Typography>
             </Box>
             <Divider />
             <Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase", mb: 1 }}>
-                Permissions ({checkedCodes.size})
+                {t("create.reviewPermissions", { count: checkedCodes.size })}
               </Typography>
               <Stack direction="row" spacing={1} useFlexGap sx={{
                 flexWrap: "wrap"
               }}>
-                {Array.from(checkedCodes).sort().map((c) => <Chip key={c} label={c} size="small" />)}
-                {checkedCodes.size === 0 && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>None selected.</Typography>}
+                {Array.from(checkedCodes).sort().map((c) => <Chip key={c} label={<Ltr>{c}</Ltr>} size="small" />)}
+                {checkedCodes.size === 0 && <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("create.noneSelected")}</Typography>}
               </Stack>
             </Box>
             <Divider />
-            <TextField label="Reason for Creating This Role" size="small" value={reason} onChange={(e) => setReason(e.target.value)} required fullWidth multiline rows={2} placeholder="Mandatory administrative justification" />
+            <TextField label={t("create.reasonLabel")} size="small" value={reason} onChange={(e) => setReason(e.target.value)} required fullWidth multiline rows={2} placeholder={t("common.reasonPlaceholder")} />
           </Stack>
         </Paper>
       )}
 
       <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
-        <Button disabled={step === 0} onClick={() => setStep((s) => s - 1)}>Back</Button>
-        {step < STEPS.length - 1 ? (
+        <Button disabled={step === 0} onClick={() => setStep((s) => s - 1)}>{t("create.back")}</Button>
+        {step < STEP_KEYS.length - 1 ? (
           <Button variant="contained" disabled={!canAdvanceFromStep(step)} onClick={() => setStep((s) => s + 1)}>
-            Next
+            {t("create.next")}
           </Button>
         ) : (
           <Button variant="contained" color="primary" disabled={submitting || !reason.trim()} onClick={handleSubmit}>
-            {submitting ? "Creating..." : "Create Role"}
+            {submitting ? t("create.creating") : t("create.submit")}
           </Button>
         )}
       </Stack>
 
       <SignatureDialog
         open={signing}
-        meaningStatement={`I am creating the role "${name}" and granting it ${checkedCodes.size} permission(s). Reason: ${reason.trim()}`}
+        meaningStatement={i18n.getFixedT("en", "roles")("create.signatureMeaning", { name, count: checkedCodes.size, reason: reason.trim() })}
+        meaningStatementTranslation={t("create.signatureMeaning", { name, count: checkedCodes.size, reason: reason.trim() })}
         onCancel={() => setSigning(false)}
         onConfirm={confirmSignature}
       />

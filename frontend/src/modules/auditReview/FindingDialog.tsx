@@ -5,6 +5,7 @@ import type { AuditLogItem } from "../auditSearch/types/auditTypes";
 import { monospaceFontFamily } from "../../theme/palette";
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import { formatDateTimeWithZone } from "./formatAuditDate";
+import { useTranslation } from "../../i18n";
 
 interface FindingDialogProps {
   open: boolean;
@@ -16,6 +17,7 @@ interface FindingDialogProps {
 const MAX_NOTE_LENGTH = 2000;
 
 export function FindingDialog({ open, entry, onClose, onSubmit }: FindingDialogProps) {
+  const { t } = useTranslation("auditReview");
   const [note, setNote] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -37,11 +39,11 @@ export function FindingDialog({ open, entry, onClose, onSubmit }: FindingDialogP
     setSubmitError(null);
     const trimmed = note.trim();
     if (!trimmed) {
-      setFieldError("Finding note is required.");
+      setFieldError(t("finding.noteRequired"));
       return;
     }
     if (trimmed.length > MAX_NOTE_LENGTH) {
-      setFieldError(`Finding note must be ${MAX_NOTE_LENGTH} characters or fewer.`);
+      setFieldError(t("finding.noteTooLong", { max: MAX_NOTE_LENGTH }));
       return;
     }
     setFieldError(null);
@@ -51,7 +53,7 @@ export function FindingDialog({ open, entry, onClose, onSubmit }: FindingDialogP
       await onSubmit(trimmed);
       reset();
     } catch (err: unknown) {
-      setSubmitError(serverMessage(err) ?? getErrorMessage(err, "Could not record the finding."));
+      setSubmitError(serverMessage(err) ?? getErrorMessage(err, t("common.recordFindingError")));
     } finally {
       setSubmitting(false);
     }
@@ -60,17 +62,17 @@ export function FindingDialog({ open, entry, onClose, onSubmit }: FindingDialogP
   return (
     <FormDialog
       open={open}
-      title="Mark entry as finding"
+      title={t("finding.title")}
       onClose={handleClose}
       onSubmit={handleSubmit}
-      submitLabel="Record finding"
+      submitLabel={t("common.recordFinding")}
       submitting={submitting}
       error={submitError}
     >
       {entry && (
         <Box sx={{ p: 1.5, borderRadius: 1, bgcolor: "action.hover" }}>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-            Audit Entry{" "}
+            {t("finding.auditEntry")}{" "}
             <Box component="span" sx={{ fontFamily: monospaceFontFamily, fontVariantNumeric: "tabular-nums" }}>
               #{entry.id}
             </Box>{" "}
@@ -80,13 +82,13 @@ export function FindingDialog({ open, entry, onClose, onSubmit }: FindingDialogP
             </Box>
           </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            {entry.action} by {entry.userName} on {formatDateTimeWithZone(entry.timestamp)}
+            {t("finding.actionBy", { action: entry.action, user: entry.userName, time: formatDateTimeWithZone(entry.timestamp) })}
           </Typography>
         </Box>
       )}
 
       <TextField
-        label="Finding note"
+        label={t("finding.noteLabel")}
         size="small"
         required
         multiline

@@ -30,6 +30,11 @@ import { documentControlService } from "../documentControl/services/documentCont
 import type { DocumentDepartmentDto, DocumentSectionDto, OrganizationImpactDto } from "../documentControl/types/documentControlTypes";
 import { UserService, type UserRecord } from "../users/services/UserService";
 import { UserSectionsDialog } from "../users/dialogs/UserSectionsDialog";
+import { Trans } from "react-i18next";
+import { i18n, useTranslation } from "../../i18n";
+import type { TFunction } from "i18next";
+
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
 // What the one change dialog is doing. Every action states a reason; deactivating something that is still in use
 // shows what it would leave behind first and then needs the same reason plus an explicit confirmation.
@@ -41,28 +46,33 @@ type Action =
   | { kind: "renameSection"; section: DocumentSectionDto }
   | { kind: "toggleSection"; section: DocumentSectionDto };
 
-function titleOf(action: Action): string {
+function titleOf(action: Action, t: TFunction<"admin">): string {
   switch (action.kind) {
-    case "addDepartment": return "Add department";
-    case "renameDepartment": return `Rename department ${action.department.code}`;
-    case "toggleDepartment": return `${action.department.isActive ? "Deactivate" : "Activate"} department ${action.department.code}`;
-    case "addSection": return `Add section to ${action.department.name}`;
-    case "renameSection": return `Rename section ${action.section.name}`;
-    case "toggleSection": return `${action.section.isActive ? "Deactivate" : "Activate"} section ${action.section.name}`;
+    case "addDepartment": return t("org.addDepartment");
+    case "renameDepartment": return t("org.actions.renameDepartment", { code: action.department.code });
+    case "toggleDepartment": return action.department.isActive ? t("org.actions.deactivateDepartment", { code: action.department.code }) : t("org.actions.activateDepartment", { code: action.department.code });
+    case "addSection": return t("org.actions.addSection", { name: action.department.name });
+    case "renameSection": return t("org.actions.renameSection", { name: action.section.name });
+    case "toggleSection": return action.section.isActive ? t("org.actions.deactivateSection", { name: action.section.name }) : t("org.actions.activateSection", { name: action.section.name });
   }
 }
 
 function ImpactWarning({ impact, subject }: { impact: OrganizationImpactDto; subject: string }) {
   return (
     <Alert severity="warning">
-      {subject} is still in use: <strong>{impact.activeDocuments}</strong> active document(s),{" "}
-      <strong>{impact.activeMemberships}</strong> active member(s) and <strong>{impact.openWork}</strong> open work item(s).
-      Deactivating it does not delete or move any of them, and it can be activated again. It can never be deleted while it is referenced.
+      <Trans
+        i18nKey="org.impactWarning"
+        ns="admin"
+        values={{ subject, documents: impact.activeDocuments, members: impact.activeMemberships, work: impact.openWork }}
+        components={{ b: <strong /> }}
+      />
     </Alert>
   );
 }
 
 function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onClose: () => void; onDone: () => void }) {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [reason, setReason] = useState("");
@@ -80,9 +90,9 @@ function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onCl
     // Deactivation: look at what is still using it before asking for confirmation.
     let live = true;
     if (action.kind === "toggleDepartment" && action.department.isActive) {
-      documentControlService.getDepartmentImpact(action.department.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, "Could not check what uses this department.")); });
+      documentControlService.getDepartmentImpact(action.department.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, tl("org.impactDepartmentError"))); });
     } else if (action.kind === "toggleSection" && action.section.isActive) {
-      documentControlService.getSectionImpact(action.section.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, "Could not check what uses this section.")); });
+      documentControlService.getSectionImpact(action.section.id).then((i) => { if (live) setImpact(i); }).catch((e) => { if (live) setError(getErrorMessage(e, tl("org.impactSectionError"))); });
     }
     return () => { live = false; };
   }, [action]);
@@ -125,25 +135,25 @@ function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onCl
       }
       onDone();
     } catch (e) {
-      setError(getErrorMessage(e, "The change could not be saved."));
+      setError(getErrorMessage(e, t("org.saveError")));
     } finally {
       setSaving(false);
     }
   };
 
-  const subject = action.kind === "toggleDepartment" ? `The department ${action.department.name}` : action.kind === "toggleSection" ? `The section ${action.section.name}` : "";
+  const subject = action.kind === "toggleDepartment" ? t("org.subjectDepartment", { name: action.department.name }) : action.kind === "toggleSection" ? t("org.subjectSection", { name: action.section.name }) : "";
 
   return (
     <Dialog open onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{titleOf(action)}</DialogTitle>
+      <DialogTitle>{titleOf(action, t)}</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {error && <Alert severity="error">{error}</Alert>}
         {isDeactivation && impact?.hasReferences && <ImpactWarning impact={impact} subject={subject} />}
-        {isDeactivation && impact && !impact.hasReferences && <Alert severity="info">Nothing refers to it at the moment.</Alert>}
-        {needsCode && <TextField label="Code" size="small" required fullWidth value={code} onChange={(e) => setCode(e.target.value)} />}
-        {needsName && <TextField label="Name" size="small" required fullWidth value={name} onChange={(e) => setName(e.target.value)} />}
+        {isDeactivation && impact && !impact.hasReferences && <Alert severity="info">{t("org.nothingRefers")}</Alert>}
+        {needsCode && <TextField label={t("common.code")} size="small" required fullWidth value={code} onChange={(e) => setCode(e.target.value)} />}
+        {needsName && <TextField label={t("common.name")} size="small" required fullWidth value={name} onChange={(e) => setName(e.target.value)} />}
         <TextField
-          label="Reason for change"
+          label={t("common.reasonForChange")}
           size="small"
           multiline
           rows={2}
@@ -151,18 +161,18 @@ function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onCl
           fullWidth
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Mandatory administrative justification"
+          placeholder={t("common.reasonPlaceholder")}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={saving} color="inherit">Cancel</Button>
+        <Button onClick={onClose} disabled={saving} color="inherit">{tc("actions.cancel")}</Button>
         <Button
           variant="contained"
           color={isDeactivation ? "warning" : "primary"}
           onClick={save}
           disabled={!ready || saving}
         >
-          {saving ? "Saving..." : isDeactivation && impact?.hasReferences ? "Deactivate anyway" : isDeactivation ? "Deactivate" : "Save"}
+          {saving ? t("common.saving") : isDeactivation && impact?.hasReferences ? t("org.deactivateAnyway") : isDeactivation ? t("org.deactivate") : t("common.save")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -170,12 +180,14 @@ function ChangeDialog({ action, onClose, onDone }: { action: Action | null; onCl
 }
 
 function ActiveChip({ active }: { active: boolean }) {
-  return <Chip size="small" color={active ? "success" : "default"} variant={active ? "filled" : "outlined"} label={active ? "Active" : "Inactive"} />;
+  const { t } = useTranslation("admin");
+  return <Chip size="small" color={active ? "success" : "default"} variant={active ? "filled" : "outlined"} label={active ? t("common.active") : t("common.inactive")} />;
 }
 
 // Administration > Organization: the departments and sections that scope documents and laboratory data, and
 // which users belong to them. The same endpoints Document Control's configuration used; the editors moved here.
 export function OrganizationPage() {
+  const { t } = useTranslation("admin");
   const { permissions } = useAuth();
   const canManageUsers = permissions.includes(PERMISSIONS.USERS_MANAGE);
 
@@ -193,7 +205,7 @@ export function OrganizationPage() {
     try {
       setDepartments(await documentControlService.getDepartments(true));
     } catch (e) {
-      setError(getErrorMessage(e, "Could not load departments."));
+      setError(getErrorMessage(e, tl("org.loadError")));
     } finally {
       setLoading(false);
     }
@@ -216,16 +228,16 @@ export function OrganizationPage() {
   return (
     <Box>
       <PageHeader
-        title="Organization"
-        subtitle="Departments and sections own documents and decide what laboratory data each user sees. Every change asks for a reason; one that is still in use is deactivated, never deleted."
+        title={t("org.title")}
+        subtitle={t("org.subtitle")}
       >
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAction({ kind: "addDepartment" })}>Add department</Button>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAction({ kind: "addDepartment" })}>{t("org.addDepartment")}</Button>
       </PageHeader>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress aria-label="Loading" /></Box>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress aria-label={t("common.loading")} /></Box>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 4 }}>
           {departments.map((d) => (
@@ -234,24 +246,24 @@ export function OrganizationPage() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{d.code}: {d.name}</Typography>
                 <ActiveChip active={d.isActive} />
                 <Box sx={{ flexGrow: 1 }} />
-                <Button size="small" onClick={() => setAction({ kind: "addSection", department: d })}>Add section</Button>
-                <Button size="small" aria-label={`Rename department ${d.code}`} onClick={() => setAction({ kind: "renameDepartment", department: d })}>Rename</Button>
+                <Button size="small" onClick={() => setAction({ kind: "addSection", department: d })}>{t("org.addSection")}</Button>
+                <Button size="small" aria-label={t("org.actions.renameDepartment", { code: d.code })} onClick={() => setAction({ kind: "renameDepartment", department: d })}>{t("org.rename")}</Button>
                 <Button
                   size="small"
                   color={d.isActive ? "warning" : "success"}
-                  aria-label={`${d.isActive ? "Deactivate" : "Activate"} department ${d.code}`}
+                  aria-label={d.isActive ? t("org.actions.deactivateDepartment", { code: d.code }) : t("org.actions.activateDepartment", { code: d.code })}
                   onClick={() => setAction({ kind: "toggleDepartment", department: d })}
                 >
-                  {d.isActive ? "Deactivate" : "Activate"}
+                  {d.isActive ? t("org.deactivate") : t("org.activate")}
                 </Button>
               </Box>
               <TableContainer>
-                <Table size="small" aria-label={`Sections of ${d.name}`}>
+                <Table size="small" aria-label={t("org.sectionsOf", { name: d.name })}>
                   <TableHead sx={tableHeadSx}>
                     <TableRow>
-                      <TableCell>Section</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
+                      <TableCell>{t("org.section")}</TableCell>
+                      <TableCell>{t("common.status")}</TableCell>
+                      <TableCell align="right">{t("common.actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -260,47 +272,47 @@ export function OrganizationPage() {
                         <TableCell>{s.name}</TableCell>
                         <TableCell><ActiveChip active={s.isActive} /></TableCell>
                         <TableCell align="right">
-                          <Button size="small" aria-label={`Rename section ${s.name}`} onClick={() => setAction({ kind: "renameSection", section: s })}>Rename</Button>
+                          <Button size="small" aria-label={t("org.actions.renameSection", { name: s.name })} onClick={() => setAction({ kind: "renameSection", section: s })}>{t("org.rename")}</Button>
                           <Button
                             size="small"
                             color={s.isActive ? "warning" : "success"}
-                            aria-label={`${s.isActive ? "Deactivate" : "Activate"} section ${s.name}`}
+                            aria-label={s.isActive ? t("org.actions.deactivateSection", { name: s.name }) : t("org.actions.activateSection", { name: s.name })}
                             onClick={() => setAction({ kind: "toggleSection", section: s })}
                           >
-                            {s.isActive ? "Deactivate" : "Activate"}
+                            {s.isActive ? t("org.deactivate") : t("org.activate")}
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                     {d.sections.length === 0 && (
-                      <TableRow><TableCell colSpan={3} align="center" sx={{ color: "text.secondary" }}>No sections registered under this department.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={3} align="center" sx={{ color: "text.secondary" }}>{t("org.noSections")}</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
               </TableContainer>
             </Paper>
           ))}
-          {departments.length === 0 && <Alert severity="info">No departments are configured yet.</Alert>}
+          {departments.length === 0 && <Alert severity="info">{t("org.noDepartments")}</Alert>}
         </Box>
       )}
 
-      <Typography variant="h6" sx={{ mb: 1 }}>Memberships</Typography>
+      <Typography variant="h6" sx={{ mb: 1 }}>{t("org.memberships")}</Typography>
       {canManageUsers ? (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <TextField
             size="small"
-            label="Find a user"
+            label={t("org.findUser")}
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value)}
             sx={{ mb: 2, minWidth: 260 }}
           />
           <TableContainer>
-            <Table size="small" aria-label="User memberships">
+            <Table size="small" aria-label={t("org.membershipsTable")}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell align="right">Departments and sections</TableCell>
+                  <TableCell>{t("common.user")}</TableCell>
+                  <TableCell>{t("common.role")}</TableCell>
+                  <TableCell align="right">{t("org.departmentsAndSections")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -309,25 +321,25 @@ export function OrganizationPage() {
                     <TableCell>{u.fullName} <Typography component="span" variant="caption" color="text.secondary">@{u.username}</Typography></TableCell>
                     <TableCell>{u.role?.name ?? ""}</TableCell>
                     <TableCell align="right">
-                      <Button size="small" aria-label={`Edit memberships of ${u.username}`} onClick={() => setMembershipUser(u)}>Edit memberships</Button>
+                      <Button size="small" aria-label={t("org.editMembershipsOf", { username: u.username })} onClick={() => setMembershipUser(u)}>{t("org.editMemberships")}</Button>
                     </TableCell>
                   </TableRow>
                 ))}
                 {visibleUsers.length === 0 && (
-                  <TableRow><TableCell colSpan={3} align="center" sx={{ color: "text.secondary" }}>No users found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={3} align="center" sx={{ color: "text.secondary" }}>{t("org.noUsers")}</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
           </TableContainer>
         </Paper>
       ) : (
-        <Alert severity="info">Editing who belongs to which department needs the Users.Manage permission.</Alert>
+        <Alert severity="info">{t("org.needsPermission")}</Alert>
       )}
 
       <ChangeDialog
         action={action}
         onClose={() => setAction(null)}
-        onDone={() => { setAction(null); toast.success("Saved."); load(); }}
+        onDone={() => { setAction(null); toast.success(t("org.saved")); load(); }}
       />
       <UserSectionsDialog
         open={!!membershipUser}

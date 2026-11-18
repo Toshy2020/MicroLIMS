@@ -16,25 +16,24 @@ import { TestSendOutcome } from "./TestSendOutcome";
 import { IntegrationsService } from "./services/IntegrationsService";
 import { SettingsService, SystemSetting, SystemSettingFixedItem, SystemSettingVersion } from "./services/SettingsService";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+import { serverMessage } from "../../utils/errorMessage";
+import { i18n, useTranslation } from "../../i18n";
 
-const CATEGORY_TITLES: Record<string, string> = {
-  Security: "Security (passwords, lockout, sessions, e-signature)",
-  Retention: "Retention and clean-up",
-  Monitoring: "Monitoring thresholds",
-  Alerts: "Alerts"
-};
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
 const withUnit = (value: string, unit: string | null) => (unit ? `${value} ${unit}` : value);
 
 // A list setting is stored comma-separated; show it readably and edit it one per line.
-const displayValue = (s: SystemSetting) =>
-  s.valueType === "EmailList" ? (s.value ? s.value.split(",").join(", ") : "Nobody") : withUnit(s.value, s.unit);
+const displayValue = (s: SystemSetting, nobody: string) =>
+  s.valueType === "EmailList" ? (s.value ? s.value.split(",").join(", ") : nobody) : withUnit(s.value, s.unit);
 
 // The admin panel controls the system, never GxP data. Every change needs a
 // reason; security keys also need the administrator's password (electronic
 // signature). The server validates and applies the rules; this page only
 // collects the value, the reason and the signature.
 export function SettingsPage() {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
   const [settings, setSettings] = useState<SystemSetting[] | null>(null);
   const [fixedItems, setFixedItems] = useState<SystemSettingFixedItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +51,7 @@ export function SettingsPage() {
   const load = useCallback(() => {
     SettingsService.getAll()
       .then((o) => { setSettings(o.settings); setFixedItems(o.fixedItems); })
-      .catch(() => setError("Could not load the settings. Reload the page to try again."));
+      .catch(() => setError(tl("settings.loadError")));
   }, []);
   useEffect(load, [load]);
 
@@ -65,11 +64,11 @@ export function SettingsPage() {
     if (!editing) return;
     try {
       await SettingsService.update(editing.key, draft, reason.trim(), password);
-      toast.success(`${editing.key} updated. It applies without a restart.`);
+      toast.success(t("settings.updated", { key: editing.key }));
       closeEdit();
       load();
-    } catch (e: any) {
-      const message: string = e?.response?.data?.message ?? "Could not save the setting.";
+    } catch (e: unknown) {
+      const message: string = serverMessage(e) ?? t("settings.saveError");
       // A refused password stays in the signature dialog; anything else returns to the form.
       if (signing && /password|signature/i.test(message)) throw e;
       setSigning(false);
@@ -93,7 +92,7 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" subtitle="System operating settings. Changes need a reason; security settings also need your electronic signature." />
+      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!settings && !error && <LoadingSpinner />}
       {settings?.some((s) => s.key === "System.MaintenanceMode") && <MaintenanceSection settings={settings} onChanged={load} />}
@@ -101,19 +100,19 @@ export function SettingsPage() {
       {categories.map((category) => (
         <Paper key={category} sx={{ mb: 2, p: 2 }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="h6" component="h2">{CATEGORY_TITLES[category] ?? category}</Typography>
+            <Typography variant="h6" component="h2">{t(`settings.categories.${category}`, { defaultValue: category })}</Typography>
             {category === "Alerts" && (
-              <Button variant="outlined" size="small" onClick={() => setTestAlertOpen(true)}>Send test alert</Button>
+              <Button variant="outlined" size="small" onClick={() => setTestAlertOpen(true)}>{t("settings.sendTestAlert")}</Button>
             )}
           </Stack>
           <TableContainer>
             <Table size="small" aria-label={category}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Setting</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell>Source</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t("settings.setting")}</TableCell>
+                  <TableCell>{t("common.value")}</TableCell>
+                  <TableCell>{t("settings.source")}</TableCell>
+                  <TableCell align="right">{t("common.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -124,18 +123,18 @@ export function SettingsPage() {
                       <Typography variant="caption" color="text.secondary">{s.description}</Typography>
                     </TableCell>
                     <TableCell>
-                      {displayValue(s)}
-                      {s.requiresSignature && <Chip size="small" label="Signature" sx={{ ml: 1 }} />}
+                      {displayValue(s, t("settings.nobody"))}
+                      {s.requiresSignature && <Chip size="small" label={t("settings.signatureChip")} sx={{ ml: 1 }} />}
                     </TableCell>
                     <TableCell>
                       {s.source}{s.version > 0 ? ` (v${s.version})` : ""}
                     </TableCell>
                     <TableCell align="right">
-                      <Tooltip title="Change">
-                        <IconButton size="small" aria-label={`Edit ${s.key}`} onClick={() => openEdit(s)}><EditIcon fontSize="small" /></IconButton>
+                      <Tooltip title={t("settings.change")}>
+                        <IconButton size="small" aria-label={t("settings.editAria", { key: s.key })} onClick={() => openEdit(s)}><EditIcon fontSize="small" /></IconButton>
                       </Tooltip>
-                      <Tooltip title="History">
-                        <IconButton size="small" aria-label={`History of ${s.key}`} onClick={() => openHistory(s)}><HistoryIcon fontSize="small" /></IconButton>
+                      <Tooltip title={t("settings.history")}>
+                        <IconButton size="small" aria-label={t("settings.historyAria", { key: s.key })} onClick={() => openHistory(s)}><HistoryIcon fontSize="small" /></IconButton>
                       </Tooltip>
                     </TableCell>
                   </TableRow>
@@ -148,17 +147,17 @@ export function SettingsPage() {
 
       {fixedItems.length > 0 && (
         <Paper sx={{ mb: 2, p: 2 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Not changed here</Typography>
+          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>{t("settings.notChanged")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-            Shown for information. Secrets are never stored or displayed.
+            {t("settings.notChangedNote")}
           </Typography>
           <TableContainer>
-            <Table size="small" aria-label="Not changed here">
+            <Table size="small" aria-label={t("settings.notChanged")}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Setting</TableCell>
-                  <TableCell>Value</TableCell>
-                  <TableCell>Source and how to change it</TableCell>
+                  <TableCell>{t("settings.setting")}</TableCell>
+                  <TableCell>{t("common.value")}</TableCell>
+                  <TableCell>{t("settings.sourceAndHow")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -169,7 +168,7 @@ export function SettingsPage() {
                     <TableCell>
                       {f.source}
                       <Typography variant="caption" color="text.secondary" component="span" sx={{ display: "block" }}>
-                        {f.note}{f.editLocation ? ` Edit it under ${f.editLocation}.` : ""}
+                        {f.note}{f.editLocation ? t("settings.editUnder", { location: f.editLocation }) : ""}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -184,12 +183,12 @@ export function SettingsPage() {
         open={Boolean(editing)}
         onClose={closeEdit}
         maxWidth="xs"
-        title={`Change ${editing?.key ?? "setting"}`}
+        title={t("settings.changeTitle", { key: editing?.key ?? t("settings.changeTitleFallback") })}
         actions={
           <>
-            <Button onClick={closeEdit}>Cancel</Button>
+            <Button onClick={closeEdit}>{tc("actions.cancel")}</Button>
             <Button variant="contained" onClick={onSaveClick} disabled={(editing?.valueType !== "EmailList" && !draft.trim()) || !reason.trim()}>
-              {editing?.requiresSignature ? "Continue to sign" : "Save"}
+              {editing?.requiresSignature ? t("settings.continueToSign") : t("common.save")}
             </Button>
           </>
         }
@@ -199,32 +198,32 @@ export function SettingsPage() {
             <Typography variant="body2">{editing.description}</Typography>
             <Typography variant="caption" color="text.secondary">
               {editing.valueType === "EmailList"
-                ? `Up to ${editing.max} addresses; empty means nobody.`
-                : <>Default {withUnit(editing.defaultValue, editing.unit)}
-                  {editing.min !== null && editing.max !== null ? `. Allowed ${editing.min} to ${editing.max}.` : "."}</>}
+                ? t("settings.emailListLimit", { max: editing.max })
+                : <>{t("settings.defaultValue", { value: withUnit(editing.defaultValue, editing.unit) })}
+                  {editing.min !== null && editing.max !== null ? t("settings.allowed", { min: editing.min, max: editing.max }) : "."}</>}
             </Typography>
             {editing.valueType === "Boolean" ? (
-              <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": "Value" }}>
+              <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": t("common.value") }}>
                 <MenuItem value="true">true</MenuItem>
                 <MenuItem value="false">false</MenuItem>
               </Select>
             ) : editing.allowedValues ? (
-              <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": "Value" }}>
+              <Select size="small" value={draft} onChange={(e) => setDraft(String(e.target.value))} inputProps={{ "aria-label": t("common.value") }}>
                 {editing.allowedValues.map((v) => <MenuItem key={v} value={v}>{v}</MenuItem>)}
               </Select>
             ) : editing.valueType === "EmailList" ? (
               <TextField
-                label="Value" size="small" multiline minRows={3} value={draft} onChange={(e) => setDraft(e.target.value)}
-                helperText="One address per line, or separated by commas."
+                label={t("common.value")} size="small" multiline minRows={3} value={draft} onChange={(e) => setDraft(e.target.value)}
+                helperText={t("settings.emailListHelper")}
               />
             ) : (
               <TextField
-                label="Value" size="small" value={draft} onChange={(e) => setDraft(e.target.value)}
+                label={t("common.value")} size="small" value={draft} onChange={(e) => setDraft(e.target.value)}
                 type={editing.valueType === "Integer" ? "number" : "text"}
               />
             )}
             <TextField
-              label="Reason for change" size="small" required multiline minRows={2} value={reason}
+              label={t("common.reasonForChange")} size="small" required multiline minRows={2} value={reason}
               onChange={(e) => setReason(e.target.value)} slotProps={{ htmlInput: { maxLength: 500 } }}
             />
             {editError && <Alert severity="error">{editError}</Alert>}
@@ -234,36 +233,37 @@ export function SettingsPage() {
 
       <TestActionDialog
         open={testAlertOpen}
-        title="Send test alert"
-        description="Sends a clearly labelled test message to the configured critical-alert recipients."
-        confirmLabel="Send test alert"
+        title={t("settings.sendTestAlert")}
+        description={t("settings.testAlertDescription")}
+        confirmLabel={t("settings.sendTestAlert")}
         onClose={() => setTestAlertOpen(false)}
         onSubmit={async (reason) => <TestSendOutcome result={await IntegrationsService.sendTestAlert(reason)} />}
       />
 
       <SignatureDialog
         open={signing}
-        meaningStatement={`I am changing the system setting ${editing?.key ?? ""} from ${editing?.value ?? ""} to ${draft}. Reason: ${reason.trim()}`}
+        meaningStatement={i18n.getFixedT("en", "admin")("settings.signatureMeaning", { key: editing?.key ?? "", oldValue: editing?.value ?? "", newValue: draft, reason: reason.trim() })}
+        meaningStatementTranslation={t("settings.signatureMeaning", { key: editing?.key ?? "", oldValue: editing?.value ?? "", newValue: draft, reason: reason.trim() })}
         onCancel={() => setSigning(false)}
         onConfirm={save}
       />
 
       <Drawer anchor="right" open={Boolean(historyFor)} onClose={() => setHistoryFor(null)}>
-        <Box sx={{ width: { xs: "100vw", sm: 480 }, p: 2 }} role="region" aria-label="Setting history">
-          <Typography variant="h6" component="h2">History</Typography>
+        <Box sx={{ width: { xs: "100vw", sm: 480 }, p: 2 }} role="region" aria-label={t("settings.historyRegion")}>
+          <Typography variant="h6" component="h2">{t("settings.history")}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{historyFor?.key}</Typography>
           {!history && <LoadingSpinner />}
-          {history && history.length === 0 && <Typography variant="body2">No changes recorded. The value has never been changed here.</Typography>}
+          {history && history.length === 0 && <Typography variant="body2">{t("settings.noHistory")}</Typography>}
           {history?.map((h) => (
             <Paper key={h.version} variant="outlined" sx={{ p: 1.5, mb: 1 }}>
               <Typography variant="subtitle2">
                 v{h.version}: {h.previousValue} {"->"} {h.value}
               </Typography>
               <Typography variant="caption" color="text.secondary" component="span" sx={{ display: "block" }}>
-                {h.changedByName ?? `User ${h.changedByUserId}`} on {formatDateTimeWithTimeZone(h.changedAt)}
-                {h.electronicSignatureId ? " (e-signed)" : ""}
+                {t("settings.changedBy", { name: h.changedByName ?? t("settings.userFallback", { id: h.changedByUserId }), date: formatDateTimeWithTimeZone(h.changedAt) })}
+                {h.electronicSignatureId ? t("settings.eSigned") : ""}
               </Typography>
-              <Typography variant="body2">Reason: {h.reason}</Typography>
+              <Typography variant="body2">{t("settings.reasonLine", { reason: h.reason })}</Typography>
             </Paper>
           ))}
         </Box>

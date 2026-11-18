@@ -1,10 +1,10 @@
 {
-  "total": 2295,
+  "total": 1512,
   "modules": {
     "components": 129,
-    "modules/admin": 366,
-    "modules/auditReview": 61,
-    "modules/auditSearch": 118,
+    "modules/admin": 13,
+    "modules/auditReview": 2,
+    "modules/auditSearch": 10,
     "modules/authentication": 59,
     "modules/dashboard": 13,
     "modules/discussions": 95,
@@ -19,9 +19,9 @@
     "modules/navigation": 12,
     "modules/notifications": 39,
     "modules/reports": 40,
-    "modules/roles": 72,
+    "modules/roles": 1,
     "modules/testingWorkspace": 305,
-    "modules/users": 197,
+    "modules/users": 5,
     "pages": 3,
     "pwa": 2
   }

@@ -1,0 +1,302 @@
+{
+  "controlChart": {
+    "categories": {
+      "EnvironmentalMonitoring": "الرصد البيئي",
+      "Water": "المياه",
+      "AfterCleaning": "بعد التنظيف",
+      "FinishedProduct": "منتج نهائي",
+      "RawMaterial": "مادة خام",
+      "PackagingMaterial": "مواد التعبئة والتغليف"
+    },
+    "methods": {
+      "MovingRange": "المتوسط ± k·σ (σ من المدى المتحرك، خريطة I وفق Minitab)",
+      "StandardDeviation": "المتوسط ± k × الانحراف المعياري",
+      "Percentile": "المئينات للبيانات"
+    },
+    "rounding": {
+      "None": "بدون",
+      "OneDecimal": "منزلة عشرية واحدة",
+      "TwoDecimals": "منزلتان عشريتان",
+      "UpToWholeNumber": "تقريب لأقرب عدد صحيح"
+    },
+    "basis": {
+      "SpecLimit": "حد المواصفات",
+      "ActionLimit": "حد الإجراء المُهيَّأ",
+      "AlertLimit": "حد التنبيه المُهيَّأ",
+      "Custom": "LSL / USL مخصص"
+    },
+    "chartKinds": {
+      "imr": {
+        "label": "خريطة I-MR",
+        "description": "خريطتا القيم الفردية والمدى المتحرك معاً (بأسلوب Minitab)"
+      },
+      "individuals": {
+        "label": "خريطة القيم الفردية (I)",
+        "description": "النتائج مع المتوسط وحدي التنبيه (±2σ) والإجراء (±3σ)"
+      },
+      "movingRange": {
+        "label": "خريطة المدى المتحرك (MR)",
+        "description": "التباين من نقطة لأخرى مع حد الضبط الخاص به"
+      },
+      "run": {
+        "label": "خريطة التتابع (خطية)",
+        "description": "النتائج عبر الزمن مع الحدود المُهيَّأة"
+      },
+      "bar": {
+        "label": "مخطط أعمدة",
+        "description": "عمود لكل نتيجة ملوَّن حسب مستوى النتيجة"
+      },
+      "scatter": {
+        "label": "مخطط الانتشار",
+        "description": "النتائج كنقاط دون خطوط واصلة"
+      },
+      "area": {
+        "label": "مخطط مساحي",
+        "description": "النتائج كمساحة مملوءة"
+      },
+      "histogram": {
+        "label": "مدرج القدرة التكراري",
+        "description": "التوزيع مع المنحنى الطبيعي وحدود القدرة"
+      },
+      "boxplot": {
+        "label": "مخطط الصندوق شهرياً",
+        "description": "الوسيط والربيعات والقيم الشاذة لكل شهر"
+      },
+      "monthly": {
+        "label": "الملخص الشهري",
+        "description": "المتوسط والحد الأقصى الشهري مع الحدود المُهيَّأة"
+      }
+    },
+    "rules": {
+      "1": "نقطة واحدة تتجاوز حد الإجراء",
+      "2": "9 نقاط متتالية في جانب واحد من المتوسط",
+      "3": "6 نقاط متتالية في صعود أو هبوط",
+      "4": "14 نقطة متتالية متناوبة",
+      "5": "نقطتان من 3 تتجاوزان 2σ (نفس الجانب)",
+      "6": "4 نقاط من 5 تتجاوزان 1σ (نفس الجانب)",
+      "7": "15 نقطة متتالية ضمن 1σ",
+      "8": "8 نقاط متتالية تتجاوز 1σ"
+    },
+    "summary": {
+      "percentile": "P{{alert}} / P{{action}} من النتائج{{oos}}",
+      "sigma": "المتوسط + {{alert}} / {{action}} {{sigma}}{{oos}}",
+      "mrSigma": "σ (مدى MR {{span}})",
+      "oosExcluded": "، باستثناء خارج المواصفات",
+      "basis": "طريقة الحساب: {{method}}، التقريب: {{rounding}}، النتائج من {{from}} إلى {{to}}{{approvedOnly}}",
+      "start": "البداية",
+      "now": "الآن",
+      "approvedOnly": " (المعتمدة فقط)"
+    },
+    "errors": {
+      "loadAnalysis": "تعذر تحميل التحليل.",
+      "loadRecord": "تعذر تحميل السجل المصدر.",
+      "captureChart": "تعذر التقاط الخريطة.",
+      "addSomeCharts": "تعذر إضافة بعض الخرائط.",
+      "loadOptions": "تعذر تحميل قوائم الاختبارات والمواقع. أعد تحميل الصفحة للمحاولة مرة أخرى."
+    },
+    "toasts": {
+      "addedOne": "تمت إضافة {{subject}} إلى التقرير.",
+      "addedMany": "تمت إضافة {{count}} خريطة إلى التقرير.",
+      "downloaded": "تم تنزيل {{fileName}}.",
+      "limitsUpdated": "تم تحديث الحدود لـ {{locations}}."
+    },
+    "criteria": {
+      "title": "معايير التحليل",
+      "sampleCategory": "فئة العينة",
+      "test": "الاختبار",
+      "productOrSubject": "المنتج / الموضوع",
+      "from": "من",
+      "to": "إلى",
+      "approvedOnly": "النتائج المعتمدة فقط",
+      "limitCalculation": "حساب الحدود",
+      "method": "الطريقة",
+      "alertPercentile": "مئين التنبيه",
+      "actionPercentile": "مئين الإجراء",
+      "alertK": "معامل التنبيه k",
+      "actionK": "معامل الإجراء k",
+      "mrSpan": "مدى MR",
+      "consecutiveSuffix": " (متتالي)",
+      "minPoints": "أدنى عدد نقاط",
+      "rounding": "التقريب",
+      "excludeOos": "استبعاد النتائج خارج المواصفات من الحدود",
+      "estimateFrom": "تقدير الحدود من (فارغ = كامل الفترة)",
+      "limitsFrom": "الحدود من",
+      "limitsTo": "الحدود إلى",
+      "testsThatFlag": "الاختبارات التي تؤشّر النقطة",
+      "capabilityAgainst": "قدرة العملية مقابل",
+      "capabilityLimits": "حدود القدرة"
+    },
+    "tabs": {
+      "chart": "خريطة ضبط والقدرة",
+      "review": "مراجعة الحدود (جميع المواقع)",
+      "events": "أحداث الكشف"
+    },
+    "actions": {
+      "compare": "مقارنة",
+      "report": "التقرير ({{count}})",
+      "resetTooltip": "مسح المعايير والإعدادات والنتائج وقائمة التقرير",
+      "reset": "إعادة تعيين",
+      "chartType": "نوع الخريطة",
+      "addToReportTooltip": "إضافة هذه الخريطة إلى التقرير",
+      "addToReport": "إضافة إلى التقرير",
+      "downloadPngTooltip": "تنزيل الخريطة (PNG)",
+      "downloadCsvTooltip": "تنزيل النقاط (CSV)",
+      "applyToConfig": "تطبيق على التهيئة",
+      "needsManagePermission": "يتطلب صلاحية MasterData.Manage",
+      "reportChartType": "نوع خريطة التقرير",
+      "addingProgress": "جارٍ الإضافة {{done}}/{{total}}...",
+      "addAllToReport": "إضافة الكل إلى التقرير",
+      "applySelected": "تطبيق المحدد ({{count}})"
+    },
+    "prompts": {
+      "chooseCategoryAndTest": "اختر فئة العينة والاختبار للتحليل.",
+      "chooseSubject": "اختر موقعاً أو منتجاً لعرض الخريطة."
+    },
+    "chartOptions": {
+      "showConfiguredLimits": "الحدود المُهيَّأة",
+      "showLowerLimits": "الحدود الدنيا (−2SL، LCL)",
+      "showRuleNumbers": "أرقام الاختبارات",
+      "showValueLabels": "تسميات القيم"
+    },
+    "banners": {
+      "belowMinPoints": "يوجد {{count}} نتيجة فقط في نافذة الحساب — أقل من الحد الأدنى ({{minimum}}) لحد مستند إحصائياً.",
+      "noNumericResults": "لا توجد نتائج رقمية لهذا الاختبار والموضوع في هذه الفترة. لاختبارات الكشف / عدم الكشف استخدم أحداث الكشف.",
+      "imputedPoints": "{{count}} نتيجة دون حد الكشف مرسومة عند نصف الحد."
+    },
+    "stats": {
+      "title": "الإحصاءات",
+      "resultsN": "النتائج (n)",
+      "mean": "المتوسط",
+      "median": "الوسيط",
+      "minMax": "الأدنى / الأقصى",
+      "sd": "الانحراف المعياري",
+      "sdHint": "الانحراف المعياري الإجمالي للعينة (n−1)",
+      "sigmaWithin": "σ الداخلي (MR̄/d2)",
+      "sigmaWithinHint": "σ قصير المدى من متوسط المدى المتحرك",
+      "proposedLimits": "الحدود المقترحة · {{summary}}",
+      "alert": "التنبيه",
+      "action": "الإجراء",
+      "currentAlertAction": "حد التنبيه / الإجراء الحالي",
+      "specification": "المواصفات",
+      "pointsFlagged": "النقاط المؤشَّرة",
+      "noMatchingConfig": "لا توجد تهيئة نشطة تطابق هذا الموقع وهذا الاختبار.",
+      "processCapability": "قدرة العملية · {{lsl}}{{usl}}",
+      "noLimit": "بلا حد",
+      "cpuCpl": "Cpu / Cpl",
+      "observedOutside": "الملاحظ خارج الحدود",
+      "expectedOutside": "المتوقع خارج الحدود (طبيعي)",
+      "capabilityNote": "تستخدم Cp/Cpk قيمة σ الداخلي، بينما تستخدم Pp/Ppk الانحراف المعياري الإجمالي. مع وجود حد أعلى فقط فإن Cpk = Cpu. تفترض المؤشرات توزيعاً طبيعياً تقريباً — غالباً ما تكون التعدادات الميكروبية ملتوية، لذا اقرأها مع مدرج القدرة التكراري."
+    },
+    "flagged": {
+      "title": "النقاط المؤشَّرة",
+      "date": "التاريخ",
+      "reference": "المرجع",
+      "result": "النتيجة",
+      "failedTests": "الاختبارات الفاشلة"
+    },
+    "review": {
+      "subtitle": "الحدود المقترحة: {{summary}}، التقريب: {{rounding}}",
+      "location": "الموقع",
+      "configuration": "التهيئة",
+      "mean": "المتوسط",
+      "sigmaUsed": "σ المستخدمة",
+      "newAlert": "التنبيه الجديد",
+      "newAction": "الإجراء الجديد",
+      "currentAlert": "التنبيه الحالي",
+      "currentAction": "الإجراء الحالي",
+      "deltaAlert": "Δ التنبيه",
+      "deltaAction": "Δ الإجراء",
+      "flagged": "المؤشَّرة",
+      "selectLocationAria": "تحديد {{subject}}",
+      "notConfigured": "غير مُهيَّأ",
+      "footnote": "يشير n الأحمر إلى نتائج أقل من الحد الأدنى. تُقاس Cpk مقابل حد المواصفات. حدد المواقع وطبّق لاستبدال حدي التنبيه والإجراء المُهيَّأين بتوقيعك الإلكتروني."
+    },
+    "events": {
+      "title": "النتائج المكتشفة · {{subject}} ({{count}})",
+      "allSubjects": "جميع المواضيع",
+      "subtitle": "النتائج النوعية المسجَّلة كمكتشفة حسب تاريخ إدخال النتيجة. انقر على صف لفتح السجل.",
+      "empty": "لا توجد حالات كشف مسجَّلة لهذا الاختبار في الفترة المحددة.",
+      "dateEntered": "تاريخ الإدخال",
+      "reference": "المرجع",
+      "itemLocation": "الصنف / الموقع",
+      "test": "الاختبار",
+      "result": "النتيجة",
+      "enteredBy": "أُدخِل بواسطة",
+      "status": "الحالة"
+    },
+    "spc": {
+      "resultLabel": "النتيجة:",
+      "plottedAt": " (مرسومة عند {{value}})",
+      "movingRangeLabel": "المدى المتحرك:",
+      "levelLabel": "المستوى:",
+      "outsideWindow": "خارج نافذة حساب الحدود",
+      "failedTests": "الاختبار(ات) الفاشلة: {{rules}}",
+      "noNumericResults": "لا توجد نتائج رقمية لاختبار {{test}} في {{subject}} خلال هذه الفترة.",
+      "configuredAlert": "التنبيه المُهيَّأ",
+      "configuredAction": "الإجراء المُهيَّأ",
+      "specification": "المواصفات",
+      "mean": "المتوسط",
+      "action": "الإجراء",
+      "alert": "التنبيه",
+      "result": "النتيجة",
+      "movingRange": "المدى المتحرك",
+      "frequency": "التكرار",
+      "resultsLabel": "النتائج:",
+      "normalFit": "الملاءمة الطبيعية:",
+      "results": "النتائج",
+      "normalCurve": "المنحنى الطبيعي",
+      "boxTooltipSummary": "الوسيط {{median}} · Q1 {{q1}} · Q3 {{q3}}",
+      "boxTooltipRange": "الأدنى {{min}} · الأقصى {{max}} · المتوسط {{mean}}",
+      "outliers": "القيم الشاذة: {{outliers}}",
+      "monthlyDistribution": "التوزيع الشهري",
+      "monthlyMean": "المتوسط الشهري",
+      "monthlyMaximum": "الحد الأقصى الشهري",
+      "monthlyMedian": "الوسيط الشهري"
+    },
+    "applyLimits": {
+      "title": "تطبيق حدود الاتجاه على التهيئة",
+      "cancel": "إلغاء",
+      "signAndApply": "توقيع وتطبيق ({{count}})",
+      "basis": "الأساس: {{basisSummary}}. تُطبَّق الحدود الجديدة على النتائج المُدخَلة من الآن فصاعداً؛ وتحتفظ النتائج المسجَّلة مسبقاً بالحدود التي قُيِّمت وفقها.",
+      "belowMinimumWarning": "بعض المواقع لديها نتائج أقل من الحد الأدنى للحد الإحصائي. برِّر ذلك في سبب التغيير.",
+      "location": "الموقع",
+      "configuration": "التهيئة",
+      "currentAlertAction": "حد التنبيه / الإجراء الحالي",
+      "calculatedAlertAction": "حد التنبيه / الإجراء المحسوب",
+      "newAlert": "حد التنبيه الجديد",
+      "newAction": "حد الإجراء الجديد",
+      "specification": "المواصفات",
+      "newAlertAria": "حد التنبيه الجديد لـ {{subject}}",
+      "newActionAria": "حد الإجراء الجديد لـ {{subject}}",
+      "override": "تجاوز",
+      "reasonLabel": "سبب التغيير",
+      "reasonPlaceholder": "مثال: المراجعة السنوية لحدود التنبيه والإجراء 2026 وفق الإجراء القياسي QC-EM-012",
+      "signatureMeaning": "أعتمد استبدال حدي التنبيه والإجراء لـ {{count}} تهيئة بالقيم الموضحة والمستخلصة من تحليل الاتجاه."
+    },
+    "reportBuilder": {
+      "generateError": "تعذر إنشاء التقرير.",
+      "defaultTitle": "تقرير خريطة ضبط",
+      "titleWithCount_zero": "التقرير (دون خرائط)",
+      "titleWithCount_one": "التقرير (خريطة واحدة)",
+      "titleWithCount_two": "التقرير (خريطتان)",
+      "titleWithCount_few": "التقرير ({{count}} خرائط)",
+      "titleWithCount_many": "التقرير ({{count}} خريطة)",
+      "titleWithCount_other": "التقرير ({{count}} خريطة)",
+      "closeAria": "إغلاق التقرير",
+      "titleLabel": "عنوان التقرير",
+      "notesLabel": "ملاحظات (اختياري)",
+      "notesPlaceholder": "مثال: المراجعة السنوية لحدود الرصد البيئي 2026 وفق الإجراء القياسي QC-EM-012",
+      "includeSummary": "جدول ملخص لجميع الخرائط في البداية",
+      "empty": "لا توجد خرائط بعد. استخدم «إضافة إلى التقرير» على أي خريطة، أو «إضافة الكل إلى التقرير» في مراجعة الحدود.",
+      "chartTitleAria": "عنوان الخريطة {{index}}",
+      "moveUp": "تحريك لأعلى",
+      "moveDown": "تحريك لأسفل",
+      "remove": "إزالة",
+      "footerNote": "يعيد الخادم حساب كل رقم في التقرير من إعدادات كل خريطة؛ ويُسجَّل التقرير في سجل تصدير البيانات.",
+      "generating": "جارٍ الإنشاء...",
+      "downloadPdf": "تنزيل PDF",
+      "downloadWord": "تنزيل Word",
+      "clearAll": "مسح جميع الخرائط"
+    }
+  }
+}

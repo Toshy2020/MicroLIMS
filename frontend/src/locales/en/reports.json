@@ -1,0 +1,298 @@
+{
+  "controlChart": {
+    "categories": {
+      "EnvironmentalMonitoring": "Environmental Monitoring",
+      "Water": "Water",
+      "AfterCleaning": "After Cleaning",
+      "FinishedProduct": "Finished Product",
+      "RawMaterial": "Raw Material",
+      "PackagingMaterial": "Packaging Material"
+    },
+    "methods": {
+      "MovingRange": "Mean ± k·σ (σ from moving range, Minitab I-chart)",
+      "StandardDeviation": "Mean ± k × standard deviation",
+      "Percentile": "Percentiles of the data"
+    },
+    "rounding": {
+      "None": "None",
+      "OneDecimal": "1 decimal",
+      "TwoDecimals": "2 decimals",
+      "UpToWholeNumber": "Up to whole number"
+    },
+    "basis": {
+      "SpecLimit": "Specification limit",
+      "ActionLimit": "Configured action limit",
+      "AlertLimit": "Configured alert limit",
+      "Custom": "Custom LSL / USL"
+    },
+    "chartKinds": {
+      "imr": {
+        "label": "I-MR chart",
+        "description": "Individuals and moving range charts together (Minitab style)"
+      },
+      "individuals": {
+        "label": "Individuals (I) chart",
+        "description": "Results with mean, alert (±2σ) and action (±3σ) limits"
+      },
+      "movingRange": {
+        "label": "Moving range (MR) chart",
+        "description": "Point-to-point variation with its own control limit"
+      },
+      "run": {
+        "label": "Run chart (line)",
+        "description": "Results over time with the configured limits"
+      },
+      "bar": {
+        "label": "Bar chart",
+        "description": "One bar per result, coloured by result level"
+      },
+      "scatter": {
+        "label": "Scatter plot",
+        "description": "Results as points, without connecting lines"
+      },
+      "area": {
+        "label": "Area chart",
+        "description": "Results as a filled area"
+      },
+      "histogram": {
+        "label": "Capability histogram",
+        "description": "Distribution with a normal curve and the capability limits"
+      },
+      "boxplot": {
+        "label": "Box plot by month",
+        "description": "Median, quartiles and outliers per month"
+      },
+      "monthly": {
+        "label": "Monthly summary",
+        "description": "Monthly mean and maximum with the configured limits"
+      }
+    },
+    "rules": {
+      "1": "1 point beyond the action limit",
+      "2": "9 in a row on one side of the mean",
+      "3": "6 in a row rising or falling",
+      "4": "14 in a row alternating",
+      "5": "2 of 3 beyond 2σ (same side)",
+      "6": "4 of 5 beyond 1σ (same side)",
+      "7": "15 in a row within 1σ",
+      "8": "8 in a row beyond 1σ"
+    },
+    "summary": {
+      "percentile": "P{{alert}} / P{{action}} of the results{{oos}}",
+      "sigma": "mean + {{alert}} / {{action}} {{sigma}}{{oos}}",
+      "mrSigma": "σ (MR span {{span}})",
+      "oosExcluded": ", OOS excluded",
+      "basis": "{{method}}, rounding {{rounding}}, results {{from}} to {{to}}{{approvedOnly}}",
+      "start": "start",
+      "now": "now",
+      "approvedOnly": " (approved only)"
+    },
+    "errors": {
+      "loadAnalysis": "The analysis could not be loaded.",
+      "loadRecord": "The source record could not be loaded.",
+      "captureChart": "Could not capture the chart.",
+      "addSomeCharts": "Some charts could not be added.",
+      "loadOptions": "The test and location lists could not be loaded. Reload the page to try again."
+    },
+    "toasts": {
+      "addedOne": "Added {{subject}} to the report.",
+      "addedMany": "Added {{count}} chart(s) to the report.",
+      "downloaded": "{{fileName}} downloaded.",
+      "limitsUpdated": "Limits updated for {{locations}}."
+    },
+    "criteria": {
+      "title": "Analysis criteria",
+      "sampleCategory": "Sample category",
+      "test": "Test",
+      "productOrSubject": "Product / subject",
+      "from": "From",
+      "to": "To",
+      "approvedOnly": "Approved results only",
+      "limitCalculation": "Limit calculation",
+      "method": "Method",
+      "alertPercentile": "Alert percentile",
+      "actionPercentile": "Action percentile",
+      "alertK": "Alert k",
+      "actionK": "Action k",
+      "mrSpan": "MR span",
+      "consecutiveSuffix": " (consecutive)",
+      "minPoints": "Min. points",
+      "rounding": "Rounding",
+      "excludeOos": "Exclude out-of-spec results from the limits",
+      "estimateFrom": "Estimate limits from (blank = whole period)",
+      "limitsFrom": "Limits from",
+      "limitsTo": "Limits to",
+      "testsThatFlag": "Tests that flag a point",
+      "capabilityAgainst": "Process capability against",
+      "capabilityLimits": "Capability limits"
+    },
+    "tabs": {
+      "chart": "Control chart & capability",
+      "review": "Limit review (all locations)",
+      "events": "Detection events"
+    },
+    "actions": {
+      "compare": "Compare",
+      "report": "Report ({{count}})",
+      "resetTooltip": "Clear the criteria, settings, results and report queue",
+      "reset": "Reset",
+      "chartType": "Chart type",
+      "addToReportTooltip": "Add this chart to the report",
+      "addToReport": "Add to report",
+      "downloadPngTooltip": "Download chart (PNG)",
+      "downloadCsvTooltip": "Download points (CSV)",
+      "applyToConfig": "Apply to configuration",
+      "needsManagePermission": "Needs the MasterData.Manage permission",
+      "reportChartType": "Report chart type",
+      "addingProgress": "Adding {{done}}/{{total}}...",
+      "addAllToReport": "Add all to report",
+      "applySelected": "Apply selected ({{count}})"
+    },
+    "prompts": {
+      "chooseCategoryAndTest": "Choose a sample category and a test to analyse.",
+      "chooseSubject": "Choose a location or product to chart."
+    },
+    "chartOptions": {
+      "showConfiguredLimits": "Configured limits",
+      "showLowerLimits": "Lower limits (−2SL, LCL)",
+      "showRuleNumbers": "Test numbers",
+      "showValueLabels": "Value labels"
+    },
+    "banners": {
+      "belowMinPoints": "Only {{count}} result(s) in the calculation window - fewer than the minimum of {{minimum}} for a statistically based limit.",
+      "noNumericResults": "No numeric results for this test and subject in the period. For detected / not detected tests use Detection events.",
+      "imputedPoints": "{{count}} result(s) below the detection limit are plotted at half the limit."
+    },
+    "stats": {
+      "title": "Statistics",
+      "resultsN": "Results (n)",
+      "mean": "Mean",
+      "median": "Median",
+      "minMax": "Min / Max",
+      "sd": "Standard deviation",
+      "sdHint": "Overall sample SD (n−1)",
+      "sigmaWithin": "σ within (MR̄/d2)",
+      "sigmaWithinHint": "Short-term σ from the average moving range",
+      "proposedLimits": "Proposed limits · {{summary}}",
+      "alert": "Alert",
+      "action": "Action",
+      "currentAlertAction": "Current alert / action",
+      "specification": "Specification",
+      "pointsFlagged": "Points flagged",
+      "noMatchingConfig": "No active configuration matches this location and test.",
+      "processCapability": "Process capability · {{lsl}}{{usl}}",
+      "noLimit": "no limit",
+      "cpuCpl": "Cpu / Cpl",
+      "observedOutside": "Observed outside limits",
+      "expectedOutside": "Expected outside (normal)",
+      "capabilityNote": "Cp/Cpk use σ within, Pp/Ppk the overall SD. With only an upper limit Cpk = Cpu. Indices assume roughly normal data - microbial counts are usually skewed, so read them with the capability histogram."
+    },
+    "flagged": {
+      "title": "Flagged points",
+      "date": "Date",
+      "reference": "Reference",
+      "result": "Result",
+      "failedTests": "Failed tests"
+    },
+    "review": {
+      "subtitle": "Proposed limits: {{summary}}, rounding {{rounding}}",
+      "location": "Location",
+      "configuration": "Configuration",
+      "mean": "Mean",
+      "sigmaUsed": "σ used",
+      "newAlert": "New alert",
+      "newAction": "New action",
+      "currentAlert": "Current alert",
+      "currentAction": "Current action",
+      "deltaAlert": "Δ alert",
+      "deltaAction": "Δ action",
+      "flagged": "Flagged",
+      "selectLocationAria": "Select {{subject}}",
+      "notConfigured": "Not configured",
+      "footnote": "Red n = fewer results than the minimum. Cpk is against the specification limit. Select locations and apply to replace their configured alert and action limits under your electronic signature."
+    },
+    "events": {
+      "title": "Detected results · {{subject}} ({{count}})",
+      "allSubjects": "all subjects",
+      "subtitle": "Qualitative results reported as Detected, by result entry date. Click a row to open the record.",
+      "empty": "No detections recorded for this test in the selected period.",
+      "dateEntered": "Date entered",
+      "reference": "Reference",
+      "itemLocation": "Item / location",
+      "test": "Test",
+      "result": "Result",
+      "enteredBy": "Entered by",
+      "status": "Status"
+    },
+    "spc": {
+      "resultLabel": "Result:",
+      "plottedAt": " (plotted at {{value}})",
+      "movingRangeLabel": "Moving range:",
+      "levelLabel": "Level:",
+      "outsideWindow": "Outside the limit calculation window",
+      "failedTests": "Failed test(s): {{rules}}",
+      "noNumericResults": "No numeric results for {{test}} at {{subject}} in this period.",
+      "configuredAlert": "Configured alert",
+      "configuredAction": "Configured action",
+      "specification": "Specification",
+      "mean": "Mean",
+      "action": "Action",
+      "alert": "Alert",
+      "result": "Result",
+      "movingRange": "Moving range",
+      "frequency": "Frequency",
+      "resultsLabel": "Results:",
+      "normalFit": "Normal fit:",
+      "results": "Results",
+      "normalCurve": "Normal curve",
+      "boxTooltipSummary": "Median {{median}} · Q1 {{q1}} · Q3 {{q3}}",
+      "boxTooltipRange": "Min {{min}} · Max {{max}} · Mean {{mean}}",
+      "outliers": "Outliers: {{outliers}}",
+      "monthlyDistribution": "Monthly distribution",
+      "monthlyMean": "Monthly mean",
+      "monthlyMaximum": "Monthly maximum",
+      "monthlyMedian": "Monthly median"
+    },
+    "applyLimits": {
+      "title": "Apply trend limits to configuration",
+      "cancel": "Cancel",
+      "signAndApply": "Sign & apply ({{count}})",
+      "basis": "Basis: {{basisSummary}}. New limits apply to results entered from now on; results already recorded keep the limits they were evaluated against.",
+      "belowMinimumWarning": "Some locations have fewer results than the minimum for a statistical limit. Justify this in the reason for change.",
+      "location": "Location",
+      "configuration": "Configuration",
+      "currentAlertAction": "Current alert / action",
+      "calculatedAlertAction": "Calculated alert / action",
+      "newAlert": "New alert",
+      "newAction": "New action",
+      "specification": "Specification",
+      "newAlertAria": "New alert limit for {{subject}}",
+      "newActionAria": "New action limit for {{subject}}",
+      "override": "Override",
+      "reasonLabel": "Reason for change",
+      "reasonPlaceholder": "e.g. Annual alert/action limit review 2026 per SOP QC-EM-012",
+      "signatureMeaning": "I approve replacing the alert and action limits of {{count}} configuration(s) with the values shown, derived from the trend analysis."
+    },
+    "reportBuilder": {
+      "generateError": "The report could not be generated.",
+      "defaultTitle": "Control chart report",
+      "titleWithCount_one": "Report ({{count}} chart)",
+      "titleWithCount_other": "Report ({{count}} charts)",
+      "closeAria": "Close report",
+      "titleLabel": "Report title",
+      "notesLabel": "Notes (optional)",
+      "notesPlaceholder": "e.g. Annual EM limit review 2026 per SOP QC-EM-012",
+      "includeSummary": "Summary table of all charts at the start",
+      "empty": "No charts yet. Use “Add to report” on a chart, or “Add all to report” in the limit review.",
+      "chartTitleAria": "Title of chart {{index}}",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove",
+      "footerNote": "The server recalculates every figure in the report from each chart's own settings; the report is recorded in the data export log.",
+      "generating": "Generating...",
+      "downloadPdf": "Download PDF",
+      "downloadWord": "Download Word",
+      "clearAll": "Clear all charts"
+    }
+  }
+}

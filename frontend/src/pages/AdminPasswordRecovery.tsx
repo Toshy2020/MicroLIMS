@@ -12,16 +12,26 @@ import RemoveIcon from "@mui/icons-material/Remove";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
+import { useTranslation } from "../i18n";
+import { serverMessage } from "../utils/errorMessage";
 
-const POLICY_RULES: { label: string; test: (pw: string) => boolean }[] = [
-  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { label: "At least one uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "At least one lowercase letter", test: (pw) => /[a-z]/.test(pw) },
-  { label: "At least one digit", test: (pw) => /[0-9]/.test(pw) },
-  { label: "At least one special (non-alphanumeric) character", test: (pw) => /[^a-zA-Z0-9]/.test(pw) }
+const RECOVERY_CODE_PLACEHOLDER = "XXXX-XXXX-XXXX";
+
+const POLICY_RULES: { key: "minLength" | "uppercase" | "lowercase" | "digit" | "special"; test: (pw: string) => boolean }[] = [
+  { key: "minLength", test: (pw) => pw.length >= 8 },
+  { key: "uppercase", test: (pw) => /[A-Z]/.test(pw) },
+  { key: "lowercase", test: (pw) => /[a-z]/.test(pw) },
+  { key: "digit", test: (pw) => /[0-9]/.test(pw) },
+  { key: "special", test: (pw) => /[^a-zA-Z0-9]/.test(pw) }
 ];
 
+function ruleState(met: boolean, blurred: boolean, pw: string): "met" | "failed" | "pending" {
+  if (met) return "met";
+  return blurred && pw ? "failed" : "pending";
+}
+
 export function AdminPasswordRecovery() {
+  const { t } = useTranslation("account");
   const [username, setUsername] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -41,18 +51,18 @@ export function AdminPasswordRecovery() {
     setError(null);
 
     if (!username || !recoveryCode || !newPassword || !confirmPassword) {
-      setError("All fields are required.");
+      setError(t("adminRecovery.allFieldsRequired"));
       return;
     }
 
     if (failedRules.length > 0) {
       setNewPasswordBlurred(true);
-      setError("New password does not meet the policy requirements below.");
+      setError(t("adminRecovery.policyNotMet"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("New password and confirm password do not match.");
+      setError(t("adminRecovery.mismatch"));
       return;
     }
 
@@ -60,8 +70,8 @@ export function AdminPasswordRecovery() {
     try {
       await authenticationService.confirmAdminPasswordRecovery(username, recoveryCode, newPassword);
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not perform password recovery. Please verify your recovery code.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("adminRecovery.recoveryFailed"));
     } finally {
       setLoading(false);
     }
@@ -81,12 +91,12 @@ export function AdminPasswordRecovery() {
             <Typography variant="h5" sx={{
               fontWeight: 700
             }}>
-              Password Recovery
+              {t("adminRecovery.title")}
             </Typography>
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              Administrator-Assisted Account Access Recovery
+              {t("adminRecovery.subtitle")}
             </Typography>
           </Stack>
 
@@ -96,17 +106,17 @@ export function AdminPasswordRecovery() {
               textAlign: "center"
             }}>
               <Alert severity="success">
-                Your password has been successfully reset! You can now log in using your new password.
+                {t("adminRecovery.successMessage")}
               </Alert>
               <Button component={RouterLink} to="/login" variant="contained">
-                Go to Login Page
+                {t("adminRecovery.goToLogin")}
               </Button>
             </Stack>
           ) : (
             <form onSubmit={handleSubmit}>
               <Stack spacing={2}>
                 <TextField
-                  label="Username"
+                  label={t("adminRecovery.username")}
                   size="small"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -114,17 +124,17 @@ export function AdminPasswordRecovery() {
                   required
                 />
                 <TextField
-                  label="One-Time Recovery Code"
+                  label={t("adminRecovery.recoveryCodeLabel")}
                   size="small"
-                  placeholder="XXXX-XXXX-XXXX"
+                  placeholder={RECOVERY_CODE_PLACEHOLDER}
                   value={recoveryCode}
                   onChange={(e) => setRecoveryCode(e.target.value)}
                   fullWidth
                   required
-                  helperText="Format: 12 alphanumeric characters provided by your admin"
+                  helperText={t("adminRecovery.recoveryCodeHelper")}
                 />
                 <TextField
-                  label="New Password"
+                  label={t("adminRecovery.newPassword")}
                   size="small"
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
@@ -138,7 +148,7 @@ export function AdminPasswordRecovery() {
                         <InputAdornment position="end">
                           <IconButton
                             size="small"
-                            aria-label={showNewPassword ? "Hide new password" : "Show new password"}
+                            aria-label={showNewPassword ? t("adminRecovery.hideNewPassword") : t("adminRecovery.showNewPassword")}
                             onClick={() => setShowNewPassword((prev) => !prev)}
                             edge="end"
                           >
@@ -150,7 +160,7 @@ export function AdminPasswordRecovery() {
                   }}
                 />
                 <TextField
-                  label="Confirm New Password"
+                  label={t("adminRecovery.confirmNewPassword")}
                   size="small"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
@@ -158,14 +168,14 @@ export function AdminPasswordRecovery() {
                   fullWidth
                   required
                   error={confirmPassword.length > 0 && confirmPassword !== newPassword}
-                  helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? "Passwords do not match." : undefined}
+                  helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? t("adminRecovery.passwordsDoNotMatch") : undefined}
                   slotProps={{
                     input: {
                       endAdornment: (
                         <InputAdornment position="end">
                           <IconButton
                             size="small"
-                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                            aria-label={showConfirmPassword ? t("adminRecovery.hideConfirmPassword") : t("adminRecovery.showConfirmPassword")}
                             onClick={() => setShowConfirmPassword((prev) => !prev)}
                             edge="end"
                           >
@@ -178,23 +188,23 @@ export function AdminPasswordRecovery() {
                 />
 
                 <Box>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>Password must contain:</Typography>
-                  <List dense disablePadding aria-label="Password policy requirements" aria-live="polite">
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>{t("adminRecovery.policyHeading")}</Typography>
+                  <List dense disablePadding aria-label={t("adminRecovery.policyAria")} aria-live="polite">
                     {POLICY_RULES.map((rule) => {
                       const met = rule.test(newPassword);
-                      const state = met ? "met" : newPasswordBlurred && newPassword ? "failed" : "pending";
-                      const statusDesc = state === "met" ? "Satisfied" : state === "failed" ? "Requirement not met" : "Not met yet";
+                      const state = ruleState(met, newPasswordBlurred, newPassword);
+                      const statusDesc = state === "met" ? t("adminRecovery.statusMet") : state === "failed" ? t("adminRecovery.statusFailed") : t("adminRecovery.statusPending");
                       return (
-                        <ListItem key={rule.label} disableGutters disablePadding>
+                        <ListItem key={rule.key} disableGutters disablePadding>
                           <ListItemIcon sx={{ minWidth: 28 }}>
-                            {state === "met" && <CheckCircleIcon fontSize="small" color="success" titleAccess="Met" />}
-                            {state === "failed" && <CancelIcon fontSize="small" color="error" titleAccess="Not met" />}
-                            {state === "pending" && <RemoveIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Not met yet" />}
+                            {state === "met" && <CheckCircleIcon fontSize="small" color="success" titleAccess={t("adminRecovery.iconMet")} />}
+                            {state === "failed" && <CancelIcon fontSize="small" color="error" titleAccess={t("adminRecovery.iconFailed")} />}
+                            {state === "pending" && <RemoveIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess={t("adminRecovery.iconPending")} />}
                           </ListItemIcon>
                           <ListItemText
                             primary={
                               <>
-                                {rule.label}
+                                {t(`adminRecovery.rules.${rule.key}`)}
                                 <Box component="span" sx={visuallyHidden}>: {statusDesc}</Box>
                               </>
                             }
@@ -216,7 +226,7 @@ export function AdminPasswordRecovery() {
                   disabled={loading}
                   fullWidth
                 >
-                  {loading ? "Resetting Password..." : "Submit Password Recovery"}
+                  {loading ? t("adminRecovery.resetting") : t("adminRecovery.submit")}
                 </Button>
               </Stack>
             </form>
@@ -228,7 +238,7 @@ export function AdminPasswordRecovery() {
               mt: 1
             }}>
             <Link component={RouterLink} to="/login" variant="body2" underline="hover">
-              Return to Login
+              {t("adminRecovery.returnToLogin")}
             </Link>
           </Box>
         </Stack>

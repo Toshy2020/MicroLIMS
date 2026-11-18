@@ -6,8 +6,10 @@ import { authenticationService } from "../modules/authentication/services/authen
 import { PASSWORD_POLICY_RULES, PasswordPolicyChecklist } from "../modules/authentication/components/PasswordPolicyChecklist";
 import { useAuth } from "../contexts/AuthContext";
 import { getErrorMessage, serverMessage } from "../utils/errorMessage";
+import { useTranslation } from "../i18n";
 
 export function ChangePasswordPage() {
+  const { t } = useTranslation("account");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -31,16 +33,16 @@ export function ChangePasswordPage() {
     if (failedRules.length > 0) {
       setError(
         isDirectoryUser
-          ? "New signing password does not meet the policy requirements below."
-          : "New password does not meet the policy requirements below."
+          ? t("changePassword.signingPolicyNotMet")
+          : t("changePassword.policyNotMet")
       );
       return;
     }
     if (newPassword !== confirmPassword) {
       setError(
         isDirectoryUser
-          ? "New signing password and confirmation do not match."
-          : "New password and confirmation do not match."
+          ? t("changePassword.signingMismatch")
+          : t("changePassword.passwordMismatch")
       );
       return;
     }
@@ -54,7 +56,7 @@ export function ChangePasswordPage() {
     } catch (err: unknown) {
       setError(
         serverMessage(err) ??
-          getErrorMessage(err, isDirectoryUser ? "Could not change signing password." : "Could not change password.")
+          getErrorMessage(err, isDirectoryUser ? t("changePassword.signingChangeFailed") : t("changePassword.passwordChangeFailed"))
       );
     } finally {
       setSubmitting(false);
@@ -64,25 +66,25 @@ export function ChangePasswordPage() {
   return (
     <>
       <PageHeader
-        title={isDirectoryUser ? "Change Signing Password" : "Change Password"}
+        title={isDirectoryUser ? t("changePassword.signingTitle") : t("changePassword.title")}
         subtitle={
           isDirectoryUser
-            ? "Update your MicroLIMS signing password. It is used only for electronic signatures and must not be your company password."
-            : "Update your laboratory credentials in compliance with periodic security policy."
+            ? t("changePassword.signingSubtitle")
+            : t("changePassword.subtitle")
         }
       />
       <Paper sx={{ p: 3, maxWidth: 480 }}>
         {success ? (
           <Alert severity="success">
             {isDirectoryUser
-              ? "Signing password changed successfully. Returning to your profile..."
-              : "Password changed successfully. Returning to your profile..."}
+              ? t("changePassword.signingSuccess")
+              : t("changePassword.success")}
           </Alert>
         ) : (
           <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
-              label={isDirectoryUser ? "Current Signing Password" : "Current Password"}
+              label={isDirectoryUser ? t("changePassword.currentSigningPassword") : t("changePassword.currentPassword")}
               type="password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -90,7 +92,7 @@ export function ChangePasswordPage() {
               required
             />
             <TextField
-              label={isDirectoryUser ? "New Signing Password" : "New Password"}
+              label={isDirectoryUser ? t("changePassword.newSigningPassword") : t("changePassword.newPassword")}
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -98,19 +100,19 @@ export function ChangePasswordPage() {
               onBlur={() => setNewPasswordBlurred(true)}
             />
             <TextField
-              label={isDirectoryUser ? "Confirm New Signing Password" : "Confirm New Password"}
+              label={isDirectoryUser ? t("changePassword.confirmSigningPassword") : t("changePassword.confirmPassword")}
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               error={confirmPassword.length > 0 && confirmPassword !== newPassword}
-              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? "Passwords do not match." : undefined}
+              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? t("changePassword.passwordsDoNotMatch") : undefined}
             />
 
             <PasswordPolicyChecklist
               password={newPassword}
               blurred={newPasswordBlurred}
-              heading={isDirectoryUser ? "Signing password must contain:" : "Password must contain:"}
+              heading={isDirectoryUser ? t("changePassword.signingPolicyHeading") : t("changePassword.policyHeading")}
             />
 
             <Button
@@ -120,7 +122,11 @@ export function ChangePasswordPage() {
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             >
-              {submitting ? "Updating Credentials..." : isDirectoryUser ? "Change Signing Password" : "Change Password"}
+              {submitting
+                ? t("changePassword.updating")
+                : isDirectoryUser
+                  ? t("changePassword.signingTitle")
+                  : t("changePassword.title")}
             </Button>
           </Box>
         )}

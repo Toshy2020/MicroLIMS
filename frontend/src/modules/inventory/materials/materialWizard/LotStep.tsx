@@ -1,7 +1,9 @@
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { MATERIAL_UNITS, type MaterialItem, type MaterialUnit } from "../types/materialTypes";
+import { wizardText as tw } from "./wizardText";
 import { StepErrorAlert } from "./StepErrorAlert";
 import { StorageLocationField } from "./StorageLocationField";
 import type { MaterialLookups } from "./materialLookups";
@@ -23,6 +25,7 @@ function activeSectionOf(model: MaterialFormModel, editing: MaterialItem | null)
 }
 
 function LotStepView({ model, set, errors, editing, lookups }: LotStepProps) {
+  const { t } = useTranslation("inventory");
   const choices = storageChoices(lookups.equipment, lookups.sections, activeSectionOf(model, editing), model.location);
   const view = deriveMaterialView(model, editing, lookups);
 
@@ -35,8 +38,8 @@ function LotStepView({ model, set, errors, editing, lookups }: LotStepProps) {
           size="small"
           required
           name="batchNumber"
-          label="Batch / Lot No."
-          placeholder="e.g. 3458921"
+          label={t("wizard.lot.batchLot")}
+          placeholder={t("wizard.lot.batchExample")}
           value={model.batchNumber}
           onChange={(e) => set({ batchNumber: e.target.value })}
           error={Boolean(errors.batchNumber)}
@@ -53,17 +56,17 @@ function LotStepView({ model, set, errors, editing, lookups }: LotStepProps) {
           required
           type="number"
           name="quantityReceived"
-          label="Quantity Received"
+          label={t("wizard.lot.quantity")}
           value={model.quantityReceived}
           onChange={(e) => set({ quantityReceived: e.target.value })}
           error={Boolean(errors.quantityReceived)}
           slotProps={{ htmlInput: { min: 0, step: "any" } }}
         />
         <FormControl size="small" fullWidth required>
-          <InputLabel id="material-unit-label">Unit</InputLabel>
+          <InputLabel id="material-unit-label">{t("wizard.lot.unit")}</InputLabel>
           <Select
             labelId="material-unit-label"
-            label="Unit"
+            label={t("wizard.lot.unit")}
             name="unit"
             value={model.unit}
             onChange={(e) => set({ unit: e.target.value as MaterialUnit })}
@@ -79,8 +82,8 @@ function LotStepView({ model, set, errors, editing, lookups }: LotStepProps) {
           size="small"
           type="number"
           name="minimumStockLevel"
-          label="Min. Stock Level (optional)"
-          placeholder="e.g. 500"
+          label={t("wizard.lot.minLevelOptional")}
+          placeholder={t("wizard.lot.minExample")}
           value={model.minimumStockLevel}
           onChange={(e) => set({ minimumStockLevel: e.target.value })}
           slotProps={{ htmlInput: { min: 0, step: "any" } }}
@@ -88,12 +91,12 @@ function LotStepView({ model, set, errors, editing, lookups }: LotStepProps) {
         <TextField
           size="small"
           name="storageCondition"
-          label="Storage Condition"
-          placeholder="e.g. 2-8 °C, protect from light"
+          label={t("wizard.lot.storageCondition")}
+          placeholder={t("wizard.lot.storageExample")}
           value={model.storageCondition}
           onChange={(e) => set({ storageCondition: e.target.value })}
           helperText={
-            view.selectedCategory?.defaultStorageCondition ? "Prefilled from the category; change it if this lot differs." : undefined
+            view.selectedCategory?.defaultStorageCondition ? t("wizard.lot.prefilled") : undefined
           }
           sx={{ gridColumn: { xs: "1", sm: "1 / -1" } }}
         />
@@ -109,7 +112,7 @@ export function createLotStep(
 ): WizardStep<MaterialFormModel> {
   return {
     key: "lot",
-    title: "Batch and storage",
+    title: tw("wizard.steps.lot"),
     validate: (model) => validateStep("lot", model, getContext(model)),
     render: ({ model, set, errors }) => (
       <LotStepView model={model} set={set} errors={errors} editing={getEditing()} lookups={getLookups()} />
@@ -117,15 +120,15 @@ export function createLotStep(
     summary: (model) => {
       const quantity = model.quantityReceived === "" ? "—" : `${model.quantityReceived} ${model.unit}`;
       return [
-        { label: "Batch / Lot No.", value: model.batchNumber.trim() || "—", field: "batchNumber" },
-        { label: "Storage Location", value: model.location.trim() || "—", field: "location" },
-        { label: "Quantity Received", value: quantity, field: "quantityReceived" },
+        { label: tw("wizard.lot.batchLot"), value: model.batchNumber.trim() || "—", field: "batchNumber" },
+        { label: tw("wizard.lot.storageLocation"), value: model.location.trim() || "—", field: "location" },
+        { label: tw("wizard.lot.quantity"), value: quantity, field: "quantityReceived" },
         {
-          label: "Min. Stock Level",
+          label: tw("wizard.lot.minLevel"),
           value: model.minimumStockLevel === "" ? "—" : `${model.minimumStockLevel} ${model.unit}`,
           field: "minimumStockLevel"
         },
-        { label: "Storage Condition", value: model.storageCondition.trim() || "—", field: "storageCondition" }
+        { label: tw("wizard.lot.storageCondition"), value: model.storageCondition.trim() || "—", field: "storageCondition" }
       ];
     }
   };

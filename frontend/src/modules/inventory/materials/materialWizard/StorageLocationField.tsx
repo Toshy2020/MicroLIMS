@@ -1,4 +1,5 @@
 import { Box, FormControl, InputLabel, ListSubheader, MenuItem, Paper, Select, Typography } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import {
   equipmentLocationTag,
   isEquipmentLocation,
@@ -51,39 +52,40 @@ const gridSx = (columns: number) =>
   ({ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: `repeat(${columns}, 1fr)` }, gap: 1.5 }) as const;
 
 export function StorageLocationField({ location, onChange, choices, loading, error }: StorageLocationFieldProps) {
+  const { t } = useTranslation("inventory");
   const { selectedEquipment, roomStorageOption, activeSection } = choices;
   return (
     <>
       <FormControl size="small" fullWidth required error={error} sx={{ gridColumn: { sm: "span 2" } }}>
-        <InputLabel id="storage-location-label">Storage Location</InputLabel>
+        <InputLabel id="storage-location-label">{t("wizard.lot.storageLocation")}</InputLabel>
         <Select
           labelId="storage-location-label"
-          label="Storage Location"
+          label={t("wizard.lot.storageLocation")}
           name="location"
           value={selectedEquipment && isEquipmentLocation(location, selectedEquipment) ? equipmentLocationTag(selectedEquipment) : location}
           onChange={(e) => onChange(e.target.value)}
           disabled={loading}
         >
           <MenuItem value="">
-            <em>{loading ? "Loading storage locations..." : "Select storage location..."}</em>
+            <em>{loading ? t("wizard.storage.loading") : t("wizard.storage.select")}</em>
           </MenuItem>
-          {equipmentGroup({ title: "Equipment: Refrigerator", items: choices.refrigerators, none: "No in-service refrigerator configured", noneKey: "no-ref" })}
-          {equipmentGroup({ title: "Equipment: Deep Freezer", items: choices.deepFreezers, none: "No in-service deep freezer configured", noneKey: "no-df" })}
-          {equipmentGroup({ title: "Equipment: Freezer", items: choices.freezers, none: "No in-service freezer configured", noneKey: "no-fr" })}
-          {choices.hasOtherOptions && <ListSubheader sx={groupLabelSx}>Other</ListSubheader>}
+          {equipmentGroup({ title: t("wizard.storage.refrigerator"), items: choices.refrigerators, none: t("wizard.storage.noRefrigerator"), noneKey: "no-ref" })}
+          {equipmentGroup({ title: t("wizard.storage.deepFreezer"), items: choices.deepFreezers, none: t("wizard.storage.noDeepFreezer"), noneKey: "no-df" })}
+          {equipmentGroup({ title: t("wizard.storage.freezer"), items: choices.freezers, none: t("wizard.storage.noFreezer"), noneKey: "no-fr" })}
+          {choices.hasOtherOptions && <ListSubheader sx={groupLabelSx}>{t("wizard.storage.other")}</ListSubheader>}
           {roomStorageOption && <MenuItem value={roomStorageOption}>{roomStorageOption}</MenuItem>}
           {/* Fallback for legacy material locations when editing */}
-          {choices.isFallbackLocation && <MenuItem value={location}>{location} (Current Location)</MenuItem>}
+          {choices.isFallbackLocation && <MenuItem value={location}>{t("wizard.storage.currentLocation", { location })}</MenuItem>}
         </Select>
       </FormControl>
 
       {selectedEquipment && (
         <Paper variant="outlined" sx={{ ...cardSx, gridColumn: "1 / -1" }}>
           <Box sx={gridSx(4)}>
-            <Detail label="Selected Storage" value={`${selectedEquipment.instrumentType}, ${selectedEquipment.manufacturerName || "Asset"}`} tone="primary.main" />
-            <Detail label="Code" value={selectedEquipment.code} />
-            <Detail label="Location" value={selectedEquipment.location || "—"} />
-            <Detail label="Status" value="In Service" tone="success.main" />
+            <Detail label={t("wizard.storage.selected")} value={`${selectedEquipment.instrumentType}, ${selectedEquipment.manufacturerName || t("wizard.storage.asset")}`} tone="primary.main" />
+            <Detail label={t("wizard.storage.code")} value={selectedEquipment.code} />
+            <Detail label={t("wizard.storage.location")} value={selectedEquipment.location || "—"} />
+            <Detail label={t("wizard.storage.status")} value={t("wizard.storage.inService")} tone="success.main" />
           </Box>
         </Paper>
       )}
@@ -91,9 +93,9 @@ export function StorageLocationField({ location, onChange, choices, loading, err
       {roomStorageOption && location === roomStorageOption && (
         <Paper variant="outlined" sx={{ ...cardSx, gridColumn: "1 / -1" }}>
           <Box sx={gridSx(3)}>
-            <Detail label="Selected Storage" value={roomStorageOption} tone="primary.main" />
-            <Detail label="Storage Type" value="Ambient / Room Storage" />
-            <Detail label="Location" value={activeSection?.sectionName ?? roomStorageOption} />
+            <Detail label={t("wizard.storage.selected")} value={roomStorageOption} tone="primary.main" />
+            <Detail label={t("wizard.storage.type")} value={t("wizard.storage.ambient")} />
+            <Detail label={t("wizard.storage.location")} value={activeSection?.sectionName ?? roomStorageOption} />
           </Box>
         </Paper>
       )}

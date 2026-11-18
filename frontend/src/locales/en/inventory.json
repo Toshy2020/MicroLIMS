@@ -195,5 +195,113 @@
       "info": "The document <b><ltr>{{name}}</ltr></b> will be marked <b>Voided</b>. The file and metadata are retained for audit purposes but this document will no longer satisfy any COA requirement.",
       "reason": "Reason for Voiding *"
     }
+  },
+  "wizard": {
+    "steps": {
+      "material": "Material",
+      "lot": "Batch and storage",
+      "dates": "Dates"
+    },
+    "title": {
+      "add": "Add Material to Stock",
+      "edit": "Edit Material",
+      "editWithId": "Edit Material - {{stockId}}"
+    },
+    "saved": {
+      "updated": "Material stock updated successfully.",
+      "addedAs": "Material added to stock as {{stockId}}.",
+      "added": "Material added to stock successfully."
+    },
+    "material": {
+      "type": "Material Type",
+      "legacyHelper": "Received before material categories; the stored type is kept.",
+      "keepsCategory": "A received lot keeps its category.",
+      "section": "Laboratory Section",
+      "selectSection": "Select Laboratory Section...",
+      "fromMaster": "Populated from master entry",
+      "fromOrganism": "Populated from reference organism",
+      "name": "Material Name",
+      "nameExample": "e.g. Tryptic Soy Agar Powder",
+      "manufacturer": "Manufacturer",
+      "manufacturerExample": "e.g. Oxoid, Merck, Difco",
+      "mediaCode": "Media code",
+      "catalogCode": "Code / Catalog No.",
+      "mediaCodeExample": "e.g. TSA",
+      "catalogExample": "e.g. CM0131B",
+      "purity": "Purity (%)",
+      "purityExample": "e.g. 99.8",
+      "purityHelp": "Purity percentage (0 < p ≤ 100)",
+      "moisture": "Moisture Content (%)",
+      "moistureExample": "e.g. 0.5",
+      "moistureHelp": "Moisture percentage (0 ≤ m < 100, optional)",
+      "category": "Material category",
+      "code": "Code"
+    },
+    "lot": {
+      "batchLot": "Batch / Lot No.",
+      "batchExample": "e.g. 3458921",
+      "quantity": "Quantity Received",
+      "unit": "Unit",
+      "minLevelOptional": "Min. Stock Level (optional)",
+      "minLevel": "Min. Stock Level",
+      "minExample": "e.g. 500",
+      "storageCondition": "Storage Condition",
+      "storageExample": "e.g. 2-8 °C, protect from light",
+      "prefilled": "Prefilled from the category; change it if this lot differs.",
+      "storageLocation": "Storage Location"
+    },
+    "dates": {
+      "receiving": "Receiving Date",
+      "expiry": "Expiry Date",
+      "documentsNote": "Certificates and other lot documents are uploaded from the lot's details and documents once the lot is in stock.",
+      "editNote": "<b>Note:</b> Changing Quantity Received adjusts Quantity Remaining by the difference (a receiving correction); it preserves consumption already recorded by Media Preparation or Cryovials."
+    },
+    "storage": {
+      "loading": "Loading storage locations...",
+      "select": "Select storage location...",
+      "refrigerator": "Equipment: Refrigerator",
+      "deepFreezer": "Equipment: Deep Freezer",
+      "freezer": "Equipment: Freezer",
+      "noRefrigerator": "No in-service refrigerator configured",
+      "noDeepFreezer": "No in-service deep freezer configured",
+      "noFreezer": "No in-service freezer configured",
+      "other": "Other",
+      "currentLocation": "{{location}} (Current Location)",
+      "selected": "Selected Storage",
+      "asset": "Asset",
+      "code": "Code",
+      "location": "Location",
+      "status": "Status",
+      "inService": "In Service",
+      "type": "Storage Type",
+      "ambient": "Ambient / Room Storage"
+    },
+    "kind": {
+      "mediaHelp": "Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration.",
+      "category": "Material category",
+      "masterEntry": "Master entry",
+      "chooseSection": "Choose the laboratory section first.",
+      "noCategory": "No category is available to this lab; a Section Head adds one under Master Testing Materials, Other Materials, Material categories.",
+      "categoryRule": "Sets the unit, storage and expiry rules for this lot.",
+      "masterLabel": {
+        "Chemical": "Reagent Master Entry",
+        "Indicator": "Indicator Master Entry",
+        "PrimaryStandard": "Primary Standard Master Entry",
+        "Other": "Material Master Entry",
+        "ReferenceStandard": "Reference Standard Master Entry"
+      },
+      "selectMaster": "Select master entry...",
+      "selectedMaster": "Selected: {{code}} (Base Unit: {{unit}})",
+      "otherMaster": "Required. The master entry sets the name and code; a missing material is added by its owner lab.",
+      "chooseCategory": "Choose the material category first.",
+      "requiredMaster": "Required. Master entry sets the name, code, and base unit.",
+      "legacyMaster": "Optional for legacy unlinked lots. Select an entry to link this lot.",
+      "refOrganism": "Reference organism",
+      "selectStrain": "Select strain",
+      "legacyOrganism": "Received before reference organisms; pick a strain to link this lot (optional).",
+      "strainsManaged": "Strains are managed under Organisms > Reference organisms.",
+      "organismStored": "Organism (stored)",
+      "atccStored": "ATCC No. (stored)"
+    }
   }
 }

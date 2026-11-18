@@ -1,4 +1,5 @@
 import { Autocomplete, Box, FormControl, FormHelperText, InputLabel, MenuItem, Select, TextField } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import { MediaProductPicker } from "../../../../components/MediaProductPicker";
 import type { MaterialMasterEntry } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
 import type { MaterialItem } from "../types/materialTypes";
@@ -24,17 +25,15 @@ interface KindFieldsProps {
 
 const fullRow = { gridColumn: { xs: "1", sm: "span 2" } };
 
-function masterEntryLabel(type: MaterialFormModel["materialType"]): string {
-  if (type === "Chemical") return "Reagent";
-  if (type === "Indicator") return "Indicator";
-  if (type === "PrimaryStandard") return "Primary Standard";
-  if (type === "Other") return "Material";
-  return "Reference Standard";
+function masterEntryKey(type: MaterialFormModel["materialType"]): string {
+  if (type === "Chemical" || type === "Indicator" || type === "PrimaryStandard" || type === "Other") return type;
+  return "ReferenceStandard";
 }
 
 // What is being received: the configured media product, the reference strain, or the category and
 // master entry that carry the material's name, code and rules.
 export function MaterialKindFields({ model, set, errors, editing, lookups, view, activeSectionId }: KindFieldsProps) {
+  const { t } = useTranslation("inventory");
   const { selectedCategory, selectedMasterEntry } = view;
   const showMasterEntry = isMasterLinkedType(model.materialType) && !(model.materialType === "Other" && editing);
 
@@ -47,17 +46,17 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
             onChange={(id, product) => set(mediaProductPatch(id, product, editing))}
             required
             error={Boolean(errors.mediaProductId)}
-            helperText="Media not listed? A Section Head adds it in Laboratory Configuration > Media Configuration."
+            helperText={t("wizard.kind.mediaHelp")}
           />
         </Box>
       )}
 
       {model.materialType === "Other" && editing && editing.materialMasterEntryId && (
         <>
-          <TextField size="small" label="Material category" value={editing.categoryName ?? "—"} disabled />
+          <TextField size="small" label={t("wizard.kind.category")} value={editing.categoryName ?? "—"} disabled />
           <TextField
             size="small"
-            label="Master entry"
+            label={t("wizard.kind.masterEntry")}
             value={`${editing.materialMasterEntryCode ?? editing.code ?? ""}: ${editing.materialName}`}
             disabled
           />
@@ -66,10 +65,10 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
 
       {model.materialType === "Other" && !editing && (
         <FormControl size="small" fullWidth required error={Boolean(errors.categoryId)} sx={fullRow}>
-          <InputLabel id="material-category-label">Material category</InputLabel>
+          <InputLabel id="material-category-label">{t("wizard.kind.category")}</InputLabel>
           <Select<number | "">
             labelId="material-category-label"
-            label="Material category"
+            label={t("wizard.kind.category")}
             name="categoryId"
             value={selectedCategory ? selectedCategory.id : ""}
             onChange={(e) => set(categoryPatch(model, e.target.value === "" ? "" : Number(e.target.value), lookups.categories))}
@@ -83,10 +82,10 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
           </Select>
           <FormHelperText>
             {activeSectionId == null
-              ? "Choose the laboratory section first."
+              ? t("wizard.kind.chooseSection")
               : lookups.categories.length === 0 && !lookups.categoriesLoading
-                ? "No category is available to this lab; a Section Head adds one under Master Testing Materials, Other Materials, Material categories."
-                : "Sets the unit, storage and expiry rules for this lot."}
+                ? t("wizard.kind.noCategory")
+                : t("wizard.kind.categoryRule")}
           </FormHelperText>
         </FormControl>
       )}
@@ -109,18 +108,18 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
                 name="materialMasterEntryId"
                 required={!editing}
                 error={Boolean(errors.materialMasterEntryId)}
-                label={`${masterEntryLabel(model.materialType)} Master Entry`}
-                placeholder="Select master entry..."
+                label={t(`wizard.kind.masterLabel.${masterEntryKey(model.materialType)}`)}
+                placeholder={t("wizard.kind.selectMaster")}
                 helperText={
                   model.materialMasterEntryId
-                    ? `Selected: ${selectedMasterEntry?.code ?? model.code} (Base Unit: ${selectedMasterEntry?.baseUnit ?? model.unit})`
+                    ? t("wizard.kind.selectedMaster", { code: selectedMasterEntry?.code ?? model.code, unit: selectedMasterEntry?.baseUnit ?? model.unit })
                     : !editing
                       ? model.materialType === "Other"
                         ? selectedCategory
-                          ? "Required. The master entry sets the name and code; a missing material is added by its owner lab."
-                          : "Choose the material category first."
-                        : "Required. Master entry sets the name, code, and base unit."
-                      : "Optional for legacy unlinked lots. Select an entry to link this lot."
+                          ? t("wizard.kind.otherMaster")
+                          : t("wizard.kind.chooseCategory")
+                        : t("wizard.kind.requiredMaster")
+                      : t("wizard.kind.legacyMaster")
                 }
               />
             )}
@@ -142,14 +141,14 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
                 <TextField
                   {...params}
                   name="referenceOrganismId"
-                  label="Reference organism"
+                  label={t("wizard.kind.refOrganism")}
                   required={!editing}
                   error={Boolean(errors.referenceOrganismId)}
-                  placeholder="Select strain"
+                  placeholder={t("wizard.kind.selectStrain")}
                   helperText={
                     editing && !model.referenceOrganismId
-                      ? "Received before reference organisms; pick a strain to link this lot (optional)."
-                      : "Strains are managed under Organisms > Reference organisms."
+                      ? t("wizard.kind.legacyOrganism")
+                      : t("wizard.kind.strainsManaged")
                   }
                 />
               )}
@@ -157,8 +156,8 @@ export function MaterialKindFields({ model, set, errors, editing, lookups, view,
           </Box>
           {editing && !model.referenceOrganismId && (
             <>
-              <TextField size="small" label="Organism (stored)" value={editing.organism?.scientificName ?? "—"} disabled />
-              <TextField size="small" label="ATCC No. (stored)" value={model.atccNumber || "—"} disabled />
+              <TextField size="small" label={t("wizard.kind.organismStored")} value={editing.organism?.scientificName ?? "—"} disabled />
+              <TextField size="small" label={t("wizard.kind.atccStored")} value={model.atccNumber || "—"} disabled />
             </>
           )}
         </>

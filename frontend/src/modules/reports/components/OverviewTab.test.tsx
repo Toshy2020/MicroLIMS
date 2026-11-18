@@ -5,6 +5,7 @@ import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { OverviewService } from "../services/OverviewService";
 import type { OverviewDashboardData } from "../types/reportingTypes";
 import { OverviewTab } from "./OverviewTab";
+import { renderInArabic, resetLanguage } from "../../../i18n/testUtils";
 
 vi.mock("../services/OverviewService", () => ({
   OverviewService: { getOverviewData: vi.fn() }
@@ -70,5 +71,18 @@ describe("OverviewTab", () => {
     expect(button).toBeTruthy();
     await userEvent.click(button);
     expect(onNavigateTab).toHaveBeenCalledWith(5);
+  });
+
+  it("renders Arabic headings and quick actions when language is Arabic", async () => {
+    await renderInArabic(<OverviewTab onNavigateTab={vi.fn()} canViewKpi={true} />, ["common", "reports"]);
+
+    try {
+      expect(document.documentElement.dir).toBe("rtl");
+      expect(await screen.findByText("بيانات قاعدة البيانات الحية")).toBeTruthy();
+      expect(screen.getByText("إشارات الجودة")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "بحث السجلات" })).toBeTruthy();
+    } finally {
+      await resetLanguage();
+    }
   });
 });

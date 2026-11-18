@@ -6,6 +6,7 @@ import { QuickReportsTiles } from "./components/QuickReportsTiles";
 import { ReportingService } from "./services/ReportingService";
 import { FilterOptionsResponse, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "./types/reportingTypes";
 import { LoadErrorAlert } from "../../components/LoadErrorAlert";
+import { useTranslation } from "../../i18n";
 
 interface RecordSearchTabProps {
   fromDate: string | undefined;
@@ -27,6 +28,7 @@ function baseParams(fromDate: string | undefined, toDate: string | undefined): R
 // changing it re-applies immediately, carrying over whatever other
 // filters are currently applied.
 export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTab }: RecordSearchTabProps) {
+  const { t } = useTranslation("reports");
   const [filterOptions, setFilterOptions] = useState<FilterOptionsResponse | null>(null);
   // Without this a failed load left every filter dropdown empty with no
   // explanation, as if no media, strains or products existed.
@@ -55,9 +57,9 @@ export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTa
     setError(null);
     ReportingService.searchResults(applied)
       .then(setResults)
-      .catch(() => setError("Could not load results. Please try again."))
+      .catch(() => setError(t("search.errors.loadResults")))
       .finally(() => setLoading(false));
-  }, [applied]);
+  }, [applied, t]);
 
   const handleSearch = () => setApplied({ ...draft, page: 1 });
   const handleReset = () => {
@@ -84,7 +86,7 @@ export function RecordSearchTab({ fromDate, toDate, onAnalyzeTrend, onNavigateTa
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px 1fr" }, gap: 2, alignItems: "start" }}>
       <Stack spacing={2}>
         {filterOptionsFailed && (
-          <LoadErrorAlert message="The filter options could not be loaded, so the filter lists are empty. Reload the page to try again." />
+          <LoadErrorAlert message={t("search.errors.loadFilterOptions")} />
         )}
         <ReportFilterPanel
           filterOptions={filterOptions}

@@ -4,6 +4,7 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { CompareResult } from "../types/reportingTypes";
 import { ReportingService } from "../services/ReportingService";
+import { useTranslation } from "../../../i18n";
 
 interface CompareDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ interface CompareDialogProps {
 // categories (Water/EM/After Cleaning) - the underlying rows are identical
 // either way, since a category only ever has one of those two identities.
 export function CompareDialog({ open, onClose, initialMode = "products", testCode, category, fromDate, toDate }: CompareDialogProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const [mode, setMode] = useState<"products" | "locations">(initialMode);
   const [result, setResult] = useState<CompareResult | null>(null);
@@ -40,9 +42,9 @@ export function CompareDialog({ open, onClose, initialMode = "products", testCod
     setError(null);
     ReportingService.getCompare(testCode, category, fromDate, toDate)
       .then(setResult)
-      .catch(() => setError("Unable to load comparison data for this test code."))
+      .catch(() => setError(t("compare.loadError")))
       .finally(() => setLoading(false));
-  }, [open, testCode, category, fromDate, toDate]);
+  }, [open, testCode, category, fromDate, toDate, t]);
 
   const subjects = result?.subjects ?? [];
   const isNumeric = result?.isNumeric ?? true;
@@ -54,22 +56,22 @@ export function CompareDialog({ open, onClose, initialMode = "products", testCod
       title={
         <Box>
           <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-            Multi-Series Trend Comparison
+            {t("compare.title")}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {result ? `${result.testDisplayName}: every subject with results in the selected date range` : "Compare performance and statistical distribution across batches, products, or facility points."}
+            {result ? t("compare.subtitleWithTest", { test: result.testDisplayName }) : t("compare.subtitleDefault")}
           </Typography>
           <Tabs
             value={mode}
             onChange={(_, v) => setMode(v)}
             sx={{ mt: 1, minHeight: 36, "& .MuiTab-root": { minHeight: 36, py: 0.5 } }}
           >
-            <Tab label="Compare Products / Items" value="products" />
-            <Tab label="Compare Sampling Locations / Points" value="locations" />
+            <Tab label={t("compare.tabProducts")} value="products" />
+            <Tab label={t("compare.tabLocations")} value="locations" />
           </Tabs>
         </Box>
       }
-      actions={<Button onClick={onClose}>Close</Button>}
+      actions={<Button onClick={onClose}>{t("compare.close")}</Button>}
     >
       {loading && (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -78,19 +80,19 @@ export function CompareDialog({ open, onClose, initialMode = "products", testCod
       )}
       {!loading && error && <Alert severity="error">{error}</Alert>}
       {!loading && !error && subjects.length === 0 && (
-        <Alert severity="info">No results found for this test code in the selected date range.</Alert>
+        <Alert severity="info">{t("compare.empty")}</Alert>
       )}
       {!loading && !error && subjects.length > 0 && (
         <TableContainer>
           <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 } }}>
             <TableHead>
               <TableRow>
-                <TableCell>{mode === "products" ? "Product / Item" : "Location / Point"}</TableCell>
-                <TableCell align="right">Tests Evaluated</TableCell>
-                <TableCell align="right">{isNumeric ? "Mean Result" : "% Detected"}</TableCell>
-                <TableCell align="right">Alert / Action</TableCell>
-                <TableCell align="right">OOS Count</TableCell>
-                <TableCell align="right">{isNumeric ? "% Within Spec" : "% Not Detected"}</TableCell>
+                <TableCell>{mode === "products" ? t("compare.productItem") : t("compare.locationPoint")}</TableCell>
+                <TableCell align="right">{t("compare.testsEvaluated")}</TableCell>
+                <TableCell align="right">{isNumeric ? t("compare.meanResult") : t("compare.percentDetected")}</TableCell>
+                <TableCell align="right">{t("compare.alertAction")}</TableCell>
+                <TableCell align="right">{t("compare.oosCount")}</TableCell>
+                <TableCell align="right">{isNumeric ? t("compare.percentWithinSpec") : t("compare.percentNotDetected")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>

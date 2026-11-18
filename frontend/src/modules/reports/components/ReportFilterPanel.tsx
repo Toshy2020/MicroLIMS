@@ -5,13 +5,14 @@ import { statusTone } from "../../../theme/statusTokens";
 import { categoryLabel } from "../../../components/StatusBadge";
 import { FilterOptionsResponse, ResultLevel, ResultRecordSearchParams } from "../types/reportingTypes";
 import { DateField } from "../../../components/DateField";
+import { useTranslation } from "../../../i18n";
 
-const RESULT_LEVEL_SEGMENTS: { value: ResultLevel | ""; label: string }[] = [
-  { value: "", label: "All" },
-  { value: "WithinLimit", label: "Within Limit" },
-  { value: "AlertLevel", label: "Alert Level" },
-  { value: "ActionLevel", label: "Action Level" },
-  { value: "OutOfSpecification", label: "Out of Spec" }
+const RESULT_LEVEL_SEGMENTS: { value: ResultLevel | ""; key: string }[] = [
+  { value: "", key: "all" },
+  { value: "WithinLimit", key: "WithinLimit" },
+  { value: "AlertLevel", key: "AlertLevel" },
+  { value: "ActionLevel", key: "ActionLevel" },
+  { value: "OutOfSpecification", key: "OutOfSpecification" }
 ];
 
 const SAMPLE_STATUS_OPTIONS = ["Received", "InTesting", "UnderReview", "UnderApproval", "Approved", "Rejected", "RetestRequested"];
@@ -35,46 +36,47 @@ interface ReportFilterPanelProps {
 // only edits draft state - nothing queries the API until "Search
 // Records" is clicked (RecordSearchTab applies the draft then).
 export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, onReset, searchInputRef }: ReportFilterPanelProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   return (
     <Paper sx={{ p: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>Filters</Typography>
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>{t("search.filters.title")}</Typography>
         <Link component="button" type="button" onClick={onReset} sx={{ fontSize: 13 }} underline="hover">
-          Reset
+          {t("search.filters.reset")}
         </Link>
       </Box>
 
       <Stack spacing={2}>
         <TextField
-          fullWidth size="small" label="Search"
-          placeholder="Search Sample ID, Batch No., Item, Test, Location..."
+          fullWidth size="small" label={t("search.filters.searchLabel")}
+          placeholder={t("search.filters.searchPlaceholder")}
           value={draft.search ?? ""}
           onChange={(e) => onChange({ search: e.target.value || undefined })}
           inputRef={searchInputRef}
         />
 
         <FormControl fullWidth size="small">
-          <InputLabel>Result Type</InputLabel>
+          <InputLabel>{t("search.filters.resultType")}</InputLabel>
           <Select
-            label="Result Type" value={draft.resultKind ?? ""}
+            label={t("search.filters.resultType")} value={draft.resultKind ?? ""}
             onChange={(e) => onChange({ resultKind: (e.target.value || undefined) as ResultRecordSearchParams["resultKind"] })}
-            inputProps={{ "aria-label": "Result Type" }}
+            inputProps={{ "aria-label": t("search.filters.resultType") }}
           >
-            <MenuItem value="">All</MenuItem>
-            <MenuItem value="Quantitative">Quantitative</MenuItem>
-            <MenuItem value="Qualitative">Qualitative</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
+            <MenuItem value="Quantitative">{t("search.filters.quantitative")}</MenuItem>
+            <MenuItem value="Qualitative">{t("search.filters.qualitative")}</MenuItem>
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Category</InputLabel>
+          <InputLabel>{t("search.filters.category")}</InputLabel>
           <Select
-            label="Category" value={draft.category ?? ""}
+            label={t("search.filters.category")} value={draft.category ?? ""}
             onChange={(e) => onChange({ category: (e.target.value || undefined) as ResultRecordSearchParams["category"] })}
-            inputProps={{ "aria-label": "Category" }}
+            inputProps={{ "aria-label": t("search.filters.category") }}
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
             {(filterOptions?.categories ?? []).map((c) => (
               <MenuItem key={c} value={c}>{categoryLabel(c)}</MenuItem>
             ))}
@@ -82,28 +84,28 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Test</InputLabel>
+          <InputLabel>{t("search.filters.test")}</InputLabel>
           <Select
-            label="Test" value={draft.testCode ?? ""}
+            label={t("search.filters.test")} value={draft.testCode ?? ""}
             onChange={(e) => onChange({ testCode: e.target.value || undefined })}
-            inputProps={{ "aria-label": "Test" }}
+            inputProps={{ "aria-label": t("search.filters.test") }}
           >
-            <MenuItem value="">All</MenuItem>
-            {(filterOptions?.testCodes ?? []).map((t) => (
-              <MenuItem key={t.testCode} value={t.testCode}>{t.testCode} - {t.testDisplayName}</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
+            {(filterOptions?.testCodes ?? []).map((tOpt) => (
+              <MenuItem key={tOpt.testCode} value={tOpt.testCode}>{tOpt.testCode} - {tOpt.testDisplayName}</MenuItem>
             ))}
           </Select>
         </FormControl>
 
         <Box>
-          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Result Level</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>{t("search.filters.resultLevel")}</Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
             {RESULT_LEVEL_SEGMENTS.map((seg) => {
               const selected = (draft.resultLevel ?? "") === seg.value;
               const color = seg.value ? theme.custom.status[statusTone(seg.value)].text : brandColors.sectionTitle;
               return (
                 <Button
-                  key={seg.label} size="small"
+                  key={seg.key} size="small"
                   onClick={() => onChange({ resultLevel: (seg.value || undefined) as ResultRecordSearchParams["resultLevel"] })}
                   sx={{
                     fontSize: 12, minWidth: 0, px: 1.25, py: 0.5, textTransform: "none",
@@ -113,7 +115,7 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
                     "&:hover": { bgcolor: selected ? color : `${color}1a` }
                   }}
                 >
-                  {seg.label}
+                  {t(`search.filters.levels.${seg.key}`)}
                 </Button>
               );
             })}
@@ -121,39 +123,39 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
         </Box>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Status</InputLabel>
+          <InputLabel>{t("search.filters.status")}</InputLabel>
           <Select
-            label="Status" value={draft.sampleStatus ?? ""}
+            label={t("search.filters.status")} value={draft.sampleStatus ?? ""}
             onChange={(e) => onChange({ sampleStatus: (e.target.value || undefined) as ResultRecordSearchParams["sampleStatus"] })}
-            inputProps={{ "aria-label": "Status" }}
+            inputProps={{ "aria-label": t("search.filters.status") }}
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
             {SAMPLE_STATUS_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
           </Select>
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Approval Status</InputLabel>
+          <InputLabel>{t("search.filters.approvalStatus")}</InputLabel>
           <Select
-            label="Approval Status" value={draft.approvalStatus ?? ""}
+            label={t("search.filters.approvalStatus")} value={draft.approvalStatus ?? ""}
             onChange={(e) => onChange({ approvalStatus: (e.target.value || undefined) as ResultRecordSearchParams["approvalStatus"] })}
-            inputProps={{ "aria-label": "Approval Status" }}
+            inputProps={{ "aria-label": t("search.filters.approvalStatus") }}
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
             {APPROVAL_STATUS_OPTIONS.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
           </Select>
         </FormControl>
 
         <Box>
-          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>Date Range</Typography>
+          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.75 }}>{t("search.filters.dateRange")}</Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <DateField
-              fullWidth label="From date" value={isoToDateInput(draft.fromDate)}
+              fullWidth label={t("search.filters.fromDate")} value={isoToDateInput(draft.fromDate)}
               max={isoToDateInput(draft.toDate)}
               onChange={(v) => onChange({ fromDate: v ? `${v}T00:00:00.000Z` : undefined })}
             />
             <DateField
-              fullWidth label="To date" value={isoToDateInput(draft.toDate)}
+              fullWidth label={t("search.filters.toDate")} value={isoToDateInput(draft.toDate)}
               min={isoToDateInput(draft.fromDate)}
               onChange={(v) => onChange({ toDate: v ? `${v}T23:59:59.999Z` : undefined })}
             />
@@ -161,18 +163,18 @@ export function ReportFilterPanel({ filterOptions, draft, onChange, onSearch, on
         </Box>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Location / Point</InputLabel>
+          <InputLabel>{t("search.filters.locationPoint")}</InputLabel>
           <Select
-            label="Location / Point" value={draft.subjectName ?? ""}
+            label={t("search.filters.locationPoint")} value={draft.subjectName ?? ""}
             onChange={(e) => onChange({ subjectName: e.target.value || undefined })}
-            inputProps={{ "aria-label": "Location / Point" }}
+            inputProps={{ "aria-label": t("search.filters.locationPoint") }}
           >
-            <MenuItem value="">All</MenuItem>
+            <MenuItem value="">{t("search.filters.all")}</MenuItem>
             {(filterOptions?.subjectNames ?? []).map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
           </Select>
         </FormControl>
 
-        <Button variant="contained" fullWidth onClick={onSearch}>Search Records</Button>
+        <Button variant="contained" fullWidth onClick={onSearch}>{t("search.filters.searchRecords")}</Button>
       </Stack>
     </Paper>
   );

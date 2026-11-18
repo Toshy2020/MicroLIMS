@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { FormControl, InputLabel, Select, MenuItem, Typography } from "@mui/material";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { useTranslation } from "../../../i18n";
 
 // Only these three categories have a real Department/Area -> Sampling
 // Point hierarchy in the schema:
@@ -81,6 +82,7 @@ interface LocationCascadeFilterProps {
 // the caller's subjectName, the same value the flat Product/Item picker
 // sets for categories that don't have this hierarchy.
 export function LocationCascadeFilter({ category, subjectName, onSubjectNameChange, autoSelect = true }: LocationCascadeFilterProps) {
+  const { t } = useTranslation("reports");
   const [groups, setGroups] = useState<Level2Group[]>([]);
   // An empty location picker otherwise reads as "nothing configured".
   const [loadFailed, setLoadFailed] = useState(false);
@@ -124,19 +126,20 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
   }, [category]);
 
   const selectedGroup = groups.find((g) => g.id === level2Id) ?? null;
-  const labels = LEVEL_LABELS[category];
+  const level2Label = t(`locationCascade.${category}.level2`, { defaultValue: LEVEL_LABELS[category].level2 });
+  const level3Label = t(`locationCascade.${category}.level3`, { defaultValue: LEVEL_LABELS[category].level3 });
 
   return (
     <>
       {loadFailed && (
         <Typography role="alert" sx={{ fontSize: 12, color: "error.main" }}>
-          The location list could not be loaded. Reload the page to try again.
+          {t("locationCascade.loadError")}
         </Typography>
       )}
       <FormControl fullWidth size="small">
-        <InputLabel>{labels.level2}</InputLabel>
+        <InputLabel>{level2Label}</InputLabel>
         <Select
-          label={labels.level2}
+          label={level2Label}
           value={level2Id ?? ""}
           onChange={(e) => {
             const id = Number(e.target.value);
@@ -145,7 +148,7 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
             if (!autoSelect) onSubjectNameChange("");
             else if (group && group.items[0]) onSubjectNameChange(group.items[0].name);
           }}
-          inputProps={{ "aria-label": labels.level2 }}
+          inputProps={{ "aria-label": level2Label }}
         >
           {groups.map((g) => (
             <MenuItem key={g.id} value={g.id}>{g.name}</MenuItem>
@@ -154,12 +157,12 @@ export function LocationCascadeFilter({ category, subjectName, onSubjectNameChan
       </FormControl>
 
       <FormControl fullWidth size="small">
-        <InputLabel>{labels.level3}</InputLabel>
+        <InputLabel>{level3Label}</InputLabel>
         <Select
-          label={labels.level3}
+          label={level3Label}
           value={subjectName}
           onChange={(e) => onSubjectNameChange(e.target.value)}
-          inputProps={{ "aria-label": labels.level3 }}
+          inputProps={{ "aria-label": level3Label }}
         >
           {(selectedGroup?.items ?? []).map((item) => (
             <MenuItem key={item.id} value={item.name}>{item.name}</MenuItem>

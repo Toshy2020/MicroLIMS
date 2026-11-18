@@ -10,10 +10,14 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
+import { Ltr } from "../../components/Ltr";
 import { LabPage, KpiStrip } from "../../components/lab";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
+import { serverMessage } from "../../utils/errorMessage";
 import { WorkingStandardService } from "./services/WorkingStandardService";
 import { WorkingStandardLotsTable } from "./lots/WorkingStandardLotsTable";
 import { QualificationsTable } from "./qualifications/QualificationsTable";
@@ -25,6 +29,7 @@ import type {
 } from "./types";
 
 export function WorkingStandardsPage() {
+  const { t } = useTranslation("workingStandards");
   const { permissions } = useAuth();
   const canQualify = permissions.includes(PERMISSIONS.WORKING_STANDARDS_QUALIFY);
 
@@ -49,14 +54,13 @@ export function WorkingStandardsPage() {
       setLots(lotsData);
       setQualifications(qualsData);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? "Failed to load working standards data";
+      const msg = serverMessage(err) ?? t("page.loadError");
       setError(msg);
       toast.error(msg);
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadData();
@@ -100,18 +104,18 @@ export function WorkingStandardsPage() {
     ).length;
 
     return [
-      { label: "Active Lots", value: lots.length },
-      { label: "Valid", value: validCount, tone: "notDetected" as const },
-      { label: "Due Soon", value: dueSoonCount, tone: dueSoonCount > 0 ? ("inconclusive" as const) : undefined },
-      { label: "Expired / Depleted", value: expiredOrDepletedCount, tone: expiredOrDepletedCount > 0 ? ("detected" as const) : undefined },
-      { label: "Pending Quals", value: pendingCount, tone: pendingCount > 0 ? ("info" as const) : undefined }
+      { label: t("kpis.activeLots"), value: lots.length },
+      { label: t("kpis.valid"), value: validCount, tone: "notDetected" as const },
+      { label: t("kpis.dueSoon"), value: dueSoonCount, tone: dueSoonCount > 0 ? ("inconclusive" as const) : undefined },
+      { label: t("kpis.expiredDepleted"), value: expiredOrDepletedCount, tone: expiredOrDepletedCount > 0 ? ("detected" as const) : undefined },
+      { label: t("kpis.pendingQuals"), value: pendingCount, tone: pendingCount > 0 ? ("info" as const) : undefined }
     ];
-  }, [lots, qualifications]);
+  }, [lots, qualifications, t]);
 
   return (
     <LabPage
-      title="Working Standards"
-      subtitle="Working standard lots, qualifications, moisture verification and sign-off"
+      title={t("page.title")}
+      subtitle={t("page.subtitle")}
       actions={
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button
@@ -121,10 +125,16 @@ export function WorkingStandardsPage() {
             onClick={() => loadData()}
             disabled={loading}
           >
-            Refresh
+            {t("actions.refresh")}
           </Button>
 
-          <Tooltip title={canQualify ? "Create initial qualification" : "Permission required: WorkingStandards.Qualify"}>
+          <Tooltip
+            title={
+              canQualify
+                ? t("actions.newQualificationTooltip")
+                : t("actions.permissionRequired", { permission: "WorkingStandards.Qualify" })
+            }
+          >
             <Box component="span">
               <Button
                 variant="contained"
@@ -133,7 +143,7 @@ export function WorkingStandardsPage() {
                 onClick={handleOpenNewInitial}
                 disabled={!canQualify}
               >
-                New qualification
+                {t("actions.newQualification")}
               </Button>
             </Box>
           </Tooltip>
@@ -145,8 +155,8 @@ export function WorkingStandardsPage() {
 
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
         <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
-          <Tab label={`Lots (${lots.length})`} />
-          <Tab label={`Qualifications (${qualifications.length})`} />
+          <Tab label={<Trans i18nKey="tabs.lots" ns="workingStandards" values={{ count: lots.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />} />
+          <Tab label={<Trans i18nKey="tabs.qualifications" ns="workingStandards" values={{ count: qualifications.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />} />
         </Tabs>
       </Box>
 

@@ -12,6 +12,7 @@ import {
   TextField,
   Autocomplete
 } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import type { MaterialMasterEntry } from "../../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
 import type { EligibleSourceSampleDto } from "../../types";
 
@@ -52,19 +53,20 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
   location,
   onLocationChange
 }) => {
+  const { t } = useTranslation("workingStandards");
   return (
     <>
       <FormControl component="fieldset">
         <FormLabel component="legend" sx={{ fontSize: 13, fontWeight: 600 }}>
-          Source Option
+          {t("newDialog.sourceOption")}
         </FormLabel>
         <RadioGroup
           row
           value={sourceMode}
           onChange={(e) => onSourceModeChange(e.target.value as "Manual" | "Received")}
         >
-          <FormControlLabel value="Manual" control={<Radio size="small" />} label="Manual" />
-          <FormControlLabel value="Received" control={<Radio size="small" />} label="Received sample" />
+          <FormControlLabel value="Manual" control={<Radio size="small" />} label={t("newDialog.sourceModeManual")} />
+          <FormControlLabel value="Received" control={<Radio size="small" />} label={t("newDialog.sourceModeReceived")} />
         </RadioGroup>
       </FormControl>
 
@@ -73,10 +75,10 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
           size="small"
           options={sourceSamples}
           value={sourceSamples.find((s) => s.sampleId === sourceSampleId) ?? null}
-          getOptionLabel={(o) => `${o.referenceNumber} - ${o.materialName} (${o.batchNumber ?? "No batch"})`}
+          getOptionLabel={(o) => `${o.referenceNumber} - ${o.materialName} (${o.batchNumber ?? t("newDialog.noBatch")})`}
           onChange={(_, val) => onSourceSampleChange(val)}
           renderInput={(params) => (
-            <TextField {...params} label="Source Sample" placeholder="Search received samples..." required />
+            <TextField {...params} label={t("newDialog.sourceSampleLabel")} placeholder={t("newDialog.sourceSamplePlaceholder")} required />
           )}
         />
       ) : (
@@ -84,7 +86,7 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
           <TextField
             fullWidth
             size="small"
-            label="Name"
+            label={t("newDialog.nameLabel")}
             value={sourceMaterialName}
             onChange={(e) => onSourceMaterialNameChange(e.target.value)}
             required
@@ -92,7 +94,7 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
           <TextField
             fullWidth
             size="small"
-            label="Batch"
+            label={t("newDialog.batchLabel")}
             value={sourceBatchNumber}
             onChange={(e) => onSourceBatchNumberChange(e.target.value)}
             required
@@ -101,11 +103,11 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
       )}
 
       <FormControl fullWidth size="small" required>
-        <InputLabel id="ws-master-entry-label">Master Entry</InputLabel>
+        <InputLabel id="ws-master-entry-label">{t("newDialog.masterEntryLabel")}</InputLabel>
         <Select
           labelId="ws-master-entry-label"
           id="ws-master-entry-select"
-          label="Master Entry"
+          label={t("newDialog.masterEntryLabel")}
           value={materialMasterEntryId}
           onChange={(e) => onMaterialMasterEntryIdChange(Number(e.target.value))}
         >
@@ -122,7 +124,7 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
           fullWidth
           size="small"
           type="number"
-          label="Quantity (g)"
+          label={t("newDialog.quantityLabel")}
           value={quantityGrams}
           onChange={(e) => onQuantityGramsChange(e.target.value)}
           required
@@ -130,7 +132,7 @@ export const InitialQualificationFields: React.FC<InitialQualificationFieldsProp
         <TextField
           fullWidth
           size="small"
-          label="Location"
+          label={t("newDialog.locationLabel")}
           value={location}
           onChange={(e) => onLocationChange(e.target.value)}
           required

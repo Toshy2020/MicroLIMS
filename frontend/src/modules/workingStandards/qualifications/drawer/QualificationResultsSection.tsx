@@ -11,8 +11,11 @@ import {
 } from "@mui/material";
 import LaunchIcon from "@mui/icons-material/Launch";
 import DescriptionIcon from "@mui/icons-material/Description";
+import { Trans } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { Ltr } from "../../../../components/Ltr";
+import { useTranslation } from "../../../../i18n";
 import { HplcWorkspaceService } from "../../../hplcWorkspace/services/HplcWorkspaceService";
 import type { WorkingStandardQualificationDto } from "../../types";
 
@@ -23,6 +26,7 @@ interface QualificationResultsSectionProps {
 export const QualificationResultsSection: React.FC<QualificationResultsSectionProps> = ({
   qualification
 }) => {
+  const { t } = useTranslation("workingStandards");
   const navigate = useNavigate();
   const { run, replicateAssayPercents, meanAssayPercent, rsdPercent, potencyPercent, passed, failureReasons, runEvidenceIds } = qualification;
 
@@ -35,7 +39,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
     try {
       await HplcWorkspaceService.openEvidenceInNewTab(id);
     } catch {
-      toast.error(`Failed to open evidence #${id}`);
+      toast.error(t("results.openEvidenceError", { id }));
     }
   };
 
@@ -43,7 +47,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
       <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.secondary" }}>
-          HPLC RUN & ASSAY RESULTS
+          {t("results.heading")}
         </Typography>
 
         {/* HPLC Run Link */}
@@ -57,13 +61,18 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
                 onClick={handleNavigateToRun}
                 sx={{ fontFamily: "monospace", fontWeight: 600 }}
               >
-                Run {run.runCode} (Sample #{run.runSampleId})
+                <Trans
+                  i18nKey="results.runButton"
+                  ns="workingStandards"
+                  values={{ runCode: run.runCode, sampleId: run.runSampleId }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Button>
               <Chip size="small" label={run.status} sx={{ fontSize: 12 }} />
             </Stack>
           ) : (
             <Alert severity="info" sx={{ py: 0.5 }}>
-              Awaiting HPLC workspace run assignment and execution.
+              {t("results.awaitingRun")}
             </Alert>
           )}
         </Box>
@@ -73,11 +82,11 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
           <Box sx={{ mb: 2 }}>
             {passed ? (
               <Alert severity="success" sx={{ py: 0.5 }}>
-                Passed analytical acceptance criteria.
+                {t("results.passed")}
               </Alert>
             ) : (
               <Alert severity="error" sx={{ py: 0.5 }}>
-                Failed acceptance criteria: {failureReasons || "Criteria not met."}
+                {t("results.failed", { reasons: failureReasons || t("results.criteriaNotMet") })}
               </Alert>
             )}
           </Box>
@@ -86,23 +95,23 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
         {/* Results Values (API only - no client math) */}
         <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 2 }}>
           <Box>
-            <Typography variant="caption" color="text.secondary">Mean Assay %</Typography>
+            <Typography variant="caption" color="text.secondary">{t("results.meanAssay")}</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700 }}>
-              {meanAssayPercent != null ? `${meanAssayPercent.toFixed(2)} %` : "—"}
+              {meanAssayPercent != null ? <Ltr>{t("units.percent", { value: meanAssayPercent.toFixed(2) })}</Ltr> : "—"}
             </Typography>
           </Box>
 
           <Box>
-            <Typography variant="caption" color="text.secondary">RSD %</Typography>
+            <Typography variant="caption" color="text.secondary">{t("results.rsd")}</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700 }}>
-              {rsdPercent != null ? `${rsdPercent.toFixed(2)} %` : "—"}
+              {rsdPercent != null ? <Ltr>{t("units.percent", { value: rsdPercent.toFixed(2) })}</Ltr> : "—"}
             </Typography>
           </Box>
 
           <Box>
-            <Typography variant="caption" color="text.secondary">Potency %</Typography>
+            <Typography variant="caption" color="text.secondary">{t("results.potency")}</Typography>
             <Typography variant="body1" sx={{ fontWeight: 700, color: "primary.main" }}>
-              {potencyPercent != null ? `${potencyPercent.toFixed(2)} %` : "—"}
+              {potencyPercent != null ? <Ltr>{t("units.percent", { value: potencyPercent.toFixed(2) })}</Ltr> : "—"}
             </Typography>
           </Box>
         </Box>
@@ -111,7 +120,12 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
         {replicateAssayPercents && replicateAssayPercents.length > 0 && (
           <Box sx={{ mb: 2 }}>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-              Replicate Assays ({replicateAssayPercents.length})
+              <Trans
+                i18nKey="results.replicateAssays"
+                ns="workingStandards"
+                values={{ count: replicateAssayPercents.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {replicateAssayPercents.map((val, idx) => (
@@ -119,7 +133,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
                   key={idx}
                   size="small"
                   variant="outlined"
-                  label={`R${idx + 1}: ${val.toFixed(2)} %`}
+                  label={<Ltr>{t("results.replicateChip", { index: idx + 1, value: val.toFixed(2) })}</Ltr>}
                   sx={{ fontSize: 12 }}
                 />
               ))}
@@ -130,7 +144,7 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
         {/* Run Evidence Links */}
         <Box sx={{ pt: 1.5, borderTop: 1, borderColor: "divider" }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, display: "block", mb: 0.75 }}>
-            HPLC RUN EVIDENCE
+            {t("results.evidenceHeading")}
           </Typography>
           {runEvidenceIds && runEvidenceIds.length > 0 ? (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
@@ -144,13 +158,18 @@ export const QualificationResultsSection: React.FC<QualificationResultsSectionPr
                   onClick={() => handleOpenEvidence(evId)}
                   sx={{ fontSize: 12, py: 0.25 }}
                 >
-                  Evidence #{evId}
+                  <Trans
+                    i18nKey="results.evidenceButton"
+                    ns="workingStandards"
+                    values={{ id: evId }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Button>
               ))}
             </Box>
           ) : (
             <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>
-              No HPLC run evidence files available.
+              {t("results.noEvidence")}
             </Typography>
           )}
         </Box>

@@ -10,6 +10,8 @@ import {
 import { toast } from "sonner";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
+import { serverMessage } from "../../../utils/errorMessage";
 import { WorkingStandardService } from "../services/WorkingStandardService";
 import type { WorkingStandardQualificationDto } from "../types";
 
@@ -32,6 +34,7 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { t } = useTranslation("workingStandards");
   const { fullName, username, role } = useAuth();
   const [password, setPassword] = useState("");
   const [comment, setComment] = useState("");
@@ -56,28 +59,28 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
   const isApprove = actionType === "approve";
   const isReview = actionType === "review";
 
-  let title = "Electronic Signature";
+  let title = t("signOffDialog.defaultTitle");
   let meaningStatement = "";
-  let confirmLabel = "Sign";
+  let confirmLabel = t("signOffDialog.defaultConfirm");
   let confirmColor: "primary" | "error" | "warning" = "primary";
 
   if (isReview) {
-    title = `Review Qualification ${qualificationCode}`;
-    meaningStatement = "I confirm that I have reviewed this working standard qualification record and verified the analytical results.";
-    confirmLabel = "Sign & Review";
+    title = t("signOffDialog.reviewTitle", { code: qualificationCode });
+    meaningStatement = t("signOffDialog.reviewMeaning");
+    confirmLabel = t("signOffDialog.reviewConfirm");
   } else if (isApprove) {
-    title = `Approve Qualification ${qualificationCode}`;
-    meaningStatement = "I approve this working standard qualification and release the standard for analytical testing use.";
-    confirmLabel = "Sign & Approve";
+    title = t("signOffDialog.approveTitle", { code: qualificationCode });
+    meaningStatement = t("signOffDialog.approveMeaning");
+    confirmLabel = t("signOffDialog.approveConfirm");
   } else if (isReject) {
-    title = `Reject Qualification ${qualificationCode}`;
-    meaningStatement = "I am rejecting this working standard qualification. A detailed justification is required.";
-    confirmLabel = "Sign & Reject";
+    title = t("signOffDialog.rejectTitle", { code: qualificationCode });
+    meaningStatement = t("signOffDialog.rejectMeaning");
+    confirmLabel = t("signOffDialog.rejectConfirm");
     confirmColor = "error";
   } else if (isReturn) {
-    title = `Return Qualification ${qualificationCode}`;
-    meaningStatement = "Return qualification to Draft status for correction. Please provide a reason.";
-    confirmLabel = "Return to Draft";
+    title = t("signOffDialog.returnTitle", { code: qualificationCode });
+    meaningStatement = t("signOffDialog.returnMeaning");
+    confirmLabel = t("signOffDialog.returnConfirm");
     confirmColor = "warning";
   }
 
@@ -99,37 +102,36 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
           password,
           comment: comment.trim() || undefined
         });
-        toast.success(`Qualification ${qualificationCode} reviewed successfully`);
+        toast.success(t("signOffDialog.toastReviewed", { code: qualificationCode }));
       } else if (isApprove) {
         result = await WorkingStandardService.approve(qualificationId, {
           password,
           comment: comment.trim() || undefined
         });
-        toast.success(`Qualification ${qualificationCode} approved successfully`);
+        toast.success(t("signOffDialog.toastApproved", { code: qualificationCode }));
       } else if (actionType === "rejectReview") {
         result = await WorkingStandardService.rejectAtReview(qualificationId, {
           password,
           reason: reason.trim()
         });
-        toast.success(`Qualification ${qualificationCode} rejected`);
+        toast.success(t("signOffDialog.toastRejected", { code: qualificationCode }));
       } else if (actionType === "rejectApproval") {
         result = await WorkingStandardService.rejectAtApproval(qualificationId, {
           password,
           reason: reason.trim()
         });
-        toast.success(`Qualification ${qualificationCode} rejected`);
+        toast.success(t("signOffDialog.toastRejected", { code: qualificationCode }));
       } else {
         result = await WorkingStandardService.returnQualification(qualificationId, {
           reason: reason.trim()
         });
-        toast.success(`Qualification ${qualificationCode} returned to Draft`);
+        toast.success(t("signOffDialog.toastReturned", { code: qualificationCode }));
       }
 
       onSuccess(result);
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? "Action failed. Please check your credentials and try again.";
+      const msg = serverMessage(err) ?? t("signOffDialog.actionFailed");
       setError(msg);
       setPassword("");
     } finally {
@@ -145,14 +147,14 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
       maxWidth="xs"
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>{t("actions.cancel")}</Button>
           <Button
             variant="contained"
             color={confirmColor}
             onClick={handleConfirm}
             disabled={!isValid || submitting}
           >
-            {submitting ? "Processing..." : confirmLabel}
+            {submitting ? t("actions.processing") : confirmLabel}
           </Button>
         </>
       }
@@ -171,20 +173,20 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
 
         {isReasonRequired && (
           <TextField
-            label="Reason / Justification"
+            label={t("signOffDialog.reasonLabel")}
             multiline
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             required
             autoFocus={!isPasswordRequired}
-            placeholder="Enter reason..."
+            placeholder={t("signOffDialog.reasonPlaceholder")}
           />
         )}
 
         {(isReview || isApprove) && (
           <TextField
-            label="Comment (optional)"
+            label={t("signOffDialog.commentLabel")}
             multiline
             rows={2}
             value={comment}
@@ -194,7 +196,7 @@ export const SignOffDialog: React.FC<SignOffDialogProps> = ({
 
         {isPasswordRequired && (
           <TextField
-            label="Password"
+            label={t("signOffDialog.passwordLabel")}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

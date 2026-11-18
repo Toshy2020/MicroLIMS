@@ -18,6 +18,9 @@ import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { ActionableGroup, BatchSelectMediaResponse } from "../types/testWorkflowTypes";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { lookupCache, ReleasedMediaItem, IncubatorEquipmentItem } from "../../../services/lookupCache";
@@ -35,6 +38,7 @@ export function GroupedActionRow({
   onOpenWorkflow,
   onActionComplete
 }: GroupedActionRowProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [loadingLookups, setLoadingLookups] = useState(false);
@@ -147,12 +151,17 @@ export function GroupedActionRow({
         if (resp.succeededCount === 0) {
           // Nothing started. Keep the panel open with the selection intact so
           // the analyst can act on the reason rather than re-enter everything.
-          setSubmitError(`No tests were started. ${reasons}`);
+          setSubmitError(t("groupedActions.noTestsStarted", { reasons }));
           return;
         }
 
         setSubmitError(
-          `${resp.succeededCount} of ${resp.totalRequested} started. ${resp.skippedCount} refused - ${reasons}`
+          t("groupedActions.partialStarted", {
+            succeeded: resp.succeededCount,
+            total: resp.totalRequested,
+            skipped: resp.skippedCount,
+            reasons
+          })
         );
         onActionComplete(resp);
         return;
@@ -160,8 +169,9 @@ export function GroupedActionRow({
 
       setExpanded(false);
       onActionComplete(resp);
-    } catch (err: any) {
-      setSubmitError(err?.response?.data?.message || err?.message || "Failed to execute batch action.");
+    } catch (err: unknown) {
+      const apiMsg = (err as { response?: { data?: { message?: string } }; message?: string } | null);
+      setSubmitError(apiMsg?.response?.data?.message || apiMsg?.message || t("groupedActions.executeFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -208,7 +218,7 @@ export function GroupedActionRow({
 
           <Chip
             size="small"
-            label={`× ${group.sampleCount} ${group.sampleCount === 1 ? "Sample" : "Samples"}`}
+            label={t("groupedActions.sampleChip", { count: group.sampleCount })}
             sx={{
               height: 20,
               fontSize: "0.75rem",
@@ -229,10 +239,10 @@ export function GroupedActionRow({
             }
             label={
               group.transitionType === "TRANSFER_INCUBATOR"
-                ? "Ready: Transfer"
+                ? t("groupedActions.readyTransfer")
                 : group.transitionType === "TRANSFER_SELECTIVE"
-                ? "Ready: Plating"
-                : "Ready: Setup"
+                ? t("groupedActions.readyPlating")
+                : t("groupedActions.readySetup")
             }
           />
         </Box>
@@ -248,14 +258,14 @@ export function GroupedActionRow({
             }}
           >
             {group.transitionType === "TRANSFER_INCUBATOR"
-              ? `Transfer to ${group.tempMin}–${group.tempMax}°C Incubator${hoursLabel}`
-              : `Next: ${group.stepName}${mediaLabel}${tempLabel}${hoursLabel}`}
+              ? t("groupedActions.transferSummary", { min: group.tempMin, max: group.tempMax, hours: hoursLabel })
+              : t("groupedActions.nextSummary", { stepName: group.stepName, mediaNames: mediaLabel, temp: tempLabel, hours: hoursLabel })}
           </Typography>
         </Box>
 
         {/* Right: Expand chevron */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
-          <IconButton aria-label={expanded ? "Collapse group" : "Expand group"} aria-expanded={Boolean(expanded)}
+          <IconButton aria-label={expanded ? t("groupedActions.collapseGroupAria") : t("groupedActions.expandGroupAria")} aria-expanded={Boolean(expanded)}
             size="small"
             onClick={handleToggle}
             sx={{
@@ -284,24 +294,24 @@ export function GroupedActionRow({
           {/* Sample Chips List */}
           <Box sx={{ mb: 1.5 }}>
             <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-              Selected Samples ({group.testOrders.length} Tests):
+              {t("groupedActions.selectedSamples", { count: group.testOrders.length })}
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-              {group.testOrders.map((t) => (
+              {group.testOrders.map((tOrder) => (
                 <Chip
-                  key={t.testOrderId}
+                  key={tOrder.testOrderId}
                   size="small"
-                  label={`${t.sampleReference} · ${t.displayName}`}
+                  label={`${tOrder.sampleReference} · ${tOrder.displayName}`}
                   onDelete={
                     onOpenWorkflow
                       ? (e) => {
                           e.stopPropagation();
-                          onOpenWorkflow(t.sampleId, t.testOrderId);
+                          onOpenWorkflow(tOrder.sampleId, tOrder.testOrderId);
                         }
                       : undefined
                   }
                   deleteIcon={
-                    <Tooltip title="Open individual workflow">
+                    <Tooltip title={t("groupedActions.openIndividualTooltip")}>
                       <OpenInNewIcon sx={{ fontSize: "13px !important" }} />
                     </Tooltip>
                   }
@@ -329,7 +339,7 @@ export function GroupedActionRow({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
               <CircularProgress size={16} />
               <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                Loading released media lots &amp; incubators...
+                {t("groupedActions.loadingLookups")}
               </Typography>
             </Box>
           ) : (
@@ -338,7 +348,7 @@ export function GroupedActionRow({
               {!isIncubatorOnly && (
                 <Box sx={{ flex: "1 1 200px" }}>
                   <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-                    Media Lot ({group.permittedMaterialNames || "Approved Media"})
+                    {t("groupedActions.mediaLotLabel", { names: group.permittedMaterialNames || t("groupedActions.approvedMediaFallback") })}
                   </Typography>
                   <Select
                     size="small"
@@ -351,16 +361,16 @@ export function GroupedActionRow({
                       fontSize: "0.75rem",
                       bgcolor: theme.palette.background.paper
                     }}
-                    inputProps={{ "aria-label": "Media lot" }}
+                    inputProps={{ "aria-label": t("groupedActions.mediaLotAria") }}
                   >
                     {matchingMedia.length === 0 ? (
                       <MenuItem disabled value="">
-                        <em>No released, active lots available</em>
+                        <em>{t("groupedActions.noReleasedActiveLots")}</em>
                       </MenuItem>
                     ) : (
                       matchingMedia.map((m) => (
                         <MenuItem key={m.id} value={m.id} sx={{ fontSize: "0.75rem" }}>
-                          {m.lotNumber} ({m.materialName}) · Exp: {formatLabCalendarDate(m.expiryDate)}
+                          {t("groupedActions.mediaOption", { lot: m.lotNumber, material: m.materialName, exp: formatLabCalendarDate(m.expiryDate) })}
                         </MenuItem>
                       ))
                     )}
@@ -371,7 +381,12 @@ export function GroupedActionRow({
               {/* Incubator Dropdown */}
               <Box sx={{ flex: "1 1 200px" }}>
                 <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", mb: 0.5 }}>
-                  {isIncubatorOnly ? "Transfer to Incubator" : "Incubator"} ({group.tempMin}–{group.tempMax}°C)
+                  <Trans
+                    i18nKey={isIncubatorOnly ? "groupedActions.transferToIncubatorLabel" : "groupedActions.incubatorLabel"}
+                    ns="testingWorkspace"
+                    values={{ min: group.tempMin, max: group.tempMax }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
                 <Select
                   size="small"
@@ -384,16 +399,16 @@ export function GroupedActionRow({
                     fontSize: "0.75rem",
                     bgcolor: theme.palette.background.paper
                   }}
-                  inputProps={{ "aria-label": "Incubator" }}
+                  inputProps={{ "aria-label": t("groupedActions.incubatorAria") }}
                 >
                   {matchingIncubators.length === 0 ? (
                     <MenuItem disabled value="">
-                      <em>No eligible incubator in range</em>
+                      <em>{t("groupedActions.noEligibleIncubator")}</em>
                     </MenuItem>
                   ) : (
                     matchingIncubators.map((inc) => (
                       <MenuItem key={inc.id} value={inc.id} sx={{ fontSize: "0.75rem" }}>
-                        {inc.code}, Set: {inc.setPointTemperature}°C ({inc.name})
+                        {t("groupedActions.incubatorOption", { code: inc.code, temp: inc.setPointTemperature, name: inc.name })}
                       </MenuItem>
                     ))
                   )}
@@ -401,7 +416,7 @@ export function GroupedActionRow({
               </Box>
 
               {/* Action Buttons */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: "auto" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, ms: "auto" }}>
                 <Button
                   size="small"
                   variant="outlined"
@@ -414,7 +429,7 @@ export function GroupedActionRow({
                     px: 1.5
                   }}
                 >
-                  Cancel
+                  {t("groupedActions.cancel")}
                 </Button>
 
                 <Button
@@ -433,12 +448,12 @@ export function GroupedActionRow({
                   }}
                 >
                   {submitting
-                    ? "Processing..."
+                    ? t("groupedActions.processing")
                     : group.transitionType === "TRANSFER_INCUBATOR"
-                    ? `Transfer to Incubator (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`
+                    ? t("groupedActions.transferBtn", { count: group.testOrders.length })
                     : group.transitionType === "TRANSFER_SELECTIVE"
-                    ? `Transfer & Start Incubation (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`
-                    : `Start Incubation (${group.testOrders.length} ${group.testOrders.length === 1 ? "Test" : "Tests"})`}
+                    ? t("groupedActions.transferStartBtn", { count: group.testOrders.length })
+                    : t("groupedActions.startBtn", { count: group.testOrders.length })}
                 </Button>
               </Box>
             </Box>

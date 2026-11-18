@@ -3,17 +3,18 @@ import PrintIcon from "@mui/icons-material/Print";
 import { StatusTone } from "../../theme/statusTokens";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { useTranslation } from "../../i18n";
 
-const LABELS: Record<string, string> = {
-  Received: "Received",
-  InTesting: "Under Testing",
-  UnderReview: "Under Review",
-  UnderApproval: "Under Approval",
-  Approved: "Approved",
-  Rejected: "Rejected",
-  Voided: "Voided",
-  Cancelled: "Cancelled"
-};
+const KNOWN_STATUSES = new Set([
+  "Received",
+  "InTesting",
+  "UnderReview",
+  "UnderApproval",
+  "Approved",
+  "Rejected",
+  "Voided",
+  "Cancelled"
+]);
 
 const TONES: Record<string, StatusTone> = {
   Received: "pending",
@@ -52,9 +53,10 @@ interface Props {
 // opens SampleSummaryDialog.
 export function SampleLifecycleBadge({ status, onClick, interactive = true }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
-  const label = LABELS[status];
-  if (!label) return null;
+  if (!KNOWN_STATUSES.has(status)) return null;
+  const label = t(`lifecycleBadge.${status}`);
 
   const tokens = theme.custom.status[TONES[status] ?? "pending"];
   const permission = CLICKABLE_PERMISSION[status];

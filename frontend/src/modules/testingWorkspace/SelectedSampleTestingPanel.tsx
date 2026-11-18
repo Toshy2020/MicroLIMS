@@ -22,6 +22,9 @@ import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { SampleCard as SampleCardType, TestOrderSummary } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
 import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
@@ -60,6 +63,7 @@ export function SelectedSampleTestingPanel({
   onVoid
 }: Props) {
   const { permissions } = useAuth();
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [openPathogenWorkflow, setOpenPathogenWorkflow] = React.useState(false);
   const [actionsMenuAnchor, setActionsMenuAnchor] = React.useState<HTMLElement | null>(null);
@@ -78,18 +82,21 @@ export function SelectedSampleTestingPanel({
   const assignedAnalystDisplay =
     sample.assignedAnalystName ||
     sample.assignedTests.find((t) => t.assignedAnalystName)?.assignedAnalystName ||
-    "Unassigned";
+    t("selectedSample.unassigned");
+  const isAssignedName = Boolean(
+    sample.assignedAnalystName || sample.assignedTests.some((t) => t.assignedAnalystName)
+  );
   const batchDisplay =
     (sample.category === "AfterCleaning" ? sample.previousProductBatchNumber || sample.batchNumber : sample.batchNumber) || "—";
   const receivedAtDisplay = formatDateTimeWithTimeZone(sample.receivedAt);
   const contextLabel =
     sample.category === "FinishedProduct"
-      ? "STAGE"
+      ? t("selectedSample.label.stage")
       : isWater
-      ? "SAMPLING POINT"
+      ? t("selectedSample.label.samplingPoint")
       : sample.category === "AfterCleaning"
-      ? "PREV PRODUCT"
-      : "MFG DATE";
+      ? t("selectedSample.label.prevProduct")
+      : t("selectedSample.label.mfgDate");
   const contextValue =
     sample.category === "FinishedProduct"
       ? sample.productionStage || "—"
@@ -100,32 +107,35 @@ export function SelectedSampleTestingPanel({
       : formatDate(sample.mfgDate);
   const storageOrExpLabel =
     isWater || sample.storageCondition
-      ? "STORAGE"
+      ? t("selectedSample.label.storage")
       : isProductLike
-      ? "EXP DATE"
-      : "CATEGORY";
-  const storageOrExpValue =
+      ? t("selectedSample.label.expDate")
+      : t("selectedSample.label.category");
+  const storageOrExpValue: string =
     isWater
-      ? (sample.storageCondition === "Refrigerator" ? `Fridge (${sample.storageTimeHours ?? "?"}h)` : sample.storageCondition || "Ambient")
+      ? (sample.storageCondition === "Refrigerator"
+          ? t("selectedSample.fridgeHours", { hours: sample.storageTimeHours ?? "?" }).replace(/<\/?ltr>/g, "")
+          : sample.storageCondition || t("selectedSample.ambient"))
       : isProductLike
       ? formatDate(sample.expDate)
       : sample.storageCondition || sample.category;
 
-  const metaCells: { label: string; value: string; color?: string; fontWeight?: number }[] = [
-    { label: "ASSIGNED TO", value: assignedAnalystDisplay, color: theme.palette.primary.main, fontWeight: 700 },
+  const metaCells: { key: string; label: string; value: string; ltr?: boolean; color?: string; fontWeight?: number }[] = [
+    { key: "assignedTo", label: t("selectedSample.label.assignedTo"), value: assignedAnalystDisplay, ltr: isAssignedName, color: theme.palette.primary.main, fontWeight: 700 },
     {
-      label: "PREP STATUS",
+      key: "prepStatus",
+      label: t("selectedSample.label.prepStatus"),
       value: sample.preparationStatus || "—",
       color: needsPreparation ? theme.custom.status.action.text : theme.custom.status.notDetected.text
     },
-    { label: "CAUSE OF TESTING", value: sample.causeOfTesting || "—" },
-    { label: "BATCH NUMBER", value: batchDisplay },
-    { label: "CONTROL NUMBER", value: sample.controlNumber || "—" },
-    { label: "RECEIVED AT", value: receivedAtDisplay },
-    { label: "SAMPLED BY", value: sample.sampledBy || "—" },
-    { label: "SAMPLE QTY", value: sample.sampleQuantity || "—" },
-    { label: contextLabel, value: contextValue },
-    { label: storageOrExpLabel, value: storageOrExpValue }
+    { key: "causeOfTesting", label: t("selectedSample.label.causeOfTesting"), value: sample.causeOfTesting || "—" },
+    { key: "batchNumber", label: t("selectedSample.label.batchNumber"), value: batchDisplay, ltr: batchDisplay !== "—" },
+    { key: "controlNumber", label: t("selectedSample.label.controlNumber"), value: sample.controlNumber || "—", ltr: Boolean(sample.controlNumber) },
+    { key: "receivedAt", label: t("selectedSample.label.receivedAt"), value: receivedAtDisplay, ltr: true },
+    { key: "sampledBy", label: t("selectedSample.label.sampledBy"), value: sample.sampledBy || "—", ltr: Boolean(sample.sampledBy) },
+    { key: "sampleQty", label: t("selectedSample.label.sampleQty"), value: sample.sampleQuantity || "—", ltr: Boolean(sample.sampleQuantity) },
+    { key: "context", label: contextLabel, value: contextValue, ltr: contextValue !== "—" && !isWater && sample.category !== "FinishedProduct" && sample.category !== "AfterCleaning" },
+    { key: "storageOrExp", label: storageOrExpLabel, value: storageOrExpValue, ltr: isProductLike && storageOrExpValue !== "—" }
   ];
 
   return (
@@ -155,7 +165,12 @@ export function SelectedSampleTestingPanel({
             onClick={() => onLifecycleBadgeClick(sample.sampleId)}
           />
           <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>
-            Ref: {sample.referenceNumber} · #{sample.sampleId}
+            <Trans
+              i18nKey="selectedSample.refSubtitle"
+              ns="testingWorkspace"
+              values={{ ref: sample.referenceNumber, id: sample.sampleId }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
 
@@ -179,7 +194,7 @@ export function SelectedSampleTestingPanel({
                 "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
               }}
             >
-              Prepare Sample
+              {t("selectedSample.prepareSample")}
             </Button>
           )}
 
@@ -201,13 +216,13 @@ export function SelectedSampleTestingPanel({
               "&:hover": { bgcolor: "background.default", borderColor: "primary.main" }
             }}
           >
-            Sample Summary
+            {t("selectedSample.sampleSummary")}
           </Button>
 
-          <Tooltip title="More sample actions">
+          <Tooltip title={t("selectedSample.moreSampleActions")}>
             <IconButton
               size="small"
-              aria-label="More sample actions"
+              aria-label={t("selectedSample.moreSampleActions")}
               aria-controls={actionsMenuAnchor ? "selected-sample-actions-menu" : undefined}
               aria-haspopup="true"
               aria-expanded={Boolean(actionsMenuAnchor)}
@@ -244,13 +259,13 @@ export function SelectedSampleTestingPanel({
               <ListItemIcon>
                 <HistoryOutlinedIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText primary="Audit History" slotProps={{ primary: { sx: { fontSize: 13 } } }} />
+              <ListItemText primary={t("selectedSample.auditHistory")} slotProps={{ primary: { sx: { fontSize: 13 } } }} />
             </MenuItem>
 
             {canManageSample && onEdit && (
               <MenuItem
                 disabled={!sample.canEditDetails}
-                title={sample.canEditDetails ? "Correct sample details (signed)" : "Locked: the sample has been submitted for review"}
+                title={sample.canEditDetails ? t("selectedSample.editDetailsAllowedTitle") : t("selectedSample.editDetailsLockedTitle")}
                 onClick={() => {
                   setActionsMenuAnchor(null);
                   onEdit(sample);
@@ -260,8 +275,8 @@ export function SelectedSampleTestingPanel({
                   <EditOutlinedIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Edit Details"
-                  secondary={!sample.canEditDetails ? "Locked under review" : undefined}
+                  primary={t("selectedSample.editDetails")}
+                  secondary={!sample.canEditDetails ? t("selectedSample.lockedUnderReview") : undefined}
                   slotProps={{
                     primary: { sx: { fontSize: 13 } },
                     secondary: { sx: { fontSize: 11 } }
@@ -288,7 +303,7 @@ export function SelectedSampleTestingPanel({
                   <BlockOutlinedIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText
-                  primary="Void Sample..."
+                  primary={t("selectedSample.voidSample")}
                   slotProps={{ primary: { sx: { fontSize: 13, fontWeight: 600 } } }}
                 />
               </MenuItem>
@@ -313,7 +328,7 @@ export function SelectedSampleTestingPanel({
               "&:hover": { borderColor: "text.secondary", bgcolor: "background.default" }
             }}
           >
-            Deselect
+            {t("selectedSample.deselect")}
           </Button>
         </Box>
       </Box>
@@ -331,7 +346,7 @@ export function SelectedSampleTestingPanel({
         }}
       >
         {metaCells.map((cell) => (
-          <Box key={cell.label} sx={{ minWidth: 0 }}>
+          <Box key={cell.key} sx={{ minWidth: 0 }}>
             <Typography
               sx={{
                 fontSize: "0.75rem",
@@ -356,7 +371,7 @@ export function SelectedSampleTestingPanel({
                   textOverflow: "ellipsis"
                 }}
               >
-                {cell.value}
+                {cell.ltr ? <Ltr>{cell.value}</Ltr> : cell.value}
               </Typography>
             </Tooltip>
           </Box>
@@ -373,12 +388,17 @@ export function SelectedSampleTestingPanel({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
           <Box>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-              Assigned Tests ({sample.assignedTests.length})
+              <Trans
+                i18nKey="selectedSample.assignedTestsHeading"
+                ns="testingWorkspace"
+                values={{ count: sample.assignedTests.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
               {sample.assignedTests.length > 0
-                ? `${completedTestsCount} of ${sample.assignedTests.length} test workflows completed · Select a test card to record or review results`
-                : "No laboratory test workflows assigned"}
+                ? t("selectedSample.completedProgress", { completed: completedTestsCount, total: sample.assignedTests.length })
+                : t("selectedSample.noTestWorkflowsAssigned")}
             </Typography>
           </Box>
 
@@ -396,7 +416,7 @@ export function SelectedSampleTestingPanel({
               "&:hover": { bgcolor: brandColors.pageTitle }
             }}
           >
-            Open Pathogen Workflow
+            {t("selectedSample.openPathogenWorkflow")}
           </Button>
           )}
         </Box>
@@ -421,12 +441,12 @@ export function SelectedSampleTestingPanel({
               <WarningAmberOutlinedIcon sx={{ color: theme.custom.status.inconclusive.text, fontSize: 24 }} />
               <Box>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.inconclusive.text }}>
-                  Sample Needs Preparation
+                  {t("selectedSample.sampleNeedsPreparation")}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text }}>
                   {isProductLike
-                    ? "Record the sample preparation and sign for it before starting laboratory tests."
-                    : "Test locations and configuration must be completed before starting laboratory tests."}
+                    ? t("selectedSample.prepInstructionsProduct")
+                    : t("selectedSample.prepInstructionsLocation")}
                 </Typography>
               </Box>
             </Box>
@@ -444,14 +464,14 @@ export function SelectedSampleTestingPanel({
                 "&:hover": { bgcolor: theme.custom.status.action.text, opacity: 0.85 }
               }}
             >
-              Start Preparation
+              {t("selectedSample.startPreparation")}
             </Button>
           </Paper>
         )}
 
         {sample.assignedTests.length === 0 ? (
           <Typography sx={{ color: "text.secondary", fontSize: 13, py: 3, textAlign: "center" }}>
-            No tests assigned to this sample.
+            {t("selectedSample.noTestsAssigned")}
           </Typography>
         ) : (
           <Stack spacing={1.5}>

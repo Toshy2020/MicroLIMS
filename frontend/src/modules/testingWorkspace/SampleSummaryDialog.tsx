@@ -7,7 +7,10 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import { Link } from "react-router-dom";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
@@ -42,23 +45,24 @@ interface Props {
 // separate card - this lifecycle timeline already covers what matters.
 function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
   const theme = useTheme();
+  const { t } = useTranslation("testingWorkspace");
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
         <TimelineOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
         <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
-          Workflow History
+          {t("sampleSummary.dialog.workflowHistory")}
         </Typography>
       </Box>
 
       {summary.timeline.length === 0 ? (
-        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No lifecycle events yet.</Typography>
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("sampleSummary.dialog.noLifecycleEvents")}</Typography>
       ) : (
         <Stack
           direction="row"
           spacing={0}
           role="region"
-          aria-label="Workflow history events"
+          aria-label={t("sampleSummary.dialog.workflowHistoryAria")}
           tabIndex={0}
           sx={{
             overflowX: "auto",
@@ -93,10 +97,10 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
                   {workflowEventLabel(e.eventType, e.decision)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {e.performedByName}
+                  <Ltr>{e.performedByName}</Ltr>
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {formatDate(e.timestamp)}
+                  <Ltr>{formatDate(e.timestamp)}</Ltr>
                 </Typography>
                 {e.comment && (
                   <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.25 }}>
@@ -114,6 +118,7 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
 
 export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
   const canAssignAnalyst = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [summary, setSummary] = useState<SampleSummary | null>(null);
@@ -224,7 +229,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           }
         })
         .catch((e) => {
-          setLoadError(e?.response?.data?.message ?? "Failed to load sample summary.");
+          setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
         });
       if (canAssignAnalyst) {
         setAnalystsLoadFailed(false);
@@ -341,8 +346,9 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     setExportError(null);
     try {
       await SampleSummaryService.exportPdf(sampleId, summary.referenceNumber);
-    } catch (e: any) {
-      setExportError(e?.response?.data?.message ?? "Export failed.");
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } } | null)?.response?.data?.message;
+      setExportError(msg ?? t("sampleSummary.dialog.exportFailed"));
     } finally {
       setExporting(null);
     }
@@ -411,7 +417,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     <>
       <FloatingDialog
         open={open && !confirmingReview && !confirmingDecision}
-        title="Sample Summary"
+        title={t("sampleSummary.dialog.title")}
         onClose={onClose}
       >
         {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
@@ -432,12 +438,12 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               <Box>
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center", mb: 0.5 }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-                    Overall Status:
+                    {t("sampleSummary.dialog.overallStatus")}
                   </Typography>
                   <StatusBadge status={summary.overallStatus} />
                 </Stack>
                 <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                  Complete overview of test execution, incubation stages, results, and approvals.
+                  {t("sampleSummary.dialog.subtitle")}
                 </Typography>
               </Box>
               <Stack useFlexGap direction="row" spacing={1} sx={{ flexShrink: 0, flexWrap: "wrap", gap: 1 }}>
@@ -456,7 +462,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                     "&:hover": { bgcolor: brandColors.pageTitle }
                   }}
                 >
-                  Open Pathogen Workflow
+                  {t("sampleSummary.dialog.openPathogenWorkflow")}
                 </Button>
                 )}
                 <PrintLabelButton
@@ -477,7 +483,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   startIcon={<PrintIcon />}
                   sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
-                  Printable Report
+                  {t("sampleSummary.dialog.printableReport")}
                 </Button>
                 {coaEligible && (
                   <Button
@@ -490,7 +496,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                     startIcon={<FactCheckOutlinedIcon />}
                     sx={{ borderColor: "divider", color: "text.secondary" }}
                   >
-                    View COA
+                    {t("sampleSummary.dialog.viewCoa")}
                   </Button>
                 )}
                 <Button
@@ -501,7 +507,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                   onClick={() => handleExport("pdf")}
                   sx={{ borderColor: "divider", color: "text.secondary" }}
                 >
-                  {exporting === "pdf" ? "Exporting…" : "Export PDF"}
+                  {exporting === "pdf" ? t("sampleSummary.dialog.exporting") : t("sampleSummary.dialog.exportPdf")}
                 </Button>
               </Stack>
             </Box>
@@ -511,13 +517,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center" }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-                    Sections:
+                    {t("sampleSummary.dialog.sectionsLabel")}
                   </Typography>
                   {summary.sections.map((sec) => (
                     <Chip
                       key={sec.sectionId}
                       size="small"
-                      label={`${sec.sectionName}: ${formatSectionStatus(sec.status)}`}
+                      label={`${sec.sectionName}: ${t(`sampleSummary.sectionStatus.${sec.status}`, { defaultValue: formatSectionStatus(sec.status) })}`}
                       variant={sec.canView ? "filled" : "outlined"}
                       sx={{
                         fontSize: 12,
@@ -533,8 +539,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                 {summary.sections
                   .filter((sec) => sec.status === "Closed" && sec.canView)
                   .map((sec) => (
-                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 12, color: "text.secondary", pl: 0.5 }}>
-                      {sec.sectionName} closed by {sec.closedByName ?? "—"} on {formatDate(sec.closedAt)}
+                    <Typography key={`closed-${sec.sectionId}`} sx={{ fontSize: 12, color: "text.secondary", ps: 0.5 }}>
+                      <Trans
+                        i18nKey="sampleSummary.dialog.closedBySection"
+                        ns="testingWorkspace"
+                        values={{ section: sec.sectionName, closedBy: sec.closedByName ?? "—", date: formatDate(sec.closedAt) }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
                       {sec.closeReason ? `: ${sec.closeReason}` : ""}
                     </Typography>
                   ))}
@@ -620,7 +631,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                     "&:hover": { bgcolor: brandColors.pageTitle }
                   }}
                 >
-                  Open Printable Report
+                  {t("sampleSummary.dialog.openPrintableReport")}
                 </Button>
                 {coaEligible && (
                   <Button
@@ -640,7 +651,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
                       color: brandColors.sectionTitle
                     }}
                   >
-                    View Certificate of Analysis
+                    {t("sampleSummary.dialog.viewCertificateOfAnalysis")}
                   </Button>
                 )}
               </Stack>
@@ -657,7 +668,12 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               }}
             >
               <Typography sx={{ fontSize: 12 }}>
-                Sample Reference: <strong>{summary.referenceNumber}</strong> · Record Status: <strong>{summary.status}</strong> · MicroLIMS Operational View
+                <Trans
+                  i18nKey="sampleSummary.dialog.footer"
+                  ns="testingWorkspace"
+                  values={{ ref: summary.referenceNumber, status: summary.status }}
+                  components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           </Stack>
@@ -684,6 +700,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               ? `By submitting, I confirm I have reviewed all test results for ${reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)?.sectionName}.`
               : "By submitting, I confirm I have reviewed all test results for this sample."
           }
+          meaningStatementTranslation={
+            reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)
+              ? t("sampleSummary.approval.confirmReviewSection", {
+                  section: reviewableSections.find((s) => s.sectionId === effectiveReviewSectionId)?.sectionName ?? ""
+                })
+              : t("sampleSummary.approval.confirmReviewSample")
+          }
           onCancel={() => setConfirmingReview(false)}
           onConfirm={handleReviewConfirm}
         />
@@ -692,6 +715,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         <SignatureDialog
           open={confirmingDecision}
           meaningStatement={DECISION_OPTIONS.find((o) => o.value === decision)?.label ?? ""}
+          meaningStatementTranslation={t(`sampleSummary.decisions.${decision}`)}
           onCancel={() => setConfirmingDecision(false)}
           onConfirm={handleDecisionConfirm}
         />

@@ -17,10 +17,13 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { CriteriaCard, NumericCell, RegisterTable, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, RegisterColumn, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { TitrantDueAcknowledgement } from "./TitrantDueAcknowledgement";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
@@ -36,8 +39,6 @@ import { getErrorMessage } from "../../utils/errorMessage";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
 import { meanAndRsd, previewResult, PreviewInput } from "./titrationPreview";
-
-const MOISTURE_LOAD_FALLBACK = "Could not load the sample's moisture result.";
 
 interface Props {
   testOrderId: number;
@@ -62,25 +63,12 @@ const getLocalIsoString = (date: Date = new Date()): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
-const TYPE_LABELS: Record<string, string> = {
-  AcidBase: "Acid-base",
-  Redox: "Redox",
-  Complexometric: "Complexometric",
-  Precipitation: "Precipitation",
-  KarlFischer: "Karl Fischer (volumetric)"
-};
 const UNIT_LABELS: Record<string, string> = { Normal: "N", Molar: "M", MgWaterPerMl: "mg H2O/mL" };
 const STATE_COLOR: Record<string, "success" | "warning" | "error" | "default"> = {
   Valid: "success",
   BeforeEachUse: "warning",
   Due: "warning",
   NotStandardized: "error"
-};
-const STATE_LABEL: Record<string, string> = {
-  Valid: "Valid",
-  BeforeEachUse: "Before each use",
-  Due: "Due",
-  NotStandardized: "Not standardized"
 };
 
 const num = (s: string): number | null => (s.trim() !== "" && !isNaN(Number(s)) ? Number(s) : null);
@@ -105,6 +93,7 @@ function PreparationPicker({
   value: number | "";
   onChange: (v: number | "") => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const selected = options.find((o) => o.preparationId === value);
   return (
     <Stack spacing={1}>
@@ -113,16 +102,21 @@ function PreparationPicker({
         <Select labelId={id} label={label} value={value} onChange={(e) => onChange(String(e.target.value) === "" ? "" : Number(e.target.value))}>
           {options.length === 0 && (
             <MenuItem disabled value="">
-              <em>No prepared, in-date preparation available</em>
+              <em>{t("titration.noPrepAvailable")}</em>
             </MenuItem>
           )}
           {options.map((o) => (
             <MenuItem key={o.preparationId} value={o.preparationId} disabled={!o.usable}>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }} useFlexGap>
                 <span>
-                  {o.code} {"·"} factor {o.factor != null ? o.factor.toFixed(4) : "—"}
+                  <Trans
+                    i18nKey="titration.optionFactor"
+                    ns="testingWorkspace"
+                    values={{ code: o.code, factor: o.factor != null ? o.factor.toFixed(4) : "—" }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </span>
-                <Chip size="small" color={STATE_COLOR[o.factorState] ?? "default"} variant="outlined" label={STATE_LABEL[o.factorState] ?? o.factorState} />
+                <Chip size="small" color={STATE_COLOR[o.factorState] ?? "default"} variant="outlined" label={t(`titration.state.${o.factorState}`, { defaultValue: o.factorState })} />
                 {!o.usable && o.blockReason && <Typography variant="caption" color="error">{o.blockReason}</Typography>}
               </Stack>
             </MenuItem>
@@ -131,8 +125,14 @@ function PreparationPicker({
       </FormControl>
       {selected && (
         <FormHelperText sx={{ mt: 0 }}>
-          Factor {selected.factor != null ? selected.factor.toFixed(4) : "—"}
-          {selected.standardizationTemperatureC != null ? ` · standardized at ${selected.standardizationTemperatureC} °C` : ""}
+          {selected.standardizationTemperatureC != null
+            ? t("titration.helperFactorTemp", {
+                factor: selected.factor != null ? selected.factor.toFixed(4) : "—",
+                temp: selected.standardizationTemperatureC
+              })
+            : t("titration.helperFactor", {
+                factor: selected.factor != null ? selected.factor.toFixed(4) : "—"
+              })}
         </FormHelperText>
       )}
     </Stack>
@@ -140,6 +140,7 @@ function PreparationPicker({
 }
 
 export function TitrationPanel({ testOrderId, displayName, sampleId, current, onRecorded }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [ctx, setCtx] = useState<TitrationContext | null>(null);
@@ -217,7 +218,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           } catch (err: unknown) {
             if (active) {
               setMoisture(null);
-              setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
+              setMoistureError(getErrorMessage(err, t("titration.moistureLoadFallback")));
               setMoistureStatus("error");
             }
           }
@@ -231,7 +232,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load the titration configuration.";
+          t("titration.loadFailed");
         if (active) setError(msg);
       } finally {
         if (active) setLoading(false);
@@ -240,7 +241,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     return () => {
       active = false;
     };
-  }, [testOrderId]);
+  }, [testOrderId, t]);
 
   const handleRetryMoisture = useCallback(async () => {
     setMoistureStatus("loading");
@@ -250,10 +251,10 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       setMoistureStatus("loaded");
     } catch (err: unknown) {
       setMoisture(null);
-      setMoistureError(getErrorMessage(err, MOISTURE_LOAD_FALLBACK));
+      setMoistureError(getErrorMessage(err, t("titration.moistureLoadFallback")));
       setMoistureStatus("error");
     }
-  }, [testOrderId]);
+  }, [testOrderId, t]);
 
   const isRelative = ctx?.calculation === "Relative";
   const isResidual = ctx?.mode === "Residual";
@@ -297,15 +298,15 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
 
   const columns: UnitEntryGridColumn[] = useMemo(
     () => [
-      { key: "weight", label: "Sample weight (mg)" },
-      { key: "volume", label: "Titrant volume (mL)" },
+      { key: "weight", label: t("titration.sampleWeightCol") },
+      { key: "volume", label: t("titration.titrantVolumeCol") },
       ...(ctx?.specifications ?? []).map((s) => ({
         key: `r_${s.specificationId}`,
-        label: `${s.parameterName} preview${s.unit ? ` (${s.unit})` : ""}`,
+        label: t("titration.previewHeader", { parameter: s.parameterName, unitSuffix: s.unit ? ` (${s.unit})` : "" }),
         readOnly: true
       }))
     ],
-    [ctx]
+    [ctx, t]
   );
 
   const previews = useMemo(() => {
@@ -391,7 +392,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     } catch (err: unknown) {
       setSigning(false);
       setError(
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to record titration result."
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? t("titration.recordFailed")
       );
     }
   };
@@ -400,12 +401,12 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
     parameter: s.parameterName,
     criterion: s.specLimit || "—",
     unit: s.unit || "%",
-    source: "Specification"
+    source: t("titration.sourceSpecification")
   }));
 
   if (showCompleted) {
     const serverStatus = outcome?.status ?? "";
-    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}`;
+    const headline = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? t("titration.resultsRecordedFallback")}`;
     const verdict: Verdict | null = !serverStatus
       ? null
       : serverStatus.includes("OutOfSpecification")
@@ -427,15 +428,15 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           const readings = (p.readings ?? []).filter((r) => r.kind === "Titration").sort((a, b) => a.index - b.index);
           if (readings.length === 0) return null;
           const cols: RegisterColumn<ResultReadingDetail>[] = [
-            { key: "index", label: "Replicate", render: (r) => `Rep ${r.index}` },
-            { key: "value1", label: "Sample weight (mg)", numeric: true, render: (r) => <NumericCell value={r.value1} /> },
-            { key: "value2", label: "Titrant volume (mL)", numeric: true, render: (r) => <NumericCell value={r.value2} /> },
-            { key: "value3", label: "Corrected volume (mL)", numeric: true, render: (r) => <NumericCell value={r.value3} /> },
-            { key: "computedValue", label: "Result", numeric: true, render: (r) => <NumericCell value={r.computedValue} decimals={2} /> }
+            { key: "index", label: t("titration.replicateCol"), render: (r) => t("titration.repLabel", { index: r.index }) },
+            { key: "value1", label: t("titration.sampleWeightCol"), numeric: true, render: (r) => <NumericCell value={r.value1} /> },
+            { key: "value2", label: t("titration.titrantVolumeCol"), numeric: true, render: (r) => <NumericCell value={r.value2} /> },
+            { key: "value3", label: t("titration.correctedVolumeCol"), numeric: true, render: (r) => <NumericCell value={r.value3} /> },
+            { key: "computedValue", label: t("titration.resultCol"), numeric: true, render: (r) => <NumericCell value={r.computedValue} decimals={2} /> }
           ];
           return (
-            <ResultSection key={p.id} title={`Recorded titrations · ${p.parameterName}`}>
-              <RegisterTable columns={cols} rows={readings} getRowId={(r) => r.id ?? `${idx}-${r.index}`} empty={{ title: "No titrations recorded" }} />
+            <ResultSection key={p.id} title={t("titration.recordedTitrationsTitle", { parameter: p.parameterName })}>
+              <RegisterTable columns={cols} rows={readings} getRowId={(r) => r.id ?? `${idx}-${r.index}`} empty={{ title: t("titration.noTitrationsRecorded") }} />
             </ResultSection>
           );
         })}
@@ -452,16 +453,19 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
   }
 
   if (!ctx) {
-    return <Alert severity="error">{error ?? "The titration configuration is not available."}</Alert>;
+    return <Alert severity="error">{error ?? t("titration.configUnavailable")}</Alert>;
   }
 
   let step = 1;
+  const typeLabel = t(`titration.type.${ctx.titrationType}`, { defaultValue: ctx.titrationType });
 
   return (
     <Box>
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          {current.returnInfo.reason ? `Returned for revision: ${current.returnInfo.reason}` : "Returned by reviewer for revision"}
+          {current.returnInfo.reason
+            ? t("titration.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("titration.returnedDefault")}
         </Alert>
       )}
       {error && (
@@ -473,72 +477,93 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
       <Stack spacing={2.5}>
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
-        <ResultSection step={step++} title="Method">
+        <ResultSection step={step++} title={t("titration.methodHeading")}>
           <Stack useFlexGap direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 1.5 }}>
-            <Chip size="small" variant="outlined" label={`${TYPE_LABELS[ctx.titrationType] ?? ctx.titrationType}${ctx.nonAqueous ? " (non-aqueous)" : ""}`} />
-            <Chip size="small" variant="outlined" label={ctx.mode === "Residual" ? "Residual (back titration)" : "Direct"} />
-            <Chip size="small" variant="outlined" label={ctx.calculation === "Relative" ? "Relative to standard" : "USP factor"} />
-            <Chip size="small" variant="outlined" label={ctx.endpoint === "Visual" ? `Visual${ctx.indicator ? `: ${ctx.indicator}` : ""}` : "Potentiometric"} />
-            <Chip size="small" variant="outlined" label={`Replicates: ${ctx.replicateCount}`} />
-            {ctx.maxRsdPercent != null && <Chip size="small" variant="outlined" label={`Max RSD ${ctx.maxRsdPercent}%`} />}
+            <Chip
+              size="small"
+              variant="outlined"
+              label={ctx.nonAqueous ? t("titration.nonAqueousSuffix", { type: typeLabel }) : typeLabel}
+            />
+            <Chip size="small" variant="outlined" label={ctx.mode === "Residual" ? t("titration.modeResidual") : t("titration.modeDirect")} />
+            <Chip size="small" variant="outlined" label={ctx.calculation === "Relative" ? t("titration.calcRelative") : t("titration.calcUspFactor")} />
+            <Chip
+              size="small"
+              variant="outlined"
+              label={
+                ctx.endpoint === "Visual"
+                  ? ctx.indicator
+                    ? t("titration.endpointVisualIndicator", { indicator: ctx.indicator })
+                    : t("titration.endpointVisual")
+                  : t("titration.endpointPotentiometric")
+              }
+            />
+            <Chip size="small" variant="outlined" label={t("titration.replicatesChip", { count: ctx.replicateCount })} />
+            {ctx.maxRsdPercent != null && <Chip size="small" variant="outlined" label={t("titration.maxRsdChip", { value: ctx.maxRsdPercent })} />}
           </Stack>
           <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
             <Box>
-              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Titrant</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("titration.titrantLabel")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {ctx.titrant.name} {"·"} {ctx.titrant.nominalStrength} {UNIT_LABELS[ctx.titrant.strengthUnit] ?? ctx.titrant.strengthUnit}
+                <Ltr>{ctx.titrant.name} · {ctx.titrant.nominalStrength} {UNIT_LABELS[ctx.titrant.strengthUnit] ?? ctx.titrant.strengthUnit}</Ltr>
               </Typography>
             </Box>
             {ctx.calculation === "UspFactor" && ctx.titrationType !== "KarlFischer" && (
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Equivalency factor F</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{ctx.equivalencyFactor ?? "—"} mg/mEq</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("titration.equivalencyFactorLabel")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <Trans
+                    i18nKey="titration.mgPerMeq"
+                    ns="testingWorkspace"
+                    values={{ value: ctx.equivalencyFactor ?? "—" }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                </Typography>
               </Box>
             )}
             {isResidual && ctx.excessTitrant && (
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Excess titrant</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("titration.excessTitrantLabel")}</Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {ctx.excessTitrant.name} {"·"} {ctx.excessVolumeMl} mL
+                  <Ltr>{ctx.excessTitrant.name} · {ctx.excessVolumeMl} mL</Ltr>
                 </Typography>
               </Box>
             )}
           </Stack>
         </ResultSection>
 
-        <ResultSection step={step++} title="Analysis set-up">
+        <ResultSection step={step++} title={t("titration.setupHeading")}>
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time"
+              label={t("titration.analysisTime")}
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
               required
               fullWidth
             />
             <FormControl size="small" fullWidth>
-              <InputLabel id="titration-equipment-label">Equipment (titrator)</InputLabel>
+              <InputLabel id="titration-equipment-label">{t("titration.equipmentLabel")}</InputLabel>
               <Select
                 labelId="titration-equipment-label"
-                label="Equipment (titrator)"
+                label={t("titration.equipmentLabel")}
                 value={equipmentId}
                 onChange={(e) => setEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
               >
                 <MenuItem value="">
-                  <em>None (no instrument linked)</em>
+                  <em>{t("titration.noInstrument")}</em>
                 </MenuItem>
                 {fpEquipment.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.name} ({eq.code})
+                    {eq.name} (<Ltr>{eq.code}</Ltr>)
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
             <PreparationPicker
               id="titration-titrant-prep"
-              label="Titrant preparation"
+              label={t("titration.titrantPrepLabel")}
               options={ctx.titrantPreparations}
               value={titrantPrepId}
               onChange={setTitrantPrepId}
@@ -546,7 +571,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
             {isResidual && (
               <PreparationPicker
                 id="titration-excess-prep"
-                label="Excess titrant preparation"
+                label={t("titration.excessPrepLabel")}
                 options={ctx.excessPreparations}
                 value={excessPrepId}
                 onChange={setExcessPrepId}
@@ -567,15 +592,15 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
               <TextField
                 size="small"
                 type="number"
-                label="Titration temperature (°C)"
+                label={t("titration.tempLabel")}
                 value={tempC}
                 onChange={(e) => setTempC(e.target.value)}
                 helperText={
                   titrant?.standardizationTemperatureC != null
-                    ? `Titrant standardized at ${titrant.standardizationTemperatureC} °C (from the standardization record)`
-                    : "Titrant standardization temperature comes from the standardization record"
+                    ? t("titration.tempStandardizedAt", { temp: titrant.standardizationTemperatureC })
+                    : t("titration.tempStandardizedFallback")
                 }
-                slotProps={{ htmlInput: { step: "any" } }}
+                slotProps={{ htmlInput: { step: "any", dir: "ltr" } }}
                 required
                 fullWidth
               />
@@ -583,19 +608,19 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
             {needsLod && (
               moistureStatus === "loading" ? (
                 <Typography sx={{ fontSize: 13, color: "text.secondary", py: 0.5 }}>
-                  Loading moisture result...
+                  {t("titration.loadingMoisture")}
                 </Typography>
               ) : moistureStatus === "error" ? (
                 <Alert
                   severity="error"
                   action={
                     <Button color="inherit" size="small" onClick={handleRetryMoisture}>
-                      Retry
+                      {t("titration.retry")}
                     </Button>
                   }
                   sx={{ width: "100%", fontSize: 13, py: 0.5 }}
                 >
-                  {moistureError || MOISTURE_LOAD_FALLBACK}
+                  {moistureError || t("titration.moistureLoadFallback")}
                 </Alert>
               ) : moisture ? (
                 <Box sx={{ width: "100%" }}>
@@ -604,7 +629,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
                   </Typography>
                   {(moisture.percent < 0 || moisture.percent >= 100) && (
                     <Alert severity="error" sx={{ width: "100%", fontSize: 13, py: 0.5, mt: 0.5 }}>
-                      The moisture result is out of range (0 to below 100 %).
+                      {t("titration.moistureOutOfRange")}
                     </Alert>
                   )}
                 </Box>
@@ -618,10 +643,10 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
               <TextField
                 size="small"
                 type="number"
-                label="Average unit weight (mg)"
+                label={t("titration.avgUnitWeightLabel")}
                 value={avgWt}
                 onChange={(e) => setAvgWt(e.target.value)}
-                slotProps={{ htmlInput: { step: "any", min: 0 } }}
+                slotProps={{ htmlInput: { step: "any", min: 0, dir: "ltr" } }}
                 required
                 fullWidth
               />
@@ -630,14 +655,14 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         </ResultSection>
 
         {ctx.blankRequired && (
-          <ResultSection step={step++} title="Blank (one per series)">
+          <ResultSection step={step++} title={t("titration.blankHeading")}>
             <TextField
               size="small"
               type="number"
-              label="Blank volume (mL)"
+              label={t("titration.blankVolumeLabel")}
               value={blank}
               onChange={(e) => setBlank(e.target.value)}
-              slotProps={{ htmlInput: { step: "any", min: 0 } }}
+              slotProps={{ htmlInput: { step: "any", min: 0, dir: "ltr" } }}
               required
               sx={{ maxWidth: 260 }}
             />
@@ -645,46 +670,52 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
         )}
 
         {isRelative && (
-          <ResultSection step={step++} title="Reference standard titrations (1-3, same lot)">
+          <ResultSection step={step++} title={t("titration.standardsHeading")}>
             <Stack spacing={1.5}>
               <FormControl size="small" fullWidth required>
-                <InputLabel id="titration-lot-label">Standard lot</InputLabel>
-                <Select labelId="titration-lot-label" label="Standard lot" value={lotId} onChange={(e) => setLotId(String(e.target.value) === "" ? "" : Number(e.target.value))}>
+                <InputLabel id="titration-lot-label">{t("titration.standardLotLabel")}</InputLabel>
+                <Select labelId="titration-lot-label" label={t("titration.standardLotLabel")} value={lotId} onChange={(e) => setLotId(String(e.target.value) === "" ? "" : Number(e.target.value))}>
                   {ctx.standardLots.length === 0 && (
                     <MenuItem disabled value="">
-                      <em>No usable standard lot in stock</em>
+                      <em>{t("titration.noStandardLot")}</em>
                     </MenuItem>
                   )}
                   {ctx.standardLots.map((l) => (
                     <MenuItem key={l.materialId} value={l.materialId}>
-                      {l.lotLabel} {"·"} {l.kind === "WorkingStandard" ? "Working standard" : "Reference standard"} {"·"} purity {l.purityPercent}%
-                      {l.moisturePercent != null ? ` · moisture ${l.moisturePercent}%` : ""} {"·"} {l.quantityRemaining} {l.unit} left
+                      {t("titration.standardLotOption", {
+                        lot: l.lotLabel,
+                        kind: l.kind === "WorkingStandard" ? t("titration.workingStandard") : t("titration.referenceStandard"),
+                        purity: l.purityPercent,
+                        moisturePart: l.moisturePercent != null ? t("titration.moisturePart", { percent: l.moisturePercent }) : "",
+                        qty: l.quantityRemaining,
+                        unit: l.unit
+                      })}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
               {stdRows.map((r, i) => (
                 <Stack key={i} direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
-                  <Typography variant="body2" sx={{ width: 56 }}>Std {i + 1}</Typography>
+                  <Typography variant="body2" sx={{ width: 56 }}>{t("titration.stdLabel", { index: i + 1 })}</Typography>
                   <TextField
                     size="small"
                     type="number"
-                    label="Standard weight (mg)"
+                    label={t("titration.standardWeightLabel")}
                     value={r.weightMg}
                     onChange={(e) => setStdRows((p) => p.map((x, j) => (j === i ? { ...x, weightMg: e.target.value } : x)))}
-                    slotProps={{ htmlInput: { step: "any", min: 0 } }}
+                    slotProps={{ htmlInput: { step: "any", min: 0, dir: "ltr" } }}
                   />
                   <TextField
                     size="small"
                     type="number"
-                    label="Titre (mL)"
+                    label={t("titration.titreLabel")}
                     value={r.titreMl}
                     onChange={(e) => setStdRows((p) => p.map((x, j) => (j === i ? { ...x, titreMl: e.target.value } : x)))}
-                    slotProps={{ htmlInput: { step: "any", min: 0 } }}
+                    slotProps={{ htmlInput: { step: "any", min: 0, dir: "ltr" } }}
                   />
                   <IconButton
                     size="small"
-                    aria-label={`Remove standard ${i + 1}`}
+                    aria-label={t("titration.removeStandardAria", { index: i + 1 })}
                     disabled={stdRows.length <= 1}
                     onClick={() => setStdRows((p) => p.filter((_, j) => j !== i))}
                   >
@@ -700,17 +731,17 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
                   onClick={() => setStdRows((p) => [...p, { weightMg: "", titreMl: "" }])}
                   sx={{ textTransform: "none" }}
                 >
-                  Add standard titration
+                  {t("titration.addStandardBtn")}
                 </Button>
               </Box>
             </Stack>
           </ResultSection>
         )}
 
-        <ResultSection step={step} title={`Sample titrations (${ctx.replicateCount} replicate${ctx.replicateCount === 1 ? "" : "s"})`}>
+        <ResultSection step={step} title={t("titration.sampleTitrationsTitle", { count: ctx.replicateCount })}>
           <UnitEntryGrid
             rowCount={ctx.replicateCount}
-            rowLabel={(i) => `Rep ${i + 1}`}
+            rowLabel={(i) => t("titration.repLabel", { index: i + 1 })}
             columns={columns}
             values={reps}
             onChange={setReps}
@@ -719,18 +750,21 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           <Box sx={{ mt: 1.5 }}>
             {summaries.map(({ spec, stats, complete }) => (
               <Typography key={spec.specificationId} variant="body2" sx={{ color: "text.secondary" }}>
-                Preview {"·"} {spec.parameterName}: mean {complete && stats ? fmt(stats.mean) : "—"}
-                {complete && stats?.rsd != null ? ` · RSD ${fmt(stats.rsd)} %` : ""}
-                {complete && stats?.rsd != null && ctx.maxRsdPercent != null && stats.rsd > ctx.maxRsdPercent
-                  ? ` (above the ${ctx.maxRsdPercent} % limit - the server will flag this for review)`
-                  : ""}
-                {" "}(display only - the server calculates the recorded result)
+                {t("titration.summaryPreview", {
+                  parameter: spec.parameterName,
+                  mean: complete && stats ? fmt(stats.mean) : "—",
+                  rsdPart: complete && stats?.rsd != null ? t("titration.summaryRsdPart", { rsd: fmt(stats.rsd) }) : "",
+                  warningPart:
+                    complete && stats?.rsd != null && ctx.maxRsdPercent != null && stats.rsd > ctx.maxRsdPercent
+                      ? t("titration.summaryRsdAboveLimit", { max: ctx.maxRsdPercent })
+                      : ""
+                })}
               </Typography>
             ))}
           </Box>
         </ResultSection>
 
-        <TextField size="small" label="Comment (optional)" value={comment} onChange={(e) => setComment(e.target.value)} multiline rows={2} fullWidth />
+        <TextField size="small" label={t("titration.commentOptional")} value={comment} onChange={(e) => setComment(e.target.value)} multiline rows={2} fullWidth />
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
           <Button
@@ -739,7 +773,7 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
             onClick={() => setSigning(true)}
             sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
           >
-            Sign and record result
+            {t("titration.signAndRecord")}
           </Button>
         </Box>
       </Stack>
@@ -750,6 +784,9 @@ export function TitrationPanel({ testOrderId, displayName, sampleId, current, on
           hasDueWarning
             ? "Your signature records the result and your acknowledgement of the due titrant."
             : "I entered these titration measurements and am recording this test result."
+        }
+        meaningStatementTranslation={
+          hasDueWarning ? t("titration.signatureMeaningDue") : t("titration.signatureMeaning")
         }
         onCancel={() => setSigning(false)}
         onConfirm={submit}

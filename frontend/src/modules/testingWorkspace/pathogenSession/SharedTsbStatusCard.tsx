@@ -6,6 +6,9 @@ import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
 import { SharedTsbStateDto } from "../types/pathogenSessionTypes";
 import { brandColors } from "../../../theme";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   sharedTsb: SharedTsbStateDto;
@@ -17,6 +20,7 @@ const formatDate = (d: string | null | undefined) =>
     : "—";
 
 export function SharedTsbStatusCard({ sharedTsb }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
 
   if (!sharedTsb.isStarted) {
@@ -32,7 +36,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
         }}
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", fontWeight: 500 }}>
-          Shared TSB Enrichment has not been started yet.
+          {t("pathogenSession.tsbStatus.notStarted")}
         </Typography>
       </Box>
     );
@@ -74,17 +78,23 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
           </Box>
           <Box>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
-              Shared TSB Enrichment / Incubation
+              {t("pathogenSession.tsbStatus.title")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Single shared laboratory procedure applied across all applicable pathogen tests
+              {t("pathogenSession.tsbStatus.subtitle")}
             </Typography>
           </Box>
         </Stack>
 
         <Chip
           icon={sharedTsb.isCompleted ? <CheckCircleOutlineIcon /> : <AccessTimeOutlinedIcon />}
-          label={sharedTsb.isCompleted ? "Incubation Completed" : sharedTsb.windowNotConfigured ? "Window Not Configured" : "Incubating in Progress"}
+          label={
+            sharedTsb.isCompleted
+              ? t("pathogenSession.tsbStatus.statusCompleted")
+              : sharedTsb.windowNotConfigured
+              ? t("pathogenSession.tsbStatus.statusWindowNotConfigured")
+              : t("pathogenSession.tsbStatus.statusIncubating")
+          }
           size="small"
           sx={{
             fontWeight: 700,
@@ -100,8 +110,7 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
 
       {sharedTsb.windowNotConfigured && (
         <Alert severity="error" sx={{ mb: 2 }}>
-          A test on this shared TSB has no incubation window configured for its medium in Test Master, so the TSB can't be
-          reported as ready. Set the medium's incubation hours and temperature in Test Master.
+          {t("pathogenSession.tsbStatus.windowNotConfiguredAlert")}
         </Alert>
       )}
 
@@ -114,10 +123,10 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
       >
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-            TSB Media Lot
+            {t("pathogenSession.tsbStatus.tsbMediaLot")}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-            {sharedTsb.mediaLotNumber ?? "—"}
+            <Ltr>{sharedTsb.mediaLotNumber ?? "—"}</Ltr>
           </Typography>
           <Stack
             direction="row"
@@ -128,65 +137,91 @@ export function SharedTsbStatusCard({ sharedTsb }: Props) {
             }}>
             <VerifiedUserOutlinedIcon sx={{ fontSize: 13, color: theme.custom.status.notDetected.text }} />
             <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
-              {sharedTsb.gptStatus ?? "GPT Conform"}
+              {sharedTsb.gptStatus ?? t("pathogenSession.tsbStatus.gptConformFallback")}
             </Typography>
           </Stack>
         </Box>
 
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-            Incubator Equipment
+            {t("pathogenSession.tsbStatus.incubatorEquipment")}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-            {sharedTsb.incubatorCode ?? "—"}
+            <Ltr>{sharedTsb.incubatorCode ?? "—"}</Ltr>
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {sharedTsb.temperature ?? "—"}
+            <Ltr>{sharedTsb.temperature ?? "—"}</Ltr>
           </Typography>
         </Box>
 
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-            Incubation Start
+            {t("pathogenSession.tsbStatus.incubationStart")}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-            {formatDate(sharedTsb.actualStartUtc)}
+            <Ltr>{formatDate(sharedTsb.actualStartUtc)}</Ltr>
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            By {sharedTsb.startedByUserName ?? "Analyst"}
+            <Trans
+              i18nKey="pathogenSession.tsbStatus.byUser"
+              ns="testingWorkspace"
+              values={{ name: sharedTsb.startedByUserName ?? t("pathogenSession.tsbStatus.analystFallback") }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
 
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-            Available From
+            {t("pathogenSession.tsbStatus.availableFrom")}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-            {formatDate(sharedTsb.minReadyAt)}
+            <Ltr>{formatDate(sharedTsb.minReadyAt)}</Ltr>
           </Typography>
           <Typography sx={{ fontSize: 12, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
-            Unlock Point ({sharedTsb.requiredDurationRange ?? "not configured"})
+            <Trans
+              i18nKey="pathogenSession.tsbStatus.unlockPoint"
+              ns="testingWorkspace"
+              values={{ range: sharedTsb.requiredDurationRange ?? t("pathogenSession.tsbStatus.notConfiguredRange") }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
 
         <Box>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.purple.text, textTransform: "uppercase" }}>
-            Expected Window
+            {t("pathogenSession.tsbStatus.expectedWindow")}
           </Typography>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-            {formatDate(sharedTsb.expectedCompletionUtc)}
+            <Ltr>{formatDate(sharedTsb.expectedCompletionUtc)}</Ltr>
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Max Duration: {sharedTsb.incubationDurationHours != null ? `${sharedTsb.incubationDurationHours} h` : "—"}
+            {sharedTsb.incubationDurationHours != null ? (
+              <Trans
+                i18nKey="pathogenSession.tsbStatus.maxDuration"
+                ns="testingWorkspace"
+                values={{ hours: sharedTsb.incubationDurationHours }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            ) : (
+              t("pathogenSession.tsbStatus.maxDurationEmpty")
+            )}
           </Typography>
         </Box>
       </Box>
 
       <Box sx={{ mt: 2, p: 1.5, bgcolor: "background.paper", borderRadius: 1.5, border: "1px solid", borderColor: theme.custom.status.purple.border }}>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          <strong>Scope:</strong> Applies to <strong>{sharedTsb.applicableLocationCount}</strong> sampling locations and{" "}
-          <strong>{sharedTsb.applicableTestCodes.length}</strong> applicable pathogen tests (
-          {sharedTsb.applicableTestCodes.join(", ")})
+          <Trans
+            i18nKey="pathogenSession.tsbStatus.scopeFooter"
+            ns="testingWorkspace"
+            values={{
+              locations: sharedTsb.applicableLocationCount,
+              tests: sharedTsb.applicableTestCodes.length,
+              codes: sharedTsb.applicableTestCodes.join(", ")
+            }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
       </Box>
     </Box>

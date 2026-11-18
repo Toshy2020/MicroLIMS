@@ -44,12 +44,9 @@ import { useBenchMode } from "../../../theme/BenchModeContext";
 import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "../benchSave";
 import { ObservationOptions } from "../pathogenSteps/StepLayout";
 import { brandColors } from "../../../theme";
-
-const MATRIX_OBSERVATION_OPTIONS: { value: GrowthObservation; title: string }[] = [
-  { value: GrowthObservation.NoGrowth, title: "No Growth (-)" },
-  { value: GrowthObservation.GrowthNonConforming, title: "Growth Non-Conforming" },
-  { value: GrowthObservation.GrowthConforming, title: "Growth Conforming (+)" }
-];
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface PrimaryCellState {
   sampleLocationId: number;
@@ -83,8 +80,17 @@ interface Props {
 }
 
 export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const { benchMode } = useBenchMode();
+  const matrixObservationOptions: { value: GrowthObservation; title: string }[] = useMemo(
+    () => [
+      { value: GrowthObservation.NoGrowth, title: t("pathogenSession.primaryMatrix.noGrowth") },
+      { value: GrowthObservation.GrowthNonConforming, title: t("pathogenSession.primaryMatrix.growthNonConforming") },
+      { value: GrowthObservation.GrowthConforming, title: t("pathogenSession.primaryMatrix.growthConforming") }
+    ],
+    [t]
+  );
   const isCompactMatrix = useMediaQuery("(max-width:1099.95px)");
   const [keptOffline, setKeptOffline] = useKeptOffline();
   // Key = `${sampleLocationId}_${testCode}`
@@ -153,7 +159,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
     formKey: "pathogen-primary-matrix",
     recordKey: String(session.sampleId),
     recordVersion: null,
-    title: `Primary observations: ${session.sampleReferenceNumber}`,
+    title: t("pathogenSession.primaryMatrix.draftTitle", { sampleRef: session.sampleReferenceNumber }),
     values: { entries: draftEntries },
     pick: pickPrimaryMatrixDraft,
     enabled: benchMode && Object.keys(primaryObservations).length > 0
@@ -243,8 +249,8 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
     if (cells.length === 0) {
       setError(lockedCount > 0
-        ? "No eligible empty cells to populate. Remaining empty cells are locked by upstream workflow prerequisites."
-        : "All eligible qualitative cells already have primary observations.");
+        ? t("pathogenSession.primaryMatrix.noEligibleEmptyLocked")
+        : t("pathogenSession.primaryMatrix.noEligibleEmptyDone"));
       return;
     }
 
@@ -368,7 +374,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       }
 
       if (qualitativeObs.length === 0 && quantitativeCells.length === 0) {
-        setError("No observations or quantitative readings have been entered to save.");
+        setError(t("pathogenSession.primaryMatrix.noneEnteredToSave"));
         return;
       }
 
@@ -408,7 +414,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
         await draft.onRejected(failure.message);
         setError(failure.message);
       } else {
-        setError(serverMessage(e) ?? (e instanceof Error ? e.message : "Failed to save primary plate observations."));
+        setError(serverMessage(e) ?? (e instanceof Error ? e.message : t("pathogenSession.primaryMatrix.saveFailed")));
       }
     } finally {
       setSaving(false);
@@ -417,19 +423,19 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
   const hasQuantTests = session.assignedTests.some(isQuantitativeTest);
   const saveDisabledReason = areAllTestsLocked
-    ? "All assigned tests are locked until upstream workflow steps complete."
+    ? t("pathogenSession.primaryMatrix.saveDisabledLocked")
     : undefined;
   const proceedDisabledReason = isTsbIncubating
-    ? "Shared TSB Enrichment is currently incubating."
+    ? t("pathogenSession.primaryMatrix.proceedDisabledTsb")
     : completedCount < totalCount
-    ? "Complete all cells to proceed."
+    ? t("pathogenSession.primaryMatrix.proceedDisabledIncomplete")
     : undefined;
 
   const isTestColumnEditable = (colIdx: number): boolean => {
-    const t = session.assignedTests[colIdx];
-    if (!t || !t.isResultEntryAllowed) return false;
-    const isQuant = isQuantitativeTest(t);
-    const hasRecordedCountResult = t.countResult?.reportedResult != null;
+    const testItem = session.assignedTests[colIdx];
+    if (!testItem || !testItem.isResultEntryAllowed) return false;
+    const isQuant = isQuantitativeTest(testItem);
+    const hasRecordedCountResult = testItem.countResult?.reportedResult != null;
     return !(isQuant && hasRecordedCountResult);
   };
 
@@ -454,7 +460,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       {/* Gating Lock Alert Banner */}
       {isTsbIncubating && (
         <Alert severity="warning" icon={<LockOutlinedIcon />} sx={{ fontWeight: 600 }}>
-          Primary plate observations are locked until required workflow steps complete. Shared TSB Enrichment is currently incubating.
+          {t("pathogenSession.primaryMatrix.tsbLockedBanner")}
         </Alert>
       )}
 
@@ -477,10 +483,17 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 mb: 1.25
               }}>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
-                Primary Observation Matrix (Panel A)
+                {t("pathogenSession.primaryMatrix.title")}
               </Typography>
               <Chip
-                label={`Recorded: ${completedCount}`}
+                label={
+                  <Trans
+                    i18nKey="pathogenSession.primaryMatrix.recordedChip"
+                    ns="testingWorkspace"
+                    values={{ count: completedCount }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                }
                 size="small"
                 sx={{
                   fontWeight: 700,
@@ -489,7 +502,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 }}
               />
               <Chip
-                label={`Available: ${availableCount}`}
+                label={
+                  <Trans
+                    i18nKey="pathogenSession.primaryMatrix.availableChip"
+                    ns="testingWorkspace"
+                    values={{ count: availableCount }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                }
                 size="small"
                 sx={{
                   fontWeight: 700,
@@ -500,7 +520,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               {lockedCount > 0 && (
                 <Chip
                   icon={<LockOutlinedIcon sx={{ fontSize: 13 }} />}
-                  label={`Locked: ${lockedCount}`}
+                  label={
+                    <Trans
+                      i18nKey="pathogenSession.primaryMatrix.lockedChip"
+                      ns="testingWorkspace"
+                      values={{ count: lockedCount }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
+                  }
                   size="small"
                   sx={{
                     fontWeight: 700,
@@ -540,7 +567,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               disabled={areAllTestsLocked || availableCount === 0}
               sx={{ fontSize: 12, fontWeight: 600, textTransform: "none" }}
             >
-              Fill All Unset as No Growth (-)
+              {t("pathogenSession.primaryMatrix.fillAllNoGrowth")}
             </Button>
 
             <Button
@@ -551,7 +578,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               disabled={saving || areAllTestsLocked}
               sx={{ px: 2.5, fontWeight: 700 }}
             >
-              Save Observations
+              {t("pathogenSession.primaryMatrix.saveObservations")}
             </Button>
 
             <Button
@@ -562,7 +589,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
               disabled={completedCount < totalCount || isTsbIncubating}
               sx={{ px: 2.5, fontWeight: 700 }}
             >
-              {hasEligibleConfirmations ? "Proceed to Confirmation" : "Review & Complete"}
+              {hasEligibleConfirmations ? t("pathogenSession.primaryMatrix.proceedToConfirmation") : t("pathogenSession.primaryMatrix.reviewAndComplete")}
             </Button>
           </Stack>
           {(saveDisabledReason || proceedDisabledReason) && (
@@ -576,7 +603,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
       {saveSuccess && (
         <Alert severity="success" onClose={() => setSaveSuccess(false)}>
-          Primary plate observations saved successfully with ALCOA+ contemporaneous tracking!
+          {t("pathogenSession.primaryMatrix.saveSuccess")}
         </Alert>
       )}
 
@@ -590,12 +617,12 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
         }}>
         <TextField
           size="small"
-          placeholder="Filter by location name..."
+          placeholder={t("pathogenSession.primaryMatrix.filterPlaceholder")}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           sx={{ width: { xs: "100%", sm: 300 } }}
           slotProps={{
-            htmlInput: { "aria-label": "Filter locations by name" },
+            htmlInput: { "aria-label": t("pathogenSession.primaryMatrix.filterAriaLabel") },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -613,11 +640,16 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
           onClick={() => setFilterPendingOnly(!filterPendingOnly)}
           sx={{ fontSize: 12, fontWeight: 600 }}
         >
-          {filterPendingOnly ? "Showing Pending Only" : "Show Pending Only"}
+          {filterPendingOnly ? t("pathogenSession.primaryMatrix.showingPendingOnly") : t("pathogenSession.primaryMatrix.showPendingOnly")}
         </Button>
 
-        <Typography sx={{ fontSize: 12, color: "text.secondary", ml: "auto" }}>
-          Showing {filteredLocations.length} of {session.totalLocations} locations
+        <Typography sx={{ fontSize: 12, color: "text.secondary", marginInlineStart: "auto" }}>
+          <Trans
+            i18nKey="pathogenSession.primaryMatrix.showingLocations"
+            ns="testingWorkspace"
+            values={{ filtered: filteredLocations.length, total: session.totalLocations }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
       </Stack>
 
@@ -635,32 +667,32 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 </Typography>
                 {loc.gradeClassification && (
                   <Chip
-                    label={`Grade ${loc.gradeClassification}`}
+                    label={t("pathogenSession.primaryMatrix.gradeChip", { grade: loc.gradeClassification })}
                     size="small"
                     sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                   />
                 )}
               </Stack>
               <Stack spacing={1.5}>
-                {session.assignedTests.map((t) => {
-                  const isQuant = isQuantitativeTest(t);
-                  const slocId = loc.testLocationMap[t.testCode] ?? loc.primarySampleLocationId;
-                  const key = `${slocId}_${t.testCode}`;
+                {session.assignedTests.map((testItem) => {
+                  const isQuant = isQuantitativeTest(testItem);
+                  const slocId = loc.testLocationMap[testItem.testCode] ?? loc.primarySampleLocationId;
+                  const key = `${slocId}_${testItem.testCode}`;
                   const val = primaryObservations[key];
-                  const isCellLocked = !t.isResultEntryAllowed;
-                  const countResult = t.countResult;
+                  const isCellLocked = !testItem.isResultEntryAllowed;
+                  const countResult = testItem.countResult;
                   const hasRecordedCountResult = countResult?.reportedResult != null;
 
                   return (
-                    <Box key={t.testCode} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
+                    <Box key={testItem.testCode} sx={{ p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
                       <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-                        {t.displayName} ({t.testCode})
+                        {testItem.displayName} (<Ltr>{testItem.testCode}</Ltr>)
                       </Typography>
                       {isCellLocked ? (
                         <Stack direction="row" spacing={1} sx={{ alignItems: "center", color: theme.custom.countdown.locked.text }}>
                           <LockOutlinedIcon sx={{ fontSize: 16 }} />
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {t.lockReason ?? "Locked until upstream workflow step completes"}
+                            {testItem.lockReason ?? t("pathogenSession.primaryMatrix.lockedReasonFallback")}
                           </Typography>
                         </Stack>
                       ) : isQuant && hasRecordedCountResult && countResult ? (
@@ -670,18 +702,18 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       ) : isQuant ? (
                         <NumericEntryField
                           kind="decimal"
-                          label={`${t.displayName} count`}
-                          aria-label={`${t.displayName} count (CFU) for ${loc.locationName}`}
-                          unit="CFU"
+                          label={t("pathogenSession.primaryMatrix.compactCountLabel", { testName: testItem.displayName })}
+                          aria-label={t("pathogenSession.primaryMatrix.countAriaLabel", { testName: testItem.displayName, locationName: loc.locationName })}
+                          unit={t("pathogenSession.primaryMatrix.cfuUnit")}
                           value={val?.numericText ?? ""}
-                          onChange={(next) => handleQuantitativeChange(slocId, t.testCode, next)}
+                          onChange={(next) => handleQuantitativeChange(slocId, testItem.testCode, next)}
                         />
                       ) : benchMode ? (
                         <ObservationOptions
                           name={`compact-obs-${key}`}
                           value={val?.observation ?? ""}
-                          onChange={(v) => handleObservationChange(slocId, t.testCode, v)}
-                          options={MATRIX_OBSERVATION_OPTIONS}
+                          onChange={(v) => handleObservationChange(slocId, testItem.testCode, v)}
+                          options={matrixObservationOptions}
                         />
                       ) : (
                         <TextField
@@ -689,15 +721,15 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           fullWidth
                           size="small"
                           value={val?.observation ?? ""}
-                          onChange={(e) => handleObservationChange(slocId, t.testCode, e.target.value as GrowthObservation)}
-                          slotProps={{ htmlInput: { "aria-label": `${t.displayName} observation for ${loc.locationName}` } }}
+                          onChange={(e) => handleObservationChange(slocId, testItem.testCode, e.target.value as GrowthObservation)}
+                          slotProps={{ htmlInput: { "aria-label": t("pathogenSession.primaryMatrix.observationAriaLabel", { testName: testItem.displayName, locationName: loc.locationName }) } }}
                         >
                           <MenuItem value="">
-                            <em>Select Observation</em>
+                            <em>{t("pathogenSession.primaryMatrix.selectObservation")}</em>
                           </MenuItem>
-                          <MenuItem value={GrowthObservation.NoGrowth}>No Growth (-)</MenuItem>
-                          <MenuItem value={GrowthObservation.GrowthNonConforming}>Growth Non-Conforming</MenuItem>
-                          <MenuItem value={GrowthObservation.GrowthConforming}>Growth Conforming (+)</MenuItem>
+                          <MenuItem value={GrowthObservation.NoGrowth}>{t("pathogenSession.primaryMatrix.noGrowth")}</MenuItem>
+                          <MenuItem value={GrowthObservation.GrowthNonConforming}>{t("pathogenSession.primaryMatrix.growthNonConforming")}</MenuItem>
+                          <MenuItem value={GrowthObservation.GrowthConforming}>{t("pathogenSession.primaryMatrix.growthConforming")}</MenuItem>
                         </TextField>
                       )}
                     </Box>
@@ -717,36 +749,41 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                 <TableCell
                   sx={{
                     position: "sticky",
-                    left: 0,
+                    insetInlineStart: 0,
                     zIndex: 3,
                     bgcolor: "background.default",
                     fontWeight: 800,
                     color: "text.primary",
                     minWidth: 240,
-                    borderRight: "2px solid",
-                    borderRightColor: "divider"
+                    borderInlineEnd: "2px solid",
+                    borderInlineEndColor: "divider"
                   }}
                 >
-                  Sampling Location ({filteredLocations.length})
+                  <Trans
+                    i18nKey="pathogenSession.primaryMatrix.samplingLocationHeader"
+                    ns="testingWorkspace"
+                    values={{ count: filteredLocations.length }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </TableCell>
 
                 {/* Dynamic Test Columns */}
-                {session.assignedTests.map((t) => {
-                  const isLocked = !t.isResultEntryAllowed;
-                  const confMediaCount = t.confirmatoryMediaCount ?? 1; // from Test Master; never by organism (CLAUDE.md Rule 3.2)
-                  const isQuant = isQuantitativeTest(t);
+                {session.assignedTests.map((testItem) => {
+                  const isLocked = !testItem.isResultEntryAllowed;
+                  const confMediaCount = testItem.confirmatoryMediaCount ?? 1; // from Test Master; never by organism (CLAUDE.md Rule 3.2)
+                  const isQuant = isQuantitativeTest(testItem);
 
                   return (
                     <TableCell
-                      key={t.testCode}
+                      key={testItem.testCode}
                       align="center"
                       sx={{
                         bgcolor: isLocked ? "background.default" : theme.custom.status.purple.bg,
                         fontWeight: 800,
                         color: isLocked ? "text.secondary" : brandColors.sectionTitle,
                         minWidth: 190,
-                        borderRight: "1px solid",
-                        borderRightColor: "divider"
+                        borderInlineEnd: "1px solid",
+                        borderInlineEndColor: "divider"
                       }}
                     >
                       <Stack
@@ -757,13 +794,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           alignItems: "center"
                         }}>
                         <Typography sx={{ fontSize: 13, fontWeight: 800 }}>
-                          {t.testCode}
+                          <Ltr>{testItem.testCode}</Ltr>
                         </Typography>
                         {isLocked && <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.status.detected.text }} />}
                       </Stack>
 
                       <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 500 }}>
-                        {t.displayName}
+                        {testItem.displayName}
                       </Typography>
 
                       <Stack
@@ -775,7 +812,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                           mt: 0.5
                         }}>
                         <Chip
-                          label={t.testSessionStateDisplay}
+                          label={testItem.testSessionStateDisplay}
                           size="small"
                           sx={{
                             fontSize: 12,
@@ -787,7 +824,14 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                         />
                         {!isQuant && confMediaCount > 1 && (
                           <Chip
-                            label={`${confMediaCount}x Media`}
+                            label={
+                              <Trans
+                                i18nKey="pathogenSession.primaryMatrix.confMediaChip"
+                                ns="testingWorkspace"
+                                values={{ count: confMediaCount }}
+                                components={{ ltr: <Ltr>{null}</Ltr> }}
+                              />
+                            }
                             size="small"
                             sx={{
                               fontSize: 12,
@@ -814,12 +858,12 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                   <TableCell
                     sx={{
                       position: "sticky",
-                      left: 0,
+                      insetInlineStart: 0,
                       zIndex: 2,
                       bgcolor: idx % 2 === 0 ? "background.paper" : "background.default",
                       fontWeight: 700,
-                      borderRight: "2px solid",
-                      borderRightColor: "divider"
+                      borderInlineEnd: "2px solid",
+                      borderInlineEndColor: "divider"
                     }}
                   >
                     <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
@@ -837,7 +881,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       </Typography>
                       {loc.gradeClassification && (
                         <Chip
-                          label={`Grade ${loc.gradeClassification}`}
+                          label={t("pathogenSession.primaryMatrix.gradeChip", { grade: loc.gradeClassification })}
                           size="small"
                           sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                         />
@@ -846,28 +890,28 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                   </TableCell>
 
                   {/* Primary Observation Matrix Cells */}
-                  {session.assignedTests.map((t, testIdx) => {
-                    const isQuant = isQuantitativeTest(t);
+                  {session.assignedTests.map((testItem, testIdx) => {
+                    const isQuant = isQuantitativeTest(testItem);
 
-                    const slocId = loc.testLocationMap[t.testCode] ?? loc.primarySampleLocationId;
-                    const key = `${slocId}_${t.testCode}`;
+                    const slocId = loc.testLocationMap[testItem.testCode] ?? loc.primarySampleLocationId;
+                    const key = `${slocId}_${testItem.testCode}`;
                     const val = primaryObservations[key];
-                    const isCellLocked = !t.isResultEntryAllowed;
+                    const isCellLocked = !testItem.isResultEntryAllowed;
 
                     // If cell is locked by workflow prerequisite, render clean disabled lock badge
                     if (isCellLocked) {
                       return (
                         <TableCell
-                          key={t.testCode}
+                          key={testItem.testCode}
                           align="center"
                           sx={{
                             p: 1,
-                            borderRight: "1px solid",
-                            borderRightColor: "divider",
+                            borderInlineEnd: "1px solid",
+                            borderInlineEndColor: "divider",
                             bgcolor: "background.default"
                           }}
                         >
-                          <Tooltip title={t.lockReason ?? "Locked until upstream workflow step completes"}>
+                          <Tooltip title={testItem.lockReason ?? t("pathogenSession.primaryMatrix.lockedReasonFallback")}>
                             <Box
                               sx={{
                                 py: 0.75,
@@ -886,7 +930,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                               }}
                             >
                               <LockOutlinedIcon sx={{ fontSize: 14, color: theme.custom.countdown.locked.text }} />
-                              <span>{t.lockReason ?? "Locked until upstream workflow step completes"}</span>
+                              <span>{testItem.lockReason ?? t("pathogenSession.primaryMatrix.lockedReasonFallback")}</span>
                             </Box>
                           </Tooltip>
                         </TableCell>
@@ -898,7 +942,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                       (!isQuant && val.observation !== "")
                     );
 
-                    const countResult = t.countResult;
+                    const countResult = testItem.countResult;
                     const hasRecordedCountResult = countResult?.reportedResult != null;
 
                     if (isQuant && hasRecordedCountResult && countResult) {
@@ -915,12 +959,12 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
                       return (
                         <TableCell
-                          key={t.testCode}
+                          key={testItem.testCode}
                           align="center"
                           sx={{
                             p: 1,
-                            borderRight: "1px solid",
-                            borderRightColor: "divider"
+                            borderInlineEnd: "1px solid",
+                            borderInlineEndColor: "divider"
                           }}
                         >
                           <Box
@@ -942,7 +986,7 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             )}
                             {countResult.requiresReview && (
                               <Typography variant="caption" sx={{ color: theme.custom.status.action.text, display: "block", fontWeight: 600 }}>
-                                ⚠ Review required
+                                {t("pathogenSession.primaryMatrix.reviewRequired")}
                               </Typography>
                             )}
                           </Box>
@@ -952,13 +996,13 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
 
                     return (
                       <TableCell
-                        key={t.testCode}
+                        key={testItem.testCode}
                         align="center"
                         {...cellProps(idx, testIdx)}
                         sx={{
                           p: 1,
-                          borderRight: "1px solid",
-                          borderRightColor: "divider",
+                          borderInlineEnd: "1px solid",
+                          borderInlineEndColor: "divider",
                           bgcolor: !isCellFilled ? theme.custom.status.pending.bg : "inherit"
                         }}
                       >
@@ -967,26 +1011,26 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             <NumericEntryField
                               kind="decimal"
                               label=""
-                              aria-label={`${t.displayName} count (CFU) for ${loc.locationName}`}
-                              unit="CFU"
+                              aria-label={t("pathogenSession.primaryMatrix.countAriaLabel", { testName: testItem.displayName, locationName: loc.locationName })}
+                              unit={t("pathogenSession.primaryMatrix.cfuUnit")}
                               value={val?.numericText ?? ""}
-                              onChange={(next) => handleQuantitativeChange(slocId, t.testCode, next)}
+                              onChange={(next) => handleQuantitativeChange(slocId, testItem.testCode, next)}
                             />
                           </Box>
                         ) : benchMode ? (
                           <ObservationOptions
                             name={`table-obs-${key}`}
                             value={val?.observation ?? ""}
-                            onChange={(v) => handleObservationChange(slocId, t.testCode, v)}
-                            options={MATRIX_OBSERVATION_OPTIONS}
+                            onChange={(v) => handleObservationChange(slocId, testItem.testCode, v)}
+                            options={matrixObservationOptions}
                           />
                         ) : (
                           <TextField
                             select
                             size="small"
                             value={val?.observation ?? ""}
-                            onChange={(e) => handleObservationChange(slocId, t.testCode, e.target.value as GrowthObservation)}
-                            slotProps={{ htmlInput: { "aria-label": `${t.displayName} observation for ${loc.locationName}` } }}
+                            onChange={(e) => handleObservationChange(slocId, testItem.testCode, e.target.value as GrowthObservation)}
+                            slotProps={{ htmlInput: { "aria-label": t("pathogenSession.primaryMatrix.observationAriaLabel", { testName: testItem.displayName, locationName: loc.locationName }) } }}
                             sx={{
                               width: 175,
                               "& .MuiInputBase-root": {
@@ -1010,21 +1054,21 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
                             }}
                           >
                             <MenuItem value="">
-                              <em>Select Observation</em>
+                              <em>{t("pathogenSession.primaryMatrix.selectObservation")}</em>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.NoGrowth}>
                               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                                No Growth (-)
+                                {t("pathogenSession.primaryMatrix.noGrowth")}
                               </Typography>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.GrowthNonConforming}>
                               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.custom.status.action.text }}>
-                                Growth Non-Conforming
+                                {t("pathogenSession.primaryMatrix.growthNonConforming")}
                               </Typography>
                             </MenuItem>
                             <MenuItem value={GrowthObservation.GrowthConforming}>
                               <Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.custom.status.detected.text }}>
-                                Growth Conforming (+)
+                                {t("pathogenSession.primaryMatrix.growthConforming")}
                               </Typography>
                             </MenuItem>
                           </TextField>
@@ -1045,7 +1089,11 @@ export function PrimaryObservationMatrixPanel({ session, onUpdated, onNext }: Pr
       <ConfirmationDialog
         open={fillConfirmation !== null}
         message={fillConfirmation
-          ? `This will set ${fillConfirmation.cells.length} unset result${fillConfirmation.cells.length === 1 ? "" : "s"} as No Growth (-) across ${fillConfirmation.locationNames.length} location${fillConfirmation.locationNames.length === 1 ? "" : "s"}: ${fillConfirmation.locationNames.join(", ")}.`
+          ? t("pathogenSession.primaryMatrix.fillConfirmationMessage", {
+              cellCount: fillConfirmation.cells.length,
+              locationCount: fillConfirmation.locationNames.length,
+              locationNames: fillConfirmation.locationNames.join(", ")
+            })
           : ""}
         onConfirm={handleConfirmFillAllNoGrowth}
         onCancel={() => setFillConfirmation(null)}

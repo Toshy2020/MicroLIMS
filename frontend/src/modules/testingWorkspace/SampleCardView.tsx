@@ -5,6 +5,9 @@ import { SampleLifecycleBadge } from "./SampleLifecycleBadge";
 import { brandColors } from "../../theme";
 import { isInteractiveElement } from "../../utils/isInteractiveElement";
 import { dueLabel } from "../receiving/components/SampleRegisterTable";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { assignedAnalystsLabel } from "../receiving/utils/assignedAnalysts";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
@@ -16,8 +19,6 @@ interface Props {
   onLifecycleBadgeClick: (sampleId: number) => void;
 }
 
-const formatDate = (d: string) => new Date(d).toLocaleDateString();
-
 export function SampleCardView({
   samples,
   selectedSampleId,
@@ -25,6 +26,7 @@ export function SampleCardView({
   onNeedsPreparationClick,
   onLifecycleBadgeClick
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
 
   return (
@@ -66,13 +68,15 @@ export function SampleCardView({
                 height: "100%",
                 cursor: "pointer",
                 // Overdue wins even over selection, as in the register table.
-                borderLeft: sample.isOverdue
-                  ? `4px solid ${theme.custom.status.detected.text}`
+                borderInlineStartWidth: 4,
+                borderInlineStartStyle: "solid",
+                borderInlineStartColor: sample.isOverdue
+                  ? theme.custom.status.detected.text
                   : isSelected
-                  ? `4px solid ${brandColors.sectionTitle}`
+                  ? brandColors.sectionTitle
                   : needsPreparation
-                  ? `4px solid ${theme.custom.status.inconclusive.text}`
-                  : "4px solid transparent",
+                  ? theme.custom.status.inconclusive.text
+                  : "transparent",
                 bgcolor: isSelected ? theme.custom.status.purple.bg : "background.paper",
                 transition: "all 0.15s ease",
                 "&:hover": {
@@ -93,22 +97,37 @@ export function SampleCardView({
                     {sample.displayName}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    {sample.referenceNumber}
+                    <Ltr>{sample.referenceNumber}</Ltr>
                   </Typography>
                 </Box>
                 <CategoryBadge category={sample.category} />
               </Stack>
 
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-                {sample.causeOfTesting} · {formatDate(sample.receivedAt)}
+                {sample.causeOfTesting} · <Ltr>{formatDateTimeWithTimeZone(sample.receivedAt)}</Ltr>
               </Typography>
 
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: due ? 1 : 1.5 }}>
-                {sample.batchNumber ? `Batch: ${sample.batchNumber}` : `Control: ${sample.controlNumber}`} · Tests: {sample.assignedTests.length}
+                {sample.batchNumber ? (
+                  <Trans i18nKey="cardView.batchLine" ns="testingWorkspace" values={{ batch: sample.batchNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                ) : (
+                  <Trans i18nKey="cardView.controlLine" ns="testingWorkspace" values={{ control: sample.controlNumber }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                )}
+                {" · "}
+                <Trans i18nKey="cardView.testsCount" ns="testingWorkspace" values={{ count: sample.assignedTests.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
               </Typography>
 
               {due && sample.dueAt && (
-                <Tooltip title={`Due ${formatDateTimeWithTimeZone(sample.dueAt)}`}>
+                <Tooltip
+                  title={
+                    <Trans
+                      i18nKey="cardView.dueTooltip"
+                      ns="testingWorkspace"
+                      values={{ date: formatDateTimeWithTimeZone(sample.dueAt) }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
+                  }
+                >
                   <Typography
                     sx={{
                       display: "inline-flex", alignItems: "center", gap: 0.75, mb: 1.5,
@@ -128,7 +147,10 @@ export function SampleCardView({
                   alignItems: "center"
                 }}>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {assignedAnalystsLabel(sample.assignedTests) ?? "Unassigned"}
+                  {(() => {
+                    const label = assignedAnalystsLabel(sample.assignedTests);
+                    return label ? <Ltr>{label}</Ltr> : t("cardView.unassigned");
+                  })()}
                 </Typography>
                 <SampleLifecycleBadge
                   status={sample.status}
@@ -142,7 +164,7 @@ export function SampleCardView({
       {samples.length === 0 && (
         <Grid size={12}>
           <Typography sx={{ color: "text.secondary", fontSize: 13, p: 2 }}>
-            No samples match this filter.
+            {t("cardView.emptyFiltered")}
           </Typography>
         </Grid>
       )}

@@ -16,6 +16,9 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import LayersIcon from "@mui/icons-material/Layers";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useActionableGroups } from "../hooks/useActionableGroups";
 import { invalidateStepCache } from "../hooks/useTestStepQuickAction";
 import { GroupedActionRow } from "./GroupedActionRow";
@@ -39,6 +42,7 @@ export function GroupedActionsPanel({
   onActionComplete,
   onPreparationComplete
 }: GroupedActionsPanelProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
 
   const {
@@ -92,10 +96,10 @@ export function GroupedActionsPanel({
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
-          Test Preparation Required ({prepGroups.length})
+          <Trans i18nKey="groupedActions.prepRequiredHeading" ns="testingWorkspace" values={{ count: prepGroups.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
         </Typography>
         <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-          Must complete before incubation
+          {t("groupedActions.prepMustComplete")}
         </Typography>
       </Box>
 
@@ -108,12 +112,12 @@ export function GroupedActionsPanel({
       {prepExcluded.length > 0 && (
         <Alert severity="info" icon={<InfoOutlinedIcon fontSize="inherit" />} sx={{ py: 0.75, px: 1.5, borderRadius: 1.5 }}>
           <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, mb: 0.25 }}>
-            {prepExcluded.length} {prepExcluded.length === 1 ? "sample" : "samples"} cannot be prepared as a group
+            {t("groupedActions.cannotPrepareGroup", { count: prepExcluded.length })}
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
             {prepExcluded.map((s) => (
               <Typography key={s.sampleId} sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                <strong>{s.sampleReference}</strong> - {s.reason}
+                <strong><Ltr>{s.sampleReference}</Ltr></strong> - {s.reason}
               </Typography>
             ))}
           </Box>
@@ -168,10 +172,10 @@ export function GroupedActionsPanel({
           </Box>
           <Box>
             <Typography sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.2 }}>
-              Grouped Actions
+              {t("groupedActions.title")}
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-              {selectedSampleIds.length} samples selected across workspace
+              {t("groupedActions.samplesSelectedCount", { count: selectedSampleIds.length })}
             </Typography>
           </Box>
         </Box>
@@ -190,9 +194,9 @@ export function GroupedActionsPanel({
               borderRadius: 1
             }}
           >
-            Deselect All
+            {t("groupedActions.deselectAll")}
           </Button>
-          <IconButton aria-label="Clear selection"
+          <IconButton aria-label={t("groupedActions.clearSelectionAria")}
             size="small"
             onClick={onDeselectAll}
             sx={{ width: 26, height: 26, color: "text.secondary" }}
@@ -218,7 +222,7 @@ export function GroupedActionsPanel({
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", py: 6, gap: 1.5 }}>
           <CircularProgress size={28} />
           <Typography sx={{ fontSize: "0.8rem", color: "text.secondary" }}>
-            Calculating compatible workflow steps...
+            {t("groupedActions.calculatingSteps")}
           </Typography>
         </Box>
       ) : preparationBlocksActions ? (
@@ -235,11 +239,10 @@ export function GroupedActionsPanel({
             }}
           >
             <Typography sx={{ fontWeight: 600, fontSize: "0.86rem", mb: 0.5 }}>
-              Incubation Setup Locked
+              {t("groupedActions.setupLockedTitle")}
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", maxWidth: 400, mx: "auto" }}>
-              No incubation can start on a sample whose Test Preparation is still outstanding. Confirm the
-              preparation above and the compatible setup actions appear here.
+              {t("groupedActions.setupLockedBody")}
             </Typography>
           </Box>
         </Box>
@@ -259,25 +262,25 @@ export function GroupedActionsPanel({
           >
             <InfoOutlinedIcon sx={{ fontSize: 36, color: "warning.main", mb: 1 }} />
             <Typography sx={{ fontWeight: 700, fontSize: "0.88rem", mb: 0.75, color: "text.primary" }}>
-              Individual Result Entry Required
+              {t("groupedActions.individualRequiredTitle")}
             </Typography>
             <Typography sx={{ fontSize: "0.76rem", color: "text.secondary", maxWidth: 460, mx: "auto", mb: 2 }}>
-              No grouped workflow action is available. The selected tests require individual result entry. Result entry must be completed separately for each test.
+              {t("groupedActions.individualRequiredBody")}
             </Typography>
             {excludedResultEntryTestOrders && excludedResultEntryTestOrders.length > 0 && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, maxWidth: 520, mx: "auto", textAlign: "left" }}>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, maxWidth: 520, mx: "auto", textAlign: "start" }}>
                 <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                  Tests Awaiting Individual Result Entry ({excludedResultEntryTestOrders.length}):
+                  {t("groupedActions.awaitingIndividualHeading", { count: excludedResultEntryTestOrders.length })}
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-                  {excludedResultEntryTestOrders.map((t) => (
+                  {excludedResultEntryTestOrders.map((tOrder) => (
                     <Chip
-                      key={t.testOrderId}
+                      key={tOrder.testOrderId}
                       size="small"
-                      label={`${t.sampleReference} · ${t.displayName} (${t.stepName})`}
-                      onClick={onOpenWorkflow ? () => onOpenWorkflow(t.sampleId, t.testOrderId) : undefined}
+                      label={`${tOrder.sampleReference} · ${tOrder.displayName} (${tOrder.stepName})`}
+                      onClick={onOpenWorkflow ? () => onOpenWorkflow(tOrder.sampleId, tOrder.testOrderId) : undefined}
                       deleteIcon={onOpenWorkflow ? <OpenInNewIcon sx={{ fontSize: "13px !important" }} /> : undefined}
-                      onDelete={onOpenWorkflow ? () => onOpenWorkflow(t.sampleId, t.testOrderId) : undefined}
+                      onDelete={onOpenWorkflow ? () => onOpenWorkflow(tOrder.sampleId, tOrder.testOrderId) : undefined}
                       sx={{
                         fontSize: "0.75rem",
                         fontWeight: 600,
@@ -306,10 +309,10 @@ export function GroupedActionsPanel({
           >
             <CheckCircleOutlineIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
             <Typography sx={{ fontWeight: 600, fontSize: "0.86rem", mb: 0.5 }}>
-              No Shared Setup Actions Available
+              {t("groupedActions.noSharedActionsTitle")}
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", maxWidth: 360, mx: "auto" }}>
-              The selected samples do not currently share an active incubation setup or preparation step requiring media and incubator selection.
+              {t("groupedActions.noSharedActionsBody")}
             </Typography>
           </Box>
         )
@@ -329,20 +332,20 @@ export function GroupedActionsPanel({
               }}
             >
               <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, mb: 0.25 }}>
-                {excludedResultEntryCount} {excludedResultEntryCount === 1 ? "test" : "tests"} excluded from grouped actions
+                {t("groupedActions.excludedCount", { count: excludedResultEntryCount })}
               </Typography>
               <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-                The selected tests require individual result entry (e.g. colony counts or plate readings) and cannot be executed as a grouped action. Result entry must be completed separately for each test.
+                {t("groupedActions.excludedBody")}
               </Typography>
             </Alert>
           ) : null}
 
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <Typography sx={{ fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", color: "text.secondary", letterSpacing: "0.5px" }}>
-              Compatible Actions ({groups.length})
+              <Trans i18nKey="groupedActions.compatibleActions" ns="testingWorkspace" values={{ count: groups.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
             </Typography>
             <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
-              Shared operational workflow transition
+              {t("groupedActions.sharedTransition")}
             </Typography>
           </Box>
 

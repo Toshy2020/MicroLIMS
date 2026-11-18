@@ -3,6 +3,7 @@ import { Button, Typography, Box, TextField, useTheme } from "@mui/material";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { useTranslation } from "../../../i18n";
 import { SampleSummaryService } from "../services/SampleSummaryService";
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
 // SignatureDialog that re-verifies the password server-side and surfaces
 // the server's error text on failure.
 export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rejectingLabName, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [reason, setReason] = useState("");
   const [signing, setSigning] = useState(false);
@@ -36,9 +38,9 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
   // the Section Head has already typed while it stays open.
   useEffect(() => {
     if (open) {
-      setReason(rejectingLabName ? `Sample rejected by ${rejectingLabName}` : "");
+      setReason(rejectingLabName ? t("closeTesting.defaultReason", { lab: rejectingLabName }) : "");
     }
-  }, [open, rejectingLabName]);
+  }, [open, rejectingLabName, t]);
 
   if (!sampleId || !sectionId) return null;
 
@@ -88,10 +90,10 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                Close Testing{sectionName ? `: ${sectionName}` : ""}
+                {sectionName ? t("closeTesting.titleWithSection", { sectionName }) : t("closeTesting.title")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Stops your laboratory's remaining tests on this sample - signed with your password
+                {t("closeTesting.subtitle")}
               </Typography>
             </Box>
           </>
@@ -99,7 +101,7 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
         actions={
           <>
             <Button onClick={handleCancel} color="inherit">
-              Cancel
+              {t("closeTesting.cancel")}
             </Button>
             <Button
               onClick={handleConfirm}
@@ -109,19 +111,18 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
               startIcon={<BlockOutlinedIcon />}
               sx={{ fontWeight: 700, textTransform: "none", px: 2.5 }}
             >
-              Sign &amp; Close
+              {t("closeTesting.signAndClose")}
             </Button>
           </>
         }
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-          Every still-open test in this laboratory will be recorded as Cancelled at the stage it had
-          reached. Approved results already on file are kept.
+          {t("closeTesting.body")}
         </Typography>
         <TextField
           fullWidth
           required
-          label="Reason"
+          label={t("closeTesting.reasonLabel")}
           multiline
           rows={2}
           value={reason}
@@ -133,6 +134,7 @@ export function CloseTestingDialog({ open, sampleId, sectionId, sectionName, rej
       <SignatureDialog
         open={open && signing}
         meaningStatement="I am closing this laboratory's testing; it will not be resumed on this sample."
+        meaningStatementTranslation={t("closeTesting.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

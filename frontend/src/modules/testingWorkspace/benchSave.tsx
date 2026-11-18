@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Alert, Button } from "@mui/material";
+import { i18n as appI18n, useTranslation } from "../../i18n";
 import { isNetworkError } from "../../services/networkError";
 import { OFFLINE_MESSAGE } from "../../components/bench/ConnectionBanner";
 
@@ -9,8 +10,6 @@ export type SaveFailure =
   | { kind: "conflict"; message: string }
   | { kind: "other"; message: string | undefined };
 
-const CONFLICT_FALLBACK = "The record has changed since this entry was started. Your entries are kept on this tablet.";
-
 export function serverMessage(error: unknown): string | undefined {
   const message = (error as { response?: { data?: { message?: unknown } } } | null)?.response?.data?.message;
   return typeof message === "string" && message !== "" ? message : undefined;
@@ -19,7 +18,9 @@ export function serverMessage(error: unknown): string | undefined {
 export function classifySaveFailure(error: unknown): SaveFailure {
   if (isNetworkError(error)) return { kind: "network" };
   const status = (error as { response?: { status?: unknown } } | null)?.response?.status;
-  if (status === 409) return { kind: "conflict", message: serverMessage(error) ?? CONFLICT_FALLBACK };
+  if (status === 409) {
+    return { kind: "conflict", message: serverMessage(error) ?? appI18n.t("testingWorkspace:benchSave.conflictFallback") };
+  }
   return { kind: "other", message: serverMessage(error) };
 }
 
@@ -43,13 +44,14 @@ export function useKeptOffline(): [boolean, (value: boolean) => void] {
 }
 
 export function OfflineDraftNotice({ onTryAgain }: { onTryAgain: () => void }) {
+  const { t } = useTranslation("testingWorkspace");
   return (
     <Alert
       severity="warning"
       sx={{ mb: 2 }}
       action={
         <Button color="inherit" size="small" onClick={onTryAgain}>
-          Try saving again
+          {t("benchSave.tryAgain")}
         </Button>
       }
     >

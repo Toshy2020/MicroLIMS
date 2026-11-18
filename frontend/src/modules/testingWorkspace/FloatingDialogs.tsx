@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { SampleCard, TestOrderSummary } from "./types/workspaceTypes";
 
 // The workflow dialog pulls in every step panel, so it is split out of the
@@ -43,20 +45,24 @@ interface Props {
 // explicitly rather than silently bypassing it.
 export function TestWorkflowDialogRouter({ open, test, sample, onClose }: Props) {
   usePrefetchTestWorkflowDialog();
+  const { t } = useTranslation("testingWorkspace");
   if (!test || !sample) return null;
 
   // Sample reference, sample name and test order on a second line, so the
   // analyst can check the tube in hand matches before recording anything.
-  const subtitle = [sample.referenceNumber, sample.displayName, `TO #${test.testOrderId}`].filter(Boolean).join(" · ");
+  const toLabel = t("workflowRouter.toNumber", { id: test.testOrderId });
+  const subtitle = [sample.referenceNumber, sample.displayName, toLabel].filter(Boolean).join(" · ");
   const title = (
     <Box sx={{ minWidth: 0 }}>
-      <Box component="span" sx={{ display: "block" }}>{test.testCode} Workflow</Box>
+      <Box component="span" sx={{ display: "block" }}>{t("workflowRouter.title", { testCode: test.testCode })}</Box>
       <Typography
         variant="caption"
         title={subtitle}
         sx={{ display: "block", color: "text.secondary", fontWeight: 400, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
       >
-        {subtitle}
+        <Ltr>{sample.referenceNumber}</Ltr>
+        {sample.displayName ? ` · ${sample.displayName}` : ""}
+        {` · `}<Ltr>{toLabel}</Ltr>
       </Typography>
     </Box>
   );

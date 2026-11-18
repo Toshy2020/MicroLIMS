@@ -14,6 +14,8 @@ import {
   Typography
 } from "@mui/material";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { CriteriaCard, ResultSection, VerdictBanner, verdictFromServerStatus } from "../../components/lab";
 import type { CriteriaRow } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
@@ -65,6 +67,7 @@ export function MeasurementPanel({
   current,
   onRecorded
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,7 +125,7 @@ export function MeasurementPanel({
 
         if (loadedSpecs.length === 0) {
           if (active) {
-            setError(`No specifications configured for test ${effectiveTestCode}.`);
+            setError(t("measurement.noSpecsConfigured", { testCode: effectiveTestCode }));
             setLoading(false);
           }
           return;
@@ -156,7 +159,7 @@ export function MeasurementPanel({
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load measurement test configuration or specifications.";
+          t("measurement.loadConfigFailed");
         if (active) setError(msg);
       } finally {
         if (active) setLoading(false);
@@ -179,10 +182,10 @@ export function MeasurementPanel({
   const columns: UnitEntryGridColumn[] = useMemo(() => {
     return specs.map((s) => ({
       key: String(s.id),
-      label: s.parameterName || s.testCode || "Parameter",
+      label: s.parameterName || s.testCode || t("measurement.parameterFallback"),
       unit: s.unit || undefined
     }));
-  }, [specs]);
+  }, [specs, t]);
 
   const isFormValid = useMemo(() => {
     if (specs.length === 0 || values.length !== replicateCount) return false;
@@ -234,7 +237,7 @@ export function MeasurementPanel({
       setSigning(false);
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to record measurement result.";
+        t("measurement.recordFailed");
       setError(msg);
     }
   };
@@ -243,7 +246,7 @@ export function MeasurementPanel({
     parameter: s.parameterName || s.testCode,
     criterion: specCriterion(s) ?? "—",
     unit: s.unit || undefined,
-    source: "Specification"
+    source: t("measurement.sourceSpecification")
   }));
 
   // Completion view
@@ -251,22 +254,22 @@ export function MeasurementPanel({
     // The banner shows only the server's overall status; a reopened test has
     // none, so it falls back to the recorded result text rather than "Pending".
     const finalStatus = outcome?.status;
-    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}${finalStatus ? ` (${finalStatus})` : ""}`;
+    const detail = `${displayName}: ${outcome?.outcomeSummary ?? current.finalResult ?? t("measurement.resultsRecordedFallback")}${finalStatus ? ` (${finalStatus})` : ""}`;
 
     return (
       <Stack spacing={2}>
         {finalStatus ? <VerdictBanner verdict={verdictFromServerStatus(finalStatus)} detail={detail} /> : <Alert severity="info">{detail}</Alert>}
 
         {testDef && (
-          <ResultSection title="Measurement analysis summary">
+          <ResultSection title={t("measurement.summaryTitle")}>
             <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Evaluation Basis</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{testDef.evaluationBasis ?? "Mean"}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("measurement.evaluationBasis")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{testDef.evaluationBasis ?? t("measurement.meanFallback")}</Typography>
               </Box>
               <Box>
-                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Replicates Recorded</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{replicateCount}</Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("measurement.replicatesRecorded")}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}><Ltr>{replicateCount}</Ltr></Typography>
               </Box>
             </Stack>
           </ResultSection>
@@ -290,8 +293,8 @@ export function MeasurementPanel({
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("measurement.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("measurement.returnedDefault")}
         </Alert>
       )}
 
@@ -305,11 +308,11 @@ export function MeasurementPanel({
         {/* Section 1: Run metadata */}
         <ResultSection
           step={1}
-          title="Analysis configuration"
+          title={t("measurement.analysisConfiguration")}
           actions={
             <Stack direction="row" spacing={1}>
-              <Chip size="small" variant="outlined" label={`Basis: ${testDef?.evaluationBasis ?? "Mean"}`} />
-              <Chip size="small" variant="outlined" label={`Replicates: ${replicateCount}`} />
+              <Chip size="small" variant="outlined" label={t("measurement.basisChip", { basis: testDef?.evaluationBasis ?? t("measurement.meanFallback") })} />
+              <Chip size="small" variant="outlined" label={t("measurement.replicatesChip", { count: replicateCount })} />
             </Stack>
           }
         >
@@ -317,28 +320,28 @@ export function MeasurementPanel({
             <TextField
               size="small"
               type="datetime-local"
-              label="Analysis time"
+              label={t("measurement.analysisTime")}
               value={analysedAt}
               onChange={(e) => setAnalysedAt(e.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
+              slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
               required
               fullWidth
             />
 
             <FormControl size="small" fullWidth>
-              <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
+              <InputLabel id="equipment-select-label">{t("measurement.equipmentLabel")}</InputLabel>
               <Select
                 labelId="equipment-select-label"
-                label="Equipment (Physicochemical)"
+                label={t("measurement.equipmentLabel")}
                 value={selectedEquipmentId}
                 onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
               >
                 <MenuItem value="">
-                  <em>None (no instrument linked)</em>
+                  <em>{t("measurement.noInstrument")}</em>
                 </MenuItem>
                 {fpEquipment.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
-                    {eq.name} ({eq.code})
+                    {eq.name} (<Ltr>{eq.code}</Ltr>)
                   </MenuItem>
                 ))}
               </Select>
@@ -350,10 +353,10 @@ export function MeasurementPanel({
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {/* Section 2: Replicate readings grid */}
-        <ResultSection step={2} title={`Replicate readings (${replicateCount} replicate${replicateCount === 1 ? "" : "s"})`}>
+        <ResultSection step={2} title={t("measurement.replicatesTitle", { count: replicateCount })}>
           <UnitEntryGrid
             rowCount={replicateCount}
-            rowLabel={(i) => `Rep ${i + 1}`}
+            rowLabel={(i) => t("measurement.repLabel", { index: i + 1 })}
             columns={columns}
             values={values}
             onChange={setValues}
@@ -363,7 +366,7 @@ export function MeasurementPanel({
         {/* Comment */}
         <TextField
           size="small"
-          label="Comment (optional)"
+          label={t("measurement.commentOptional")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           multiline
@@ -379,7 +382,7 @@ export function MeasurementPanel({
             onClick={() => setSigning(true)}
             sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
           >
-            Sign and record result
+            {t("measurement.signAndRecord")}
           </Button>
         </Box>
       </Stack>
@@ -387,6 +390,7 @@ export function MeasurementPanel({
       <SignatureDialog
         open={signing}
         meaningStatement="I entered these measurement readings and am recording this test result."
+        meaningStatementTranslation={t("measurement.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

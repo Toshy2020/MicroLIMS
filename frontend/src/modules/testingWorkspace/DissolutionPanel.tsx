@@ -19,11 +19,14 @@ import {
   Typography,
   TableContainer
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
 import { UnitEntryGrid, UnitEntryGridColumn } from "../../components/UnitEntryGrid";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
@@ -80,6 +83,7 @@ export function DissolutionPanel({
   onRecorded,
   onClose
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -159,7 +163,7 @@ export function DissolutionPanel({
       try {
         setHplcStandard(await HplcWorkspaceService.getDissolutionStandard(testOrderId));
       } catch {
-        setHplcStandard({ standard: null, problem: "The HPLC run standard could not be loaded." });
+        setHplcStandard({ standard: null, problem: t("dissolution.hplcLoadFailed") });
       }
 
       // 5. Load FP section equipment (dissolution testers)
@@ -223,7 +227,7 @@ export function DissolutionPanel({
       setSpec(matchedSpec);
       setFpEquipment(fpInstruments);
     } catch (err: unknown) {
-      setError(errorMessage(err, "Could not load dissolution test configuration or specifications."));
+      setError(errorMessage(err, t("dissolution.loadConfigFailed")));
     } finally {
       setLoading(false);
     }
@@ -252,8 +256,8 @@ export function DissolutionPanel({
   const nextStage = existingVesselCount === 6 ? 2 : 3;
 
   const vesselColumns: UnitEntryGridColumn[] = useMemo(
-    () => [{ key: "area", label: "Peak area" }],
-    []
+    () => [{ key: "area", label: t("dissolution.peakAreaInputCol") }],
+    [t]
   );
 
   // Group existing readings by stage for read-only presentation
@@ -330,16 +334,16 @@ export function DissolutionPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 2 needed";
+        outcomeText = t("dissolution.stageNeeded", { stage: 2 });
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = "Complies at S1";
+        outcomeText = t("dissolution.compliesAtStage", { stage: 1 });
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply at S3";
+        outcomeText = t("dissolution.doesNotComplyS3");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("dissolution.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -349,7 +353,7 @@ export function DissolutionPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record dissolution result."));
+      setError(errorMessage(err, t("dissolution.recordFailed")));
     }
   };
 
@@ -370,16 +374,16 @@ export function DissolutionPanel({
       let outcomeText = "";
       let severity: "success" | "info" | "error" = "success";
       if (res?.status === "NextStageRequired") {
-        outcomeText = "Stage 3 needed";
+        outcomeText = t("dissolution.stageNeeded", { stage: 3 });
         severity = "info";
       } else if (res?.status === "WithinLimits") {
-        outcomeText = `Complies at S${currentStage}`;
+        outcomeText = t("dissolution.compliesAtStage", { stage: currentStage });
         severity = "success";
       } else if (res?.status === "OutOfSpecification") {
-        outcomeText = "Does not comply at S3";
+        outcomeText = t("dissolution.doesNotComplyS3");
         severity = "error";
       } else {
-        outcomeText = res?.outcomeSummary ?? res?.status ?? "Recorded";
+        outcomeText = res?.outcomeSummary ?? res?.status ?? t("dissolution.recordedFallback");
       }
 
       setOutcome({ text: outcomeText, status: res?.status ?? undefined });
@@ -389,7 +393,7 @@ export function DissolutionPanel({
       await loadData();
     } catch (err: unknown) {
       setSigning(false);
-      setError(errorMessage(err, "Failed to record dissolution stage."));
+      setError(errorMessage(err, t("dissolution.recordStageFailed")));
     }
   };
 
@@ -398,7 +402,7 @@ export function DissolutionPanel({
       <Box sx={{ p: 4, textAlign: "center" }}>
         <CircularProgress size={32} />
         <Typography sx={{ mt: 1, fontSize: 13, color: "text.secondary" }}>
-          Loading dissolution configuration and readings…
+          {t("dissolution.loading")}
         </Typography>
       </Box>
     );
@@ -413,10 +417,37 @@ export function DissolutionPanel({
   // Acceptance criteria from the spec and stage offsets the panel already loads.
   const criteriaRows: CriteriaRow[] = [];
   if (spec) {
-    criteriaRows.push({ parameter: "Q (specification)", criterion: `Q = ${qVal}`, unit: "%", source: "Specification" });
-    criteriaRows.push({ parameter: "Stage 1 (S1, 6 units)", criterion: `Each unit ≥ Q + ${s1Offset}% (≥ ${qVal + s1Offset}%)`, unit: "%", source: "Stage criteria" });
-    criteriaRows.push({ parameter: "Stage 2 (S2, 12 units)", criterion: `Average ≥ Q (${qVal}%); no unit < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%)`, unit: "%", source: "Stage criteria" });
-    criteriaRows.push({ parameter: "Stage 3 (S3, 24 units)", criterion: `Average ≥ Q (${qVal}%); not more than ${s3MaxBelow} units < Q − ${s2MinOffset}% (${qVal - s2MinOffset}%); no unit < Q − ${s3MinOffset}% (${qVal - s3MinOffset}%)`, unit: "%", source: "Stage criteria" });
+    criteriaRows.push({
+      parameter: t("dissolution.qParameter"),
+      criterion: t("dissolution.qCriterion", { qVal }),
+      unit: "%",
+      source: t("dissolution.sourceSpecification")
+    });
+    criteriaRows.push({
+      parameter: t("dissolution.s1Parameter"),
+      criterion: t("dissolution.s1Criterion", { offset: s1Offset, total: qVal + s1Offset }),
+      unit: "%",
+      source: t("dissolution.sourceStageCriteria")
+    });
+    criteriaRows.push({
+      parameter: t("dissolution.s2Parameter"),
+      criterion: t("dissolution.s2Criterion", { qVal, offset: s2MinOffset, minVal: qVal - s2MinOffset }),
+      unit: "%",
+      source: t("dissolution.sourceStageCriteria")
+    });
+    criteriaRows.push({
+      parameter: t("dissolution.s3Parameter"),
+      criterion: t("dissolution.s3Criterion", {
+        qVal,
+        maxBelow: s3MaxBelow,
+        s2Offset: s2MinOffset,
+        s2Min: qVal - s2MinOffset,
+        s3Offset: s3MinOffset,
+        s3Min: qVal - s3MinOffset
+      }),
+      unit: "%",
+      source: t("dissolution.sourceStageCriteria")
+    });
   }
 
   const readingStatusBadge = (passed: boolean | null | undefined) =>
@@ -428,15 +459,15 @@ export function DissolutionPanel({
         <TableHead>
           <TableRow>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{firstHeader}</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>Peak Area</TableCell>
-            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>% Dissolved</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("dissolution.peakAreaCol")}</TableCell>
+            <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12 }}>{t("dissolution.dissolvedCol")}</TableCell>
             <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{lastHeader}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {rList.map((r) => (
             <TableRow key={r.id}>
-              <TableCell sx={{ fontSize: 12 }}>Vessel {r.index}</TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{t("dissolution.vesselLabel", { index: r.index })}</TableCell>
               <TableCell align="right" sx={{ fontSize: 12 }}><NumericCell value={r.value1 != null ? Number(r.value1) : null} /></TableCell>
               <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
                 <NumericCell value={r.computedValue != null ? Number(r.computedValue) : null} unit="%" />
@@ -459,7 +490,7 @@ export function DissolutionPanel({
 
   if (isFinalized && !isNextStageRequired) {
     const finalStatus = outcome?.status ?? activeParam?.comparisonStatus;
-    const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? "Analysis Complete";
+    const summaryText = outcome?.text ?? activeParam?.reportedDisplay ?? current.finalResult ?? t("dissolution.analysisCompleteFallback");
     // Verdict comes only from the server's status field.
     const verdict: Verdict =
       finalStatus === "WithinLimits" ? "Pass" : finalStatus === "OutOfSpecification" ? "Fail" : "Pending";
@@ -469,30 +500,30 @@ export function DissolutionPanel({
         <VerdictBanner verdict={verdict} detail={`${displayName}: ${summaryText}${finalStatus ? ` (${finalStatus})` : ""}`} />
 
         {activeAnalysis && (
-          <ResultSection title="Analysis summary">
+          <ResultSection title={t("dissolution.summaryTitle")}>
             <Stack useFlexGap direction="row" spacing={3} sx={{ flexWrap: "wrap" }}>
               {spec?.lowerLimit && (
                 <Box>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Specification</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>Q = {spec.lowerLimit} %</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("dissolution.specificationLabel")}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}><Ltr>Q = {spec.lowerLimit} %</Ltr></Typography>
                 </Box>
               )}
               {spec?.labelClaim && (
                 <Box>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Label Claim</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{spec.labelClaim} {spec.labelClaimUnit || "mg"}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("dissolution.labelClaimLabel")}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}><Ltr>{spec.labelClaim} {spec.labelClaimUnit || "mg"}</Ltr></Typography>
                 </Box>
               )}
               {activeParam?.reportedDisplay && (
                 <Box>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Reported Result</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{activeParam.reportedDisplay}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("dissolution.reportedResultLabel")}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}><Ltr>{activeParam.reportedDisplay}</Ltr></Typography>
                 </Box>
               )}
               {activeAnalysis.equipmentCode && (
                 <Box>
-                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Apparatus</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{activeAnalysis.equipmentCode}</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{t("dissolution.apparatusLabel")}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}><Ltr>{activeAnalysis.equipmentCode}</Ltr></Typography>
                 </Box>
               )}
             </Stack>
@@ -502,14 +533,14 @@ export function DissolutionPanel({
         {criteriaRows.length > 0 && <CriteriaCard rows={criteriaRows} />}
 
         {activeAnalysis && readingsByStage.size > 0 && (
-          <ResultSection title="Raw replicate readings">
+          <ResultSection title={t("dissolution.rawReadingsTitle")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 600, fontSize: 12, mb: 0.5 }}>
-                    Stage {stg} ({rList.length} units)
+                    {t("dissolution.stageUnitsHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, "Vessel", "Unit Mark")}
+                  {renderReadingsTable(rList, t("dissolution.vesselHeader"), t("dissolution.unitMarkHeader"))}
                 </Box>
               ))}
             </Stack>
@@ -517,10 +548,10 @@ export function DissolutionPanel({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <StatusBadge status="ResultRecorded" label="Result Recorded, Pending Review" />
+          <StatusBadge status="ResultRecorded" label={t("dissolution.resultRecordedPending")} />
           {onClose && (
             <Button variant="contained" onClick={onClose}>
-              Done / Close
+              {t("dissolution.doneClose")}
             </Button>
           )}
         </Box>
@@ -533,14 +564,19 @@ export function DissolutionPanel({
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("dissolution.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("dissolution.returnedDefault")}
         </Alert>
       )}
 
       {outcomeBanner && (
         <Alert severity={outcomeBanner.severity} sx={{ mb: 2 }} onClose={() => setOutcomeBanner(null)}>
-          Outcome: <strong>{outcomeBanner.message}</strong>
+          <Trans
+            i18nKey="dissolution.outcomeBanner"
+            ns="testingWorkspace"
+            values={{ message: outcomeBanner.message }}
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       )}
 
@@ -552,27 +588,34 @@ export function DissolutionPanel({
 
       {!spec && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          No Dissolution Q specification configured for this item and test. Please configure a specification with limit type &ldquo;Dissolution Q&rdquo; in Item Specifications.
+          {t("dissolution.noSpecWarning")}
         </Alert>
       )}
 
       {/* HPLC run standard block */}
       <Stack spacing={2}>
-      <ResultSection step={1} title="HPLC run standard">
+      <ResultSection step={1} title={t("dissolution.hplcRunStandardTitle")}>
         {hplcStandard?.standard ? (
           <Stack useFlexGap direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
-            <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{hplcStandard.standard.runCode}</Typography>
+            <Typography sx={{ fontWeight: 600, fontSize: 13 }}><Ltr>{hplcStandard.standard.runCode}</Ltr></Typography>
             <StatusBadge status="Passed" label={hplcStandard.standard.sstCode} />
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Mean area {hplcStandard.standard.meanResponse} · weight {hplcStandard.standard.standardWeightMg} mg · P {hplcStandard.standard.purityPercent}% · MC {hplcStandard.standard.moisturePercent}% · dilution {hplcStandard.standard.standardDilution} mL · Cs {hplcStandard.standard.cs.toFixed(6)} mg/mL
+              {t("dissolution.hplcSummaryDetails", {
+                mean: hplcStandard.standard.meanResponse,
+                weight: hplcStandard.standard.standardWeightMg,
+                purity: hplcStandard.standard.purityPercent,
+                moisture: hplcStandard.standard.moisturePercent,
+                dilution: hplcStandard.standard.standardDilution,
+                cs: hplcStandard.standard.cs.toFixed(6)
+              })}
             </Typography>
             <Button size="small" component={RouterLink} to={`/hplc-workspace/${hplcStandard.standard.equipmentId}/run/${hplcStandard.standard.hplcRunId}/samples`}>
-              Open run
+              {t("dissolution.openRunBtn")}
             </Button>
           </Stack>
         ) : (
           <Alert severity="info">
-            {hplcStandard?.problem ?? "Assign this sample to an HPLC run with a passed system suitability."} Use the HPLC Workspace.
+            {hplcStandard?.problem ?? t("dissolution.assignHplcDefault")} {t("dissolution.useHplcWorkspace")}
           </Alert>
         )}
       </ResultSection>
@@ -583,18 +626,23 @@ export function DissolutionPanel({
       {isNextStageRequired && activeParam ? (
         <Stack spacing={2}>
           <Alert severity="warning">
-            <strong>Stage {nextStage} required:</strong> Results from Stage {nextStage - 1} did not meet acceptance criteria. Staged testing continues to Stage {nextStage}.
+            <Trans
+              i18nKey="dissolution.stageRequiredBanner"
+              ns="testingWorkspace"
+              values={{ stage: nextStage, prev: nextStage - 1 }}
+              components={{ strong: <strong /> }}
+            />
           </Alert>
 
           {/* Grouped read-only previous stages */}
-          <ResultSection step={2} title="Previously recorded stages">
+          <ResultSection step={2} title={t("dissolution.prevStagesTitle")}>
             <Stack spacing={2}>
               {Array.from(readingsByStage.entries()).map(([stg, rList]) => (
                 <Box key={stg}>
                   <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-                    Stage {stg} Units ({rList.length} vessels)
+                    {t("dissolution.stageVesselsHeading", { stage: stg, count: rList.length })}
                   </Typography>
-                  {renderReadingsTable(rList, "Unit", "Stage Criterion")}
+                  {renderReadingsTable(rList, t("dissolution.unitHeader"), t("dissolution.stageCriterionHeader"))}
                 </Box>
               ))}
             </Stack>
@@ -603,11 +651,11 @@ export function DissolutionPanel({
           {/* Next Stage Entry */}
           <ResultSection
             step={3}
-            title={`Stage ${nextStage} vessel area entry (${nextStage === 2 ? "6 additional units, Vessels 7–12" : "12 additional units, Vessels 13–24"})`}
+            title={nextStage === 2 ? t("dissolution.nextStageEntryTitle2") : t("dissolution.nextStageEntryTitle3")}
           >
             <UnitEntryGrid
               rowCount={nextStage === 2 ? 6 : 12}
-              rowLabel={(i) => `Vessel ${i + (nextStage === 2 ? 7 : 13)}`}
+              rowLabel={(i) => t("dissolution.vesselLabel", { index: i + (nextStage === 2 ? 7 : 13) })}
               columns={vesselColumns}
               values={nextStageValues}
               onChange={setNextStageValues}
@@ -622,7 +670,7 @@ export function DissolutionPanel({
                   setSigning(true);
                 }}
               >
-                Sign & Record Stage {nextStage} Result
+                {t("dissolution.signStageBtn", { stage: nextStage })}
               </Button>
             </Box>
           </ResultSection>
@@ -630,22 +678,22 @@ export function DissolutionPanel({
       ) : (
         /* STAGE 1 INITIAL FORM */
         <>
-          <ResultSection step={2} title="Analysis parameters & conditions">
+          <ResultSection step={2} title={t("dissolution.paramsAndConditionsTitle")}>
           <Stack spacing={2}>
             {/* Equipment and DateTime */}
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
               <FormControl size="small" sx={{ flex: 1.5 }}>
-                <InputLabel id="dissolution-equipment-label">Dissolution Apparatus</InputLabel>
+                <InputLabel id="dissolution-equipment-label">{t("dissolution.apparatusSelectLabel")}</InputLabel>
                 <Select
                   labelId="dissolution-equipment-label"
-                  label="Dissolution Apparatus"
+                  label={t("dissolution.apparatusSelectLabel")}
                   value={selectedEquipmentId}
                   onChange={(e) => setSelectedEquipmentId(e.target.value as number | "")}
                 >
-                  <MenuItem value=""><em>Select apparatus (optional)</em></MenuItem>
+                  <MenuItem value=""><em>{t("dissolution.selectApparatusOptional")}</em></MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.code}: {eq.name} ({eq.type})
+                      <Ltr>{eq.code}</Ltr>: {eq.name} ({eq.type})
                     </MenuItem>
                   ))}
                 </Select>
@@ -654,10 +702,10 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="datetime-local"
-                label="Analysis Time (Local)"
+                label={t("dissolution.analysisTimeLocal")}
                 value={analysedAt}
                 onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
+                slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
                 required
                 sx={{ flex: 1 }}
               />
@@ -667,7 +715,7 @@ export function DissolutionPanel({
             {conditionLabels.length > 0 && (
               <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
                 <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>
-                  Test Conditions
+                  {t("dissolution.testConditionsHeading")}
                 </Typography>
                 <Stack useFlexGap direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ flexWrap: "wrap" }}>
                   {conditionLabels.map((label) => (
@@ -675,7 +723,7 @@ export function DissolutionPanel({
                       key={label}
                       size="small"
                       label={label}
-                      placeholder={`Enter ${label}`}
+                      placeholder={t("dissolution.enterConditionPlaceholder", { label })}
                       value={conditions[label] || ""}
                       onChange={(e) =>
                         setConditions((prev) => ({ ...prev, [label]: e.target.value }))
@@ -693,23 +741,23 @@ export function DissolutionPanel({
               <TextField
                 size="small"
                 type="number"
-                label="Medium Volume (mL)"
-                placeholder="e.g. 900"
+                label={t("dissolution.mediumVolumeLabel")}
+                placeholder={t("dissolution.mediumVolumePlaceholder")}
                 value={mediumVolumeMl}
                 onChange={(e) => setMediumVolumeMl(e.target.value)}
-                slotProps={{ htmlInput: { min: 1, step: "any" } }}
+                slotProps={{ htmlInput: { min: 1, step: "any", dir: "ltr" } }}
                 required
                 sx={{ flex: 1 }}
               />
               <TextField
                 size="small"
                 type="number"
-                label="Sample Dilution Factor"
+                label={t("dissolution.dilutionFactorLabel")}
                 placeholder="1"
                 value={dilutionFactor}
                 onChange={(e) => setDilutionFactor(e.target.value)}
-                slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
-                helperText="Default: 1 (undiluted)"
+                slotProps={{ htmlInput: { min: 0.0001, step: "any", dir: "ltr" } }}
+                helperText={t("dissolution.dilutionFactorHelper")}
                 required
                 sx={{ flex: 1 }}
               />
@@ -718,11 +766,11 @@ export function DissolutionPanel({
           </ResultSection>
 
           {/* Stage 1 Vessels */}
-          <ResultSection step={3} title="Stage 1 vessel peak areas (6 units)">
+          <ResultSection step={3} title={t("dissolution.stage1VesselsTitle")}>
 
           <UnitEntryGrid
             rowCount={6}
-            rowLabel={(i) => `Vessel ${i + 1}`}
+            rowLabel={(i) => t("dissolution.vesselLabel", { index: i + 1 })}
             columns={vesselColumns}
             values={vesselAreasS1}
             onChange={setVesselAreasS1}
@@ -737,7 +785,7 @@ export function DissolutionPanel({
                 setSigning(true);
               }}
             >
-              Sign & Record Stage 1 Result
+              {t("dissolution.signStageBtn", { stage: 1 })}
             </Button>
           </Box>
           </ResultSection>
@@ -751,6 +799,9 @@ export function DissolutionPanel({
         meaningStatement={signingStage === 1
           ? "I entered these stage 1 dissolution vessel results and am recording this test result."
           : `I entered these stage ${signingStage} dissolution vessel results and am recording them.`}
+        meaningStatementTranslation={signingStage === 1
+          ? t("dissolution.signatureMeaningStage1")
+          : t("dissolution.signatureMeaningOtherStage", { stage: signingStage })}
         showComment
         comment={comment}
         onCommentChange={setComment}

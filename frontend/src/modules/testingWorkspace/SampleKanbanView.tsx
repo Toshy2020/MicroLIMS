@@ -1,32 +1,26 @@
 import { Box, Paper, Typography, Stack, useTheme } from "@mui/material";
 import { SampleCard as SampleCardType } from "./types/workspaceTypes";
 import { CategoryBadge } from "../../components/StatusBadge";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { clickable } from "../../utils/clickable";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
-const COLUMNS: { status: string; label: string }[] = [
-  { status: "Received", label: "Received" },
-  { status: "InTesting", label: "Under Testing" },
-  { status: "UnderReview", label: "Under Review" },
-  { status: "UnderApproval", label: "Under Approval" },
-  { status: "Approved", label: "Approved" },
-  { status: "Rejected", label: "Rejected" },
-  { status: "RetestRequested", label: "Retest Requested" }
-];
-
-const formatDate = (d: string) => new Date(d).toLocaleDateString();
+const STATUSES = ["Received", "InTesting", "UnderReview", "UnderApproval", "Approved", "Rejected", "RetestRequested"] as const;
 
 // Read-only, grouped by Sample.status - clicking a card opens the same
 // Sample Summary dialog the table's lifecycle badge opens. No
 // drag-and-drop: dragging a card across columns would need to respect
 // the workflow engine's state machine, which this view doesn't attempt.
 export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCardType[]; onCardClick: (sampleId: number) => void }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   return (
     <Box sx={{ display: "flex", gap: 2, overflowX: "auto", pb: 1 }}>
-      {COLUMNS.map((col) => {
-        const items = samples.filter((s) => s.status === col.status);
+      {STATUSES.map((status) => {
+        const items = samples.filter((s) => s.status === status);
         return (
-          <Box key={col.status} sx={{ minWidth: 260, flex: "0 0 260px" }}>
+          <Box key={status} sx={{ minWidth: 260, flex: "0 0 260px" }}>
             <Stack
               direction="row"
               sx={{
@@ -34,8 +28,8 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                 alignItems: "center",
                 mb: 1
               }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>{col.label}</Typography>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{items.length}</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>{t(`kanban.${status}`)}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}><Ltr>{items.length}</Ltr></Typography>
             </Stack>
             <Stack spacing={1} sx={{ maxHeight: 560, overflowY: "auto" }}>
               {items.map((s) => (
@@ -45,7 +39,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                   {...clickable(() => onCardClick(s.sampleId))}
                 >
                   <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{s.displayName}</Typography>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>{s.referenceNumber}</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}><Ltr>{s.referenceNumber}</Ltr></Typography>
                   <Stack
                     direction="row"
                     sx={{
@@ -53,7 +47,7 @@ export function SampleKanbanView({ samples, onCardClick }: { samples: SampleCard
                       alignItems: "center"
                     }}>
                     <CategoryBadge category={s.category} />
-                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{formatDate(s.receivedAt)}</Typography>
+                    <Typography sx={{ fontSize: 12, color: "text.secondary" }}><Ltr>{formatDateTimeWithTimeZone(s.receivedAt)}</Ltr></Typography>
                   </Stack>
                 </Paper>
               ))}

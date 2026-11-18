@@ -3,6 +3,7 @@ import { render, screen, cleanup, fireEvent, waitFor, within } from "@testing-li
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
 import { SampleSummaryDialog } from "./SampleSummaryDialog";
 import type { SampleSummary } from "./types/sampleSummaryTypes";
 import { PERMISSIONS } from "../../routes/routes";
@@ -431,5 +432,26 @@ describe("SampleSummaryDialog gated actions", () => {
     expect(mockDecideApproval).toHaveBeenCalledWith(
       77, "secret123", "Approve", undefined, undefined, undefined, undefined, undefined, 10
     );
+  }, 15000);
+});
+
+describe("SampleSummaryDialog in Arabic RTL", () => {
+  afterEach(async () => {
+    await resetLanguage();
+  });
+
+  it("renders RTL layout, Arabic heading, and sample identifier in LTR bdi", async () => {
+    mockGetSummary.mockResolvedValue(createSample());
+    await renderInArabic(
+      <MemoryRouter>
+        <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+      </MemoryRouter>,
+      ["common", "testingWorkspace"]
+    );
+
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(await screen.findByText("ملخص العينة")).toBeTruthy();
+    const refNodes = await screen.findAllByText("RM0926077");
+    expect(refNodes.some((node) => node.closest("bdi")?.getAttribute("dir") === "ltr")).toBe(true);
   }, 15000);
 });

@@ -14,8 +14,9 @@ import {
 import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 import { formatAccessReviewMfaState } from "../../utils/mfaStateDisplay";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
-
-const formatDate = (iso: string | null) => (iso ? formatDateTimeWithTimeZone(iso) : "Never");
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { i18n, useTranslation } from "../../i18n";
 const messageOf = (e: unknown, fallback: string): string => serverMessage(e) ?? getErrorMessage(e, fallback);
 
 type StatusFilter = "All" | "Active" | "Inactive";
@@ -25,6 +26,10 @@ type StatusFilter = "All" | "Active" | "Inactive";
 // collects findings while the review is a draft, and collects the signature.
 // A requested change is made in Users or Roles, never here.
 export function AccessReviewPage() {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
+  const formatDate = (iso: string | null) => (iso ? formatDateTimeWithTimeZone(iso) : t("common.never"));
+  const dateBy = (iso: string | null, name: string | null | undefined) => (name ? t("accessReview.dateBy", { date: formatDate(iso), name }) : formatDate(iso));
   const [reviews, setReviews] = useState<AccessReviewListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<AccessReviewDetail | null>(null);
@@ -51,24 +56,24 @@ export function AccessReviewPage() {
   const loadList = useCallback(() => {
     AccessReviewService.list()
       .then(setReviews)
-      .catch(() => setError("Could not load the access reviews. Reload the page to try again."));
-  }, []);
+      .catch(() => setError(t("accessReview.loadError")));
+  }, [t]);
   useEffect(loadList, [loadList]);
 
   const open = (id: number) => {
-    AccessReviewService.get(id).then(setDetail).catch((e) => toast.error(messageOf(e, "Could not open the review.")));
+    AccessReviewService.get(id).then(setDetail).catch((e) => toast.error(messageOf(e, t("accessReview.openError"))));
   };
 
   const generate = async () => {
     setGenerateError(null);
     try {
       const created = await AccessReviewService.generate(periodLabel.trim(), reason.trim());
-      toast.success("Access review generated as a draft.");
+      toast.success(t("accessReview.generated"));
       setGenerating(false); setPeriodLabel(""); setReason("");
       setDetail(created);
       loadList();
     } catch (e) {
-      setGenerateError(messageOf(e, "Could not generate the review."));
+      setGenerateError(messageOf(e, t("accessReview.generateError")));
     }
   };
 
@@ -94,12 +99,12 @@ export function AccessReviewPage() {
       await AccessReviewService.addFinding(detail.id, {
         userId: findingFor.userId, kind, detail: findingDetail.trim(), action, note: note.trim() || undefined
       });
-      toast.success("Finding recorded.");
+      toast.success(t("accessReview.findingRecorded"));
       setFindingFor(null);
       open(detail.id);
       loadList();
     } catch (e) {
-      setFindingError(messageOf(e, "Could not record the finding."));
+      setFindingError(messageOf(e, t("accessReview.findingError")));
     }
   };
 
@@ -107,7 +112,7 @@ export function AccessReviewPage() {
     if (!detail) return;
     // A refused password or missing conclusion throws back into the dialog.
     const signed = await AccessReviewService.sign(detail.id, password, conclusion);
-    toast.success("Access review signed.");
+    toast.success(t("accessReview.signed"));
     setSigning(false); setConclusion("");
     setDetail(signed);
     loadList();
@@ -115,7 +120,7 @@ export function AccessReviewPage() {
 
   const exportCsv = () => {
     if (!detail) return;
-    AccessReviewService.exportCsv(detail.id).catch((e) => toast.error(messageOf(e, "Could not export the review.")));
+    AccessReviewService.exportCsv(detail.id).catch((e) => toast.error(messageOf(e, t("accessReview.exportError"))));
   };
 
   const isDraft = detail?.status === "Draft";
@@ -124,45 +129,45 @@ export function AccessReviewPage() {
   return (
     <>
       <PageHeader
-        title="Access Review"
-        subtitle="Periodic review of who holds which access. The report is fixed when generated; the reviewer records findings and signs it."
+        title={t("accessReview.title")}
+        subtitle={t("accessReview.subtitle")}
       />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Paper sx={{ mb: 2, p: 2 }}>
         <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-          <Typography variant="h6" component="h2">Reviews</Typography>
-          <Button variant="contained" onClick={() => { setGenerating(true); setGenerateError(null); }}>Generate review</Button>
+          <Typography variant="h6" component="h2">{t("accessReview.reviews")}</Typography>
+          <Button variant="contained" onClick={() => { setGenerating(true); setGenerateError(null); }}>{t("accessReview.generate")}</Button>
         </Stack>
         {!reviews && !error && <LoadingSpinner />}
-        {reviews && reviews.length === 0 && <Typography variant="body2" color="text.secondary">No access review has been generated yet.</Typography>}
+        {reviews && reviews.length === 0 && <Typography variant="body2" color="text.secondary">{t("accessReview.noReviews")}</Typography>}
         {reviews && reviews.length > 0 && (
           <TableContainer>
-            <Table size="small" aria-label="Access reviews">
+            <Table size="small" aria-label={t("accessReview.reviewsTable")}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Period</TableCell>
-                  <TableCell>Generated</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Flags</TableCell>
-                  <TableCell>Findings</TableCell>
-                  <TableCell>Signed by</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t("accessReview.period")}</TableCell>
+                  <TableCell>{t("accessReview.generatedCol")}</TableCell>
+                  <TableCell>{t("common.status")}</TableCell>
+                  <TableCell>{t("accessReview.flags")}</TableCell>
+                  <TableCell>{t("accessReview.findings")}</TableCell>
+                  <TableCell>{t("accessReview.signedBy")}</TableCell>
+                  <TableCell align="right">{t("common.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {reviews.map((r) => (
                   <TableRow key={r.id} selected={detail?.id === r.id}>
                     <TableCell>{r.periodLabel}</TableCell>
-                    <TableCell>{formatDate(r.generatedAt)}{r.generatedByName ? ` by ${r.generatedByName}` : ""}</TableCell>
+                    <TableCell>{dateBy(r.generatedAt, r.generatedByName)}</TableCell>
                     <TableCell><Chip size="small" color={r.status === "Signed" ? "success" : "warning"} label={r.status} /></TableCell>
                     <TableCell>
-                      {r.summary.dormantUsers} dormant, {r.summary.neverLoggedInUsers} never signed in, {r.summary.sodConflictUsers} SoD
+                      {t("accessReview.flagsSummary", { dormant: r.summary.dormantUsers, never: r.summary.neverLoggedInUsers, sod: r.summary.sodConflictUsers })}
                     </TableCell>
                     <TableCell>{r.findingCount}</TableCell>
-                    <TableCell>{r.reviewerName ? `${r.reviewerName}, ${formatDate(r.signedAt)}` : ""}</TableCell>
+                    <TableCell>{r.reviewerName ? t("accessReview.signedByLine", { name: r.reviewerName, date: formatDate(r.signedAt) }) : ""}</TableCell>
                     <TableCell align="right">
-                      <Button size="small" aria-label={`Open ${r.periodLabel}`} onClick={() => open(r.id)}>Open</Button>
+                      <Button size="small" aria-label={t("accessReview.openAria", { period: r.periodLabel })} onClick={() => open(r.id)}>{t("accessReview.open")}</Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -179,63 +184,67 @@ export function AccessReviewPage() {
               {detail.periodLabel} <Chip size="small" color={isDraft ? "warning" : "success"} label={detail.status} sx={{ ml: 1 }} />
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Button variant="outlined" onClick={exportCsv}>Export CSV</Button>
-              {canDecide && <Button variant="contained" onClick={() => setSigning(true)}>Sign review</Button>}
+              <Button variant="outlined" onClick={exportCsv}>{t("accessReview.exportCsv")}</Button>
+              {canDecide && <Button variant="contained" onClick={() => setSigning(true)}>{t("accessReview.signReview")}</Button>}
             </Stack>
           </Stack>
 
           {isDraft && !detail.canDecide && (
             <Alert severity="info" sx={{ mb: 1 }}>
-              Access reviews are decided and signed by Quality Assurance.
+              {t("accessReview.qaOnly")}
             </Alert>
           )}
 
           {!detail.snapshotIntact && (
-            <Alert severity="error" sx={{ mb: 1 }}>The stored report no longer matches its checksum. Do not rely on it.</Alert>
+            <Alert severity="error" sx={{ mb: 1 }}>{t("accessReview.checksumBad")}</Alert>
           )}
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-            Generated {formatDate(detail.generatedAt)}{detail.generatedByName ? ` by ${detail.generatedByName}` : ""}. Dormant after {detail.snapshot.dormantDays} days.
-            Checksum (SHA-256) {detail.snapshotSha256}
+            <Trans
+              i18nKey="accessReview.generatedLine"
+              ns="admin"
+              values={{ generated: dateBy(detail.generatedAt, detail.generatedByName), days: detail.snapshot.dormantDays, sha: detail.snapshotSha256 }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
           {detail.status === "Signed" && (
             <Alert severity="success" sx={{ mb: 1 }}>
-              Signed by {detail.reviewerName} on {formatDate(detail.signedAt)}. Conclusion: {detail.conclusion}
+              {t("accessReview.signedAlert", { name: detail.reviewerName ?? "", date: formatDate(detail.signedAt), conclusion: detail.conclusion ?? "" })}
             </Alert>
           )}
 
           <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", gap: 1 }}>
-            <Chip label={`${detail.snapshot.summary.totalUsers} accounts`} />
-            <Chip label={`${detail.snapshot.summary.activeUsers} active`} />
-            <Chip label={`${detail.snapshot.summary.inactiveUsers} inactive`} />
-            <Chip color={detail.snapshot.summary.dormantUsers ? "warning" : "default"} label={`${detail.snapshot.summary.dormantUsers} dormant`} />
-            <Chip color={detail.snapshot.summary.neverLoggedInUsers ? "warning" : "default"} label={`${detail.snapshot.summary.neverLoggedInUsers} never signed in`} />
-            <Chip color={detail.snapshot.summary.sodConflictUsers ? "error" : "default"} label={`${detail.snapshot.summary.sodConflictUsers} SoD conflicts`} />
+            <Chip label={t("accessReview.chipAccounts", { n: detail.snapshot.summary.totalUsers })} />
+            <Chip label={t("accessReview.chipActive", { n: detail.snapshot.summary.activeUsers })} />
+            <Chip label={t("accessReview.chipInactive", { n: detail.snapshot.summary.inactiveUsers })} />
+            <Chip color={detail.snapshot.summary.dormantUsers ? "warning" : "default"} label={t("accessReview.chipDormant", { n: detail.snapshot.summary.dormantUsers })} />
+            <Chip color={detail.snapshot.summary.neverLoggedInUsers ? "warning" : "default"} label={t("accessReview.chipNever", { n: detail.snapshot.summary.neverLoggedInUsers })} />
+            <Chip color={detail.snapshot.summary.sodConflictUsers ? "error" : "default"} label={t("accessReview.chipSod", { n: detail.snapshot.summary.sodConflictUsers })} />
           </Stack>
 
           <Stack direction="row" spacing={2} sx={{ mb: 1, alignItems: "center", flexWrap: "wrap" }}>
-            <TextField size="small" label="Search accounts" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <TextField size="small" select label="Status" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} sx={{ minWidth: 120 }}>
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Active">Active</MenuItem>
-              <MenuItem value="Inactive">Inactive</MenuItem>
+            <TextField size="small" label={t("accessReview.searchAccounts")} value={search} onChange={(e) => setSearch(e.target.value)} />
+            <TextField size="small" select label={t("common.status")} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as StatusFilter)} sx={{ minWidth: 120 }}>
+              <MenuItem value="All">{t("accessReview.all")}</MenuItem>
+              <MenuItem value="Active">{t("common.active")}</MenuItem>
+              <MenuItem value="Inactive">{t("common.inactive")}</MenuItem>
             </TextField>
-            <FormControlLabel control={<Switch checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />} label="Flagged only" />
+            <FormControlLabel control={<Switch checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />} label={t("accessReview.flaggedOnly")} />
           </Stack>
 
           <TableContainer>
-            <Table size="small" aria-label="Accounts in the report">
+            <Table size="small" aria-label={t("accessReview.accountsTable")}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Account</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Second factor</TableCell>
-                  <TableCell>Permissions</TableCell>
-                  <TableCell>Sections</TableCell>
-                  <TableCell>Last sign-in</TableCell>
-                  <TableCell>Status changes (12 months)</TableCell>
-                  <TableCell>Flags</TableCell>
-                  <TableCell align="right">Findings</TableCell>
+                  <TableCell>{t("accessReview.account")}</TableCell>
+                  <TableCell>{t("common.status")}</TableCell>
+                  <TableCell>{t("common.role")}</TableCell>
+                  <TableCell>{t("accessReview.secondFactor")}</TableCell>
+                  <TableCell>{t("accessReview.permissions")}</TableCell>
+                  <TableCell>{t("accessReview.sections")}</TableCell>
+                  <TableCell>{t("accessReview.lastSignIn")}</TableCell>
+                  <TableCell>{t("accessReview.statusChanges")}</TableCell>
+                  <TableCell>{t("accessReview.flags")}</TableCell>
+                  <TableCell align="right">{t("accessReview.findings")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -248,36 +257,36 @@ export function AccessReviewPage() {
                         <Typography variant="caption" color="text.secondary">{u.fullName}</Typography>
                         {u.signInMethod && (
                           <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                            {u.signInMethod === "Directory" ? "Company login" : "Laboratory login"}{u.isEmergencyAccount ? ", emergency account" : ""}
+                            {u.signInMethod === "Directory" ? t("accessReview.companyLogin") : t("accessReview.laboratoryLogin")}{u.isEmergencyAccount ? t("accessReview.emergencySuffix") : ""}
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{u.isActive ? "Active" : `Inactive${u.deactivatedAt ? ` since ${formatDate(u.deactivatedAt)}` : ""}`}</TableCell>
+                      <TableCell>{u.isActive ? t("common.active") : u.deactivatedAt ? t("accessReview.inactiveSince", { date: formatDate(u.deactivatedAt) }) : t("common.inactive")}</TableCell>
                       <TableCell>{u.roleName} <Typography variant="caption" color="text.secondary" component="span">({u.roleType})</Typography></TableCell>
                       <TableCell>{formatAccessReviewMfaState(u.mfaState)}</TableCell>
                       <TableCell sx={{ maxWidth: 280 }}>
                         <Typography variant="caption">
-                          {u.permissions.map((p) => (p.hidden ? `${p.code} (hidden)` : p.code)).join(", ") || "None"}
+                          {u.permissions.map((p) => (p.hidden ? t("accessReview.hidden", { code: p.code }) : p.code)).join(", ") || t("common.none")}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {u.sections.map((s) => (s.sectionName ? `${s.departmentName} / ${s.sectionName}` : `${s.departmentName} (all)`)).join(", ") || "None"}
+                        {u.sections.map((s) => (s.sectionName ? t("accessReview.sectionOf", { department: s.departmentName, section: s.sectionName }) : t("accessReview.sectionAll", { department: s.departmentName }))).join(", ") || t("common.none")}
                       </TableCell>
                       <TableCell>{formatDate(u.lastSuccessfulLogin)}</TableCell>
                       <TableCell>
-                        {u.statusHistory.length === 0 ? "None" : u.statusHistory.map((h) => `${formatDateTimeWithTimeZone(h.timestamp)} ${h.action}`).join("; ")}
+                        {u.statusHistory.length === 0 ? t("common.none") : u.statusHistory.map((h) => `${formatDateTimeWithTimeZone(h.timestamp)} ${h.action}`).join("; ")}
                       </TableCell>
                       <TableCell>
                         <Stack direction="row" spacing={0.5} sx={{ flexWrap: "wrap", gap: 0.5 }}>
-                          {u.sodConflicts.map((c) => <Chip key={c} size="small" color="error" label={`SoD: ${c}`} />)}
-                          {u.dormant && <Chip size="small" color="warning" label="Dormant" />}
-                          {u.neverLoggedIn && <Chip size="small" color="warning" label="Never signed in" />}
+                          {u.sodConflicts.map((c) => <Chip key={c} size="small" color="error" label={t("accessReview.sodFlag", { conflict: c })} />)}
+                          {u.dormant && <Chip size="small" color="warning" label={t("accessReview.dormant")} />}
+                          {u.neverLoggedIn && <Chip size="small" color="warning" label={t("accessReview.neverSignedIn")} />}
                         </Stack>
                       </TableCell>
                       <TableCell align="right">
                         {own.length}
                         {canDecide && (
-                          <Button size="small" aria-label={`Add finding for ${u.username}`} onClick={() => openFinding(u)}>Add finding</Button>
+                          <Button size="small" aria-label={t("accessReview.addFindingFor", { username: u.username })} onClick={() => openFinding(u)}>{t("accessReview.addFinding")}</Button>
                         )}
                       </TableCell>
                     </TableRow>
@@ -288,14 +297,14 @@ export function AccessReviewPage() {
           </TableContainer>
 
           <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" component="h3">Findings</Typography>
+            <Typography variant="subtitle1" component="h3">{t("accessReview.findings")}</Typography>
             {detail.findings.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">No findings recorded.</Typography>
+              <Typography variant="body2" color="text.secondary">{t("accessReview.noFindings")}</Typography>
             ) : (
-              <Table size="small" aria-label="Findings">
+              <Table size="small" aria-label={t("accessReview.findings")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Account</TableCell><TableCell>Kind</TableCell><TableCell>Detail</TableCell><TableCell>Action</TableCell><TableCell>Note</TableCell>
+                    <TableCell>{t("accessReview.account")}</TableCell><TableCell>{t("accessReview.kind")}</TableCell><TableCell>{t("accessReview.detail")}</TableCell><TableCell>{t("accessReview.action")}</TableCell><TableCell>{t("accessReview.note")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -304,7 +313,7 @@ export function AccessReviewPage() {
                       <TableCell>{f.username}</TableCell>
                       <TableCell>{f.kind}</TableCell>
                       <TableCell>{f.detail}</TableCell>
-                      <TableCell>{f.action === "ChangeRequested" ? "Change requested" : "No change"}</TableCell>
+                      <TableCell>{f.action === "ChangeRequested" ? t("accessReview.changeRequested") : t("accessReview.noChange")}</TableCell>
                       <TableCell>{f.note}</TableCell>
                     </TableRow>
                   ))}
@@ -319,19 +328,19 @@ export function AccessReviewPage() {
         open={generating}
         onClose={() => setGenerating(false)}
         maxWidth="xs"
-        title="Generate access review"
+        title={t("accessReview.generateTitle")}
         actions={
           <>
-            <Button onClick={() => setGenerating(false)}>Cancel</Button>
-            <Button variant="contained" onClick={generate} disabled={!reason.trim()}>Generate</Button>
+            <Button onClick={() => setGenerating(false)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" onClick={generate} disabled={!reason.trim()}>{t("accessReview.generateButton")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <Typography variant="body2">Takes a snapshot of every account, active or not. The snapshot cannot be changed afterwards.</Typography>
+          <Typography variant="body2">{t("accessReview.generateIntro")}</Typography>
           {generateError && <Alert severity="error">{generateError}</Alert>}
-          <TextField label="Period label" size="small" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026 Q4" />
-          <TextField label="Reason" size="small" required multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
+          <TextField label={t("accessReview.periodLabel")} size="small" value={periodLabel} onChange={(e) => setPeriodLabel(e.target.value)} placeholder="2026 Q4" />
+          <TextField label={t("common.reason")} size="small" required multiline minRows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
         </Stack>
       </FloatingDialog>
 
@@ -339,34 +348,35 @@ export function AccessReviewPage() {
         open={Boolean(findingFor)}
         onClose={() => setFindingFor(null)}
         maxWidth="xs"
-        title={`Finding for ${findingFor?.username ?? ""}`}
+        title={t("accessReview.findingFor", { username: findingFor?.username ?? "" })}
         actions={
           <>
-            <Button onClick={() => setFindingFor(null)}>Cancel</Button>
-            <Button variant="contained" onClick={saveFinding} disabled={!findingDetail.trim() || (action === "ChangeRequested" && !note.trim())}>Record finding</Button>
+            <Button onClick={() => setFindingFor(null)}>{tc("actions.cancel")}</Button>
+            <Button variant="contained" onClick={saveFinding} disabled={!findingDetail.trim() || (action === "ChangeRequested" && !note.trim())}>{t("accessReview.recordFinding")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ pt: 1 }}>
           {findingError && <Alert severity="error">{findingError}</Alert>}
-          <TextField select size="small" label="Kind" value={kind} onChange={(e) => setKind(e.target.value)}>
+          <TextField select size="small" label={t("accessReview.kind")} value={kind} onChange={(e) => setKind(e.target.value)}>
             {FINDING_KINDS.map((k) => <MenuItem key={k} value={k}>{k}</MenuItem>)}
           </TextField>
-          <TextField label="Detail" size="small" required multiline minRows={2} value={findingDetail} onChange={(e) => setFindingDetail(e.target.value)} />
-          <TextField select size="small" label="Action" value={action} onChange={(e) => setAction(e.target.value as FindingAction)}>
-            <MenuItem value="NoChange">No change</MenuItem>
-            <MenuItem value="ChangeRequested">Change requested</MenuItem>
+          <TextField label={t("accessReview.detail")} size="small" required multiline minRows={2} value={findingDetail} onChange={(e) => setFindingDetail(e.target.value)} />
+          <TextField select size="small" label={t("accessReview.action")} value={action} onChange={(e) => setAction(e.target.value as FindingAction)}>
+            <MenuItem value="NoChange">{t("accessReview.noChange")}</MenuItem>
+            <MenuItem value="ChangeRequested">{t("accessReview.changeRequested")}</MenuItem>
           </TextField>
-          <TextField label="Note" size="small" required={action === "ChangeRequested"} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)}
-            helperText={action === "ChangeRequested" ? "Describe the change; it is made in Users or Roles with its own reason and signature." : undefined} />
+          <TextField label={t("accessReview.note")} size="small" required={action === "ChangeRequested"} multiline minRows={2} value={note} onChange={(e) => setNote(e.target.value)}
+            helperText={action === "ChangeRequested" ? t("accessReview.noteHelper") : undefined} />
         </Stack>
       </FloatingDialog>
 
       <SignatureDialog
         open={signing}
-        meaningStatement="I have reviewed this access review report and its findings and attest to the conclusion below."
+        meaningStatement={i18n.getFixedT("en", "admin")("accessReview.signatureMeaning")}
+        meaningStatementTranslation={t("accessReview.signatureMeaning")}
         showComment
-        commentLabel="Conclusion"
+        commentLabel={t("accessReview.conclusion")}
         comment={conclusion}
         onCommentChange={setConclusion}
         onCancel={() => setSigning(false)}

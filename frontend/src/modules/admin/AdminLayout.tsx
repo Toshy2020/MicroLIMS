@@ -5,16 +5,18 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useDebouncedUiState } from "../../hooks/useDebouncedUiState";
 import { useUiState } from "../../hooks/useUiState";
 import { visibleAdminTabs } from "./adminTabs";
+import { useTranslation } from "../../i18n";
 
 const ADMIN_TAB_KEY = "nav.tab.admin";
 
 // The /admin shell: one tab per administration page the user may open.
 // Each page keeps its own header; the tabs only switch between them.
 export function AdminLayout() {
+  const { t } = useTranslation("admin");
   const { permissions } = useAuth();
   const { pathname } = useLocation();
   const tabs = visibleAdminTabs(permissions);
-  const active = tabs.find((t) => pathname === t.path || pathname.startsWith(`${t.path}/`));
+  const active = tabs.find((tab) => pathname === tab.path || pathname.startsWith(`${tab.path}/`));
   const { save } = useDebouncedUiState(ADMIN_TAB_KEY);
   const activePath = active?.path;
 
@@ -26,9 +28,9 @@ export function AdminLayout() {
   return (
     <>
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tabs value={active?.path ?? false} variant="scrollable" scrollButtons="auto" aria-label="Administration sections">
-          {tabs.map((t) => (
-            <Tab key={t.path} value={t.path} label={t.label} component={Link} to={t.path} />
+        <Tabs value={active?.path ?? false} variant="scrollable" scrollButtons="auto" aria-label={t("layout.tabsLabel")}>
+          {tabs.map((tab) => (
+            <Tab key={tab.path} value={tab.path} label={t(`tabs.${tab.path.split("/").pop()}`, { defaultValue: tab.label })} component={Link} to={tab.path} />
           ))}
         </Tabs>
       </Box>

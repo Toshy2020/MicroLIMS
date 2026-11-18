@@ -820,5 +820,175 @@
         "thaw": "Could not thaw a vial."
       }
     }
+  },
+  "media": {
+    "hints": {
+      "productCode": "The product code starts every lot number of this medium. Codes must be unique; upper and lower case are treated as the same.",
+      "incubationMin": "The shortest incubation time of this condition. A condition pairs a time range with a temperature range, and a condition that is already in use cannot be changed.",
+      "totalWeight": "The weight of dehydrated media used to make this lot. The weight is deducted from the selected stock material when the lot is saved.",
+      "ph": "The pH of the prepared lot, entered by the analyst. The form needs a value before you can save."
+    },
+    "page": {
+      "loadError": "Failed to load media lots.",
+      "tabs": {
+        "lots": "Media Lots",
+        "approved": "Approved Media"
+      },
+      "title": "Media Preparation & Evaluation",
+      "subtitle": "Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics).",
+      "prepareButton": "Prepare New Media Lot",
+      "lotsCount": "Media Lots ({{count}})",
+      "releaseSuccess": "Media lot {{lotNumber}} released for use.",
+      "rejectSuccess": "Media lot {{lotNumber}} rejected.",
+      "releaseDecisionError": "Release decision failed.",
+      "prepareSuccess": "Media lot {{lotNumber}} successfully prepared.",
+      "mediaLotLabel": "Media Lot",
+      "outOfStockSuccess": "Media lot {{lotNumber}} marked Out of Stock.",
+      "signature": {
+        "releaseMeaning": "I am releasing media lot {{lotNumber}} for use in routine testing.",
+        "rejectMeaning": "I am rejecting media lot {{lotNumber}}."
+      }
+    },
+    "configPage": {
+      "title": "Media Configurations",
+      "subtitle": "Configure each dehydrated medium and how it is used.",
+      "addButton": "Add Media Product",
+      "loadError": "Failed to load media configuration data.",
+      "loading": "Loading media products...",
+      "emptyManager": "No media products yet. Add one to start configuring it.",
+      "emptyViewer": "No media products have been configured yet.",
+      "emptySearch": "No media products match your search.",
+      "configuredCount": "Configured Media ({{count}})",
+      "messages": {
+        "created": "Media product \"{{name}}\" created successfully.",
+        "deleted": "Media product \"{{name}}\" deleted.",
+        "deleteError": "Could not delete this media product.",
+        "activated": "Media product \"{{name}}\" activated.",
+        "deactivated": "Media product \"{{name}}\" deactivated.",
+        "statusError": "Could not change the status of this media product.",
+        "renamed": "Media product renamed successfully.",
+        "codeChanged": "Media product code changed successfully."
+      }
+    },
+    "productFilterBar": {
+      "placeholder": "Search by media name or code...",
+      "ariaLabel": "Search by media name or code",
+      "reset": "Reset"
+    },
+    "lotFilterBar": {
+      "searchPlaceholder": "Search by lot number, dehydrated material, batch…",
+      "materialAriaLabel": "Material",
+      "allMaterials": "All Materials",
+      "statusAriaLabel": "Status",
+      "allStatuses": "All Statuses",
+      "resetFilters": "Reset Filters",
+      "statuses": {
+        "Pending Evaluation": "Pending Evaluation",
+        "Awaiting Approval": "Awaiting Approval",
+        "Released": "Released",
+        "Rejected": "Rejected",
+        "Out of Stock": "Out of Stock"
+      }
+    },
+    "kpis": {
+      "totalLots": "Total Lots",
+      "filteredSuffix": "{{label}} (filtered)"
+    },
+    "lotRegister": {
+      "columns": {
+        "preparedOn": "Prepared On",
+        "status": "Status",
+        "materialOrLot": "Material / Lot",
+        "dehydratedMaterial": "Dehydrated Material",
+        "lotNumber": "Lot Number",
+        "expiryDate": "Expiry Date"
+      },
+      "dehydratedMaterialFallback": "Dehydrated Material",
+      "lotPrefix": "Lot: {{lotNumber}}",
+      "batchPrefix": "Batch: {{batchNumber}}",
+      "idPrefix": "ID #{{id}}",
+      "actions": {
+        "releaseLot": "Release lot",
+        "rejectLot": "Reject lot",
+        "viewRecord": "View lot record (printable)",
+        "auditTrail": "Audit trail"
+      },
+      "emptyFilteredTitle": "No media lots match this filter",
+      "emptyFilteredDesc": "Reset the filters to see all lots.",
+      "emptyTitle": "No media lots yet",
+      "emptyDesc": "Prepare the first media lot."
+    },
+    "productList": {
+      "deleteConfirm": "Delete media product \"{{name}}\" ({{code}})? This cannot be undone. A product that has configurations or stock batches can't be deleted.",
+      "configCount_one": "{{count}} Configuration",
+      "configCount_other": "{{count}} Configurations",
+      "batchCount_one": "{{count}} Batch",
+      "batchCount_other": "{{count}} Batches",
+      "inactive": "Inactive",
+      "editAriaLabel": "Edit media product",
+      "editTitle": "Rename Product",
+      "activateAriaLabel": "Activate media product",
+      "deactivateAriaLabel": "Deactivate media product",
+      "activateTitle": "Activate Product",
+      "deactivateTitle": "Deactivate Product",
+      "deleteAriaLabel": "Delete media product",
+      "deleteTitle": "Delete Product"
+    },
+    "additives": {
+      "heading": "4. ADDITIVES (OPTIONAL, E.G. NEUTRALIZER)",
+      "helper": "A stock lot is deducted from stock in its own unit. A prepared solution is only recorded; nothing is deducted from the bottle.",
+      "sourceAriaLabel": "Additive {{index}} source",
+      "stockLot": "Stock lot",
+      "preparedSolution": "Prepared solution",
+      "stockLotAriaLabel": "Additive {{index}} stock lot",
+      "selectStockLot": "Select stock lot *",
+      "stockLotOption": "{{prefix}}{{name}}, batch {{batch}} ({{remaining}} {{unit}} left)",
+      "preparedSolutionAriaLabel": "Additive {{index}} prepared solution",
+      "selectPreparedSolution": "Select prepared solution *",
+      "expiresSuffix": " (expires {{date}})",
+      "quantityLabel": "Quantity *",
+      "quantityAriaLabel": "Additive {{index}} quantity",
+      "unitLabel": "Unit *",
+      "unitAriaLabel": "Additive {{index}} unit",
+      "removeAriaLabel": "Remove additive {{index}}",
+      "addButton": "Add additive"
+    },
+    "addProductDialog": {
+      "title": "Add Media Product",
+      "cancel": "Cancel",
+      "adding": "Adding...",
+      "add": "Add Product",
+      "nameLabel": "Product Name",
+      "namePlaceholder": "e.g. Tryptic Soy Agar",
+      "codeLabel": "Product Code",
+      "codePlaceholder": "e.g. TSA",
+      "codeHelper": "2-10 letters, digits, dot or hyphen",
+      "lotsNumberedPreview": "Lots will be numbered {{code}}/01/{{yy}}",
+      "requiredError": "Both product name and code are required.",
+      "createError": "Failed to create media product."
+    },
+    "renameProductDialog": {
+      "title": "Rename Media Product: {{name}}",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save",
+      "codeLabel": "Product Code",
+      "codeHelper": "The code is changed from the Overview tab with an electronic signature.",
+      "nameLabel": "Product Name",
+      "requiredError": "Product name is required.",
+      "renameError": "Failed to rename media product."
+    },
+    "changeCodeDialog": {
+      "title": "Change Code: {{name}}",
+      "cancel": "Cancel",
+      "continueToSign": "Continue to sign",
+      "currentCodeLabel": "Current Code",
+      "newCodeLabel": "New Code",
+      "newCodePlaceholder": "e.g. TSA2",
+      "newCodeHelper": "2-10 letters, digits, dot or hyphen",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Enter the justification for changing this product code...",
+      "meaningStatement": "I am changing the code of media product \"{{name}}\" from {{oldCode}} to {{newCode}}. Lots prepared from now on will be numbered {{newCode}}/01/{{yy}} onwards. Reason: {{reason}}"
+    }
   }
 }

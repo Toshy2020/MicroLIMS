@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
+import { i18n } from "../../../i18n";
 import { resetUiStateCache } from "../../../hooks/useUiState";
 import { uiStateService } from "../../../services/uiStateService";
 import { AuthProvider } from "../../../contexts/AuthContext";
@@ -341,5 +342,17 @@ describe("MediaPage tabs", () => {
     renderPage();
 
     await waitFor(() => expect(selectedTab()).toBe("Approved Media"));
+  });
+
+  it("renders tabs and page heading in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig", "common"]);
+    try {
+      renderPage();
+      expect(await screen.findByRole("tab", { name: "تشغيلات أوساط زرعية" })).toBeTruthy();
+      expect(screen.getByRole("heading", { name: "تحضير وتقييم أوساط زرعية" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

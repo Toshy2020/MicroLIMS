@@ -13,6 +13,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import type { MaterialItem } from "../../../inventory/materials/types/materialTypes";
+import { useTranslation } from "../../../../i18n";
 import { AdditiveKind, AdditiveRow, newAdditiveRow } from "./mediaAdditives";
 
 export interface UsableSolution {
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, nextKey }: Props) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const update = (key: number, patch: Partial<AdditiveRow>) =>
     onChange(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -49,10 +51,10 @@ export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, ne
   return (
     <Box>
       <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 0.5 }}>
-        4. ADDITIVES (OPTIONAL, E.G. NEUTRALIZER)
+        {t("media.additives.heading")}
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-        A stock lot is deducted from stock in its own unit. A prepared solution is only recorded; nothing is deducted from the bottle.
+        {t("media.additives.helper")}
       </Typography>
 
       {rows.map((row, i) => (
@@ -65,10 +67,10 @@ export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, ne
             exclusive
             value={row.kind}
             onChange={(_, v) => v && changeKind(row, v)}
-            aria-label={`Additive ${i + 1} source`}
+            aria-label={t("media.additives.sourceAriaLabel", { index: i + 1 })}
           >
-            <ToggleButton value="StockLot">Stock lot</ToggleButton>
-            <ToggleButton value="PreparedSolution">Prepared solution</ToggleButton>
+            <ToggleButton value="StockLot">{t("media.additives.stockLot")}</ToggleButton>
+            <ToggleButton value="PreparedSolution">{t("media.additives.preparedSolution")}</ToggleButton>
           </ToggleButtonGroup>
 
           {row.kind === "StockLot" ? (
@@ -77,12 +79,18 @@ export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, ne
               displayEmpty
               value={row.sourceId}
               onChange={(e) => pickLot(row, e.target.value as number | "")}
-              inputProps={{ "aria-label": `Additive ${i + 1} stock lot` }}
+              inputProps={{ "aria-label": t("media.additives.stockLotAriaLabel", { index: i + 1 }) }}
             >
-              <MenuItem value=""><em>Select stock lot *</em></MenuItem>
+              <MenuItem value=""><em>{t("media.additives.selectStockLot")}</em></MenuItem>
               {stockLots.map((l) => (
                 <MenuItem key={l.id} value={l.id}>
-                  {l.stockId ? `${l.stockId}: ` : ""}{l.materialName}, batch {l.batchNumber} ({l.quantityRemaining} {l.unit} left)
+                  {t("media.additives.stockLotOption", {
+                    prefix: l.stockId ? `${l.stockId}: ` : "",
+                    name: l.materialName,
+                    batch: l.batchNumber,
+                    remaining: l.quantityRemaining,
+                    unit: l.unit
+                  })}
                 </MenuItem>
               ))}
             </Select>
@@ -92,12 +100,12 @@ export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, ne
               displayEmpty
               value={row.sourceId}
               onChange={(e) => update(row.key, { sourceId: e.target.value as number | "" })}
-              inputProps={{ "aria-label": `Additive ${i + 1} prepared solution` }}
+              inputProps={{ "aria-label": t("media.additives.preparedSolutionAriaLabel", { index: i + 1 }) }}
             >
-              <MenuItem value=""><em>Select prepared solution *</em></MenuItem>
+              <MenuItem value=""><em>{t("media.additives.selectPreparedSolution")}</em></MenuItem>
               {solutions.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.code ?? `#${s.id}`}: {s.solutionMasterName}{s.expiresAt ? ` (expires ${s.expiresAt.slice(0, 10)})` : ""}
+                  {s.code ?? `#${s.id}`}: {s.solutionMasterName}{s.expiresAt ? t("media.additives.expiresSuffix", { date: s.expiresAt.slice(0, 10) }) : ""}
                 </MenuItem>
               ))}
             </Select>
@@ -105,30 +113,30 @@ export function MediaAdditivesSection({ rows, onChange, stockLots, solutions, ne
 
           <TextField
             size="small"
-            label="Quantity *"
+            label={t("media.additives.quantityLabel")}
             type="number"
             value={row.quantity}
             onChange={(e) => update(row.key, { quantity: e.target.value })}
-            slotProps={{ htmlInput: { step: "any", min: 0, "aria-label": `Additive ${i + 1} quantity` } }}
+            slotProps={{ htmlInput: { step: "any", min: 0, "aria-label": t("media.additives.quantityAriaLabel", { index: i + 1 }) } }}
           />
 
           <TextField
             size="small"
-            label="Unit *"
+            label={t("media.additives.unitLabel")}
             value={row.unit}
             onChange={(e) => update(row.key, { unit: e.target.value })}
             disabled={row.kind === "StockLot"}
-            slotProps={{ htmlInput: { maxLength: 20, "aria-label": `Additive ${i + 1} unit` } }}
+            slotProps={{ htmlInput: { maxLength: 20, "aria-label": t("media.additives.unitAriaLabel", { index: i + 1 }) } }}
           />
 
-          <IconButton aria-label={`Remove additive ${i + 1}`} onClick={() => onChange(rows.filter((r) => r.key !== row.key))}>
+          <IconButton aria-label={t("media.additives.removeAriaLabel", { index: i + 1 })} onClick={() => onChange(rows.filter((r) => r.key !== row.key))}>
             <DeleteOutlineIcon fontSize="small" />
           </IconButton>
         </Box>
       ))}
 
       <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...rows, newAdditiveRow(nextKey())])}>
-        Add additive
+        {t("media.additives.addButton")}
       </Button>
     </Box>
   );

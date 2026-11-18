@@ -860,5 +860,183 @@
         "thaw": "تعذّر إذابة أمبول."
       }
     }
+  },
+  "media": {
+    "hints": {
+      "productCode": "يبدأ رمز المنتج كل رقم تشغيلة لـ وسط زرعي هذا. يجب أن تكون الرموز فريدة؛ وتُعامل الأحرف الكبيرة والصغيرة على أنها متطابقة.",
+      "incubationMin": "أقصر مدة حضانة لهذا الشرط. يربط الشرط نطاقًا زمنيًا بنطاق درجة حرارة، ولا يمكن تعديل الشرط المستخدم بالفعل.",
+      "totalWeight": "وزن أوساط زرعية مجففة المستخدمة لتحضير هذه التشغيلة. يُخصم الوزن من مادة المخزون المختارة عند حفظ التشغيلة.",
+      "ph": "الرقم الهيدروجيني (pH) للتشغيلة المحضّرة، يُدخله المحلل. يتطلب النموذج قيمة قبل التمكن من الحفظ."
+    },
+    "page": {
+      "loadError": "تعذّر تحميل تشغيلات أوساط زرعية.",
+      "tabs": {
+        "lots": "تشغيلات أوساط زرعية",
+        "approved": "أوساط زرعية معتمدة"
+      },
+      "title": "تحضير وتقييم أوساط زرعية",
+      "subtitle": "تحضير تشغيلات أوساط زرعية وإدارة تقييماتها (اختبار تعزيز النمو (GPT)، العقم، الكشف/التثبيط، خصائص الإغناء).",
+      "prepareButton": "تحضير تشغيلة أوساط زرعية جديدة",
+      "lotsCount": "تشغيلات أوساط زرعية ({{count}})",
+      "releaseSuccess": "تم إفراج تشغيلة أوساط زرعية {{lotNumber}} للاستخدام.",
+      "rejectSuccess": "تم رفض تشغيلة أوساط زرعية {{lotNumber}}.",
+      "releaseDecisionError": "فشل قرار الإفراج.",
+      "prepareSuccess": "تم تحضير تشغيلة أوساط زرعية {{lotNumber}} بنجاح.",
+      "mediaLotLabel": "تشغيلة أوساط زرعية",
+      "outOfStockSuccess": "تم وضع علامة نفاد المخزون على تشغيلة أوساط زرعية {{lotNumber}}.",
+      "signature": {
+        "releaseMeaning": "أوافق على إفراج تشغيلة أوساط زرعية {{lotNumber}} للاستخدام في الاختبار الروتيني.",
+        "rejectMeaning": "أرفض تشغيلة أوساط زرعية {{lotNumber}}."
+      }
+    },
+    "configPage": {
+      "title": "تهيئة أوساط زرعية",
+      "subtitle": "تهيئة كل وسط زرعي مجفف وكيفية استخدامه.",
+      "addButton": "إضافة منتج أوساط زرعية",
+      "loadError": "تعذّر تحميل بيانات تهيئة أوساط زرعية.",
+      "loading": "جارٍ تحميل منتجات أوساط زرعية...",
+      "emptyManager": "لا توجد منتجات أوساط زرعية بعد. أضف واحدًا لبدء تهيئته.",
+      "emptyViewer": "لم تتم تهيئة أي منتجات أوساط زرعية بعد.",
+      "emptySearch": "لا توجد منتجات أوساط زرعية تطابق بحثك.",
+      "configuredCount": "أوساط زرعية مهيّأة ({{count}})",
+      "messages": {
+        "created": "تم إنشاء منتج أوساط زرعية \"{{name}}\" بنجاح.",
+        "deleted": "تم حذف منتج أوساط زرعية \"{{name}}\".",
+        "deleteError": "تعذّر حذف منتج أوساط زرعية هذا.",
+        "activated": "تم تفعيل منتج أوساط زرعية \"{{name}}\".",
+        "deactivated": "تم تعطيل منتج أوساط زرعية \"{{name}}\".",
+        "statusError": "تعذّر تغيير حالة منتج أوساط زرعية هذا.",
+        "renamed": "تمت إعادة تسمية منتج أوساط زرعية بنجاح.",
+        "codeChanged": "تم تغيير رمز منتج أوساط زرعية بنجاح."
+      }
+    },
+    "productFilterBar": {
+      "placeholder": "ابحث باسم أوساط زرعية أو رمزه...",
+      "ariaLabel": "البحث باسم أوساط زرعية أو رمزه",
+      "reset": "إعادة تعيين"
+    },
+    "lotFilterBar": {
+      "searchPlaceholder": "ابحث برقم التشغيلة أو المادة المجففة أو دفعة…",
+      "materialAriaLabel": "المادة",
+      "allMaterials": "جميع المواد",
+      "statusAriaLabel": "الحالة",
+      "allStatuses": "جميع الحالات",
+      "resetFilters": "إعادة تعيين عوامل التصفية",
+      "statuses": {
+        "Pending Evaluation": "بانتظار التقييم",
+        "Awaiting Approval": "بانتظار اعتماد",
+        "Released": "مُفرَج عنه",
+        "Rejected": "مرفوض",
+        "Out of Stock": "نفد من المخزون"
+      }
+    },
+    "kpis": {
+      "totalLots": "إجمالي التشغيلات",
+      "filteredSuffix": "{{label}} (مُصفّى)"
+    },
+    "lotRegister": {
+      "columns": {
+        "preparedOn": "تاريخ التحضير",
+        "status": "الحالة",
+        "materialOrLot": "المادة / التشغيلة",
+        "dehydratedMaterial": "المادة المجففة",
+        "lotNumber": "رقم التشغيلة",
+        "expiryDate": "تاريخ انتهاء الصلاحية"
+      },
+      "dehydratedMaterialFallback": "مادة مجففة",
+      "lotPrefix": "تشغيلة: {{lotNumber}}",
+      "batchPrefix": "دفعة: {{batchNumber}}",
+      "idPrefix": "المعرّف #{{id}}",
+      "actions": {
+        "releaseLot": "إفراج تشغيلة",
+        "rejectLot": "رفض تشغيلة",
+        "viewRecord": "عرض سجل تشغيلة (قابل للطباعة)",
+        "auditTrail": "سجل التدقيق"
+      },
+      "emptyFilteredTitle": "لا توجد تشغيلات أوساط زرعية تطابق هذا التصفية",
+      "emptyFilteredDesc": "أعد تعيين عوامل التصفية لعرض جميع التشغيلات.",
+      "emptyTitle": "لا توجد تشغيلات أوساط زرعية بعد",
+      "emptyDesc": "حضّر أول تشغيلة أوساط زرعية."
+    },
+    "productList": {
+      "deleteConfirm": "حذف منتج أوساط زرعية \"{{name}}\" ({{code}})؟ لا يمكن التراجع عن هذا الإجراء. لا يمكن حذف المنتج الذي لديه تهيئات أو دفعة مخزون.",
+      "configCount_zero": "لا توجد تهيئات",
+      "configCount_one": "تهيئة واحدة",
+      "configCount_two": "تهيئتان",
+      "configCount_few": "{{count}} تهيئات",
+      "configCount_many": "{{count}} تهيئة",
+      "configCount_other": "{{count}} تهيئة",
+      "batchCount_zero": "لا توجد دفعة",
+      "batchCount_one": "دفعة واحدة",
+      "batchCount_two": "دفعتان (دفعة)",
+      "batchCount_few": "{{count}} دفعات (دفعة)",
+      "batchCount_many": "{{count}} دفعة",
+      "batchCount_other": "{{count}} دفعة",
+      "inactive": "غير نشط",
+      "editAriaLabel": "تعديل منتج أوساط زرعية",
+      "editTitle": "إعادة تسمية المنتج",
+      "activateAriaLabel": "تفعيل منتج أوساط زرعية",
+      "deactivateAriaLabel": "تعطيل منتج أوساط زرعية",
+      "activateTitle": "تفعيل المنتج",
+      "deactivateTitle": "تعطيل المنتج",
+      "deleteAriaLabel": "حذف منتج أوساط زرعية",
+      "deleteTitle": "حذف المنتج"
+    },
+    "additives": {
+      "heading": "4. الإضافات (اختياري، مثل المعادل)",
+      "helper": "تُخصم تشغيلة المخزون من المخزون بوحدتها الخاصة. أما المحلول المحضّر فيُسجّل فقط؛ ولا يُخصم شيء من العبوة.",
+      "sourceAriaLabel": "مصدر الإضافة {{index}}",
+      "stockLot": "تشغيلة مخزون",
+      "preparedSolution": "محلول محضّر",
+      "stockLotAriaLabel": "تشغيلة مخزون الإضافة {{index}}",
+      "selectStockLot": "اختر تشغيلة المخزون *",
+      "stockLotOption": "{{prefix}}{{name}}، دفعة {{batch}} (متبقي {{remaining}} {{unit}})",
+      "preparedSolutionAriaLabel": "محلول محضّر للإضافة {{index}}",
+      "selectPreparedSolution": "اختر المحلول المحضّر *",
+      "expiresSuffix": " (ينتهي {{date}})",
+      "quantityLabel": "الكمية *",
+      "quantityAriaLabel": "كمية الإضافة {{index}}",
+      "unitLabel": "الوحدة *",
+      "unitAriaLabel": "وحدة الإضافة {{index}}",
+      "removeAriaLabel": "إزالة الإضافة {{index}}",
+      "addButton": "إضافة مادة مضافة"
+    },
+    "addProductDialog": {
+      "title": "إضافة منتج أوساط زرعية",
+      "cancel": "إلغاء",
+      "adding": "جارٍ الإضافة...",
+      "add": "إضافة منتج",
+      "nameLabel": "اسم المنتج",
+      "namePlaceholder": "مثال: Tryptic Soy Agar",
+      "codeLabel": "رمز المنتج",
+      "codePlaceholder": "مثال: TSA",
+      "codeHelper": "2-10 أحرف أو أرقام أو نقطة أو شرطة",
+      "lotsNumberedPreview": "سيتم ترقيم التشغيلات {{code}}/01/{{yy}}",
+      "requiredError": "اسم المنتج ورمزه مطلوبان.",
+      "createError": "تعذّر إنشاء منتج أوساط زرعية."
+    },
+    "renameProductDialog": {
+      "title": "إعادة تسمية منتج أوساط زرعية: {{name}}",
+      "cancel": "إلغاء",
+      "saving": "جارٍ الحفظ...",
+      "save": "حفظ",
+      "codeLabel": "رمز المنتج",
+      "codeHelper": "يُغيّر الرمز من تبويب نظرة عامة باستخدام توقيع إلكتروني.",
+      "nameLabel": "اسم المنتج",
+      "requiredError": "اسم المنتج مطلوب.",
+      "renameError": "تعذّر إعادة تسمية منتج أوساط زرعية."
+    },
+    "changeCodeDialog": {
+      "title": "تغيير الرمز: {{name}}",
+      "cancel": "إلغاء",
+      "continueToSign": "المتابعة إلى التوقيع",
+      "currentCodeLabel": "الرمز الحالي",
+      "newCodeLabel": "الرمز الجديد",
+      "newCodePlaceholder": "مثال: TSA2",
+      "newCodeHelper": "2-10 أحرف أو أرقام أو نقطة أو شرطة",
+      "reasonLabel": "السبب",
+      "reasonPlaceholder": "أدخل مبرر تغيير رمز المنتج هذا...",
+      "meaningStatement": "أقوم بتغيير رمز منتج أوساط زرعية \"{{name}}\" من {{oldCode}} إلى {{newCode}}. سيتم ترقيم التشغيلات المحضّرة من الآن فصاعدًا بدءًا من {{newCode}}/01/{{yy}}. السبب: {{reason}}"
+    }
   }
 }

@@ -22,6 +22,7 @@ import { masterDataOptions } from "../../../services/masterDataOptions";
 import { ApprovedMediaListPage } from "../../inventory/approvedLists/ApprovedMediaListPage";
 import { PrintLabelsDialog } from "../../../components/labels/PrintLabelsDialog";
 import { usePostCreateLabelPrint } from "../../../components/labels/usePostCreateLabelPrint";
+import { i18n, useTranslation } from "../../../i18n";
 
 const TABLE_KEY = "labConfig.mediaLots";
 const KPI_STATUSES: readonly MediaKpiFilterKey[] = [
@@ -41,6 +42,7 @@ const PAGE_TABS = ["lots", "approved"] as const;
 type PageTab = (typeof PAGE_TABS)[number];
 
 export function MediaPage() {
+  const { t } = useTranslation("labConfig");
   const [tab, setTab] = usePersistedTab("media", PAGE_TABS, "tab");
   const [lots, setLots] = useState<any[]>([]);
   const [evaluations, setEvaluations] = useState<any[]>([]);
@@ -64,7 +66,7 @@ export function MediaPage() {
       setEvaluations(evalsData || []);
       setMaterials(materialsData || []);
     } catch (err: any) {
-      setMessage({ text: err?.response?.data?.message ?? "Failed to load media lots.", ok: false });
+      setMessage({ text: err?.response?.data?.message ?? t("media.page.loadError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -80,8 +82,8 @@ export function MediaPage() {
       onChange={(_, v: PageTab) => setTab(v)}
       sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
     >
-      <Tab value="lots" label="Media Lots" />
-      <Tab value="approved" label="Approved Media" />
+      <Tab value="lots" label={t("media.page.tabs.lots")} />
+      <Tab value="approved" label={t("media.page.tabs.approved")} />
     </Tabs>
   );
 
@@ -135,6 +137,8 @@ function MediaLotsContent({
   onMessage,
   onReload
 }: MediaLotsContentProps) {
+  const { t } = useTranslation("labConfig");
+  const enT = i18n.getFixedT("en", "labConfig");
   // Selected Media Lot for Split-Pane Workspace
   const [selectedLotId, setSelectedLotId] = useState<number | null>(null);
 
@@ -245,7 +249,9 @@ function MediaLotsContent({
     try {
       await MediaPreparationService.decideRelease(pendingDecision.lot.id, password, pendingDecision.approved);
       onMessage({
-        text: `Media lot ${pendingDecision.lot.lotNumber} ${pendingDecision.approved ? "released for use" : "rejected"}.`,
+        text: pendingDecision.approved
+          ? t("media.page.releaseSuccess", { lotNumber: pendingDecision.lot.lotNumber })
+          : t("media.page.rejectSuccess", { lotNumber: pendingDecision.lot.lotNumber }),
         ok: pendingDecision.approved
       });
       setPendingDecision(null);
@@ -255,19 +261,19 @@ function MediaLotsContent({
         typeof e === "object" && e !== null && "response" in e
           ? (e as { response?: { data?: { message?: string } } }).response?.data?.message
           : undefined;
-      onMessage({ text: serverMessage ?? "Release decision failed.", ok: false });
+      onMessage({ text: serverMessage ?? t("media.page.releaseDecisionError"), ok: false });
     }
   };
 
   const handlePrepSuccess = async (newLot: MediaLot) => {
-    onMessage({ text: `Media lot ${newLot?.lotNumber ?? ""} successfully prepared.`, ok: true });
+    onMessage({ text: t("media.page.prepareSuccess", { lotNumber: newLot?.lotNumber ?? "" }), ok: true });
     if (newLot?.id && newLot?.lotNumber) {
       postCreatePrint.offerPrint([
         {
           entityType: "MediaLot",
           entityId: newLot.id,
           code: newLot.lotNumber,
-          displayName: newLot.material?.materialName ?? "Media Lot"
+          displayName: newLot.material?.materialName ?? t("media.page.mediaLotLabel")
         }
       ]);
     }
@@ -301,11 +307,11 @@ function MediaLotsContent({
   return (
     <>
       <LabPage
-        title="Media Preparation & Evaluation"
-        subtitle="Prepare media lots and manage their evaluations (GPT, Sterility, Indication/Inhibition, Enrichment Characteristics)."
+        title={t("media.page.title")}
+        subtitle={t("media.page.subtitle")}
         actions={
           <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setPrepDialogOpen(true)} sx={{ whiteSpace: "nowrap" }}>
-            Prepare New Media Lot
+            {t("media.page.prepareButton")}
           </Button>
         }
         kpis={
@@ -360,7 +366,7 @@ function MediaLotsContent({
                 flexShrink: 0
               }}
             >
-              <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+              <SectionTitle>{t("media.page.lotsCount", { count: visibleLots.length })}</SectionTitle>
               {register(true)}
             </Box>
 
@@ -390,7 +396,7 @@ function MediaLotsContent({
         ) : (
           /* NORMAL STATE: Full-Width Media Lots Register */
           <>
-            <SectionTitle>{`Media Lots (${visibleLots.length})`}</SectionTitle>
+            <SectionTitle>{t("media.page.lotsCount", { count: visibleLots.length })}</SectionTitle>
             {register(false)}
           </>
         )}
@@ -418,7 +424,7 @@ function MediaLotsContent({
         lot={outOfStockLot}
         onClose={() => setOutOfStockLot(null)}
         onSuccess={() => {
-          onMessage({ text: `Media lot ${outOfStockLot?.lotNumber ?? ""} marked Out of Stock.`, ok: true });
+          onMessage({ text: t("media.page.outOfStockSuccess", { lotNumber: outOfStockLot?.lotNumber ?? "" }), ok: true });
           onReload();
         }}
       />
@@ -441,8 +447,13 @@ function MediaLotsContent({
           open
           meaningStatement={
             pendingDecision.approved
-              ? `I am releasing media lot ${pendingDecision.lot.lotNumber} for use in routine testing.`
-              : `I am rejecting media lot ${pendingDecision.lot.lotNumber}.`
+              ? enT("media.page.signature.releaseMeaning", { lotNumber: pendingDecision.lot.lotNumber })
+              : enT("media.page.signature.rejectMeaning", { lotNumber: pendingDecision.lot.lotNumber })
+          }
+          meaningStatementTranslation={
+            pendingDecision.approved
+              ? t("media.page.signature.releaseMeaning", { lotNumber: pendingDecision.lot.lotNumber })
+              : t("media.page.signature.rejectMeaning", { lotNumber: pendingDecision.lot.lotNumber })
           }
           onCancel={() => setPendingDecision(null)}
           onConfirm={confirmDecision}

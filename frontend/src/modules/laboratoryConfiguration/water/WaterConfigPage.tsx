@@ -4,6 +4,7 @@ import { Alert, Box, Button, IconButton, Paper, Stack, TextField, Tooltip, Typog
 import AddIcon from "@mui/icons-material/Add";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { i18n, useTranslation } from "../../../i18n";
 import { PageHeader } from "../../../components/PageHeader";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { ConfigMasterList, MasterListItem, SummaryTiles } from "../../../components/configHierarchy";
@@ -19,7 +20,7 @@ import { WaterLocationList } from "./components/WaterLocationList";
 import { WaterLocationPendingList } from "./components/WaterLocationPendingList";
 import { WaterDepartmentPanel } from "./components/WaterDepartmentPanel";
 import { WaterLocationPanel } from "./components/WaterLocationPanel";
-import { PointHealth, SamplingConfig, SamplingPoint, WaterDept, needsAttention, plural, pointHealth } from "./waterConfigTypes";
+import { PointHealth, SamplingConfig, SamplingPoint, WaterDept, needsAttention, pointHealth } from "./waterConfigTypes";
 import {
   buildWaterSamplingPointPastePlan,
   toCreateWaterSamplingPointPayload,
@@ -37,6 +38,7 @@ const NO_CONFIGS: SamplingConfig[] = [];
 // the left, the selected system's locations on the right, every add/edit
 // in a side panel.
 export function WaterConfigPage() {
+  const { t } = useTranslation("labConfig");
   const { options } = useTestDefinitions();
   const { editableCodes } = useEditableTestCodes();
   const [departments, setDepartments] = useState<WaterDept[]>([]);
@@ -73,7 +75,7 @@ export function WaterConfigPage() {
       setLoadError(null);
       setSelectedDeptId((current) => (current != null && depts.some((d) => d.id === current) ? current : depts[0]?.id ?? null));
     } catch (e: unknown) {
-      setLoadError(getErrorMessage(e, "Could not load the water configuration."));
+      setLoadError(getErrorMessage(e, i18n.t("water.page.loadError", { ns: "labConfig" })));
     } finally {
       setLoading(false);
     }
@@ -155,12 +157,12 @@ export function WaterConfigPage() {
       await WaterConfigService.createSamplingPointsBatch(payload);
       const count = pendingPoints.length;
       setPendingPoints([]);
-      setMessage({ text: `${plural(count, "sample location")} added.`, ok: true });
+      setMessage({ text: t("water.page.addedLocations", { locations: t("water.sampleLocationCount", { count }) }), ok: true });
       await load();
     } catch (e: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         e,
-        "Could not save sample locations. Nothing was created."
+        t("water.page.batchError")
       );
       if (rowErrors) {
         setPendingPoints((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -186,8 +188,8 @@ export function WaterConfigPage() {
       return {
         id: d.id,
         title: d.name,
-        subtitle: pts.length === 0 ? "No locations yet" : plural(pts.length, "location"),
-        badge: pts.length === 0 ? undefined : attention > 0 ? { label: `${attention} need${attention === 1 ? "s" : ""} attention`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+        subtitle: pts.length === 0 ? t("water.page.noLocationsYet") : t("water.locationCount", { count: pts.length }),
+        badge: pts.length === 0 ? undefined : attention > 0 ? { label: t("water.page.needAttention", { count: attention }), tone: "inconclusive" } : { label: t("water.page.complete"), tone: "notDetected" }
       };
     });
 
@@ -218,10 +220,10 @@ export function WaterConfigPage() {
     setMessage(null);
     try {
       await WaterConfigService.deleteWaterDepartment(d.id);
-      setMessage({ text: `"${d.name}" deleted.`, ok: true });
+      setMessage({ text: t("water.page.deleted", { name: d.name }), ok: true });
       load();
     } catch (e: unknown) {
-      setMessage({ text: getErrorMessage(e, "Could not delete this water system."), ok: false });
+      setMessage({ text: getErrorMessage(e, t("water.page.deleteDeptError")), ok: false });
     }
   };
 
@@ -230,20 +232,20 @@ export function WaterConfigPage() {
     setMessage(null);
     try {
       await WaterConfigService.deleteSamplingPoint(p.id);
-      setMessage({ text: `Sample location ${p.code} deleted.`, ok: true });
+      setMessage({ text: t("water.page.pointDeleted", { code: p.code }), ok: true });
       load();
     } catch (e: unknown) {
-      setMessage({ text: getErrorMessage(e, "Could not delete this sample location."), ok: false });
+      setMessage({ text: getErrorMessage(e, t("water.page.deletePointError")), ok: false });
     }
   };
 
   return (
     <Box sx={{ pb: 4 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-        <PageHeader title="Water" subtitle="Water systems, their sample locations, assigned tests and per-location limits." />
+        <PageHeader title={t("water.page.title")} subtitle={t("water.page.subtitle")} />
         <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
           <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
-            Add water system
+            {t("water.page.addSystem")}
           </Button>
           <Button
             variant="outlined"
@@ -253,7 +255,7 @@ export function WaterConfigPage() {
             onClick={() => setPasteBarOpen((v) => !v)}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Paste locations
+            {t("water.page.pasteLocations")}
           </Button>
           <Button
             variant="contained"
@@ -262,7 +264,7 @@ export function WaterConfigPage() {
             onClick={() => setPointPanel({ open: true, point: null })}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Add sample location
+            {t("water.page.addLocation")}
           </Button>
         </Stack>
       </Stack>
@@ -274,22 +276,22 @@ export function WaterConfigPage() {
               autoFocus
               size="small"
               fullWidth
-              label="Paste spreadsheet rows"
-              placeholder="Paste rows copied from a spreadsheet (Point code, Water system, Point name, Frequency, Assigned tests)"
+              label={t("water.page.pasteLabel")}
+              placeholder={t("water.page.pastePlaceholder")}
               value=""
               onChange={() => {}}
               onPaste={handlePasteInput}
-              helperText="Columns in order: Point code, Water system, Point name, Frequency (optional), Assigned tests (optional, comma-separated)."
+              helperText={t("water.page.pasteHelper")}
             />
             <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
-              Close
+              {t("water.page.close")}
             </Button>
           </Stack>
         </Paper>
       )}
 
       {loadError && (
-        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>{t("water.page.retry")}</Button>}>
           {loadError}
         </Alert>
       )}
@@ -313,17 +315,17 @@ export function WaterConfigPage() {
 
       <SummaryTiles
         tiles={[
-          { label: "Water systems", value: departments.length },
-          { label: "Sample locations", value: allPoints.length },
-          { label: "Missing limits", value: plural(missingLimitsCount, "location"), tone: missingLimitsCount > 0 ? "inconclusive" : undefined },
-          { label: "No tests assigned", value: plural(noTestsCount, "location"), tone: noTestsCount > 0 ? "inconclusive" : undefined }
+          { label: t("water.page.tiles.systems"), value: departments.length },
+          { label: t("water.page.tiles.locations"), value: allPoints.length },
+          { label: t("water.page.tiles.missingLimits"), value: t("water.locationCount", { count: missingLimitsCount }), tone: missingLimitsCount > 0 ? "inconclusive" : undefined },
+          { label: t("water.page.tiles.noTests"), value: t("water.locationCount", { count: noTestsCount }), tone: noTestsCount > 0 ? "inconclusive" : undefined }
         ]}
       />
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
         <ConfigMasterList
-          searchLabel="Find a system or location"
-          searchPlaceholder="e.g. PW-02 or WFI"
+          searchLabel={t("water.page.searchLabel")}
+          searchPlaceholder={t("water.page.searchPlaceholder")}
           search={search}
           onSearchChange={setSearch}
           items={listItems}
@@ -333,13 +335,13 @@ export function WaterConfigPage() {
             setFilter("all");
           }}
           loading={loading}
-          emptyText={q ? "Nothing matches your search." : "No water systems yet. Use “Add water system” to create one."}
+          emptyText={q ? t("water.page.noMatch") : t("water.page.noSystems")}
         />
 
         <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
           {!selectedDept ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a water system"}</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? t("water.page.loading") : t("water.page.selectSystem")}</Typography>
             </Box>
           ) : (
             <>
@@ -347,14 +349,14 @@ export function WaterConfigPage() {
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
                   <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                    {plural((selectedDept.samplingPoints ?? []).length, "sample location")}
+                    {t("water.sampleLocationCount", { count: (selectedDept.samplingPoints ?? []).length })}
                   </Typography>
                 </Box>
                 <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })}>
-                  Rename
+                  {t("water.page.rename")}
                 </Button>
-                <Tooltip title="Delete water system">
-                  <IconButton aria-label={`Delete ${selectedDept.name}`} color="error" onClick={() => setPendingDeleteDept(selectedDept)}>
+                <Tooltip title={t("water.page.deleteSystem")}>
+                  <IconButton aria-label={t("water.page.deleteAria", { name: selectedDept.name })} color="error" onClick={() => setPendingDeleteDept(selectedDept)}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -370,7 +372,7 @@ export function WaterConfigPage() {
                       onClick={() => setFilter("all")}
                       sx={{ borderRadius: 999, textTransform: "none" }}
                     >
-                      All ({deptPoints.length})
+                      {t("water.page.filterAll", { count: deptPoints.length })}
                     </Button>
                     <Button
                       size="small"
@@ -379,7 +381,7 @@ export function WaterConfigPage() {
                       onClick={() => setFilter("attention")}
                       sx={{ borderRadius: 999, textTransform: "none" }}
                     >
-                      Needs attention ({attentionPoints.length})
+                      {t("water.page.filterAttention", { count: attentionPoints.length })}
                     </Button>
                   </Stack>
                 )}
@@ -387,10 +389,10 @@ export function WaterConfigPage() {
                 {shownPoints.length === 0 && (
                   <Typography sx={{ fontSize: 14, color: "text.secondary", mb: 1.5 }}>
                     {filter === "attention"
-                      ? "Every location here has its tests and limits set."
+                      ? t("water.page.allSet")
                       : q
-                        ? "No locations here match your search."
-                        : "No sample locations yet."}
+                        ? t("water.page.noSearchMatch")
+                        : t("water.page.noLocations")}
                   </Typography>
                 )}
 
@@ -403,7 +405,7 @@ export function WaterConfigPage() {
                   onEdit={(p) => setPointPanel({ open: true, point: p })}
                   onDelete={setPendingDeletePoint}
                   onAdd={() => setPointPanel({ open: true, point: null })}
-                  addLabel={`Add sample location to ${selectedDept.name}`}
+                  addLabel={t("water.page.addLocationTo", { name: selectedDept.name })}
                   editableCodes={editableCodes}
                 />
               </Box>
@@ -437,14 +439,14 @@ export function WaterConfigPage() {
       <ConfirmationDialog
         destructive
         open={pendingDeleteDept != null}
-        message={pendingDeleteDept ? `Delete water system "${pendingDeleteDept.name}"? This cannot be undone.` : ""}
+        message={pendingDeleteDept ? t("water.page.deleteDeptConfirm", { name: pendingDeleteDept.name }) : ""}
         onCancel={() => setPendingDeleteDept(null)}
         onConfirm={() => pendingDeleteDept && deleteDept(pendingDeleteDept)}
       />
       <ConfirmationDialog
         destructive
         open={pendingDeletePoint != null}
-        message={pendingDeletePoint ? `Delete sample location "${pendingDeletePoint.code}"? This cannot be undone.` : ""}
+        message={pendingDeletePoint ? t("water.page.deletePointConfirm", { code: pendingDeletePoint.code }) : ""}
         onCancel={() => setPendingDeletePoint(null)}
         onConfirm={() => pendingDeletePoint && deletePoint(pendingDeletePoint)}
       />

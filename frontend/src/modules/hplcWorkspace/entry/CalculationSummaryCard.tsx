@@ -10,8 +10,11 @@ import {
   Alert,
   useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
 import type { HplcPreviewResultDto, HplcOfficialResultDto } from "../types";
 
@@ -25,22 +28,23 @@ export function OfficialResultsCard({
   official,
   basis
 }: OfficialResultsCardProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
-        {basis && <StatusBadge status="Prepared" label={`Basis: ${basis}`} />}
-        <StatusBadge status="Completed" label="Official, Recorded for Review" />
+        {basis && <StatusBadge status="Prepared" label={t("entry.calcSummary.basis", { basis })} />}
+        <StatusBadge status="Completed" label={t("entry.calcSummary.officialBadge")} />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          These are the recorded results sent for review.
+          {t("entry.calcSummary.officialSubtitle")}
         </Typography>
       </Box>
 
       {official.length === 0 ? (
         <Box sx={{ p: 3 }}>
           <Alert severity="info">
-            No official results recorded yet.
+            {t("entry.calcSummary.noOfficial")}
           </Alert>
         </Box>
       ) : (
@@ -48,12 +52,12 @@ export function OfficialResultsCard({
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>Parameter</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Replicate / Level</TableCell>
-                <TableCell align="right">Result</TableCell>
-                <TableCell>Spec Limit</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.parameter")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.quantity")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.replicateLevel")}</TableCell>
+                <TableCell align="right">{t("entry.calcSummary.columns.result")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.specLimit")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.status")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -61,13 +65,13 @@ export function OfficialResultsCard({
                 const isReported = o.replicateNo === null || o.replicateNo === undefined;
                 const quantityLabel =
                   o.quantity === "AssayPercent"
-                    ? "% Assay"
+                    ? t("entry.quantities.assayPercent")
                     : o.quantity === "AmountPerUnit"
-                    ? "Amount per Unit"
+                    ? t("entry.quantities.amountPerUnit")
                     : o.quantity === "ResidualSolventPpm" || o.quantity === "Residual solvent (ppm)"
-                    ? "Residual solvent (ppm)"
+                    ? t("entry.quantities.residualSolventPpm")
                     : o.quantity === "RelatedSubstance"
-                    ? "Related substance (%)"
+                    ? t("entry.quantities.relatedSubstance")
                     : o.quantity;
 
                 return (
@@ -79,20 +83,20 @@ export function OfficialResultsCard({
                     }}
                   >
                     <TableCell sx={{ fontWeight: isReported ? 700 : 500 }}>
-                      {o.parameterName}
+                      <Ltr>{o.parameterName}</Ltr>
                     </TableCell>
                     <TableCell>{quantityLabel}</TableCell>
                     <TableCell>
                       {isReported ? (
-                        <StatusBadge status="Assigned" label="Reported Result" />
+                        <StatusBadge status="Assigned" label={t("entry.calcSummary.reportedResult")} />
                       ) : (
-                        `Replicate #${o.replicateNo}`
+                        t("entry.calcSummary.replicateNumber", { num: o.replicateNo })
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                      {o.display}
+                      <Ltr>{o.display}</Ltr>
                     </TableCell>
-                    <TableCell>{o.specLimit ?? "—"}</TableCell>
+                    <TableCell>{o.specLimit ? <Ltr>{o.specLimit}</Ltr> : "—"}</TableCell>
                     <TableCell>
                       <HplcStatusBadge status={o.status} />
                     </TableCell>
@@ -123,6 +127,7 @@ export function CalculationSummaryCard({
   submitted,
   relatedSubstances = false
 }: CalculationSummaryCardProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   if (submitted) {
@@ -136,16 +141,20 @@ export function CalculationSummaryCard({
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
-        <StatusBadge status="Prepared" label={`Basis: ${basis}`} />
-        <StatusBadge status="Pending Review" label="Preview, not the official result" />
+        <StatusBadge status="Prepared" label={t("entry.calcSummary.basis", { basis })} />
+        <StatusBadge status="Pending Review" label={t("entry.calcSummary.previewBadge")} />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Calculations are computed server-side from current SST calibration and replicate inputs.
+          {t("entry.calcSummary.previewSubtitle")}
         </Typography>
       </Box>
 
       {isResidualSolventsPreview && (
         <Alert severity="info" sx={{ mb: 1.5, py: 0.5, fontSize: 12 }}>
-          <strong>Residual Solvents Formula:</strong> ppm = (C_std × V / W) × (r_u / r̄_std)
+          <Trans
+            i18nKey="entry.calcSummary.residualFormula"
+            ns="hplcWorkspace"
+            components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+          />
         </Alert>
       )}
 
@@ -153,8 +162,12 @@ export function CalculationSummaryCard({
         <Box sx={{ p: 3 }}>
           <Alert severity="info">
             {relatedSubstances
-              ? "No preview results available yet. Enter peak areas above and click Save Replicates to generate the preview calculation."
-              : `No preview results available yet. Enter actual weights and ${isResidualSolventsPreview ? "areas" : "responses"} above and click Save Replicates to generate the preview calculation.`}
+              ? t("entry.calcSummary.noPreviewRs")
+              : t("entry.calcSummary.noPreviewOther", {
+                  inputKind: isResidualSolventsPreview
+                    ? t("entry.calcSummary.inputAreas")
+                    : t("entry.calcSummary.inputResponses")
+                })}
           </Alert>
         </Box>
       ) : (
@@ -162,13 +175,13 @@ export function CalculationSummaryCard({
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>Parameter</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Replicate / Level</TableCell>
-                <TableCell align="right">Value</TableCell>
-                <TableCell>Unit</TableCell>
-                <TableCell>Spec Limit</TableCell>
-                <TableCell>Status</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.parameter")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.quantity")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.replicateLevel")}</TableCell>
+                <TableCell align="right">{t("entry.calcSummary.columns.value")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.unit")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.specLimit")}</TableCell>
+                <TableCell>{t("entry.calcSummary.columns.status")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -176,13 +189,13 @@ export function CalculationSummaryCard({
                 const isReported = p.replicateNo === null || p.replicateNo === undefined;
                 const quantityLabel =
                   p.quantity === "AssayPercent"
-                    ? "% Assay"
+                    ? t("entry.quantities.assayPercent")
                     : p.quantity === "AmountPerUnit"
-                    ? "Amount per Unit"
+                    ? t("entry.quantities.amountPerUnit")
                     : p.quantity === "ResidualSolventPpm" || p.quantity === "Residual solvent (ppm)"
-                    ? "Residual solvent (ppm)"
+                    ? t("entry.quantities.residualSolventPpm")
                     : p.quantity === "RelatedSubstance"
-                    ? "Related substance (%)"
+                    ? t("entry.quantities.relatedSubstance")
                     : p.quantity;
 
                 return (
@@ -194,21 +207,21 @@ export function CalculationSummaryCard({
                     }}
                   >
                     <TableCell sx={{ fontWeight: isReported ? 700 : 500 }}>
-                      {p.parameterName}
+                      <Ltr>{p.parameterName}</Ltr>
                     </TableCell>
                     <TableCell>{quantityLabel}</TableCell>
                     <TableCell>
                       {isReported ? (
-                        <StatusBadge status="Assigned" label="Reported Result" />
+                        <StatusBadge status="Assigned" label={t("entry.calcSummary.reportedResult")} />
                       ) : (
-                        `Replicate #${p.replicateNo}`
+                        t("entry.calcSummary.replicateNumber", { num: p.replicateNo })
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                      {p.display}
+                      <Ltr>{p.display}</Ltr>
                     </TableCell>
-                    <TableCell>{p.unit || "—"}</TableCell>
-                    <TableCell>{p.specLimit ?? "—"}</TableCell>
+                    <TableCell>{p.unit ? <Ltr>{p.unit}</Ltr> : "—"}</TableCell>
+                    <TableCell>{p.specLimit ? <Ltr>{p.specLimit}</Ltr> : "—"}</TableCell>
                     <TableCell>
                       <HplcStatusBadge status={p.status} />
                     </TableCell>
@@ -222,7 +235,7 @@ export function CalculationSummaryCard({
 
       {preview.length > 0 && (
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-          * Preview results are provisional. Official results are finalized when signed and submitted for review.
+          {t("entry.calcSummary.provisionalNote")}
         </Typography>
       )}
     </Box>

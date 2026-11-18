@@ -20,6 +20,8 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { useGridNavigation } from "../../../components/entry/useGridNavigation";
 import type { HplcMethodWeightDto, HplcReplicateDto } from "../types";
 
@@ -79,6 +81,7 @@ export function ReplicateEntryTable({
   onSave,
   footer
 }: ReplicateEntryTableProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   // Per-cell text as typed, so a cleared cell stays empty instead of showing 0.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -162,12 +165,12 @@ export function ReplicateEntryTable({
   const helper = (value: number, isResidualResponse = false): string | undefined => {
     if (disabled) return undefined;
     if (isResidualResponse) {
-      if (value === 0) return "0 = not detected";
-      if (value < 0) return "Must be ≥ 0";
+      if (value === 0) return t("entry.replicateTable.helperZeroNd");
+      if (value < 0) return t("entry.replicateTable.helperNonNeg");
       return undefined;
     }
-    if (value === 0) return "Required";
-    if (!(value > 0)) return "Must be > 0";
+    if (value === 0) return t("entry.replicateTable.helperRequired");
+    if (!(value > 0)) return t("entry.replicateTable.helperPositive");
     return undefined;
   };
 
@@ -181,23 +184,23 @@ export function ReplicateEntryTable({
             {requiredReplicates !== undefined && requiredReplicates !== null && (
               <StatusBadge
                 status={replicates.length >= requiredReplicates ? "Completed" : "Pending"}
-                label={`Required: ${requiredReplicates}`}
+                label={t("entry.replicateTable.requiredBadge", { count: requiredReplicates })}
               />
             )}
-            <StatusBadge status="Pending" label={`${replicates.length} entered`} />
+            <StatusBadge status="Pending" label={t("entry.replicateTable.enteredBadge", { count: replicates.length })} />
             {hasInternalStandard && (
               <StatusBadge
                 status="Assigned"
-                label={internalStandardName ? `IS: ${internalStandardName}` : "Internal Standard"}
+                label={internalStandardName ? t("entry.replicateTable.isBadge", { name: internalStandardName }) : t("entry.replicateTable.isBadgeFallback")}
               />
             )}
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
             {hasInternalStandard
-              ? "Record actual test weight (mg), analyte peak area and internal standard peak area for each replicate injection. Press Enter to move to the next replicate."
+              ? t("entry.replicateTable.instructionsIs")
               : isResidualSolvents
-              ? "Record sample weight (mg) and peak area per solvent for each replicate injection (0 = not detected). Press Enter to move to the next replicate."
-              : "Record actual test weight (mg) and peak response per analyte for each replicate injection. Press Enter to move to the next replicate."}
+              ? t("entry.replicateTable.instructionsResidual")
+              : t("entry.replicateTable.instructionsDefault")}
           </Typography>
         </Box>
 
@@ -209,7 +212,7 @@ export function ReplicateEntryTable({
           onClick={handleAddRow}
           disabled={disabled}
         >
-          Add Replicate
+          {t("entry.replicateTable.addReplicate")}
         </Button>
       </Box>
 
@@ -217,21 +220,27 @@ export function ReplicateEntryTable({
         <Table size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
-              <TableCell sx={{ width: 80 }}>Rep #</TableCell>
+              <TableCell sx={{ width: 80 }}>{t("entry.replicateTable.columns.rep")}</TableCell>
               <TableCell align="right" sx={{ minWidth: 160 }}>
-                {isResidualSolvents ? "Sample weight (mg) *" : "Actual Weight *"}
+                {isResidualSolvents ? t("entry.replicateTable.columns.sampleWeight") : t("entry.replicateTable.columns.actualWeight")}
               </TableCell>
               {methodWeights.map((mw) => (
                 <TableCell key={mw.hplcMethodAnalyteId} align="right" sx={{ minWidth: 180 }}>
-                  {hasInternalStandard ? "Analyte area *" : isResidualSolvents ? `${mw.analyteName} Area *` : `${mw.analyteName} Response *`}
+                  {hasInternalStandard
+                    ? t("entry.replicateTable.columns.analyteArea")
+                    : isResidualSolvents
+                    ? t("entry.replicateTable.columns.solventArea", { analyte: mw.analyteName })
+                    : t("entry.replicateTable.columns.analyteResponse", { analyte: mw.analyteName })}
                 </TableCell>
               ))}
               {hasInternalStandard && (
                 <TableCell align="right" sx={{ minWidth: 180 }}>
-                  {internalStandardName ? `${internalStandardName} Area *` : "IS area *"}
+                  {internalStandardName
+                    ? t("entry.replicateTable.columns.namedIsArea", { name: internalStandardName })
+                    : t("entry.replicateTable.columns.isArea")}
                 </TableCell>
               )}
-              <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>
+              <TableCell align="right" sx={{ width: 60 }}>{t("entry.replicateTable.columns.action")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -241,7 +250,7 @@ export function ReplicateEntryTable({
                   colSpan={3 + methodWeights.length + (hasInternalStandard ? 1 : 0)}
                   sx={{ textAlign: "center", py: 4, color: "text.secondary" }}
                 >
-                  No replicates added. Click &ldquo;Add Replicate&rdquo; to start entering replicate test data.
+                  {t("entry.replicateTable.empty")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -250,7 +259,7 @@ export function ReplicateEntryTable({
                 const isNav = cellProps(repIdx, 1 + methodWeights.length);
                 return (
                 <TableRow key={rep.replicateNo} hover>
-                  <TableCell sx={{ fontWeight: 700 }}>#{rep.replicateNo}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}><Ltr>#{rep.replicateNo}</Ltr></TableCell>
                   <TableCell align="right">
                     <TextField
                       type="number"
@@ -270,8 +279,8 @@ export function ReplicateEntryTable({
                           "data-cell": `w-${repIdx}`,
                           "data-grid-cell": weightNav["data-grid-cell"],
                           "aria-label": isResidualSolvents
-                            ? `Replicate ${rep.replicateNo} sample weight (mg)`
-                            : `Replicate ${rep.replicateNo} actual weight (mg)`
+                            ? t("entry.replicateTable.ariaSampleWeight", { repNo: rep.replicateNo })
+                            : t("entry.replicateTable.ariaActualWeight", { repNo: rep.replicateNo })
                         },
                         input: { endAdornment: <InputAdornment position="end">mg</InputAdornment> }
                       }}
@@ -302,10 +311,10 @@ export function ReplicateEntryTable({
                               "data-cell": `a${mw.hplcMethodAnalyteId}-${repIdx}`,
                               "data-grid-cell": respNav["data-grid-cell"],
                               "aria-label": hasInternalStandard
-                                ? `Replicate ${rep.replicateNo} Analyte area`
+                                ? t("entry.replicateTable.ariaAnalyteArea", { repNo: rep.replicateNo })
                                 : isResidualSolvents
-                                ? `Replicate ${rep.replicateNo} ${mw.analyteName} area`
-                                : `Replicate ${rep.replicateNo} ${mw.analyteName} response`
+                                ? t("entry.replicateTable.ariaSolventArea", { repNo: rep.replicateNo, analyte: mw.analyteName })
+                                : t("entry.replicateTable.ariaAnalyteResponse", { repNo: rep.replicateNo, analyte: mw.analyteName })
                             }
                           }}
                           sx={cellSx}
@@ -332,7 +341,7 @@ export function ReplicateEntryTable({
                             step: "any",
                             "data-cell": `is-${repIdx}`,
                             "data-grid-cell": isNav["data-grid-cell"],
-                            "aria-label": `Replicate ${rep.replicateNo} IS area`
+                            "aria-label": t("entry.replicateTable.ariaIsArea", { repNo: rep.replicateNo })
                           }
                         }}
                         sx={cellSx}
@@ -340,14 +349,14 @@ export function ReplicateEntryTable({
                     </TableCell>
                   )}
                   <TableCell align="right">
-                    <Tooltip title={replicates.length <= 1 ? "At least one replicate is required" : "Remove replicate"}>
+                    <Tooltip title={replicates.length <= 1 ? t("entry.replicateTable.minOneTooltip") : t("entry.replicateTable.removeTooltip")}>
                       <span>
                         <IconButton
                           size="small"
                           color="error"
                           disabled={disabled || replicates.length <= 1}
                           onClick={() => handleRemoveRow(repIdx)}
-                          aria-label={`Remove replicate ${repIdx + 1}`}
+                          aria-label={t("entry.replicateTable.removeAria", { num: repIdx + 1 })}
                         >
                           <DeleteOutlineIcon fontSize="small" />
                         </IconButton>

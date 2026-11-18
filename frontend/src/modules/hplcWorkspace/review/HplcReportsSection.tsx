@@ -18,6 +18,9 @@ import ImageIcon from "@mui/icons-material/Image";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import type { TFunction } from "i18next";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import type { HplcEvidenceDto } from "../types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
@@ -26,12 +29,12 @@ export interface HplcReportsSectionProps {
   testOrderId: number;
 }
 
-function formatEvidenceKind(kind: string): string {
+function formatEvidenceKind(kind: string, t: TFunction<"hplcWorkspace">): string {
   switch (kind) {
     case "StandardReport":
-      return "Standard Report";
+      return t("review.reports.kindStandard");
     case "SampleReport":
-      return "Sample Report";
+      return t("review.reports.kindSample");
     default:
       return kind;
   }
@@ -44,6 +47,7 @@ function getFileIcon(contentType: string) {
 }
 
 export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const [evidenceList, setEvidenceList] = useState<HplcEvidenceDto[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
@@ -64,7 +68,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
       })
       .catch(() => {
         if (active) {
-          setEvidenceError("Unable to load reports.");
+          setEvidenceError(t("review.reports.loadError"));
         }
       })
       .finally(() => {
@@ -76,7 +80,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
     return () => {
       active = false;
     };
-  }, [testOrderId]);
+  }, [testOrderId, t]);
 
   const handleOpenEvidence = async (id: number) => {
     setOpeningEvidenceId(id);
@@ -105,14 +109,14 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
           textTransform: "uppercase"
         }}
       >
-        Reports
+        {t("review.reports.title")}
       </Typography>
 
       {evidenceLoading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
           <CircularProgress size={14} />
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Loading reports...
+            {t("review.reports.loading")}
           </Typography>
         </Box>
       )}
@@ -125,7 +129,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
 
       {!evidenceLoading && !evidenceError && evidenceList.length === 0 && (
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-          No reports available for this test order.
+          {t("review.reports.empty")}
         </Typography>
       )}
 
@@ -134,11 +138,11 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Report / Context</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>File Name</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>Uploaded By</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>Uploaded At</TableCell>
-                <TableCell sx={{ fontSize: 12 }} align="right">Action</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("review.reports.columns.reportContext")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("review.reports.columns.fileName")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("review.reports.columns.uploadedBy")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("review.reports.columns.uploadedAt")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }} align="right">{t("review.reports.columns.action")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -146,7 +150,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
                 <TableRow key={e.id} hover>
                   <TableCell sx={{ fontSize: 12 }}>
                     <Chip
-                      label={`${formatEvidenceKind(e.kind)} (${e.context})`}
+                      label={`${formatEvidenceKind(e.kind, t)} (${e.context})`}
                       size="small"
                       variant="outlined"
                       sx={{ fontSize: 12, height: 20 }}
@@ -156,15 +160,15 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                       {getFileIcon(e.contentType)}
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                        {e.fileName}
+                        <Ltr>{e.fileName}</Ltr>
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
+                    {e.uploadedByUserName ?? (e.uploadedByUserId ? t("review.reports.userFallback", { id: e.uploadedByUserId }) : "—")}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedAt ? formatDateTimeWithTimeZone(e.uploadedAt) : "—"}
+                    {e.uploadedAt ? <Ltr>{formatDateTimeWithTimeZone(e.uploadedAt)}</Ltr> : "—"}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }} align="right">
                     <Button
@@ -181,7 +185,7 @@ export function HplcReportsSection({ testOrderId }: HplcReportsSectionProps) {
                       disabled={openingEvidenceId === e.id}
                       sx={{ textTransform: "none", fontSize: 12, py: 0.25, px: 1, minHeight: 24 }}
                     >
-                      View
+                      {t("review.reports.view")}
                     </Button>
                   </TableCell>
                 </TableRow>

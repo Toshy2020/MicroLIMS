@@ -12,7 +12,10 @@ import {
   Paper,
   useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
 import type { WorkingStandardPreviewDto } from "../types";
 
@@ -25,16 +28,18 @@ export function WorkingStandardPreviewCard({
   preview,
   submitted
 }: WorkingStandardPreviewCardProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   const metrics = preview ? [
-    { label: "Mean % Assay", value: `${preview.meanAssayPercent.toFixed(2)}%` },
-    { label: "% RSD", value: preview.rsdPercent != null ? `${preview.rsdPercent.toFixed(2)}%` : "—" },
-    { label: "Potency", value: `${preview.potencyPercent.toFixed(3)}%` },
+    { label: t("entry.wsPreview.meanAssay"), value: `${preview.meanAssayPercent.toFixed(2)}%` },
+    { label: t("entry.wsPreview.rsd"), value: preview.rsdPercent != null ? `${preview.rsdPercent.toFixed(2)}%` : "—" },
+    { label: t("entry.wsPreview.potency"), value: `${preview.potencyPercent.toFixed(3)}%` },
     {
-      label: "Acceptance Criteria",
-      value: preview.passed ? "Passed" : "Failed",
-      color: preview.passed ? "success.main" : "error.main"
+      label: t("entry.wsPreview.acceptanceCriteria"),
+      value: preview.passed ? t("entry.wsPreview.passed") : t("entry.wsPreview.failed"),
+      color: preview.passed ? "success.main" : "error.main",
+      isStatusText: true
     }
   ] : [];
 
@@ -44,22 +49,26 @@ export function WorkingStandardPreviewCard({
         {preview && (
           <StatusBadge
             status={preview.passed ? "Passed" : "Failed"}
-            label={preview.passed ? "Evaluation: Passed" : "Evaluation: Failed"}
+            label={preview.passed ? t("entry.wsPreview.evalPassed") : t("entry.wsPreview.evalFailed")}
           />
         )}
         <StatusBadge
           status={submitted ? "Completed" : "PendingReview"}
-          label={submitted ? "Official, Recorded for Review" : "Provisional Preview"}
+          label={submitted ? t("entry.wsPreview.officialBadge") : t("entry.wsPreview.provisionalBadge")}
         />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Calculations are computed server-side from current SST reference standard calibration.
+          {t("entry.wsPreview.subtitle")}
         </Typography>
       </Box>
 
       {!preview ? (
         <Box sx={{ p: 2 }}>
           <Alert severity="info">
-            No preview results available yet. Enter actual weights and responses above and click <strong>Save Replicates</strong> to generate the preview calculation.
+            <Trans
+              i18nKey="entry.wsPreview.noPreview"
+              ns="hplcWorkspace"
+              components={{ strong: <strong /> }}
+            />
           </Alert>
         </Box>
       ) : (
@@ -94,7 +103,7 @@ export function WorkingStandardPreviewCard({
                     ...(m.color ? { color: m.color } : {})
                   }}
                 >
-                  {m.value}
+                  {m.isStatusText ? m.value : <Ltr>{m.value}</Ltr>}
                 </Typography>
               </Paper>
             ))}
@@ -102,7 +111,7 @@ export function WorkingStandardPreviewCard({
 
           {!preview.passed && preview.failureReasons && (
             <Alert severity="error">
-              <strong>Evaluation Failure:</strong> {preview.failureReasons}
+              <strong>{t("entry.wsPreview.evalFailure")}</strong> {preview.failureReasons}
             </Alert>
           )}
 
@@ -112,16 +121,16 @@ export function WorkingStandardPreviewCard({
               <Table size="small">
                 <TableHead sx={tableHeadSx(theme)}>
                   <TableRow>
-                    <TableCell>Replicate</TableCell>
-                    <TableCell align="right">% Assay</TableCell>
+                    <TableCell>{t("entry.wsPreview.replicate")}</TableCell>
+                    <TableCell align="right">{t("entry.wsPreview.assayPercent")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {preview.replicateAssayPercents.map((val, idx) => (
                     <TableRow key={`rep-assay-${idx}`} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>Replicate #{idx + 1}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("entry.wsPreview.replicateNumber", { num: idx + 1 })}</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
-                        {val.toFixed(2)}%
+                        <Ltr>{`${val.toFixed(2)}%`}</Ltr>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -132,7 +141,7 @@ export function WorkingStandardPreviewCard({
 
           {!submitted && (
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              * Preview results are provisional. Official results are finalized when signed and submitted for review.
+              {t("entry.wsPreview.provisionalNote")}
             </Typography>
           )}
         </Stack>

@@ -1,3 +1,4 @@
+import { Trans } from "react-i18next";
 import {
   Box,
   Typography,
@@ -14,7 +15,9 @@ import {
 } from "@mui/material";
 import LinkIcon from "@mui/icons-material/Link";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
 import { HplcStatusBadge } from "../components/HplcStatusBadge";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
 import type { ParameterResultDetail } from "../../testingWorkspace/types/sampleSummaryTypes";
 import {
@@ -95,6 +98,7 @@ function formatReplicateAssay(r: HplcMethodAssayReplicateData): string {
 }
 
 export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const calc = parseHplcCalc(parameter.calculationJson);
 
@@ -102,13 +106,23 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
     return (
       <Box sx={{ mt: 1.5, p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: 1.5 }}>
         <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
-          HPLC Workspace Assay · {parameter.parameterName}
+          <Trans
+            i18nKey="review.assay.fallbackTitle"
+            ns="hplcWorkspace"
+            values={{ parameter: parameter.parameterName }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-          Recorded via HPLC Workspace. Parameter result: <strong>{parameter.reportedDisplay}</strong> ({parameter.comparisonStatus}).
+          <Trans
+            i18nKey="review.assay.fallbackSummary"
+            ns="hplcWorkspace"
+            values={{ display: parameter.reportedDisplay ?? "", status: parameter.comparisonStatus }}
+            components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+          />
         </Typography>
         <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
-          Detailed chromatographic calculation payload was not found or is in historical format.
+          {t("review.assay.fallbackAlert")}
         </Alert>
         <HplcReportsSection testOrderId={testOrderId} />
       </Box>
@@ -148,14 +162,24 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-            HPLC Assay Review · {assayCalc.analyte}
+            <Trans
+              i18nKey="review.assay.title"
+              ns="hplcWorkspace"
+              values={{ analyte: assayCalc.analyte }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <StatusBadge status="Prepared" label={`Basis: ${assayCalc.basis}`} />
-          <StatusBadge status="Draft" label={assayCalc.quantity === "AmountPerUnit" ? "Amount per unit" : "% Assay"} />
+          <StatusBadge status="Prepared" label={t("review.assay.basis", { basis: assayCalc.basis })} />
+          <StatusBadge status="Draft" label={assayCalc.quantity === "AmountPerUnit" ? t("review.assay.amountPerUnit") : t("review.assay.assayPercent")} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Run: <strong>{assayCalc.runCode}</strong> · SST: <strong>{assayCalc.sstCode}</strong>
+          <Trans
+            i18nKey="review.assay.runSstMeta"
+            ns="hplcWorkspace"
+            values={{ runCode: assayCalc.runCode, sstCode: assayCalc.sstCode }}
+            components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+          />
         </Typography>
       </Box>
 
@@ -171,60 +195,75 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         }}
       >
         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
-          Method Snapshot & Standard Calibration
+          {t("review.assay.methodSnapshotTitle")}
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap" }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Theoretical Weights
+              {t("review.assay.theoreticalWeights")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Std: {assayCalc.thWtStdMg} mg · Test: {assayCalc.thWtTestMg} mg
+              <Trans
+                i18nKey="review.assay.theoreticalWeightsValue"
+                ns="hplcWorkspace"
+                values={{ std: assayCalc.thWtStdMg, test: assayCalc.thWtTestMg }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Standard Reference
+              {t("review.assay.standardReference")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Act.Wt: {assayCalc.standardWeightMg} mg · Purity: {assayCalc.standardPurityPercent}% · MC: {assayCalc.standardMoisturePercent}%
+              <Trans
+                i18nKey="review.assay.standardReferenceValue"
+                ns="hplcWorkspace"
+                values={{ wt: assayCalc.standardWeightMg, purity: assayCalc.standardPurityPercent, mc: assayCalc.standardMoisturePercent }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              {hasInternalStandard ? "Standard Mean Ratio" : "Standard Mean Response"}
+              {hasInternalStandard ? t("review.assay.standardMeanRatio") : t("review.assay.standardMeanResponse")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {hasInternalStandard ? assayCalc.standardMeanRatio : assayCalc.standardMeanResponse}
+              <Ltr>{hasInternalStandard ? assayCalc.standardMeanRatio : assayCalc.standardMeanResponse}</Ltr>
             </Typography>
           </Box>
           {hasInternalStandard && (
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Internal Standard
+                {t("review.assay.internalStandard")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {assayCalc.internalStandardName}
+                <Ltr>{assayCalc.internalStandardName}</Ltr>
               </Typography>
             </Box>
           )}
           {assayCalc.moisturePercent != null && (
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Content Basis
+                {t("review.assay.contentBasis")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                As is: {Number(assayCalc.asIsValue).toFixed(2)} % · Moisture: {assayCalc.moisturePercent} %
+                <Trans
+                  i18nKey="review.assay.contentBasisValue"
+                  ns="hplcWorkspace"
+                  values={{ asIs: Number(assayCalc.asIsValue).toFixed(2), moisture: assayCalc.moisturePercent }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           )}
           {assayCalc.labelClaim != null && (
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Label Claim
+                {t("review.assay.labelClaim")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {assayCalc.labelClaim}
+                <Ltr>{assayCalc.labelClaim}</Ltr>
               </Typography>
             </Box>
           )}
@@ -237,28 +276,28 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Actual Weight (mg)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Peak Response</TableCell>
-                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>IS Response</TableCell>}
-                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>Ratio</TableCell>}
-                <TableCell align="right" sx={{ fontSize: 12 }}>Calculated % Assay</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("review.assay.columns.replicate")}</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("review.assay.columns.actualWeight")}</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("review.assay.columns.peakResponse")}</TableCell>
+                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>{t("review.assay.columns.isResponse")}</TableCell>}
+                {hasInternalStandard && <TableCell align="right" sx={{ fontSize: 12 }}>{t("review.assay.columns.ratio")}</TableCell>}
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("review.assay.columns.calculatedAssay")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {assayCalc.replicates.map((r) => (
                 <TableRow key={r.replicateNo} hover>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.actualWeightMg}</TableCell>
-                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.response}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}><Ltr>#{r.replicateNo}</Ltr></TableCell>
+                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}><Ltr>{r.actualWeightMg}</Ltr></TableCell>
+                  <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}><Ltr>{r.response}</Ltr></TableCell>
                   {hasInternalStandard && (
-                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.internalStandardResponse}</TableCell>
+                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}><Ltr>{r.internalStandardResponse}</Ltr></TableCell>
                   )}
                   {hasInternalStandard && (
-                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>{r.ratio}</TableCell>
+                    <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}><Ltr>{r.ratio}</Ltr></TableCell>
                   )}
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {formatReplicateAssay(r)}
+                    <Ltr>{formatReplicateAssay(r)}</Ltr>
                   </TableCell>
                 </TableRow>
               ))}
@@ -274,11 +313,16 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12 }}>
-            Reported Result: <strong>{parameter.reportedDisplay}</strong>
+            {t("review.assay.reportedResult")} <strong><Ltr>{parameter.reportedDisplay}</Ltr></strong>
           </Typography>
           {parameter.specLimit && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              (Spec: {parameter.specLimit})
+              <Trans
+                i18nKey="review.assay.spec"
+                ns="hplcWorkspace"
+                values={{ specLimit: parameter.specLimit }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           )}
           <HplcStatusBadge status={parameter.comparisonStatus} />
@@ -287,7 +331,12 @@ export function HplcReviewPanel({ parameter, testOrderId }: HplcReviewPanelProps
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Chromatograms and raw evidence stored under HPLC Run <strong>{assayCalc.runCode}</strong>
+            <Trans
+              i18nKey="review.assay.evidenceLink"
+              ns="hplcWorkspace"
+              values={{ runCode: assayCalc.runCode }}
+              components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+            />
           </Typography>
         </Box>
       </Box>

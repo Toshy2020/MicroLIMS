@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trans } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +21,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import DrawIcon from "@mui/icons-material/Draw";
 import { toast } from "sonner";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import type { IcpSampleEntryDto } from "../types";
 
@@ -36,6 +39,7 @@ export function IcpSendForReviewDialog({
   onClose,
   onSuccess
 }: IcpSendForReviewDialogProps) {
+  const { t } = useTranslation("icpWorkspace");
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -64,13 +68,13 @@ export function IcpSendForReviewDialog({
         password,
         comment: comment.trim() || null
       });
-      toast.success(`Sample ${entry.sampleNumber} submitted for peer review.`);
+      toast.success(t("entry.sendDialog.submittedToast", { sampleNumber: entry.sampleNumber }));
       setSignatureOpen(false);
       onSuccess();
       onClose();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = e.response?.data?.message ?? e.message ?? "Submission failed.";
+      const msg = e.response?.data?.message ?? e.message ?? t("entry.sendDialog.submitFailed");
       setSubmitError(msg);
       throw err;
     } finally {
@@ -78,7 +82,9 @@ export function IcpSendForReviewDialog({
     }
   };
 
-  const meaningStatement = `I confirm that the ICP element results and evidence for sample ${entry.sampleNumber} (${entry.testCode}) are complete, accurate, and ready for review.`;
+  const meaningValues = { sampleNumber: entry.sampleNumber, testCode: entry.testCode };
+  const meaningStatement = i18n.getFixedT("en", "icpWorkspace")("entry.sendDialog.meaning", meaningValues);
+  const meaningStatementTranslation = t("entry.sendDialog.meaning", meaningValues);
 
   return (
     <>
@@ -89,7 +95,7 @@ export function IcpSendForReviewDialog({
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          Send ICP Sample for Review
+          {t("entry.sendDialog.title")}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
@@ -97,19 +103,24 @@ export function IcpSendForReviewDialog({
 
             {!entry.canSubmit && (
               <Alert severity="warning">
-                <strong>Cannot submit for review:</strong>{" "}
-                {entry.canSubmitReason || "Submission criteria are not met."}
+                <strong>{t("entry.sendDialog.cannotSubmit")}</strong>{" "}
+                {entry.canSubmitReason || t("entry.sendDialog.criteriaNotMet")}
               </Alert>
             )}
 
             <Box>
               <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
-                Sample: <strong>{entry.sampleNumber}</strong> · Test: <strong>{entry.testCode}</strong>
-                {entry.productName ? ` · Product: ${entry.productName}` : ""}
-                {entry.batchNumber ? ` · Batch: ${entry.batchNumber}` : ""}
+                <Trans
+                  i18nKey="entry.sendDialog.sampleSummary"
+                  ns="icpWorkspace"
+                  values={{ sampleNumber: entry.sampleNumber, testCode: entry.testCode }}
+                  components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+                />
+                {entry.productName ? t("entry.sendDialog.productSuffix", { productName: entry.productName }) : ""}
+                {entry.batchNumber ? t("entry.sendDialog.batchSuffix", { batchNumber: entry.batchNumber }) : ""}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Verify the pre-submission readiness checklist below before applying your electronic signature.
+                {t("entry.sendDialog.verifyChecklist")}
               </Typography>
             </Box>
 
@@ -126,8 +137,8 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Instrument Calibration"
-                  secondary={`Status: ${entry.calibrationStatus} (Code: ${entry.calibrationCode})`}
+                  primary={t("entry.sendDialog.calTitle")}
+                  secondary={t("entry.sendDialog.calSecondary", { status: entry.calibrationStatus, code: entry.calibrationCode })}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -145,13 +156,13 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Element Availability"
+                  primary={t("entry.sendDialog.elementsTitle")}
                   secondary={
                     allElementsValid
-                      ? `All ${entry.elements.length} required element(s) are valid`
+                      ? t("entry.sendDialog.elementsValid", { count: entry.elements.length })
                       : firstInvalidElement
-                      ? `${firstInvalidElement.symbol}: ${firstInvalidElement.reason || "Invalid"}`
-                      : "Required elements invalid"
+                      ? `${firstInvalidElement.symbol}: ${firstInvalidElement.reason || t("entry.sendDialog.elementsInvalidFallback")}`
+                      : t("entry.sendDialog.elementsRequiredInvalid")
                   }
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
@@ -170,8 +181,11 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Instrument results"
-                  secondary={`${entry.elements.filter((e) => e.resultPpm != null).length} of ${entry.elements.length} element result(s) recorded`}
+                  primary={t("entry.sendDialog.resultsTitle")}
+                  secondary={t("entry.sendDialog.resultsSecondary", {
+                    recorded: entry.elements.filter((e) => e.resultPpm != null).length,
+                    total: entry.elements.length
+                  })}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -189,11 +203,11 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Instrument Report Evidence"
+                  primary={t("entry.sendDialog.evidenceTitle")}
                   secondary={
                     currentReportCount > 0
-                      ? `${currentReportCount} current sample report(s) attached`
-                      : "Upload sample report before submitting"
+                      ? t("entry.sendDialog.evidenceAttached", { count: currentReportCount })
+                      : t("entry.sendDialog.evidenceMissing")
                   }
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
@@ -212,13 +226,13 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Server Calculation Preview"
+                  primary={t("entry.sendDialog.previewTitle")}
                   secondary={
                     !hasPreview
-                      ? "No preview calculation generated"
+                      ? t("entry.sendDialog.previewNone")
                       : hasPreviewProblem
-                      ? "One or more elements have calculation or range warnings"
-                      : `${entry.preview.length} parameter(s) evaluated within range`
+                      ? t("entry.sendDialog.previewProblem")
+                      : t("entry.sendDialog.previewOk", { count: entry.preview.length })
                   }
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
@@ -237,8 +251,8 @@ export function IcpSendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Submission Gate"
-                  secondary={entry.canSubmit ? "Ready for electronic signature" : (entry.canSubmitReason || "Gated")}
+                  primary={t("entry.sendDialog.gateTitle")}
+                  secondary={entry.canSubmit ? t("entry.sendDialog.gateReady") : (entry.canSubmitReason || t("entry.sendDialog.gateGated"))}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -248,13 +262,17 @@ export function IcpSendForReviewDialog({
             </List>
 
             <Alert severity="info" sx={{ fontSize: 12 }}>
-              Signing will freeze the entered results, record official ICP assay results, and move the test order to <strong>Under Review</strong> in the testing workspace.
+              <Trans
+                i18nKey="entry.sendDialog.freezeInfo"
+                ns="icpWorkspace"
+                components={{ strong: <strong /> }}
+              />
             </Alert>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={onClose} disabled={submitting}>
-            Cancel
+            {t("entry.sendDialog.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -264,7 +282,7 @@ export function IcpSendForReviewDialog({
             startIcon={<DrawIcon />}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Proceed to Sign
+            {t("entry.sendDialog.proceedToSign")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -273,6 +291,7 @@ export function IcpSendForReviewDialog({
       <SignatureDialog
         open={signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         showComment={true}
         comment={comment}
         onCommentChange={setComment}

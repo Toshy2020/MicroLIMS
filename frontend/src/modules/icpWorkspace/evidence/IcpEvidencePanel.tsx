@@ -26,10 +26,12 @@ import DownloadIcon from "@mui/icons-material/Download";
 import { IcpReportUploadPanel } from "./IcpReportUploadPanel";
 import { IcpSupersedeEvidenceDialog } from "./IcpSupersedeEvidenceDialog";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
+import { useTranslation } from "react-i18next";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { IcpRunDto, IcpEvidenceDto } from "../types";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Ltr } from "../../../components/Ltr";
 
 export interface IcpEvidencePanelProps {
   run: IcpRunDto;
@@ -42,6 +44,7 @@ export function IcpEvidencePanel({
   canOperate,
   onRunUpdated
 }: IcpEvidencePanelProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
   const [filterContext, setFilterContext] = useState<string>("all");
   const [viewingId, setViewingId] = useState<number | null>(null);
@@ -109,10 +112,10 @@ export function IcpEvidencePanel({
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Run Evidence & Instrument Reports ({allEvidence.length})
+                {t("evidence.panel.title", { count: allEvidence.length })}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Complete audit trail of calibration, sample, and general run report files.
+                {t("evidence.panel.subtitle")}
               </Typography>
             </Box>
 
@@ -121,17 +124,17 @@ export function IcpEvidencePanel({
               onChange={(_, val) => setFilterContext(val)}
               sx={{ minHeight: 36, "& .MuiTab-root": { minHeight: 36, py: 0.5, textTransform: "none", fontSize: 13 } }}
             >
-              <Tab label={`All (${allEvidence.length})`} value="all" />
+              <Tab label={t("evidence.panel.tabs.all", { count: allEvidence.length })} value="all" />
               <Tab
-                label={`Calibration (${allEvidence.filter((e) => e.context === "Calibration").length})`}
+                label={t("evidence.panel.tabs.calibration", { count: allEvidence.filter((e) => e.context === "Calibration").length })}
                 value="calibration"
               />
               <Tab
-                label={`Run (${allEvidence.filter((e) => e.context === "Run").length})`}
+                label={t("evidence.panel.tabs.run", { count: allEvidence.filter((e) => e.context === "Run").length })}
                 value="run"
               />
               <Tab
-                label={`Sample (${allEvidence.filter((e) => e.context === "Sample").length})`}
+                label={t("evidence.panel.tabs.sample", { count: allEvidence.filter((e) => e.context === "Sample").length })}
                 value="sample"
               />
             </Tabs>
@@ -141,7 +144,7 @@ export function IcpEvidencePanel({
         {filteredEvidence.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              No evidence files attached for this category.
+              {t("evidence.panel.empty")}
             </Typography>
           </Box>
         ) : (
@@ -150,13 +153,13 @@ export function IcpEvidencePanel({
               <TableHead sx={tableHeadSx}>
                 <TableRow>
                   <TableCell sx={{ width: 40 }}></TableCell>
-                  <TableCell>File Name</TableCell>
-                  <TableCell>Context</TableCell>
-                  <TableCell>Kind</TableCell>
-                  <TableCell>Uploaded By</TableCell>
-                  <TableCell>Uploaded At</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t("evidence.panel.columns.fileName")}</TableCell>
+                  <TableCell>{t("evidence.panel.columns.context")}</TableCell>
+                  <TableCell>{t("evidence.panel.columns.kind")}</TableCell>
+                  <TableCell>{t("evidence.panel.columns.uploadedBy")}</TableCell>
+                  <TableCell>{t("evidence.panel.columns.uploadedAt")}</TableCell>
+                  <TableCell>{t("evidence.panel.columns.status")}</TableCell>
+                  <TableCell align="right">{t("evidence.panel.columns.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -171,11 +174,11 @@ export function IcpEvidencePanel({
                     <TableCell>{getFileIcon(e.contentType)}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: e.isCurrent ? 600 : 400 }}>
-                        {e.fileName}
+                        <Ltr>{e.fileName}</Ltr>
                       </Typography>
                       {e.supersedeReason && (
                         <Typography variant="caption" sx={{ color: "error.main", display: "block" }}>
-                          Superseded: {e.supersedeReason}
+                          {t("evidence.panel.supersededPrefix", { reason: e.supersedeReason })}
                         </Typography>
                       )}
                     </TableCell>
@@ -189,23 +192,23 @@ export function IcpEvidencePanel({
                         {e.kind}
                       </Typography>
                     </TableCell>
-                    <TableCell>{e.uploadedByUserName ?? "Unknown"}</TableCell>
-                    <TableCell>{formatDateTimeWithTimeZone(e.uploadedAt)}</TableCell>
+                    <TableCell>{e.uploadedByUserName ?? t("evidence.panel.unknownUser")}</TableCell>
+                    <TableCell><Ltr>{formatDateTimeWithTimeZone(e.uploadedAt)}</Ltr></TableCell>
                     <TableCell>
                       {e.isCurrent ? (
-                        <StatusBadge status="Completed" label="Current" />
+                        <StatusBadge status="Completed" label={t("evidence.panel.current")} />
                       ) : (
-                        <StatusBadge status="Abandoned" label="Superseded" />
+                        <StatusBadge status="Abandoned" label={t("evidence.panel.superseded")} />
                       )}
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} sx={{ justifyContent: "flex-end" }}>
-                        <Tooltip title="View in New Tab">
+                        <Tooltip title={t("evidence.panel.viewTooltip")}>
                           <span>
                             <IconButton
                               size="small"
                               onClick={() => handleView(e.id)}
-                              aria-label={`View ${e.fileName} in a new tab`}
+                              aria-label={t("evidence.panel.viewAria", { fileName: e.fileName })}
                               disabled={viewingId === e.id}
                             >
                               {viewingId === e.id ? (
@@ -216,12 +219,12 @@ export function IcpEvidencePanel({
                             </IconButton>
                           </span>
                         </Tooltip>
-                        <Tooltip title="Download File">
+                        <Tooltip title={t("evidence.panel.downloadTooltip")}>
                           <span>
                             <IconButton
                               size="small"
                               onClick={() => handleDownload(e.id)}
-                              aria-label={`Download ${e.fileName}`}
+                              aria-label={t("evidence.panel.downloadAria", { fileName: e.fileName })}
                               disabled={downloadingId === e.id}
                             >
                               {downloadingId === e.id ? (
@@ -233,7 +236,7 @@ export function IcpEvidencePanel({
                           </span>
                         </Tooltip>
                         {e.isCurrent && canOperate && run.status === "Open" && (
-                          <Tooltip title="Supersede File">
+                          <Tooltip title={t("evidence.panel.supersedeTooltip")}>
                             <IconButton
                               size="small"
                               color="warning"
@@ -259,8 +262,8 @@ export function IcpEvidencePanel({
           runId={run.id}
           context="Run"
           kind="Other"
-          title="Attach Run Supporting Document"
-          description="Attach supplemental run evidence, system logs, or analyst notes."
+          title={t("evidence.panel.attachTitle")}
+          description={t("evidence.panel.attachDescription")}
           onChanged={onRunUpdated}
         />
       )}

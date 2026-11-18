@@ -10,8 +10,11 @@ import {
   Alert,
   useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { IcpStatusBadge } from "../components/IcpStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import { formatQuantityLabel } from "./entryMapping";
@@ -28,21 +31,22 @@ export function IcpPreviewCard({
   official = [],
   submitted = false
 }: IcpPreviewCardProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
 
   if (submitted) {
     return (
       <Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-          <StatusBadge status="Completed" label="Official Results (Submitted)" />
+          <StatusBadge status="Completed" label={t("entry.preview.officialBadge")} />
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            These official results were recorded and sent for peer review.
+            {t("entry.preview.officialSubtitle")}
           </Typography>
         </Box>
 
         {official.length === 0 ? (
           <Alert severity="info">
-            No official results recorded yet for this sample entry.
+            {t("entry.preview.noOfficial")}
           </Alert>
         ) : (
           <TableContainer
@@ -55,25 +59,25 @@ export function IcpPreviewCard({
             <Table size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
-                  <TableCell>Parameter</TableCell>
-                  <TableCell>Quantity</TableCell>
-                  <TableCell align="right">Result</TableCell>
-                  <TableCell>Spec Limit</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>{t("entry.preview.columns.parameter")}</TableCell>
+                  <TableCell>{t("entry.preview.columns.quantity")}</TableCell>
+                  <TableCell align="right">{t("entry.preview.columns.result")}</TableCell>
+                  <TableCell>{t("entry.preview.columns.specLimit")}</TableCell>
+                  <TableCell>{t("entry.preview.columns.status")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {official.map((o, idx) => (
                   <TableRow key={`${o.parameterName}-${o.quantity}-${idx}`} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{o.parameterName}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}><Ltr>{o.parameterName}</Ltr></TableCell>
                     <TableCell>{formatQuantityLabel(o.quantity)}</TableCell>
                     <TableCell
                       align="right"
                       sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
                     >
-                      {o.display}
+                      <Ltr>{o.display}</Ltr>
                     </TableCell>
-                    <TableCell>{o.specLimit ?? "—"}</TableCell>
+                    <TableCell>{o.specLimit ? <Ltr>{o.specLimit}</Ltr> : "—"}</TableCell>
                     <TableCell>
                       <IcpStatusBadge status={o.status} />
                     </TableCell>
@@ -92,21 +96,29 @@ export function IcpPreviewCard({
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-        <StatusBadge status="Pending Review" label="Server Preview (Draft)" />
+        <StatusBadge status="Pending Review" label={t("entry.preview.draftBadge")} />
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Computed server-side from the entered weight and instrument results. Not the official result.
+          {t("entry.preview.draftSubtitle")}
         </Typography>
       </Box>
 
       {hasProblems && (
         <Alert severity="warning" icon={<ErrorOutlinedIcon />} sx={{ mb: 2 }}>
-          <strong>Calculation warning:</strong> One or more element parameters have range or calibration problems. Dilution adjustment or re-measurement may be required before submitting.
+          <Trans
+            i18nKey="entry.preview.warningAlert"
+            ns="icpWorkspace"
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       )}
 
       {preview.length === 0 ? (
         <Alert severity="info">
-          No preview results available yet. Enter the sample weight (assay) and the instrument result for each element above, then click <strong>Save results</strong> to generate the server calculation.
+          <Trans
+            i18nKey="entry.preview.noPreview"
+            ns="icpWorkspace"
+            components={{ strong: <strong /> }}
+          />
         </Alert>
       ) : (
         <TableContainer
@@ -119,13 +131,13 @@ export function IcpPreviewCard({
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>Parameter</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell align="right">Result</TableCell>
-                <TableCell>Unit</TableCell>
-                <TableCell>Spec Limit</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Problem / Warning</TableCell>
+                <TableCell>{t("entry.preview.columns.parameter")}</TableCell>
+                <TableCell>{t("entry.preview.columns.quantity")}</TableCell>
+                <TableCell align="right">{t("entry.preview.columns.result")}</TableCell>
+                <TableCell>{t("entry.preview.columns.unit")}</TableCell>
+                <TableCell>{t("entry.preview.columns.specLimit")}</TableCell>
+                <TableCell>{t("entry.preview.columns.status")}</TableCell>
+                <TableCell>{t("entry.preview.columns.problem")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -137,16 +149,16 @@ export function IcpPreviewCard({
                     backgroundColor: p.problem ? "rgba(211, 47, 47, 0.04)" : "inherit"
                   }}
                 >
-                  <TableCell sx={{ fontWeight: 600 }}>{p.parameterName}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}><Ltr>{p.parameterName}</Ltr></TableCell>
                   <TableCell>{formatQuantityLabel(p.quantity)}</TableCell>
                   <TableCell
                     align="right"
                     sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
                   >
-                    {p.display}
+                    <Ltr>{p.display}</Ltr>
                   </TableCell>
-                  <TableCell>{p.unit || "—"}</TableCell>
-                  <TableCell>{p.specLimit ?? "—"}</TableCell>
+                  <TableCell>{p.unit ? <Ltr>{p.unit}</Ltr> : "—"}</TableCell>
+                  <TableCell>{p.specLimit ? <Ltr>{p.specLimit}</Ltr> : "—"}</TableCell>
                   <TableCell>
                     {p.status ? <IcpStatusBadge status={p.status} /> : "—"}
                   </TableCell>

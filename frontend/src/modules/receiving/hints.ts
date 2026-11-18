@@ -1,5 +1,6 @@
 import type { TFunction } from "i18next";
 import type { Hint } from "../../components/FieldHint";
+import { i18n } from "../../i18n";
 
 // Field hints for the sample details correction dialog. Wording is taken from
 // guide chapters 11 and 12. Hints describe meaning and effect only.
@@ -29,3 +30,8 @@ export function getReceivingHints(t: TFunction<"receiving">): Record<"batchNumbe
     }
   };
 }
+
+// The English hints: the shared hint checks (FieldHint.test.tsx) read every
+// module's `hints` export, and English is the source wording. Screens call
+// getReceivingHints(t) so the hint follows the interface language.
+export const hints = getReceivingHints(i18n.getFixedT("en", "receiving"));

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useTranslation } from "../../../i18n";
 import { PageHeader } from "../../../components/PageHeader";
 import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
 import { CopyItemOptions, ItemService, Item, ItemSaveRequest } from "./services/ItemService";
@@ -24,6 +25,7 @@ function apiErrorMessage(e: unknown, fallback: string): string {
 }
 
 export function ItemsPage() {
+  const { t } = useTranslation("labConfig");
   // The QC Manager reaches this page to approve not-applicable tests; creating and changing items needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [items, setItems] = useState<Item[]>([]);
@@ -87,7 +89,7 @@ export function ItemsPage() {
         setLoadError(null);
       })
       .catch((e: unknown) => {
-        setLoadError(apiErrorMessage(e, "Could not load items."));
+        setLoadError(apiErrorMessage(e, t("items.page.loadError")));
       })
       .finally(() => setLoading(false));
   };
@@ -222,7 +224,7 @@ export function ItemsPage() {
       try {
         await ItemService.update(editingItem.id, basePayload, editingItem.version);
         noteOwnSave("item", editingItem.id);
-        setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
+        setMessage({ text: t("items.page.messages.updated", { name: itemData.name }), ok: true });
       } catch (e: unknown) {
         if (isReasonRequiredError(e)) {
           setReasonError(null);
@@ -242,7 +244,7 @@ export function ItemsPage() {
         ? { ...basePayload, copyFrom: itemData.copyFrom }
         : basePayload;
       const created = await ItemService.create(createPayload);
-      setMessage({ text: `Item "${itemData.name}" created successfully.`, ok: true });
+      setMessage({ text: t("items.page.messages.created", { name: itemData.name }), ok: true });
       setSelectedItemId(created.id);
     }
     loadItems();
@@ -267,16 +269,16 @@ export function ItemsPage() {
     try {
       if (pendingReasonAction.kind === "delete") {
         await ItemService.remove(pendingReasonAction.item.id, reason);
-        setMessage({ text: `Item "${pendingReasonAction.item.name}" deleted.`, ok: true });
+        setMessage({ text: t("items.page.messages.deleted", { name: pendingReasonAction.item.name }), ok: true });
         if (selectedItemId === pendingReasonAction.item.id) {
           setSelectedItemId(null);
         }
       } else if (pendingReasonAction.kind === "freeze") {
         await ItemService.freeze(pendingReasonAction.item.id, reason);
-        setMessage({ text: `Item "${pendingReasonAction.item.name}" frozen.`, ok: true });
+        setMessage({ text: t("items.page.messages.frozen", { name: pendingReasonAction.item.name }), ok: true });
       } else if (pendingReasonAction.kind === "unfreeze") {
         await ItemService.unfreeze(pendingReasonAction.item.id, reason);
-        setMessage({ text: `Item "${pendingReasonAction.item.name}" unfrozen.`, ok: true });
+        setMessage({ text: t("items.page.messages.unfrozen", { name: pendingReasonAction.item.name }), ok: true });
       } else {
         await ItemService.update(
           pendingReasonAction.id,
@@ -285,12 +287,12 @@ export function ItemsPage() {
           reason
         );
         noteOwnSave("item", pendingReasonAction.id);
-        setMessage({ text: `Item "${pendingReasonAction.name}" updated successfully.`, ok: true });
+        setMessage({ text: t("items.page.messages.updated", { name: pendingReasonAction.name }), ok: true });
       }
       setPendingReasonAction(null);
       loadItems();
     } catch (e: unknown) {
-      setReasonError(apiErrorMessage(e, "Could not complete this action."));
+      setReasonError(apiErrorMessage(e, t("items.page.actionError")));
     } finally {
       setReasonSubmitting(false);
     }
@@ -309,7 +311,7 @@ export function ItemsPage() {
           mb: 2
         }}
       >
-        <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
+        <PageHeader title={t("items.page.title")} subtitle={t("items.page.subtitle")} />
         {canManage && (
         <Stack direction="row" spacing={1}>
           <Button
@@ -318,7 +320,7 @@ export function ItemsPage() {
             onClick={handleOpenAddFromExisting}
             sx={{ textTransform: "none", fontWeight: 700 }}
           >
-            New from existing
+            {t("items.page.newFromExisting")}
           </Button>
           <Button
             variant="contained"
@@ -327,7 +329,7 @@ export function ItemsPage() {
             onClick={handleOpenAdd}
             sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
           >
-            Add Item
+            {t("items.page.addItem")}
           </Button>
         </Stack>
         )}
@@ -347,7 +349,7 @@ export function ItemsPage() {
           sx={{ mb: 2 }}
           action={
             <Button color="inherit" size="small" onClick={loadItems} disabled={loading}>
-              Retry
+              {t("items.page.retry")}
             </Button>
           }
         >
@@ -384,8 +386,9 @@ export function ItemsPage() {
                 mb: 1
               }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                Configured Items ({filteredItems.length}
-                {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
+                {isFiltered && items.length !== filteredItems.length
+                  ? t("items.page.configuredCountFiltered", { count: filteredItems.length, total: items.length })
+                  : t("items.page.configuredCount", { count: filteredItems.length })}
               </Typography>
             </Stack>
             <ItemTable
@@ -429,8 +432,9 @@ export function ItemsPage() {
         /* Full width register when no item is selected */
         <Box sx={{ mt: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-            Configured Items ({filteredItems.length}
-            {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
+            {isFiltered && items.length !== filteredItems.length
+              ? t("items.page.configuredCountFiltered", { count: filteredItems.length, total: items.length })
+              : t("items.page.configuredCount", { count: filteredItems.length })}
           </Typography>
           <ItemTable
             items={filteredItems}
@@ -471,32 +475,32 @@ export function ItemsPage() {
         open={pendingReasonAction !== null}
         title={
           pendingReasonAction?.kind === "delete"
-            ? `Delete item "${pendingReasonAction.item.name}"`
+            ? t("items.page.reasonDialog.deleteTitle", { name: pendingReasonAction.item.name })
             : pendingReasonAction?.kind === "freeze"
-            ? `Freeze item "${pendingReasonAction.item.name}"`
+            ? t("items.page.reasonDialog.freezeTitle", { name: pendingReasonAction.item.name })
             : pendingReasonAction?.kind === "unfreeze"
-            ? `Unfreeze item "${pendingReasonAction.item.name}"`
+            ? t("items.page.reasonDialog.unfreezeTitle", { name: pendingReasonAction.item.name })
             : pendingReasonAction
-            ? `Update item "${pendingReasonAction.name}"`
-            : "Change reason"
+            ? t("items.page.reasonDialog.editTitle", { name: pendingReasonAction.name })
+            : t("items.page.reasonDialog.defaultTitle")
         }
         message={
           pendingReasonAction?.kind === "delete"
-            ? "Deleting an item requires a reason for the audit trail."
+            ? t("items.page.reasonDialog.deleteMessage")
             : pendingReasonAction?.kind === "freeze"
-            ? "Freezing an item prevents new sample receipts and requires a reason for the audit trail."
+            ? t("items.page.reasonDialog.freezeMessage")
             : pendingReasonAction?.kind === "unfreeze"
-            ? "Unfreezing an item requires a reason for the audit trail."
-            : "This item has active laboratory work and requires a reason for the audit trail."
+            ? t("items.page.reasonDialog.unfreezeMessage")
+            : t("items.page.reasonDialog.editMessage")
         }
         confirmText={
           pendingReasonAction?.kind === "delete"
-            ? "Delete"
+            ? t("items.page.reasonDialog.confirmDelete")
             : pendingReasonAction?.kind === "freeze"
-            ? "Freeze"
+            ? t("items.page.reasonDialog.confirmFreeze")
             : pendingReasonAction?.kind === "unfreeze"
-            ? "Unfreeze"
-            : "Save Changes"
+            ? t("items.page.reasonDialog.confirmUnfreeze")
+            : t("items.page.reasonDialog.confirmEdit")
         }
         loading={reasonSubmitting}
         error={reasonError}

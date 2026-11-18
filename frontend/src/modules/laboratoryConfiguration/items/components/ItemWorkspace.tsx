@@ -20,6 +20,8 @@ import VerifiedIcon from "@mui/icons-material/Verified";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { Item } from "../services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../../components/StatusBadge";
 import { ItemDocumentService, ItemDocumentDto, ItemDocumentType, MaterialDocumentStatus } from "../services/ItemDocumentService";
@@ -68,6 +70,7 @@ interface ItemWorkspaceProps {
 }
 
 export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: controlledTab, onTabChange }: ItemWorkspaceProps) {
+  const { t } = useTranslation("labConfig");
   // The QC Manager opens this workspace to approve not-applicable tests; changing the item needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   useTrackRecent("item", item.id);
@@ -103,7 +106,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
       const docs = await ItemDocumentService.getDocumentsForItem(item.id);
       setDocuments(docs);
     } catch {
-      setDocError("Failed to load documents.");
+      setDocError(t("items.workspace.loadDocsError"));
     } finally {
       setLoadingDocs(false);
     }
@@ -208,7 +211,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
             <StatusBadge status={item.isActive ? "Active" : "Frozen"} />
             {item.sopNumber && (
               <Chip
-                label={`SOP: ${item.sopNumber}`}
+                label={t("items.workspace.sopChip", { sopNumber: item.sopNumber })}
                 size="small"
                 variant="outlined"
                 sx={{ fontSize: 12, height: 22, fontWeight: 500 }}
@@ -217,7 +220,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
           </Stack>
         </Box>
 
-        <IconButton aria-label="Close workspace" size="small" onClick={onClose} title="Close Workspace">
+        <IconButton aria-label={t("items.workspace.closeAriaLabel")} size="small" onClick={onClose} title={t("items.workspace.closeTitle")}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -225,25 +228,25 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
       {/* Tabs */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", px: 2, bgcolor: "background.paper" }}>
         <Tabs value={activeTab} onChange={(_, val: ItemWorkspaceTab) => setActiveTab(val)} variant="scrollable" scrollButtons="auto">
-          <Tab value="overview" label="Overview" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="overview" label={t("items.workspace.tabs.overview")} sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
             value="tests"
-            label={`Assigned Tests (${item.assignedTests?.length || 0})`}
+            label={t("items.workspace.tabs.tests", { count: item.assignedTests?.length || 0 })}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
           <Tab
             value="specifications"
-            label={`Specifications (${specsCount})`}
+            label={t("items.workspace.tabs.specifications", { count: specsCount })}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
-          <Tab value="records" label="Supporting Records" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="records" label={t("items.workspace.tabs.records")} sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
           <Tab
             value="documents"
-            label={`Documents & Attachments (${documents.length})`}
+            label={t("items.workspace.tabs.documents", { count: documents.length })}
             sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }}
           />
-          <Tab value="preparation" label="Preparation Configuration" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
-          <Tab value="audit" label="Audit History" sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="preparation" label={t("items.workspace.tabs.preparation")} sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
+          <Tab value="audit" label={t("items.workspace.tabs.audit")} sx={{ textTransform: "none", fontWeight: 600, fontSize: 13 }} />
         </Tabs>
       </Box>
 
@@ -255,7 +258,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                  Item Code
+                  {t("items.workspace.overview.itemCode")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                   {item.code}
@@ -264,7 +267,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                  Category
+                  {t("items.workspace.overview.category")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                   {item.category}
@@ -273,7 +276,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                  SOP Number
+                  {t("items.workspace.overview.sopNumber")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                   {item.sopNumber || "—"}
@@ -282,10 +285,10 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
               <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                  Status
+                  {t("items.workspace.overview.status")}
                 </Typography>
                 <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5, color: item.isActive ? "success.main" : "text.secondary" }}>
-                  {item.isActive ? "Active (Sample receipt enabled)" : "Frozen (Sample receipt disabled)"}
+                  {item.isActive ? t("items.workspace.overview.activeStatus") : t("items.workspace.overview.frozenStatus")}
                 </Typography>
               </Paper>
 
@@ -293,7 +296,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                 <>
                   <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                      Min Sample Quantity
+                      {t("items.workspace.overview.minSampleQty")}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                       {item.minSampleQuantity != null ? `${item.minSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
@@ -302,7 +305,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
                   <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                      Min Retest Sample Quantity
+                      {t("items.workspace.overview.minRetestQty")}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                       {item.minRetestSampleQuantity != null ? `${item.minRetestSampleQuantity} ${item.minSampleQuantityUnit || ""}`.trim() : "—"}
@@ -311,7 +314,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
                   <Paper sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
                     <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, textTransform: "uppercase" }}>
-                      Min Sample Quantity Unit
+                      {t("items.workspace.overview.minSampleQtyUnit")}
                     </Typography>
                     <Typography variant="body1" sx={{ fontWeight: 700, mt: 0.5 }}>
                       {item.minSampleQuantityUnit || "—"}
@@ -323,7 +326,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
 
             <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Configuration Summary
+                {t("items.workspace.overview.summaryTitle")}
               </Typography>
               <Stack spacing={1}>
                 <Box
@@ -340,10 +343,10 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                   {...clickable(() => setActiveTab("tests"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Assigned Tests:
+                    {t("items.workspace.overview.assignedTestsLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {item.assignedTests?.length || 0} tests configured →
+                    {t("items.workspace.overview.assignedTestsCount", { count: item.assignedTests?.length || 0 })}
                   </Typography>
                 </Box>
 
@@ -361,10 +364,10 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                   {...clickable(() => setActiveTab("specifications"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Specifications:
+                    {t("items.workspace.overview.specificationsLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {specsCount} specifications defined →
+                    {t("items.workspace.overview.specificationsCount", { count: specsCount })}
                   </Typography>
                 </Box>
 
@@ -382,10 +385,13 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                   {...clickable(() => setActiveTab("documents"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Controlled Documents:
+                    {t("items.workspace.overview.controlledDocsLabel")}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-                    {item.sopNumber ? `SOP: ${item.sopNumber}` : "No SOP"} • {currentVr ? "VR Available" : "No VR"} →
+                    {t("items.workspace.overview.controlledDocsSummary", {
+                      sop: item.sopNumber ? t("items.workspace.sopChip", { sopNumber: item.sopNumber }) : t("items.workspace.overview.noSop"),
+                      vr: currentVr ? t("items.workspace.overview.vrAvailable") : t("items.workspace.overview.noVr"),
+                    })}
                   </Typography>
                 </Box>
 
@@ -403,7 +409,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                   {...clickable(() => setActiveTab("preparation"))}
                 >
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Preparation Steps:
+                    {t("items.workspace.overview.prepStepsLabel")}
                   </Typography>
                   <Typography
                     variant="body2"
@@ -413,8 +419,12 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                     }}
                   >
                     {prepConfig
-                      ? `Configured · ${prepConfig.approvalStatus === "Approved" ? "Approved" : "Pending Approval"} →`
-                      : "Not configured →"}
+                      ? t("items.workspace.overview.prepConfigured", {
+                          status: prepConfig.approvalStatus === "Approved"
+                            ? t("items.workspace.overview.prepApproved")
+                            : t("items.workspace.overview.prepPending"),
+                        })
+                      : t("items.workspace.overview.prepNotConfigured")}
                   </Typography>
                 </Box>
               </Stack>
@@ -475,7 +485,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
                   <VerifiedIcon fontSize="small" sx={{ color: "success.main" }} />
-                  Verification Report
+                  {t("items.workspace.documents.heading")}
                 </Typography>
                 {canManage && (
                 <Button
@@ -484,7 +494,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                   startIcon={<UploadFileIcon fontSize="small" />}
                   onClick={openUploadDialog}
                 >
-                  + Upload Verification Report
+                  {t("items.workspace.documents.uploadButton")}
                 </Button>
                 )}
               </Stack>
@@ -494,7 +504,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
               ) : (
                 <Paper sx={{ p: 2, textAlign: "center", border: "1px dashed", borderColor: "divider", bgcolor: "action.hover" }}>
                   <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    No current Verification Report uploaded for this item.
+                    {t("items.workspace.documents.empty")}
                   </Typography>
                 </Paper>
               )}
@@ -503,7 +513,7 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
                 <Accordion sx={{ mt: 1, border: "1px solid", borderColor: "divider", boxShadow: "none" }}>
                   <AccordionSummary expandIcon={<ExpandMoreIcon fontSize="small" />}>
                     <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      Historical Verification Reports ({historicalVrs.length})
+                      {t("items.workspace.documents.historicalHeading", { count: historicalVrs.length })}
                     </Typography>
                   </AccordionSummary>
                   <AccordionDetails sx={{ pt: 0 }}>
@@ -541,14 +551,19 @@ export function ItemWorkspace({ item, onClose, onItemUpdated, activeTab: control
             alignItems: "flex-start"
           }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              View full GxP audit log history for Item <strong>{item.name}</strong> ({item.code}).
+              <Trans
+                i18nKey="items.workspace.audit.description"
+                ns="labConfig"
+                values={{ name: item.name, code: item.code }}
+                components={{ bold: <strong /> }}
+              />
             </Typography>
             <Button
               variant="contained"
               startIcon={<HistoryIcon />}
               onClick={() => setAuditDialogOpen(true)}
             >
-              Open Audit History Log
+              {t("items.workspace.audit.openButton")}
             </Button>
           </Stack>
         )}
@@ -588,6 +603,7 @@ function DocumentCard({
   formatDateTime: (d?: string | null) => string;
   isHistorical?: boolean;
 }) {
+  const { t } = useTranslation("labConfig");
   return (
     <Paper
       sx={{
@@ -624,15 +640,25 @@ function DocumentCard({
               sx={{ fontWeight: 700, fontSize: 12, height: 20 }}
             />
             {isHistorical && (
-              <Chip label="Superseded" size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12, height: 20 }} />
+              <Chip label={t("items.workspace.documents.superseded")} size="small" color="warning" sx={{ fontWeight: 600, fontSize: 12, height: 20 }} />
             )}
           </Stack>
 
           <Typography variant="caption" component="div" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Effective Date: <strong>{formatDate(doc.effectiveDate)}</strong> • Size: {formatFileSize(doc.fileSizeBytes)}
+            <Trans
+              i18nKey="items.workspace.documents.effectiveAndSize"
+              ns="labConfig"
+              values={{ date: formatDate(doc.effectiveDate), size: formatFileSize(doc.fileSizeBytes) }}
+              components={{ bold: <strong /> }}
+            />
           </Typography>
           <Typography variant="caption" component="div" sx={{ color: "text.secondary", mt: 0.25 }}>
-            Uploaded by: <strong>{doc.uploadedByUserName}</strong> on {formatDateTime(doc.uploadedAt)}
+            <Trans
+              i18nKey="items.workspace.documents.uploadedBy"
+              ns="labConfig"
+              values={{ user: doc.uploadedByUserName, dateTime: formatDateTime(doc.uploadedAt) }}
+              components={{ bold: <strong /> }}
+            />
           </Typography>
         </Box>
 

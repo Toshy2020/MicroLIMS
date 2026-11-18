@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField, Typography, Stack } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import type { HplcMethodAnalyteResponse } from "../../masterDataSimple/services/HplcMethodService";
 
 interface ResidualSolventSpecFieldsProps {
@@ -15,6 +16,8 @@ export function ResidualSolventSpecFields({
   selectedAnalyteId,
   onAnalyteChange
 }: ResidualSolventSpecFieldsProps) {
+  const { t } = useTranslation("labConfig");
+
   return (
     <Box
       sx={{
@@ -36,7 +39,7 @@ export function ResidualSolventSpecFields({
           mb: 1.5
         }}
       >
-        Residual Solvent (GC) Specification
+        {t("items.residualSolventFields.heading")}
       </Typography>
 
       <Stack spacing={2}>
@@ -48,10 +51,10 @@ export function ResidualSolventSpecFields({
           }}
         >
           <FormControl size="small" fullWidth required>
-            <InputLabel id="rs-solvent-select-label">Solvent *</InputLabel>
+            <InputLabel id="rs-solvent-select-label">{t("items.residualSolventFields.solventLabel")}</InputLabel>
             <Select
               labelId="rs-solvent-select-label"
-              label="Solvent *"
+              label={t("items.residualSolventFields.solventLabel")}
               value={selectedAnalyteId}
               onChange={(e) => {
                 const id = Number(e.target.value);
@@ -62,11 +65,11 @@ export function ResidualSolventSpecFields({
             >
               {loadingMethodAnalytes ? (
                 <MenuItem disabled value="">
-                  <em>Loading solvents...</em>
+                  <em>{t("items.residualSolventFields.loading")}</em>
                 </MenuItem>
               ) : methodAnalytes.length === 0 ? (
                 <MenuItem disabled value="">
-                  <em>No solvents configured in GC method</em>
+                  <em>{t("items.residualSolventFields.noSolvents")}</em>
                 </MenuItem>
               ) : (
                 methodAnalytes.map((a) => (
@@ -80,10 +83,10 @@ export function ResidualSolventSpecFields({
 
           <TextField
             size="small"
-            label="Result Basis *"
+            label={t("items.residualSolventFields.resultBasisLabel")}
             value="ppm"
             slotProps={{ input: { readOnly: true } }}
-            helperText="Fixed basis for residual solvents"
+            helperText={t("items.residualSolventFields.resultBasisHelper")}
             fullWidth
           />
         </Box>

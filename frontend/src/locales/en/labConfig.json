@@ -1,0 +1,522 @@
+{
+  "items": {
+    "page": {
+      "title": "Items",
+      "subtitle": "Configure which tests are auto-assigned when a sample is received.",
+      "loadError": "Could not load items.",
+      "actionError": "Could not complete this action.",
+      "newFromExisting": "New from existing",
+      "addItem": "Add Item",
+      "retry": "Retry",
+      "configuredCount": "Configured Items ({{count}})",
+      "configuredCountFiltered": "Configured Items ({{count}} of {{total}})",
+      "messages": {
+        "updated": "Item \"{{name}}\" updated successfully.",
+        "created": "Item \"{{name}}\" created successfully.",
+        "deleted": "Item \"{{name}}\" deleted.",
+        "frozen": "Item \"{{name}}\" frozen.",
+        "unfrozen": "Item \"{{name}}\" unfrozen."
+      },
+      "reasonDialog": {
+        "deleteTitle": "Delete item \"{{name}}\"",
+        "freezeTitle": "Freeze item \"{{name}}\"",
+        "unfreezeTitle": "Unfreeze item \"{{name}}\"",
+        "editTitle": "Update item \"{{name}}\"",
+        "defaultTitle": "Change reason",
+        "deleteMessage": "Deleting an item requires a reason for the audit trail.",
+        "freezeMessage": "Freezing an item prevents new sample receipts and requires a reason for the audit trail.",
+        "unfreezeMessage": "Unfreezing an item requires a reason for the audit trail.",
+        "editMessage": "This item has active laboratory work and requires a reason for the audit trail.",
+        "confirmDelete": "Delete",
+        "confirmFreeze": "Freeze",
+        "confirmUnfreeze": "Unfreeze",
+        "confirmEdit": "Save Changes"
+      }
+    },
+    "hints": {
+      "itemCode": "The unique code of the item. Item codes must be unique, and the comparison is case-sensitive.",
+      "sopNumber": "Optional. The number of the item's Standard Operating Procedure, if it has one.",
+      "category": "Product, Raw Material or Packaging Material. Items are configured only for these categories; water, environmental monitoring, after cleaning and GPT have their own configuration pages.",
+      "assignedTests": "The tests assigned to this item. When a sample of this item is received, a test order is created for each of these tests that applies to the sample; tests declared not applicable are left out."
+    },
+    "categories": {
+      "all": "All Categories",
+      "FinishedProduct": "Product",
+      "RawMaterial": "Raw Material",
+      "PackagingMaterial": "Packaging Material"
+    },
+    "statuses": {
+      "all": "All Statuses",
+      "Active": "Active",
+      "Frozen": "Frozen"
+    },
+    "filterBar": {
+      "searchPlaceholder": "Search by item name, item code, SOP number...",
+      "searchAriaLabel": "Search items",
+      "categoryAriaLabel": "Filter by category",
+      "statusAriaLabel": "Filter by status",
+      "reset": "Reset"
+    },
+    "table": {
+      "loadingAriaLabel": "Loading items",
+      "emptyFilteredTitle": "No items match your filters",
+      "emptyTitle": "No items configured yet",
+      "emptyFilteredHint": "Try a different search term or clear the filters.",
+      "emptyHint": "Use \"Add Item\" to create the first one.",
+      "clearFilters": "Clear filters",
+      "rowsPerPage": "Items per page:",
+      "rowAriaLabel": "{{name}} ({{code}})",
+      "rowAriaLabelFrozen": "{{name}} ({{code}}), frozen",
+      "testCount_one": "{{count}} Test",
+      "testCount_other": "{{count}} Tests",
+      "specCount_one": "{{count}} Spec",
+      "specCount_other": "{{count}} Specs",
+      "docCount_one": "{{count}} Doc",
+      "docCount_other": "{{count}} Docs",
+      "legacyCategory": "⚠ Legacy category",
+      "editTooltip": "Edit item",
+      "editAriaLabel": "Edit {{name}}",
+      "freezeTooltip": "Freeze item",
+      "unfreezeTooltip": "Unfreeze item",
+      "freezeAriaLabel": "Freeze {{name}}",
+      "unfreezeAriaLabel": "Unfreeze {{name}}",
+      "deleteTooltip": "Delete item",
+      "deleteAriaLabel": "Delete {{name}}"
+    },
+    "unmappedPrep": {
+      "show": "Show",
+      "hide": "Hide",
+      "banner_one": "<bold>Not linked to master data:</bold> {{count}} item still uses a typed diluent or neutralizer, so no lot can be recorded for it.",
+      "banner_other": "<bold>Not linked to master data:</bold> {{count}} items still use a typed diluent or neutralizer, so no lot can be recorded for them.",
+      "itemFallback": "Item #{{id}}",
+      "details": "Diluent: {{diluent}} · Neutralizer: {{neutralizer}}"
+    },
+    "addDialog": {
+      "editTitle": "Edit Item: {{name}}",
+      "newFromExistingTitle": "New Item from Existing",
+      "addTitle": "Add New Item",
+      "saveChanges": "Save Changes",
+      "saveItem": "Save Item",
+      "copyFromLabel": "Copy from existing item",
+      "copyFromPlaceholder": "Optional — pre-fill category, quantities, tests or specifications",
+      "copySpecifications": "Copy specifications",
+      "copyAutoAssignedTests": "Copy auto-assigned tests",
+      "copyNote": "Code, name, SOP number and documents are never copied.",
+      "itemNameLabel": "Item Name",
+      "itemCodeLabel": "Item Code",
+      "itemCodeHintLabel": "the code of this item",
+      "sopNumberLabel": "SOP Number",
+      "sopNumberHintLabel": "the item's SOP",
+      "categoryLabel": "Category",
+      "minSampleQtyLabel": "Min Sample Qty",
+      "minRetestQtyLabel": "Min Retest Qty",
+      "quantityUnitLabel": "Quantity Unit",
+      "quantityUnitPlaceholder": "e.g. g, mL",
+      "assignedTestsHeading": "Assigned Tests (Auto-assigned on sample receipt)",
+      "assignedTestsLabel": "Assigned Tests",
+      "copyTestsWithCodes": "Auto-assigned tests from {{name}} ({{codes}}) will be copied on save.",
+      "copyTestsNoCodes": "Auto-assigned tests from {{name}} will be copied on save.",
+      "errors": {
+        "selectSourceItem": "Select an existing item to copy from.",
+        "requiredFields": "Item Name, Item Code, and at least one assigned test are required.",
+        "saveFailed": "Failed to save item.",
+        "reloadFailed": "Could not reload the latest record."
+      }
+    },
+    "workspace": {
+      "sopChip": "SOP: {{sopNumber}}",
+      "closeAriaLabel": "Close workspace",
+      "closeTitle": "Close Workspace",
+      "loadDocsError": "Failed to load documents.",
+      "tabs": {
+        "overview": "Overview",
+        "tests": "Assigned Tests ({{count}})",
+        "specifications": "Specifications ({{count}})",
+        "records": "Supporting Records",
+        "documents": "Documents & Attachments ({{count}})",
+        "preparation": "Preparation Configuration",
+        "audit": "Audit History"
+      },
+      "overview": {
+        "itemCode": "Item Code",
+        "category": "Category",
+        "sopNumber": "SOP Number",
+        "status": "Status",
+        "activeStatus": "Active (Sample receipt enabled)",
+        "frozenStatus": "Frozen (Sample receipt disabled)",
+        "minSampleQty": "Min Sample Quantity",
+        "minRetestQty": "Min Retest Sample Quantity",
+        "minSampleQtyUnit": "Min Sample Quantity Unit",
+        "summaryTitle": "Configuration Summary",
+        "assignedTestsLabel": "Assigned Tests:",
+        "assignedTestsCount_one": "{{count}} test configured →",
+        "assignedTestsCount_other": "{{count}} tests configured →",
+        "specificationsLabel": "Specifications:",
+        "specificationsCount_one": "{{count}} specification defined →",
+        "specificationsCount_other": "{{count}} specifications defined →",
+        "controlledDocsLabel": "Controlled Documents:",
+        "controlledDocsSummary": "{{sop}} • {{vr}} →",
+        "noSop": "No SOP",
+        "vrAvailable": "VR Available",
+        "noVr": "No VR",
+        "prepStepsLabel": "Preparation Steps:",
+        "prepConfigured": "Configured · {{status}} →",
+        "prepApproved": "Approved",
+        "prepPending": "Pending Approval",
+        "prepNotConfigured": "Not configured →"
+      },
+      "documents": {
+        "heading": "Verification Report",
+        "uploadButton": "+ Upload Verification Report",
+        "empty": "No current Verification Report uploaded for this item.",
+        "historicalHeading": "Historical Verification Reports ({{count}})",
+        "superseded": "Superseded",
+        "effectiveAndSize": "Effective Date: <bold>{{date}}</bold> • Size: {{size}}",
+        "uploadedBy": "Uploaded by: <bold>{{user}}</bold> on {{dateTime}}"
+      },
+      "audit": {
+        "description": "View full GxP audit log history for Item <bold>{{name}}</bold> ({{code}}).",
+        "openButton": "Open Audit History Log"
+      }
+    },
+    "assignedTests": {
+      "infoBanner": "These tests are automatically assigned when a new sample is received for <bold>{{name}}</bold>.",
+      "editTests": "Edit tests",
+      "pickerLabel": "Assigned Tests",
+      "cancel": "Cancel",
+      "saveTests": "Save tests",
+      "listAriaLabel": "Assigned tests",
+      "empty": "No tests assigned to this item yet.",
+      "reasonTitle": "Update assigned tests for \"{{name}}\"",
+      "errors": {
+        "atLeastOne": "At least one assigned test is required.",
+        "saveFailed": "Could not save the assigned tests."
+      }
+    },
+    "uploadDoc": {
+      "title": "Upload Controlled Verification Report",
+      "cancel": "Cancel",
+      "upload": "Upload",
+      "uploading": "Uploading...",
+      "itemLabel": "Item: <bold>{{name}}</bold>",
+      "documentTypeLabel": "Document Type",
+      "verificationReport": "Verification Report",
+      "versionLabel": "Version",
+      "versionPlaceholder": "e.g. Rev 01",
+      "effectiveDateLabel": "Effective Date",
+      "chooseFile": "Choose File",
+      "fileTypesHint": "PDF, Word, Excel, or Image (Max 25MB)",
+      "errors": {
+        "fileRequired": "Please select a document file to upload.",
+        "uploadFailed": "Failed to upload document."
+      }
+    },
+    "prepConfig": {
+      "loadError": "Could not load the preparation configuration.",
+      "savedPending": "Preparation configuration saved. It is pending approval.",
+      "saveError": "Could not save the configuration.",
+      "approvedMessage": "Preparation configuration approved.",
+      "approveError": "Could not approve the configuration.",
+      "emptyInfo": "No preparation configuration set for <bold>{{name}}</bold>. One will be created automatically from the first analyst confirmation, or you can configure it now.",
+      "mappingWarning": "Diluent/neutralizer not linked to master data — edit and pick them so the lot used can be recorded.",
+      "statusApproved": "Approved",
+      "statusPending": "Pending Approval",
+      "approvedBy": "Approved by {{name}} on {{date}}",
+      "createdBy": "Created by {{name}} on {{date}}",
+      "userFallback": "User #{{id}}",
+      "pendingWarning": "This configuration is in effect and is already being used for testing. Approving it records your review; editing it first replaces the protocol for future samples.",
+      "sampleAmountLabel": "Sample Amount",
+      "techniqueAriaLabel": "Technique",
+      "pourPlate": "Pour Plate",
+      "filtration": "Filtration",
+      "filtrationVolumeLabel": "Filtration Volume (ml)",
+      "washingVolumeLabel": "Washing Volume (ml)",
+      "diluentLabel": "Diluent",
+      "neutralizerLabel": "Neutralizer",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save Configuration",
+      "approve": "Approve",
+      "edit": "Edit",
+      "configure": "Configure Preparation"
+    },
+    "notApplicable": {
+      "title": "Not-Applicable Tests",
+      "subtitle": "Exempt assigned tests for specific grades or all grades with Section Head and QC Manager approval.",
+      "declareButton": "Declare not applicable",
+      "loadError": "Failed to load not-applicable test declarations.",
+      "empty": "No not-applicable test declarations on file.",
+      "allGrades": "All grades",
+      "columns": {
+        "test": "Test",
+        "grade": "Grade",
+        "criticality": "Criticality",
+        "status": "Status",
+        "headSigner": "Head Signer & Time",
+        "qcSigner": "QC Manager Signer & Time",
+        "reference": "Reference",
+        "actions": "Actions"
+      },
+      "statuses": {
+        "Approved": "Approved",
+        "HeadApproved": "Head Approved",
+        "Withdrawn": "Withdrawn",
+        "Draft": "Draft"
+      },
+      "actions": {
+        "headApprove": "Approve (Section Head)",
+        "finalApprove": "Approve (QC Manager)",
+        "withdraw": "Withdraw"
+      },
+      "dialog": {
+        "title": "Declare not applicable",
+        "testLabel": "Test",
+        "selectTest": "Select a test",
+        "gradeLabel": "Grade",
+        "justificationLabel": "Justification",
+        "criticalityLabel": "Criticality",
+        "criticalityPlaceholder": "e.g. Non-critical or Critical",
+        "immediateActionLabel": "Immediate Action",
+        "longTermActionLabel": "Long-term Action",
+        "referenceLabel": "Reference",
+        "referencePlaceholder": "e.g. Monograph or SOP reference",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "submitting": "Submitting..."
+      },
+      "signature": {
+        "headApproveMeaning": "I approve the test '{{test}}' as not applicable (Section Head).",
+        "finalApproveMeaning": "I grant final approval for the test '{{test}}' as not applicable (QC Manager).",
+        "withdrawMeaning": "I am withdrawing the not-applicable test declaration for '{{test}}'.",
+        "reasonRequiredLabel": "Reason (required)",
+        "reasonRequiredError": "Reason is required."
+      },
+      "errors": {
+        "testRequired": "Test is required.",
+        "justificationRequired": "Justification is required.",
+        "criticalityRequired": "Criticality is required.",
+        "immediateActionRequired": "Immediate action is required.",
+        "longTermActionRequired": "Long-term action is required.",
+        "createFailed": "Failed to declare test as not applicable."
+      }
+    },
+    "supplierAttributes": {
+      "title": "Supplier-Stated Attributes",
+      "subtitle": "Certificate of Analysis attributes and values stated directly by the supplier.",
+      "addButton": "Add Supplier Attribute",
+      "loadError": "Failed to load supplier-stated attributes.",
+      "empty": "No supplier-stated attributes configured for this item.",
+      "allGrades": "All grades",
+      "deleteConfirm": "Are you sure you want to delete this supplier-stated attribute?",
+      "deleteError": "Failed to delete supplier-stated attribute.",
+      "columns": {
+        "name": "Name",
+        "statedValue": "Stated Value",
+        "grade": "Grade",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "dialog": {
+        "editTitle": "Edit Supplier Attribute",
+        "addTitle": "Add Supplier Attribute",
+        "nameLabel": "Name",
+        "statedValueLabel": "Stated Value",
+        "gradeLabel": "Grade",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving..."
+      },
+      "errors": {
+        "nameRequired": "Name is required.",
+        "statedValueRequired": "Stated value is required.",
+        "saveFailed": "Failed to save supplier-stated attribute."
+      }
+    },
+    "specifications": {
+      "heading": "PHARMACOPOEIAL SPECIFICATIONS & LIMITS ({{count}})",
+      "subheading": "One table for every limit type: count-based, numeric, qualitative and multi-stage.",
+      "coverage": "Limits set for {{set}} of {{total}} assigned tests",
+      "pasteButton": "Paste specifications",
+      "copyButton": "Copy from another item",
+      "addButton": "Add Specification Parameter",
+      "pasteLabel": "Paste specification rows",
+      "pastePlaceholder": "Paste rows copied from a spreadsheet (Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit)",
+      "pasteHelper": "Columns in order: Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit. A pasted range includes both limits; use Add Specification Parameter for an exclusive limit. Use Add Specification Parameter for stages, HPLC analytes/impurities, ICP elements, related-substance rows, dosage form, label claim, production stage, or grade.",
+      "close": "Close",
+      "lookupsIncomplete": "Some test and analyte names could not be loaded, so analyte labels may be missing from the specifications below. Reload the page to try again.",
+      "pendingTitle": "Pending specifications ({{count}})",
+      "pendingSubtitle_one": "Review the {{count}} specification parameter below. Nothing is saved until you click Save.",
+      "pendingSubtitle_other": "Review the {{count}} specification parameters below. Nothing is saved until you click Save.",
+      "pendingAriaLabel": "Pending specifications",
+      "noAssignedTests": "This item has no assigned tests yet. Assign tests under the <bold>Assigned Tests</bold> tab or edit the item before configuring specifications.",
+      "empty": "No specifications defined yet. Click \"Add Specification Parameter\" above to add limits.",
+      "columns": {
+        "parameter": "Assigned Test / Parameter",
+        "limitType": "Limit Type",
+        "limit": "Limit",
+        "unit": "Unit",
+        "referenceStandard": "Reference Standard",
+        "actions": "Actions"
+      },
+      "pendingColumns": {
+        "testCode": "Test",
+        "parameterName": "Parameter name",
+        "limitType": "Limit type",
+        "lowerLimit": "Lower limit",
+        "upperLimit": "Upper limit",
+        "target": "Target",
+        "tolerance": "Tolerance",
+        "toleranceMode": "Tolerance mode",
+        "alertLimit": "Alert limit",
+        "actionLimit": "Action limit",
+        "specLimit": "Spec limit",
+        "expectedResultText": "Expected result text",
+        "unit": "Unit"
+      },
+      "limitTypes": {
+        "Range": "Range",
+        "NotMoreThan": "NMT",
+        "NotLessThan": "NLT",
+        "NotMoreLessLegend": "NMT/NLT",
+        "TargetWithTolerance": "Target ± Tol.",
+        "CountTiered": "Count-Tiered",
+        "Qualitative": "Qualitative",
+        "PresenceAbsence": "Presence/Absence",
+        "MultiStage": "Multi-Stage",
+        "StageCriteria": "Stage Criteria",
+        "DissolutionQ": "Dissolution Q",
+        "DisintegrationTime": "Disintegration Time",
+        "WeightVariation": "Weight Variation"
+      },
+      "badges": {
+        "retired": "Retired",
+        "grade": "Grade: {{grades}}",
+        "stage": "Stage: {{stage}}",
+        "otherLab": "Other lab",
+        "analyte": "Analyte: {{name}}",
+        "element": "Element: {{symbol}}",
+        "basis": "Basis: {{basis}}",
+        "dilutionFactor": "Dilution Factor ×{{factor}}",
+        "labelClaim": "Label Claim {{claim}} {{unit}}",
+        "parameterCount_one": "{{count}} parameter",
+        "parameterCount_other": "{{count}} parameters"
+      },
+      "actions": {
+        "readOnly": "Read-only",
+        "reinstate": "Reinstate",
+        "editTitle": "Edit Specification",
+        "editAriaLabel": "Edit specification for {{testCode}}",
+        "deleteTitle": "Delete Specification",
+        "deleteAriaLabel": "Delete specification for {{testCode}}",
+        "addParameterTo": "+ Add parameter to {{testName}}"
+      },
+      "messages": {
+        "batchAdded_one": "Added {{count}} specification parameter to {{itemName}}.",
+        "batchAdded_other": "Added {{count}} specification parameters to {{itemName}}.",
+        "batchSaveFailed": "Could not save specifications. Nothing was created.",
+        "copied_one": "Copied {{count}} specification parameter to {{itemName}}.",
+        "copied_other": "Copied {{count}} specification parameters to {{itemName}}.",
+        "retired": "Specification \"{{label}}\" was retired because results are recorded against it.",
+        "retiredAndDeleted": "Specification \"{{label}}\": {{retiredCount}} retired (has results), {{deletedCount}} deleted.",
+        "deleted": "Specification \"{{label}}\" was deleted.",
+        "deleteFailed": "Failed to delete specification.",
+        "reinstated": "Specification \"{{label}}\" was reinstated.",
+        "reinstateFailed": "Failed to reinstate specification."
+      },
+      "reasonDialogs": {
+        "deleteTitle": "Delete or retire specification",
+        "deleteMessage": "Delete specification parameter \"{{label}}\"{{gradesText}} for \"{{itemName}}\"? Specifications with recorded results are retired instead of deleted.",
+        "gradesSuffix": " (grades {{grades}})",
+        "confirm": "Confirm",
+        "reinstateTitle": "Reinstate specification",
+        "reinstateMessage": "Reinstate retired specification \"{{label}}\" for \"{{itemName}}\" so it is active for new testing again.",
+        "reinstateConfirm": "Reinstate"
+      }
+    },
+    "copySpecs": {
+      "title": "Copy specifications to {{name}} ({{code}})",
+      "save": "Save",
+      "description": "Limits are copied exactly as they are on the source item. Parameters already present on this item are skipped, and invalid rows must be unticked before saving. Each created specification is recorded in the audit trail.",
+      "itemsLoadError": "Items could not be loaded: {{error}}",
+      "itemsLoadFallback": "The items could not be loaded.",
+      "copyFromLabel": "Copy from item",
+      "previewLoadError": "The preview for {{name}} could not be loaded: {{error}}",
+      "previewLoadFallback": "The preview could not be loaded.",
+      "loadingPreview": "Loading preview",
+      "nothingToCopy": "Nothing on {{source}} can be copied to {{target}}.",
+      "selectedCount": "{{selected}} of {{total}} selected",
+      "previewButton": "Preview",
+      "invalidWarning": "One or more ticked specifications are invalid for {{name}}. Untick invalid rows before saving.",
+      "copyCheckboxAriaLabel": "Copy {{label}}",
+      "copyFailed": "The specifications could not be copied.",
+      "statuses": {
+        "Ok": "Ok",
+        "AlreadyPresent": "Already present",
+        "Invalid": "Invalid"
+      }
+    },
+    "specFormatting": {
+      "rangeBoth": "NLT {{lower}} — NMT {{upper}}",
+      "nmt": "NMT {{upper}}",
+      "nlt": "NLT {{lower}}",
+      "countAlert": "Alert {{value}}",
+      "countAction": "Action {{value}}",
+      "countSpec": "Spec {{value}}",
+      "present": "Present",
+      "absent": "Absent",
+      "presenceInQty": "{{state}} in {{qty}}",
+      "presenceInQtyUnit": "{{state}} in {{qty}} {{unit}}",
+      "dissolutionQ": "Q = {{q}} %",
+      "disintegrationTime": "NMT {{t}} min",
+      "weightVariationTablet": "USP <2091>: tablets, limit by average weight",
+      "weightVariationCapsule": "USP <2091>: net content 90-110 % of average",
+      "basis": {
+        "MgPerKg": "mg/kg per sample",
+        "MgPerUnit": "mg per unit",
+        "PercentLabelClaim": "% label claim",
+        "PercentAsIs": "% as is",
+        "PercentDriedBasis": "% dried basis",
+        "PercentAnhydrousBasis": "% anhydrous basis",
+        "Ppm": "ppm",
+        "None": "None"
+      }
+    },
+    "icpSpecFields": {
+      "impurityHeading": "Elemental Impurity (ICP) Specification",
+      "assayHeading": "Assay (ICP) Specification",
+      "elementLabel": "Element *",
+      "elementAriaLabel": "Element",
+      "noElements": "No elements configured on this test",
+      "targetPpm": " (target {{ppm}} ppm)",
+      "impurityHelper": "Limit is not more than the value below in ppm; 0 means not detected.",
+      "assayHelper": "Limits apply to the assay % of the test's target concentration."
+    },
+    "residualSolventFields": {
+      "heading": "Residual Solvent (GC) Specification",
+      "solventLabel": "Solvent *",
+      "loading": "Loading solvents...",
+      "noSolvents": "No solvents configured in GC method",
+      "resultBasisLabel": "Result Basis *",
+      "resultBasisHelper": "Fixed basis for residual solvents"
+    },
+    "titrationBasisFields": {
+      "resultBasisLabel": "Result Basis *",
+      "labelClaimLabel": "Label Claim (mg per unit) *",
+      "finishedProductsOnly": "Finished products only",
+      "options": {
+        "PercentAsIs": "% as is",
+        "PercentDriedBasis": "% dried basis",
+        "PercentAnhydrousBasis": "% anhydrous basis",
+        "PercentLabelClaim": "% of label claim",
+        "MgPerUnit": "mg per unit"
+      },
+      "errors": {
+        "selectBasis": "Please select a result basis.",
+        "labelClaimRequired": "Label claim (mg per unit) must be greater than 0 for this basis."
+      }
+    }
+  }
+}

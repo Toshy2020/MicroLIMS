@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material";
 import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
+import { i18n } from "../../../i18n";
 import { ItemsPage } from "./ItemsPage";
 import { ItemService } from "./services/ItemService";
 
@@ -33,7 +34,10 @@ describe("ItemsPage", () => {
     vi.mocked(ItemService.getAll).mockResolvedValue([item] as never);
   });
 
-  afterEach(cleanup);
+  afterEach(async () => {
+    cleanup();
+    await i18n.changeLanguage("en");
+  });
 
   it("shows no create, edit, freeze or delete control to a user who can only give the final approval", async () => {
     perms.list = ["tests.not-applicable.final-approve"];
@@ -81,5 +85,15 @@ describe("ItemsPage", () => {
     await user.type(await screen.findByLabelText(/Reason for change/i), "Obsolete test item master");
     await user.click(screen.getByRole("button", { name: "Delete" }));
     await waitFor(() => expect(ItemService.remove).toHaveBeenCalledWith(1, "Obsolete test item master"));
+  });
+
+  it("renders the page heading and action buttons in Arabic when Arabic is active", async () => {
+    perms.list = ["Items.Manage"];
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Riboflavin")).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "الأصناف" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "إضافة صنف" })).toBeTruthy();
   });
 });

@@ -24,6 +24,9 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
+import { Trans } from "react-i18next";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../../../i18n";
 import { Item } from "../services/ItemService";
 import {
   SpecificationService,
@@ -63,30 +66,32 @@ interface ItemSpecificationsSectionProps {
 // one neutral chip style (theme-aware, AA contrast in both modes). The old
 // per-type hues were decorative - two types shared a colour - and amber text
 // on its own 12% tint measured about 2:1.
-const LIMIT_TYPE_LABELS: Record<string, string> = {
-  Range: "Range",
-  NotMoreThan: "NMT",
-  NotLessThan: "NLT",
-  TargetWithTolerance: "Target \u00B1 Tol.",
-  CountTiered: "Count-Tiered",
-  Qualitative: "Qualitative",
-  PresenceAbsence: "Presence/Absence",
-  MultiStage: "Multi-Stage",
-  StageCriteria: "Stage Criteria",
-  DissolutionQ: "Dissolution Q",
-  DisintegrationTime: "Disintegration Time",
-  WeightVariation: "Weight Variation",
+const LIMIT_TYPE_KEYS: Record<string, string> = {
+  Range: "items.specifications.limitTypes.Range",
+  NotMoreThan: "items.specifications.limitTypes.NotMoreThan",
+  NotLessThan: "items.specifications.limitTypes.NotLessThan",
+  TargetWithTolerance: "items.specifications.limitTypes.TargetWithTolerance",
+  CountTiered: "items.specifications.limitTypes.CountTiered",
+  Qualitative: "items.specifications.limitTypes.Qualitative",
+  PresenceAbsence: "items.specifications.limitTypes.PresenceAbsence",
+  MultiStage: "items.specifications.limitTypes.MultiStage",
+  StageCriteria: "items.specifications.limitTypes.StageCriteria",
+  DissolutionQ: "items.specifications.limitTypes.DissolutionQ",
+  DisintegrationTime: "items.specifications.limitTypes.DisintegrationTime",
+  WeightVariation: "items.specifications.limitTypes.WeightVariation",
 };
 
 export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> = ({
   type,
   labelOverride
 }) => {
+  const { t } = useTranslation("labConfig");
+  const key = LIMIT_TYPE_KEYS[type];
   return (
     <Chip
       size="small"
       variant="outlined"
-      label={labelOverride ?? LIMIT_TYPE_LABELS[type] ?? type}
+      label={labelOverride ?? (key ? t(key) : type)}
       sx={{
         height: 22,
         fontSize: 12,
@@ -99,72 +104,76 @@ export const LimitTypeBadge: React.FC<{ type: string; labelOverride?: string }> 
   );
 };
 
-const SPEC_PENDING_COLUMNS: PendingBatchColumn<PendingItemSpecification>[] = [
-  {
-    key: "testCode",
-    label: "Test",
-    sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
-    render: (r) => r.testCode
-  },
-  { key: "parameterName", label: "Parameter name", render: (r) => r.parameterName || "—" },
-  { key: "limitTypeLabel", label: "Limit type", render: (r) => r.limitTypeLabel },
-  {
-    key: "lowerLimit",
-    label: "Lower limit",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.lowerLimit !== null ? String(r.lowerLimit) : "—")
-  },
-  {
-    key: "upperLimit",
-    label: "Upper limit",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.upperLimit !== null ? String(r.upperLimit) : "—")
-  },
-  {
-    key: "target",
-    label: "Target",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.target !== null ? String(r.target) : "—")
-  },
-  {
-    key: "tolerance",
-    label: "Tolerance",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => (r.tolerance !== null ? String(r.tolerance) : "—")
-  },
-  {
-    key: "toleranceModeLabel",
-    label: "Tolerance mode",
-    render: (r) => r.toleranceModeLabel || "—"
-  },
-  {
-    key: "alertLimit",
-    label: "Alert limit",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => r.alertLimit || "—"
-  },
-  {
-    key: "actionLimit",
-    label: "Action limit",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => r.actionLimit || "—"
-  },
-  {
-    key: "specLimit",
-    label: "Spec limit",
-    sx: { fontVariantNumeric: "tabular-nums" },
-    render: (r) => r.specLimit || "—"
-  },
-  { key: "expectedResultText", label: "Expected result text", render: (r) => r.expectedResultText || "—" },
-  { key: "unit", label: "Unit", render: (r) => r.unit || "—" }
-];
+function getSpecPendingColumns(t: TFunction<"labConfig">): PendingBatchColumn<PendingItemSpecification>[] {
+  return [
+    {
+      key: "testCode",
+      label: t("items.specifications.pendingColumns.testCode"),
+      sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
+      render: (r) => r.testCode
+    },
+    { key: "parameterName", label: t("items.specifications.pendingColumns.parameterName"), render: (r) => r.parameterName || "—" },
+    { key: "limitTypeLabel", label: t("items.specifications.pendingColumns.limitType"), render: (r) => r.limitTypeLabel },
+    {
+      key: "lowerLimit",
+      label: t("items.specifications.pendingColumns.lowerLimit"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => (r.lowerLimit !== null ? String(r.lowerLimit) : "—")
+    },
+    {
+      key: "upperLimit",
+      label: t("items.specifications.pendingColumns.upperLimit"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => (r.upperLimit !== null ? String(r.upperLimit) : "—")
+    },
+    {
+      key: "target",
+      label: t("items.specifications.pendingColumns.target"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => (r.target !== null ? String(r.target) : "—")
+    },
+    {
+      key: "tolerance",
+      label: t("items.specifications.pendingColumns.tolerance"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => (r.tolerance !== null ? String(r.tolerance) : "—")
+    },
+    {
+      key: "toleranceModeLabel",
+      label: t("items.specifications.pendingColumns.toleranceMode"),
+      render: (r) => r.toleranceModeLabel || "—"
+    },
+    {
+      key: "alertLimit",
+      label: t("items.specifications.pendingColumns.alertLimit"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => r.alertLimit || "—"
+    },
+    {
+      key: "actionLimit",
+      label: t("items.specifications.pendingColumns.actionLimit"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => r.actionLimit || "—"
+    },
+    {
+      key: "specLimit",
+      label: t("items.specifications.pendingColumns.specLimit"),
+      sx: { fontVariantNumeric: "tabular-nums" },
+      render: (r) => r.specLimit || "—"
+    },
+    { key: "expectedResultText", label: t("items.specifications.pendingColumns.expectedResultText"), render: (r) => r.expectedResultText || "—" },
+    { key: "unit", label: t("items.specifications.pendingColumns.unit"), render: (r) => r.unit || "—" }
+  ];
+}
 
 export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps> = ({
   item,
   onSpecsChanged,
   readOnly = false
 }) => {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
+  const pendingColumns = useMemo(() => getSpecPendingColumns(t), [t]);
 
   const [specs, setSpecs] = useState<SpecificationDto[]>(item.specifications ?? []);
   const [loading, setLoading] = useState(false);
@@ -348,14 +357,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       const count = pendingSpecs.length;
       setPendingSpecs([]);
       setNotice(
-        `Added ${count} specification parameter${count === 1 ? "" : "s"} to ${item.name}.`
+        t("items.specifications.messages.batchAdded", { count, itemName: item.name })
       );
       await loadSpecs();
       onSpecsChanged?.();
     } catch (e: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         e,
-        "Could not save specifications. Nothing was created."
+        t("items.specifications.messages.batchSaveFailed")
       );
       if (rowErrors) {
         setPendingSpecs((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -412,11 +421,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       }
       setPendingDelete(null);
       if (retiredCount > 0 && deletedCount === 0) {
-        setNotice(`Specification "${label}" was retired because results are recorded against it.`);
+        setNotice(t("items.specifications.messages.retired", { label }));
       } else if (retiredCount > 0 && deletedCount > 0) {
-        setNotice(`Specification "${label}": ${retiredCount} retired (has results), ${deletedCount} deleted.`);
+        setNotice(t("items.specifications.messages.retiredAndDeleted", { label, retiredCount, deletedCount }));
       } else {
-        setNotice(`Specification "${label}" was deleted.`);
+        setNotice(t("items.specifications.messages.deleted", { label }));
       }
       await loadSpecs();
       onSpecsChanged?.();
@@ -428,7 +437,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       setReasonError(
         axiosError?.response?.data?.message ||
           axiosError?.message ||
-          "Failed to delete specification."
+          t("items.specifications.messages.deleteFailed")
       );
     } finally {
       setDeleting(false);
@@ -448,7 +457,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
         }
       }
       setPendingReinstate(null);
-      setNotice(`Specification "${label}" was reinstated.`);
+      setNotice(t("items.specifications.messages.reinstated", { label }));
       await loadSpecs();
       onSpecsChanged?.();
     } catch (err: unknown) {
@@ -459,7 +468,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       setReasonError(
         axiosError?.response?.data?.message ||
           axiosError?.message ||
-          "Failed to reinstate specification."
+          t("items.specifications.messages.reinstateFailed")
       );
     } finally {
       setDeleting(false);
@@ -500,21 +509,23 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
               textTransform: "uppercase"
             }}
           >
-            PHARMACOPOEIAL SPECIFICATIONS & LIMITS ({specs.length})
+            {t("items.specifications.heading", { count: specs.length })}
           </Typography>
           <Typography
             variant="caption"
             sx={{ color: "text.secondary", display: "block", mt: 0.25 }}
           >
-            One table for every limit type: count-based, numeric, qualitative and multi-stage.
+            {t("items.specifications.subheading")}
           </Typography>
           {assignedTests.length > 0 && (
             <Typography
               variant="caption"
               sx={{ color: "text.secondary", display: "block" }}
             >
-              Limits set for {assignedTests.filter((t) => specs.some((s) => s.testCode === t.testCode)).length} of{" "}
-              {assignedTests.length} assigned tests
+              {t("items.specifications.coverage", {
+                set: assignedTests.filter((a) => specs.some((s) => s.testCode === a.testCode)).length,
+                total: assignedTests.length
+              })}
             </Typography>
           )}
         </Box>
@@ -534,7 +545,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                 fontSize: 12
               }}
             >
-              Paste specifications
+              {t("items.specifications.pasteButton")}
             </Button>
           )}
           {assignedTests.length > 0 && !readOnly && (
@@ -549,7 +560,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                 fontSize: 12
               }}
             >
-              Copy from another item
+              {t("items.specifications.copyButton")}
             </Button>
           )}
           {assignedTests.length > 0 && !readOnly && (
@@ -564,7 +575,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                 fontSize: 12
               }}
             >
-              Add Specification Parameter
+              {t("items.specifications.addButton")}
             </Button>
           )}
         </Stack>
@@ -577,15 +588,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
               autoFocus
               size="small"
               fullWidth
-              label="Paste specification rows"
-              placeholder="Paste rows copied from a spreadsheet (Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit)"
+              label={t("items.specifications.pasteLabel")}
+              placeholder={t("items.specifications.pastePlaceholder")}
               value=""
               onChange={() => {}}
               onPaste={handlePasteInput}
-              helperText="Columns in order: Test, Parameter name, Limit type, Lower limit, Upper limit, Target, Tolerance, Tolerance mode, Alert limit, Action limit, Spec limit, Expected result text, Unit. A pasted range includes both limits; use Add Specification Parameter for an exclusive limit. Use Add Specification Parameter for stages, HPLC analytes/impurities, ICP elements, related-substance rows, dosage form, label claim, production stage, or grade."
+              helperText={t("items.specifications.pasteHelper")}
             />
             <Button onClick={() => setPasteBarOpen(false)} sx={{ textTransform: "none", flexShrink: 0 }}>
-              Close
+              {t("items.specifications.close")}
             </Button>
           </Stack>
         </Paper>
@@ -602,21 +613,21 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           mb: 2
         }}
       >
-        <LimitTypeBadge type="Range" labelOverride="Range" />
-        <LimitTypeBadge type="NotMoreThan" labelOverride="NMT/NLT" />
-        <LimitTypeBadge type="TargetWithTolerance" labelOverride="Target ± Tol." />
-        <LimitTypeBadge type="CountTiered" labelOverride="Count-Tiered" />
-        <LimitTypeBadge type="Qualitative" labelOverride="Qualitative" />
-        <LimitTypeBadge type="PresenceAbsence" labelOverride="Presence/Absence" />
-        <LimitTypeBadge type="MultiStage" labelOverride="Multi-Stage" />
-        <LimitTypeBadge type="DissolutionQ" labelOverride="Dissolution Q" />
-        <LimitTypeBadge type="DisintegrationTime" labelOverride="Disintegration Time" />
-        <LimitTypeBadge type="WeightVariation" labelOverride="Weight Variation" />
+        <LimitTypeBadge type="Range" />
+        <LimitTypeBadge type="NotMoreThan" labelOverride={t("items.specifications.limitTypes.NotMoreLessLegend")} />
+        <LimitTypeBadge type="TargetWithTolerance" />
+        <LimitTypeBadge type="CountTiered" />
+        <LimitTypeBadge type="Qualitative" />
+        <LimitTypeBadge type="PresenceAbsence" />
+        <LimitTypeBadge type="MultiStage" />
+        <LimitTypeBadge type="DissolutionQ" />
+        <LimitTypeBadge type="DisintegrationTime" />
+        <LimitTypeBadge type="WeightVariation" />
       </Stack>
 
       {lookupsIncomplete && (
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Some test and analyte names could not be loaded, so analyte labels may be missing from the specifications below. Reload the page to try again.
+          {t("items.specifications.lookupsIncomplete")}
         </Alert>
       )}
       {error && (
@@ -631,10 +642,10 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       )}
 
       <PendingBatchList
-        title={`Pending specifications (${pendingSpecs.length})`}
-        subtitle={`Review the ${pendingSpecs.length} specification parameter${pendingSpecs.length === 1 ? "" : "s"} below. Nothing is saved until you click Save.`}
-        ariaLabel="Pending specifications"
-        columns={SPEC_PENDING_COLUMNS}
+        title={t("items.specifications.pendingTitle", { count: pendingSpecs.length })}
+        subtitle={t("items.specifications.pendingSubtitle", { count: pendingSpecs.length })}
+        ariaLabel={t("items.specifications.pendingAriaLabel")}
+        columns={pendingColumns}
         rows={pendingSpecs}
         getRowKey={(r, i) => `${r.testCode}-${r.parameterName}-${i}`}
         getRowLabel={(r) => (r.parameterName ? `${r.testCode} (${r.parameterName})` : r.testCode)}
@@ -653,9 +664,11 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
 
       {assignedTests.length === 0 ? (
         <Alert severity="warning" sx={{ py: 1, fontSize: 13 }}>
-          This item has no assigned tests yet. Assign tests under the{" "}
-          <strong>Assigned Tests</strong> tab or edit the item before configuring
-          specifications.
+          <Trans
+            i18nKey="items.specifications.noAssignedTests"
+            ns="labConfig"
+            components={{ bold: <strong /> }}
+          />
         </Alert>
       ) : (
         <Box>
@@ -673,22 +686,22 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
               <TableHead>
                 <TableRow sx={tableHeadSx}>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 220 }}>
-                    Assigned Test / Parameter
+                    {t("items.specifications.columns.parameter")}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>
-                    Limit Type
+                    {t("items.specifications.columns.limitType")}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 200 }}>
-                    Limit
+                    {t("items.specifications.columns.limit")}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 100 }}>
-                    Unit
+                    {t("items.specifications.columns.unit")}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 150 }}>
-                    Reference Standard
+                    {t("items.specifications.columns.referenceStandard")}
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, width: 90 }}>
-                    Actions
+                    {t("items.specifications.columns.actions")}
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -699,7 +712,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                       colSpan={6}
                       sx={{ py: 3, textAlign: "center", color: "text.secondary", fontStyle: "italic" }}
                     >
-                      No specifications defined yet. Click &ldquo;Add Specification Parameter&rdquo; above to add limits.
+                      {t("items.specifications.empty")}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -724,22 +737,22 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               {(spec.isRetired || spec.resultBasis || spec.hplcMethodAnalyteId || spec.canEdit === false || spec.productionStageRole || spec.grade) && (
                                 <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                   {spec.isRetired && (
-                                    <Chip size="small" label="Retired" color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
+                                    <Chip size="small" label={t("items.specifications.badges.retired")} color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
                                   )}
                                   {spec.grade && (
-                                    <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                    <Chip size="small" label={t("items.specifications.badges.grade", { grades: gradesOf(spec).join(", ") })} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                   )}
                                   {spec.productionStageRole && (
                                     <Chip
                                       size="small"
-                                      label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                      label={t("items.specifications.badges.stage", { stage: productionStageRoleLabel(spec.productionStageRole) })}
                                       sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
                                     />
                                   )}
                                   {spec.canEdit === false && (
                                     <Chip
                                       size="small"
-                                      label={spec.sectionName || "Other lab"}
+                                      label={spec.sectionName || t("items.specifications.badges.otherLab")}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -752,7 +765,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
                                     <Chip
                                       size="small"
-                                      label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
+                                      label={t("items.specifications.badges.analyte", { name: hplcAnalyteById[spec.hplcMethodAnalyteId].name })}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -766,7 +779,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                     <Chip
                                       size="small"
-                                      label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
+                                      label={t("items.specifications.badges.element", { symbol: icpElementById[spec.icpTestElementId].symbol })}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -780,11 +793,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   {spec.resultBasis && (
                                     <Chip
                                       size="small"
-                                      label={`Basis: ${formatResultBasis(
-                                        spec.resultBasis as string,
-                                        workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
-                                          testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
-                                      )}`}
+                                      label={t("items.specifications.badges.basis", {
+                                        basis: formatResultBasis(
+                                          spec.resultBasis as string,
+                                          workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
+                                            testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay",
+                                          t
+                                        )
+                                      })}
                                       sx={{
                                         height: 20,
                                         fontSize: 12,
@@ -802,12 +818,12 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
                             </TableCell>
                             <TableCell sx={{ fontSize: 13 }}>
-                              {formatLimitCell(spec)}
+                              {formatLimitCell(spec, t)}
                               {spec.limitType === "CountTiered" && spec.dilutionFactor != null && (
                                 <Box sx={{ mt: 0.5 }}>
                                   <Chip
                                     size="small"
-                                    label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
+                                    label={t("items.specifications.badges.dilutionFactor", { factor: spec.dilutionFactor })}
                                     sx={{
                                       height: 20,
                                       fontSize: 12,
@@ -823,7 +839,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 <Box sx={{ mt: 0.5 }}>
                                   <Chip
                                     size="small"
-                                    label={`Label Claim ${spec.labelClaim} ${spec.labelClaimUnit || "mg"}`}
+                                    label={t("items.specifications.badges.labelClaim", { claim: spec.labelClaim, unit: spec.labelClaimUnit || "mg" })}
                                     sx={{
                                       height: 20,
                                       fontSize: 12,
@@ -843,7 +859,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                             <TableCell align="right">
                               {readOnly || spec.canEdit === false ? (
                                 <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
-                                  Read-only
+                                  {t("items.specifications.actions.readOnly")}
                                 </Typography>
                               ) : spec.isRetired ? (
                                 <Button
@@ -852,7 +868,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   onClick={() => { setReasonError(null); setPendingReinstate(spec); }}
                                   sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                                 >
-                                  Reinstate
+                                  {t("items.specifications.actions.reinstate")}
                                 </Button>
                               ) : (
                                 <Stack
@@ -860,18 +876,18 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   spacing={0.5}
                                   sx={{ justifyContent: "flex-end" }}
                                 >
-                                  <IconButton aria-label={`Edit specification for ${spec.testCode}`}
+                                  <IconButton aria-label={t("items.specifications.actions.editAriaLabel", { testCode: spec.testCode })}
                                     size="small"
                                     onClick={() => handleOpenEdit(spec)}
-                                    title="Edit Specification"
+                                    title={t("items.specifications.actions.editTitle")}
                                   >
                                     <EditIcon fontSize="small" />
                                   </IconButton>
-                                  <IconButton aria-label={`Delete specification for ${spec.testCode}`}
+                                  <IconButton aria-label={t("items.specifications.actions.deleteAriaLabel", { testCode: spec.testCode })}
                                     size="small"
                                     color="error"
                                     onClick={() => { setReasonError(null); setPendingDelete(spec); }}
-                                    title="Delete Specification"
+                                    title={t("items.specifications.actions.deleteTitle")}
                                   >
                                     <DeleteIcon fontSize="small" />
                                   </IconButton>
@@ -941,7 +957,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               </Typography>
                               <Chip
                                 size="small"
-                                label={`${group.specs.length} parameters`}
+                                label={t("items.specifications.badges.parameterCount", { count: group.specs.length })}
                                 sx={{
                                   height: 20,
                                   fontSize: 12,
@@ -951,7 +967,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                               {!groupCanEdit && (
                                 <Chip
                                   size="small"
-                                  label={groupSectionName || "Other lab"}
+                                  label={groupSectionName || t("items.specifications.badges.otherLab")}
                                   sx={{
                                     height: 20,
                                     fontSize: 12,
@@ -989,15 +1005,15 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       {(spec.isRetired || spec.resultBasis || spec.hplcMethodAnalyteId || spec.productionStageRole || spec.grade) && (
                                         <Box sx={{ display: "flex", gap: 0.75, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                                           {spec.isRetired && (
-                                            <Chip size="small" label="Retired" color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
+                                            <Chip size="small" label={t("items.specifications.badges.retired")} color="warning" variant="outlined" sx={{ height: 20, fontSize: 12, fontWeight: 700 }} />
                                           )}
                                           {spec.grade && (
-                                            <Chip size="small" label={`Grade: ${gradesOf(spec).join(", ")}`} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
+                                            <Chip size="small" label={t("items.specifications.badges.grade", { grades: gradesOf(spec).join(", ") })} sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "primary.main", border: "1px solid", borderColor: "primary.main", bgcolor: "transparent" }} />
                                           )}
                                           {spec.productionStageRole && (
                                             <Chip
                                               size="small"
-                                              label={`Stage: ${productionStageRoleLabel(spec.productionStageRole)}`}
+                                              label={t("items.specifications.badges.stage", { stage: productionStageRoleLabel(spec.productionStageRole) })}
                                               sx={{ height: 20, fontSize: 12, fontWeight: 600, color: "secondary.main", border: "1px solid", borderColor: "secondary.main", bgcolor: "transparent" }}
                                             />
                                           )}
@@ -1005,7 +1021,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                           {spec.hplcMethodAnalyteId && hplcAnalyteById[spec.hplcMethodAnalyteId] && (
                                             <Chip
                                               size="small"
-                                              label={`Analyte: ${hplcAnalyteById[spec.hplcMethodAnalyteId].name}`}
+                                              label={t("items.specifications.badges.analyte", { name: hplcAnalyteById[spec.hplcMethodAnalyteId].name })}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 12,
@@ -1019,7 +1035,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                           {spec.icpTestElementId && icpElementById[spec.icpTestElementId] && (
                                             <Chip
                                               size="small"
-                                              label={`Element: ${icpElementById[spec.icpTestElementId].symbol}`}
+                                              label={t("items.specifications.badges.element", { symbol: icpElementById[spec.icpTestElementId].symbol })}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 12,
@@ -1033,11 +1049,14 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                           {spec.resultBasis && (
                                             <Chip
                                               size="small"
-                                              label={`Basis: ${formatResultBasis(
-                                         spec.resultBasis as string,
-                                         workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
-                                           testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay"
-                                       )}`}
+                                              label={t("items.specifications.badges.basis", {
+                                                basis: formatResultBasis(
+                                                  spec.resultBasis as string,
+                                                  workflowTypeByCode[spec.testCode] === "IcpMethodAssay" ||
+                                                    testDefinitionByCode[spec.testCode]?.equationType === "IcpMethodAssay",
+                                                  t
+                                                )
+                                              })}
                                               sx={{
                                                 height: 20,
                                                 fontSize: 12,
@@ -1057,13 +1076,13 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   <LimitTypeBadge type={spec.limitType ?? "CountTiered"} />
                                 </TableCell>
                                 <TableCell sx={{ fontSize: 13 }}>
-                                  {formatLimitCell(spec)}
+                                  {formatLimitCell(spec, t)}
                                   {spec.limitType === "CountTiered" &&
                                     spec.dilutionFactor != null && (
                                       <Box sx={{ mt: 0.5 }}>
                                         <Chip
                                           size="small"
-                                          label={`Dilution Factor \u00D7${spec.dilutionFactor}`}
+                                          label={t("items.specifications.badges.dilutionFactor", { factor: spec.dilutionFactor })}
                                           sx={{
                                             height: 20,
                                             fontSize: 12,
@@ -1085,7 +1104,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                 <TableCell align="right">
                                   {readOnly || spec.canEdit === false ? (
                                     <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
-                                      Read-only
+                                      {t("items.specifications.actions.readOnly")}
                                     </Typography>
                                   ) : spec.isRetired ? (
                                     <Button
@@ -1094,7 +1113,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       onClick={() => { setReasonError(null); setPendingReinstate(spec); }}
                                       sx={{ textTransform: "none", fontSize: 12, fontWeight: 600 }}
                                     >
-                                      Reinstate
+                                      {t("items.specifications.actions.reinstate")}
                                     </Button>
                                   ) : (
                                     <Stack
@@ -1102,18 +1121,18 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                       spacing={0.5}
                                       sx={{ justifyContent: "flex-end" }}
                                     >
-                                      <IconButton aria-label={`Edit specification for ${spec.testCode}`}
+                                      <IconButton aria-label={t("items.specifications.actions.editAriaLabel", { testCode: spec.testCode })}
                                         size="small"
                                         onClick={() => handleOpenEdit(spec)}
-                                        title="Edit Specification"
+                                        title={t("items.specifications.actions.editTitle")}
                                       >
                                         <EditIcon fontSize="small" />
                                       </IconButton>
-                                      <IconButton aria-label={`Delete specification for ${spec.testCode}`}
+                                      <IconButton aria-label={t("items.specifications.actions.deleteAriaLabel", { testCode: spec.testCode })}
                                         size="small"
                                         color="error"
                                         onClick={() => { setReasonError(null); setPendingDelete(spec); }}
-                                        title="Delete Specification"
+                                        title={t("items.specifications.actions.deleteTitle")}
                                       >
                                         <DeleteIcon fontSize="small" />
                                       </IconButton>
@@ -1190,7 +1209,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
                                   p: 0
                                 }}
                               >
-                                + Add parameter to {testDisplayName}
+                                {t("items.specifications.actions.addParameterTo", { testName: testDisplayName })}
                               </Button>
                             </TableCell>
                           </TableRow>
@@ -1231,7 +1250,7 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
           }}
           onCompleted={(count) => {
             setError(null);
-            setNotice(`Copied ${count} specification parameter${count === 1 ? "" : "s"} to ${item.name}.`);
+            setNotice(t("items.specifications.messages.copied", { count, itemName: item.name }));
           }}
         />
       )}
@@ -1239,13 +1258,19 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       {/* Delete / Retire Change Reason Dialog */}
       <ChangeReasonDialog
         open={pendingDelete != null}
-        title="Delete or retire specification"
+        title={t("items.specifications.reasonDialogs.deleteTitle")}
         message={
           pendingDelete
-            ? `Delete specification parameter "${pendingDelete.parameterName || pendingDelete.testCode}"${gradesOf(pendingDelete).length > 1 ? ` (grades ${gradesOf(pendingDelete).join(", ")})` : ""} for "${item.name}"? Specifications with recorded results are retired instead of deleted.`
+            ? t("items.specifications.reasonDialogs.deleteMessage", {
+                label: pendingDelete.parameterName || pendingDelete.testCode,
+                gradesText: gradesOf(pendingDelete).length > 1
+                  ? t("items.specifications.reasonDialogs.gradesSuffix", { grades: gradesOf(pendingDelete).join(", ") })
+                  : "",
+                itemName: item.name,
+              })
             : undefined
         }
-        confirmText="Confirm"
+        confirmText={t("items.specifications.reasonDialogs.confirm")}
         loading={deleting}
         error={reasonError}
         onCancel={() => { setPendingDelete(null); setReasonError(null); }}
@@ -1255,13 +1280,16 @@ export const ItemSpecificationsSection: React.FC<ItemSpecificationsSectionProps>
       {/* Reinstate Change Reason Dialog */}
       <ChangeReasonDialog
         open={pendingReinstate != null}
-        title="Reinstate specification"
+        title={t("items.specifications.reasonDialogs.reinstateTitle")}
         message={
           pendingReinstate
-            ? `Reinstate retired specification "${pendingReinstate.parameterName || pendingReinstate.testCode}" for "${item.name}" so it is active for new testing again.`
+            ? t("items.specifications.reasonDialogs.reinstateMessage", {
+                label: pendingReinstate.parameterName || pendingReinstate.testCode,
+                itemName: item.name,
+              })
             : undefined
         }
-        confirmText="Reinstate"
+        confirmText={t("items.specifications.reasonDialogs.reinstateConfirm")}
         loading={deleting}
         error={reasonError}
         onCancel={() => { setPendingReinstate(null); setReasonError(null); }}

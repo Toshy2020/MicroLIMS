@@ -3,6 +3,7 @@ import { Select, MenuItem, FormControl, InputLabel, Button } from "@mui/material
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { EquipmentItem, EquipmentFilterState } from "../types/equipmentTypes";
 import { FilterBar } from "../../../../components/lab";
+import { useTranslation } from "../../../../i18n";
 
 interface EquipmentFilterBarProps {
   items: EquipmentItem[];
@@ -17,6 +18,7 @@ interface EquipmentFilterBarProps {
 }
 
 export function EquipmentFilterBar({ items, filters, onFilterChange, onReset, extraActive, resultCount, onRefresh, refreshing }: EquipmentFilterBarProps) {
+  const { t } = useTranslation("inventory");
   // Extract unique instrument types and locations from current dataset
   const instrumentTypes = useMemo(() => {
     const set = new Set<string>();
@@ -44,21 +46,21 @@ export function EquipmentFilterBar({ items, filters, onFilterChange, onReset, ex
     <FilterBar
       search={filters.search}
       onSearch={(value) => updateField("search", value)}
-      placeholder="Search by type, manufacturer, serial no., code, location..."
+      placeholder={t("equipment.filters.searchPlaceholder")}
       resultCount={resultCount}
       onRefresh={onRefresh}
       refreshing={refreshing}
     >
       <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel id="equip-type-filter-label">Instrument Type</InputLabel>
+        <InputLabel id="equip-type-filter-label">{t("equipment.filters.instrumentType")}</InputLabel>
         <Select
           labelId="equip-type-filter-label"
-          label="Instrument Type"
+          label={t("equipment.filters.instrumentType")}
           value={filters.instrumentType}
           onChange={(e) => updateField("instrumentType", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Types</em>
+            <em>{t("equipment.filters.allTypes")}</em>
           </MenuItem>
           {instrumentTypes.map((type) => (
             <MenuItem key={type} value={type}>
@@ -69,32 +71,32 @@ export function EquipmentFilterBar({ items, filters, onFilterChange, onReset, ex
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id="equip-status-filter-label">Status</InputLabel>
+        <InputLabel id="equip-status-filter-label">{t("equipment.filters.status")}</InputLabel>
         <Select
           labelId="equip-status-filter-label"
-          label="Status"
+          label={t("equipment.filters.status")}
           value={filters.status}
           onChange={(e) => updateField("status", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Statuses</em>
+            <em>{t("equipment.filters.allStatuses")}</em>
           </MenuItem>
-          <MenuItem value="InService">In Service</MenuItem>
-          <MenuItem value="OutOfService">Out of Service</MenuItem>
-          <MenuItem value="Retired">Retired</MenuItem>
+          <MenuItem value="InService">{t("equipment.status.InService")}</MenuItem>
+          <MenuItem value="OutOfService">{t("equipment.status.OutOfService")}</MenuItem>
+          <MenuItem value="Retired">{t("equipment.status.Retired")}</MenuItem>
         </Select>
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id="equip-loc-filter-label">Location</InputLabel>
+        <InputLabel id="equip-loc-filter-label">{t("equipment.filters.location")}</InputLabel>
         <Select
           labelId="equip-loc-filter-label"
-          label="Location"
+          label={t("equipment.filters.location")}
           value={filters.location}
           onChange={(e) => updateField("location", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Locations</em>
+            <em>{t("equipment.filters.allLocations")}</em>
           </MenuItem>
           {locations.map((loc) => (
             <MenuItem key={loc} value={loc}>
@@ -105,20 +107,20 @@ export function EquipmentFilterBar({ items, filters, onFilterChange, onReset, ex
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel id="equip-calib-filter-label">Calibration Due</InputLabel>
+        <InputLabel id="equip-calib-filter-label">{t("equipment.filters.calibrationDue")}</InputLabel>
         <Select
           labelId="equip-calib-filter-label"
-          label="Calibration Due"
+          label={t("equipment.filters.calibrationDue")}
           value={filters.calibrationRange}
           onChange={(e) => updateField("calibrationRange", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Calibration</em>
+            <em>{t("equipment.filters.allCalibration")}</em>
           </MenuItem>
-          <MenuItem value="overdue">Calibration Overdue</MenuItem>
-          <MenuItem value="due_30">Due in 30 Days</MenuItem>
-          <MenuItem value="due_60">Due in 60 Days</MenuItem>
-          <MenuItem value="valid">Valid / Not Overdue</MenuItem>
+          <MenuItem value="overdue">{t("equipment.filters.overdue")}</MenuItem>
+          <MenuItem value="due_30">{t("equipment.filters.due30")}</MenuItem>
+          <MenuItem value="due_60">{t("equipment.filters.due60")}</MenuItem>
+          <MenuItem value="valid">{t("equipment.filters.valid")}</MenuItem>
         </Select>
       </FormControl>
 
@@ -130,7 +132,7 @@ export function EquipmentFilterBar({ items, filters, onFilterChange, onReset, ex
           startIcon={<RotateLeftIcon fontSize="small" />}
           sx={{ borderColor: "divider", color: "text.secondary" }}
         >
-          Reset
+          {t("equipment.filters.reset")}
         </Button>
       )}
     </FilterBar>

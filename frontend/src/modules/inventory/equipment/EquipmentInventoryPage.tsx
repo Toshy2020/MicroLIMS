@@ -16,6 +16,7 @@ import { PERMISSIONS } from "../../../routes/routes";
 import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { useTableState } from "../../../components/lab/table/useTableState";
 import { TableToolbar } from "../../../components/lab/table/TableToolbar";
+import { useTranslation } from "../../../i18n";
 import { EquipmentInventoryService } from "./services/EquipmentInventoryService";
 import {
   EquipmentFilterState,
@@ -43,6 +44,7 @@ function textFilter(filters: Record<string, string | string[]>, name: string): s
 
 export function EquipmentInventoryPage() {
   const theme = useTheme();
+  const { t } = useTranslation("inventory");
   const { permissions } = useAuth();
   const canSeeHistory = permissions.includes(PERMISSIONS.AUDIT_VIEW);
 
@@ -116,7 +118,7 @@ export function EquipmentInventoryPage() {
         }
       }
     } catch {
-      setMessage({ text: "Failed to load equipment register.", ok: false });
+      setMessage({ text: t("equipment.page.loadError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -200,17 +202,17 @@ export function EquipmentInventoryPage() {
   };
 
   const columns: RegisterColumn<EquipmentItem>[] = [
-    { key: "instrumentType", label: "Type", sortable: true, render: (eq) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{eq.instrumentType}</Box> },
-    { key: "manufacturerName", label: "Manufacturer", sortable: true, render: (eq) => eq.manufacturerName || "—" },
-    { key: "serialNumber", label: "Serial No.", sortable: true, nowrap: true, render: (eq) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{eq.serialNumber || "—"}</Box> },
-    { key: "firmwareVersion", label: "Firmware", sortable: true, render: (eq) => eq.firmwareVersion || "—" },
+    { key: "instrumentType", label: t("equipment.page.columns.type"), sortable: true, render: (eq) => <Box component="span" sx={{ fontWeight: 600, whiteSpace: "nowrap" }}>{eq.instrumentType}</Box> },
+    { key: "manufacturerName", label: t("equipment.page.columns.manufacturer"), sortable: true, render: (eq) => eq.manufacturerName || "—" },
+    { key: "serialNumber", label: t("equipment.page.columns.serialNumber"), sortable: true, nowrap: true, render: (eq) => <Box component="span" sx={{ fontFamily: monospaceFontFamily }}>{eq.serialNumber || "—"}</Box> },
+    { key: "firmwareVersion", label: t("equipment.page.columns.firmware"), sortable: true, render: (eq) => eq.firmwareVersion || "—" },
     {
-      key: "code", label: "Code", sortable: true, nowrap: true,
+      key: "code", label: t("equipment.page.columns.code"), sortable: true, nowrap: true,
       render: (eq) => <Box id={`equip-code-link-${eq.id}`} component="span" sx={{ fontFamily: monospaceFontFamily, fontWeight: 700 }}>{eq.code}</Box>
     },
-    { key: "location", label: "Location", sortable: true, render: (eq) => eq.location },
+    { key: "location", label: t("equipment.page.columns.location"), sortable: true, render: (eq) => eq.location },
     {
-      key: "calibrationDueDate", label: "Calibration Due", sortable: true,
+      key: "calibrationDueDate", label: t("equipment.page.columns.calibrationDue"), sortable: true,
       render: (eq) => {
         const isOverdue = isEquipmentCalibrationOverdue(eq);
         const isDueSoon = isEquipmentCalibrationDueSoon(eq, 30);
@@ -230,17 +232,17 @@ export function EquipmentInventoryPage() {
             >
               {eq.calibrationDueDate ? formatLabCalendarDate(eq.calibrationDueDate) : "—"}
             </Box>
-            {isOverdue && <StatusBadge status="Overdue" />}
-            {isDueSoon && <StatusBadge status="Due Soon" />}
+            {isOverdue && <StatusBadge status="Overdue" label={t("equipment.status.overdue")} />}
+            {isDueSoon && <StatusBadge status="Due Soon" label={t("equipment.status.dueSoon")} />}
           </Box>
         );
       }
     },
     {
-      key: "sectionId", label: "Laboratory", sortable: true, sortValue: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "" : ""),
-      render: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "—" : <StatusBadge status="OnHold" label="Unassigned" />)
+      key: "sectionId", label: t("equipment.page.columns.laboratory"), sortable: true, sortValue: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "" : ""),
+      render: (eq) => (eq.sectionId != null ? sectionNameById.get(eq.sectionId) ?? "—" : <StatusBadge status="OnHold" label={t("equipment.status.unassigned")} />)
     },
-    { key: "status", label: "Status", sortable: true, render: (eq) => <StatusBadge status={eq.status} /> }
+    { key: "status", label: t("equipment.page.columns.status"), sortable: true, render: (eq) => <StatusBadge status={eq.status} label={t(`equipment.status.${eq.status}`)} /> }
   ];
 
   const registerButton = (
@@ -254,7 +256,7 @@ export function EquipmentInventoryPage() {
       }}
       sx={{ whiteSpace: "nowrap" }}
     >
-      Register Equipment
+      {t("equipment.page.registerButton")}
     </Button>
   );
 
@@ -264,12 +266,12 @@ export function EquipmentInventoryPage() {
     <>
       <Box className="no-print">
         <LabPage
-          title="Equipment"
-          subtitle="QC/Microbiology lab instrument register & active equipment traceability."
+          title={t("equipment.page.title")}
+          subtitle={t("equipment.page.subtitle")}
           actions={
             activeTab === 0 ? (
               <>
-                <PrintButton label="Print (excludes out-of-service / retired)" />
+                <PrintButton label={t("equipment.page.printLabel")} />
                 {registerButton}
               </>
             ) : undefined
@@ -279,8 +281,8 @@ export function EquipmentInventoryPage() {
               {/* Tabs Navigation: Equipment Register vs Active Equipment */}
               <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
                 <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
-                  <Tab label="Equipment Register" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
-                  <Tab label="Active Equipment" sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+                  <Tab label={t("equipment.page.tabs.register")} sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
+                  <Tab label={t("equipment.page.tabs.active")} sx={{ fontWeight: 700, textTransform: "none", fontSize: 15 }} />
                 </Tabs>
               </Box>
               {activeTab === 0 && (
@@ -327,14 +329,14 @@ export function EquipmentInventoryPage() {
               onRowClick={(eq) => setDetailsItem(eq)}
               rowTone={(eq) => (isEquipmentCalibrationOverdue(eq) ? "detected" : isEquipmentCalibrationDueSoon(eq, 30) ? "inconclusive" : undefined)}
               rowActions={(eq) => [
-                { label: "Details and documents", onClick: () => setDetailsItem(eq) },
-                { label: "Edit equipment", onClick: () => openEdit(eq) },
-                ...(canSeeHistory ? [{ label: "Audit history", onClick: () => setHistoryFor(eq.id) }] : [])
+                { label: t("equipment.page.actions.detailsAndDocs"), onClick: () => setDetailsItem(eq) },
+                { label: t("equipment.page.actions.edit"), onClick: () => openEdit(eq) },
+                ...(canSeeHistory ? [{ label: t("equipment.page.actions.auditHistory"), onClick: () => setHistoryFor(eq.id) }] : [])
               ]}
               empty={
                 isFiltered
-                  ? { title: "No equipment matching the selected filter criteria", description: "Reset the filters to see the whole register." }
-                  : { title: "No equipment registered", description: "Register the first instrument.", action: registerButton }
+                  ? { title: t("equipment.page.emptyFiltered.title"), description: t("equipment.page.emptyFiltered.description") }
+                  : { title: t("equipment.page.empty.title"), description: t("equipment.page.empty.description"), action: registerButton }
               }
             />
           ) : loading || !items ? (

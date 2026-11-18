@@ -425,5 +425,131 @@
     "record": "السجل",
     "emptyFiltered": "لا توجد تشغيلات أوساط زرعية معتمدة تطابق عوامل التصفية المحددة.",
     "empty": "لا توجد تشغيلات أوساط زرعية معتمدة متاحة حاليًا في المخزون."
+  },
+  "equipment": {
+    "status": {
+      "InService": "في الخدمة",
+      "OutOfService": "خارج الخدمة",
+      "Retired": "مُوقَف",
+      "overdue": "متأخر",
+      "dueSoon": "يستحق قريبًا",
+      "unassigned": "غير مُسنَد"
+    },
+    "page": {
+      "title": "المعدات",
+      "subtitle": "سجل أجهزة مختبر مراقبة الجودة والأحياء الدقيقة وتتبع المعدات النشطة.",
+      "loadError": "تعذر تحميل سجل المعدات.",
+      "printLabel": "طباعة (تُستثنى المعدات خارج الخدمة / المُوقَفة)",
+      "registerButton": "تسجيل معدات",
+      "tabs": {
+        "register": "سجل المعدات",
+        "active": "المعدات النشطة"
+      },
+      "columns": {
+        "type": "النوع",
+        "manufacturer": "المُصنِّع",
+        "serialNumber": "الرقم التسلسلي",
+        "firmware": "البرنامج الثابت",
+        "code": "الرمز",
+        "location": "الموقع",
+        "calibrationDue": "استحقاق المعايرة",
+        "laboratory": "المختبر",
+        "status": "الحالة"
+      },
+      "actions": {
+        "detailsAndDocs": "التفاصيل والمستندات",
+        "edit": "تعديل المعدات",
+        "auditHistory": "سجل التدقيق"
+      },
+      "emptyFiltered": {
+        "title": "لا توجد معدات تطابق معايير التصفية المحددة",
+        "description": "أعد ضبط عوامل التصفية لعرض السجل بالكامل."
+      },
+      "empty": {
+        "title": "لا توجد معدات مسجلة",
+        "description": "سجّل الجهاز الأول."
+      }
+    },
+    "kpi": {
+      "filtered": "{{label}} (مُصفّى)",
+      "total": "إجمالي المعدات",
+      "inService": "في الخدمة",
+      "outOfService": "خارج الخدمة",
+      "calibrationOverdue": "معايرة متأخرة",
+      "calibrationDueSoon": "معايرة مستحقة قريبًا"
+    },
+    "filters": {
+      "searchPlaceholder": "ابحث بالنوع أو المُصنِّع أو الرقم التسلسلي أو الرمز أو الموقع...",
+      "instrumentType": "نوع الجهاز",
+      "allTypes": "كل الأنواع",
+      "status": "الحالة",
+      "allStatuses": "كل الحالات",
+      "location": "الموقع",
+      "allLocations": "كل المواقع",
+      "calibrationDue": "استحقاق المعايرة",
+      "allCalibration": "كل المعايرات",
+      "overdue": "معايرة متأخرة",
+      "due30": "مستحقة خلال 30 يومًا",
+      "due60": "مستحقة خلال 60 يومًا",
+      "valid": "سارية / غير متأخرة",
+      "reset": "إعادة ضبط"
+    },
+    "active": {
+      "whereTitle": "أين هو؟ البحث الشامل للتتبع",
+      "wherePlaceholder": "ابحث برمز الصنف أو مرجع العينة أو تشغيلة أوساط زرعية (مثل TSB/08/26، PT-0021)...",
+      "whereAria": "ابحث برمز الصنف أو مرجع العينة أو تشغيلة أوساط زرعية",
+      "whereButton": "أين هو؟",
+      "searching": "جارٍ البحث...",
+      "search": "بحث",
+      "traceabilityResultsFor": "نتائج التتبع لـ \"{{term}}\":",
+      "currentLocation": "الموقع الحالي: {{code}}، {{name}}",
+      "currentActivitySummary": "النشاط: <bold1>{{activityType}}</bold1> | الصنف: <bold2>{{itemName}} (@{{itemCode}})</bold2>",
+      "startedBySummary": "بدأ في: {{startedOn}} | المحلل: {{analyst}}",
+      "activeLocation": "نشط / الموقع الحالي",
+      "notCurrentlyActive": "الصنف ليس في موقع معدات نشط حاليًا. عرض سجل المواقع أدناه:",
+      "noLocationHistory": "لم يتم العثور على سجلات موقع مطابقة لهذا الاستعلام.",
+      "equipmentCount": "المعدات ({{count}})",
+      "inUseSummary": "{{count}} قيد الاستخدام حاليًا. اختر أي معدات لعرض سجل تتبعها",
+      "noEquipment": "لم يتم العثور على سجلات معدات.",
+      "itemCount_zero": "لا توجد أصناف",
+      "itemCount_one": "صنف واحد",
+      "itemCount_two": "صنفان",
+      "itemCount_few": "{{count}} أصناف",
+      "itemCount_many": "{{count}} صنفًا",
+      "itemCount_other": "{{count}} صنف",
+      "inUse": "قيد الاستخدام",
+      "idle": "خامل",
+      "statusActive": "نشط",
+      "locationValue": "الموقع: {{location}}",
+      "equipmentDetails": "تفاصيل المعدات",
+      "manufacturer": "المُصنِّع",
+      "setTemperature": "درجة الحرارة المضبوطة",
+      "calibrationDue": "استحقاق المعايرة",
+      "currentActiveItems": "الأصناف النشطة حاليًا",
+      "notAvailable": "غير متوفر",
+      "currentActivitiesCount": "الأنشطة / الأصناف الحالية ({{count}})",
+      "noActiveActivities": "لا توجد أنشطة نشطة جارية في هذه المعدات حاليًا.",
+      "viewWorkspace": "عرض مساحة عمل النشاط / الاختبار",
+      "searchHistoryTitle": "بحث سجل الأنشطة: {{code}}",
+      "itemCodeFilter": "تصفية الصنف / الرمز",
+      "itemCodePlaceholder": "مثل PT-0021",
+      "fromDate": "من تاريخ",
+      "toDate": "إلى تاريخ",
+      "noHistoricalActivities": "لم يتم العثور على أنشطة سابقة تطابق معايير البحث المحددة.",
+      "selectPrompt": "اختر سجل معدات نشط من اللوحة اليمنى لاستعراض أنشطتها الحالية وسجل تتبعها.",
+      "columns": {
+        "equipment": "المعدات",
+        "activity": "النشاط",
+        "startedOn": "بدأ في",
+        "startedBy": "بدأه",
+        "endedOn": "انتهى في",
+        "endedBy": "أنهاه",
+        "itemActivity": "الصنف / النشاط",
+        "itemCode": "رمز الصنف",
+        "activityType": "نوع النشاط",
+        "mediaDescription": "أوساط زرعية / الوصف",
+        "expectedCompletion": "الانتهاء المتوقع"
+      }
+    }
   }
 }

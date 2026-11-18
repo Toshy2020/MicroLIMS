@@ -419,5 +419,127 @@
     "record": "Record",
     "emptyFiltered": "No approved media lots match the selected filters.",
     "empty": "No approved media lots currently available in inventory."
+  },
+  "equipment": {
+    "status": {
+      "InService": "In Service",
+      "OutOfService": "Out of Service",
+      "Retired": "Retired",
+      "overdue": "Overdue",
+      "dueSoon": "Due Soon",
+      "unassigned": "Unassigned"
+    },
+    "page": {
+      "title": "Equipment",
+      "subtitle": "QC/Microbiology lab instrument register & active equipment traceability.",
+      "loadError": "Failed to load equipment register.",
+      "printLabel": "Print (excludes out-of-service / retired)",
+      "registerButton": "Register Equipment",
+      "tabs": {
+        "register": "Equipment Register",
+        "active": "Active Equipment"
+      },
+      "columns": {
+        "type": "Type",
+        "manufacturer": "Manufacturer",
+        "serialNumber": "Serial No.",
+        "firmware": "Firmware",
+        "code": "Code",
+        "location": "Location",
+        "calibrationDue": "Calibration Due",
+        "laboratory": "Laboratory",
+        "status": "Status"
+      },
+      "actions": {
+        "detailsAndDocs": "Details and documents",
+        "edit": "Edit equipment",
+        "auditHistory": "Audit history"
+      },
+      "emptyFiltered": {
+        "title": "No equipment matching the selected filter criteria",
+        "description": "Reset the filters to see the whole register."
+      },
+      "empty": {
+        "title": "No equipment registered",
+        "description": "Register the first instrument."
+      }
+    },
+    "kpi": {
+      "filtered": "{{label}} (filtered)",
+      "total": "Total Equipment",
+      "inService": "In Service",
+      "outOfService": "Out of Service",
+      "calibrationOverdue": "Calibration Overdue",
+      "calibrationDueSoon": "Calibration Due Soon"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by type, manufacturer, serial no., code, location...",
+      "instrumentType": "Instrument Type",
+      "allTypes": "All Types",
+      "status": "Status",
+      "allStatuses": "All Statuses",
+      "location": "Location",
+      "allLocations": "All Locations",
+      "calibrationDue": "Calibration Due",
+      "allCalibration": "All Calibration",
+      "overdue": "Calibration Overdue",
+      "due30": "Due in 30 Days",
+      "due60": "Due in 60 Days",
+      "valid": "Valid / Not Overdue",
+      "reset": "Reset"
+    },
+    "active": {
+      "whereTitle": "Where is it? Global Traceability Search",
+      "wherePlaceholder": "Search by item code, sample reference, or media lot (e.g. TSB/08/26, PT-0021)...",
+      "whereAria": "Search by item code, sample reference, or media lot",
+      "whereButton": "Where is it?",
+      "searching": "Searching...",
+      "search": "Search",
+      "traceabilityResultsFor": "Traceability Results for \"{{term}}\":",
+      "currentLocation": "CURRENT LOCATION: {{code}}, {{name}}",
+      "currentActivitySummary": "Activity: <bold1>{{activityType}}</bold1> | Item: <bold2>{{itemName}} (@{{itemCode}})</bold2>",
+      "startedBySummary": "Started: {{startedOn}} | Analyst: {{analyst}}",
+      "activeLocation": "Active / Current Location",
+      "notCurrentlyActive": "Item is not currently in an active equipment location. Viewing location history below:",
+      "noLocationHistory": "No location history records found matching this query.",
+      "equipmentCount": "Equipment ({{count}})",
+      "inUseSummary": "{{count}} currently in use. Select any equipment to view its traceability history",
+      "noEquipment": "No equipment records found.",
+      "itemCount_one": "{{count}} item",
+      "itemCount_other": "{{count}} items",
+      "inUse": "In Use",
+      "idle": "Idle",
+      "statusActive": "Active",
+      "locationValue": "Location: {{location}}",
+      "equipmentDetails": "Equipment Details",
+      "manufacturer": "Manufacturer",
+      "setTemperature": "Set Temperature",
+      "calibrationDue": "Calibration Due",
+      "currentActiveItems": "Current Active Items",
+      "notAvailable": "N/A",
+      "currentActivitiesCount": "Current Activities / Items ({{count}})",
+      "noActiveActivities": "No active activities currently running in this equipment.",
+      "viewWorkspace": "View activity / test workspace",
+      "searchHistoryTitle": "Search Activity History: {{code}}",
+      "itemCodeFilter": "Item / Code Filter",
+      "itemCodePlaceholder": "e.g. PT-0021",
+      "fromDate": "From Date",
+      "toDate": "To Date",
+      "noHistoricalActivities": "No historical activities found matching the selected search criteria.",
+      "selectPrompt": "Select an active equipment record from the left panel to inspect its current activities and traceability history.",
+      "columns": {
+        "equipment": "Equipment",
+        "activity": "Activity",
+        "startedOn": "Started On",
+        "startedBy": "Started By",
+        "endedOn": "Ended On",
+        "endedBy": "Ended By",
+        "itemActivity": "Item / Activity",
+        "itemCode": "Item Code",
+        "activityType": "Activity Type",
+        "mediaDescription": "Media / Description",
+        "expectedCompletion": "Expected Completion"
+      }
+    }
   }
 }

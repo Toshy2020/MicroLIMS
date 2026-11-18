@@ -54,7 +54,7 @@
     "Overdue": "متأخر",
     "Missed": "فائت",
     "Skipped": "تم تخطّيه",
-    "Retired": "متقاعد"
+    "Retired": "مُوقَف"
   },
   "itemProgress": {
     "None": "لم يبدأ",
@@ -80,7 +80,7 @@
     "Due": "مستحق",
     "Overdue": "متأخر",
     "Done": "منجز",
-    "Retired": "متقاعد"
+    "Retired": "مُوقَف"
   },
   "months": {
     "0": "يناير",

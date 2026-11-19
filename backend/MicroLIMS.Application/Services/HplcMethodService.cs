@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -99,11 +101,17 @@ public partial class HplcMethodService
     public async Task<HplcMethodResponse> GetByIdAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         var method = await QueryWithIncludes().AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         return HplcMethodResponse.From(method);
     }
@@ -115,7 +123,10 @@ public partial class HplcMethodService
         var abbr = await ValidateCommonAsync(r, sectionId, null, null, ct);
 
         if (await _db.HplcMethods.AnyAsync(m => m.SectionId == sectionId && m.Abbreviation == abbr, ct))
-            throw new BusinessRuleException($"An HPLC method abbreviated \"{abbr}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationExists,
+                $"An HPLC method abbreviated \"{abbr}\" already exists.",
+                new Dictionary<string, string> { ["abbreviation"] = abbr });
 
         var method = new HplcMethod
         {
@@ -163,19 +174,28 @@ public partial class HplcMethodService
             .Include(m => m.Analytes)
             .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         RecordVersion.EnsureCurrent(_db, method);
 
         if (r.Technique != method.Technique || r.ResultMode != method.ResultMode)
-            throw new BusinessRuleException("The technique and result mode can't be changed after the method is created.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodTechniqueAndResultModeLocked,
+                "The technique and result mode can't be changed after the method is created.");
 
         var normalizedIs = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
         if (normalizedIs != null && (r.Technique != HplcTechnique.Hplc || r.ResultMode != HplcResultMode.Assay))
-            throw new BusinessRuleException("An internal standard applies to HPLC assay methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcInternalStandardAssayOnly,
+                "An internal standard applies to HPLC assay methods only.");
 
         if (normalizedIs != method.InternalStandardName)
-            throw new BusinessRuleException("The internal standard can't be changed after the method is created.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcInternalStandardLocked,
+                "The internal standard can't be changed after the method is created.");
 
         var alreadyUsedSolutionIds = new HashSet<int>(method.MobilePhases.Select(p => p.SolutionMasterId)) { method.DiluentSolutionId };
         var alreadyUsedStandardIds = new HashSet<int>(method.Analytes.Select(a => a.StandardEntryId));
@@ -183,16 +203,25 @@ public partial class HplcMethodService
         var abbr = await ValidateCommonAsync(r, method.SectionId, alreadyUsedSolutionIds, alreadyUsedStandardIds, ct);
 
         if (await _db.HplcMethods.AnyAsync(m => m.SectionId == method.SectionId && m.Abbreviation == abbr && m.Id != id, ct))
-            throw new BusinessRuleException($"An HPLC method abbreviated \"{abbr}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationExists,
+                $"An HPLC method abbreviated \"{abbr}\" already exists.",
+                new Dictionary<string, string> { ["abbreviation"] = abbr });
 
         // Never orphan a specification row - refuse before any child is touched.
         var incomingAnalyteIds = r.Analytes.Where(a => a.Id.HasValue).Select(a => a.Id!.Value).ToHashSet();
         foreach (var existingAnalyte in method.Analytes.Where(a => !incomingAnalyteIds.Contains(a.Id)))
         {
             if (await _db.Specifications.AnyAsync(s => s.HplcMethodAnalyteId == existingAnalyte.Id, ct))
-                throw new BusinessRuleException($"Analyte \"{existingAnalyte.Name}\" is used by specifications; it can't be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteUsedBySpecifications,
+                    $"Analyte \"{existingAnalyte.Name}\" is used by specifications; it can't be removed.",
+                    new Dictionary<string, string> { ["analyte"] = existingAnalyte.Name });
             if (await _db.WorkingStandardQualifications.AnyAsync(w => w.HplcMethodAnalyteId == existingAnalyte.Id, ct))
-                throw new BusinessRuleException($"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteUsedByQualifications,
+                    $"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.",
+                    new Dictionary<string, string> { ["analyte"] = existingAnalyte.Name });
         }
 
         var ownImpurityIds = method.Impurities.Select(i => i.Id).ToHashSet();
@@ -200,9 +229,14 @@ public partial class HplcMethodService
         foreach (var impurityId in (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value))
         {
             if (!ownImpurityIds.Contains(impurityId))
-                throw new BusinessRuleException($"Impurity {impurityId} does not belong to this method.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMethodImpurityNotFound,
+                    $"Impurity {impurityId} does not belong to this method.",
+                    new Dictionary<string, string> { ["impurityId"] = impurityId.ToString(CultureInfo.InvariantCulture) });
             if (!seenImpurityIds.Add(impurityId))
-                throw new BusinessRuleException("Each impurity can appear only once.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDuplicateImpurityId,
+                    "Each impurity can appear only once.");
         }
 
         // Same for impurities named by a related-substances specification row.
@@ -214,14 +248,20 @@ public partial class HplcMethodService
                 .Where(s => s.HplcMethodImpurityId != null && removedImpurityIds.Contains(s.HplcMethodImpurityId.Value))
                 .Select(s => s.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (usedImpurityId != null)
-                throw new BusinessRuleException($"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityUsedBySpecification,
+                    $"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.",
+                    new Dictionary<string, string> { ["impurity"] = method.Impurities.First(i => i.Id == usedImpurityId).Name });
 
             // ... and by peaks recorded on samples.
             var peakImpurityId = await _db.HplcReplicatePeaks
                 .Where(p => p.HplcMethodImpurityId != null && removedImpurityIds.Contains(p.HplcMethodImpurityId.Value))
                 .Select(p => p.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (peakImpurityId != null)
-                throw new BusinessRuleException($"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityHasRecordedPeaks,
+                    $"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.",
+                    new Dictionary<string, string> { ["impurity"] = method.Impurities.First(i => i.Id == peakImpurityId).Name });
 
             // ... and by the snapshot of an open run, which validates entered peaks against it.
             var openSnapshots = await _db.HplcRuns
@@ -232,7 +272,10 @@ public partial class HplcMethodService
                 var snapshotImpurities = JsonSerializer.Deserialize<HplcMethodResponse>(json, JsonOptions)?.Impurities;
                 var used = snapshotImpurities?.FirstOrDefault(i => removedImpurityIds.Contains(i.Id));
                 if (used != null)
-                    throw new BusinessRuleException($"Impurity {used.Name} is used by an open HPLC run and cannot be removed.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcImpurityUsedByOpenRun,
+                        $"Impurity {used.Name} is used by an open HPLC run and cannot be removed.",
+                        new Dictionary<string, string> { ["impurity"] = used.Name });
             }
         }
 
@@ -269,11 +312,17 @@ public partial class HplcMethodService
         var before = JsonSerializer.Serialize(await GetByIdAsync(id, currentUserId, ct), JsonOptions);
 
         var method = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         method.IsActive = isActive;
         method.LastModifiedByUserId = currentUserId;
@@ -299,11 +348,17 @@ public partial class HplcMethodService
     public async Task<List<HplcMethodHistoryEntry>> GetHistoryAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         var method = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var logs = await _db.AuditLogs
             .Include(a => a.Changes)
@@ -336,10 +391,14 @@ public partial class HplcMethodService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcReasonRequired,
+                "A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcReasonTooLong,
+                "Reason cannot exceed 500 characters.");
         return trimmed;
     }
 

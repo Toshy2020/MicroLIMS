@@ -3,6 +3,9 @@ namespace MicroLIMS.Shared.Messages;
 // Hplc.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string HplcAnalyteStandardConcentrationRequired = "Hplc.AnalyteStandardConcentrationRequired";
+    public const string HplcAnalyteUsedByQualifications = "Hplc.AnalyteUsedByQualifications";
+    public const string HplcAnalyteUsedBySpecifications = "Hplc.AnalyteUsedBySpecifications";
     public const string HplcCalibrationOverdue = "Hplc.CalibrationOverdue";
     public const string HplcChannelPreparationExpired = "Hplc.ChannelPreparationExpired";
     public const string HplcChannelPreparationMissing = "Hplc.ChannelPreparationMissing";
@@ -10,6 +13,7 @@ public static partial class MessageCodes
     public const string HplcChannelPreparationNotPrepared = "Hplc.ChannelPreparationNotPrepared";
     public const string HplcChannelPreparationWrongMethod = "Hplc.ChannelPreparationWrongMethod";
     public const string HplcChannelPreparationWrongSolution = "Hplc.ChannelPreparationWrongSolution";
+    public const string HplcCleaningResidueHplcOnly = "Hplc.CleaningResidueHplcOnly";
     public const string HplcColumnInactive = "Hplc.ColumnInactive";
     public const string HplcColumnIncompatibleWithEquipment = "Hplc.ColumnIncompatibleWithEquipment";
     public const string HplcColumnMissingUspDesignation = "Hplc.ColumnMissingUspDesignation";
@@ -20,6 +24,7 @@ public static partial class MessageCodes
     public const string HplcDissolutionNeedsStandardDilution = "Hplc.DissolutionNeedsStandardDilution";
     public const string HplcDissolutionNoInternalStandard = "Hplc.DissolutionNoInternalStandard";
     public const string HplcDissolutionResultsNotReplicates = "Hplc.DissolutionResultsNotReplicates";
+    public const string HplcDuplicateImpurityId = "Hplc.DuplicateImpurityId";
     public const string HplcEquipmentHasOpenRun = "Hplc.EquipmentHasOpenRun";
     public const string HplcEquipmentNotFound = "Hplc.EquipmentNotFound";
     public const string HplcEquipmentUnavailable = "Hplc.EquipmentUnavailable";
@@ -30,17 +35,38 @@ public static partial class MessageCodes
     public const string HplcEvidenceFileTooLarge = "Hplc.EvidenceFileTooLarge";
     public const string HplcEvidenceFileTypeUnsupported = "Hplc.EvidenceFileTypeUnsupported";
     public const string HplcEvidenceNotFound = "Hplc.EvidenceNotFound";
+    public const string HplcGcCarrierGasRequired = "Hplc.GcCarrierGasRequired";
+    public const string HplcGcDetectorInvalid = "Hplc.GcDetectorInvalid";
+    public const string HplcGcFilmThicknessRequired = "Hplc.GcFilmThicknessRequired";
+    public const string HplcGcFirstOvenStepNoRamp = "Hplc.GcFirstOvenStepNoRamp";
+    public const string HplcGcHeadspaceSettingsRequired = "Hplc.GcHeadspaceSettingsRequired";
+    public const string HplcGcHeadspaceValuesNotAllowed = "Hplc.GcHeadspaceValuesNotAllowed";
+    public const string HplcGcHplcOnlySettingsNotAllowed = "Hplc.GcHplcOnlySettingsNotAllowed";
+    public const string HplcGcInletDetectorTempRequired = "Hplc.GcInletDetectorTempRequired";
+    public const string HplcGcOvenStepRampPositive = "Hplc.GcOvenStepRampPositive";
+    public const string HplcGcOvenStepRequired = "Hplc.GcOvenStepRequired";
+    public const string HplcGcOvenStepTempAndHoldInvalid = "Hplc.GcOvenStepTempAndHoldInvalid";
+    public const string HplcGcSplitRatioInvalid = "Hplc.GcSplitRatioInvalid";
+    public const string HplcGcWavelengthNotUsed = "Hplc.GcWavelengthNotUsed";
+    public const string HplcImpurityHasRecordedPeaks = "Hplc.ImpurityHasRecordedPeaks";
     public const string HplcImpurityNotInMethod = "Hplc.ImpurityNotInMethod";
+    public const string HplcImpurityUsedByOpenRun = "Hplc.ImpurityUsedByOpenRun";
+    public const string HplcImpurityUsedBySpecification = "Hplc.ImpurityUsedBySpecification";
+    public const string HplcInternalStandardAssayOnly = "Hplc.InternalStandardAssayOnly";
+    public const string HplcInternalStandardLocked = "Hplc.InternalStandardLocked";
     public const string HplcInternalStandardResponseRequired = "Hplc.InternalStandardResponseRequired";
     public const string HplcLotMissingMoisture = "Hplc.LotMissingMoisture";
     public const string HplcLotMissingPurity = "Hplc.LotMissingPurity";
     public const string HplcLotUnitIncompatibleWithMg = "Hplc.LotUnitIncompatibleWithMg";
+    public const string HplcMethodAbbreviationExists = "Hplc.MethodAbbreviationExists";
     public const string HplcMethodAnalyteNotFound = "Hplc.MethodAnalyteNotFound";
     public const string HplcMethodAnalyteSnapshotNotFound = "Hplc.MethodAnalyteSnapshotNotFound";
     public const string HplcMethodHasNoInternalStandard = "Hplc.MethodHasNoInternalStandard";
+    public const string HplcMethodImpurityNotFound = "Hplc.MethodImpurityNotFound";
     public const string HplcMethodInactive = "Hplc.MethodInactive";
     public const string HplcMethodNotFound = "Hplc.MethodNotFound";
     public const string HplcMethodSnapshotUnreadable = "Hplc.MethodSnapshotUnreadable";
+    public const string HplcMethodTechniqueAndResultModeLocked = "Hplc.MethodTechniqueAndResultModeLocked";
     public const string HplcMethodWrongLaboratory = "Hplc.MethodWrongLaboratory";
     public const string HplcMobilePhaseRequiredForAllChannels = "Hplc.MobilePhaseRequiredForAllChannels";
     public const string HplcMobilePhaseRequiredForChannel = "Hplc.MobilePhaseRequiredForChannel";
@@ -67,6 +93,7 @@ public static partial class MessageCodes
     public const string HplcReplicateResponseMustBePositive = "Hplc.ReplicateResponseMustBePositive";
     public const string HplcReplicateSampleWeightMustBePositive = "Hplc.ReplicateSampleWeightMustBePositive";
     public const string HplcReplicateSingleResponseRequired = "Hplc.ReplicateSingleResponseRequired";
+    public const string HplcResidualSolventsFieldsOnly = "Hplc.ResidualSolventsFieldsOnly";
     public const string HplcResultAlreadySubmitted = "Hplc.ResultAlreadySubmitted";
     public const string HplcRunClosed = "Hplc.RunClosed";
     public const string HplcRunNotFound = "Hplc.RunNotFound";
@@ -78,6 +105,7 @@ public static partial class MessageCodes
     public const string HplcRunSampleRemoved = "Hplc.RunSampleRemoved";
     public const string HplcRunSampleResultAlreadySubmitted = "Hplc.RunSampleResultAlreadySubmitted";
     public const string HplcSampleAssignmentLockedUntilSst = "Hplc.SampleAssignmentLockedUntilSst";
+    public const string HplcSampleSolutionVolumeRequiredForResidualSolvents = "Hplc.SampleSolutionVolumeRequiredForResidualSolvents";
     public const string HplcSampleWeightCannotBeNegative = "Hplc.SampleWeightCannotBeNegative";
     public const string HplcSelectAtLeastOneQualification = "Hplc.SelectAtLeastOneQualification";
     public const string HplcSelectAtLeastOneTest = "Hplc.SelectAtLeastOneTest";
@@ -88,17 +116,23 @@ public static partial class MessageCodes
     public const string HplcSstNotPassed = "Hplc.SstNotPassed";
     public const string HplcSstStandardReportRequired = "Hplc.SstStandardReportRequired";
     public const string HplcSstStandardValuesIncomplete = "Hplc.SstStandardValuesIncomplete";
+    public const string HplcStandardDilutionMustBePositive = "Hplc.StandardDilutionMustBePositive";
     public const string HplcStandardLotUnusable = "Hplc.StandardLotUnusable";
     public const string HplcStandardLotWrongLaboratory = "Hplc.StandardLotWrongLaboratory";
     public const string HplcStandardMaterialNotFound = "Hplc.StandardMaterialNotFound";
     public const string HplcStandardWeightMustBePositive = "Hplc.StandardWeightMustBePositive";
     public const string HplcTestOrderAlreadyAssignedToRun = "Hplc.TestOrderAlreadyAssignedToRun";
     public const string HplcTestOrderNotEligibleForRun = "Hplc.TestOrderNotEligibleForRun";
+    public const string HplcTheoreticalWeightsMustBePositive = "Hplc.TheoreticalWeightsMustBePositive";
+    public const string HplcTheoreticalWeightsNotUsedForResidualSolvents = "Hplc.TheoreticalWeightsNotUsedForResidualSolvents";
     public const string HplcTooManyPeaksPerReplicate = "Hplc.TooManyPeaksPerReplicate";
     public const string HplcUnsupportedResultMode = "Hplc.UnsupportedResultMode";
 
     private static Dictionary<string, string[]> HplcParameters() => new()
     {
+        [HplcAnalyteStandardConcentrationRequired] = ["analyte"],
+        [HplcAnalyteUsedByQualifications] = ["analyte"],
+        [HplcAnalyteUsedBySpecifications] = ["analyte"],
         [HplcCalibrationOverdue] = ["date"],
         [HplcChannelPreparationExpired] = ["channel"],
         [HplcChannelPreparationMissing] = ["channel"],
@@ -106,6 +140,7 @@ public static partial class MessageCodes
         [HplcChannelPreparationNotPrepared] = ["channel"],
         [HplcChannelPreparationWrongMethod] = ["channel"],
         [HplcChannelPreparationWrongSolution] = ["channel"],
+        [HplcCleaningResidueHplcOnly] = [],
         [HplcColumnInactive] = ["column"],
         [HplcColumnIncompatibleWithEquipment] = ["column", "equipment"],
         [HplcColumnMissingUspDesignation] = ["column"],
@@ -116,6 +151,7 @@ public static partial class MessageCodes
         [HplcDissolutionNeedsStandardDilution] = ["method"],
         [HplcDissolutionNoInternalStandard] = [],
         [HplcDissolutionResultsNotReplicates] = [],
+        [HplcDuplicateImpurityId] = [],
         [HplcEquipmentHasOpenRun] = ["equipment"],
         [HplcEquipmentNotFound] = ["equipmentId"],
         [HplcEquipmentUnavailable] = ["status"],
@@ -126,17 +162,38 @@ public static partial class MessageCodes
         [HplcEvidenceFileTooLarge] = ["maxMb"],
         [HplcEvidenceFileTypeUnsupported] = ["contentType"],
         [HplcEvidenceNotFound] = ["evidenceId"],
+        [HplcGcCarrierGasRequired] = [],
+        [HplcGcDetectorInvalid] = ["detector"],
+        [HplcGcFilmThicknessRequired] = [],
+        [HplcGcFirstOvenStepNoRamp] = [],
+        [HplcGcHeadspaceSettingsRequired] = [],
+        [HplcGcHeadspaceValuesNotAllowed] = [],
+        [HplcGcHplcOnlySettingsNotAllowed] = [],
+        [HplcGcInletDetectorTempRequired] = [],
+        [HplcGcOvenStepRampPositive] = ["step"],
+        [HplcGcOvenStepRequired] = [],
+        [HplcGcOvenStepTempAndHoldInvalid] = ["step"],
+        [HplcGcSplitRatioInvalid] = [],
+        [HplcGcWavelengthNotUsed] = [],
+        [HplcImpurityHasRecordedPeaks] = ["impurity"],
         [HplcImpurityNotInMethod] = [],
+        [HplcImpurityUsedByOpenRun] = ["impurity"],
+        [HplcImpurityUsedBySpecification] = ["impurity"],
+        [HplcInternalStandardAssayOnly] = [],
+        [HplcInternalStandardLocked] = [],
         [HplcInternalStandardResponseRequired] = ["analyte"],
         [HplcLotMissingMoisture] = ["lot"],
         [HplcLotMissingPurity] = ["lot"],
         [HplcLotUnitIncompatibleWithMg] = ["lot", "unit"],
+        [HplcMethodAbbreviationExists] = ["abbreviation"],
         [HplcMethodAnalyteNotFound] = ["analyte"],
         [HplcMethodAnalyteSnapshotNotFound] = ["analyte"],
         [HplcMethodHasNoInternalStandard] = [],
+        [HplcMethodImpurityNotFound] = ["impurityId"],
         [HplcMethodInactive] = ["method"],
         [HplcMethodNotFound] = ["methodId"],
         [HplcMethodSnapshotUnreadable] = [],
+        [HplcMethodTechniqueAndResultModeLocked] = [],
         [HplcMethodWrongLaboratory] = [],
         [HplcMobilePhaseRequiredForAllChannels] = [],
         [HplcMobilePhaseRequiredForChannel] = ["channel"],
@@ -163,6 +220,7 @@ public static partial class MessageCodes
         [HplcReplicateResponseMustBePositive] = ["replicate", "analyte"],
         [HplcReplicateSampleWeightMustBePositive] = ["replicate"],
         [HplcReplicateSingleResponseRequired] = ["replicate", "analyte"],
+        [HplcResidualSolventsFieldsOnly] = [],
         [HplcResultAlreadySubmitted] = [],
         [HplcRunClosed] = [],
         [HplcRunNotFound] = ["runId"],
@@ -174,6 +232,7 @@ public static partial class MessageCodes
         [HplcRunSampleRemoved] = [],
         [HplcRunSampleResultAlreadySubmitted] = [],
         [HplcSampleAssignmentLockedUntilSst] = [],
+        [HplcSampleSolutionVolumeRequiredForResidualSolvents] = [],
         [HplcSampleWeightCannotBeNegative] = [],
         [HplcSelectAtLeastOneQualification] = [],
         [HplcSelectAtLeastOneTest] = [],
@@ -184,12 +243,15 @@ public static partial class MessageCodes
         [HplcSstNotPassed] = [],
         [HplcSstStandardReportRequired] = [],
         [HplcSstStandardValuesIncomplete] = ["analyte"],
+        [HplcStandardDilutionMustBePositive] = [],
         [HplcStandardLotUnusable] = ["analyte", "lot", "reason"],
         [HplcStandardLotWrongLaboratory] = ["analyte"],
         [HplcStandardMaterialNotFound] = ["analyte"],
         [HplcStandardWeightMustBePositive] = ["analyte"],
         [HplcTestOrderAlreadyAssignedToRun] = ["testOrderId", "runCode"],
         [HplcTestOrderNotEligibleForRun] = ["testOrderId"],
+        [HplcTheoreticalWeightsMustBePositive] = [],
+        [HplcTheoreticalWeightsNotUsedForResidualSolvents] = [],
         [HplcTooManyPeaksPerReplicate] = [],
         [HplcUnsupportedResultMode] = ["mode"],
     };

@@ -1,4 +1,5 @@
 import { Autocomplete, Chip, TextField, Tooltip } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
 
 interface PathogenPickerProps {
@@ -11,6 +12,7 @@ interface PathogenPickerProps {
 // "Observation"). Codes already configured stay visible even if the test
 // has since been frozen.
 export function PathogenPicker({ value, onChange, editableCodes }: PathogenPickerProps) {
+  const { t } = useTranslation("labConfig");
   const { options } = useTestDefinitions();
   const pathogens = options.filter((o) => o.workflowType === "Observation" && (o.isActive || value.includes(o.code)));
   const availablePathogens = pathogens.filter((o) => !editableCodes || editableCodes.has(o.code));
@@ -44,7 +46,7 @@ export function PathogenPicker({ value, onChange, editableCodes }: PathogenPicke
           if (isLocked) {
             const { onDelete, ...chipProps } = itemProps;
             const opt = options.find((x) => x.code === code);
-            const sectionName = opt?.section?.name || "Owned by another laboratory";
+            const sectionName = opt?.section?.name || t("afterCleaning.pathogen.ownedByOther");
             return (
               <Tooltip key={key} title={sectionName}>
                 <span>
@@ -57,9 +59,9 @@ export function PathogenPicker({ value, onChange, editableCodes }: PathogenPicke
         })
       }
       renderInput={(params) => (
-        <TextField {...params} label="Pathogen tests" placeholder={value.length === 0 ? "e.g. E. coli, Salmonella" : undefined} />
+        <TextField {...params} label={t("afterCleaning.pathogen.label")} placeholder={value.length === 0 ? t("afterCleaning.pathogen.placeholder") : undefined} />
       )}
-      noOptionsText="No pathogen tests in the Test Master"
+      noOptionsText={t("afterCleaning.pathogen.noOptions")}
     />
   );
 }

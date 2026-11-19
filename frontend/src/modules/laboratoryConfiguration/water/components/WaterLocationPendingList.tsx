@@ -1,9 +1,9 @@
 import { useMemo } from "react";
+import { useTranslation } from "../../../../i18n";
 import { PendingBatchList } from "../../../../components/entry/PendingBatchList";
 import type { PendingBatchColumn } from "../../../../components/entry/PendingBatchList";
 import { monospaceFontFamily } from "../../../../theme/palette";
 import type { PendingWaterPoint } from "../waterSamplingPointPaste";
-import { plural } from "../waterConfigTypes";
 
 interface Props {
   rows: PendingWaterPoint[];
@@ -19,31 +19,32 @@ interface Props {
  * Nothing is created until Save; server row errors are displayed against each row.
  */
 export function WaterLocationPendingList({ rows, saving, error, onSave, onDiscard, onRemoveRow }: Props) {
+  const { t } = useTranslation("labConfig");
   const columns = useMemo<PendingBatchColumn<PendingWaterPoint>[]>(
     () => [
       {
         key: "code",
-        label: "Point code",
+        label: t("water.pending.columns.code"),
         sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
         render: (r) => r.code
       },
-      { key: "waterDepartmentName", label: "Water system", render: (r) => r.waterDepartmentName },
-      { key: "location", label: "Point name", render: (r) => r.location || "—" },
-      { key: "testingFrequency", label: "Frequency", render: (r) => r.testingFrequency || "—" },
+      { key: "waterDepartmentName", label: t("water.pending.columns.system"), render: (r) => r.waterDepartmentName },
+      { key: "location", label: t("water.pending.columns.name"), render: (r) => r.location || "—" },
+      { key: "testingFrequency", label: t("water.pending.columns.frequency"), render: (r) => r.testingFrequency || "—" },
       {
         key: "assignedTestCodes",
-        label: "Assigned tests",
+        label: t("water.pending.columns.tests"),
         render: (r) => (r.assignedTestCodes.length > 0 ? r.assignedTestCodes.join(", ") : "—")
       }
     ],
-    []
+    [t]
   );
 
   return (
     <PendingBatchList
-      title={`Pending sample locations (${rows.length})`}
-      subtitle={`Review the ${plural(rows.length, "location")} below. Nothing is saved until you click Save.`}
-      ariaLabel="Pending sample locations"
+      title={t("water.pending.title", { count: rows.length })}
+      subtitle={t("water.pending.subtitle", { locations: t("water.locationCount", { count: rows.length }) })}
+      ariaLabel={t("water.pending.aria")}
       columns={columns}
       rows={rows}
       getRowKey={(r, i) => `${r.code}-${i}`}

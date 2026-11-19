@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Trans } from "react-i18next";
+import { i18n, useTranslation } from "../../../i18n";
 import { Link as RouterLink } from "react-router-dom";
 import axios from "axios";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
@@ -35,12 +37,15 @@ import { formatRoleName } from "../../../utils/userDisplay";
 import { EscalationRuleDialog } from "./EscalationRuleDialog";
 import {
   type EscalationRuleDto,
-  escalationRulesService,
-  formatTriggerLabel
+  type EscalationTrigger,
+  escalationRulesService
 } from "./services/escalationRulesService";
 import { type WorkingHoursDto, workingHoursService } from "./services/workingHoursService";
 
 export function EscalationRulesPage() {
+  const { t } = useTranslation("labConfig");
+  const triggerLabel = (trigger: EscalationTrigger) =>
+    t(`escalation.triggers.${trigger}`, { defaultValue: trigger });
   const [sections, setSections] = useState<LaboratorySection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [workingHours, setWorkingHours] = useState<WorkingHoursDto | null>(null);
@@ -78,7 +83,7 @@ export function EscalationRulesPage() {
       })
       .catch((err: unknown) => {
         if (signal.aborted || axios.isCancel(err)) return;
-        const message = getErrorMessage(err, "Could not load escalation configuration.");
+        const message = getErrorMessage(err, i18n.t("escalation.rules.loadError", { ns: "labConfig" }));
         setBootstrapError(message);
         setBootstrapLoading(false);
         toast.error(message);
@@ -112,7 +117,7 @@ export function EscalationRulesPage() {
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted || axios.isCancel(err)) return;
-        const message = getErrorMessage(err, "Could not load escalation rules.");
+        const message = getErrorMessage(err, i18n.t("escalation.rules.rulesLoadError", { ns: "labConfig" }));
         setRulesError(message);
         setRulesLoading(false);
         toast.error(message);
@@ -143,11 +148,11 @@ export function EscalationRulesPage() {
     setRetiring(true);
     try {
       await escalationRulesService.retire(retireTarget.id);
-      toast.success("Escalation rule retired.");
+      toast.success(t("escalation.rules.retired"));
       setRetireTarget(null);
       setRulesReloadToken((t) => t + 1);
     } catch (err: unknown) {
-      const message = getErrorMessage(err, "Could not retire escalation rule.");
+      const message = getErrorMessage(err, t("escalation.rules.retireError"));
       toast.error(message);
     } finally {
       setRetiring(false);
@@ -156,8 +161,8 @@ export function EscalationRulesPage() {
 
   return (
     <LabPage
-      title="Escalation Rules"
-      subtitle="Notify section leads automatically when waiting work exceeds configured working-hours thresholds."
+      title={t("escalation.rules.title")}
+      subtitle={t("escalation.rules.subtitle")}
       actions={
         selectedSection && workingHoursConfigured ? (
           <Button
@@ -168,7 +173,7 @@ export function EscalationRulesPage() {
               setDialogMode("create");
             }}
           >
-            Add rule
+            {t("escalation.rules.addRule")}
           </Button>
         ) : null
       }
@@ -178,7 +183,7 @@ export function EscalationRulesPage() {
           <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }} role="status" aria-live="polite">
             <CircularProgress size={20} />
             <Typography variant="body2" color="text.secondary">
-              Loading escalation configuration...
+              {t("escalation.rules.loadingConfig")}
             </Typography>
           </Stack>
         </Paper>
@@ -194,7 +199,7 @@ export function EscalationRulesPage() {
       {!bootstrapLoading && !bootstrapError && sections.length === 0 && (
         <Paper sx={{ p: 2.5 }}>
           <Alert severity="info">
-            You are not assigned to any laboratory sections.
+            {t("escalation.rules.noSections")}
           </Alert>
         </Paper>
       )}
@@ -203,11 +208,11 @@ export function EscalationRulesPage() {
         <Stack spacing={2}>
           {!workingHoursConfigured && (
             <Alert severity="warning" role="alert">
-              Working hours must be configured before escalation rules can be added or changed. Set at least one working day on the{" "}
-              <MuiLink component={RouterLink} to={APP_ROUTES.WORKING_HOURS} underline="hover">
-                working hours calendar
-              </MuiLink>{" "}
-              first.
+              <Trans
+                i18nKey="escalation.rules.workingHoursFirst"
+                ns="labConfig"
+                components={{ lnk: <MuiLink component={RouterLink} to={APP_ROUTES.WORKING_HOURS} underline="hover">{null}</MuiLink> }}
+              />
             </Alert>
           )}
 
@@ -220,7 +225,7 @@ export function EscalationRulesPage() {
               <TextField
                 select
                 size="small"
-                label="Section"
+                label={t("escalation.rules.section")}
                 value={selectedSectionId ?? ""}
                 onChange={(e) => setSelectedSectionId(Number(e.target.value))}
                 sx={{ minWidth: 260 }}
@@ -237,10 +242,10 @@ export function EscalationRulesPage() {
                   <Switch
                     checked={includeRetired}
                     onChange={(e) => setIncludeRetired(e.target.checked)}
-                    slotProps={{ input: { "aria-label": "Show retired" } }}
+                    slotProps={{ input: { "aria-label": t("escalation.rules.showRetired") } }}
                   />
                 }
-                label="Show retired"
+                label={t("escalation.rules.showRetired")}
               />
             </Stack>
 
@@ -248,7 +253,7 @@ export function EscalationRulesPage() {
               <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 3 }} role="status" aria-live="polite">
                 <CircularProgress size={20} />
                 <Typography variant="body2" color="text.secondary">
-                  Loading escalation rules...
+                  {t("escalation.rules.loadingRules")}
                 </Typography>
               </Stack>
             )}
@@ -264,46 +269,46 @@ export function EscalationRulesPage() {
               <Box sx={{ py: 3, textAlign: "center" }}>
                 <Typography variant="body2" color="text.secondary">
                   {includeRetired
-                    ? "No escalation rules configured for this section yet."
-                    : "No active escalation rules configured for this section."}
+                    ? t("escalation.rules.emptyAll")
+                    : t("escalation.rules.emptyActive")}
                 </Typography>
               </Box>
             )}
 
             {!rulesLoading && !rulesError && rules.length > 0 && (
               <TableContainer>
-                <Table aria-label="Escalation rules" size="small">
+                <Table aria-label={t("escalation.rules.tableAria")} size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Trigger</TableCell>
-                      <TableCell>Threshold</TableCell>
-                      <TableCell>Notify role</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell align="right">Actions</TableCell>
+                      <TableCell>{t("escalation.rules.columns.trigger")}</TableCell>
+                      <TableCell>{t("escalation.rules.columns.threshold")}</TableCell>
+                      <TableCell>{t("escalation.rules.columns.notifyRole")}</TableCell>
+                      <TableCell>{t("escalation.rules.columns.status")}</TableCell>
+                      <TableCell align="right">{t("escalation.rules.columns.actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {rules.map((rule) => {
                       const isActive = rule.isActive && rule.retiredAt === null;
                       const statusLabel = isActive
-                        ? "Active"
+                        ? t("escalation.rules.statusActive")
                         : replacedRuleIds.has(rule.id)
-                          ? "Replaced"
-                          : "Retired";
+                          ? t("escalation.rules.statusReplaced")
+                          : t("escalation.rules.statusRetired");
                       return (
                         <TableRow key={rule.id}>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {formatTriggerLabel(rule.trigger)}
+                              {triggerLabel(rule.trigger)}
                             </Typography>
                             {rule.replacesRuleId !== null && (
                               <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                                Replaces earlier rule
+                                {t("escalation.rules.replacesEarlier")}
                               </Typography>
                             )}
                           </TableCell>
                           <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                            {rule.thresholdWorkingHours} working hours
+                            {t("escalation.rules.thresholdValue", { hours: rule.thresholdWorkingHours })}
                           </TableCell>
                           <TableCell>{formatRoleName(rule.notifyRoleType)}</TableCell>
                           <TableCell>
@@ -315,12 +320,16 @@ export function EscalationRulesPage() {
                             />
                             {rule.retiredAt ? (
                               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                                Retired {formatDateTimeWithTimeZone(rule.retiredAt)}
-                                {rule.retiredByName ? ` by ${rule.retiredByName}` : ""}
+                                {rule.retiredByName
+                                  ? t("escalation.rules.retiredOnBy", {
+                                      date: formatDateTimeWithTimeZone(rule.retiredAt),
+                                      name: rule.retiredByName
+                                    })
+                                  : t("escalation.rules.retiredOn", { date: formatDateTimeWithTimeZone(rule.retiredAt) })}
                               </Typography>
                             ) : (
                               <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
-                                Added {formatDateTimeWithTimeZone(rule.createdAt)}
+                                {t("escalation.rules.addedOn", { date: formatDateTimeWithTimeZone(rule.createdAt) })}
                               </Typography>
                             )}
                           </TableCell>
@@ -335,14 +344,14 @@ export function EscalationRulesPage() {
                                     setDialogMode("replace");
                                   }}
                                 >
-                                  Edit
+                                  {t("escalation.rules.edit")}
                                 </Button>
                                 <Button
                                   size="small"
                                   color="error"
                                   onClick={() => setRetireTarget(rule)}
                                 >
-                                  Retire
+                                  {t("escalation.rules.retire")}
                                 </Button>
                               </Stack>
                             )}
@@ -380,13 +389,17 @@ export function EscalationRulesPage() {
       <ConfirmationDialog
         destructive
         open={retireTarget !== null}
-        title="Retire escalation rule"
-        confirmText="Retire"
-        cancelText="Cancel"
+        title={t("escalation.rules.retireTitle")}
+        confirmText={t("escalation.rules.retireConfirmText")}
+        cancelText={t("escalation.rules.cancel")}
         loading={retiring}
         message={
           retireTarget
-            ? `Retire "${formatTriggerLabel(retireTarget.trigger)}" (${retireTarget.thresholdWorkingHours} working hours to ${formatRoleName(retireTarget.notifyRoleType)})? Past escalation history stays in the audit log, and this rule will stop firing.`
+            ? t("escalation.rules.retireMessage", {
+                trigger: triggerLabel(retireTarget.trigger),
+                hours: retireTarget.thresholdWorkingHours,
+                role: formatRoleName(retireTarget.notifyRoleType)
+              })
             : ""
         }
         onCancel={() => setRetireTarget(null)}

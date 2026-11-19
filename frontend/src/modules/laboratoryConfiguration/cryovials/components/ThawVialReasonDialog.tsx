@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "../../../../i18n";
 import {
   Button,
   TextField,
@@ -26,6 +27,7 @@ export function ThawVialReasonDialog({
   onCancel,
   onConfirm
 }: ThawVialReasonDialogProps) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +53,7 @@ export function ThawVialReasonDialog({
     try {
       await onConfirm(reason.trim());
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Failed to thaw cryovial.");
+      setError(e?.response?.data?.message ?? t("cryovials.thaw.error"));
     } finally {
       setSubmitting(false);
     }
@@ -81,14 +83,14 @@ export function ThawVialReasonDialog({
             <AcUnitIcon fontSize="small" />
           </Box>
           <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
-            Thaw Vial: Provide Reason
+            {t("cryovials.thaw.title")}
           </Typography>
         </>
       }
       actions={
         <>
           <Button onClick={onCancel} disabled={submitting} sx={{ color: "text.secondary" }}>
-            Cancel
+            {t("cryovials.thaw.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -97,7 +99,7 @@ export function ThawVialReasonDialog({
             startIcon={<AcUnitIcon />}
             color="primary"
           >
-            {submitting ? "Thawing..." : "Confirm Thaw"}
+            {submitting ? t("cryovials.thaw.thawing") : t("cryovials.thaw.confirm")}
           </Button>
         </>
       }
@@ -124,7 +126,7 @@ export function ThawVialReasonDialog({
             >
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Cryovial Code
+                  {t("cryovials.thaw.code")}
                 </Typography>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}>
                   {cryovial.code}
@@ -133,7 +135,7 @@ export function ThawVialReasonDialog({
 
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Organism
+                  {t("cryovials.thaw.organism")}
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                   {organismName}
@@ -142,10 +144,10 @@ export function ThawVialReasonDialog({
 
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", textTransform: "uppercase" }}>
-                  Available Vials
+                  {t("cryovials.thaw.available")}
                 </Typography>
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.notDetected.text }}>
-                  {cryovial.vialsRemaining} of {cryovial.numberOfVialsPrepared} vials
+                  {t("cryovials.thaw.availableValue", { remaining: cryovial.vialsRemaining, prepared: cryovial.numberOfVialsPrepared })}
                 </Typography>
               </Box>
             </Box>
@@ -154,13 +156,13 @@ export function ThawVialReasonDialog({
           {/* Reason for Thawing (Free Text Only) */}
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary", mb: 0.75 }}>
-              Reason for Thawing <Box component="span" sx={{ color: theme.custom.status.detected.text }}>*</Box>
+              {t("cryovials.thaw.reasonHeading")} <Box component="span" sx={{ color: theme.custom.status.detected.text }}>*</Box>
             </Typography>
             <TextField
               fullWidth
               multiline
               rows={3}
-              placeholder="Enter reason for thawing this cryovial..."
+              placeholder={t("cryovials.thaw.placeholder")}
               value={reason}
               onChange={(e) => setReason(e.target.value.slice(0, 500))}
               disabled={submitting}
@@ -168,14 +170,14 @@ export function ThawVialReasonDialog({
               error={reason.length > 0 && reason.trim().length < 5}
               helperText={
                 reason.length > 0 && reason.trim().length < 5
-                  ? "Reason must be at least 5 characters."
+                  ? t("cryovials.thaw.reasonShort")
                   : ""
               }
-              slotProps={{ htmlInput: { "aria-label": "Enter reason for thawing this cryovial" } }}
+              slotProps={{ htmlInput: { "aria-label": t("cryovials.thaw.reasonAria") } }}
             />
             <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                GMP justification for vial retrieval
+                {t("cryovials.thaw.justification")}
               </Typography>
               <Typography
                 sx={{
@@ -184,7 +186,7 @@ export function ThawVialReasonDialog({
                   color: reason.length >= 450 ? theme.custom.status.action.text : "text.secondary"
                 }}
               >
-                {reason.length} / 500 characters
+                {t("cryovials.thaw.counter", { count: reason.length })}
               </Typography>
             </Box>
           </Box>

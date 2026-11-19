@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { i18n, useTranslation } from "../../../i18n";
 import { Alert, Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,8 +12,6 @@ import { Machine, MachinePart, PartConfig, acTestTypeLabel, isPathogenConfig } f
 import { AcPartCard } from "./components/AcPartCard";
 import { AcCountTestPanel, AcMachinePanel, AcPartPanel, AcPathogenPanel } from "./components/AcPanels";
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-
 type PendingDelete =
   | { kind: "machine"; machine: Machine }
   | { kind: "part"; part: MachinePart }
@@ -23,6 +22,7 @@ type PendingDelete =
 // pages: machines on the left, the selected machine's parts as cards on
 // the right, every add/edit in a side panel.
 export function AfterCleaningConfigPage() {
+  const { t } = useTranslation("labConfig");
   const { options } = useTestDefinitions();
   const [machines, setMachines] = useState<Machine[]>([]);
   const [configsByPart, setConfigsByPart] = useState<Record<number, PartConfig[]>>({});
@@ -53,7 +53,7 @@ export function AfterCleaningConfigPage() {
       setLoadError(null);
       setSelectedMachineId((current) => (current != null && list.some((m) => m.id === current) ? current : list[0]?.id ?? null));
     } catch (e: any) {
-      setLoadError(e?.response?.data?.message ?? "Could not load the after-cleaning configuration.");
+      setLoadError(e?.response?.data?.message ?? i18n.t("afterCleaning.page.loadError", { ns: "labConfig" }));
     } finally {
       setLoading(false);
     }
@@ -87,8 +87,8 @@ export function AfterCleaningConfigPage() {
       return {
         id: m.id,
         title: m.name,
-        subtitle: parts.length === 0 ? "No parts yet" : plural(parts.length, "part"),
-        badge: parts.length === 0 ? undefined : empty > 0 ? { label: `${plural(empty, "part")} without tests`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+        subtitle: parts.length === 0 ? t("afterCleaning.page.noPartsYet") : t("afterCleaning.partCount", { count: parts.length }),
+        badge: parts.length === 0 ? undefined : empty > 0 ? { label: t("afterCleaning.partsWithoutTests", { count: empty }), tone: "inconclusive" } : { label: t("afterCleaning.page.complete"), tone: "notDetected" }
       };
     });
 
@@ -123,35 +123,39 @@ export function AfterCleaningConfigPage() {
     try {
       if (target.kind === "machine") {
         await AfterCleaningConfigService.deleteMachine(target.machine.id);
-        setMessage({ text: `"${target.machine.name}" deleted.`, ok: true });
+        setMessage({ text: t("afterCleaning.page.machineDeleted", { name: target.machine.name }), ok: true });
       } else if (target.kind === "part") {
         await AfterCleaningConfigService.deleteMachinePart(target.part.id);
-        setMessage({ text: `Part "${target.part.name}" deleted.`, ok: true });
+        setMessage({ text: t("afterCleaning.page.partDeleted", { name: target.part.name }), ok: true });
       } else {
         await AfterCleaningConfigService.deletePartConfiguration(target.config.id);
-        setMessage({ text: `Test removed from ${target.part.name}.`, ok: true });
+        setMessage({ text: t("afterCleaning.page.testRemoved", { part: target.part.name }), ok: true });
       }
       load();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not delete this record.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("afterCleaning.page.deleteError"), ok: false });
     }
   };
 
   const deleteMessage = !pendingDelete
     ? ""
     : pendingDelete.kind === "machine"
-      ? `Delete machine "${pendingDelete.machine.name}"? This cannot be undone.`
+      ? t("afterCleaning.page.deleteMachine", { name: pendingDelete.machine.name })
       : pendingDelete.kind === "part"
-        ? `Delete part "${pendingDelete.part.name}"? This cannot be undone.`
-        : `Remove the ${acTestTypeLabel(pendingDelete.config.testType)} / ${pendingDelete.config.testCode} test from ${pendingDelete.part.name}?`;
+        ? t("afterCleaning.page.deletePart", { name: pendingDelete.part.name })
+        : t("afterCleaning.page.removeTest", {
+          type: t(`afterCleaning.sampleTypes.${pendingDelete.config.testType}`, { defaultValue: acTestTypeLabel(pendingDelete.config.testType) }),
+          code: pendingDelete.config.testCode,
+          part: pendingDelete.part.name
+        });
 
   return (
     <Box sx={{ pb: 4 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-        <PageHeader title="After Cleaning" subtitle="Machines, their parts, and the swab, rinse and pathogen tests run on each part." />
+        <PageHeader title={t("afterCleaning.page.title")} subtitle={t("afterCleaning.page.subtitle")} />
         <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
           <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
-            Add machine
+            {t("afterCleaning.page.addMachine")}
           </Button>
           <Button
             variant="contained"
@@ -160,13 +164,13 @@ export function AfterCleaningConfigPage() {
             onClick={() => setPartPanel({ open: true, part: null })}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Add machine part
+            {t("afterCleaning.page.addPart")}
           </Button>
         </Stack>
       </Stack>
 
       {loadError && (
-        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>{t("afterCleaning.page.retry")}</Button>}>
           {loadError}
         </Alert>
       )}
@@ -178,43 +182,43 @@ export function AfterCleaningConfigPage() {
 
       <SummaryTiles
         tiles={[
-          { label: "Machines", value: machines.length },
-          { label: "Machine parts", value: allParts.length },
-          { label: "Pathogen tests", value: pathogenCount },
-          { label: "Parts without tests", value: plural(partsWithoutTests, "part"), tone: partsWithoutTests > 0 ? "inconclusive" : undefined }
+          { label: t("afterCleaning.page.tiles.machines"), value: machines.length },
+          { label: t("afterCleaning.page.tiles.parts"), value: allParts.length },
+          { label: t("afterCleaning.page.tiles.pathogens"), value: pathogenCount },
+          { label: t("afterCleaning.page.tiles.partsWithoutTests"), value: t("afterCleaning.partCount", { count: partsWithoutTests }), tone: partsWithoutTests > 0 ? "inconclusive" : undefined }
         ]}
       />
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
         <ConfigMasterList
-          searchLabel="Find a machine or part"
-          searchPlaceholder="e.g. Filling needles"
+          searchLabel={t("afterCleaning.page.searchLabel")}
+          searchPlaceholder={t("afterCleaning.page.searchPlaceholder")}
           search={search}
           onSearchChange={setSearch}
           items={listItems}
           selectedId={selectedMachineId}
           onSelect={setSelectedMachineId}
           loading={loading}
-          emptyText={q ? "Nothing matches your search." : "No machines yet. Use “Add machine” to create one."}
+          emptyText={q ? t("afterCleaning.page.noMatch") : t("afterCleaning.page.noMachines")}
         />
 
         <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
           {!selectedMachine ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a machine"}</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? t("afterCleaning.page.loading") : t("afterCleaning.page.selectMachine")}</Typography>
             </Box>
           ) : (
             <>
               <Stack direction="row" sx={{ px: 2.75, py: 2.25, borderBottom: "1px solid", borderColor: "divider", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
                 <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedMachine.name}</Typography>
-                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedMachine.parts ?? []).length, "part")}</Typography>
+                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("afterCleaning.partCount", { count: (selectedMachine.parts ?? []).length })}</Typography>
                 </Box>
                 <Button variant="outlined" onClick={() => setMachinePanel({ open: true, machine: selectedMachine })}>
-                  Rename
+                  {t("afterCleaning.page.rename")}
                 </Button>
-                <Tooltip title="Delete machine">
-                  <IconButton aria-label={`Delete ${selectedMachine.name}`} color="error" onClick={() => setPendingDelete({ kind: "machine", machine: selectedMachine })}>
+                <Tooltip title={t("afterCleaning.page.deleteMachineTitle")}>
+                  <IconButton aria-label={t("afterCleaning.page.deleteAria", { name: selectedMachine.name })} color="error" onClick={() => setPendingDelete({ kind: "machine", machine: selectedMachine })}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -244,11 +248,11 @@ export function AfterCleaningConfigPage() {
                   onClick={() => setPartPanel({ open: true, part: null })}
                   sx={{ minHeight: 120, borderStyle: "dashed", borderRadius: 2, textTransform: "none", fontWeight: 600 }}
                 >
-                  Add part to {selectedMachine.name}
+                  {t("afterCleaning.page.addPartTo", { name: selectedMachine.name })}
                 </Button>
               </Box>
               {q && machineParts.length === 0 && (
-                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>No parts here match your search.</Typography>
+                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>{t("afterCleaning.page.noPartMatch")}</Typography>
               )}
             </>
           )}

@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../../i18n";
 import { KpiStrip } from "../../../../components/lab";
 import type { SummaryTile } from "../../../../components/configHierarchy/SummaryTiles";
 import { CryovialItem } from "../types/cryovialTypes";
@@ -17,6 +18,7 @@ function isMaterialExpiringSoon(expiryDateStr: string | null, daysThreshold: num
 }
 
 export function CryovialKpiCards({ items, loading }: CryovialKpiCardsProps) {
+  const { t } = useTranslation("labConfig");
   const now = new Date();
 
   // 1. Total Batches: Real count of registered cryovial batches
@@ -46,10 +48,10 @@ export function CryovialKpiCards({ items, loading }: CryovialKpiCardsProps) {
   ).length;
 
   const tiles: SummaryTile[] = [
-    { label: "Total Batches", value: totalBatchesCount, tone: "purple" },
-    { label: "Vials Available", value: vialsAvailableCount, tone: "notDetected" },
-    { label: "Expiring Soon (30 d)", value: expiringSoonCount, tone: "action" },
-    { label: "Low Stock (≤ 2 vials)", value: lowStockCount, tone: "detected" }
+    { label: t("cryovials.kpis.totalBatches"), value: totalBatchesCount, tone: "purple" },
+    { label: t("cryovials.kpis.vialsAvailable"), value: vialsAvailableCount, tone: "notDetected" },
+    { label: t("cryovials.kpis.expiringSoon"), value: expiringSoonCount, tone: "action" },
+    { label: t("cryovials.kpis.lowStock"), value: lowStockCount, tone: "detected" }
   ];
 
   return <KpiStrip tiles={tiles} loading={loading} />;

@@ -4,6 +4,7 @@ import { cleanup, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { renderWithTheme } from "../../../components/bench/benchTestUtils";
+import { i18n } from "../../../i18n";
 import type { TestDefinitionOption } from "../../../hooks/useTestDefinitions";
 import { EMConfigPage } from "./EMConfigPage";
 import type { EmDepartment } from "./emConfigTypes";
@@ -278,5 +279,19 @@ describe("EMConfigPage rooms paste", () => {
     await user.click(screen.getByRole("button", { name: "Discard" }));
     expect(screen.queryByRole("table", { name: /pending rooms/i })).toBeNull();
     expect(emServiceMock.createRoomsBatch).not.toHaveBeenCalled();
+  });
+});
+
+describe("EMConfigPage language", () => {
+  it("shows the page buttons and tiles in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      await renderPage();
+      expect(screen.getByRole("button", { name: "لصق غرف" })).toBeTruthy();
+      expect(screen.getByText("الأقسام")).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

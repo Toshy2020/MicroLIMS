@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
+import { i18n } from "../../../../i18n";
 import { PathogenPicker } from "./PathogenPicker";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 
@@ -76,5 +77,18 @@ describe("PathogenPicker", () => {
 
     expect(ecoliChip?.querySelector(".MuiChip-deleteIcon")).not.toBeNull();
     expect(lockedChip?.querySelector(".MuiChip-deleteIcon")).toBeNull();
+  });
+});
+
+describe("PathogenPicker language", () => {
+  it("shows the field label in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      render(<PathogenPicker value={[]} onChange={vi.fn()} />);
+      expect(screen.getByLabelText("اختبارات مسببات الأمراض")).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

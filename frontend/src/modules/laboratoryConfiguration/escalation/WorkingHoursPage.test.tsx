@@ -4,6 +4,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { toast } from "sonner";
+import { i18n } from "../../../i18n";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { WorkingHoursPage } from "./WorkingHoursPage";
 import {
@@ -216,5 +217,19 @@ describe("WorkingHoursPage", () => {
     await user.click(screen.getByRole("button", { name: /retry/i }));
 
     expect(await screen.findByRole("table", { name: "Laboratory working hours" })).toBeTruthy();
+  });
+
+  it("shows the page heading and day names in Arabic when Arabic is active", async () => {
+    vi.mocked(workingHoursService.get).mockResolvedValue(makeSchedule());
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      renderPage();
+      expect(await screen.findByText("الجدول الأسبوعي")).toBeTruthy();
+      expect(screen.getByText("الأحد")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "حفظ ساعات العمل" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

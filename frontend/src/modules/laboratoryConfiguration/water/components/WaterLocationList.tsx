@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import { Box, Button, IconButton, Link, Paper, Stack, Tooltip, Typography } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -28,6 +29,7 @@ const COLS = { xs: "1fr", md: "100px minmax(0, 1.3fr) 110px minmax(0, 1.4fr) min
 // count-test limits. Problems (no tests / missing limits) are flagged on
 // the row with a direct link to fix them.
 export function WaterLocationList({ points, configsByPoint, healthByPoint, isCountTest, testName, onEdit, onDelete, onAdd, addLabel, editableCodes }: Props) {
+  const { t } = useTranslation("labConfig");
   const { options } = useTestDefinitions();
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const toggle = (id: number) =>
@@ -38,13 +40,13 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
       return next;
     });
 
-  const labName = (code: string) => options.find((o) => o.code === code)?.section?.name || "Other laboratory";
+  const labName = (code: string) => options.find((o) => o.code === code)?.section?.name || t("water.list.otherLab");
 
   return (
     <Stack spacing={1.25}>
       <Box sx={{ display: { xs: "none", md: "grid" }, gridTemplateColumns: COLS.md, gap: 1.5, px: 1.75 }}>
-        {["Code", "Location", "Frequency", "Assigned tests", "Limits", ""].map((h) => (
-          <Typography key={h} sx={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "text.secondary" }}>
+        {[t("water.list.headers.code"), t("water.list.headers.location"), t("water.list.headers.frequency"), t("water.list.headers.tests"), t("water.list.headers.limits"), ""].map((h, hi) => (
+          <Typography key={hi} sx={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "text.secondary" }}>
             {h}
           </Typography>
         ))}
@@ -78,9 +80,9 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
               <Box>
                 {health?.noTests ? (
                   <Stack spacing={0.25}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "warning.dark" }}>No tests assigned</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: "warning.dark" }}>{t("water.list.noTests")}</Typography>
                     <Link component="button" type="button" onClick={() => onEdit(p)} sx={{ fontSize: 13, fontWeight: 600, textAlign: "left" }}>
-                      Assign tests
+                      {t("water.list.assignTests")}
                     </Link>
                   </Stack>
                 ) : (
@@ -99,28 +101,28 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
                 {health && health.missingLimitCodes.length > 0 ? (
                   <Stack spacing={0.25}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: "warning.dark" }}>
-                      Limits not set: {health.missingLimitCodes.join(", ")}
+                      {t("water.list.limitsNotSet", { codes: health.missingLimitCodes.join(", ") })}
                     </Typography>
                     <Link component="button" type="button" onClick={() => onEdit(p)} sx={{ fontSize: 13, fontWeight: 600, textAlign: "left" }}>
-                      Set limits
+                      {t("water.list.setLimits")}
                     </Link>
                   </Stack>
                 ) : countCodes.length > 0 ? (
-                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.dark" }}>Set for all count tests</Typography>
+                  <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.dark" }}>{t("water.list.setForAll")}</Typography>
                 ) : (
-                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{health?.noTests ? "—" : "No count tests"}</Typography>
+                  <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{health?.noTests ? "—" : t("water.list.noCountTests")}</Typography>
                 )}
               </Box>
               <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
-                <Tooltip title="Edit location">
-                  <IconButton aria-label={`Edit ${p.code}`} onClick={() => onEdit(p)}>
+                <Tooltip title={t("water.list.editLocation")}>
+                  <IconButton aria-label={t("water.list.editAria", { code: p.code })} onClick={() => onEdit(p)}>
                     <EditIcon fontSize="small" />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title={hasLockedCodes ? "Cannot delete: location has tests belonging to another laboratory." : "Delete location"}>
+                <Tooltip title={hasLockedCodes ? t("water.list.cannotDelete") : t("water.list.deleteLocation")}>
                   <span>
                     <IconButton
-                      aria-label={`Delete ${p.code}`}
+                      aria-label={t("water.list.deleteAria", { code: p.code })}
                       color="error"
                       disabled={hasLockedCodes}
                       onClick={() => onDelete(p)}
@@ -129,8 +131,8 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
                     </IconButton>
                   </span>
                 </Tooltip>
-                <Tooltip title={isOpen ? "Hide limits" : "Show limits"}>
-                  <IconButton aria-label={`${isOpen ? "Hide" : "Show"} limits for ${p.code}`} aria-expanded={isOpen} onClick={() => toggle(p.id)}>
+                <Tooltip title={isOpen ? t("water.list.hideLimits") : t("water.list.showLimits")}>
+                  <IconButton aria-label={t(isOpen ? "water.list.hideAria" : "water.list.showAria", { code: p.code })} aria-expanded={isOpen} onClick={() => toggle(p.id)}>
                     {isOpen ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                   </IconButton>
                 </Tooltip>
@@ -140,11 +142,11 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
             {isOpen && (
               <Box sx={{ px: 2, py: 1.75, borderTop: "1px solid", borderColor: "divider", bgcolor: "background.default" }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: "text.secondary", mb: 1 }}>
-                  Limits
+                  {t("water.list.limitsHeading")}
                 </Typography>
                 {assignedCodes.length === 0 ? (
                   <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                    No tests assigned.
+                    {t("water.list.noTestsAssigned")}
                   </Typography>
                 ) : (
                   <Stack spacing={1}>
@@ -155,11 +157,11 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
                         <Stack key={code} direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" }, p: 1.25, border: "1px solid", borderColor: "divider", borderRadius: 1, bgcolor: "background.paper" }}>
                           <Typography sx={{ fontSize: 14, fontWeight: 600, minWidth: 110 }}>{code}</Typography>
                           <Box sx={{ flexGrow: 1 }}>
-                            {c ? <LimitPills {...c} /> : <ToneChip label="Limits not set" tone="inconclusive" />}
+                            {c ? <LimitPills {...c} /> : <ToneChip label={t("water.list.limitsNotSetChip")} tone="inconclusive" />}
                           </Box>
                           {isEditable ? (
                             <Link component="button" type="button" onClick={() => onEdit(p)} sx={{ fontSize: 13, fontWeight: 600 }}>
-                              {c ? "Edit limits" : "Set limits"}
+                              {c ? t("water.list.editLimits") : t("water.list.setLimits")}
                             </Link>
                           ) : (
                             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
@@ -173,7 +175,7 @@ export function WaterLocationList({ points, configsByPoint, healthByPoint, isCou
                 )}
                 {observationCodes.length > 0 && (
                   <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 1 }}>
-                    {observationCodes.join(", ")} {observationCodes.length === 1 ? "is a presence/absence test" : "are presence/absence tests"} - no numeric limits needed.
+                    {t("water.list.presence", { count: observationCodes.length, codes: observationCodes.join(", ") })}
                   </Typography>
                 )}
               </Box>

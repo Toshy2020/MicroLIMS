@@ -3,6 +3,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
+import { i18n } from "../../../i18n";
 import { lightTheme } from "../../../theme";
 import { resetUiStateCache } from "../../../hooks/useUiState";
 import { uiStateService } from "../../../services/uiStateService";
@@ -318,5 +319,17 @@ describe("CryovialsPage tabs", () => {
     renderPage();
 
     await waitFor(() => expect(selectedTab()).toBe("Approved Cryovials"));
+  });
+
+  it("shows the tab names in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      renderPage();
+      expect(await screen.findByRole("tab", { name: "القوارير المجمّدة المعتمدة" })).toBeTruthy();
+      expect(await screen.findByRole("button", { name: "تحضير دفعة قوارير مجمّدة" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

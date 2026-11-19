@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import { MenuItem, Stack, TextField } from "@mui/material";
 import { FrequencyValue, LimitFields, LimitValues, PanelSection, SidePanel, StructuredFrequencyField, emptyFrequency, emptyLimits, frequencyFrom, frequencyLabel, frequencyRule } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
@@ -18,6 +19,7 @@ interface DeptProps {
 }
 
 export function EmDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: DeptProps) {
+  const { t } = useTranslation("labConfig");
   const { current: dept, reload } = useReloadedRecord<EmDepartment>(openedDept, async (d) =>
     ((await EMConfigService.getDepartments()) as EmDepartment[]).find((x) => x.id === d.id)
   );
@@ -39,20 +41,20 @@ export function EmDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: 
   }, [open, dept]);
 
   const save = async () => {
-    if (!name.trim()) return setError("Name is required.");
+    if (!name.trim()) return setError(t("environmentalMonitoring.dept.nameRequired"));
     setSaving(true);
     setError(null);
     try {
       if (dept) {
         await EMConfigService.updateDepartment(dept.id, name.trim(), cls, frequencyLabel(frequency), dept.version, frequencyRule(frequency));
         noteOwnSave("department", dept.id);
-        onSaved(`"${name.trim()}" updated.`, dept.id);
+        onSaved(t("environmentalMonitoring.dept.updated", { name: name.trim() }), dept.id);
       } else {
         const created = await EMConfigService.createDepartment(name.trim(), cls, frequencyLabel(frequency), frequencyRule(frequency));
-        onSaved(`"${name.trim()}" added.`, created?.id);
+        onSaved(t("environmentalMonitoring.dept.added", { name: name.trim() }), created?.id);
       }
     } catch (e) {
-      setError(errorText(e, "Could not save this department."));
+      setError(errorText(e, t("environmentalMonitoring.dept.saveError")));
     } finally {
       setSaving(false);
     }
@@ -61,18 +63,18 @@ export function EmDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: 
   return (
     <SidePanel
       open={open}
-      overline="Department"
-      title={dept ? `Edit ${dept.name}` : "Add department"}
+      overline={t("environmentalMonitoring.dept.overline")}
+      title={dept ? t("environmentalMonitoring.dept.editTitle", { name: dept.name }) : t("environmentalMonitoring.dept.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={dept ? "Save changes" : "Add department"}
+      saveLabel={dept ? t("environmentalMonitoring.dept.saveChanges") : t("environmentalMonitoring.dept.addTitle")}
       error={error}
     >
       <Stack spacing={1.5}>
         {open && dept && <RecordChangedBanner type="department" id={dept.id} dirty={touched} onReload={() => void reload()} />}
-        <TextField autoFocus size="small" label="Name" required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
-        <TextField size="small" label="Class" placeholder="e.g. Grade C" value={cls} onChange={(e) => { setTouched(true); setCls(e.target.value); }} />
+        <TextField autoFocus size="small" label={t("environmentalMonitoring.dept.name")} required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
+        <TextField size="small" label={t("environmentalMonitoring.dept.class")} placeholder={t("environmentalMonitoring.dept.classPlaceholder")} value={cls} onChange={(e) => { setTouched(true); setCls(e.target.value); }} />
         <StructuredFrequencyField idPrefix="em-dept-frequency" value={frequency} onChange={(v) => { setTouched(true); setFrequency(v); }} />
       </Stack>
     </SidePanel>
@@ -89,6 +91,7 @@ interface RoomProps {
 }
 
 export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, departments, onClose, onSaved }: RoomProps) {
+  const { t } = useTranslation("labConfig");
   const { current: room, reload } = useReloadedRecord<EmRoom>(openedRoom, async (r) =>
     ((await EMConfigService.getRooms()) as EmRoom[]).find((x) => x.id === r.id)
   );
@@ -118,8 +121,8 @@ export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, depar
   const parentRooms = (department?.rooms ?? []).filter((r) => r.kind !== "LAF" && r.id !== room?.id);
 
   const save = async () => {
-    if (!name.trim() || departmentId === "") return setError("Room name and department are required.");
-    if (kind === "LAF" && parentRoomId === "") return setError("Choose the room this LAF sits in.");
+    if (!name.trim() || departmentId === "") return setError(t("environmentalMonitoring.roomPanel.required"));
+    if (kind === "LAF" && parentRoomId === "") return setError(t("environmentalMonitoring.roomPanel.lafParent"));
     setSaving(true);
     setError(null);
     const extra = { kind, parentRoomId: kind === "LAF" ? Number(parentRoomId) : null, frequency: frequencyRule(frequency) };
@@ -128,9 +131,9 @@ export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, depar
         await EMConfigService.updateRoom(room.id, name.trim(), Number(departmentId), grade, room.version, extra);
         noteOwnSave("room", room.id);
       } else await EMConfigService.createRoom(name.trim(), Number(departmentId), grade, extra);
-      onSaved(room ? `Room "${name.trim()}" updated.` : `Room "${name.trim()}" added.`, Number(departmentId));
+      onSaved(room ? t("environmentalMonitoring.roomPanel.updated", { name: name.trim() }) : t("environmentalMonitoring.roomPanel.added", { name: name.trim() }), Number(departmentId));
     } catch (e) {
-      setError(errorText(e, "Could not save this room."));
+      setError(errorText(e, t("environmentalMonitoring.roomPanel.saveError")));
     } finally {
       setSaving(false);
     }
@@ -139,37 +142,37 @@ export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, depar
   return (
     <SidePanel
       open={open}
-      overline={departments.find((d) => d.id === departmentId)?.name ?? "Room"}
-      title={room ? `Edit ${room.name}` : "Add room"}
+      overline={departments.find((d) => d.id === departmentId)?.name ?? t("environmentalMonitoring.roomPanel.overline")}
+      title={room ? t("environmentalMonitoring.roomPanel.editTitle", { name: room.name }) : t("environmentalMonitoring.roomPanel.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={room ? "Save changes" : "Add room"}
+      saveLabel={room ? t("environmentalMonitoring.roomPanel.saveChanges") : t("environmentalMonitoring.roomPanel.addTitle")}
       error={error}
     >
       <Stack spacing={1.5}>
         {open && room && <RecordChangedBanner type="room" id={room.id} dirty={touched} onReload={() => void reload()} />}
-        <TextField autoFocus size="small" label="Room name" required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
-        <TextField select size="small" label="Department" required value={departmentId} onChange={(e) => { setTouched(true); setDepartmentId(Number(e.target.value)); }}>
+        <TextField autoFocus size="small" label={t("environmentalMonitoring.roomPanel.roomName")} required value={name} onChange={(e) => { setTouched(true); setName(e.target.value); }} />
+        <TextField select size="small" label={t("environmentalMonitoring.roomPanel.department")} required value={departmentId} onChange={(e) => { setTouched(true); setDepartmentId(Number(e.target.value)); }}>
           {departments.map((d) => (
             <MenuItem key={d.id} value={d.id}>
               {d.name}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Grade" value={grade} onChange={(e) => { setTouched(true); setGrade(e.target.value); }}>
+        <TextField select size="small" label={t("environmentalMonitoring.roomPanel.grade")} value={grade} onChange={(e) => { setTouched(true); setGrade(e.target.value); }}>
           {EM_GRADES.map((g) => (
             <MenuItem key={g} value={g}>
-              Grade {g}
+              {t("environmentalMonitoring.grade", { grade: g })}
             </MenuItem>
           ))}
         </TextField>
-        <TextField select size="small" label="Type" value={kind} onChange={(e) => { setTouched(true); setKind(e.target.value as "Room" | "LAF"); }}>
-          <MenuItem value="Room">Room</MenuItem>
-          <MenuItem value="LAF">LAF (laminar air flow unit)</MenuItem>
+        <TextField select size="small" label={t("environmentalMonitoring.roomPanel.type")} value={kind} onChange={(e) => { setTouched(true); setKind(e.target.value as "Room" | "LAF"); }}>
+          <MenuItem value="Room">{t("environmentalMonitoring.roomPanel.typeRoom")}</MenuItem>
+          <MenuItem value="LAF">{t("environmentalMonitoring.roomPanel.typeLaf")}</MenuItem>
         </TextField>
         {kind === "LAF" && (
-          <TextField select size="small" label="Sits in room" required value={parentRoomId} onChange={(e) => { setTouched(true); setParentRoomId(Number(e.target.value)); }}>
+          <TextField select size="small" label={t("environmentalMonitoring.roomPanel.sitsIn")} required value={parentRoomId} onChange={(e) => { setTouched(true); setParentRoomId(Number(e.target.value)); }}>
             {parentRooms.map((r) => (
               <MenuItem key={r.id} value={r.id}>
                 {r.name}
@@ -181,8 +184,8 @@ export function EmRoomPanel({ open, room: openedRoom, defaultDepartmentId, depar
           idPrefix="em-room-frequency"
           value={frequency}
           onChange={(v) => { setTouched(true); setFrequency(v); }}
-          noneLabel="Same as department"
-          inheritedHint={department && frequencyLabel(department) ? `Uses the department's frequency: ${frequencyLabel(department)}.` : "The department has no structured frequency yet."}
+          noneLabel={t("environmentalMonitoring.roomPanel.sameAsDept")}
+          inheritedHint={department && frequencyLabel(department) ? t("environmentalMonitoring.roomPanel.usesDept", { frequency: frequencyLabel(department) }) : t("environmentalMonitoring.roomPanel.noDeptFrequency")}
         />
       </Stack>
     </SidePanel>
@@ -200,6 +203,8 @@ interface ConfigProps {
 // One test for a room: what is sampled (test type), which test runs,
 // and its limits. Unit is required for the types without a fixed unit.
 export function EmTestConfigPanel({ open, room, config: openedConfig, onClose, onSaved }: ConfigProps) {
+  const { t } = useTranslation("labConfig");
+  const typeLabel = (value: string) => t(`environmentalMonitoring.testTypes.${value}`, { defaultValue: emTestType(value)?.label ?? value });
   const { current: config, reload } = useReloadedRecord<RoomTestConfig>(openedConfig, async (c) =>
     ((await EMConfigService.getRoomTestConfigurations(c.roomId)) as RoomTestConfig[]).find((x) => x.id === c.id)
   );
@@ -227,8 +232,8 @@ export function EmTestConfigPanel({ open, room, config: openedConfig, onClose, o
 
   const save = async () => {
     if (!room) return;
-    if (!testCode) return setError("Choose the test to run.");
-    if (type?.needsUnit && !limits.unit.trim()) return setError(`Unit is required for ${type.label}.`);
+    if (!testCode) return setError(t("environmentalMonitoring.testPanel.chooseTest"));
+    if (type?.needsUnit && !limits.unit.trim()) return setError(t("environmentalMonitoring.testPanel.unitRequired", { type: typeLabel(testType) }));
     setSaving(true);
     setError(null);
     try {
@@ -238,9 +243,9 @@ export function EmTestConfigPanel({ open, room, config: openedConfig, onClose, o
       } else {
         await EMConfigService.createRoomTestConfiguration(room.id, testType, testCode, limits.alertLimit, limits.actionLimit, limits.specLimit, limits.unit);
       }
-      onSaved(config ? `Test updated for ${room.name}.` : `Test added to ${room.name}.`);
+      onSaved(config ? t("environmentalMonitoring.testPanel.updated", { room: room.name }) : t("environmentalMonitoring.testPanel.added", { room: room.name }));
     } catch (e) {
-      setError(errorText(e, "Could not save this test."));
+      setError(errorText(e, t("environmentalMonitoring.testPanel.saveError")));
     } finally {
       setSaving(false);
     }
@@ -250,29 +255,29 @@ export function EmTestConfigPanel({ open, room, config: openedConfig, onClose, o
     <SidePanel
       open={open}
       overline={room?.name}
-      title={config ? "Edit test" : "Add test"}
+      title={config ? t("environmentalMonitoring.testPanel.editTitle") : t("environmentalMonitoring.testPanel.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={config ? "Save changes" : "Add test"}
+      saveLabel={config ? t("environmentalMonitoring.testPanel.saveChanges") : t("environmentalMonitoring.testPanel.addTitle")}
       error={error}
     >
       {open && config && <RecordChangedBanner type="roomTestConfiguration" id={config.id} dirty={touched} onReload={() => void reload()} />}
-      <PanelSection title="1 · What is sampled">
-        <TextField select size="small" label="Test type" value={testType} onChange={(e) => { setTouched(true); setTestType(e.target.value); }}>
-          {EM_TEST_TYPES.map((t) => (
-            <MenuItem key={t.value} value={t.value}>
-              {t.label}
+      <PanelSection title={t("environmentalMonitoring.testPanel.section1")}>
+        <TextField select size="small" label={t("environmentalMonitoring.testPanel.testType")} value={testType} onChange={(e) => { setTouched(true); setTestType(e.target.value); }}>
+          {EM_TEST_TYPES.map((tt) => (
+            <MenuItem key={tt.value} value={tt.value}>
+              {typeLabel(tt.value)}
             </MenuItem>
           ))}
         </TextField>
-        <TestCodePicker value={testCode} onChange={(code) => { setTouched(true); setTestCode(code); }} label="Test" />
+        <TestCodePicker value={testCode} onChange={(code) => { setTouched(true); setTestCode(code); }} label={t("environmentalMonitoring.testPanel.test")} />
       </PanelSection>
       <PanelSection
-        title="2 · Limits"
-        hint={type?.needsUnit ? `${type.label} reports the unit you enter here, so it is required.` : "Leave a limit blank if it does not apply."}
+        title={t("environmentalMonitoring.testPanel.section2")}
+        hint={type?.needsUnit ? t("environmentalMonitoring.testPanel.hintUnit", { type: typeLabel(testType) }) : t("environmentalMonitoring.testPanel.hintBlank")}
       >
-        <LimitFields idPrefix="em-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitRequired={type?.needsUnit} unitPlaceholder={type?.unitHint} />
+        <LimitFields idPrefix="em-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitRequired={type?.needsUnit} unitPlaceholder={t(`environmentalMonitoring.unitHints.${testType}`, { defaultValue: type?.unitHint })} />
       </PanelSection>
     </SidePanel>
   );

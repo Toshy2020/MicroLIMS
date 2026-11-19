@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Alert, Tabs, Tab } from "@mui/material";
+import { i18n, useTranslation } from "../../../i18n";
 import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import AddIcon from "@mui/icons-material/Add";
 import { SignatureDialog } from "../../../components/SignatureDialog";
@@ -32,6 +33,7 @@ const PAGE_TABS = ["register", "approved"] as const;
 type PageTab = (typeof PAGE_TABS)[number];
 
 export function CryovialsPage() {
+  const { t } = useTranslation("labConfig");
   const [tab, setTab] = usePersistedTab("cryovials", PAGE_TABS, "tab");
   const [cryovials, setCryovials] = useState<CryovialItem[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export function CryovialsPage() {
       const data = await CryovialService.getAll();
       setCryovials(data || []);
     } catch {
-      setMessage({ text: "Failed to load cryovials register.", ok: false });
+      setMessage({ text: t("cryovials.page.loadError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -59,8 +61,8 @@ export function CryovialsPage() {
       onChange={(_, v: PageTab) => setTab(v)}
       sx={{ mb: 2, borderBottom: 1, borderColor: "divider" }}
     >
-      <Tab value="register" label="Cryovials" />
-      <Tab value="approved" label="Approved Cryovials" />
+      <Tab value="register" label={t("cryovials.page.tabRegister")} />
+      <Tab value="approved" label={t("cryovials.page.tabApproved")} />
     </Tabs>
   );
 
@@ -105,6 +107,7 @@ function CryovialsRegisterContent({
   onMessage,
   onReload
 }: CryovialsRegisterContentProps) {
+  const { t } = useTranslation("labConfig");
   const { permissions } = useAuth();
 
   // Search, dropdowns, sort and page live in the address and in saved views; columns in the column chooser.
@@ -216,9 +219,9 @@ function CryovialsRegisterContent({
     if (!pendingDecision) return;
     await CryovialService.approve(pendingDecision.cryovial.id, pendingDecision.approved, password, decisionComment);
     onMessage({
-      text: `Cryovial batch ${pendingDecision.cryovial.code} has been ${
-        pendingDecision.approved ? "Approved" : "Rejected"
-      }.`,
+      text: t(pendingDecision.approved ? "cryovials.page.approved" : "cryovials.page.rejected", {
+        code: pendingDecision.cryovial.code
+      }),
       ok: true
     });
     setPendingDecision(null);
@@ -229,7 +232,7 @@ function CryovialsRegisterContent({
   const handleThawConfirm = async (reason: string) => {
     if (!thawItem) return;
     await CryovialService.thawVial(thawItem.id, reason);
-    onMessage({ text: `Vial from ${thawItem.code} successfully thawed and logged.`, ok: true });
+    onMessage({ text: t("cryovials.page.thawed", { code: thawItem.code }), ok: true });
     setThawItem(null);
     onReload();
   };
@@ -238,7 +241,7 @@ function CryovialsRegisterContent({
     if (!destroyItem) return;
     await CryovialService.destroy(destroyItem.id);
     onMessage({
-      text: `Batch ${destroyItem.code} has been decommissioned and destroyed.`,
+      text: t("cryovials.page.destroyed", { code: destroyItem.code }),
       ok: true
     });
     setDestroyItem(null);
@@ -250,11 +253,11 @@ function CryovialsRegisterContent({
   return (
     <>
       <LabPage
-        title="Cryovials"
-        subtitle="Prepare working cryovial batches from an approved lyophilized microorganism material."
+        title={t("cryovials.page.title")}
+        subtitle={t("cryovials.page.subtitle")}
         actions={
           <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setIsPrepareOpen(true)} sx={{ whiteSpace: "nowrap" }}>
-            Prepare Cryovial Batch
+            {t("cryovials.page.prepare")}
           </Button>
         }
         kpis={<CryovialKpiCards items={cryovials || []} loading={loading} />}
@@ -296,7 +299,7 @@ function CryovialsRegisterContent({
         onClose={() => setIsPrepareOpen(false)}
         onSuccess={(_msg, created) => {
           setIsPrepareOpen(false);
-          onMessage({ text: "Cryovial batch prepared successfully. Awaiting Section Head approval.", ok: true });
+          onMessage({ text: t("cryovials.page.prepared"), ok: true });
           onReload();
           if (created) {
             postCreatePrint.offerPrint([
@@ -347,11 +350,14 @@ function CryovialsRegisterContent({
       {pendingDecision && (
         <SignatureDialog
           open={true}
-          meaningStatement={
-            pendingDecision.approved
-              ? `I am approving Cryovial Batch ${pendingDecision.cryovial.code} for laboratory testing and media evaluation.`
-              : `I am rejecting and decommissioning Cryovial Batch ${pendingDecision.cryovial.code}.`
-          }
+          meaningStatement={i18n.getFixedT("en", "labConfig")(
+            pendingDecision.approved ? "cryovials.page.approveStatement" : "cryovials.page.rejectStatement",
+            { code: pendingDecision.cryovial.code }
+          )}
+          meaningStatementTranslation={t(
+            pendingDecision.approved ? "cryovials.page.approveStatement" : "cryovials.page.rejectStatement",
+            { code: pendingDecision.cryovial.code }
+          )}
           showComment={true}
           comment={decisionComment}
           onCommentChange={setDecisionComment}

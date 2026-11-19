@@ -1,4 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
 import { Link as RouterLink } from "react-router-dom";
 import {
   Alert,
@@ -51,6 +53,7 @@ export function EscalationRuleDialog({
   onClose,
   onSaved
 }: EscalationRuleDialogProps) {
+  const { t } = useTranslation("labConfig");
   const [trigger, setTrigger] = useState<EscalationTrigger>("ReviewWaiting");
   const [thresholdInput, setThresholdInput] = useState("8");
   const [notifyRole, setNotifyRole] = useState<EscalationNotifyRole>("SectionHead");
@@ -82,7 +85,7 @@ export function EscalationRuleDialog({
     const nextFieldErrors: Record<string, string> = {};
 
     if (!Number.isFinite(parsedHours) || parsedHours < MIN_HOURS || parsedHours > MAX_HOURS) {
-      nextFieldErrors.thresholdWorkingHours = "Threshold must be between 1 and 999 working hours.";
+      nextFieldErrors.thresholdWorkingHours = t("escalation.ruleDialog.thresholdRange");
     }
 
     if (Object.keys(nextFieldErrors).length > 0) {
@@ -101,7 +104,7 @@ export function EscalationRuleDialog({
           thresholdWorkingHours: parsedHours,
           notifyRoleType: notifyRole
         });
-        toast.success("Escalation rule replaced.");
+        toast.success(t("escalation.ruleDialog.replaced"));
       } else {
         await escalationRulesService.create({
           sectionId,
@@ -109,13 +112,13 @@ export function EscalationRuleDialog({
           thresholdWorkingHours: parsedHours,
           notifyRoleType: notifyRole
         });
-        toast.success("Escalation rule created.");
+        toast.success(t("escalation.ruleDialog.created"));
       }
       onSaved();
     } catch (err: unknown) {
       const byField = errorsByField(err);
       setFieldErrors(byField);
-      const message = getErrorMessage(err, "Could not save escalation rule.");
+      const message = getErrorMessage(err, t("escalation.ruleDialog.saveError"));
       if (Object.keys(byField).length === 0) {
         setFormError(message);
       }
@@ -125,7 +128,7 @@ export function EscalationRuleDialog({
     }
   };
 
-  const title = mode === "replace" ? "Replace escalation rule" : "Add escalation rule";
+  const title = mode === "replace" ? t("escalation.ruleDialog.titleReplace") : t("escalation.ruleDialog.titleAdd");
 
   return (
     <Dialog
@@ -139,12 +142,17 @@ export function EscalationRuleDialog({
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 0.5 }}>
             <Typography variant="body2" color="text.secondary">
-              Section: <strong>{sectionName}</strong>
+              <Trans
+                i18nKey="escalation.ruleDialog.sectionLine"
+                ns="labConfig"
+                values={{ name: sectionName }}
+                components={{ bold: <strong /> }}
+              />
             </Typography>
 
             {mode === "replace" && (
               <Alert severity="info">
-                This replaces the rule; the old one is kept in history.
+                {t("escalation.ruleDialog.replaceNote")}
               </Alert>
             )}
 
@@ -156,7 +164,7 @@ export function EscalationRuleDialog({
 
             <TextField
               select
-              label="Trigger"
+              label={t("escalation.ruleDialog.trigger")}
               value={trigger}
               disabled={mode === "replace" || saving}
               error={Boolean(fieldErrors.trigger)}
@@ -169,13 +177,13 @@ export function EscalationRuleDialog({
             >
               {TRIGGER_OPTIONS.map((opt) => (
                 <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+                  {t(`escalation.triggers.${opt.value}`, { defaultValue: opt.label })}
                 </MenuItem>
               ))}
             </TextField>
 
             <TextField
-              label="Threshold"
+              label={t("escalation.ruleDialog.threshold")}
               type="number"
               value={thresholdInput}
               disabled={saving}
@@ -183,11 +191,11 @@ export function EscalationRuleDialog({
               helperText={
                 fieldErrors.thresholdWorkingHours || (
                   <>
-                    Working hours allowed (1–999) before notifying, counted against the{" "}
-                    <MuiLink component={RouterLink} to={APP_ROUTES.WORKING_HOURS} underline="hover">
-                      working hours calendar
-                    </MuiLink>
-                    .
+                    <Trans
+                      i18nKey="escalation.ruleDialog.thresholdHelper"
+                      ns="labConfig"
+                      components={{ lnk: <MuiLink component={RouterLink} to={APP_ROUTES.WORKING_HOURS} underline="hover">{null}</MuiLink> }}
+                    />
                   </>
                 )
               }
@@ -198,7 +206,7 @@ export function EscalationRuleDialog({
               slotProps={{
                 htmlInput: { min: MIN_HOURS, max: MAX_HOURS, step: "any" },
                 input: {
-                  endAdornment: <InputAdornment position="end">working hours</InputAdornment>
+                  endAdornment: <InputAdornment position="end">{t("escalation.ruleDialog.workingHours")}</InputAdornment>
                 }
               }}
               fullWidth
@@ -206,7 +214,7 @@ export function EscalationRuleDialog({
 
             <TextField
               select
-              label="Notify role"
+              label={t("escalation.ruleDialog.notifyRole")}
               value={notifyRole}
               disabled={saving}
               error={Boolean(fieldErrors.notifyRole || fieldErrors.notifyRoleType)}
@@ -227,7 +235,7 @@ export function EscalationRuleDialog({
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} disabled={saving}>
-            Cancel
+            {t("escalation.ruleDialog.cancel")}
           </Button>
           <Button
             type="submit"
@@ -235,7 +243,7 @@ export function EscalationRuleDialog({
             disabled={saving}
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {saving ? "Saving..." : mode === "replace" ? "Replace rule" : "Create rule"}
+            {saving ? t("escalation.ruleDialog.saving") : mode === "replace" ? t("escalation.ruleDialog.replaceRule") : t("escalation.ruleDialog.createRule")}
           </Button>
         </DialogActions>
       </form>

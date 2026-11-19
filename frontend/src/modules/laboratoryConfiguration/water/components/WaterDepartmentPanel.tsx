@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { TextField } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import { SidePanel } from "../../../../components/configHierarchy";
 import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
 import { noteOwnSave } from "../../../../hooks/useRecordChanged";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved }: Props) {
+  const { t } = useTranslation("labConfig");
   const { current: dept, reload } = useReloadedRecord<WaterDept>(openedDept, async (d) =>
     ((await WaterConfigService.getWaterDepartments()) as WaterDept[]).find((x) => x.id === d.id)
   );
@@ -31,7 +33,7 @@ export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved 
 
   const save = async () => {
     if (!name.trim()) {
-      setError("Name is required.");
+      setError(t("water.deptPanel.nameRequired"));
       return;
     }
     setSaving(true);
@@ -40,13 +42,13 @@ export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved 
       if (dept) {
         await WaterConfigService.updateWaterDepartment(dept.id, name.trim(), dept.version);
         noteOwnSave("waterDepartment", dept.id);
-        onSaved(`"${name.trim()}" updated.`, dept.id);
+        onSaved(t("water.deptPanel.updated", { name: name.trim() }), dept.id);
       } else {
         const created = await WaterConfigService.createWaterDepartment(name.trim());
-        onSaved(`"${name.trim()}" added.`, created?.id);
+        onSaved(t("water.deptPanel.added", { name: name.trim() }), created?.id);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not save this water system.");
+      setError(e?.response?.data?.message ?? t("water.deptPanel.saveError"));
     } finally {
       setSaving(false);
     }
@@ -55,12 +57,12 @@ export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved 
   return (
     <SidePanel
       open={open}
-      overline="Water system"
-      title={dept ? `Rename ${dept.name}` : "Add water system"}
+      overline={t("water.deptPanel.overline")}
+      title={dept ? t("water.deptPanel.rename", { name: dept.name }) : t("water.deptPanel.add")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={dept ? "Save changes" : "Add water system"}
+      saveLabel={dept ? t("water.deptPanel.saveChanges") : t("water.deptPanel.add")}
       error={error}
     >
       {open && dept && (
@@ -69,9 +71,9 @@ export function WaterDepartmentPanel({ open, dept: openedDept, onClose, onSaved 
       <TextField
         autoFocus
         size="small"
-        label="Name"
+        label={t("water.deptPanel.nameLabel")}
         required
-        placeholder="e.g. Purified Water System"
+        placeholder={t("water.deptPanel.namePlaceholder")}
         value={name}
         onChange={(e) => setName(e.target.value)}
       />

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { MemoryRouter } from "react-router-dom";
 import axios, { AxiosHeaders } from "axios";
 import { toast } from "sonner";
+import { i18n } from "../../../i18n";
 import { lightTheme } from "../../../theme";
 import { labelService, type LabelFormat } from "../../../services/labelService";
 import { LabelFormatsPage } from "./LabelFormatsPage";
@@ -179,5 +180,17 @@ describe("LabelFormatsPage", () => {
 
     expect(await screen.findByText("Sample")).toBeDefined();
     expect(labelService.getFormats).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows the heading and column headers in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      renderPage();
+      expect(await screen.findByText("نوع الملصق")).toBeTruthy();
+      expect(screen.getByText("تنسيقات الملصقات")).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "../../../i18n";
 import { Box, MenuItem, Paper, Select, TextField, Typography } from "@mui/material";
 import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { WaterPreparationService } from "./services/WaterPreparationService";
@@ -50,6 +51,7 @@ export function isTestCodeInLab(
 // across every selected point, not one TestOrder per point). Mirrors
 // EMPreparationForm's Room grid.
 export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId, onComplete }: Props) {
+  const { t } = useTranslation("labConfig");
   const [points, setPoints] = useState<SamplingPoint[]>([]);
   const [loadingPoints, setLoadingPoints] = useState(true);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
@@ -127,7 +129,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId
       );
       onComplete();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("water.prep.prepareError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -140,7 +142,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId
       <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {isStillLoading ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
-          Loading sampling points...
+          {t("water.prep.loadingPoints")}
         </Typography>
       ) : (
         <>
@@ -150,7 +152,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId
           >
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                Storage Condition *
+                {t("water.prep.storageCondition")}
               </Typography>
               <Select
                 displayEmpty
@@ -158,18 +160,18 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId
                 size="small"
                 value={storageCondition}
                 onChange={(e) => setStorageCondition(e.target.value)}
-                inputProps={{ "aria-label": "Storage condition" }}
+                inputProps={{ "aria-label": t("water.prep.storageAria") }}
               >
-                <MenuItem value=""><em>Select storage condition</em></MenuItem>
-                <MenuItem value="Refrigerator">Refrigerator</MenuItem>
-                <MenuItem value="RoomTemperature">Room Temperature</MenuItem>
+                <MenuItem value=""><em>{t("water.prep.selectStorage")}</em></MenuItem>
+                <MenuItem value="Refrigerator">{t("water.prep.refrigerator")}</MenuItem>
+                <MenuItem value="RoomTemperature">{t("water.prep.roomTemperature")}</MenuItem>
               </Select>
             </Box>
 
             {storageCondition === "Refrigerator" && (
               <Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5 }}>
-                  Storage Time (hours) *
+                  {t("water.prep.storageTime")}
                 </Typography>
                 <TextField
                   fullWidth
@@ -177,7 +179,7 @@ export function WaterPreparationForm({ sampleId, waterDepartmentId, labSectionId
                   type="number"
                   value={storageTimeHours}
                   onChange={(e) => setStorageTimeHours(e.target.value)}
-                  slotProps={{ htmlInput: { "aria-label": "Storage time (hours)" } }}
+                  slotProps={{ htmlInput: { "aria-label": t("water.prep.storageTimeAria") } }}
                 />
               </Box>
             )}

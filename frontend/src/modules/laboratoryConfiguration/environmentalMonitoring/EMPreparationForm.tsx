@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "../../../i18n";
 import { Box, Typography } from "@mui/material";
 import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { EMPreparationService } from "./services/EMPreparationService";
@@ -17,6 +18,7 @@ interface Props {
 // tests in this monitoring session's batch (one TestOrder per distinct
 // TestCode across every selected room, not one TestOrder per room).
 export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props) {
+  const { t } = useTranslation("labConfig");
   const [rooms, setRooms] = useState<Room[]>([]);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
   const [monitoringIds, setMonitoringIds] = useState<number[]>([]);
@@ -37,11 +39,11 @@ export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props)
     return rooms.map((room) => ({
       id: room.id,
       title: room.name,
-      subtitle: room.gradeClassification ? `Grade ${room.gradeClassification.replace(/^Grade\s*/i, "")}` : undefined,
+      subtitle: room.gradeClassification ? t("environmentalMonitoring.grade", { grade: room.gradeClassification.replace(/^Grade\s*/i, "") }) : undefined,
       assignedTests: Array.from(new Set(room.configs?.map((c) => c.testCode) ?? [])),
       disabled: !room.configs || room.configs.length === 0
     }));
-  }, [rooms]);
+  }, [rooms, t]);
 
   const toggle = (roomId: number) => setChecked((c) => ({ ...c, [roomId]: !c[roomId] }));
 
@@ -66,7 +68,7 @@ export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props)
       await EMPreparationService.prepare(sampleId, roomTestConfigurationIds, monitoringIds);
       onComplete();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("environmentalMonitoring.prep.prepareError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -77,7 +79,7 @@ export function EMPreparationForm({ sampleId, departmentId, onComplete }: Props)
       <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {rooms.length === 0 ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
-          Loading rooms...
+          {t("environmentalMonitoring.prep.loadingRooms")}
         </Typography>
       ) : (
         <SamplingPointGrid

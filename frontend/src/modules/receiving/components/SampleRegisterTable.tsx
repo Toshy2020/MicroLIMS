@@ -830,7 +830,7 @@ function SampleRegisterTableInner({
       case "tests":
         // Progress bar + status summary
         return (
-          <Box sx={{ display: "grid", gap: 0.75, justifyItems: "start", minWidth: 150 }}>
+          <Box sx={{ display: "grid", gap: 0.75, justifyItems: "start", minWidth: 130 }}>
             {sample.assignedTests.length > 0 && (
               <Box
                 aria-hidden="true"

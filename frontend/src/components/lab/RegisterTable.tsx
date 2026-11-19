@@ -650,7 +650,14 @@ function RegisterTableInner<T>({
       {/* stickyHeader needs a bounded scroll region to stick within; only long
           pages get one (see STICKY_HEADER_MIN_ROWS). */}
       <TableContainer ref={setScrollElement} sx={boundedBody ? { maxHeight: "calc(100vh - 240px)", minHeight: 320 } : undefined}>
-        <Table size={tableSize} stickyHeader aria-rowcount={virtualised ? paged.length + 1 : undefined}>
+        <Table
+          size={tableSize}
+          stickyHeader
+          aria-rowcount={virtualised ? paged.length + 1 : undefined}
+          // The selection column takes about 50px. Narrower cell padding gives that width back so the
+          // last columns (actions, row menu) are not pushed past the container edge at laptop widths.
+          sx={showSelection ? { "& .MuiTableCell-root:not(.MuiTableCell-paddingCheckbox)": { px: 1 } } : undefined}
+        >
           <TableHead>
             <TableRow sx={tableHeadSx(theme)} aria-rowindex={virtualised ? 1 : undefined}>
               {expandable && (

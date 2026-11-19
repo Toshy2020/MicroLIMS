@@ -102,7 +102,7 @@ export function FinalResultBlock({ order }: { order: TestOrderSummaryDetail }) {
               <SummaryField label={t("sampleSummary.finalResult.step")} value={p.stepName} />
               <SummaryField
                 label={t("sampleSummary.finalResult.observation")}
-                value={t(`sampleSummary.observation.${p.observation}`, { defaultValue: pathogenObservationLabel(p.observation) })}
+                value={t(`sampleSummary.observation.${p.observation}`, { defaultValue: pathogenObservationLabel(p.observation, t) })}
                 highlight
               />
               <SummaryField label={t("sampleSummary.finalResult.observedBy")} value={p.observedByName ? <Ltr>{p.observedByName}</Ltr> : null} />

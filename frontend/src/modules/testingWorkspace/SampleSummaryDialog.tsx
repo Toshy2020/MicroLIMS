@@ -94,7 +94,7 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
                   <CheckCircleOutlineIcon sx={{ fontSize: 18 }} />
                 </Box>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary", mt: 0.5 }}>
-                  {workflowEventLabel(e.eventType, e.decision)}
+                  {workflowEventLabel(e.eventType, e.decision, t)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                   <Ltr>{e.performedByName}</Ltr>

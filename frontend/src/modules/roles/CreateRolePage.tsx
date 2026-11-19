@@ -182,11 +182,11 @@ export function CreateRolePage() {
       {step === 1 && (
         <Paper sx={{ p: 2.5 }}>
           <Alert severity="info" sx={{ mb: 2.5 }}>
-            <Trans i18nKey="create.baseTypeInfo" ns="roles" values={{ role: formatRoleName(baseType) }} components={{ role: <strong /> }} />
+            <Trans i18nKey="create.baseTypeInfo" ns="roles" values={{ role: formatRoleName(baseType, undefined, t) }} components={{ role: <strong /> }} />
           </Alert>
           <RadioGroup value={baseType} onChange={(e) => handleBaseTypeChange(e.target.value as RoleType)}>
             {BASE_TYPES.map((type) => (
-              <FormControlLabel key={type} value={type} control={<Radio />} label={formatRoleName(type)} />
+              <FormControlLabel key={type} value={type} control={<Radio />} label={formatRoleName(type, undefined, t)} />
             ))}
           </RadioGroup>
         </Paper>
@@ -196,7 +196,7 @@ export function CreateRolePage() {
         <>
           <Paper sx={{ p: 2.5, mb: 2 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 600, mb: 1 }}>
-              {t("create.startingPoint", { role: formatRoleName(baseType) })}
+              {t("create.startingPoint", { role: formatRoleName(baseType, undefined, t) })}
             </Typography>
             <Stack direction="row" spacing={1.5} sx={{
               alignItems: "center"
@@ -240,7 +240,7 @@ export function CreateRolePage() {
             )}
             <Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", textTransform: "uppercase" }}>{t("create.reviewBaseType")}</Typography>
-              <Typography sx={{ fontSize: 14 }}>{formatRoleName(baseType)}</Typography>
+              <Typography sx={{ fontSize: 14 }}>{formatRoleName(baseType, undefined, t)}</Typography>
             </Box>
             <Divider />
             <Box>

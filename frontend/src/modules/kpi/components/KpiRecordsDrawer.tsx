@@ -77,7 +77,7 @@ export function KpiRecordsDrawer({ title, onClose, load }: KpiRecordsDrawerProps
                   <TableCell>{r.category ?? "—"}</TableCell>
                   <TableCell>{r.analystName ?? "—"}</TableCell>
                   <TableCell>{r.eventAt ? formatDateTimeWithTimeZone(r.eventAt) : "—"}</TableCell>
-                  <TableCell align="right">{r.value == null ? "—" : r.unit ? formatKpiValue(r.unit, r.value) : String(r.value)}</TableCell>
+                  <TableCell align="right">{r.value == null ? "—" : r.unit ? formatKpiValue(r.unit, r.value, t) : String(r.value)}</TableCell>
                   <TableCell>{r.inclusion}</TableCell>
                   <TableCell>{r.note ?? ""}</TableCell>
                 </TableRow>

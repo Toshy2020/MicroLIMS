@@ -308,7 +308,7 @@ export function createMethodStep(
     key: "method",
     title: t("specWizard.methodStep.title"),
     applies: methodStepApplies,
-    validate: (model) => validateStep("method", model),
+    validate: (model) => validateStep("method", model, i18n.getFixedT(i18n.language, "labConfig")),
     render: (ctx) => <MethodStepView {...ctx} lookup={getLookup()} />,
     summary: (model) => summarizeMethodStep(model, getLookup(), t)
   };

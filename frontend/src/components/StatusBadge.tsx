@@ -1,65 +1,8 @@
 import { Box, useTheme } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { statusTone, StatusTone } from "../theme/statusTokens";
-
-const statusLabelMap: Record<string, string> = {
-  InProgress: "In Progress",
-  ReadyToRead: "Ready to Read",
-  EnterResult: "Enter Result",
-  "Ready: Plating": "Ready: Plating",
-  "Ready: Broth": "Ready: Broth",
-  "Ready: Setup": "Ready: Setup",
-  "Ready: Confirmatory": "Ready: Confirmatory",
-  PendingReview: "Pending Review",
-  Reviewed: "Reviewed, Pending Approval",
-  ResultEntered: "Result Entered",
-  RetestRequested: "Retest Requested",
-  OnHold: "On Hold",
-  WithinLimits: "Within Limits",
-  AlertLimitExceeded: "Alert Limit Exceeded",
-  ActionLimitExceeded: "Action Limit Exceeded",
-  OutOfSpecification: "Out of Specification",
-  WithinLimit: "Within Limit",
-  AlertLevel: "Alert Level",
-  ActionLevel: "Action Level",
-  NotApplicable: "Not Applicable",
-  LimitsNotConfigured: "Limits Not Configured",
-  DueSoon: "Due Soon",
-  DueToday: "Due Today",
-  DueTomorrow: "Due Tomorrow",
-  Returned: "Returned",
-  InTesting: "In Testing",
-  UnderReview: "Under Review",
-  UnderApproval: "Under Approval",
-
-  // Document Control. The specs mandate the spaced display strings for the
-  // three multi-word revision states (ML-DC-FRS-1B-001 §3.3:234,273;
-  // CC-DC-R1B-007 §1:37) - without these entries the raw enum leaked to the
-  // user as "InReview" / "AwaitingApproval" / "FutureEffective". The
-  // single-word states (Draft, Effective, Superseded, Obsolete, Cancelled,
-  // Void, Active) already display correctly via the raw-value fallback.
-  InReview: "In Review",
-  AwaitingApproval: "Awaiting Approval",
-  FutureEffective: "Future Effective",
-  SupersededIncomplete: "Superseded, Incomplete",
-  ReturnedForCorrection: "Returned for Correction",
-  AuthorResponded: "Author Responded",
-  ReviewerVerified: "Reviewer Verified",
-  RemainsValid: "Remains Valid",
-  RevisionRequired: "Revision Required",
-  ObsolescenceRecommended: "Obsolescence Recommended",
-
-  // Physicochemical outcomes and preparation states.
-  BelowSpec: "Below Spec",
-  NotSuitable: "Not Suitable",
-  DoesNotConform: "Does Not Conform",
-  InUse: "In Use",
-
-  // Audit trail review outcomes.
-  NoFindings: "No Findings",
-  FindingsRecorded: "Findings Recorded"
-};
+import { useTranslation } from "../i18n";
+import { statusLabel, statusTone, StatusTone } from "../theme/statusTokens";
 
 // Shared color lookup so non-badge UI (e.g. the Result Level segmented
 // buttons in ReportFilterPanel) can match badge colors exactly instead
@@ -98,7 +41,8 @@ function Pill({ tone, children }: { tone: StatusTone; children: string }) {
 // text and border all come from theme.custom.status[tone] so light/dark
 // values are dedicated tokens, not one color faded for the other mode.
 export function StatusBadge({ status, label }: { status: string; label?: string }) {
-  return <Pill tone={statusTone(status)}>{label ?? statusLabelMap[status] ?? status}</Pill>;
+  const { t } = useTranslation("common");
+  return <Pill tone={statusTone(status)}>{label ?? statusLabel(status, t)}</Pill>;
 }
 
 // An explicit tone for statuses that have no entry in the status map

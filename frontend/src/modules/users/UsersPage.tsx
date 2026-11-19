@@ -478,7 +478,7 @@ export function UsersPage() {
           <TableBody>
             {users.map((u) => {
               const isSelf = u.id === currentUserId;
-              const mfaDisplay = getMfaStateDisplay(u.mfaState);
+              const mfaDisplay = getMfaStateDisplay(u.mfaState, tc);
               return (
                 <TableRow key={u.id} hover>
                   <TableCell>

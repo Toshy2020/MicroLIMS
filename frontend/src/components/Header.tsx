@@ -83,7 +83,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   const { status: liveStatus } = useLive();
 
   const displayName = fullName ?? username ?? t("header.defaultUser");
-  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes, roleName);
+  const displayTitle = jobTitle?.trim() || formatRoleFallback(role, labCodes, roleName, t);
 
   const [notifications, setNotifications] = useState<NotificationDto[]>([]);
   const [bellAnchor, setBellAnchor] = useState<HTMLElement | null>(null);
@@ -512,7 +512,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{displayTitle}</Typography>
             <Box component="dl" sx={{ m: 0, mt: 0.75, display: "grid", gridTemplateColumns: "auto 1fr", columnGap: 1, fontSize: 12, color: "text.secondary", "& dd": { m: 0, color: "text.primary" } }}>
               {username && (<><dt>{t("header.userId")}</dt><dd><Ltr>{username}</Ltr></dd></>)}
-              {(roleName || role) && (<><dt>{t("header.role")}</dt><dd>{formatRoleName(role, roleName)}</dd></>)}
+              {(roleName || role) && (<><dt>{t("header.role")}</dt><dd>{formatRoleName(role, roleName, t)}</dd></>)}
             </Box>
           </Box>
           <Divider />

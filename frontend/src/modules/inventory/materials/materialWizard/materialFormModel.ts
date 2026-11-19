@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type { SaveMaterialPayload } from "../services/MaterialService";
 import {
   LEGACY_MATERIAL_TYPES,
@@ -178,7 +180,7 @@ const isStandard = (m: MaterialFormModel) => m.materialType === "ReferenceStanda
 interface Check {
   step: MaterialWizardStep;
   field: string;
-  message: (model: MaterialFormModel, ctx: MaterialModelContext) => string | null;
+  message: (model: MaterialFormModel, ctx: MaterialModelContext, t: TFunction<"inventory">) => string | null;
 }
 
 const hasQuantity = (m: MaterialFormModel) => m.quantityReceived !== "" && m.quantityReceived != null;
@@ -188,97 +190,99 @@ const CHECKS: readonly Check[] = [
   {
     step: "material",
     field: "mediaProductId",
-    message: (m) => (m.materialType === "DehydratedMedia" && !m.mediaProductId ? MATERIAL_MEDIA_MESSAGE : null)
+    message: (m, _c, t) => (m.materialType === "DehydratedMedia" && !m.mediaProductId ? t("wizard.errors.mediaProduct") : null)
   },
   {
     step: "material",
     field: "referenceOrganismId",
-    message: (m, c) =>
+    message: (m, c, t) =>
       !c.isEditing && m.materialType === "LyophilizedMicroorganism" && !m.referenceOrganismId
-        ? MATERIAL_STRAIN_MESSAGE
+        ? t("wizard.errors.referenceOrganism")
         : null
   },
   {
     step: "material",
     field: "categoryId",
-    message: (m, c) => (!c.isEditing && m.materialType === "Other" && !m.categoryId ? MATERIAL_CATEGORY_MESSAGE : null)
+    message: (m, c, t) => (!c.isEditing && m.materialType === "Other" && !m.categoryId ? t("wizard.errors.category") : null)
   },
   {
     step: "material",
     field: "materialMasterEntryId",
-    message: (m, c) =>
-      !c.isEditing && isMasterLinkedType(m.materialType) && !m.materialMasterEntryId ? MATERIAL_MASTER_MESSAGE : null
+    message: (m, c, t) =>
+      !c.isEditing && isMasterLinkedType(m.materialType) && !m.materialMasterEntryId ? t("wizard.errors.masterEntry") : null
   },
   {
     // Mirrors the category rule for the user's benefit; the server enforces it.
     step: "dates",
     field: "expiryDate",
-    message: (m, c) =>
-      !c.isEditing && c.category?.expiryRequired && !m.expiryDate ? `${c.category.name} lots need an expiry date.` : null
-  },
-  {
-    step: "material",
-    field: "purity",
-    message: (m) =>
-      isStandard(m) && (m.purity === "" || m.purity == null)
-        ? m.materialType === "PrimaryStandard"
-          ? "Purity percentage is required for primary standards."
-          : "Purity percentage is required for reference standards."
+    message: (m, c, t) =>
+      !c.isEditing && c.category?.expiryRequired && !m.expiryDate
+        ? t("wizard.errors.expiryRequired", { category: c.category.name })
         : null
   },
   {
     step: "material",
     field: "purity",
-    message: (m) => {
+    message: (m, _c, t) =>
+      isStandard(m) && (m.purity === "" || m.purity == null)
+        ? m.materialType === "PrimaryStandard"
+          ? t("wizard.errors.purityPrimaryRequired")
+          : t("wizard.errors.purityReferenceRequired")
+        : null
+  },
+  {
+    step: "material",
+    field: "purity",
+    message: (m, _c, t) => {
       if (!isStandard(m)) return null;
       const p = Number(m.purity);
-      return isNaN(p) || p <= 0 || p > 100 ? MATERIAL_PURITY_RANGE_MESSAGE : null;
+      return isNaN(p) || p <= 0 || p > 100 ? t("wizard.errors.purityRange") : null;
     }
   },
   {
     step: "material",
     field: "moisturePercent",
-    message: (m) => {
+    message: (m, _c, t) => {
       if (!isStandard(m) || m.materialType !== "ReferenceStandard") return null;
       if (m.moisturePercent === "" || m.moisturePercent == null) return null;
       const v = Number(m.moisturePercent);
-      return isNaN(v) || v < 0 || v >= 100 ? MATERIAL_MOISTURE_MESSAGE : null;
+      return isNaN(v) || v < 0 || v >= 100 ? t("wizard.errors.moistureRange") : null;
     }
   },
   {
     step: "material",
     field: "materialName",
-    message: (m) => (!m.materialName.trim() ? MATERIAL_REQUIRED_MESSAGE : null)
+    message: (m, _c, t) => (!m.materialName.trim() ? t("wizard.errors.requiredFields") : null)
   },
   {
     step: "lot",
     field: "batchNumber",
-    message: (m) => (!m.batchNumber.trim() ? MATERIAL_REQUIRED_MESSAGE : null)
+    message: (m, _c, t) => (!m.batchNumber.trim() ? t("wizard.errors.requiredFields") : null)
   },
   {
     step: "dates",
     field: "receivingDate",
-    message: (m) => (!m.receivingDate ? MATERIAL_REQUIRED_MESSAGE : null)
+    message: (m, _c, t) => (!m.receivingDate ? t("wizard.errors.requiredFields") : null)
   },
   {
     step: "lot",
     field: "location",
-    message: (m) => (!m.location.trim() ? MATERIAL_REQUIRED_MESSAGE : null)
+    message: (m, _c, t) => (!m.location.trim() ? t("wizard.errors.requiredFields") : null)
   },
   {
     step: "lot",
     field: "quantityReceived",
-    message: (m) => (!hasQuantity(m) ? MATERIAL_REQUIRED_MESSAGE : null)
+    message: (m, _c, t) => (!hasQuantity(m) ? t("wizard.errors.requiredFields") : null)
   },
   {
     step: "lot",
     field: "quantityReceived",
-    message: (m) => (hasQuantity(m) && Number(m.quantityReceived) <= 0 ? MATERIAL_QUANTITY_MESSAGE : null)
+    message: (m, _c, t) => (hasQuantity(m) && Number(m.quantityReceived) <= 0 ? t("wizard.errors.quantityPositive") : null)
   },
   {
     step: "material",
     field: "section",
-    message: (m, c) => (!c.isEditing && c.sectionCount > 1 && !m.sectionId ? MATERIAL_SECTION_MESSAGE : null)
+    message: (m, c, t) => (!c.isEditing && c.sectionCount > 1 && !m.sectionId ? t("wizard.errors.sectionRequired") : null)
   }
 ];
 
@@ -286,21 +290,26 @@ const CHECKS: readonly Check[] = [
 export function validateStep(
   step: MaterialWizardStep,
   model: MaterialFormModel,
-  ctx: MaterialModelContext
+  ctx: MaterialModelContext,
+  t: TFunction<"inventory"> = i18n.getFixedT("en", "inventory")
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const check of CHECKS) {
     if (check.step !== step || check.field in errors) continue;
-    const message = check.message(model, ctx);
+    const message = check.message(model, ctx, t);
     if (message) errors[check.field] = message;
   }
   return errors;
 }
 
 // The single message the old dialog's save button showed: the first failing check in its order.
-export function firstMaterialError(model: MaterialFormModel, ctx: MaterialModelContext): string | null {
+export function firstMaterialError(
+  model: MaterialFormModel,
+  ctx: MaterialModelContext,
+  t: TFunction<"inventory"> = i18n.getFixedT("en", "inventory")
+): string | null {
   for (const check of CHECKS) {
-    const message = check.message(model, ctx);
+    const message = check.message(model, ctx, t);
     if (message) return message;
   }
   return null;

@@ -199,5 +199,24 @@
       "weightedOnTime": "Weighted on time",
       "weightedRightFirstTime": "Weighted right first time"
     }
+  },
+  "format": {
+    "daysValue": "{{value}} days",
+    "testsValue": "{{value}} tests",
+    "noResult": "No result was returned for this measure.",
+    "priorPeriod": "Prior period: {{value}} (n={{n}})",
+    "extras": {
+      "p90": "P90",
+      "alertRate": "Alert rate",
+      "actionRate": "Action rate"
+    },
+    "flags": {
+      "AdverseTrend": "Adverse trend"
+    },
+    "directions": {
+      "HigherIsBetter": "Higher is better",
+      "LowerIsBetter": "Lower is better",
+      "Neutral": "No better or worse direction"
+    }
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import axios from "axios";
+import { i18n } from "../../i18n";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { noteOwnSave } from "../../hooks/useRecordChanged";
 import { isReasonRequiredError } from "../../services/apiClient";
@@ -267,7 +268,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       .catch((err: unknown) => {
         if (cancelled) return;
         setServerValidationError(
-          getErrorMessage(err, "Server validation could not be completed.")
+          getErrorMessage(err, i18n.t("components.configWizard.serverValidationFailed", { ns: "common" }))
         );
         setValidatingServer(false);
       });
@@ -292,7 +293,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         setUsageState({
           status: "error",
           summary: null,
-          error: getErrorMessage(err, "Usage could not be checked."),
+          error: getErrorMessage(err, i18n.t("components.configWizard.usageCheckFailed", { ns: "common" })),
         });
       });
     return () => {
@@ -410,7 +411,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         pendingThenNextRef.current = false;
         setReasonDialogOpen(false);
         if (isConflictError(err)) {
-          await draft.onRejected("Record was modified by another user.");
+          await draft.onRejected(i18n.t("components.configWizard.recordModifiedByAnother", { ns: "common" }));
           setConflictState({
             active: true,
             reloading: Boolean(reloadOriginal),
@@ -425,7 +426,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
               setConflictState({
                 active: true,
                 reloading: false,
-                reloadError: getErrorMessage(reloadErr, "Could not reload the latest record."),
+                reloadError: getErrorMessage(reloadErr, i18n.t("components.configWizard.reloadLatestFailed", { ns: "common" })),
               });
             }
           }
@@ -436,7 +437,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
           setServerErrors(fieldErrs);
           return;
         }
-        setSaveError(getErrorMessage(err, "Failed to save changes."));
+        setSaveError(getErrorMessage(err, i18n.t("components.configWizard.saveChangesFailed", { ns: "common" })));
       } finally {
         setSaving(false);
       }
@@ -476,7 +477,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       setSaveError(null);
       setConflictState({ active: false, reloading: false, reloadError: null });
     } catch (err: unknown) {
-      setReloadLatestError(getErrorMessage(err, "Could not reload the latest record."));
+      setReloadLatestError(getErrorMessage(err, i18n.t("components.configWizard.reloadLatestFailed", { ns: "common" })));
     }
   }, [reloadOriginal]);
 

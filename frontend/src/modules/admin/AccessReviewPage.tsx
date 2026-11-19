@@ -265,7 +265,7 @@ export function AccessReviewPage() {
                       </TableCell>
                       <TableCell>{u.isActive ? t("common.active") : u.deactivatedAt ? t("accessReview.inactiveSince", { date: formatDate(u.deactivatedAt) }) : t("common.inactive")}</TableCell>
                       <TableCell>{u.roleName} <Typography variant="caption" color="text.secondary" component="span">({u.roleType})</Typography></TableCell>
-                      <TableCell>{formatAccessReviewMfaState(u.mfaState)}</TableCell>
+                      <TableCell>{formatAccessReviewMfaState(u.mfaState, tc)}</TableCell>
                       <TableCell sx={{ maxWidth: 280 }}>
                         <Typography variant="caption">
                           {u.permissions.map((p) => (p.hidden ? t("accessReview.hidden", { code: p.code }) : p.code)).join(", ") || t("common.none")}

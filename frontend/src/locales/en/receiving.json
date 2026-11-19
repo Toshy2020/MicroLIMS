@@ -666,5 +666,54 @@
     "samplesPrepared_one": "{{count}} sample prepared and signed.",
     "samplesPrepared_other": "{{count}} samples prepared and signed.",
     "skippedSuffix": " ({{count}} skipped)"
+  },
+  "constants": {
+    "categories": {
+      "product": {
+        "label": "Product",
+        "description": "Finished pharmaceutical dosage forms (tablets, syrups, suspensions)"
+      },
+      "rm": {
+        "label": "Raw Material",
+        "description": "Active pharmaceutical ingredients (APIs), excipients, and raw inputs"
+      },
+      "pm": {
+        "label": "Packaging Material",
+        "description": "Primary & secondary containers, closures, foils, and labels"
+      },
+      "water": {
+        "label": "Water",
+        "description": "Purified water, WFI, potable water, and feed water sampling points"
+      },
+      "em": {
+        "label": "Environmental Monitoring",
+        "description": "Active air, settle plates, surface swabs, and personnel monitoring"
+      },
+      "ac": {
+        "label": "After Cleaning",
+        "description": "Equipment swab rinse and surface contact plates after sanitization"
+      }
+    },
+    "sampleStatuses": {
+      "ALL": "All Sample Statuses",
+      "Received": "Received",
+      "InTesting": "Under Testing",
+      "PendingReview": "Pending Review",
+      "UnderReview": "Under Review",
+      "UnderApproval": "Under Approval",
+      "Approved": "Approved",
+      "Rejected": "Rejected",
+      "RetestRequested": "Cancelled / Voided"
+    },
+    "testStatuses": {
+      "ALL": "All Test Statuses",
+      "Waiting": "Not Started",
+      "InProgress": "In Progress",
+      "ResultEntered": "Result Entered",
+      "UnderReview": "Under Review",
+      "Reviewed": "Reviewed",
+      "Approved": "Approved",
+      "Rejected": "Rejected"
+    }
   }
 }

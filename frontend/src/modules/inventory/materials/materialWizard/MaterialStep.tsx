@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
-import { useTranslation } from "../../../../i18n";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { MaterialService } from "../services/MaterialService";
@@ -223,7 +223,7 @@ export function createMaterialStep(
   return {
     key: "material",
     title: tw("wizard.steps.material"),
-    validate: (model) => validateStep("material", model, getContext(model)),
+    validate: (model) => validateStep("material", model, getContext(model), i18n.getFixedT(i18n.language, "inventory")),
     render: ({ model, set, errors }) => (
       <MaterialStepView model={model} set={set} errors={errors} editing={getEditing()} lookups={getLookups()} />
     ),

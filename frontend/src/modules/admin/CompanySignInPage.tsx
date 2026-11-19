@@ -245,7 +245,7 @@ export function CompanySignInPage() {
                     <TableRow key={u.id}>
                       <TableCell>{u.username}</TableCell>
                       <TableCell>{u.fullName}</TableCell>
-                      <TableCell>{formatRoleName(u.role)}</TableCell>
+                      <TableCell>{formatRoleName(u.role, undefined, tc)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

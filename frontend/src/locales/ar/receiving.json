@@ -710,5 +710,54 @@
     "samplesPrepared_many": "تم تحضير {{count}} من العينات وتوقيعها.",
     "samplesPrepared_other": "تم تحضير {{count}} من العينات وتوقيعها.",
     "skippedSuffix": " ({{count}} تم تخطيها)"
+  },
+  "constants": {
+    "categories": {
+      "product": {
+        "label": "منتج",
+        "description": "الأشكال الصيدلانية النهائية (أقراص، شراب، معلقات)"
+      },
+      "rm": {
+        "label": "مادة خام",
+        "description": "المواد الفعالة الصيدلانية (APIs) والسواغات والمدخلات الخام"
+      },
+      "pm": {
+        "label": "مادة تعبئة وتغليف",
+        "description": "العبوات الأولية والثانوية والأغطية والرقائق والملصقات"
+      },
+      "water": {
+        "label": "مياه",
+        "description": "المياه المنقاة ومياه الحقن والمياه الصالحة للشرب ونقاط أخذ عينات مياه التغذية"
+      },
+      "em": {
+        "label": "رصد بيئي",
+        "description": "الهواء النشط وأطباق الترسيب ومسحات الأسطح ورصد الموظفين"
+      },
+      "ac": {
+        "label": "بعد التنظيف",
+        "description": "شطف مسحات المعدات وأطباق ملامسة الأسطح بعد التعقيم"
+      }
+    },
+    "sampleStatuses": {
+      "ALL": "جميع حالات العينة",
+      "Received": "مستلمة",
+      "InTesting": "قيد الاختبار",
+      "PendingReview": "بانتظار المراجعة",
+      "UnderReview": "قيد المراجعة",
+      "UnderApproval": "قيد الاعتماد",
+      "Approved": "معتمدة",
+      "Rejected": "مرفوضة",
+      "RetestRequested": "ملغاة / مُبطلة"
+    },
+    "testStatuses": {
+      "ALL": "جميع حالات الاختبارات",
+      "Waiting": "لم يبدأ",
+      "InProgress": "قيد التنفيذ",
+      "ResultEntered": "تم إدخال النتيجة",
+      "UnderReview": "قيد المراجعة",
+      "Reviewed": "تمت المراجعة",
+      "Approved": "معتمد",
+      "Rejected": "مرفوض"
+    }
   }
 }

@@ -267,7 +267,7 @@ export function createTestParameterStep(
   return {
     key: "test",
     title: t("specWizard.testStep.title"),
-    validate: (model) => validateStep("test", model),
+    validate: (model) => validateStep("test", model, i18n.getFixedT(i18n.language, "labConfig")),
     render: (ctx) => <TestParameterStepView {...ctx} lookup={getLookup()} />,
     summary: (model) => {
       const lookup = getLookup();

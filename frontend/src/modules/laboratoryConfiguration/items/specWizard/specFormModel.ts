@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import type {
   CreateSpecificationPayload,
   DosageForm,
@@ -284,13 +286,17 @@ export function fromSpecification(
   };
 }
 
-export function validateStep(step: SpecWizardStep, model: SpecFormModel): Record<string, string> {
+export function validateStep(
+  step: SpecWizardStep,
+  model: SpecFormModel,
+  t: TFunction<"labConfig"> = i18n.getFixedT("en", "labConfig")
+): Record<string, string> {
   const errors: Record<string, string> = {};
   const flags = resolveSpecMethodFlags(model);
 
   if (step === "test") {
     if (!model.testCode) {
-      errors.testCode = "Assigned Test is required.";
+      errors.testCode = t("specWizard.errors.testRequired");
     }
     return errors;
   }
@@ -299,21 +305,20 @@ export function validateStep(step: SpecWizardStep, model: SpecFormModel): Record
     if (flags.isHplcMethodAssay) {
       if (flags.isRelatedSubstances) {
         if (!model.relatedSubstanceRow) {
-          errors.relatedSubstanceRow =
-            "Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.";
+          errors.relatedSubstanceRow = t("specWizard.errors.relatedSubstanceRow");
         } else if (model.relatedSubstanceRow === "Named" && !model.hplcMethodImpurityId) {
-          errors.hplcMethodImpurityId = "Choose the impurity for this row.";
+          errors.hplcMethodImpurityId = t("specWizard.errors.impurityRequired");
         }
       } else if (flags.isResidualSolvents) {
         if (!model.hplcMethodAnalyteId) {
-          errors.hplcMethodAnalyteId = "Please select a solvent from the GC method.";
+          errors.hplcMethodAnalyteId = t("specWizard.errors.solventRequired");
         }
         if (model.resultBasis !== "Ppm") {
-          errors.resultBasis = "Basis must be ppm for residual solvents.";
+          errors.resultBasis = t("specWizard.errors.residualSolventBasis");
         }
       } else {
         if (!model.hplcMethodAnalyteId) {
-          errors.hplcMethodAnalyteId = "Please select an analyte from the HPLC method.";
+          errors.hplcMethodAnalyteId = t("specWizard.errors.analyteRequired");
         }
         const isRawMaterial = model.itemCategory === "RawMaterial";
         const validBases: ResultBasis[] = isRawMaterial
@@ -321,16 +326,16 @@ export function validateStep(step: SpecWizardStep, model: SpecFormModel): Record
           : ["PercentLabelClaim", "MgPerUnit"];
         if (!model.resultBasis || !validBases.includes(model.resultBasis as ResultBasis)) {
           errors.resultBasis = isRawMaterial
-            ? "Please select a basis (Assay %, Amount per unit, % as is, % dried basis, or % anhydrous basis)."
-            : "Please select a basis (Assay % or Amount per unit).";
+            ? t("specWizard.errors.basisRawMaterial")
+            : t("specWizard.errors.basisStandard");
         }
         if (model.resultBasis === "MgPerUnit") {
           const lcNum = Number(model.labelClaim);
           if (!model.labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-            errors.labelClaim = "Label claim must be greater than 0 for Amount per unit.";
+            errors.labelClaim = t("specWizard.errors.labelClaimPositive");
           }
           if (!model.labelClaimUnit.trim()) {
-            errors.labelClaimUnit = "Label claim unit is required for Amount per unit.";
+            errors.labelClaimUnit = t("specWizard.errors.labelClaimUnitRequired");
           }
         }
       }
@@ -338,12 +343,12 @@ export function validateStep(step: SpecWizardStep, model: SpecFormModel): Record
 
     if (flags.isIcpMethodAssay) {
       if (!model.icpTestElementId) {
-        errors.icpTestElementId = "Please select an element of the test.";
+        errors.icpTestElementId = t("specWizard.errors.icpElementRequired");
       }
     }
 
     if (flags.isTitration) {
-      const basisError = validateTitrationSpecBasis(model.resultBasis, model.labelClaim);
+      const basisError = validateTitrationSpecBasis(model.resultBasis, model.labelClaim, t);
       if (basisError) {
         if (titrationBasisNeedsLabelClaim(model.resultBasis)) {
           errors.labelClaim = basisError;
@@ -362,44 +367,42 @@ export function validateStep(step: SpecWizardStep, model: SpecFormModel): Record
     if (model.limitType === "DissolutionQ") {
       const qNum = Number(model.lowerLimit);
       if (!model.lowerLimit.trim() || isNaN(qNum) || qNum <= 0 || qNum > 100) {
-        errors.lowerLimit =
-          "Lower limit Q (%) must be between 0 and 100 (exclusive of 0, inclusive of 100).";
+        errors.lowerLimit = t("specWizard.errors.dissolutionQRange");
       }
       const lcNum = Number(model.labelClaim);
       if (!model.labelClaim.trim() || isNaN(lcNum) || lcNum <= 0) {
-        errors.labelClaim = "Label claim must be greater than zero for Dissolution Q specifications.";
+        errors.labelClaim = t("specWizard.errors.dissolutionLabelClaimPositive");
       }
       const otherDissolutionSpec = existingSpecs.find(
         (s) => s.testCode === model.testCode && s.id !== model.editingId && s.limitType === "DissolutionQ"
       );
       if (otherDissolutionSpec) {
-        errors.limitType = "Only one DissolutionQ specification is allowed per test.";
+        errors.limitType = t("specWizard.errors.dissolutionSingleSpec");
       }
     }
 
     if (model.limitType === "DisintegrationTime") {
       const tNum = Number(model.upperLimit);
       if (!model.upperLimit.trim() || isNaN(tNum) || tNum <= 0) {
-        errors.upperLimit =
-          "Time limit (min) must be greater than zero for Disintegration Time specifications.";
+        errors.upperLimit = t("specWizard.errors.disintegrationTimePositive");
       }
       const otherDisintegrationSpec = existingSpecs.find(
         (s) => s.testCode === model.testCode && s.id !== model.editingId && s.limitType === "DisintegrationTime"
       );
       if (otherDisintegrationSpec) {
-        errors.limitType = "Only one DisintegrationTime specification is allowed per test.";
+        errors.limitType = t("specWizard.errors.disintegrationSingleSpec");
       }
     }
 
     if (model.limitType === "WeightVariation") {
       if (!model.dosageForm) {
-        errors.dosageForm = "Dosage form is required for Weight Variation specifications.";
+        errors.dosageForm = t("specWizard.errors.weightVariationDosageForm");
       }
       const otherWvSpec = existingSpecs.find(
         (s) => s.testCode === model.testCode && s.id !== model.editingId && s.limitType === "WeightVariation"
       );
       if (otherWvSpec) {
-        errors.limitType = "Only one WeightVariation specification is allowed per test.";
+        errors.limitType = t("specWizard.errors.weightVariationSingleSpec");
       }
     }
 

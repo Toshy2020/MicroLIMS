@@ -15,7 +15,7 @@ import { useTranslation } from "../../../i18n";
 import { useHelpPanel, type HelpTarget } from "../HelpPanelContext";
 import type { RoleType } from "../tour/tourSteps";
 import { monospaceFontFamily } from "../../../theme/palette";
-import { itemsForRole, RELEASE_NOTES, type ReleaseNote, type ReleaseNoteItem } from "./releaseNotes";
+import { getReleaseNotes, itemsForRole, type ReleaseNote, type ReleaseNoteItem } from "./releaseNotes";
 
 export interface WhatsNewDialogProps {
   open: boolean;
@@ -41,7 +41,7 @@ export function WhatsNewDialog({
   onExited,
   role,
   mode = "latest",
-  notes = RELEASE_NOTES
+  notes
 }: WhatsNewDialogProps) {
   const { t } = useTranslation("help");
   const { openPanel } = useHelpPanel();
@@ -57,7 +57,8 @@ export function WhatsNewDialog({
   }, [open]);
 
   const sections = useMemo<FilteredReleaseNote[]>(() => {
-    const source = mode === "all" ? notes : notes.slice(0, 1);
+    const resolvedNotes = notes ?? getReleaseNotes(t);
+    const source = mode === "all" ? resolvedNotes : resolvedNotes.slice(0, 1);
     const filtered: FilteredReleaseNote[] = [];
     for (const note of source) {
       const items = itemsForRole(note, role);
@@ -66,7 +67,7 @@ export function WhatsNewDialog({
       }
     }
     return filtered;
-  }, [mode, notes, role]);
+  }, [mode, notes, role, t]);
 
   const handleOpenGuide = (target: HelpTarget) => {
     openedGuideRef.current = true;

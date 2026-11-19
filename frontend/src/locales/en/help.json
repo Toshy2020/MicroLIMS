@@ -60,5 +60,172 @@
     "back": "Back",
     "finish": "Finish",
     "next": "Next"
+  },
+  "tourSteps": {
+    "Analyst": [
+      {
+        "title": "Your work queue",
+        "body": "My Work groups tests assigned to you, unassigned section tests you can take, and reading tasks by urgency."
+      },
+      {
+        "title": "My Work in the sidebar",
+        "body": "Use My Work in the navigation menu to return to your queue from any page and see how many tasks are waiting."
+      },
+      {
+        "title": "Sample receiving",
+        "body": "Register incoming samples for your laboratory section and print barcode labels from Receive Sample."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to jump to a sample, batch, test order, or controlled document by code."
+      },
+      {
+        "title": "Notifications",
+        "body": "Check alerts when incubations are ready to read or when a test is returned to you for revision."
+      },
+      {
+        "title": "Help and shortcuts",
+        "body": "Open the user guide chapter for the current page with F1, view keyboard shortcuts with ?, or replay this tour."
+      }
+    ],
+    "Reviewer": [
+      {
+        "title": "Technical review queue",
+        "body": "My Work lists samples waiting for technical verification, document reviews, and reading tasks ordered by urgency."
+      },
+      {
+        "title": "My Work in the sidebar",
+        "body": "Select My Work in the sidebar to return to your review queue and check the live task count."
+      },
+      {
+        "title": "Document Control",
+        "body": "Open Document Control to review and approve controlled documents, inspect the training matrix, and read SOPs."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to find samples, test orders, or controlled documents by identifier."
+      },
+      {
+        "title": "Notifications",
+        "body": "Check alerts when samples enter technical review or when controlled documents require your attention."
+      },
+      {
+        "title": "Help and guidance",
+        "body": "Press F1 for the current page's user guide chapter, press ? for keyboard shortcuts, or replay this tour."
+      }
+    ],
+    "SectionHead": [
+      {
+        "title": "Approvals and section queue",
+        "body": "My Work brings together sample approvals, technical reviews, media and solution releases, and unassigned section work."
+      },
+      {
+        "title": "Tracking Board",
+        "body": "Open the Tracking Board to follow every received sample and see its current stage across laboratory sections."
+      },
+      {
+        "title": "OOS Tracking",
+        "body": "Use OOS Tracking to oversee out-of-specification investigations, retest progress, and closure decisions."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to locate samples, batches, master data records, or controlled documents."
+      },
+      {
+        "title": "Notifications",
+        "body": "See alerts for samples awaiting approval, media expiry warnings, and returned test orders."
+      },
+      {
+        "title": "Help and guidance",
+        "body": "Open the guide chapter for the current page with F1, check keyboard shortcuts with ?, or replay this tour."
+      }
+    ],
+    "QcManager": [
+      {
+        "title": "Pending approvals and tasks",
+        "body": "My Work shows not-applicable test requests and document reading tasks waiting for your decision, grouped by urgency."
+      },
+      {
+        "title": "Items and specifications",
+        "body": "Open Items to inspect item specifications and record final decisions on not-applicable test requests."
+      },
+      {
+        "title": "Reports",
+        "body": "Use Reports to review laboratory performance indicators, turnaround trends, and compliance summaries."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to look up samples, items, or controlled documents from any screen."
+      },
+      {
+        "title": "Notifications",
+        "body": "Check alerts for pending approvals, document updates, and discussions."
+      },
+      {
+        "title": "Help and guidance",
+        "body": "Press F1 to open the user guide for the current page or replay this tour whenever needed."
+      }
+    ],
+    "Qa": [
+      {
+        "title": "Quality Assurance queue",
+        "body": "My Work lists document reviews, approvals, and quality tasks waiting for your action, grouped by urgency."
+      },
+      {
+        "title": "Audit Trail Reviews",
+        "body": "Open Audit Trail Reviews to conduct and sign periodic reviews of the GxP audit trail and record findings."
+      },
+      {
+        "title": "Access Review",
+        "body": "Use Access Review to examine periodic user access reports and sign the quality assurance conclusion."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to search across samples, controlled documents, and laboratory records."
+      },
+      {
+        "title": "Notifications",
+        "body": "Check alerts for document workflow assignments and discussions."
+      },
+      {
+        "title": "Help and guidance",
+        "body": "Press F1 to open the guide chapter for the current page or replay this tour from the Help menu."
+      }
+    ],
+    "SystemAdministrator": [
+      {
+        "title": "Administrator tasks",
+        "body": "My Work displays administrative tasks and assigned document reading items waiting for your action."
+      },
+      {
+        "title": "Users",
+        "body": "Open Users to create accounts, manage laboratory section memberships, and handle lockouts or password resets."
+      },
+      {
+        "title": "Settings",
+        "body": "Use Settings to configure password policies, session timeouts, and system operating parameters."
+      },
+      {
+        "title": "Search MicroLIMS (Ctrl+K)",
+        "body": "Press Ctrl+K or select the search bar to find users, controlled documents, or records across the application."
+      },
+      {
+        "title": "Notifications",
+        "body": "Check system notifications and discussion updates that need your attention."
+      },
+      {
+        "title": "Help and guidance",
+        "body": "Press F1 to open the user guide for the current page or replay this tour from the Help menu."
+      }
+    ]
+  },
+  "releaseNotes": {
+    "0_1_0": [
+      "My Work brings your assigned tests, reading tasks, and approvals into one queue grouped by urgency.",
+      "Choose visible columns, adjust row density, and save personal or shared table views across registers.",
+      "Paste rows from a spreadsheet into receiving and location-count grids and review a preview before filling the form.",
+      "Entry forms pre-fill your last chosen equipment and media lot, and ask you to confirm pre-filled lots before saving.",
+      "Press F1 or open Help to read the guide chapter for the current page, search the guide, or replay your role tour."
+    ]
   }
 }

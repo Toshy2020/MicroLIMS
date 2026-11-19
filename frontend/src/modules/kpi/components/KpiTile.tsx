@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import { ButtonBase, Chip, Paper, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import type { SxProps, Theme } from "@mui/material";
 import type { KpiDefinition, KpiEntry, KpiResult } from "../types/kpiTypes";
-import { FLAG_LABELS, entryView, formatExtras, formatPrior } from "../utils/kpiFormat";
+import { entryView, flagLabel, formatExtras, formatPrior } from "../utils/kpiFormat";
 import { useTranslation } from "../../../i18n";
 
 // Gap messages and flags from the server, in the one non-failure warning tone.
 export function KpiChips({ result }: { result: KpiResult }) {
+  const { t } = useTranslation("kpi");
   const theme = useTheme();
   if (result.gaps.length === 0 && result.flags.length === 0) return null;
   const tone = theme.custom.status.inconclusive;
@@ -14,7 +15,7 @@ export function KpiChips({ result }: { result: KpiResult }) {
   return (
     <Stack direction="row" useFlexGap sx={{ flexWrap: "wrap", gap: 0.5 }}>
       {result.gaps.map((g) => <Chip key={g.code} size="small" label={g.message} sx={sx} />)}
-      {result.flags.map((f) => <Chip key={f} size="small" label={FLAG_LABELS[f] ?? f} sx={sx} />)}
+      {result.flags.map((f) => <Chip key={f} size="small" label={flagLabel(f, t)} sx={sx} />)}
     </Stack>
   );
 }
@@ -37,7 +38,7 @@ interface KpiTileProps {
 export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
   const { t } = useTranslation("kpi");
   const theme = useTheme();
-  const view = entryView(entry);
+  const view = entryView(entry, t);
 
   if (view.kind === "error") {
     const tone = theme.custom.status.detected;
@@ -54,7 +55,7 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
 
   const { result } = view;
   const label = view.kind === "noData" ? t("shared.noData") : view.text;
-  const extras = formatExtras(entry);
+  const extras = formatExtras(entry, t);
 
   const button = (
     <ButtonBase
@@ -84,7 +85,7 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
       ))}
       <Text sx={{ fontSize: 12, color: "text.secondary" }}>{t("tile.n", { n: result.n })}</Text>
       {result.prior != null && (
-        <Text sx={{ fontSize: 12, color: "text.secondary" }}>{formatPrior(entry.unit, result.prior)}</Text>
+        <Text sx={{ fontSize: 12, color: "text.secondary" }}>{formatPrior(entry.unit, result.prior, t)}</Text>
       )}
       <KpiChips result={result} />
     </ButtonBase>

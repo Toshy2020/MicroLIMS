@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../i18n";
 import type { RoleType } from "../tour/tourSteps";
 
 export interface ReleaseNoteItem {
@@ -14,38 +16,43 @@ export interface ReleaseNote {
 
 export const WHATS_NEW_STATE_KEY = "whatsNew.lastSeen";
 
-export const RELEASE_NOTES: ReleaseNote[] = [
-  {
-    version: "0.1.0",
-    date: "2026-11-14",
-    items: [
-      {
-        roles: "all",
-        text: "My Work brings your assigned tests, reading tasks, and approvals into one queue grouped by urgency.",
-        guide: { chapterId: "45-my-work" }
-      },
-      {
-        roles: "all",
-        text: "Choose visible columns, adjust row density, and save personal or shared table views across registers."
-      },
-      {
-        roles: ["Analyst", "Reviewer", "SectionHead"],
-        text: "Paste rows from a spreadsheet into receiving and location-count grids and review a preview before filling the form.",
-        guide: { chapterId: "15-result-entry" }
-      },
-      {
-        roles: ["Analyst", "SectionHead"],
-        text: "Entry forms pre-fill your last chosen equipment and media lot, and ask you to confirm pre-filled lots before saving.",
-        guide: { chapterId: "14-testing-workspace" }
-      },
-      {
-        roles: "all",
-        text: "Press F1 or open Help to read the guide chapter for the current page, search the guide, or replay your role tour.",
-        guide: { chapterId: "06-user-interface" }
-      }
-    ]
-  }
-];
+export function getReleaseNotes(t?: TFunction): ReleaseNote[] {
+  const translate = t ?? i18n.getFixedT("en", "help");
+  return [
+    {
+      version: "0.1.0",
+      date: "2026-11-14",
+      items: [
+        {
+          roles: "all",
+          text: translate("releaseNotes.0_1_0.0", { ns: "help" }),
+          guide: { chapterId: "45-my-work" }
+        },
+        {
+          roles: "all",
+          text: translate("releaseNotes.0_1_0.1", { ns: "help" })
+        },
+        {
+          roles: ["Analyst", "Reviewer", "SectionHead"],
+          text: translate("releaseNotes.0_1_0.2", { ns: "help" }),
+          guide: { chapterId: "15-result-entry" }
+        },
+        {
+          roles: ["Analyst", "SectionHead"],
+          text: translate("releaseNotes.0_1_0.3", { ns: "help" }),
+          guide: { chapterId: "14-testing-workspace" }
+        },
+        {
+          roles: "all",
+          text: translate("releaseNotes.0_1_0.4", { ns: "help" }),
+          guide: { chapterId: "06-user-interface" }
+        }
+      ]
+    }
+  ];
+}
+
+export const RELEASE_NOTES: ReleaseNote[] = getReleaseNotes();
 
 function parseVersionParts(version: string): number[] {
   const core = version.trim().replace(/^v/i, "").split(/[+-]/)[0] ?? "";

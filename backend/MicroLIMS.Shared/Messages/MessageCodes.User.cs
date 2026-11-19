@@ -3,6 +3,24 @@ namespace MicroLIMS.Shared.Messages;
 // User.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string UserAccessReviewAccountNotInReport = "User.AccessReviewAccountNotInReport";
+    public const string UserAccessReviewAlreadySigned = "User.AccessReviewAlreadySigned";
+    public const string UserAccessReviewCannotSignOwnAccess = "User.AccessReviewCannotSignOwnAccess";
+    public const string UserAccessReviewChecksumMismatch = "User.AccessReviewChecksumMismatch";
+    public const string UserAccessReviewConclusionRequired = "User.AccessReviewConclusionRequired";
+    public const string UserAccessReviewConclusionTooLong = "User.AccessReviewConclusionTooLong";
+    public const string UserAccessReviewFindingActionInvalid = "User.AccessReviewFindingActionInvalid";
+    public const string UserAccessReviewFindingCannotMoveAccount = "User.AccessReviewFindingCannotMoveAccount";
+    public const string UserAccessReviewFindingDetailRequired = "User.AccessReviewFindingDetailRequired";
+    public const string UserAccessReviewFindingDetailTooLong = "User.AccessReviewFindingDetailTooLong";
+    public const string UserAccessReviewFindingKindInvalid = "User.AccessReviewFindingKindInvalid";
+    public const string UserAccessReviewFindingNotFound = "User.AccessReviewFindingNotFound";
+    public const string UserAccessReviewFindingNoteRequired = "User.AccessReviewFindingNoteRequired";
+    public const string UserAccessReviewFindingNoteTooLong = "User.AccessReviewFindingNoteTooLong";
+    public const string UserAccessReviewNotFound = "User.AccessReviewNotFound";
+    public const string UserAccessReviewPeriodLabelTooLong = "User.AccessReviewPeriodLabelTooLong";
+    public const string UserAccessReviewQualityAssuranceOnly = "User.AccessReviewQualityAssuranceOnly";
+    public const string UserAccessReviewReportUnreadable = "User.AccessReviewReportUnreadable";
     public const string UserCannotDisableOwnAccount = "User.CannotDisableOwnAccount";
     public const string UserCannotModifyOwnRole = "User.CannotModifyOwnRole";
     public const string UserCannotRelinkOwnCompanyAccount = "User.CannotRelinkOwnCompanyAccount";
@@ -24,6 +42,24 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> UserParameters() => new()
     {
+        [UserAccessReviewAccountNotInReport] = [],
+        [UserAccessReviewAlreadySigned] = [],
+        [UserAccessReviewCannotSignOwnAccess] = [],
+        [UserAccessReviewChecksumMismatch] = [],
+        [UserAccessReviewConclusionRequired] = [],
+        [UserAccessReviewConclusionTooLong] = [],
+        [UserAccessReviewFindingActionInvalid] = [],
+        [UserAccessReviewFindingCannotMoveAccount] = [],
+        [UserAccessReviewFindingDetailRequired] = [],
+        [UserAccessReviewFindingDetailTooLong] = [],
+        [UserAccessReviewFindingKindInvalid] = ["kinds"],
+        [UserAccessReviewFindingNotFound] = ["findingId"],
+        [UserAccessReviewFindingNoteRequired] = [],
+        [UserAccessReviewFindingNoteTooLong] = [],
+        [UserAccessReviewNotFound] = ["reviewId"],
+        [UserAccessReviewPeriodLabelTooLong] = [],
+        [UserAccessReviewQualityAssuranceOnly] = [],
+        [UserAccessReviewReportUnreadable] = [],
         [UserCannotDisableOwnAccount] = [],
         [UserCannotModifyOwnRole] = [],
         [UserCannotRelinkOwnCompanyAccount] = [],

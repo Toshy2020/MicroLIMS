@@ -8,6 +8,8 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -28,7 +30,10 @@ public class OrganismMasterDataService
     public async Task<OrganismResponse> CreateOrganismAsync(CreateOrganismRequest request)
     {
         if (await _db.Organisms.AnyAsync(o => o.ScientificName.ToLower() == request.ScientificName.ToLower()))
-            throw new BusinessRuleException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");
+            throw new BusinessRuleException(
+                MessageCodes.OrganismDuplicateScientificName,
+                $"Organism \"{request.ScientificName}\" already exists in the Organism list.",
+                new Dictionary<string, string> { ["scientificName"] = request.ScientificName });
 
         await EnsureAtccUniqueAsync(request.AtccNumber, excludeId: null);
 
@@ -41,11 +46,17 @@ public class OrganismMasterDataService
     public async Task<OrganismResponse> UpdateOrganismAsync(int id, UpdateOrganismRequest request)
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException($"Organism {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.OrganismSpeciesNotFound,
+                $"Organism {id} not found.",
+                new Dictionary<string, string> { ["organismId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.Organisms.AnyAsync(o => o.Id != id && o.ScientificName.ToLower() == request.ScientificName.ToLower()))
-            throw new BusinessRuleException($"Organism \"{request.ScientificName}\" already exists in the Organism list.");
+            throw new BusinessRuleException(
+                MessageCodes.OrganismDuplicateScientificName,
+                $"Organism \"{request.ScientificName}\" already exists in the Organism list.",
+                new Dictionary<string, string> { ["scientificName"] = request.ScientificName });
 
         await EnsureAtccUniqueAsync(request.AtccNumber, excludeId: id);
 
@@ -65,7 +76,10 @@ public class OrganismMasterDataService
         if (atcc == null) return;
         var clash = await _db.Organisms.FirstOrDefaultAsync(o => o.Id != excludeId && o.AtccNumber != null && o.AtccNumber.Trim().ToLower() == atcc);
         if (clash != null)
-            throw new BusinessRuleException($"ATCC number \"{atccNumber!.Trim()}\" is already used by organism \"{clash.ScientificName}\".");
+            throw new BusinessRuleException(
+                MessageCodes.OrganismAtccNumberInUse,
+                $"ATCC number \"{atccNumber!.Trim()}\" is already used by organism \"{clash.ScientificName}\".",
+                new Dictionary<string, string> { ["atccNumber"] = atccNumber!.Trim(), ["organism"] = clash.ScientificName });
     }
 
     // Blocked (not a raw FK error) if any MediaConfigurationChallenge,
@@ -76,7 +90,10 @@ public class OrganismMasterDataService
     public async Task<object> DeleteOrganismAsync(int id)
     {
         var entity = await _db.Organisms.FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException($"Organism {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.OrganismSpeciesNotFound,
+                $"Organism {id} not found.",
+                new Dictionary<string, string> { ["organismId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var configChallengeCount = await _db.MediaConfigurationChallenges.CountAsync(c => c.OrganismId == id);
         var challengeCount = await _db.MediaEvaluationChallenges.CountAsync(c => c.OrganismId == id);
@@ -88,8 +105,20 @@ public class OrganismMasterDataService
 
         if (totalUses > 0)
             throw new BusinessRuleException(
+                MessageCodes.OrganismCannotDeleteReferenced,
                 $"Cannot delete '{entity.ScientificName}' - it is referenced by {totalUses} record(s) " +
-                $"(Media Configuration Challenges: {configChallengeCount}, Media Evaluation Challenges: {challengeCount}, Cryovials: {cryovialCount}, Materials: {materialCount}, Test Master target organism steps: {targetStepCount}, Reference organisms: {strainCount}).");
+                $"(Media Configuration Challenges: {configChallengeCount}, Media Evaluation Challenges: {challengeCount}, Cryovials: {cryovialCount}, Materials: {materialCount}, Test Master target organism steps: {targetStepCount}, Reference organisms: {strainCount}).",
+                new Dictionary<string, string>
+                {
+                ["name"] = entity.ScientificName,
+                ["totalUses"] = totalUses.ToString(CultureInfo.InvariantCulture),
+                ["configChallengeCount"] = configChallengeCount.ToString(CultureInfo.InvariantCulture),
+                ["challengeCount"] = challengeCount.ToString(CultureInfo.InvariantCulture),
+                ["cryovialCount"] = cryovialCount.ToString(CultureInfo.InvariantCulture),
+                ["materialCount"] = materialCount.ToString(CultureInfo.InvariantCulture),
+                ["targetStepCount"] = targetStepCount.ToString(CultureInfo.InvariantCulture),
+                ["strainCount"] = strainCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.Organisms.Remove(entity);
         await _db.SaveChangesAsync();

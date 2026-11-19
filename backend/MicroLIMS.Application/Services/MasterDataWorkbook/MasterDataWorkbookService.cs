@@ -10,6 +10,8 @@ using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.MasterDataWorkbook;
 
@@ -130,7 +132,10 @@ public class MasterDataWorkbookService
     {
         fileName = Path.GetFileName(fileName);
         if (fileName.Length > MaxFileNameLength)
-            throw new BusinessRuleException($"The file name is longer than {MaxFileNameLength} characters. Rename the file and try again.");
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataFileNameTooLong,
+                $"The file name is longer than {MaxFileNameLength} characters. Rename the file and try again.",
+                new Dictionary<string, string> { ["maxFileNameLength"] = MaxFileNameLength.ToString(CultureInfo.InvariantCulture) });
         CheckCommentLength(comment);
         var sheets = ReadSheets(file);
         try
@@ -196,11 +201,18 @@ public class MasterDataWorkbookService
         await UnitOfWork.RunAsync(_db, async () =>
         {
             var import = await _db.MasterDataImports.Include(i => i.Records).FirstOrDefaultAsync(i => i.Id == id)
-                ?? throw new NotFoundException($"Master data import {id} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MasterDataImportNotFound,
+                    $"Master data import {id} not found.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
             if (import.Status != MasterDataImportStatus.Loaded)
-                throw new BusinessRuleException("This load has already been verified.");
+                throw new BusinessRuleException(
+                    MessageCodes.MasterDataLoadAlreadyVerified,
+                    "This load has already been verified.");
             if (import.ImportedByUserId == userId)
-                throw new BusinessRuleException("The person who loaded the workbook cannot verify it. Ask a second person.");
+                throw new BusinessRuleException(
+                    MessageCodes.MasterDataVerifierMustBeSecondPerson,
+                    "The person who loaded the workbook cannot verify it. Ask a second person.");
 
             // The verifier must be able to see what they verify: material
             // master entries belong to lab sections. Checked before signing.
@@ -216,7 +228,9 @@ public class MasterDataWorkbookService
                 outside = outside.Distinct().OrderBy(c => c).ToList();
                 if (outside.Count > 0)
                     throw new BusinessRuleException(
-                        $"This load added material master entries or reference organisms to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.");
+                        MessageCodes.MasterDataSectionsOutsideMembership,
+                        $"This load added material master entries or reference organisms to lab section(s) you are not a member of: {string.Join(", ", outside)}. Ask a Section Head of that section to verify it.",
+                        new Dictionary<string, string> { ["sections"] = string.Join(", ", outside) });
             }
 
             _db.CurrentUserId = userId;
@@ -249,7 +263,10 @@ public class MasterDataWorkbookService
     public async Task<(byte[] Content, string FileName)> GetFileAsync(int id)
     {
         var import = await _db.MasterDataImports.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id)
-            ?? throw new NotFoundException($"Master data import {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MasterDataImportNotFound,
+                $"Master data import {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         return (await _storage.ReadAsync(import.StorageKey), import.FileName);
     }
 
@@ -276,22 +293,33 @@ public class MasterDataWorkbookService
     private static void CheckCommentLength(string? comment)
     {
         if (comment?.Trim().Length > MaxCommentLength)
-            throw new BusinessRuleException($"The comment is longer than {MaxCommentLength} characters. Shorten it and sign again.");
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataCommentTooLong,
+                $"The comment is longer than {MaxCommentLength} characters. Shorten it and sign again.",
+                new Dictionary<string, string> { ["maxCommentLength"] = MaxCommentLength.ToString(CultureInfo.InvariantCulture) });
     }
 
     internal IReadOnlyList<WorkbookSheet> ReadSheets(byte[] file)
     {
         if (file.Length == 0)
-            throw new BusinessRuleException("The file is empty.");
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataFileEmpty,
+                "The file is empty.");
         if (file.Length > MaxFileBytes)
-            throw new BusinessRuleException($"The file is larger than {MaxFileBytes / (1024 * 1024)} MB. Split it into several workbooks.");
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataFileTooLarge,
+                $"The file is larger than {MaxFileBytes / (1024 * 1024)} MB. Split it into several workbooks.",
+                new Dictionary<string, string> { ["maxMb"] = (MaxFileBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) });
         try
         {
             return _format.Read(new MemoryStream(file));
         }
         catch (WorkbookFormatException e)
         {
-            throw new BusinessRuleException(e.Message);
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataWorkbookFormatError,
+                e.Message,
+                new Dictionary<string, string> { ["message"] = e.Message });
         }
     }
 }

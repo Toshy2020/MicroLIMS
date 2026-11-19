@@ -3,6 +3,8 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -107,7 +109,10 @@ public sealed class MasterDataUsageService
             .Where(t => t.Id == id)
             .Select(t => new { t.Id, t.Code, t.SectionId })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Test definition {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MasterDataTestDefinitionNotFound,
+                $"Test definition {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         bool ownerReadable = readableSections is null || readableSections.Contains(td.SectionId);
 
@@ -183,7 +188,10 @@ public sealed class MasterDataUsageService
             .Where(s => s.Id == id)
             .Select(s => new { s.Id, s.ItemId, s.TestCode })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Specification {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SpecificationSpecificationNotFound,
+                $"Specification {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         int? testSectionId = await _db.TestDefinitions.AsNoTracking()
             .Where(t => t.Code == spec.TestCode)
@@ -256,7 +264,10 @@ public sealed class MasterDataUsageService
     {
         bool exists = await _db.Items.AsNoTracking().AnyAsync(i => i.Id == id, ct);
         if (!exists)
-            throw new NotFoundException($"Item {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {id} not found.",
+                new Dictionary<string, string> { ["itemId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         int specCount;
         int sampleTestCount;
@@ -343,7 +354,10 @@ public sealed class MasterDataUsageService
             .Where(e => e.Id == id)
             .Select(e => new { e.Id, e.SectionId })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Equipment {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentConfigEquipmentNotFound,
+                $"Equipment {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         bool equipmentSectionReadable = readableSections is null || readableSections.Contains(equipment.SectionId);
 
@@ -476,7 +490,10 @@ public sealed class MasterDataUsageService
     {
         bool exists = await _db.MaterialMasterEntries.AsNoTracking().AnyAsync(m => m.Id == id, ct);
         if (!exists)
-            throw new NotFoundException($"Material master entry {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.SolutionMaterialMasterEntryNotFound,
+                $"Material master entry {id} not found.",
+                new Dictionary<string, string> { ["entryId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         int materialLotCount;
         int solutionComponentCount;

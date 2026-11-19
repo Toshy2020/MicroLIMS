@@ -19,7 +19,11 @@ public static partial class MessageCodes
     public const string MonitoringDeviationsNotFound = "Monitoring.DeviationsNotFound";
     public const string MonitoringDraftOutdatedMasterDataChanged = "Monitoring.DraftOutdatedMasterDataChanged";
     public const string MonitoringDuplicateNonWorkingDate = "Monitoring.DuplicateNonWorkingDate";
+<<<<<<< HEAD
     public const string MonitoringFrequencyRuleInvalid = "Monitoring.FrequencyRuleInvalid";
+=======
+    public const string MonitoringFrequencyValidationFailed = "Monitoring.FrequencyValidationFailed";
+>>>>>>> origin/main
     public const string MonitoringGoLiveDateOutsideYear = "Monitoring.GoLiveDateOutsideYear";
     public const string MonitoringGoLiveDateTooEarly = "Monitoring.GoLiveDateTooEarly";
     public const string MonitoringInvalidDeviationDueDays = "Monitoring.InvalidDeviationDueDays";
@@ -34,6 +38,10 @@ public static partial class MessageCodes
     public const string MonitoringItemNotFinishedProduct = "Monitoring.ItemNotFinishedProduct";
     public const string MonitoringItemNotFound = "Monitoring.ItemNotFound";
     public const string MonitoringLabSectionNotFound = "Monitoring.LabSectionNotFound";
+    public const string MonitoringLafBelongsToRoom = "Monitoring.LafBelongsToRoom";
+    public const string MonitoringLafCannotBeOwnParent = "Monitoring.LafCannotBeOwnParent";
+    public const string MonitoringLafMustBeInSameDepartment = "Monitoring.LafMustBeInSameDepartment";
+    public const string MonitoringLafMustSitInRoom = "Monitoring.LafMustSitInRoom";
     public const string MonitoringMachineInactive = "Monitoring.MachineInactive";
     public const string MonitoringMachineInactiveForReceiving = "Monitoring.MachineInactiveForReceiving";
     public const string MonitoringMachineNotFound = "Monitoring.MachineNotFound";
@@ -75,8 +83,19 @@ public static partial class MessageCodes
     public const string MonitoringReadingRequiredForAverage = "Monitoring.ReadingRequiredForAverage";
     public const string MonitoringReasonTooShort = "Monitoring.ReasonTooShort";
     public const string MonitoringRevisionApprovalReasonRequired = "Monitoring.RevisionApprovalReasonRequired";
+    public const string MonitoringRoomAlreadyExists = "Monitoring.RoomAlreadyExists";
+    public const string MonitoringRoomCannotMakeLaf = "Monitoring.RoomCannotMakeLaf";
+    public const string MonitoringRoomDeleteHasConfigs = "Monitoring.RoomDeleteHasConfigs";
+    public const string MonitoringRoomDeleteHasMonitorings = "Monitoring.RoomDeleteHasMonitorings";
+    public const string MonitoringRoomDeleteHasRooms = "Monitoring.RoomDeleteHasRooms";
+    public const string MonitoringRoomNotFound = "Monitoring.RoomNotFound";
     public const string MonitoringRoomRequired = "Monitoring.RoomRequired";
+    public const string MonitoringRoomTestConfigAlreadyExists = "Monitoring.RoomTestConfigAlreadyExists";
+    public const string MonitoringRoomTestConfigDeleteReferenced = "Monitoring.RoomTestConfigDeleteReferenced";
+    public const string MonitoringRoomTestConfigUnitRequired = "Monitoring.RoomTestConfigUnitRequired";
+    public const string MonitoringRoomTestConfigUnknownTestType = "Monitoring.RoomTestConfigUnknownTestType";
     public const string MonitoringRoomTestConfigsNotFound = "Monitoring.RoomTestConfigsNotFound";
+    public const string MonitoringRoomTestConfigurationNotFound = "Monitoring.RoomTestConfigurationNotFound";
     public const string MonitoringRoomsInactiveCannotPrepare = "Monitoring.RoomsInactiveCannotPrepare";
     public const string MonitoringRoomsWrongDepartment = "Monitoring.RoomsWrongDepartment";
     public const string MonitoringSampleCategoryNotInPlan = "Monitoring.SampleCategoryNotInPlan";
@@ -130,7 +149,11 @@ public static partial class MessageCodes
         [MonitoringDeviationsNotFound] = ["ids"],
         [MonitoringDraftOutdatedMasterDataChanged] = [],
         [MonitoringDuplicateNonWorkingDate] = ["date"],
+<<<<<<< HEAD
         [MonitoringFrequencyRuleInvalid] = ["message"],
+=======
+        [MonitoringFrequencyValidationFailed] = ["message"],
+>>>>>>> origin/main
         [MonitoringGoLiveDateOutsideYear] = ["year"],
         [MonitoringGoLiveDateTooEarly] = ["earliest"],
         [MonitoringInvalidDeviationDueDays] = [],
@@ -145,6 +168,10 @@ public static partial class MessageCodes
         [MonitoringItemNotFinishedProduct] = ["item"],
         [MonitoringItemNotFound] = ["itemId"],
         [MonitoringLabSectionNotFound] = ["sectionId"],
+        [MonitoringLafBelongsToRoom] = [],
+        [MonitoringLafCannotBeOwnParent] = [],
+        [MonitoringLafMustBeInSameDepartment] = [],
+        [MonitoringLafMustSitInRoom] = [],
         [MonitoringMachineInactive] = ["machine"],
         [MonitoringMachineInactiveForReceiving] = ["machine"],
         [MonitoringMachineNotFound] = ["machineId"],
@@ -186,8 +213,19 @@ public static partial class MessageCodes
         [MonitoringReadingRequiredForAverage] = [],
         [MonitoringReasonTooShort] = [],
         [MonitoringRevisionApprovalReasonRequired] = [],
+        [MonitoringRoomAlreadyExists] = ["name"],
+        [MonitoringRoomCannotMakeLaf] = ["name"],
+        [MonitoringRoomDeleteHasConfigs] = ["name", "configCount"],
+        [MonitoringRoomDeleteHasMonitorings] = ["name", "monitoringCount"],
+        [MonitoringRoomDeleteHasRooms] = ["name", "roomCount"],
+        [MonitoringRoomNotFound] = ["id"],
         [MonitoringRoomRequired] = [],
+        [MonitoringRoomTestConfigAlreadyExists] = ["testCode", "testType", "roomId"],
+        [MonitoringRoomTestConfigDeleteReferenced] = ["locationCount"],
+        [MonitoringRoomTestConfigUnitRequired] = ["testType"],
+        [MonitoringRoomTestConfigUnknownTestType] = ["testType", "allowed"],
         [MonitoringRoomTestConfigsNotFound] = ["ids"],
+        [MonitoringRoomTestConfigurationNotFound] = ["id"],
         [MonitoringRoomsInactiveCannotPrepare] = ["rooms"],
         [MonitoringRoomsWrongDepartment] = ["rooms"],
         [MonitoringSampleCategoryNotInPlan] = [],

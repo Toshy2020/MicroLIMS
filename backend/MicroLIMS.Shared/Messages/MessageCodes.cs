@@ -26,6 +26,7 @@ public static partial class MessageCodes
         DisintegrationParameters(),
         DissolutionParameters(),
         DocumentParameters(),
+        EquipmentConfigParameters(),
         EquipmentPlanParameters(),
         HplcParameters(),
         IcpParameters(),
@@ -53,6 +54,8 @@ public static partial class MessageCodes
         UvParameters(),
         WasteParameters(),
         WeightVariationParameters());
+        WeightVariationParameters(),
+        WorkflowStepParameters());
 
     private static Dictionary<string, string[]> Combine(params Dictionary<string, string[]>[] parts)
     {

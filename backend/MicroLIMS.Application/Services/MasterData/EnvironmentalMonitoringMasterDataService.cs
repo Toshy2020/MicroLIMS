@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -9,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
@@ -49,7 +51,10 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<EmDepartmentResponse> UpdateDepartmentAsync(int id, UpdateDepartmentRequest request)
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new NotFoundException($"Department {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringDepartmentNotFound,
+                $"Department {id} not found.",
+                new Dictionary<string, string> { ["departmentId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, dept);
         if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
@@ -65,11 +70,17 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<object> DeleteDepartmentAsync(int id)
     {
         var dept = await _db.Departments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new NotFoundException($"Department {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringDepartmentNotFound,
+                $"Department {id} not found.",
+                new Dictionary<string, string> { ["departmentId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var roomCount = await _db.Rooms.CountAsync(r => r.DepartmentId == id);
         if (roomCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{dept.Name}' - it still has {roomCount} room(s). Delete those rooms first.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomDeleteHasRooms,
+                $"Cannot delete '{dept.Name}' - it still has {roomCount} room(s). Delete those rooms first.",
+                new Dictionary<string, string> { ["name"] = dept.Name, ["roomCount"] = roomCount.ToString(CultureInfo.InvariantCulture) });
 
         _db.Departments.Remove(dept);
         await _db.SaveChangesAsync();
@@ -79,7 +90,10 @@ public class EnvironmentalMonitoringMasterDataService
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
     {
         if (rule is not null && FrequencyRules.Validate(rule) is { } problem)
-            throw new BusinessRuleException(problem);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringFrequencyValidationFailed,
+                problem,
+                new Dictionary<string, string> { ["message"] = problem });
         FrequencyRules.Apply(target, rule);
     }
 
@@ -94,18 +108,32 @@ public class EnvironmentalMonitoringMasterDataService
         }
 
         if (parentRoomId is null)
-            throw new BusinessRuleException("An LAF must belong to a room.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringLafBelongsToRoom,
+                "An LAF must belong to a room.");
         if (parentRoomId == room.Id)
-            throw new BusinessRuleException("An LAF cannot be its own parent.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringLafCannotBeOwnParent,
+                "An LAF cannot be its own parent.");
         if (room.Id != 0 && await _db.Rooms.AnyAsync(r => r.ParentRoomId == room.Id))
-            throw new BusinessRuleException($"Cannot make '{room.Name}' an LAF - it already contains LAFs.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomCannotMakeLaf,
+                $"Cannot make '{room.Name}' an LAF - it already contains LAFs.",
+                new Dictionary<string, string> { ["name"] = room.Name });
 
         var parent = await _db.Rooms.AsNoTracking().FirstOrDefaultAsync(r => r.Id == parentRoomId)
-            ?? throw new NotFoundException($"Room {parentRoomId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringRoomNotFound,
+                $"Room {parentRoomId} not found.",
+                new Dictionary<string, string> { ["id"] = parentRoomId.Value.ToString(CultureInfo.InvariantCulture) });
         if (parent.Kind != RoomKind.Room)
-            throw new BusinessRuleException("An LAF must sit in a room, not in another LAF.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringLafMustSitInRoom,
+                "An LAF must sit in a room, not in another LAF.");
         if (parent.DepartmentId != room.DepartmentId)
-            throw new BusinessRuleException("An LAF must be in the same department as its room.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringLafMustBeInSameDepartment,
+                "An LAF must be in the same department as its room.");
 
         room.Kind = RoomKind.LAF;
         room.ParentRoomId = parentRoomId;
@@ -268,7 +296,10 @@ public class EnvironmentalMonitoringMasterDataService
         var trimmedName = name.Trim();
         var existing = await FindExistingRoomKeysAsync([(departmentId, trimmedName)], excludeRoomId, ct);
         if (existing.Contains((departmentId, trimmedName)))
-            throw new BusinessRuleException(DuplicateRoomMessage(trimmedName));
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomAlreadyExists,
+                $"Room '{trimmedName}' already exists.",
+                new Dictionary<string, string> { ["name"] = trimmedName });
     }
 
     private async Task<HashSet<(int DepartmentId, string Name)>> FindExistingRoomKeysAsync(
@@ -307,7 +338,10 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<RoomResponse> UpdateRoomAsync(int id, UpdateRoomRequest request)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Room {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringRoomNotFound,
+                $"Room {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, room);
 
         var nameOrDeptChanged = room.DepartmentId != request.DepartmentId
@@ -333,15 +367,24 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<object> DeleteRoomAsync(int id)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Room {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringRoomNotFound,
+                $"Room {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var configCount = await _db.RoomTestConfigurations.CountAsync(c => c.RoomId == id);
         if (configCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{room.Name}' - it still has {configCount} test configuration(s). Delete those first.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomDeleteHasConfigs,
+                $"Cannot delete '{room.Name}' - it still has {configCount} test configuration(s). Delete those first.",
+                new Dictionary<string, string> { ["name"] = room.Name, ["configCount"] = configCount.ToString(CultureInfo.InvariantCulture) });
 
         var monitoringCount = await _db.RoomMonitorings.CountAsync(m => m.RoomId == id);
         if (monitoringCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{room.Name}' - it has {monitoringCount} monitoring record(s) in its history.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomDeleteHasMonitorings,
+                $"Cannot delete '{room.Name}' - it has {monitoringCount} monitoring record(s) in its history.",
+                new Dictionary<string, string> { ["name"] = room.Name, ["monitoringCount"] = monitoringCount.ToString(CultureInfo.InvariantCulture) });
 
         _db.Rooms.Remove(room);
         await _db.SaveChangesAsync();
@@ -357,9 +400,18 @@ public class EnvironmentalMonitoringMasterDataService
     {
         if (!RoomTestTypes.IsKnown(testType))
             throw new BusinessRuleException(
-                $"Unknown test type '{testType}'. Allowed: {string.Join(", ", RoomTestTypes.All)}.");
+                MessageCodes.MonitoringRoomTestConfigUnknownTestType,
+                $"Unknown test type '{testType}'. Allowed: {string.Join(", ", RoomTestTypes.All)}.",
+                new Dictionary<string, string>
+                {
+                    ["testType"] = testType,
+                    ["allowed"] = string.Join(", ", RoomTestTypes.All)
+                });
         if (RoomTestTypes.UsesConfiguredUnit(testType) && string.IsNullOrWhiteSpace(unit))
-            throw new BusinessRuleException($"Unit is required for {testType} test configurations.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomTestConfigUnitRequired,
+                $"Unit is required for {testType} test configurations.",
+                new Dictionary<string, string> { ["testType"] = testType });
     }
 
     public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
@@ -509,7 +561,10 @@ public class EnvironmentalMonitoringMasterDataService
         var trimmedCode = testCode.Trim();
         var existing = await FindExistingActiveRoomTestConfigKeysAsync([(roomId, trimmedType, trimmedCode)], excludeConfigId, ct);
         if (existing.Contains((roomId, trimmedType, trimmedCode)))
-            throw new BusinessRuleException(DuplicateRoomTestConfigMessage(roomId, trimmedType, trimmedCode));
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomTestConfigAlreadyExists,
+                $"Test configuration '{trimmedCode}' ({trimmedType}) already exists for room {roomId}.",
+                new Dictionary<string, string> { ["testCode"] = trimmedCode, ["testType"] = trimmedType, ["roomId"] = roomId.ToString(CultureInfo.InvariantCulture) });
     }
 
     private async Task<HashSet<(int RoomId, string TestType, string TestCode)>> FindExistingActiveRoomTestConfigKeysAsync(
@@ -580,7 +635,10 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<RoomTestConfigurationResponse> UpdateRoomTestConfigurationAsync(int id, UpdateRoomTestConfigRequest request)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Room test configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringRoomTestConfigurationNotFound,
+                $"Room test configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
 
@@ -609,12 +667,17 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<object> DeleteRoomTestConfigurationAsync(int id)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Room test configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringRoomTestConfigurationNotFound,
+                $"Room test configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var locationCount = await _db.SampleLocations.CountAsync(l => l.RoomTestConfigurationId == id);
         if (locationCount > 0)
             throw new BusinessRuleException(
-                $"Cannot delete this room test configuration - it is referenced by {locationCount} sample location(s).");
+                MessageCodes.MonitoringRoomTestConfigDeleteReferenced,
+                $"Cannot delete this room test configuration - it is referenced by {locationCount} sample location(s).",
+                new Dictionary<string, string> { ["locationCount"] = locationCount.ToString(CultureInfo.InvariantCulture) });
 
         _db.RoomTestConfigurations.Remove(entity);
         await _db.SaveChangesAsync();

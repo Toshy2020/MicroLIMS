@@ -9,6 +9,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -69,6 +70,7 @@ public class CalendarEventService
     private readonly MaterialDocumentFileValidator _validator;
     private readonly ILogger<CalendarEventService> _logger;
     private readonly TimeProvider _time;
+    private const long MaxDocumentBytes = 30L * 1024 * 1024;
 
     public CalendarEventService(
         IMicroLimsDbContext db,
@@ -79,7 +81,7 @@ public class CalendarEventService
     {
         _db = db;
         _storage = storage;
-        _validator = validator ?? new MaterialDocumentFileValidator(30 * 1024 * 1024L);
+        _validator = validator ?? new MaterialDocumentFileValidator(MaxDocumentBytes);
         _logger = logger ?? NullLogger<CalendarEventService>.Instance;
         _time = timeProvider ?? TimeProvider.System;
     }
@@ -103,7 +105,13 @@ public class CalendarEventService
         {
             var exists = await _db.EquipmentInventories.AnyAsync(e => e.Id == request.EquipmentInventoryId.Value);
             if (!exists)
-                throw new NotFoundException($"Equipment {request.EquipmentInventoryId.Value} not found.");
+                throw new NotFoundException(
+                    MessageCodes.EquipmentPlanEquipmentNotFound,
+                    $"Equipment {request.EquipmentInventoryId.Value} not found.",
+                    new Dictionary<string, string>
+                    {
+                        ["equipmentId"] = request.EquipmentInventoryId.Value.ToString(CultureInfo.InvariantCulture)
+                    });
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -136,10 +144,14 @@ public class CalendarEventService
             .Include(e => e.Documents)
                 .ThenInclude(d => d.UploadedByUser)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new NotFoundException($"Calendar event {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanCalendarEventNotFound,
+                $"Calendar event {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (entity.Status == CalendarEventStatus.Cancelled)
-            throw new BusinessRuleException("A cancelled event cannot be edited.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventCancelledCannotEdit,
+                "A cancelled event cannot be edited.");
 
         if (expectedVersion.HasValue)
             _db.ExpectedVersion = expectedVersion.Value;
@@ -163,7 +175,13 @@ public class CalendarEventService
         {
             var exists = await _db.EquipmentInventories.AnyAsync(e => e.Id == request.EquipmentInventoryId.Value);
             if (!exists)
-                throw new NotFoundException($"Equipment {request.EquipmentInventoryId.Value} not found.");
+                throw new NotFoundException(
+                    MessageCodes.EquipmentPlanEquipmentNotFound,
+                    $"Equipment {request.EquipmentInventoryId.Value} not found.",
+                    new Dictionary<string, string>
+                    {
+                        ["equipmentId"] = request.EquipmentInventoryId.Value.ToString(CultureInfo.InvariantCulture)
+                    });
         }
 
         entity.EventType = request.Type;
@@ -184,17 +202,21 @@ public class CalendarEventService
     public async Task<CalendarEventResponse> CancelAsync(int id, string reason, int userId, uint? expectedVersion = null)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to cancel an event.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventCancellationReasonRequired,
+                "A reason is required to cancel an event.");
 
         var entity = await _db.CalendarEvents
             .Include(e => e.EquipmentInventory)
             .Include(e => e.Documents)
                 .ThenInclude(d => d.UploadedByUser)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new NotFoundException($"Calendar event {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanCalendarEventNotFound,
+                $"Calendar event {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (entity.Status == CalendarEventStatus.Cancelled)
-            throw new BusinessRuleException("Event is already cancelled.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventAlreadyCancelled, "Event is already cancelled.");
 
         if (expectedVersion.HasValue)
             _db.ExpectedVersion = expectedVersion.Value;
@@ -219,7 +241,10 @@ public class CalendarEventService
             .Include(e => e.Documents)
                 .ThenInclude(d => d.UploadedByUser)
             .FirstOrDefaultAsync(e => e.Id == id)
-            ?? throw new NotFoundException($"Calendar event {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanCalendarEventNotFound,
+                $"Calendar event {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         return ToResponse(entity);
     }
@@ -227,7 +252,8 @@ public class CalendarEventService
     public async Task<List<CalendarEventResponse>> GetCalendarEventsAsync(DateOnly from, DateOnly to)
     {
         if (to < from)
-            throw new BusinessRuleException("The end of the range is before its start.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanRangeEndBeforeStart,
+                "The end of the range is before its start.");
 
         var fromMonth = from.ToString("yyyy-MM");
         var toMonth = to.ToString("yyyy-MM");
@@ -252,15 +278,52 @@ public class CalendarEventService
     private async Task<DocumentSummary> UploadDocumentCoreAsync(int eventId, UploadCalendarEventDocumentRequest request, int userId)
     {
         var ev = await _db.CalendarEvents.FindAsync(eventId)
-            ?? throw new NotFoundException($"Calendar event {eventId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanCalendarEventNotFound,
+                $"Calendar event {eventId} not found.",
+                new Dictionary<string, string> { ["id"] = eventId.ToString(CultureInfo.InvariantCulture) });
 
         if (ev.Status == CalendarEventStatus.Cancelled)
-            throw new BusinessRuleException("Cannot attach documents to a cancelled event.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventCancelledCannotAttachDocuments,
+                "Cannot attach documents to a cancelled event.");
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+        {
+            if (string.Equals(error, "The uploaded file is empty.", StringComparison.Ordinal))
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanFileEmpty, "The uploaded file is empty.");
+            if (string.Equals(error, $"File exceeds the maximum allowed size of {MaxDocumentBytes / 1024 / 1024} MB.", StringComparison.Ordinal))
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanFileTooLarge,
+                    $"File exceeds the maximum allowed size of {MaxDocumentBytes / 1024 / 1024} MB.",
+                    new Dictionary<string, string>
+                    {
+                        ["maxMb"] = (MaxDocumentBytes / 1024 / 1024).ToString(CultureInfo.InvariantCulture)
+                    });
+            var extension = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
+            var mime = request.DeclaredContentType.Split(';')[0].Trim().ToLowerInvariant();
+            if (string.Equals(error, $"File type '{extension}' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF.", StringComparison.Ordinal))
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanFileTypeUnsupported,
+                    $"File type '{extension}' is not supported. Allowed types: PDF, JPG, JPEG, PNG, WEBP, TIFF.",
+                    new Dictionary<string, string> { ["ext"] = extension });
+            if (string.Equals(error, $"The declared content type '{mime}' does not match the file extension '{extension}'.", StringComparison.Ordinal))
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanContentTypeMismatch,
+                    $"The declared content type '{mime}' does not match the file extension '{extension}'.",
+                    new Dictionary<string, string> { ["ext"] = extension, ["mime"] = mime });
+            if (string.Equals(error, "The file content could not be validated because it is too short.", StringComparison.Ordinal))
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanFileContentTooShort,
+                    "The file content could not be validated because it is too short.");
+            if (string.Equals(error, "The file does not appear to be a valid WEBP image.", StringComparison.Ordinal))
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanWebpInvalid,
+                    "The file does not appear to be a valid WEBP image.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanFileContentFormatMismatch,
+                $"The file content does not match the expected format for '{extension}'. The file may be corrupted or misnamed.",
+                new Dictionary<string, string> { ["ext"] = extension });
+        }
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -321,7 +384,10 @@ public class CalendarEventService
         var doc = await _db.CalendarEventDocuments
             .Include(d => d.UploadedByUser)
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new NotFoundException($"Calendar event document {documentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEventDocumentNotFound,
+                $"Calendar event document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture) });
 
         byte[] content;
         try
@@ -331,7 +397,8 @@ public class CalendarEventService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for CalendarEventDocument {Id} (key: {Key}).", doc.Id, doc.StorageKey);
-            throw new BusinessRuleException("The document file could not be retrieved.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentReadFailed,
+                "The document file could not be retrieved.");
         }
 
         var computedHash = Convert.ToHexString(SHA256.HashData(content));
@@ -340,7 +407,8 @@ public class CalendarEventService
             _logger.LogError(
                 "INTEGRITY FAILURE: CalendarEventDocument {Id} stored hash {Stored} does not match computed hash {Computed}.",
                 doc.Id, doc.ContentSha256, computedHash);
-            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentIntegrityFailed,
+                "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         var meta = new DocumentSummary(
@@ -360,23 +428,26 @@ public class CalendarEventService
     private static void ValidateEventFields(string title, DateOnly? date, string? month)
     {
         if (string.IsNullOrWhiteSpace(title))
-            throw new BusinessRuleException("Title is required.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventTitleRequired, "Title is required.");
 
         var trimmedTitle = title.Trim();
         if (trimmedTitle.Length > 200)
-            throw new BusinessRuleException("Title cannot exceed 200 characters.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventTitleTooLong,
+                "Title cannot exceed 200 characters.");
 
         var hasDate = date.HasValue;
         var hasMonth = !string.IsNullOrWhiteSpace(month);
 
         if ((!hasDate && !hasMonth) || (hasDate && hasMonth))
-            throw new BusinessRuleException("Exactly one of date or month must be specified.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEventDateOrMonthRequired,
+                "Exactly one of date or month must be specified.");
 
         if (hasMonth)
         {
             var trimmedMonth = month!.Trim();
             if (!DateTime.TryParseExact(trimmedMonth, "yyyy-MM", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
-                throw new BusinessRuleException("Month must be in 'yyyy-MM' format.");
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanEventMonthFormat,
+                    "Month must be in 'yyyy-MM' format.");
         }
     }
 
@@ -414,7 +485,7 @@ public class CalendarEventService
 
         if (existingTitles.Any(t => string.Equals(t.Trim(), trimmedTitle, StringComparison.OrdinalIgnoreCase)))
         {
-            throw new BusinessRuleException("A matching event already exists.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDuplicateEvent, "A matching event already exists.");
         }
     }
 

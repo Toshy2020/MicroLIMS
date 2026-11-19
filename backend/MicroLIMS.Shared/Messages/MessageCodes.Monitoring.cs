@@ -19,11 +19,8 @@ public static partial class MessageCodes
     public const string MonitoringDeviationsNotFound = "Monitoring.DeviationsNotFound";
     public const string MonitoringDraftOutdatedMasterDataChanged = "Monitoring.DraftOutdatedMasterDataChanged";
     public const string MonitoringDuplicateNonWorkingDate = "Monitoring.DuplicateNonWorkingDate";
-<<<<<<< HEAD
     public const string MonitoringFrequencyRuleInvalid = "Monitoring.FrequencyRuleInvalid";
-=======
     public const string MonitoringFrequencyValidationFailed = "Monitoring.FrequencyValidationFailed";
->>>>>>> origin/main
     public const string MonitoringGoLiveDateOutsideYear = "Monitoring.GoLiveDateOutsideYear";
     public const string MonitoringGoLiveDateTooEarly = "Monitoring.GoLiveDateTooEarly";
     public const string MonitoringInvalidDeviationDueDays = "Monitoring.InvalidDeviationDueDays";
@@ -149,11 +146,8 @@ public static partial class MessageCodes
         [MonitoringDeviationsNotFound] = ["ids"],
         [MonitoringDraftOutdatedMasterDataChanged] = [],
         [MonitoringDuplicateNonWorkingDate] = ["date"],
-<<<<<<< HEAD
         [MonitoringFrequencyRuleInvalid] = ["message"],
-=======
         [MonitoringFrequencyValidationFailed] = ["message"],
->>>>>>> origin/main
         [MonitoringGoLiveDateOutsideYear] = ["year"],
         [MonitoringGoLiveDateTooEarly] = ["earliest"],
         [MonitoringInvalidDeviationDueDays] = [],

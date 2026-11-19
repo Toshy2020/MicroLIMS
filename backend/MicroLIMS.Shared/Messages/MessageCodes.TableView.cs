@@ -19,6 +19,7 @@ public static partial class MessageCodes
     public const string TableViewSettingsMissingVersion = "TableView.SettingsMissingVersion";
     public const string TableViewSettingsTooLarge = "TableView.SettingsTooLarge";
     public const string TableViewTableNotSupported = "TableView.TableNotSupported";
+    public const string TableViewUnknownRecentRecordType = "TableView.UnknownRecentRecordType";
     public const string TableViewUpdateEmpty = "TableView.UpdateEmpty";
     public const string TableViewWrongTable = "TableView.WrongTable";
 
@@ -40,6 +41,7 @@ public static partial class MessageCodes
         [TableViewSettingsMissingVersion] = [],
         [TableViewSettingsTooLarge] = ["maxKb"],
         [TableViewTableNotSupported] = [],
+        [TableViewUnknownRecentRecordType] = ["allowed"],
         [TableViewUpdateEmpty] = [],
         [TableViewWrongTable] = [],
     };

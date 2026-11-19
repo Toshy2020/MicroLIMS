@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
@@ -290,7 +291,10 @@ public class TestingWorkspaceService : ITestWorkspaceService
         {
             var key = filter.SortBy.Trim();
             if (!SampleSortAllowList.TryGetValue(key, out var applySort))
-                throw new BusinessRuleException($"Unsupported sort column '{filter.SortBy}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.DocumentUnsupportedSortColumn,
+                    $"Unsupported sort column '{filter.SortBy}'.",
+                    new Dictionary<string, string> { ["column"] = filter.SortBy });
 
             var ascending = ServerSort.ParseAscending(filter.SortDir);
             orderedQuery = applySort(query, ascending);
@@ -347,7 +351,9 @@ public class TestingWorkspaceService : ITestWorkspaceService
         if (code != PhyschemAreas.SectionCode) return null;
 
         var parsed = PhyschemAreas.Parse(area)
-            ?? throw new BusinessRuleException("area is required for the Physicochemical Laboratory workspace.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.TestPhyschemAreaRequired,
+                "area is required for the Physicochemical Laboratory workspace.");
         if (userId.HasValue && !(await _scope.GetPhyschemAreasAsync(userId.Value, access: SectionAccess.Read)).Contains(parsed))
             throw new UnauthorizedAccessException("You do not have access to this Physicochemical Laboratory area.");
         return PhyschemAreas.CategoriesOf(parsed);

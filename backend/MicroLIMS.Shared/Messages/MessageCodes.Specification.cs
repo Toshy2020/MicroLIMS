@@ -50,6 +50,8 @@ public static partial class MessageCodes
     public const string SpecificationIcpLimitTypeUnsupported = "Specification.IcpLimitTypeUnsupported";
     public const string SpecificationIcpResultBasisNotUsed = "Specification.IcpResultBasisNotUsed";
     public const string SpecificationLabelClaimBasesOnlyFinishedProduct = "Specification.LabelClaimBasesOnlyFinishedProduct";
+    public const string SpecificationLimitTypeNotNumeric = "Specification.LimitTypeNotNumeric";
+    public const string SpecificationLimitTypeUnsupported = "Specification.LimitTypeUnsupported";
     public const string SpecificationLowerLimitCannotExceedUpper = "Specification.LowerLimitCannotExceedUpper";
     public const string SpecificationLowerLimitRequiredForNotLessThan = "Specification.LowerLimitRequiredForNotLessThan";
     public const string SpecificationMethodAnalyteOnlyHplc = "Specification.MethodAnalyteOnlyHplc";
@@ -173,6 +175,8 @@ public static partial class MessageCodes
         [SpecificationIcpLimitTypeUnsupported] = ["limitType"],
         [SpecificationIcpResultBasisNotUsed] = [],
         [SpecificationLabelClaimBasesOnlyFinishedProduct] = [],
+        [SpecificationLimitTypeNotNumeric] = ["limitType"],
+        [SpecificationLimitTypeUnsupported] = ["limitType"],
         [SpecificationLowerLimitCannotExceedUpper] = [],
         [SpecificationLowerLimitRequiredForNotLessThan] = [],
         [SpecificationMethodAnalyteOnlyHplc] = [],

@@ -46,6 +46,7 @@ public static partial class MessageCodes
     public const string TestDefinitionStandardMaterialMasterNotFound = "TestDefinition.StandardMaterialMasterNotFound";
     public const string TestDefinitionStandardMaterialRequiredForAssay = "TestDefinition.StandardMaterialRequiredForAssay";
     public const string TestDefinitionStandardMaterialWrongLab = "TestDefinition.StandardMaterialWrongLab";
+    public const string TestDefinitionTestCodeNotInMaster = "TestDefinition.TestCodeNotInMaster";
     public const string TestDefinitionTitrationChangeReasonRequired = "TestDefinition.TitrationChangeReasonRequired";
     public const string TestDefinitionUnknownUvCalculationMode = "TestDefinition.UnknownUvCalculationMode";
     public const string TestDefinitionUvFieldsOnlyForUv = "TestDefinition.UvFieldsOnlyForUv";
@@ -106,6 +107,7 @@ public static partial class MessageCodes
         [TestDefinitionStandardMaterialMasterNotFound] = [],
         [TestDefinitionStandardMaterialRequiredForAssay] = [],
         [TestDefinitionStandardMaterialWrongLab] = [],
+        [TestDefinitionTestCodeNotInMaster] = ["testCode"],
         [TestDefinitionTitrationChangeReasonRequired] = [],
         [TestDefinitionUnknownUvCalculationMode] = [],
         [TestDefinitionUvFieldsOnlyForUv] = [],

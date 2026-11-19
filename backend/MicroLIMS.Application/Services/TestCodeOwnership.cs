@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -84,7 +85,10 @@ public static class TestCodeOwnership
         {
             if (!byCode.TryGetValue(code, out var testDef))
             {
-                throw new BusinessRuleException($"Test code '{code}' is not in the Test Master.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionTestCodeNotInMaster,
+                    $"Test code '{code}' is not in the Test Master.",
+                    new Dictionary<string, string> { ["testCode"] = code });
             }
 
             var labName = testDef.Section?.Name ?? "another laboratory section";

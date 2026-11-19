@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -14,10 +15,15 @@ public static class SectionMediaRule
     public static void EnsureLot(Media lot, int sectionId)
     {
         var lotSection = lot.Material?.SectionId
-            ?? throw new BusinessRuleException($"Media lot \"{lot.LotNumber}\" has no source material loaded.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaLotNoSourceMaterial,
+                $"Media lot \"{lot.LotNumber}\" has no source material loaded.",
+                new Dictionary<string, string> { ["lotNumber"] = lot.LotNumber });
         if (lotSection != sectionId)
             throw new BusinessRuleException(
-                $"Media lot \"{lot.LotNumber}\" was prepared from another laboratory section's material and cannot be used for this test.");
+                MessageCodes.MediaLotWrongSection,
+                $"Media lot \"{lot.LotNumber}\" was prepared from another laboratory section's material and cannot be used for this test.",
+                new Dictionary<string, string> { ["lotNumber"] = lot.LotNumber });
     }
 
     public static async Task EnsureLotForTestOrderAsync(IMicroLimsDbContext db, Media lot, int testOrderId, CancellationToken ct = default)
@@ -34,8 +40,13 @@ public static class SectionMediaRule
             .Select(m => m.MaterialName)
             .ToListAsync(ct);
         if (foreign.Count > 0)
+        {
+            var materials = string.Join(", ", foreign.Select(n => $"\"{n}\""));
             throw new BusinessRuleException(
-                $"{string.Join(", ", foreign.Select(n => $"\"{n}\""))} belongs to another laboratory section and cannot be used for this test.");
+                MessageCodes.MediaMaterialsWrongSection,
+                $"{materials} belongs to another laboratory section and cannot be used for this test.",
+                new Dictionary<string, string> { ["materials"] = materials });
+        }
     }
 
     public static async Task EnsureLotsAsync(IMicroLimsDbContext db, IEnumerable<int> mediaLotIds, int sectionId, CancellationToken ct = default)
@@ -46,7 +57,12 @@ public static class SectionMediaRule
             .Select(m => m.LotNumber)
             .ToListAsync(ct);
         if (foreign.Count > 0)
+        {
+            var lots = string.Join(", ", foreign.Select(n => $"\"{n}\""));
             throw new BusinessRuleException(
-                $"Media lot {string.Join(", ", foreign.Select(n => $"\"{n}\""))} was prepared from another laboratory section's material and cannot be used for this test.");
+                MessageCodes.MediaLotsWrongSection,
+                $"Media lot {lots} was prepared from another laboratory section's material and cannot be used for this test.",
+                new Dictionary<string, string> { ["lots"] = lots });
+        }
     }
 }

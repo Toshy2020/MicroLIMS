@@ -69,8 +69,12 @@ public static partial class MessageCodes
     public const string MediaLotConfigurationMissing = "Media.LotConfigurationMissing";
     public const string MediaLotNotFound = "Media.LotNotFound";
     public const string MediaLotNotLinkedToProduct = "Media.LotNotLinkedToProduct";
+    public const string MediaLotNoSourceMaterial = "Media.LotNoSourceMaterial";
     public const string MediaLotNumberClash = "Media.LotNumberClash";
+    public const string MediaLotWrongSection = "Media.LotWrongSection";
+    public const string MediaLotsWrongSection = "Media.LotsWrongSection";
     public const string MediaMaterialNotLinkedToProduct = "Media.MaterialNotLinkedToProduct";
+    public const string MediaMaterialsWrongSection = "Media.MaterialsWrongSection";
     public const string MediaMediaLotExpired = "Media.MediaLotExpired";
     public const string MediaMediaLotNotFound = "Media.MediaLotNotFound";
     public const string MediaMediaLotRequiredForTransition = "Media.MediaLotRequiredForTransition";
@@ -167,8 +171,12 @@ public static partial class MessageCodes
         [MediaLotConfigurationMissing] = ["lotNumber"],
         [MediaLotNotFound] = ["mediaId"],
         [MediaLotNotLinkedToProduct] = ["lotNumber"],
+        [MediaLotNoSourceMaterial] = ["lotNumber"],
         [MediaLotNumberClash] = ["lotNumber"],
+        [MediaLotWrongSection] = ["lotNumber"],
+        [MediaLotsWrongSection] = ["lots"],
         [MediaMaterialNotLinkedToProduct] = ["batchNumber", "materialName"],
+        [MediaMaterialsWrongSection] = ["materials"],
         [MediaMediaLotExpired] = ["lot", "expiryDate"],
         [MediaMediaLotNotFound] = ["mediaLotId"],
         [MediaMediaLotRequiredForTransition] = [],

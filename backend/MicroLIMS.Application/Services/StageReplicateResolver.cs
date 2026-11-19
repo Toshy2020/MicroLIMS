@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -41,7 +43,10 @@ public static class StageReplicateResolver
             .Where(o => o.Id == testOrderId)
             .Select(o => new { o.TestCode, o.SampleId })
             .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var testDefinitionId = await db.TestDefinitions
             .Where(t => t.Code == order.TestCode)
@@ -49,7 +54,10 @@ public static class StageReplicateResolver
             .FirstOrDefaultAsync(cancellationToken);
 
         if (testDefinitionId is null)
-            throw new BusinessRuleException($"Test code '{order.TestCode}' is not in the Test Master.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionTestCodeNotInMaster,
+                $"Test code '{order.TestCode}' is not in the Test Master.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         return await ResolveAsync(db, order.SampleId, testDefinitionId.Value, cancellationToken);
     }

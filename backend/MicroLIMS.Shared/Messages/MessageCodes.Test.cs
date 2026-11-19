@@ -57,6 +57,7 @@ public static partial class MessageCodes
     public const string TestOutsourcedRecordFromReport = "Test.OutsourcedRecordFromReport";
     public const string TestParameterResultCountMismatch = "Test.ParameterResultCountMismatch";
     public const string TestParameterResultRequired = "Test.ParameterResultRequired";
+    public const string TestPhyschemAreaRequired = "Test.PhyschemAreaRequired";
     public const string TestReadingsCountMismatch = "Test.ReadingsCountMismatch";
     public const string TestReplacedByRetest = "Test.ReplacedByRetest";
     public const string TestReplicateCountInvalid = "Test.ReplicateCountInvalid";
@@ -130,6 +131,7 @@ public static partial class MessageCodes
         [TestOutsourcedRecordFromReport] = ["lab"],
         [TestParameterResultCountMismatch] = ["expected", "received"],
         [TestParameterResultRequired] = [],
+        [TestPhyschemAreaRequired] = [],
         [TestReadingsCountMismatch] = ["replicateCount"],
         [TestReplacedByRetest] = ["testCode"],
         [TestReplicateCountInvalid] = [],

@@ -29,6 +29,7 @@ public static partial class MessageCodes
         MediaParameters(),
         MonitoringParameters(),
         OosParameters(),
+        OrganismParameters(),
         OutsourcedParameters(),
         PathogenParameters(),
         ReceivingParameters(),

@@ -44,11 +44,14 @@ Gemini 4 Argon (agy) reviewed branch `r2/integration` against the nine R2 plans 
 - **Selected-rows export of "all matching" includes unapproved report rows:** it is the same set as the existing "Export all" button, which the user may already run. After R2: align the selection rule.
 - **Exported CSV omits selected retest child rows:** plausible. After R2.
 
+## Follow-ups checked before merging (2026-11-19)
+
+- **Live updates for `equipment` use the wrong table:** not a defect. The live `equipment` type is the equipment master record throughout: the signal is raised for `Equipment`, the read rule checks `Equipment`, and no screen watches equipment by inventory ID (only the specification wizard watches a record).
+- **Bulk assign reports a sample with only superseded orders in the user's section as "not found":** not a defect. The check is the same as the system's sample-access rule (`EnsureSampleAccessAsync`), which also ignores superseded orders, so bulk assign behaves exactly like opening the sample.
+- **No positive test for watching a role record:** added. A System Administrator (holds Roles.Manage) may watch a role record; a section head may not. Mutation-checked.
+
 ## After R2 (not checked in detail or low risk)
 
-- Live updates: the `equipment` record type still checks the equipment master table, while the inventory page works with equipment inventory IDs (same mix-up as B6).
-- Bulk assign reports a sample as "not found" when the user's only orders on it were superseded (narrower than `SampleSectionRollup`); not a leak.
-- No positive test that a user with Roles.Manage can watch a role record.
 
 - My Work sign-off queue loads sample entities with their test orders into memory instead of projecting (performance).
 - Configuration paste: the upfront check does not run every domain rule, so a batch can stop at the first failing row instead of listing all; the Solution master screen has no paste.

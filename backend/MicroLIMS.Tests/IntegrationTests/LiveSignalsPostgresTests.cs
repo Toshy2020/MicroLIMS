@@ -743,6 +743,12 @@ public class LiveSignalsPostgresTests
         await Assert.ThrowsAsync<HubException>(() => headConn.InvokeAsync("WatchRecord", "sectionSelfAssignmentSetting", sec2.Id));
         await Assert.ThrowsAsync<HubException>(() => bareConn.InvokeAsync("WatchRecord", "kpiSetting", own.KpiSetting));
         await Assert.ThrowsAsync<HubException>(() => headConn.InvokeAsync("WatchRecord", "role", roleId)); // Roles.Manage is not a section head grant
+
+        // The System Administrator holds Roles.Manage, so the same role record is allowed for them.
+        var admin = await SeedUserInSectionAsync(RoleType.SystemAdministrator, dept.Id, sec1.Id);
+        await using var adminConn = BuildHubConnection(server, await LoginAsync(client, admin.Username), onSignal: _ => { });
+        await StartAndAwaitConnectedAsync(adminConn);
+        await adminConn.InvokeAsync("WatchRecord", "role", roleId);
     }
 
     [PostgresFact]

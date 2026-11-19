@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -23,13 +25,16 @@ public static class DissolutionStageEvaluator
 
         int count = vesselPercentages.Count;
         if (count != 6 && count != 12 && count != 24)
-            throw new BusinessRuleException($"Dissolution evaluation requires 6 (Stage 1), 12 (Stage 2), or 24 (Stage 3) units, but received {count}.");
+            throw new BusinessRuleException(
+                MessageCodes.DissolutionInvalidUnitCount,
+                $"Dissolution evaluation requires 6 (Stage 1), 12 (Stage 2), or 24 (Stage 3) units, but received {count}.",
+                new Dictionary<string, string> { ["count"] = count.ToString(CultureInfo.InvariantCulture) });
 
         if (q <= 0m || q > 100m)
-            throw new BusinessRuleException("Q must be greater than 0 and less than or equal to 100.");
+            throw new BusinessRuleException(MessageCodes.DissolutionQOutOfRange, "Q must be greater than 0 and less than or equal to 100.");
 
         if (s1Offset < 0m || s2MinOffset < 0m || s3MinOffset < 0m || s3MaxBelowS2Min < 0m)
-            throw new BusinessRuleException("Dissolution stage offsets must be greater than or equal to zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStageOffsetsNonNegative, "Dissolution stage offsets must be greater than or equal to zero.");
 
         decimal sum = 0m;
         for (int i = 0; i < count; i++)

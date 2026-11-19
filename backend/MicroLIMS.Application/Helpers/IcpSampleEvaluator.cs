@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -28,7 +29,10 @@ public static class IcpSampleEvaluator
         {
             // Callers gate on IcpSampleEntryContext.EntryProblem, which rejects unlinked or foreign-element specs.
             var element = definition.IcpElements.FirstOrDefault(e => e.Id == spec.IcpTestElementId)
-                ?? throw new BusinessRuleException($"Specification \"{spec.ParameterName}\" is not linked to an element of this test.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.AssaySpecNotLinkedToElement,
+                    $"Specification \"{spec.ParameterName}\" is not linked to an element of this test.",
+                    new Dictionary<string, string> { ["parameter"] = spec.ParameterName });
             var isPpm = spec.Unit == "ppm" || mode == IcpTestMode.Impurity;
             var effectiveMode = isPpm ? IcpTestMode.Impurity : IcpTestMode.Assay;
             var unit = isPpm ? "ppm" : "%";

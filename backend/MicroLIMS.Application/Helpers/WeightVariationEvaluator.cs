@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Helpers;
@@ -61,12 +63,19 @@ public static class WeightVariationEvaluator
         if (count != s1Units && count != s2Units)
         {
             throw new BusinessRuleException(
-                $"Weight variation evaluation requires {s1Units} (Stage 1) or {s2Units} (Stage 2) units, but received {count}.");
+                MessageCodes.WeightVariationInvalidUnitCount,
+                $"Weight variation evaluation requires {s1Units} (Stage 1) or {s2Units} (Stage 2) units, but received {count}.",
+                new Dictionary<string, string>
+                {
+                    ["stage1"] = s1Units.ToString(CultureInfo.InvariantCulture),
+                    ["stage2"] = s2Units.ToString(CultureInfo.InvariantCulture),
+                    ["count"] = count.ToString(CultureInfo.InvariantCulture),
+                });
         }
 
         if (count == s2Units && dosageForm == DosageForm.Tablet)
         {
-            throw new BusinessRuleException("Tablets do not support Stage 2 evaluation.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationTabletsNoStage2, "Tablets do not support Stage 2 evaluation.");
         }
 
         ValidateUnitInputs(dosageForm, units);
@@ -87,22 +96,25 @@ public static class WeightVariationEvaluator
     private static void ValidateConfig(WeightVariationConfig config)
     {
         if (config.UnitCount < 1 || config.CapsuleS2ExtraUnits < 1)
-            throw new BusinessRuleException("Weight variation unit count and extra units must be greater than or equal to 1.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationUnitCountMinOne, "Weight variation unit count and extra units must be greater than or equal to 1.");
         if (config.TabletMaxOutside < 0 || config.CapsuleS1MaxOutside < 0 || config.CapsuleS2MaxOutside < 0)
-            throw new BusinessRuleException("Weight variation maximum outside counts must be greater than or equal to 0.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationMaxOutsideNonNegative, "Weight variation maximum outside counts must be greater than or equal to 0.");
         if (config.TabletBand1MaxMg <= 0m || config.TabletBand2MaxMg <= 0m)
-            throw new BusinessRuleException("Weight variation tablet band weight limits must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationTabletBandWeightLimitsPositive, "Weight variation tablet band weight limits must be greater than zero.");
         if (config.TabletBand1Percent <= 0m || config.TabletBand2Percent <= 0m || config.TabletBand3Percent <= 0m ||
             config.CapsuleInnerPercent <= 0m || config.CapsuleOuterPercent <= 0m)
-            throw new BusinessRuleException("Weight variation percentages must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationPercentagesPositive, "Weight variation percentages must be greater than zero.");
         if (config.TabletBand1MaxMg >= config.TabletBand2MaxMg)
-            throw new BusinessRuleException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationTabletBandOrder, "Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
         if (config.CapsuleInnerPercent >= config.CapsuleOuterPercent)
-            throw new BusinessRuleException("Weight variation capsule inner percentage must be less than outer percentage.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationCapsulePercentageOrder, "Weight variation capsule inner percentage must be less than outer percentage.");
         if (config.CapsuleS1MaxOutside >= config.CapsuleS1MaxForRetest || config.CapsuleS1MaxForRetest > config.UnitCount)
-            throw new BusinessRuleException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+            throw new BusinessRuleException(MessageCodes.WeightVariationCapsuleS1Order, "Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
         if (config.CapsuleS2MaxOutside >= config.UnitCount + config.CapsuleS2ExtraUnits)
-            throw new BusinessRuleException($"Weight variation capsule Stage 2 max outside must be less than total units ({config.UnitCount + config.CapsuleS2ExtraUnits}).");
+            throw new BusinessRuleException(
+                MessageCodes.WeightVariationCapsuleS2MaxOutsideTooHigh,
+                $"Weight variation capsule Stage 2 max outside must be less than total units ({config.UnitCount + config.CapsuleS2ExtraUnits}).",
+                new Dictionary<string, string> { ["total"] = (config.UnitCount + config.CapsuleS2ExtraUnits).ToString(CultureInfo.InvariantCulture) });
     }
 
     private static void ValidateUnitInputs(DosageForm dosageForm, IReadOnlyList<WeightVariationUnitInput> units)
@@ -113,20 +125,38 @@ public static class WeightVariationEvaluator
             if (dosageForm == DosageForm.Tablet)
             {
                 if (u.GrossMg.HasValue || u.ShellMg.HasValue)
-                    throw new BusinessRuleException($"Unit {i + 1}: Tablet units must only contain WeightMg.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationTabletFieldsOnly,
+                        $"Unit {i + 1}: Tablet units must only contain WeightMg.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                 if (!u.WeightMg.HasValue || u.WeightMg.Value <= 0m)
-                    throw new BusinessRuleException($"Unit {i + 1}: Tablet unit weight must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationTabletWeightPositive,
+                        $"Unit {i + 1}: Tablet unit weight must be greater than zero.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             }
             else
             {
                 if (u.WeightMg.HasValue)
-                    throw new BusinessRuleException($"Unit {i + 1}: Capsule units must only contain GrossMg and ShellMg.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationCapsuleFieldsOnly,
+                        $"Unit {i + 1}: Capsule units must only contain GrossMg and ShellMg.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                 if (!u.GrossMg.HasValue || !u.ShellMg.HasValue)
-                    throw new BusinessRuleException($"Unit {i + 1}: Capsule units must contain both GrossMg and ShellMg.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationCapsuleFieldsRequired,
+                        $"Unit {i + 1}: Capsule units must contain both GrossMg and ShellMg.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                 if (u.ShellMg.Value <= 0m)
-                    throw new BusinessRuleException($"Unit {i + 1}: Shell weight must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationShellWeightPositive,
+                        $"Unit {i + 1}: Shell weight must be greater than zero.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                 if (u.ShellMg.Value >= u.GrossMg.Value)
-                    throw new BusinessRuleException($"Unit {i + 1}: Shell weight must be less than gross weight.");
+                    throw new BusinessRuleException(
+                        MessageCodes.WeightVariationShellLessThanGross,
+                        $"Unit {i + 1}: Shell weight must be less than gross weight.",
+                        new Dictionary<string, string> { ["unit"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             }
         }
     }

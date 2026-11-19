@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -35,17 +36,17 @@ public sealed class UvRecorder : TestWorkflowSupport
         var parameters = p.Parameters ?? new List<UvParameterInput>();
         // checked before anything is loaded: a request that omits the id arrives as 0
         if (!(p.EquipmentId > 0))
-            throw new BusinessRuleException("Select the spectrophotometer used.");
+            throw new BusinessRuleException(MessageCodes.UvEquipmentRequired, "Select the spectrophotometer used.");
         var (order, t, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.AnalysedAt, p.EquipmentId, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, WorkflowType.UvSpectrophotometry, userId);
 
         // ---- test constants (old rows are read defensively; the Test Master refuses these on save) ----
         if (t.EquationType != EquationType.UvSpectrophotometry)
-            throw new BusinessRuleException("Test definition equation type must be UvSpectrophotometry.");
-        var mode = t.UvCalculationMode ?? throw new BusinessRuleException("A UV test needs a calculation mode.");
+            throw new BusinessRuleException(MessageCodes.UvInvalidEquationType, "Test definition equation type must be UvSpectrophotometry.");
+        var mode = t.UvCalculationMode ?? throw new BusinessRuleException(MessageCodes.UvCalculationModeRequired, "A UV test needs a calculation mode.");
         if (!t.ReplicateCount.HasValue || t.ReplicateCount.Value < 1 || t.ReplicateCount.Value > 30)
-            throw new BusinessRuleException("Test definition does not have a valid replicate count (1-30).");
+            throw new BusinessRuleException(MessageCodes.UvInvalidReplicateCount, "Test definition does not have a valid replicate count (1-30).");
         int replicateCount = t.ReplicateCount.Value;
 
         bool limitMode = mode == UvCalculationMode.AbsorbanceLimit;
@@ -53,123 +54,184 @@ public sealed class UvRecorder : TestWorkflowSupport
         decimal? a1 = null, volume = null, stdVolume = null;
         if (mode == UvCalculationMode.SpecificAbsorbanceAssay)
         {
-            if (!(t.UvSpecificAbsorbance > 0m)) throw new BusinessRuleException("This UV mode needs a specific absorbance above 0.");
+            if (!(t.UvSpecificAbsorbance > 0m)) throw new BusinessRuleException(MessageCodes.UvSpecificAbsorbanceRequired, "This UV mode needs a specific absorbance above 0.");
             a1 = t.UvSpecificAbsorbance;
         }
         if (!limitMode)
         {
-            if (!(t.UvTotalVolumeMl > 0m)) throw new BusinessRuleException("This UV mode needs a total volume above 0.");
+            if (!(t.UvTotalVolumeMl > 0m)) throw new BusinessRuleException(MessageCodes.UvTotalVolumeRequired, "This UV mode needs a total volume above 0.");
             volume = t.UvTotalVolumeMl;
         }
         if (standardMode)
         {
-            if (!(t.UvStandardVolumeMl > 0m)) throw new BusinessRuleException("A UV test against a standard needs a standard volume above 0.");
+            if (!(t.UvStandardVolumeMl > 0m)) throw new BusinessRuleException(MessageCodes.UvStandardVolumeRequired, "A UV test against a standard needs a standard volume above 0.");
             stdVolume = t.UvStandardVolumeMl;
-            if (!t.UvStandardEntryId.HasValue) throw new BusinessRuleException("A UV assay against standard needs its standard material set in Test Master.");
+            if (!t.UvStandardEntryId.HasValue) throw new BusinessRuleException(MessageCodes.UvStandardMaterialNotConfigured, "A UV assay against standard needs its standard material set in Test Master.");
         }
 
         // ---- request shape ----
         var equipmentType = await _db.Equipment.Where(e => e.Id == p.EquipmentId.Value).Select(e => e.Type).FirstAsync();
         if (equipmentType is not (EquipmentType.UvVis or EquipmentType.Other))
-            throw new BusinessRuleException("The selected equipment is not a UV spectrophotometer.");
+            throw new BusinessRuleException(MessageCodes.UvEquipmentNotSpectrophotometer, "The selected equipment is not a UV spectrophotometer.");
 
         if (standardMode && parameters.Count > 1)
-            throw new BusinessRuleException("A UV test against a standard takes one parameter.");
+            throw new BusinessRuleException(MessageCodes.UvStandardModeSingleParameter, "A UV test against a standard takes one parameter.");
 
         foreach (var param in parameters)
         {
             if (param.WavelengthNm < MinWavelengthNm || param.WavelengthNm > MaxWavelengthNm)
-                throw new BusinessRuleException($"Wavelength must be between {MinWavelengthNm:0} and {MaxWavelengthNm:0} nm.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvWavelengthOutOfRange,
+                    $"Wavelength must be between {MinWavelengthNm:0} and {MaxWavelengthNm:0} nm.",
+                    new Dictionary<string, string>
+                    {
+                        ["min"] = MinWavelengthNm.ToString("0", CultureInfo.InvariantCulture),
+                        ["max"] = MaxWavelengthNm.ToString("0", CultureInfo.InvariantCulture),
+                    });
             if (param.Replicates == null || param.Replicates.Count != replicateCount)
-                throw new BusinessRuleException($"Each parameter must have exactly {replicateCount} replicate(s).");
+                throw new BusinessRuleException(
+                    MessageCodes.UvReplicateCountMismatch,
+                    $"Each parameter must have exactly {replicateCount} replicate(s).",
+                    new Dictionary<string, string> { ["count"] = replicateCount.ToString(CultureInfo.InvariantCulture) });
 
             for (int i = 0; i < param.Replicates.Count; i++)
             {
                 var rep = param.Replicates[i];
                 if (rep.Absorbance is not { } absorbance)
-                    throw new BusinessRuleException("Enter the absorbance for every replicate.");
+                    throw new BusinessRuleException(MessageCodes.UvReplicateAbsorbanceRequired, "Enter the absorbance for every replicate.");
                 bool aboveZero = limitMode ? absorbance >= 0m : absorbance > 0m;
                 if (!aboveZero || absorbance > MaxAbsorbance)
-                    throw new BusinessRuleException(limitMode
+                {
+                    var code = limitMode ? MessageCodes.UvAbsorbanceRangeFromZero : MessageCodes.UvAbsorbanceRangeAboveZero;
+                    throw new BusinessRuleException(code, limitMode
                         ? "Absorbance must be at least 0 and at most 5."
                         : "Absorbance must be above 0 and at most 5.");
+                }
                 if (limitMode)
                 {
                     if (rep.WeightG.HasValue)
-                        throw new BusinessRuleException($"Replicate {i + 1}: a sample weight is not used in an absorbance limit test.");
+                        throw new BusinessRuleException(
+                            MessageCodes.UvReplicateWeightNotUsed,
+                            $"Replicate {i + 1}: a sample weight is not used in an absorbance limit test.",
+                            new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                 }
                 else if (!(rep.WeightG > 0m))
-                    throw new BusinessRuleException($"Replicate {i + 1}: sample weight must be above 0 g.");
+                    throw new BusinessRuleException(
+                        MessageCodes.UvReplicateWeightPositive,
+                        $"Replicate {i + 1}: sample weight must be above 0 g.",
+                        new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             }
 
             if (limitMode)
             {
                 if (!(param.ReferenceAbsorbance > 0m) || param.ReferenceAbsorbance > MaxAbsorbance)
-                    throw new BusinessRuleException("A reference absorbance above 0 and at most 5 is required for each parameter.");
+                    throw new BusinessRuleException(MessageCodes.UvReferenceAbsorbanceRequired, "A reference absorbance above 0 and at most 5 is required for each parameter.");
             }
             else if (param.ReferenceAbsorbance.HasValue)
-                throw new BusinessRuleException("A reference absorbance is only used in an absorbance limit test.");
+                throw new BusinessRuleException(MessageCodes.UvReferenceAbsorbanceNotUsed, "A reference absorbance is only used in an absorbance limit test.");
         }
 
         if (standardMode)
         {
-            if (!p.StandardMaterialId.HasValue) throw new BusinessRuleException("Select the standard lot.");
-            if (!(p.StandardWeightG > 0m)) throw new BusinessRuleException("Standard weight must be above 0 g.");
+            if (!p.StandardMaterialId.HasValue) throw new BusinessRuleException(MessageCodes.UvStandardLotRequired, "Select the standard lot.");
+            if (!(p.StandardWeightG > 0m)) throw new BusinessRuleException(MessageCodes.UvStandardWeightPositive, "Standard weight must be above 0 g.");
             if (!(p.StandardAbsorbance > 0m) || p.StandardAbsorbance > MaxAbsorbance)
-                throw new BusinessRuleException("Standard absorbance must be above 0 and at most 5.");
+                throw new BusinessRuleException(MessageCodes.UvStandardAbsorbanceRange, "Standard absorbance must be above 0 and at most 5.");
         }
         else if (p.StandardMaterialId.HasValue || p.StandardWeightG.HasValue || p.StandardAbsorbance.HasValue)
-            throw new BusinessRuleException("A standard is only used when the test compares against a standard.");
+            throw new BusinessRuleException(MessageCodes.UvStandardNotUsed, "A standard is only used when the test compares against a standard.");
 
         // ---- specifications ----
         var specs = specById.Values.OrderBy(s => s.DisplayOrder).ThenBy(s => s.Id).ToList();
         foreach (var s in specs)
         {
             if (s.HplcMethodAnalyteId.HasValue || s.IcpTestElementId.HasValue || s.RelatedSubstanceRow.HasValue)
-                throw new BusinessRuleException($"Specification '{s.ParameterName}' cannot be used by a UV test.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvSpecNotAllowed,
+                    $"Specification '{s.ParameterName}' cannot be used by a UV test.",
+                    new Dictionary<string, string> { ["parameter"] = s.ParameterName });
             if (!AllowedBases.Contains(s.ResultBasis))
-                throw new BusinessRuleException($"Specification '{s.ParameterName}' has no valid UV result basis.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvSpecInvalidResultBasis,
+                    $"Specification '{s.ParameterName}' has no valid UV result basis.",
+                    new Dictionary<string, string> { ["parameter"] = s.ParameterName });
             if (limitMode)
             {
                 if (s.LimitType != LimitType.Qualitative)
-                    throw new BusinessRuleException($"Specification '{s.ParameterName}' must have the Qualitative limit type for an absorbance limit test.");
+                    throw new BusinessRuleException(
+                        MessageCodes.UvSpecMustBeQualitative,
+                        $"Specification '{s.ParameterName}' must have the Qualitative limit type for an absorbance limit test.",
+                        new Dictionary<string, string> { ["parameter"] = s.ParameterName });
                 if (s.ResultBasis.HasValue)
-                    throw new BusinessRuleException($"Specification '{s.ParameterName}': a result basis is not used in an absorbance limit test.");
+                    throw new BusinessRuleException(
+                        MessageCodes.UvSpecBasisNotUsedInLimitTest,
+                        $"Specification '{s.ParameterName}': a result basis is not used in an absorbance limit test.",
+                        new Dictionary<string, string> { ["parameter"] = s.ParameterName });
             }
             else if (s.LimitType is not (LimitType.Range or LimitType.NotMoreThan or LimitType.NotLessThan))
-                throw new BusinessRuleException($"Specification '{s.ParameterName}' must have a Range, NotMoreThan or NotLessThan limit.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvSpecMustBeNumericLimit,
+                    $"Specification '{s.ParameterName}' must have a Range, NotMoreThan or NotLessThan limit.",
+                    new Dictionary<string, string> { ["parameter"] = s.ParameterName });
         }
 
         var moistureRole = SampleMoistureResolver.NeededRole(specs.Select(s => s.ResultBasis), "UV test");
         SampleMoisture? moisture = null;
         if (moistureRole != MoistureRole.None)
+        {
+            var code = moistureRole == MoistureRole.LossOnDrying
+                ? MessageCodes.TitrationMoistureLossOnDryingRequired
+                : MessageCodes.TitrationMoistureWaterRequired;
             moisture = await new SampleMoistureResolver(_db).ResolveLockedAsync(order.SampleId, moistureRole)
-                ?? throw new BusinessRuleException(SampleMoistureResolver.MissingMessage(moistureRole));
+                ?? throw new BusinessRuleException(code, SampleMoistureResolver.MissingMessage(moistureRole));
+        }
 
         // ---- standard lot: the same usability rules as the standards picker, enforced at record time ----
         Material? lot = null;
         if (standardMode)
         {
             lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == p.StandardMaterialId!.Value)
-                ?? throw new BusinessRuleException("Standard material not found.");
+                ?? throw new BusinessRuleException(MessageCodes.TitrationStandardMaterialNotFound, "Standard material not found.");
             if (lot.MaterialMasterEntryId != t.UvStandardEntryId)
             {
                 var entryName = await _db.MaterialMasterEntries.Where(e => e.Id == t.UvStandardEntryId).Select(e => e.Name).FirstAsync();
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel} is not a lot of {entryName}.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvStandardLotWrongEntry,
+                    $"Standard lot {lot.LotLabel} is not a lot of {entryName}.",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel, ["entryName"] = entryName });
             }
             var accessible = await _sectionScope.GetMemberSectionIdsAsync(userId);
             if (accessible != null && !accessible.Contains(lot.SectionId))
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel} belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvStandardLotWrongLab,
+                    $"Standard lot {lot.LotLabel} belongs to another laboratory.",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel });
             if (lot.MaterialType is not (MaterialType.ReferenceStandard or MaterialType.WorkingStandard))
-                throw new BusinessRuleException("The standard lot must be a reference standard or an approved working standard.");
+                throw new BusinessRuleException(MessageCodes.TitrationStandardLotInvalidType, "The standard lot must be a reference standard or an approved working standard.");
             if (lot.ExpiryDate.HasValue && DateOnly.FromDateTime(lot.ExpiryDate.Value) < _clock.LabToday)
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel} expired on {lot.ExpiryDate:yyyy-MM-dd}.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvStandardLotExpired,
+                    $"Standard lot {lot.LotLabel} expired on {lot.ExpiryDate:yyyy-MM-dd}.",
+                    new Dictionary<string, string>
+                    {
+                        ["lot"] = lot.LotLabel,
+                        ["date"] = lot.ExpiryDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    });
             if (lot.QuantityRemaining <= 0m)
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel} has no stock left.");
+                throw new BusinessRuleException(
+                    MessageCodes.UvStandardLotNoStock,
+                    $"Standard lot {lot.LotLabel} has no stock left.",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel });
             if (!(lot.Purity > 0m))
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel} has no purity recorded.");
+                throw new BusinessRuleException(
+                    MessageCodes.TitrationStandardLotNoPurity,
+                    $"Standard lot {lot.LotLabel} has no purity recorded.",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel });
             if (!lot.MoisturePercent.HasValue)
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel}: the standard values are incomplete (no moisture value recorded).");
+                throw new BusinessRuleException(
+                    MessageCodes.UvStandardLotNoMoisture,
+                    $"Standard lot {lot.LotLabel}: the standard values are incomplete (no moisture value recorded).",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel });
         }
 
         // ---- one ParameterResult per specification ----

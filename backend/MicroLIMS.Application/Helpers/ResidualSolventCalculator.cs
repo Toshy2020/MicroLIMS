@@ -1,5 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -14,15 +15,29 @@ public static class ResidualSolventCalculator
     public static ResidualSolventResult Calculate(decimal standardConcentrationUgPerMl, decimal sampleSolutionVolumeMl,
         decimal standardMeanResponse, IReadOnlyList<ResidualSolventReplicateInput> reps)
     {
-        if (standardConcentrationUgPerMl <= 0m) throw new BusinessRuleException("The standard concentration must be greater than zero.");
-        if (sampleSolutionVolumeMl <= 0m) throw new BusinessRuleException("The sample solution volume must be greater than zero.");
-        if (standardMeanResponse <= 0m) throw new BusinessRuleException("The standard mean response must be greater than zero.");
-        if (reps.Count == 0) throw new BusinessRuleException("At least one replicate is required.");
+        if (standardConcentrationUgPerMl <= 0m) throw new BusinessRuleException(
+            MessageCodes.CalculationStandardConcentrationPositive,
+            "The standard concentration must be greater than zero.");
+        if (sampleSolutionVolumeMl <= 0m) throw new BusinessRuleException(
+            MessageCodes.CalculationSampleSolutionVolumePositive,
+            "The sample solution volume must be greater than zero.");
+        if (standardMeanResponse <= 0m) throw new BusinessRuleException(
+            MessageCodes.CalculationStandardMeanResponsePositive,
+            "The standard mean response must be greater than zero.");
+        if (reps.Count == 0) throw new BusinessRuleException(
+            MessageCodes.TitrationReplicateRequired,
+            "At least one replicate is required.");
 
         var results = reps.Select(rep =>
         {
-            if (rep.SampleWeightMg <= 0m) throw new BusinessRuleException($"Replicate {rep.ReplicateNo}: the sample weight must be greater than zero.");
-            if (rep.Response < 0m) throw new BusinessRuleException($"Replicate {rep.ReplicateNo}: the response must be zero or more.");
+            if (rep.SampleWeightMg <= 0m) throw new BusinessRuleException(
+                MessageCodes.HplcReplicateSampleWeightMustBePositive,
+                $"Replicate {rep.ReplicateNo}: the sample weight must be greater than zero.",
+                new Dictionary<string, string> { ["replicate"] = rep.ReplicateNo.ToString(CultureInfo.InvariantCulture) });
+            if (rep.Response < 0m) throw new BusinessRuleException(
+                MessageCodes.CalculationReplicateResponseNonNegative,
+                $"Replicate {rep.ReplicateNo}: the response must be zero or more.",
+                new Dictionary<string, string> { ["replicate"] = rep.ReplicateNo.ToString(CultureInfo.InvariantCulture) });
             var ppm = standardConcentrationUgPerMl * sampleSolutionVolumeMl / (rep.SampleWeightMg / 1000m) * (rep.Response / standardMeanResponse);
             return new ResidualSolventReplicateResult(rep.ReplicateNo, ppm);
         }).ToList();

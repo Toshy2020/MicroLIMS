@@ -3,6 +3,7 @@ namespace MicroLIMS.Shared.Messages;
 // Standard.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string StandardBlankTitreNonNegative = "Standard.BlankTitreNonNegative";
     public const string StandardCodeAllocationFailed = "Standard.CodeAllocationFailed";
     public const string StandardDocumentNotFound = "Standard.DocumentNotFound";
     public const string StandardDraftOnlyForDocuments = "Standard.DraftOnlyForDocuments";
@@ -25,13 +26,24 @@ public static partial class MessageCodes
     public const string StandardQuantityLocationOnLot = "Standard.QuantityLocationOnLot";
     public const string StandardQuantityRequired = "Standard.QuantityRequired";
     public const string StandardRequalificationLotRequired = "Standard.RequalificationLotRequired";
+    public const string StandardSampleActualWeightPositive = "Standard.SampleActualWeightPositive";
     public const string StandardSampleHasNoAssayResult = "Standard.SampleHasNoAssayResult";
     public const string StandardSampleHasNoItemName = "Standard.SampleHasNoItemName";
+    public const string StandardSampleTheoreticalWeightPositive = "Standard.SampleTheoreticalWeightPositive";
+    public const string StandardSampleTitreAboveBlank = "Standard.SampleTitreAboveBlank";
     public const string StandardSourceSampleOrNameExclusive = "Standard.SourceSampleOrNameExclusive";
     public const string StandardSourceSampleOrNameRequired = "Standard.SourceSampleOrNameRequired";
+    public const string StandardStandardActualWeightPositive = "Standard.StandardActualWeightPositive";
+    public const string StandardStandardMoisturePercentRange = "Standard.StandardMoisturePercentRange";
+    public const string StandardStandardPurityPercentPositive = "Standard.StandardPurityPercentPositive";
+    public const string StandardStandardResponsePositive = "Standard.StandardResponsePositive";
+    public const string StandardStandardTheoreticalWeightPositive = "Standard.StandardTheoreticalWeightPositive";
+    public const string StandardStandardTitreAboveBlank = "Standard.StandardTitreAboveBlank";
+    public const string StandardTestResponsePositive = "Standard.TestResponsePositive";
 
     private static Dictionary<string, string[]> StandardParameters() => new()
     {
+        [StandardBlankTitreNonNegative] = [],
         [StandardCodeAllocationFailed] = [],
         [StandardDocumentNotFound] = ["documentId"],
         [StandardDraftOnlyForDocuments] = [],
@@ -54,9 +66,19 @@ public static partial class MessageCodes
         [StandardQuantityLocationOnLot] = [],
         [StandardQuantityRequired] = [],
         [StandardRequalificationLotRequired] = [],
+        [StandardSampleActualWeightPositive] = [],
         [StandardSampleHasNoAssayResult] = [],
         [StandardSampleHasNoItemName] = [],
+        [StandardSampleTheoreticalWeightPositive] = [],
+        [StandardSampleTitreAboveBlank] = [],
         [StandardSourceSampleOrNameExclusive] = [],
         [StandardSourceSampleOrNameRequired] = [],
+        [StandardStandardActualWeightPositive] = [],
+        [StandardStandardMoisturePercentRange] = [],
+        [StandardStandardPurityPercentPositive] = [],
+        [StandardStandardResponsePositive] = [],
+        [StandardStandardTheoreticalWeightPositive] = [],
+        [StandardStandardTitreAboveBlank] = [],
+        [StandardTestResponsePositive] = [],
     };
 }

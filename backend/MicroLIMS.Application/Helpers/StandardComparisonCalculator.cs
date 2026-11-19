@@ -1,4 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 namespace MicroLIMS.Application.Helpers;
 
 public static class StandardComparisonCalculator
@@ -18,29 +20,51 @@ public static class StandardComparisonCalculator
         {
             // Titration (SOP STM-PC-013 6.9.2.5): Response = (EP_test - EP_blank) / (EP_std - EP_blank)
             if (blankTitre.Value < 0m)
-                throw new BusinessRuleException("Blank titre must not be negative.");
+                throw new BusinessRuleException(
+                    MessageCodes.StandardBlankTitreNonNegative,
+                    "Blank titre must not be negative.");
             if (responseTest <= blankTitre.Value)
-                throw new BusinessRuleException("Sample titre must be greater than the blank titre.");
+                throw new BusinessRuleException(
+                    MessageCodes.StandardSampleTitreAboveBlank,
+                    "Sample titre must be greater than the blank titre.");
             if (responseStd <= blankTitre.Value)
-                throw new BusinessRuleException("Standard titre must be greater than the blank titre.");
+                throw new BusinessRuleException(
+                    MessageCodes.StandardStandardTitreAboveBlank,
+                    "Standard titre must be greater than the blank titre.");
         }
 
         if (responseTest <= 0m)
-            throw new BusinessRuleException("Test response must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardTestResponsePositive,
+                "Test response must be greater than zero.");
         if (responseStd <= 0m)
-            throw new BusinessRuleException("Standard response must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardStandardResponsePositive,
+                "Standard response must be greater than zero.");
         if (actWtStd <= 0m)
-            throw new BusinessRuleException("Standard actual weight must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardStandardActualWeightPositive,
+                "Standard actual weight must be greater than zero.");
         if (thWtStd <= 0m)
-            throw new BusinessRuleException("Standard theoretical weight must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardStandardTheoreticalWeightPositive,
+                "Standard theoretical weight must be greater than zero.");
         if (thWtTest <= 0m)
-            throw new BusinessRuleException("Sample theoretical weight must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardSampleTheoreticalWeightPositive,
+                "Sample theoretical weight must be greater than zero.");
         if (actWtTest <= 0m)
-            throw new BusinessRuleException("Sample actual weight must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardSampleActualWeightPositive,
+                "Sample actual weight must be greater than zero.");
         if (moisturePercent < 0m || moisturePercent >= 100m)
-            throw new BusinessRuleException("Standard moisture percent must be between 0 and 100 (exclusive).");
+            throw new BusinessRuleException(
+                MessageCodes.StandardStandardMoisturePercentRange,
+                "Standard moisture percent must be between 0 and 100 (exclusive).");
         if (purityPercent <= 0m)
-            throw new BusinessRuleException("Standard purity percent must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.StandardStandardPurityPercentPositive,
+                "Standard purity percent must be greater than zero.");
 
         // % Assay (of label claim) =
         //     (Response_test / Response_std)      [titration: (EP_test - EP_blank) / (EP_std - EP_blank)]

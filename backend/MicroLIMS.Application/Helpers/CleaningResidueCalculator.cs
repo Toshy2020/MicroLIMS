@@ -3,6 +3,7 @@ using System.Globalization;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -41,20 +42,33 @@ public static class CleaningResidueCalculator
         IReadOnlyList<CleaningResidueReplicateInput> reps)
     {
         if (standardConcentrationUgPerMl <= 0m)
-            throw new BusinessRuleException("The standard concentration must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.CalculationStandardConcentrationPositive,
+                "The standard concentration must be greater than zero.");
         if (sampleSolutionVolumeMl <= 0m)
-            throw new BusinessRuleException("The extraction volume must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.CalculationExtractionVolumePositive,
+                "The extraction volume must be greater than zero.");
         if (standardMeanResponse <= 0m)
-            throw new BusinessRuleException("The standard mean response must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.CalculationStandardMeanResponsePositive,
+                "The standard mean response must be greater than zero.");
         if (macoUnit == MacoUnit.UgPerCm2 && swabAreaCm2 is not > 0m)
-            throw new BusinessRuleException("Swabbed area (cm²) must be greater than zero when unit is µg/cm².");
+            throw new BusinessRuleException(
+                MessageCodes.CalculationSwabAreaRequired,
+                "Swabbed area (cm²) must be greater than zero when unit is µg/cm².");
         if (reps.Count == 0)
-            throw new BusinessRuleException("At least one replicate is required.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrationReplicateRequired,
+                "At least one replicate is required.");
 
         var results = reps.Select(rep =>
         {
             if (rep.Response < 0m)
-                throw new BusinessRuleException($"Replicate {rep.ReplicateNo}: the response must be zero or more.");
+                throw new BusinessRuleException(
+                    MessageCodes.CalculationReplicateResponseNonNegative,
+                    $"Replicate {rep.ReplicateNo}: the response must be zero or more.",
+                    new Dictionary<string, string> { ["replicate"] = rep.ReplicateNo.ToString(CultureInfo.InvariantCulture) });
 
             var ugPerMl = (rep.Response / standardMeanResponse) * standardConcentrationUgPerMl;
             var ugPerSwab = ugPerMl * sampleSolutionVolumeMl;

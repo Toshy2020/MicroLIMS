@@ -56,6 +56,7 @@ public static partial class MessageCodes
     public const string TitrationMoistureWaterRequired = "Titration.MoistureWaterRequired";
     public const string TitrationNoTitrantWarningToAcknowledge = "Titration.NoTitrantWarningToAcknowledge";
     public const string TitrationNonAqueousOnlyForAcidBase = "Titration.NonAqueousOnlyForAcidBase";
+    public const string TitrationNotTitrationWorkflow = "Titration.NotTitrationWorkflow";
     public const string TitrationPurityRange = "Titration.PurityRange";
     public const string TitrationReferenceFactorPositive = "Titration.ReferenceFactorPositive";
     public const string TitrationReferenceStandardMasterNotFound = "Titration.ReferenceStandardMasterNotFound";
@@ -92,7 +93,9 @@ public static partial class MessageCodes
     public const string TitrationTemperatureCorrectionOnlyNonAqueousAcidBase = "Titration.TemperatureCorrectionOnlyNonAqueousAcidBase";
     public const string TitrationTemperatureNotUsed = "Titration.TemperatureNotUsed";
     public const string TitrationTemperatureRequired = "Titration.TemperatureRequired";
+    public const string TitrationTestNotFullyConfigured = "Titration.TestNotFullyConfigured";
     public const string TitrationTitrantFactorPositive = "Titration.TitrantFactorPositive";
+    public const string TitrationTitrantMasterMissing = "Titration.TitrantMasterMissing";
     public const string TitrationTitrantMasterNoNominalStrength = "Titration.TitrantMasterNoNominalStrength";
     public const string TitrationTitrantMasterNotFound = "Titration.TitrantMasterNotFound";
     public const string TitrationTitrantMasterNotTitrant = "Titration.TitrantMasterNotTitrant";
@@ -166,6 +169,7 @@ public static partial class MessageCodes
         [TitrationMoistureWaterRequired] = [],
         [TitrationNoTitrantWarningToAcknowledge] = [],
         [TitrationNonAqueousOnlyForAcidBase] = [],
+        [TitrationNotTitrationWorkflow] = ["testOrderId"],
         [TitrationPurityRange] = [],
         [TitrationReferenceFactorPositive] = [],
         [TitrationReferenceStandardMasterNotFound] = [],
@@ -202,7 +206,9 @@ public static partial class MessageCodes
         [TitrationTemperatureCorrectionOnlyNonAqueousAcidBase] = [],
         [TitrationTemperatureNotUsed] = [],
         [TitrationTemperatureRequired] = [],
+        [TitrationTestNotFullyConfigured] = ["code"],
         [TitrationTitrantFactorPositive] = [],
+        [TitrationTitrantMasterMissing] = [],
         [TitrationTitrantMasterNoNominalStrength] = [],
         [TitrationTitrantMasterNotFound] = [],
         [TitrationTitrantMasterNotTitrant] = [],

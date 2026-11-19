@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -5,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -59,7 +61,10 @@ public class EquipmentBaselineService
         ValidateScheduleRequest(r);
 
         var entity = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (version != 0)
         {
@@ -77,6 +82,7 @@ public class EquipmentBaselineService
             if (hasCompletedCalibration)
             {
                 throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanLastCalibrationDateLocked,
                     "Last calibration date cannot be changed once a calibration has been completed.");
             }
         }
@@ -128,7 +134,9 @@ public class EquipmentBaselineService
         // Calibration interval: value and unit set together or both null
         if (r.CalibrationIntervalValue.HasValue != r.CalibrationIntervalUnit.HasValue)
         {
-            throw new BusinessRuleException("Calibration interval value and unit must be specified together.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanCalibrationIntervalValueAndUnitRequired,
+                "Calibration interval value and unit must be specified together.");
         }
 
         if (r.CalibrationIntervalValue.HasValue)
@@ -139,7 +147,9 @@ public class EquipmentBaselineService
         // PM interval: value and unit set together or both null
         if (r.PmIntervalValue.HasValue != r.PmIntervalUnit.HasValue)
         {
-            throw new BusinessRuleException("Maintenance interval value and unit must be specified together.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanMaintenanceIntervalValueAndUnitRequired,
+                "Maintenance interval value and unit must be specified together.");
         }
 
         if (r.PmIntervalValue.HasValue)
@@ -151,12 +161,16 @@ public class EquipmentBaselineService
         var today = _clock.LabToday;
         if (r.LastCalibratedOn.HasValue && r.LastCalibratedOn.Value > today)
         {
-            throw new BusinessRuleException("Last calibration date cannot be in the future.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanLastCalibrationDateFuture,
+                "Last calibration date cannot be in the future.");
         }
 
         if (r.LastPmOn.HasValue && r.LastPmOn.Value > today)
         {
-            throw new BusinessRuleException("Last maintenance date cannot be in the future.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanLastMaintenanceDateFuture,
+                "Last maintenance date cannot be in the future.");
         }
     }
 
@@ -167,23 +181,35 @@ public class EquipmentBaselineService
             case IntervalUnit.Weeks:
                 if (value is < 1 or > 104)
                 {
-                    throw new BusinessRuleException($"{intervalName} interval in weeks must be between 1 and 104.");
+                    throw new BusinessRuleException(
+                        MessageCodes.EquipmentPlanIntervalWeeksRange,
+                        $"{intervalName} interval in weeks must be between 1 and 104.",
+                        new Dictionary<string, string> { ["intervalName"] = intervalName });
                 }
                 break;
             case IntervalUnit.Months:
                 if (value is < 1 or > 60)
                 {
-                    throw new BusinessRuleException($"{intervalName} interval in months must be between 1 and 60.");
+                    throw new BusinessRuleException(
+                        MessageCodes.EquipmentPlanIntervalMonthsRange,
+                        $"{intervalName} interval in months must be between 1 and 60.",
+                        new Dictionary<string, string> { ["intervalName"] = intervalName });
                 }
                 break;
             case IntervalUnit.Years:
                 if (value is < 1 or > 5)
                 {
-                    throw new BusinessRuleException($"{intervalName} interval in years must be between 1 and 5.");
+                    throw new BusinessRuleException(
+                        MessageCodes.EquipmentPlanIntervalYearsRange,
+                        $"{intervalName} interval in years must be between 1 and 5.",
+                        new Dictionary<string, string> { ["intervalName"] = intervalName });
                 }
                 break;
             default:
-                throw new BusinessRuleException($"Unsupported interval unit: {unit}.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanUnsupportedIntervalUnit,
+                    $"Unsupported interval unit: {unit}.",
+                    new Dictionary<string, string> { ["unit"] = unit.ToString() });
         }
     }
 

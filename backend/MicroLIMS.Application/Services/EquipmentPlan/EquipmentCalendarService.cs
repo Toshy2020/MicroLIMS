@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -5,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -130,7 +132,9 @@ public class EquipmentCalendarService
     public async Task<EquipmentCalendarResponse> GetCalendarAsync(DateOnly from, DateOnly to)
     {
         if (to < from)
-            throw new BusinessRuleException("The end of the range is before its start.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanRangeEndBeforeStart,
+                "The end of the range is before its start.");
 
         var today = _clock.LabToday;
 
@@ -168,7 +172,9 @@ public class EquipmentCalendarService
     public async Task<List<EquipmentMonthSummary>> GetYearAsync(int year)
     {
         if (year is < 2000 or > 2100)
-            throw new BusinessRuleException("Choose a plan year between 2000 and 2100.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanPlanYearOutOfRange,
+                "Choose a plan year between 2000 and 2100.");
 
         var today = _clock.LabToday;
         var firstDay = new DateOnly(year, 1, 1);
@@ -238,7 +244,10 @@ public class EquipmentCalendarService
     {
         var eq = await _db.EquipmentInventories
             .FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var today = _clock.LabToday;
 

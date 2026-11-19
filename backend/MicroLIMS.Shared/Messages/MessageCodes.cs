@@ -33,6 +33,7 @@ public static partial class MessageCodes
         HplcParameters(),
         IcpParameters(),
         IncubationParameters(),
+        InstrumentParameters(),
         MaterialParameters(),
         MediaParameters(),
         MonitoringParameters(),

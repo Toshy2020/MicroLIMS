@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Live;
@@ -31,13 +32,19 @@ public sealed class TestSelfAssignmentService
         (await CheckPermissionAsync(userId, ct)).ThrowIfRefused();
 
         var order = await _db.TestOrders.Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleTestNotFound,
+                $"Test {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var now = _time.GetUtcNow().UtcDateTime;
         var (check, taker) = await CheckTakeAsync(order, userId, now, ct);
         check.ThrowIfRefused();
         // Never null once the check is allowed; this keeps the compiler's null analysis honest.
-        var user = taker ?? throw new NotFoundException($"User {userId} not found.");
+        var user = taker ?? throw new NotFoundException(
+            MessageCodes.SampleAssigneeNotFound,
+            $"User {userId} not found.",
+            new Dictionary<string, string> { ["userId"] = userId.ToString(CultureInfo.InvariantCulture) });
 
         _db.AuditLogs.Add(SampleAssignmentService.BuildAssignmentAudit(order.Sample!, order, TestReleaseRules.TakenAction,
             $"{order.TestCode}: Unassigned", $"{order.TestCode}: {user.FullName}", userId, now));
@@ -55,9 +62,17 @@ public sealed class TestSelfAssignmentService
         {
             // Someone changed the row after it was read. The failed save rolled back the assignment and its audit row.
             var winner = await _db.TestOrders.AsNoTracking().Where(t => t.Id == testOrderId).Select(t => t.AssignedAnalystId).SingleOrDefaultAsync(ct);
-            throw winner is int winnerId
-                ? new BusinessRuleException($"Already taken by {await FullNameAsync(winnerId, ct)}.")
-                : new BusinessRuleException("This test was changed by someone else. Refresh and try again.");
+            if (winner is int winnerId)
+            {
+                var winnerName = await FullNameAsync(winnerId, ct);
+                throw new BusinessRuleException(
+                    MessageCodes.TestAlreadyTaken,
+                    $"Already taken by {winnerName}.",
+                    new Dictionary<string, string> { ["name"] = winnerName });
+            }
+            throw new BusinessRuleException(
+                MessageCodes.SampleTestConcurrencyConflict,
+                "This test was changed by someone else. Refresh and try again.");
         }
     }
 
@@ -66,7 +81,10 @@ public sealed class TestSelfAssignmentService
         (await CheckPermissionAsync(userId, ct)).ThrowIfRefused();
 
         var order = await _db.TestOrders.Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleTestNotFound,
+                $"Test {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         (await CheckReleaseAsync(order, userId, ct)).ThrowIfRefused();
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -85,7 +103,9 @@ public sealed class TestSelfAssignmentService
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new BusinessRuleException("This test was changed by someone else. Refresh and try again.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleTestConcurrencyConflict,
+                "This test was changed by someone else. Refresh and try again.");
         }
     }
 
@@ -98,7 +118,10 @@ public sealed class TestSelfAssignmentService
         if (!permission.Allowed) return permission;
 
         var order = await _db.TestOrders.AsNoTracking().SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleTestNotFound,
+                $"Test {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         return (await CheckTakeAsync(order, userId, _time.GetUtcNow().UtcDateTime, ct)).Check;
     }
 
@@ -134,7 +157,10 @@ public sealed class TestSelfAssignmentService
         if (!permission.Allowed) return permission;
 
         var order = await _db.TestOrders.AsNoTracking().SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleTestNotFound,
+                $"Test {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         return await CheckReleaseAsync(order, userId, ct);
     }
 

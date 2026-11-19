@@ -100,7 +100,10 @@ public class SampleDocumentService
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(
+                MessageCodes.SampleDocumentValidationFailed,
+                error,
+                new Dictionary<string, string> { ["message"] = error });
 
         _db.CurrentUserId = userId;
         var ext = Path.GetExtension(fileName).ToLowerInvariant();

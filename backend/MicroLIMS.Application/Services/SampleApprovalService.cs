@@ -1,3 +1,4 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
@@ -259,7 +260,10 @@ public class SampleApprovalService
         int? sectionId = null)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var (check, section) = await CheckDecideAsync(sample, sectionHeadUserId, decision, sectionId);
         check.ThrowIfRefused();
@@ -279,12 +283,16 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             if (selectedTestOrderIds is null || selectedTestOrderIds.Count == 0)
-                throw new BusinessRuleException("At least one test must be selected for retest.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetestRequiresSelectedTest,
+                    "At least one test must be selected for retest.");
 
             var distinctIds = selectedTestOrderIds.Distinct().ToList();
             selectedOrders = currentOrders.Where(o => distinctIds.Contains(o.Id)).ToList();
             if (selectedOrders.Count != distinctIds.Count)
-                throw new BusinessRuleException("One or more selected tests do not belong to this sample's current test orders.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetestTestsNotOnSample,
+                    "One or more selected tests do not belong to this sample's current test orders.");
         }
 
         // NewSampleRequest spins up two independent samples that must go
@@ -295,9 +303,13 @@ public class SampleApprovalService
         if (decision == ApprovalDecision.NewSampleRequest)
         {
             if (newSampleAnalystOneId is null || newSampleAnalystTwoId is null)
-                throw new BusinessRuleException("Two analysts must be assigned - one per new sample - when requesting a new sample.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleNewSampleRequiresTwoAnalysts,
+                    "Two analysts must be assigned - one per new sample - when requesting a new sample.");
             if (newSampleAnalystOneId == newSampleAnalystTwoId)
-                throw new BusinessRuleException("The two new samples must be assigned to two different analysts.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleNewSampleAnalystsMustDiffer,
+                    "The two new samples must be assigned to two different analysts.");
 
             // Each new sample carries the selected tests, so each analyst must
             // be assignable in every one of their sections.
@@ -309,7 +321,9 @@ public class SampleApprovalService
             foreach (var order in selectedOrders)
             {
                 if (order.AssignedAnalystId == newSampleAnalystOneId || order.AssignedAnalystId == newSampleAnalystTwoId)
-                    throw new BusinessRuleException("Neither new sample's analyst may be the analyst who tested the original sample.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SampleNewSampleAnalystCannotBeOriginal,
+                        "Neither new sample's analyst may be the analyst who tested the original sample.");
             }
         }
 
@@ -317,7 +331,9 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest")
-                ?? throw new BusinessRuleException("The 'Retest' cause of testing is not configured.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SampleRetestCauseNotConfigured,
+                    "The 'Retest' cause of testing is not configured.");
         }
 
         var meaning = decision switch
@@ -326,7 +342,10 @@ public class SampleApprovalService
             ApprovalDecision.Reject => SignatureMeaning.Rejected,
             ApprovalDecision.NewSampleRequest => SignatureMeaning.Rejected,
             ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
-            _ => throw new BusinessRuleException($"'{decision}' is not a valid sample-level decision.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.SampleInvalidApprovalDecision,
+                $"'{decision}' is not a valid sample-level decision.",
+                new Dictionary<string, string> { ["decision"] = decision.ToString() })
         };
 
         // Signs first - if password verification fails, nothing below is

@@ -1,7 +1,9 @@
+using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -47,9 +49,15 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     private async Task<Sample> ReceiveCoreAsync(EMReceiveRequest request)
     {
         var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == request.DepartmentId)
-            ?? throw new BusinessRuleException($"Department {request.DepartmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MonitoringDepartmentNotFound,
+                $"Department {request.DepartmentId} not found.",
+                new Dictionary<string, string> { ["departmentId"] = request.DepartmentId.ToString(CultureInfo.InvariantCulture) });
         if (!department.IsActive)
-            throw new BusinessRuleException($"Department '{department.Name}' is inactive and cannot receive samples.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringDepartmentInactive,
+                $"Department '{department.Name}' is inactive and cannot receive samples.",
+                new Dictionary<string, string> { ["department"] = department.Name });
 
         var sample = new Sample
         {
@@ -66,7 +74,9 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         };
 
         if (sample.SampledAt > sample.ReceivedAt)
-            throw new BusinessRuleException("The sampling time cannot be after the time of receipt.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringSamplingTimeAfterReceipt,
+                "The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 
@@ -79,7 +89,9 @@ public class EMWorkflowEngine : IEMWorkflowEngine
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.EnvironmentalMonitoring);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
                 throw new BusinessRuleException(
-                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+                    MessageCodes.ReceivingReferenceNumberClash,
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.",
+                    new Dictionary<string, string> { ["referenceNumber"] = sample.ReferenceNumber });
         }
 
         return sample;
@@ -93,13 +105,20 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-            throw new BusinessRuleException("This sample has already been prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAlreadyPrepared,
+                "This sample has already been prepared.");
 
         if (roomTestConfigurationIds.Count == 0)
-            throw new BusinessRuleException("At least one room must be selected.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomRequired,
+                "At least one room must be selected.");
 
         var configs = await _db.RoomTestConfigurations
             .Include(c => c.Room)
@@ -108,17 +127,33 @@ public class EMWorkflowEngine : IEMWorkflowEngine
 
         var missing = roomTestConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
-            throw new BusinessRuleException($"Room test configuration(s) not found: {string.Join(", ", missing)}.");
+        {
+            var ids = string.Join(", ", missing);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRoomTestConfigsNotFound,
+                $"Room test configuration(s) not found: {ids}.",
+                new Dictionary<string, string> { ["ids"] = ids });
+        }
 
         var inactive = configs.Where(c => !c.IsActive || c.Room?.IsActive == false).ToList();
         if (inactive.Count > 0)
+        {
+            var rooms = string.Join(", ", inactive.Select(c => c.Room?.Name));
             throw new BusinessRuleException(
-                $"Room(s) {string.Join(", ", inactive.Select(c => c.Room?.Name))} are inactive and cannot be prepared.");
+                MessageCodes.MonitoringRoomsInactiveCannotPrepare,
+                $"Room(s) {rooms} are inactive and cannot be prepared.",
+                new Dictionary<string, string> { ["rooms"] = rooms });
+        }
 
         var wrongDepartment = configs.Where(c => c.Room?.DepartmentId != sample.DepartmentId).ToList();
         if (wrongDepartment.Count > 0)
+        {
+            var rooms = string.Join(", ", wrongDepartment.Select(c => c.Room?.Name));
             throw new BusinessRuleException(
-                $"Room(s) {string.Join(", ", wrongDepartment.Select(c => c.Room?.Name))} do not belong to this sample's department.");
+                MessageCodes.MonitoringRoomsWrongDepartment,
+                $"Room(s) {rooms} do not belong to this sample's department.",
+                new Dictionary<string, string> { ["rooms"] = rooms });
+        }
 
         // One TestOrder per distinct TestCode across every selected room -
         // the whole batch shares a single incubation setup per test type.
@@ -153,7 +188,9 @@ public class EMWorkflowEngine : IEMWorkflowEngine
         if (monitoringOccurrenceIds is { Count: > 0 })
         {
             if (_monitoring is null)
-                throw new BusinessRuleException("Monitoring plan linking is not available.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringPlanLinkingNotAvailable,
+                    "Monitoring plan linking is not available.");
             await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
@@ -166,7 +203,14 @@ public class EMWorkflowEngine : IEMWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        if (errors.Count > 0)
+        {
+            var message = string.Join(" ", errors);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringAdvanceValidationFailed,
+                message,
+                new Dictionary<string, string> { ["message"] = message });
+        }
 
         var next = order.CurrentStep switch
         {

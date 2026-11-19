@@ -1,8 +1,10 @@
+using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -58,13 +60,21 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     private async Task<Sample> ReceiveCoreAsync(AfterCleaningReceiveRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == request.MachineId)
-            ?? throw new BusinessRuleException($"Machine {request.MachineId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MonitoringMachineNotFound,
+                $"Machine {request.MachineId} not found.",
+                new Dictionary<string, string> { ["machineId"] = request.MachineId.ToString(CultureInfo.InvariantCulture) });
         if (!machine.IsActive)
-            throw new BusinessRuleException($"Machine '{machine.Name}' is inactive and cannot receive samples.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringMachineInactiveForReceiving,
+                $"Machine '{machine.Name}' is inactive and cannot receive samples.",
+                new Dictionary<string, string> { ["machine"] = machine.Name });
 
         if (string.IsNullOrWhiteSpace(request.PreviousProductBatchNumber))
         {
-            throw new BusinessRuleException("Previous Product Batch Number is required for After Cleaning receiving.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringAfterCleaningBatchRequired,
+                "Previous Product Batch Number is required for After Cleaning receiving.");
         }
 
         int? labSectionId;
@@ -111,11 +121,20 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (request.PreviousProductItemId.HasValue)
         {
             var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == request.PreviousProductItemId.Value)
-                ?? throw new BusinessRuleException($"Item {request.PreviousProductItemId.Value} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.MonitoringItemNotFound,
+                    $"Item {request.PreviousProductItemId.Value} not found.",
+                    new Dictionary<string, string> { ["itemId"] = request.PreviousProductItemId.Value.ToString(CultureInfo.InvariantCulture) });
             if (!item.IsActive)
-                throw new BusinessRuleException($"Item '{item.Name}' is inactive and cannot be selected.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringItemInactive,
+                    $"Item '{item.Name}' is inactive and cannot be selected.",
+                    new Dictionary<string, string> { ["item"] = item.Name });
             if (item.Category != SampleCategory.FinishedProduct)
-                throw new BusinessRuleException($"Item '{item.Name}' is not a Finished Product.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringItemNotFinishedProduct,
+                    $"Item '{item.Name}' is not a Finished Product.",
+                    new Dictionary<string, string> { ["item"] = item.Name });
 
             previousProductItemId = item.Id;
             previousProductName = item.Name;
@@ -125,11 +144,15 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         {
             if (!request.PreviousProductItemId.HasValue)
             {
-                throw new BusinessRuleException("Previous product item is required for Physicochemical after-cleaning receiving.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringPreviousProductItemRequired,
+                    "Previous product item is required for Physicochemical after-cleaning receiving.");
             }
             if (request.Techniques == null || !request.Techniques.Any(t => !string.IsNullOrWhiteSpace(t)))
             {
-                throw new BusinessRuleException("At least one cleaning technique is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringCleaningTechniqueRequired,
+                    "At least one cleaning technique is required.");
             }
             cleaningTechniques = CleaningTechniques.Normalize(request.Techniques);
         }
@@ -140,7 +163,9 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             {
                 if (string.IsNullOrWhiteSpace(request.PreviousProductName))
                 {
-                    throw new BusinessRuleException("Previous Product is required for After Cleaning receiving.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MonitoringPreviousProductRequired,
+                        "Previous Product is required for After Cleaning receiving.");
                 }
                 previousProductName = request.PreviousProductName.Trim();
             }
@@ -168,7 +193,9 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         };
 
         if (sample.SampledAt > sample.ReceivedAt)
-            throw new BusinessRuleException("The sampling time cannot be after the time of receipt.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringSamplingTimeAfterReceipt,
+                "The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 
@@ -181,7 +208,9 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.AfterCleaning);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
                 throw new BusinessRuleException(
-                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+                    MessageCodes.ReceivingReferenceNumberClash,
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.",
+                    new Dictionary<string, string> { ["referenceNumber"] = sample.ReferenceNumber });
         }
 
         return sample;
@@ -199,13 +228,20 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
             .Include(s => s.Locations)
             .Include(s => s.PreviousProductItem)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-            throw new BusinessRuleException("This sample has already been prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAlreadyPrepared,
+                "This sample has already been prepared.");
 
         if (machinePartConfigurationIds.Count == 0)
-            throw new BusinessRuleException("At least one machine part must be selected.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringMachinePartRequired,
+                "At least one machine part must be selected.");
 
         var configs = await _db.MachinePartConfigurations
             .Include(c => c.MachinePart)
@@ -214,17 +250,33 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
 
         var missing = machinePartConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
-            throw new BusinessRuleException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+        {
+            var ids = string.Join(", ", missing);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringMachinePartConfigsNotFound,
+                $"Machine part configuration(s) not found: {ids}.",
+                new Dictionary<string, string> { ["ids"] = ids });
+        }
 
         var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
         if (inactive.Count > 0)
+        {
+            var parts = string.Join(", ", inactive.Select(c => c.MachinePart?.Name));
             throw new BusinessRuleException(
-                $"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive and cannot be prepared.");
+                MessageCodes.MonitoringMachinePartsInactiveCannotPrepare,
+                $"Part(s) {parts} are inactive and cannot be prepared.",
+                new Dictionary<string, string> { ["parts"] = parts });
+        }
 
         var wrongMachine = configs.Where(c => c.MachinePart?.MachineId != sample.MachineId).ToList();
         if (wrongMachine.Count > 0)
+        {
+            var parts = string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name));
             throw new BusinessRuleException(
-                $"Part(s) {string.Join(", ", wrongMachine.Select(c => c.MachinePart?.Name))} do not belong to this sample's machine.");
+                MessageCodes.MonitoringMachinePartsWrongSampleMachine,
+                $"Part(s) {parts} do not belong to this sample's machine.",
+                new Dictionary<string, string> { ["parts"] = parts });
+        }
 
         var microSection = await _db.DocumentSections
             .FirstOrDefaultAsync(s => s.Code == LaboratoryCodes.Microbiology);
@@ -249,7 +301,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         {
             if (!allowedCodes.Contains(config.TestCode))
             {
-                throw new BusinessRuleException($"Part test {config.TestCode} belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringPartTestWrongLab,
+                    $"Part test {config.TestCode} belongs to another laboratory.",
+                    new Dictionary<string, string> { ["testCode"] = config.TestCode });
             }
         }
 
@@ -268,7 +323,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                     var technique = CleaningTechniques.Of(testDef.WorkflowType);
                     if (!chosenTechniques.Contains(technique))
                     {
-                        throw new BusinessRuleException($"Part test {config.TestCode} is {technique}, which was not chosen at receipt.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MonitoringPartTestTechniqueNotChosen,
+                            $"Part test {config.TestCode} is {technique}, which was not chosen at receipt.",
+                            new Dictionary<string, string> { ["testCode"] = config.TestCode, ["technique"] = technique });
                     }
 
                     if (testDef.WorkflowType == WorkflowType.HplcMethodAssay)
@@ -279,7 +337,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                             var productName = sample.PreviousProductItem?.Name
                                 ?? (await _db.Items.Where(i => i.Id == sample.PreviousProductItemId).Select(i => i.Name).FirstOrDefaultAsync())
                                 ?? "the previous product";
-                            throw new BusinessRuleException($"No cleaning HPLC method for {productName} on test {testDef.Code}.");
+                            throw new BusinessRuleException(
+                                MessageCodes.MonitoringNoCleaningHplcMethod,
+                                $"No cleaning HPLC method for {productName} on test {testDef.Code}.",
+                                new Dictionary<string, string> { ["productName"] = productName, ["testCode"] = testDef.Code });
                         }
                     }
                 }
@@ -343,7 +404,9 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         if (monitoringOccurrenceIds is { Count: > 0 })
         {
             if (_monitoring is null)
-                throw new BusinessRuleException("Monitoring plan linking is not available.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringPlanLinkingNotAvailable,
+                    "Monitoring plan linking is not available.");
             await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
@@ -356,7 +419,14 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        if (errors.Count > 0)
+        {
+            var message = string.Join(" ", errors);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringAdvanceValidationFailed,
+                message,
+                new Dictionary<string, string> { ["message"] = message });
+        }
 
         var next = order.CurrentStep switch
         {

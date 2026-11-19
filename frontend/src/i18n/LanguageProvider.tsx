@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { ThemeProvider, type Theme } from "@mui/material/styles";
+import { GlobalStyles } from "@mui/material";
 import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
 import { prefixer } from "stylis";
@@ -85,7 +86,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       {signedIn && <StoredLanguageSource onChange={setStored} />}
       <I18nextProvider i18n={i18n}>
         <CacheProvider value={direction === "rtl" ? rtlCache : ltrCache}>
-          <ThemeProvider theme={withDirection}>{children}</ThemeProvider>
+          <ThemeProvider theme={withDirection}>
+            {direction === "rtl" && (
+              <GlobalStyles
+                styles={{
+                  "html[dir='rtl'] *:not([dir='ltr']):not([dir='ltr'] *)": {
+                    letterSpacing: "normal !important",
+                    textTransform: "none !important"
+                  }
+                }}
+              />
+            )}
+            {children}
+          </ThemeProvider>
         </CacheProvider>
       </I18nextProvider>
     </LanguageContext.Provider>

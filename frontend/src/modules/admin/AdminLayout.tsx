@@ -28,7 +28,13 @@ export function AdminLayout() {
   return (
     <>
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
-        <Tabs value={active?.path ?? false} variant="scrollable" scrollButtons="auto" aria-label={t("layout.tabsLabel")}>
+        <Tabs
+          value={active?.path ?? false}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label={t("layout.tabsLabel")}
+          sx={{ "& .MuiTab-root": { minWidth: "auto", px: 1.5 } }}
+        >
           {tabs.map((tab) => (
             <Tab key={tab.path} value={tab.path} label={t(`tabs.${tab.path.split("/").pop()}`, { defaultValue: tab.label })} component={Link} to={tab.path} />
           ))}

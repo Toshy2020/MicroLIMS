@@ -477,93 +477,93 @@ export function MultiSampleEntryGrid({
         }}
       >
         <Box sx={{ overflowX: "auto", maxHeight: "55vh" }} onPaste={handlePaste}>
-          <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780) + (showCoaColumn ? 200 : 0) }}>
+          <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1360 : 1180) : isItemBased || isAC ? (showGradeColumn ? 1200 : 1040) : 780) + (showCoaColumn ? 200 : 0), "& th, & td": { px: 1 } }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
                 <TableCell sx={{ width: 40 }}>{t("grid.headers.rowNumber")}</TableCell>
 
                 {isItemBased && (
-                  <TableCell sx={{ minWidth: 200 }}>
+                  <TableCell sx={{ minWidth: 180 }}>
                     {t("grid.headers.item")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {showLabColumn && (
-                  <TableCell sx={{ minWidth: 200 }}>
+                  <TableCell sx={{ minWidth: 170 }}>
                     {t("grid.headers.laboratories")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {showGradeColumn && (
-                  <TableCell sx={{ minWidth: 160 }}>
+                  <TableCell sx={{ minWidth: 150 }}>
                     {t("grid.headers.grade")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                {showCoaColumn && <TableCell sx={{ minWidth: 200 }}>{t("grid.headers.supplierCoa")}</TableCell>}
+                {showCoaColumn && <TableCell sx={{ minWidth: 190 }}>{t("grid.headers.supplierCoa")}</TableCell>}
 
                 {isAC && (
                   <>
-                    <TableCell sx={{ minWidth: 200 }}>
+                    <TableCell sx={{ minWidth: 190 }}>
                       {t("grid.headers.previousProduct")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
                     {isPhyschem && (
-                      <TableCell sx={{ minWidth: 220 }}>
+                      <TableCell sx={{ minWidth: 200 }}>
                         {t("grid.headers.techniques")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                       </TableCell>
                     )}
-                    <TableCell sx={{ minWidth: 150 }}>
+                    <TableCell sx={{ minWidth: 140 }}>
                       {t("grid.headers.previousBatch")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
                   </>
                 )}
 
                 {category === "product" && (
-                  <TableCell sx={{ minWidth: 140 }}>
+                  <TableCell sx={{ minWidth: 120 }}>
                     {t("grid.headers.productionStage")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isWater && (
-                  <TableCell sx={{ minWidth: 180 }}>
+                  <TableCell sx={{ minWidth: 170 }}>
                     {t("grid.headers.department")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isEM && (
-                  <TableCell sx={{ minWidth: 180 }}>
+                  <TableCell sx={{ minWidth: 170 }}>
                     {t("grid.headers.department")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isAC && (
-                  <TableCell sx={{ minWidth: 180 }}>
+                  <TableCell sx={{ minWidth: 170 }}>
                     {t("grid.headers.machine")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                <TableCell sx={{ minWidth: 170 }}>
+                <TableCell sx={{ minWidth: 150 }}>
                   {t("grid.headers.causeOfTesting")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {!isEM && !isAC && (
-                  <TableCell sx={{ minWidth: 120 }}>{t("grid.headers.quantity")}</TableCell>
+                  <TableCell sx={{ minWidth: 110 }}>{t("grid.headers.quantity")}</TableCell>
                 )}
 
-                <TableCell sx={{ minWidth: 160 }}>
+                <TableCell sx={{ minWidth: 145 }}>
                   {t("grid.headers.sampledBy")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {isItemBased && (
-                  <TableCell sx={{ minWidth: 130 }}>
+                  <TableCell sx={{ minWidth: 120 }}>
                     {t("grid.headers.batchNo")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                {!isItemBased && <TableCell sx={{ minWidth: 190 }}>{t("grid.headers.sampledAt")}</TableCell>}
+                {!isItemBased && <TableCell sx={{ minWidth: 180 }}>{t("grid.headers.sampledAt")}</TableCell>}
 
                 {/* The server requires both for item-based samples (ReceiveSampleValidator). */}
-                <TableCell sx={{ minWidth: 130 }}>
+                <TableCell sx={{ minWidth: 120 }}>
                   {t("grid.headers.controlNo")}{isItemBased && <> <span style={{ color: theme.custom.status.detected.text }}>*</span></>}
                 </TableCell>
 

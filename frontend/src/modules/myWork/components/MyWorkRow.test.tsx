@@ -139,4 +139,14 @@ describe("MyWorkRow", () => {
     await Promise.resolve();
     expect(actionAvailabilityService.get).not.toHaveBeenCalled();
   });
+
+  it("translates server action-prefixed row titles in Arabic", async () => {
+    await i18n.changeLanguage("ar");
+    try {
+      renderRow(makeItem({ title: "Perform Appearance" }));
+      expect(await screen.findByText("تنفيذ Appearance")).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
+  });
 });

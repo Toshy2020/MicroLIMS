@@ -14,7 +14,6 @@ import {
 import { useTranslation } from "../../../i18n";
 import { useHelpPanel, type HelpTarget } from "../HelpPanelContext";
 import type { RoleType } from "../tour/tourSteps";
-import { monospaceFontFamily } from "../../../theme/palette";
 import { getReleaseNotes, itemsForRole, type ReleaseNote, type ReleaseNoteItem } from "./releaseNotes";
 
 export interface WhatsNewDialogProps {
@@ -113,7 +112,7 @@ export function WhatsNewDialog({
                 <Typography
                   component="h3"
                   variant="subtitle1"
-                  sx={{ fontWeight: 700, fontFamily: monospaceFontFamily, fontVariantNumeric: "tabular-nums" }}
+                  sx={{ fontWeight: 700, fontVariantNumeric: "tabular-nums" }}
                 >
                   {t("whatsNew.version", { version: section.version })}
                 </Typography>

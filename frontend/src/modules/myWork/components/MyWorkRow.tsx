@@ -35,6 +35,26 @@ function formatDueAt(dueAtUtc: string, timeZoneId: string, locale: string): stri
   }
 }
 
+const ACTION_PREFIXES: readonly [string, string][] = [
+  ["Perform ", "perform"],
+  ["Take ", "take"],
+  ["Read ", "read"],
+  ["Revise ", "revise"],
+  ["Review ", "review"],
+  ["Approve ", "approve"],
+  ["Assign ", "assign"]
+];
+
+function translateRowTitle(title: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  for (const [prefix, key] of ACTION_PREFIXES) {
+    if (title.startsWith(prefix)) {
+      const name = title.slice(prefix.length);
+      return t(`row.actionTitle.${key}`, { name, defaultValue: title });
+    }
+  }
+  return title;
+}
+
 export interface MyWorkRowProps {
   item: MyWorkItem;
   timeZoneId: string;
@@ -89,7 +109,7 @@ export function MyWorkRow({ item, timeZoneId, onTake, onRelease, busyKey }: MyWo
           color: item.locked ? "text.secondary" : "text.primary"
         }}
       >
-        {item.title}
+        {translateRowTitle(item.title, t)}
       </Typography>
     </Box>
   );

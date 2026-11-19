@@ -227,7 +227,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
           bgcolor: theme.custom.chrome.topbarControlBg,
           borderRadius: 2,
           color: theme.custom.chrome.topbarMutedText,
-          width: { sm: 240, md: 360 },
+          width: { sm: 180, md: 320, lg: 360 },
           justifyContent: "space-between",
           cursor: "pointer",
           "&:hover": { bgcolor: theme.custom.chrome.topbarControlHoverBg }
@@ -243,7 +243,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         </Box>
       </ButtonBase>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 } }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 0.75, md: 1.5 }, minWidth: 0 }}>
         <Tooltip title={t("header.searchButton")}>
           <IconButton
             onClick={() => setSearchOpen(true)}
@@ -470,6 +470,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               display: "flex",
               alignItems: "center",
               gap: 1,
+              minWidth: 0,
               pl: 0.5,
               pr: showIdentityText ? 1 : 0.5,
               py: 0.5,
@@ -488,7 +489,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               </Avatar>
             </Badge>
             {showIdentityText && (
-              <Box sx={{ minWidth: 0, maxWidth: 220 }}>
+              <Box sx={{ minWidth: 0, maxWidth: { sm: 120, md: 220 } }}>
                 <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
                 <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: theme.custom.chrome.topbarMutedText }}>
                   {username ? <><Ltr>{username}</Ltr> · {displayTitle}</> : displayTitle}

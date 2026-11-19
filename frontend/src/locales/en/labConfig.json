@@ -2269,6 +2269,44 @@
       "sectionHint": "Choose as many as needed. Each is a presence/absence test with its own test order - no numeric limits.",
       "toAdd": "{{count}} to add",
       "toRemove": "{{count}} to remove"
+    },
+    "partCount_one": "{{count}} part",
+    "partCount_other": "{{count}} parts",
+    "partsWithoutTests_one": "{{count}} part without tests",
+    "partsWithoutTests_other": "{{count}} parts without tests",
+    "page": {
+      "loadError": "Could not load the after-cleaning configuration.",
+      "noPartsYet": "No parts yet",
+      "complete": "Complete",
+      "machineDeleted": "\"{{name}}\" deleted.",
+      "partDeleted": "Part \"{{name}}\" deleted.",
+      "testRemoved": "Test removed from {{part}}.",
+      "deleteError": "Could not delete this record.",
+      "deleteMachine": "Delete machine \"{{name}}\"? This cannot be undone.",
+      "deletePart": "Delete part \"{{name}}\"? This cannot be undone.",
+      "removeTest": "Remove the {{type}} / {{code}} test from {{part}}?",
+      "title": "After Cleaning",
+      "subtitle": "Machines, their parts, and the swab, rinse and pathogen tests run on each part.",
+      "addMachine": "Add machine",
+      "addPart": "Add machine part",
+      "retry": "Retry",
+      "tiles": {
+        "machines": "Machines",
+        "parts": "Machine parts",
+        "pathogens": "Pathogen tests",
+        "partsWithoutTests": "Parts without tests"
+      },
+      "searchLabel": "Find a machine or part",
+      "searchPlaceholder": "e.g. Filling needles",
+      "noMatch": "Nothing matches your search.",
+      "noMachines": "No machines yet. Use “Add machine” to create one.",
+      "loading": "Loading...",
+      "selectMachine": "Select a machine",
+      "rename": "Rename",
+      "deleteMachineTitle": "Delete machine",
+      "deleteAria": "Delete {{name}}",
+      "addPartTo": "Add part to {{name}}",
+      "noPartMatch": "No parts here match your search."
     }
   }
 }

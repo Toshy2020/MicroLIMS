@@ -6,6 +6,8 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.Kpi;
 
@@ -60,7 +62,10 @@ public class KpiDashboardService
     public async Task<KpiRecordPageDto> GetRecordsAsync(string key, int userId, bool canViewTeam, DateOnly from, DateOnly to,
         string? category, string? location, string? testCode, int? analystId, int page, int pageSize, CancellationToken ct = default)
     {
-        var kpi = _registry.Find(key) ?? throw new NotFoundException($"Unknown KPI '{key}'.");
+        var kpi = _registry.Find(key) ?? throw new NotFoundException(
+            MessageCodes.KpiUnknownKpi,
+            $"Unknown KPI '{key}'.",
+            new Dictionary<string, string> { ["key"] = key });
         var q = await BuildQueryAsync(userId, canViewTeam, from, to, category, location, testCode, analystId, ct);
         (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 50);
         return await kpi.GetRecordsAsync(q, page, pageSize, ct);
@@ -95,9 +100,13 @@ public class KpiDashboardService
     private static void ValidateDates(DateOnly from, DateOnly to)
     {
         if (from == default || to == default)
-            throw new BusinessRuleException("A start date and an end date are required.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiDateRangeRequired,
+                "A start date and an end date are required.");
         if (from > to)
-            throw new BusinessRuleException("The start date must not be after the end date.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiStartAfterEnd,
+                "The start date must not be after the end date.");
     }
 
     private async Task<KpiQuery> BuildQueryAsync(int userId, bool canViewTeam, DateOnly from, DateOnly to,

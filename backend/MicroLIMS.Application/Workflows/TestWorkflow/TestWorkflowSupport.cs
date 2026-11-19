@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -62,10 +63,16 @@ public class TestWorkflowSupport
     protected static TestDefinition RequireTemplate(TestOrder order, TestDefinition? definition)
     {
         if (definition is null)
-            throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.");
+            throw new BusinessRuleException(
+                MessageCodes.TestNoWorkflowTemplate,
+                $"Test code \"{order.TestCode}\" has no workflow template configured in Test Master.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         if (definition.Steps.Count == 0 && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.");
+            throw new BusinessRuleException(
+                MessageCodes.TestNoWorkflowSteps,
+                $"Test code \"{order.TestCode}\" has no workflow steps configured yet - add them in Test Master.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         return definition;
     }
@@ -267,7 +274,10 @@ public class TestWorkflowSupport
             var isDone = IsStepDone(facts, definition.WorkflowType, pred);
             if (!isDone)
             {
-                throw new BusinessRuleException($"Workflow order violation: step \"{pred.StepName}\" must be completed before \"{targetStep.StepName}\".");
+                throw new BusinessRuleException(
+                    MessageCodes.TestStepOrderViolation,
+                    $"Workflow order violation: step \"{pred.StepName}\" must be completed before \"{targetStep.StepName}\".",
+                    new Dictionary<string, string> { ["predecessor"] = pred.StepName, ["step"] = targetStep.StepName });
             }
         }
     }
@@ -379,14 +389,20 @@ public class TestWorkflowSupport
     {
         var sourceOrder = await _db.TestOrders
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order #{testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNumberNotFound,
+                $"Test order #{testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var incubation = await _db.Incubations
             .Include(i => i.Media)
                 .ThenInclude(m => m!.Material)
             .Include(i => i.IncubatorEquipment)
             .FirstOrDefaultAsync(i => i.Id == incubationId, ct)
-            ?? throw new NotFoundException($"Incubation #{incubationId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IncubationNotFound,
+                $"Incubation #{incubationId} not found.",
+                new Dictionary<string, string> { ["incubationId"] = incubationId.ToString(CultureInfo.InvariantCulture) });
 
         // Without a lot there is nothing a sibling's own medium could accept.
         if (incubation.Media is null) return;
@@ -560,9 +576,13 @@ public class TestWorkflowSupport
         bool outsourced = false)
     {
         if (string.IsNullOrWhiteSpace(password))
-            throw new BusinessRuleException("Password is required to sign the result.");
+            throw new BusinessRuleException(
+                MessageCodes.TestResultSigningPasswordRequired,
+                "Password is required to sign the result.");
         if (expectedWorkflowType != WorkflowType.Dissolution && expectedWorkflowType != WorkflowType.Disintegration && expectedWorkflowType != WorkflowType.WeightVariation && expectedWorkflowType != WorkflowType.HplcMethodAssay && expectedWorkflowType != WorkflowType.IcpMethodAssay && (suppliedSpecIds == null || suppliedSpecIds.Count == 0))
-            throw new BusinessRuleException("At least one parameter result is required.");
+            throw new BusinessRuleException(
+                MessageCodes.TestParameterResultRequired,
+                "At least one parameter result is required.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var analysedAtUtc = analysedAt.Kind switch
@@ -573,54 +593,84 @@ public class TestWorkflowSupport
         };
 
         if (analysedAtUtc > nowUtc.AddMinutes(5))
-            throw new BusinessRuleException("Analysis time cannot be in the future.");
+            throw new BusinessRuleException(
+                MessageCodes.TestAnalysisTimeInFuture,
+                "Analysis time cannot be in the future.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         RequireOrderNotFinalized(order);
 
         // An outsourced test takes only its external lab result, and every other test only its own recorder.
         if (outsourced && order.OutsourcedToLab == null)
-            throw new BusinessRuleException("This test has not been outsourced.");
+            throw new BusinessRuleException(
+                MessageCodes.TestNotOutsourcedYet,
+                "This test has not been outsourced.");
         if (!outsourced && order.OutsourcedToLab != null)
-            throw new BusinessRuleException($"This test was outsourced to {order.OutsourcedToLab}. Record its result from the external lab report.");
+            throw new BusinessRuleException(
+                MessageCodes.TestOutsourcedRecordFromReport,
+                $"This test was outsourced to {order.OutsourcedToLab}. Record its result from the external lab report.",
+                new Dictionary<string, string> { ["lab"] = order.OutsourcedToLab });
 
         if (order.IsSuperseded)
-            throw new BusinessRuleException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException(
+                MessageCodes.TestSupersededCannotRecordResult,
+                "Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.TestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         if (definition.WorkflowType != expectedWorkflowType)
-            throw new BusinessRuleException($"Test order {testOrderId} is not a {expectedWorkflowType} workflow.");
+            throw new BusinessRuleException(
+                MessageCodes.TestWrongWorkflowType,
+                $"Test order {testOrderId} is not a {expectedWorkflowType} workflow.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture), ["workflowType"] = expectedWorkflowType.ToString() });
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         if (await _db.TestAnalyses.AnyAsync(e => e.TestOrderId == testOrderId && e.IsActive))
-            throw new BusinessRuleException($"An active {AnalysisWorkflows.GetDisplayName(expectedWorkflowType)} entry already exists for this test order.");
+            throw new BusinessRuleException(
+                MessageCodes.TestActiveEntryExists,
+                $"An active {AnalysisWorkflows.GetDisplayName(expectedWorkflowType)} entry already exists for this test order.",
+                new Dictionary<string, string> { ["workflow"] = AnalysisWorkflows.GetDisplayName(expectedWorkflowType) });
 
         if (equipmentId.HasValue)
         {
             var equip = await _db.Equipment
                 .Include(e => e.Section)
                 .FirstOrDefaultAsync(e => e.Id == equipmentId.Value)
-                ?? throw new NotFoundException($"Equipment {equipmentId.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.TestEquipmentNotFound,
+                    $"Equipment {equipmentId.Value} not found.",
+                    new Dictionary<string, string> { ["equipmentId"] = equipmentId.Value.ToString(CultureInfo.InvariantCulture) });
 
             var inventoryEquip = await _db.EquipmentInventories
                 .FirstOrDefaultAsync(i => i.Code == equip.Code);
             if (inventoryEquip != null && inventoryEquip.Status != EquipmentOperationalStatus.InService)
-                throw new BusinessRuleException($"Equipment \"{equip.Name}\" is not active.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestEquipmentNotActive,
+                    $"Equipment \"{equip.Name}\" is not active.",
+                    new Dictionary<string, string> { ["name"] = equip.Name });
 
             var equipSectionCode = equip.Section?.Code
                 ?? (await _db.DocumentSections.Where(s => s.Id == equip.SectionId).Select(s => s.Code).FirstOrDefaultAsync());
 
             if (!string.Equals(equipSectionCode, "FP", StringComparison.OrdinalIgnoreCase))
-                throw new BusinessRuleException($"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestEquipmentNotInFpSection,
+                    $"Equipment \"{equip.Name}\" is not in the Finished Product (FP) section.",
+                    new Dictionary<string, string> { ["name"] = equip.Name });
         }
 
         if (order.Sample?.ItemId is null)
@@ -630,7 +680,9 @@ public class TestWorkflowSupport
             {
                 return (order, definition, new Dictionary<int, Specification>(), analysedAtUtc);
             }
-            throw new BusinessRuleException("Test order sample must be linked to an item with specifications.");
+            throw new BusinessRuleException(
+                MessageCodes.TestSampleItemRequired,
+                "Test order sample must be linked to an item with specifications.");
         }
 
         var itemId = order.Sample.ItemId.Value;
@@ -644,42 +696,59 @@ public class TestWorkflowSupport
         if (specs.Count == 0)
         {
             await SpecificationLookup.ThrowIfRetiredAsync(_db, order.SampleId, itemId, order.TestCode);
-            throw new BusinessRuleException("No specifications configured for this test and item.");
+            throw new BusinessRuleException(
+                MessageCodes.TestNoSpecifications,
+                "No specifications configured for this test and item.");
         }
 
         if (expectedWorkflowType == WorkflowType.Dissolution)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.DissolutionQ)
-                throw new BusinessRuleException("Dissolution tests require exactly one DissolutionQ specification.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDissolutionNeedsOneSpec,
+                    "Dissolution tests require exactly one DissolutionQ specification.");
         }
         else if (expectedWorkflowType == WorkflowType.Disintegration)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.DisintegrationTime)
-                throw new BusinessRuleException("Disintegration tests require exactly one DisintegrationTime specification.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDisintegrationNeedsOneSpec,
+                    "Disintegration tests require exactly one DisintegrationTime specification.");
         }
         else if (expectedWorkflowType == WorkflowType.WeightVariation)
         {
             if (specs.Count != 1 || specs[0].LimitType != LimitType.WeightVariation)
-                throw new BusinessRuleException("Weight variation tests require exactly one WeightVariation specification.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestWeightVariationNeedsOneSpec,
+                    "Weight variation tests require exactly one WeightVariation specification.");
         }
         else if (expectedWorkflowType == WorkflowType.HplcMethodAssay)
         {
             if (specs.Any(s => !s.HplcMethodAnalyteId.HasValue))
-                throw new BusinessRuleException("Every specification for an HPLC method assay must be linked to a method analyte.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestHplcSpecMustLinkAnalyte,
+                    "Every specification for an HPLC method assay must be linked to a method analyte.");
         }
         else if (expectedWorkflowType == WorkflowType.IcpMethodAssay)
         {
             if (specs.Any(s => !s.IcpTestElementId.HasValue))
-                throw new BusinessRuleException("Every specification for an ICP method assay must be linked to a test element.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestIcpSpecMustLinkElement,
+                    "Every specification for an ICP method assay must be linked to a test element.");
         }
         else
         {
             if (suppliedSpecIds == null || suppliedSpecIds.Count != specs.Count)
-                throw new BusinessRuleException($"Expected {specs.Count} parameter results matching specifications, but received {suppliedSpecIds?.Count ?? 0}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestParameterResultCountMismatch,
+                    $"Expected {specs.Count} parameter results matching specifications, but received {suppliedSpecIds?.Count ?? 0}.",
+                    new Dictionary<string, string> { ["expected"] = specs.Count.ToString(CultureInfo.InvariantCulture), ["received"] = (suppliedSpecIds?.Count ?? 0).ToString(CultureInfo.InvariantCulture) });
 
             var specIds = specs.Select(s => s.Id).ToHashSet();
             if (suppliedSpecIds.Distinct().Count() != suppliedSpecIds.Count || !specIds.SetEquals(suppliedSpecIds))
-                throw new BusinessRuleException("Every specification for this test must be supplied exactly once.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestEverySpecMustBeSuppliedOnce,
+                    "Every specification for this test must be supplied exactly once.");
         }
 
         return (order, definition, specs.ToDictionary(s => s.Id), analysedAtUtc);
@@ -783,7 +852,9 @@ public class TestWorkflowSupport
     {
         if (order.CurrentStep is WorkflowStep.Ready or WorkflowStep.Reviewed or WorkflowStep.Approved)
             throw new BusinessRuleException(
-                $"Test order {order.Id} is already at {order.CurrentStep} - its workflow can no longer be submitted against.");
+                MessageCodes.TestWorkflowAlreadyAtStep,
+                $"Test order {order.Id} is already at {order.CurrentStep} - its workflow can no longer be submitted against.",
+                new Dictionary<string, string> { ["step"] = order.CurrentStep.ToString(), ["testOrderId"] = order.Id.ToString(CultureInfo.InvariantCulture) });
     }
 
     protected async Task<TestWorkflowStepMedia> LoadStepMediumAsync(int stepId, int materialId)
@@ -806,7 +877,10 @@ public class TestWorkflowSupport
         var mediaRow = await _db.Media.Where(m => m.Id == mediaLotId)
             .Select(m => new { m.Material!.MediaProductId })
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IncubationMediaLotNotFound,
+                $"Media lot {mediaLotId} not found.",
+                new Dictionary<string, string> { ["mediaLotId"] = mediaLotId.ToString(CultureInfo.InvariantCulture) });
 
         var stepMedia = await _db.TestWorkflowStepMedias
             .Include(m => m.IncubationCondition)

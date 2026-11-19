@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -31,11 +33,15 @@ public static class WorkflowStateMachine
 
         if (order.IsSuperseded)
             throw new BusinessRuleException(
-                $"Test {order.TestCode} has been replaced by a retest; its workflow can no longer change.");
+                MessageCodes.TestReplacedByRetest,
+                $"Test {order.TestCode} has been replaced by a retest; its workflow can no longer change.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         if (ClosedStatuses.Contains(order.Status))
             throw new BusinessRuleException(
-                $"Test {order.TestCode} is {order.Status}; its workflow can no longer change.");
+                MessageCodes.TestWorkflowLockedByStatus,
+                $"Test {order.TestCode} is {order.Status}; its workflow can no longer change.",
+                new Dictionary<string, string> { ["status"] = order.Status.ToString(), ["testCode"] = order.TestCode });
 
         var fromStep = order.CurrentStep;
 
@@ -74,6 +80,9 @@ public static class WorkflowStateMachine
             .Include(t => t.Incubations)
             .Include(t => t.Results)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
     }
 }

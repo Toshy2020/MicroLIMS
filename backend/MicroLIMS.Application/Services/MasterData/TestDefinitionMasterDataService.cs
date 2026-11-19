@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -9,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
@@ -131,14 +133,19 @@ public class TestDefinitionMasterDataService
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new BusinessRuleException("Code is required.");
+            throw new BusinessRuleException(MessageCodes.TestDefinitionCodeRequired, "Code is required.");
         if (string.IsNullOrWhiteSpace(request.DisplayName))
-            throw new BusinessRuleException("Display name is required.");
+            throw new BusinessRuleException(MessageCodes.TestDefinitionDisplayNameRequired, "Display name is required.");
         if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code, ct))
-            throw new BusinessRuleException($"Test code \"{request.Code}\" already exists in the Test Master.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionCodeAlreadyExists,
+                $"Test code \"{request.Code}\" already exists in the Test Master.",
+                new Dictionary<string, string> { ["code"] = request.Code });
 
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
-            throw new BusinessRuleException("Elemental assay tests are retired; use an ICP method assay test.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionElementalAssayRetired,
+                "Elemental assay tests are retired; use an ICP method assay test.");
 
         var userId = currentUserId;
         var sectionId = await _scope.ResolveSectionForCreateAsync(userId, request.SectionId, access: SectionAccess.Configure);
@@ -148,137 +155,190 @@ public class TestDefinitionMasterDataService
             : request.MethodAbbreviation.Trim().ToUpperInvariant();
 
         if ((request.WorkflowType == WorkflowType.Disintegration || request.EquationType == EquationType.Disintegration) && request.RequiresSystemSuitability)
-            throw new BusinessRuleException("Disintegration tests must not require system suitability.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionDisintegrationNoSystemSuitability,
+                "Disintegration tests must not require system suitability.");
 
         if ((request.WorkflowType == WorkflowType.WeightVariation || request.EquationType == EquationType.WeightVariation) && request.RequiresSystemSuitability)
-            throw new BusinessRuleException("Weight variation tests must not require system suitability.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionWeightVariationNoSystemSuitability,
+                "Weight variation tests must not require system suitability.");
 
         if (request.RequiresSystemSuitability)
         {
             if (string.IsNullOrEmpty(methodAbbr))
-                throw new BusinessRuleException("Method abbreviation is required when system suitability is enabled.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionMethodAbbreviationRequired,
+                    "Method abbreviation is required when system suitability is enabled.");
 
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
-                throw new BusinessRuleException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionMethodAbbreviationInvalid,
+                    "Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
         else if (methodAbbr != null)
         {
             if (!System.Text.RegularExpressions.Regex.IsMatch(methodAbbr, "^[A-Z0-9-]{1,20}$"))
-                throw new BusinessRuleException("Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionMethodAbbreviationInvalid,
+                    "Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.");
         }
 
         if (request.EquationType == EquationType.Measurement)
         {
             if (request.WorkflowType != WorkflowType.Measurement)
-                throw new BusinessRuleException("Workflow type must be Measurement when equation type is Measurement.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeMeasurement,
+                    "Workflow type must be Measurement when equation type is Measurement.");
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
-                throw new BusinessRuleException("Replicate count must be between 1 and 30 when equation type is Measurement.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionMeasurementReplicateCountRange,
+                    "Replicate count must be between 1 and 30 when equation type is Measurement.");
 
             if (!request.EvaluationBasis.HasValue)
-                throw new BusinessRuleException("Evaluation basis is required when equation type is Measurement.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionMeasurementEvaluationBasisRequired,
+                    "Evaluation basis is required when equation type is Measurement.");
         }
         else if (request.WorkflowType == WorkflowType.Measurement)
         {
             if (request.EquationType != EquationType.Measurement)
-                throw new BusinessRuleException("Equation type must be Measurement when workflow type is Measurement.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeMeasurement,
+                    "Equation type must be Measurement when workflow type is Measurement.");
         }
 
         if (request.ConditionFields != null && request.ConditionFields.Length > 500)
-            throw new BusinessRuleException("Condition fields cannot exceed 500 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionConditionFieldsTooLong,
+                "Condition fields cannot exceed 500 characters.");
 
         if (request.EquationType is EquationType.GravimetricLoss or EquationType.GravimetricResidue)
         {
             if (request.WorkflowType != WorkflowType.Gravimetric)
-                throw new BusinessRuleException($"Workflow type must be Gravimetric when equation type is {request.EquationType}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeGravimetric,
+                    $"Workflow type must be Gravimetric when equation type is {request.EquationType}.",
+                    new Dictionary<string, string> { ["equationType"] = request.EquationType.ToString() });
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
-                throw new BusinessRuleException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionReplicateCountRangeForEquation,
+                    $"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.",
+                    new Dictionary<string, string> { ["equationType"] = request.EquationType.ToString() });
         }
         else if (request.WorkflowType == WorkflowType.Gravimetric)
         {
             if (request.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
-                throw new BusinessRuleException("Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeGravimetric,
+                    "Equation type must be GravimetricLoss or GravimetricResidue when workflow type is Gravimetric.");
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
-                throw new BusinessRuleException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionReplicateCountRangeForEquation,
+                    $"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.",
+                    new Dictionary<string, string> { ["equationType"] = request.EquationType.ToString() });
         }
 
         if (request.EquationType == EquationType.UvSpectrophotometry)
         {
             if (request.WorkflowType != WorkflowType.UvSpectrophotometry)
-                throw new BusinessRuleException("Workflow type must be UvSpectrophotometry when equation type is UvSpectrophotometry.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeUvSpectrophotometry,
+                    "Workflow type must be UvSpectrophotometry when equation type is UvSpectrophotometry.");
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
-                throw new BusinessRuleException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionReplicateCountRangeForEquation,
+                    $"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.",
+                    new Dictionary<string, string> { ["equationType"] = request.EquationType.ToString() });
         }
         else if (request.WorkflowType == WorkflowType.UvSpectrophotometry)
         {
             if (request.EquationType != EquationType.UvSpectrophotometry)
-                throw new BusinessRuleException("Equation type must be UvSpectrophotometry when workflow type is UvSpectrophotometry.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeUvSpectrophotometry,
+                    "Equation type must be UvSpectrophotometry when workflow type is UvSpectrophotometry.");
 
             if (!request.ReplicateCount.HasValue || request.ReplicateCount.Value < 1 || request.ReplicateCount.Value > 30)
-                throw new BusinessRuleException($"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionReplicateCountRangeForEquation,
+                    $"Replicate count must be between 1 and 30 when equation type is {request.EquationType}.",
+                    new Dictionary<string, string> { ["equationType"] = request.EquationType.ToString() });
         }
 
         if (request.WorkflowType == WorkflowType.UvSpectrophotometry)
         {
             if (!request.UvCalculationMode.HasValue)
-                throw new BusinessRuleException("A UV test needs a calculation mode.");
+                throw new BusinessRuleException(MessageCodes.UvCalculationModeRequired, "A UV test needs a calculation mode.");
             if (!Enum.IsDefined(request.UvCalculationMode.Value))
-                throw new BusinessRuleException("Unknown UV calculation mode.");
+                throw new BusinessRuleException(MessageCodes.TestDefinitionUnknownUvCalculationMode, "Unknown UV calculation mode.");
 
             if (request.UvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceAssay)
             {
                 if (!request.UvSpecificAbsorbance.HasValue || request.UvSpecificAbsorbance.Value <= 0m)
-                    throw new BusinessRuleException("This UV mode needs a specific absorbance above 0.");
+                    throw new BusinessRuleException(MessageCodes.UvSpecificAbsorbanceRequired, "This UV mode needs a specific absorbance above 0.");
                 if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
-                    throw new BusinessRuleException("This UV mode needs a total volume above 0.");
+                    throw new BusinessRuleException(MessageCodes.UvTotalVolumeRequired, "This UV mode needs a total volume above 0.");
             }
             else if (request.UvCalculationMode.Value == UvCalculationMode.SpecificAbsorbanceValue)
             {
                 if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
-                    throw new BusinessRuleException("This UV mode needs a total volume above 0.");
+                    throw new BusinessRuleException(MessageCodes.UvTotalVolumeRequired, "This UV mode needs a total volume above 0.");
             }
             else if (request.UvCalculationMode.Value == UvCalculationMode.StandardComparison)
             {
                 if (!request.UvTotalVolumeMl.HasValue || request.UvTotalVolumeMl.Value <= 0m)
-                    throw new BusinessRuleException("This UV mode needs a total volume above 0.");
+                    throw new BusinessRuleException(MessageCodes.UvTotalVolumeRequired, "This UV mode needs a total volume above 0.");
                 if (!request.UvStandardVolumeMl.HasValue || request.UvStandardVolumeMl.Value <= 0m)
-                    throw new BusinessRuleException("A UV test against a standard needs a standard volume above 0.");
+                    throw new BusinessRuleException(MessageCodes.UvStandardVolumeRequired, "A UV test against a standard needs a standard volume above 0.");
             }
         }
         else if (request.UvCalculationMode.HasValue || request.UvSpecificAbsorbance.HasValue || request.UvTotalVolumeMl.HasValue || request.UvStandardVolumeMl.HasValue || request.UvStandardEntryId.HasValue)
         {
-            throw new BusinessRuleException("UV fields are only allowed for UV spectrophotometry tests.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionUvFieldsOnlyForUv,
+                "UV fields are only allowed for UV spectrophotometry tests.");
         }
 
         if (request.EquationType == EquationType.Qualitative)
         {
             if (request.WorkflowType != WorkflowType.Qualitative)
-                throw new BusinessRuleException("Workflow type must be Qualitative when equation type is Qualitative.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeQualitative,
+                    "Workflow type must be Qualitative when equation type is Qualitative.");
         }
         else if (request.WorkflowType == WorkflowType.Qualitative)
         {
             if (request.EquationType != EquationType.Qualitative)
-                throw new BusinessRuleException("Equation type must be Qualitative when workflow type is Qualitative.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeQualitative,
+                    "Equation type must be Qualitative when workflow type is Qualitative.");
         }
 
         if (request.EquationType == EquationType.Dissolution)
         {
             if (request.WorkflowType != WorkflowType.Dissolution)
-                throw new BusinessRuleException("Workflow type must be Dissolution when equation type is Dissolution.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeDissolution,
+                    "Workflow type must be Dissolution when equation type is Dissolution.");
         }
         else if (request.WorkflowType == WorkflowType.Dissolution)
         {
             if (request.EquationType != EquationType.Dissolution)
-                throw new BusinessRuleException("Equation type must be Dissolution when workflow type is Dissolution.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeDissolution,
+                    "Equation type must be Dissolution when workflow type is Dissolution.");
         }
 
         if (request.WorkflowType == WorkflowType.Dissolution)
         {
             if (!request.RequiresSystemSuitability)
-                throw new BusinessRuleException("Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionDissolutionRequiresSystemSuitability,
+                    "Dissolution tests must require system suitability: the standard comes from the HPLC run the sample is assigned to.");
 
             decimal s1 = request.DissolutionS1Offset ?? 5m;
             decimal s2 = request.DissolutionS2MinOffset ?? 15m;
@@ -286,24 +346,32 @@ public class TestDefinitionMasterDataService
             decimal maxBelow = request.DissolutionS3MaxBelowS2Min ?? 2m;
 
             if (s1 < 0 || s2 < 0 || s3 < 0 || maxBelow < 0)
-                throw new BusinessRuleException("Dissolution stage offsets must be greater than or equal to zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.DissolutionStageOffsetsNonNegative,
+                    "Dissolution stage offsets must be greater than or equal to zero.");
         }
 
         if (request.EquationType == EquationType.Disintegration)
         {
             if (request.WorkflowType != WorkflowType.Disintegration)
-                throw new BusinessRuleException("Workflow type must be Disintegration when equation type is Disintegration.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeDisintegration,
+                    "Workflow type must be Disintegration when equation type is Disintegration.");
         }
         else if (request.WorkflowType == WorkflowType.Disintegration)
         {
             if (request.EquationType != EquationType.Disintegration)
-                throw new BusinessRuleException("Equation type must be Disintegration when workflow type is Disintegration.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeDisintegration,
+                    "Equation type must be Disintegration when workflow type is Disintegration.");
         }
 
         if (request.WorkflowType == WorkflowType.Disintegration)
         {
             if (request.RequiresSystemSuitability)
-                throw new BusinessRuleException("Disintegration tests must not require system suitability.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionDisintegrationNoSystemSuitability,
+                    "Disintegration tests must not require system suitability.");
 
             int s1 = request.DisintegrationStage1Units ?? 6;
             int s2 = request.DisintegrationStage2Units ?? 12;
@@ -311,28 +379,42 @@ public class TestDefinitionMasterDataService
             int minPass = request.DisintegrationMinPassTotal ?? 16;
 
             if (s1 < 1 || s2 < 1)
-                throw new BusinessRuleException("Disintegration stage units must be greater than or equal to 1.");
+                throw new BusinessRuleException(
+                    MessageCodes.DisintegrationStageUnitsMinOne,
+                    "Disintegration stage units must be greater than or equal to 1.");
             if (maxFail < 0 || maxFail >= s1)
-                throw new BusinessRuleException($"Disintegration maximum Stage 1 failures must be between 0 and {s1 - 1}.");
+                throw new BusinessRuleException(
+                    MessageCodes.DisintegrationMaxStage1FailuresRange,
+                    $"Disintegration maximum Stage 1 failures must be between 0 and {s1 - 1}.",
+                    new Dictionary<string, string> { ["max"] = (s1 - 1).ToString(CultureInfo.InvariantCulture) });
             if (minPass < 1 || minPass > (s1 + s2))
-                throw new BusinessRuleException($"Disintegration minimum pass total must be between 1 and {s1 + s2}.");
+                throw new BusinessRuleException(
+                    MessageCodes.DisintegrationMinPassTotalRange,
+                    $"Disintegration minimum pass total must be between 1 and {s1 + s2}.",
+                    new Dictionary<string, string> { ["total"] = (s1 + s2).ToString(CultureInfo.InvariantCulture) });
         }
 
         if (request.EquationType == EquationType.WeightVariation)
         {
             if (request.WorkflowType != WorkflowType.WeightVariation)
-                throw new BusinessRuleException("Workflow type must be WeightVariation when equation type is WeightVariation.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWorkflowMustBeWeightVariation,
+                    "Workflow type must be WeightVariation when equation type is WeightVariation.");
         }
         else if (request.WorkflowType == WorkflowType.WeightVariation)
         {
             if (request.EquationType != EquationType.WeightVariation)
-                throw new BusinessRuleException("Equation type must be WeightVariation when workflow type is WeightVariation.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionEquationMustBeWeightVariation,
+                    "Equation type must be WeightVariation when workflow type is WeightVariation.");
         }
 
         if (request.WorkflowType == WorkflowType.WeightVariation)
         {
             if (request.RequiresSystemSuitability)
-                throw new BusinessRuleException("Weight variation tests must not require system suitability.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestDefinitionWeightVariationNoSystemSuitability,
+                    "Weight variation tests must not require system suitability.");
 
             int unitCount = request.WvUnitCount ?? 20;
             decimal band1Mg = request.WvTabletBand1MaxMg ?? 130m;
@@ -350,27 +432,46 @@ public class TestDefinitionMasterDataService
             int capS2MaxOutside = request.WvCapsuleS2MaxOutside ?? 6;
 
             if (unitCount < 1 || capS2Extra < 1)
-                throw new BusinessRuleException("Weight variation unit count and extra units must be greater than or equal to 1.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationUnitCountMinOne,
+                    "Weight variation unit count and extra units must be greater than or equal to 1.");
             if (tabMaxOutside < 0 || capS1MaxOutside < 0 || capS2MaxOutside < 0)
-                throw new BusinessRuleException("Weight variation maximum outside counts must be greater than or equal to 0.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationMaxOutsideNonNegative,
+                    "Weight variation maximum outside counts must be greater than or equal to 0.");
             if (band1Mg <= 0m || band2Mg <= 0m)
-                throw new BusinessRuleException("Weight variation tablet band weight limits must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationTabletBandWeightLimitsPositive,
+                    "Weight variation tablet band weight limits must be greater than zero.");
             if (band1Pct <= 0m || band2Pct <= 0m || band3Pct <= 0m || capInnerPct <= 0m || capOuterPct <= 0m)
-                throw new BusinessRuleException("Weight variation percentages must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationPercentagesPositive,
+                    "Weight variation percentages must be greater than zero.");
             if (band1Mg >= band2Mg)
-                throw new BusinessRuleException("Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationTabletBandOrder,
+                    "Weight variation Tablet Band 1 Max Mg must be less than Band 2 Max Mg.");
             if (capInnerPct >= capOuterPct)
-                throw new BusinessRuleException("Weight variation capsule inner percentage must be less than outer percentage.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationCapsulePercentageOrder,
+                    "Weight variation capsule inner percentage must be less than outer percentage.");
             if (capS1MaxOutside >= capS1MaxRetest || capS1MaxRetest > unitCount)
-                throw new BusinessRuleException("Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationCapsuleS1Order,
+                    "Weight variation capsule Stage 1 max outside must be less than Stage 1 max for retest, which must be less than or equal to unit count.");
             if (capS2MaxOutside >= unitCount + capS2Extra)
-                throw new BusinessRuleException($"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).");
+                throw new BusinessRuleException(
+                    MessageCodes.WeightVariationCapsuleS2MaxOutsideTooHigh,
+                    $"Weight variation capsule Stage 2 max outside must be less than total units ({unitCount + capS2Extra}).",
+                    new Dictionary<string, string> { ["total"] = (unitCount + capS2Extra).ToString(CultureInfo.InvariantCulture) });
         }
 
         // Retired: the old HPLC types and Standard-Comparison are replaced by HPLC method assay.
         if (request.WorkflowType is WorkflowType.HplcAssay or WorkflowType.HplcMultiAnalyte or WorkflowType.StandardComparison
             || request.EquationType is EquationType.HplcAssay or EquationType.HplcMultiAnalyte or EquationType.StandardComparison)
-            throw new BusinessRuleException("HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDefinitionLegacyHplcRetired,
+                "HPLC Assay, HPLC Multi-Analyte and Standard-Comparison are retired; use HPLC method assay.");
 
         // ICP workspace: IcpMethodAssay tests define their own elements; the
         // run calibration (not system suitability) is the gate.

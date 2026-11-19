@@ -34,6 +34,7 @@ public static partial class MessageCodes
         IcpParameters(),
         IncubationParameters(),
         InstrumentParameters(),
+        LabelParameters(),
         MaterialParameters(),
         MediaParameters(),
         MonitoringParameters(),

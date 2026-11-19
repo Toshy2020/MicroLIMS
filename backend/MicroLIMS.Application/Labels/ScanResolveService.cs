@@ -1,6 +1,8 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Labels;
 
@@ -52,23 +54,29 @@ public sealed class ScanResolveService(ILabelDataSource dataSource) : IScanResol
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new BusinessRuleException("Scan value is required.");
+            throw new BusinessRuleException(MessageCodes.LabelScanValueRequired, "Scan value is required.");
         }
 
         if (value.Length > MaxValueLength)
         {
-            throw new BusinessRuleException($"Scan value must not exceed {MaxValueLength} characters.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelScanValueTooLong,
+                $"Scan value must not exceed {MaxValueLength} characters.",
+                new Dictionary<string, string> { ["maxLength"] = MaxValueLength.ToString(CultureInfo.InvariantCulture) });
         }
 
         var normalized = ScanInputNormalizer.Normalize(value);
         if (string.IsNullOrWhiteSpace(normalized.Value))
         {
-            throw new BusinessRuleException("Scan value is required.");
+            throw new BusinessRuleException(MessageCodes.LabelScanValueRequired, "Scan value is required.");
         }
 
         if (normalized.Value.Length > MaxValueLength)
         {
-            throw new BusinessRuleException($"Scan value must not exceed {MaxValueLength} characters.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelScanValueTooLong,
+                $"Scan value must not exceed {MaxValueLength} characters.",
+                new Dictionary<string, string> { ["maxLength"] = MaxValueLength.ToString(CultureInfo.InvariantCulture) });
         }
 
         if (LabelPayload.TryParse(normalized.Value, out var prefixedType, out var prefixedCode))

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
 import { clientSettingsService } from "../services/clientSettingsService";
@@ -21,8 +21,17 @@ export function useDraftOverview(): DraftOverview {
   const { userId } = useAuth();
   const [drafts, setDrafts] = useState<Draft<unknown>[]>([]);
   const [otherUsersCount, setOtherUsersCount] = useState(0);
+  // Storage answers asynchronously; an answer that arrives after the header unmounted is dropped.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
+    if (!mounted.current) return;
     if (userId == null) {
       setDrafts([]);
       setOtherUsersCount(0);
@@ -30,9 +39,11 @@ export function useDraftOverview(): DraftOverview {
     }
     try {
       const [mine, others] = await Promise.all([draftStore.listForUser(userId), draftStore.countOtherUsers(userId)]);
+      if (!mounted.current) return;
       setDrafts(mine);
       setOtherUsersCount(others);
     } catch {
+      if (!mounted.current) return;
       // No usable storage on this device: there is nothing to list.
       setDrafts([]);
       setOtherUsersCount(0);
@@ -53,6 +64,7 @@ export function useDraftOverview(): DraftOverview {
           `${removed} unsaved ${removed === 1 ? "entry" : "entries"} older than ${hours} ${hours === 1 ? "hour" : "hours"} ${removed === 1 ? "was" : "were"} removed from this tablet.`
         );
       }
+      if (controller.signal.aborted) return;
       await refresh();
     })();
     return () => controller.abort();

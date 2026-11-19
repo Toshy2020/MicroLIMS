@@ -1,9 +1,11 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Sso;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Sso;
 
@@ -127,7 +129,9 @@ public sealed class SsoAdminService
     {
         var target = ResolveTargetMode(await _ssoMode.GetModeAsync(ct), requestedMode);
         if (target == SsoMode.Off)
-            throw new BusinessRuleException("Choose OpenID Connect or Active Directory to test a connection.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthSsoChooseProviderToTest,
+                "Choose OpenID Connect or Active Directory to test a connection.");
 
         try
         {
@@ -142,7 +146,8 @@ public sealed class SsoAdminService
             // Saved on its own (no transaction is open here), so the failure
             // record stays even though the request ends in an error.
             await _ssoMode.RecordConnectionTestFailedAsync(target, $"{ex.GetType().Name}: {reason}", actingUserId, ct);
-            throw new BusinessRuleException($"The connection test failed: {AdminReadable(ex, reason, target)}");
+            var (code, message, parameters) = AdminReadableFailure(ex, reason, target);
+            throw new BusinessRuleException(code, message, parameters);
         }
 
         await _ssoMode.RecordConnectionTestPassedAsync(target, actingUserId, ct);
@@ -150,15 +155,37 @@ public sealed class SsoAdminService
         return new SsoTestResultDto(true, testedAt);
     }
 
-    private static string AdminReadable(Exception ex, string reason, SsoMode target) => ex switch
+    private static (string Code, string Message, Dictionary<string, string>? Params) AdminReadableFailure(
+        Exception ex, string reason, SsoMode target) => ex switch
     {
-        DirectoryUnavailableException => $"the company directory could not be used ({reason})",
-        InvalidOperationException when target == SsoMode.ActiveDirectory => reason,
-        HttpRequestException => $"the identity provider could not be reached ({reason})",
-        TaskCanceledException => "the identity provider did not answer in time",
-        OidcValidationException => reason,
-        InvalidOperationException => reason,
-        _ => $"the identity provider's configuration could not be read ({reason})"
+        DirectoryUnavailableException => (
+            MessageCodes.AuthSsoTestFailedDirectoryUnavailable,
+            $"The connection test failed: the company directory could not be used ({reason})",
+            new Dictionary<string, string> { ["reason"] = reason }),
+        InvalidOperationException when target == SsoMode.ActiveDirectory => (
+            MessageCodes.AuthSsoTestFailedReason,
+            $"The connection test failed: {reason}",
+            new Dictionary<string, string> { ["reason"] = reason }),
+        HttpRequestException => (
+            MessageCodes.AuthSsoTestFailedIdpUnreachable,
+            $"The connection test failed: the identity provider could not be reached ({reason})",
+            new Dictionary<string, string> { ["reason"] = reason }),
+        TaskCanceledException => (
+            MessageCodes.AuthSsoTestFailedIdpTimeout,
+            "The connection test failed: the identity provider did not answer in time",
+            null),
+        OidcValidationException => (
+            MessageCodes.AuthSsoTestFailedReason,
+            $"The connection test failed: {reason}",
+            new Dictionary<string, string> { ["reason"] = reason }),
+        InvalidOperationException => (
+            MessageCodes.AuthSsoTestFailedReason,
+            $"The connection test failed: {reason}",
+            new Dictionary<string, string> { ["reason"] = reason }),
+        _ => (
+            MessageCodes.AuthSsoTestFailedConfigUnreadable,
+            $"The connection test failed: the identity provider's configuration could not be read ({reason})",
+            new Dictionary<string, string> { ["reason"] = reason }),
     };
 
     // A provider or directory message must never carry the client secret or the
@@ -209,9 +236,16 @@ public sealed class SsoAdminService
     private static void EnsureRowCount(IReadOnlyList<DirectoryLinkRowRequest>? rows)
     {
         if (rows is null || rows.Count == 0)
-            throw new BusinessRuleException("The file has no rows.");
+            throw new BusinessRuleException(MessageCodes.AuthSsoImportFileEmpty, "The file has no rows.");
         if (rows.Count > MaxImportRows)
-            throw new BusinessRuleException($"The file has {rows.Count} rows. At most {MaxImportRows} rows can be imported at once.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthSsoImportTooManyRows,
+                $"The file has {rows.Count} rows. At most {MaxImportRows} rows can be imported at once.",
+                new Dictionary<string, string>
+                {
+                    ["maxRows"] = MaxImportRows.ToString(CultureInfo.InvariantCulture),
+                    ["rowCount"] = rows.Count.ToString(CultureInfo.InvariantCulture),
+                });
     }
 
     private sealed record EvaluatedRow(DirectoryLinkPreviewRowDto Dto, DirectoryLinkRowStatus Status, int? UserId, string? CompanyUsername);

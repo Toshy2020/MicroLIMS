@@ -12,7 +12,9 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Sso;
 using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Validation;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -410,13 +412,20 @@ public class AuthenticationService : IAuthenticationService
     public async Task SetInitialSigningPasswordAsync(int userId, string newPassword, CancellationToken ct = default)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
-            ?? throw new NotFoundException($"User {userId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {userId} not found.",
+                new Dictionary<string, string> { ["userId"] = userId.ToString(CultureInfo.InvariantCulture) });
 
         if (user.SignInMethod != SignInMethod.Directory)
-            throw new BusinessRuleException("Only directory accounts can set an initial signing password.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthDirectoryOnlyInitialSigningPassword,
+                "Only directory accounts can set an initial signing password.");
 
         if (user.SigningPasswordSetAt is not null)
-            throw new BusinessRuleException("A signing password has already been set. Use change password instead.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthSigningPasswordAlreadySet,
+                "A signing password has already been set. Use change password instead.");
 
         await ValidateAndApplyNewPasswordAsync(user, newPassword, revokeExistingSessions: false);
 
@@ -444,7 +453,9 @@ public class AuthenticationService : IAuthenticationService
     public async Task RequestPasswordResetAsync(string username)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Username == username)
-            ?? throw new BusinessRuleException("If that account exists, a reset link has been sent."); // don't leak existence
+            ?? throw new BusinessRuleException(
+                MessageCodes.AuthPasswordResetIfAccountExists,
+                "If that account exists, a reset link has been sent."); // don't leak existence
 
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         var expiresAt = _time.GetUtcNow().UtcDateTime.AddMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordResetLifetimeMinutes));
@@ -516,7 +527,13 @@ public class AuthenticationService : IAuthenticationService
     {
         var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
-            throw new BusinessRuleException(string.Join(" ", failures));
+        {
+            var failureMessage = string.Join(" ", failures);
+            throw new BusinessRuleException(
+                MessageCodes.UserPasswordPolicyFailed,
+                failureMessage,
+                new Dictionary<string, string> { ["message"] = failureMessage });
+        }
 
         var historyLimit = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordHistoryLimit);
         var existingHistory = await _db.PasswordHistories
@@ -525,7 +542,10 @@ public class AuthenticationService : IAuthenticationService
             .ToListAsync();
 
         if (existingHistory.Take(historyLimit).Any(h => BCrypt.Net.BCrypt.Verify(newPassword, h.PasswordHash)))
-            throw new BusinessRuleException($"New password must not match any of your last {historyLimit} passwords.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthPasswordHistoryReused,
+                $"New password must not match any of your last {historyLimit} passwords.",
+                new Dictionary<string, string> { ["historyLimit"] = historyLimit.ToString(CultureInfo.InvariantCulture) });
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;

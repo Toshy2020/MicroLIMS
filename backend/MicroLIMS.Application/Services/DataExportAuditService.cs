@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -5,6 +6,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services.TableViews;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -50,17 +52,24 @@ public class DataExportAuditService
         CancellationToken ct = default)
     {
         if (!TableKeyRegistry.IsKnown(tableKey))
-            throw new BusinessRuleException($"Unknown table key '{tableKey}'.");
+            throw new BusinessRuleException(
+                MessageCodes.ExportUnknownTableKey,
+                $"Unknown table key '{tableKey}'.",
+                new Dictionary<string, string> { ["tableKey"] = tableKey });
 
         if (rowCount < 0 || rowCount > MaxListExportRows)
             throw new BusinessRuleException(
-                $"Export is limited to {MaxListExportRows:N0} rows. Narrow your filters or use the Reports module.");
+                MessageCodes.ExportRowLimitExceeded,
+                $"Export is limited to {MaxListExportRows:N0} rows. Narrow your filters or use the Reports module.",
+                new Dictionary<string, string> { ["maxRows"] = MaxListExportRows.ToString("N0", CultureInfo.InvariantCulture) });
 
         ValidateFilterJsonRecordIds(filterJson, rowCount);
 
         var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null)
-            throw new BusinessRuleException("Exporting user could not be found.");
+            throw new BusinessRuleException(
+                MessageCodes.ExportUserNotFound,
+                "Exporting user could not be found.");
 
         var entry = new DataExportLog
         {
@@ -91,7 +100,7 @@ public class DataExportAuditService
     private static void ValidateFilterJsonRecordIds(string filterJson, int rowCount)
     {
         if (string.IsNullOrWhiteSpace(filterJson))
-            throw new BusinessRuleException("Export metadata is required.");
+            throw new BusinessRuleException(MessageCodes.ExportMetadataRequired, "Export metadata is required.");
 
         JsonDocument doc;
         try
@@ -100,23 +109,29 @@ public class DataExportAuditService
         }
         catch (JsonException)
         {
-            throw new BusinessRuleException("Export metadata must be valid JSON.");
+            throw new BusinessRuleException(MessageCodes.ExportMetadataInvalidJson, "Export metadata must be valid JSON.");
         }
 
         using (doc)
         {
             if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                throw new BusinessRuleException("Export metadata must be a JSON object.");
+                throw new BusinessRuleException(MessageCodes.ExportMetadataMustBeObject, "Export metadata must be a JSON object.");
 
             if (!doc.RootElement.TryGetProperty("recordIds", out var recordIdsProp)
                 || recordIdsProp.ValueKind != JsonValueKind.Array)
             {
-                throw new BusinessRuleException("Export metadata must include recordIds.");
+                throw new BusinessRuleException(MessageCodes.ExportMetadataRecordIdsRequired, "Export metadata must include recordIds.");
             }
 
             if (recordIdsProp.GetArrayLength() != rowCount)
                 throw new BusinessRuleException(
-                    $"Export row count ({rowCount}) does not match the number of record identifiers ({recordIdsProp.GetArrayLength()}).");
+                    MessageCodes.ExportRowCountMismatch,
+                    $"Export row count ({rowCount}) does not match the number of record identifiers ({recordIdsProp.GetArrayLength()}).",
+                    new Dictionary<string, string>
+                    {
+                        ["recordIdCount"] = recordIdsProp.GetArrayLength().ToString(CultureInfo.InvariantCulture),
+                        ["rowCount"] = rowCount.ToString(CultureInfo.InvariantCulture),
+                    });
         }
     }
 }

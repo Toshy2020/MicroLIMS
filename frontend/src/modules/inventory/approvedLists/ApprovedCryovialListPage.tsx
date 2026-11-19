@@ -355,7 +355,7 @@ export function ApprovedCryovialListPage({ embedded = false }: { embedded?: bool
       label: "Vials Remaining",
       render: (c: CryovialItem) => `${c.vialsRemaining} of ${c.numberOfVialsPrepared}`
     },
-    { label: "Expiry", render: (c: CryovialItem) => formatLabCalendarDate(c.expiryDate) },
+    { label: "Expiry", render: (c: CryovialItem) => formatLabCalendarDate(c.expiryDate, { english: true }) },
     {
       label: "Status",
       render: (c: CryovialItem) => (c.vialsRemaining === 0 ? "Depleted" : "Approved")

@@ -393,7 +393,7 @@ export function EquipmentInventoryPage() {
           { label: "Firmware", render: (eq) => eq.firmwareVersion || "—" },
           { label: "Code", render: (eq) => eq.code },
           { label: "Location", render: (eq) => eq.location },
-          { label: "Calibration Due", render: (eq) => (eq.calibrationDueDate ? formatLabCalendarDate(eq.calibrationDueDate) : "—") }
+          { label: "Calibration Due", render: (eq) => (eq.calibrationDueDate ? formatLabCalendarDate(eq.calibrationDueDate, { english: true }) : "—") }
         ]}
       />
 

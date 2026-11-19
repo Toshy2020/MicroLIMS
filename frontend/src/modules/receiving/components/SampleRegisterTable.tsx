@@ -577,12 +577,14 @@ function SampleRegisterTableInner({
     const isNested = level > 0;
     const itemMetaNodes: React.ReactNode[] = [
       !show("sampleId") ? <Ltr key="id">#{sample.sampleId}</Ltr> : null,
-      !show("category") ? categoryLabel(sample.category) : null,
-      !show("cause") ? sample.causeOfTesting : null,
-      !show("sampledBy") ? sample.sampledBy : null,
+      !show("category") ? categoryLabel(sample.category, tCommon) : null,
+      !show("cause") && sample.causeOfTesting?.trim()
+        ? tCommon(`causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
+        : null,
+      !show("sampledBy") && sample.sampledBy?.trim() ? sample.sampledBy : null,
       !show("receivedAt") ? <Ltr key="received">{formatReceivedDate(sample.receivedAt)}</Ltr> : null,
       !show("due") && sample.isOverdue ? dueLabel(sample.dueAt, sample.isOverdue) : null
-    ].filter((v): v is React.ReactElement | string => Boolean(v));
+    ].filter((v): v is React.ReactElement | string => Boolean(typeof v === "string" ? v.trim() : v));
 
     return (
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, ps: isNested ? `${level * 24}px` : undefined }}>
@@ -702,7 +704,15 @@ function SampleRegisterTableInner({
       case "category":
         return <CategoryBadge category={sample.category} />;
       case "cause":
-        return <CauseBadge label={sample.causeOfTesting || "—"} />;
+        return (
+          <CauseBadge
+            label={
+              sample.causeOfTesting?.trim()
+                ? tCommon(`causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
+                : "—"
+            }
+          />
+        );
       case "sampledBy":
         return <Typography component="span" sx={ROW_CELL_SX}>{sample.sampledBy || "—"}</Typography>;
       case "batchControl":

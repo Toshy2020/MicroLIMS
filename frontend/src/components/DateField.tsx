@@ -3,6 +3,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
+import { useTranslation } from "../i18n";
 
 // The wire format every caller already speaks - the same string a native
 // <input type="date"> produced, so swapping one for this is mechanical.
@@ -46,6 +47,8 @@ function parse(value: string | undefined): Dayjs | null {
 export function DateField({
   label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
 }: DateFieldProps) {
+  const { t, i18n } = useTranslation("common");
+  const isRtl = i18n.language === "ar";
   const inputAriaProps =
     ariaLabel || ariaDescribedBy
       ? {
@@ -57,7 +60,20 @@ export function DateField({
       : undefined;
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider
+      dateAdapter={AdapterDayjs}
+      localeText={
+        isRtl
+          ? {
+              clearButtonLabel: t("datePicker.clear"),
+              openDatePickerDialogue: (formattedDate) =>
+                formattedDate
+                  ? t("datePicker.chooseDateSelected", { date: formattedDate })
+                  : t("datePicker.chooseDate")
+            }
+          : undefined
+      }
+    >
       <DatePicker
         label={label}
         value={parse(value)}

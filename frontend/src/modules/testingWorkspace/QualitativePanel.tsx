@@ -16,12 +16,13 @@ import {
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
-import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { DateField } from "../../components/DateField";
 import { Ltr } from "../../components/Ltr";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
 import { useTranslation } from "../../i18n";
 import { useBenchMode } from "../../theme/BenchModeContext";
@@ -552,16 +553,36 @@ export function QualitativePanel({
 
           <Stack spacing={2}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              <TextField
-                size="small"
-                type="datetime-local"
-                label={t("qualitative.analysisTime")}
-                value={analysedAt}
-                onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
-                required
-                fullWidth
-              />
+              <Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <DateField
+                    label={t("qualitative.analysisTime")}
+                    value={analysedAt.slice(0, 10)}
+                    onChange={(d) => {
+                      const timePart = analysedAt.slice(11, 16) || "00:00";
+                      setAnalysedAt(d ? `${d}T${timePart}` : "");
+                    }}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    size="small"
+                    type="time"
+                    value={analysedAt.slice(11, 16)}
+                    onChange={(e) => {
+                      const datePart = analysedAt.slice(0, 10) || getLocalIsoString().slice(0, 10);
+                      setAnalysedAt(`${datePart}T${e.target.value || "00:00"}`);
+                    }}
+                    slotProps={{ htmlInput: { "aria-label": t("qualitative.analysisTime"), dir: "ltr" } }}
+                    sx={{ minWidth: 115 }}
+                  />
+                </Box>
+                {analysedAt && !Number.isNaN(new Date(analysedAt).getTime()) && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    <Ltr>{formatDateTimeWithTimeZone(new Date(analysedAt))}</Ltr>
+                  </Typography>
+                )}
+              </Box>
 
               <FormControl size="small" fullWidth>
                 <InputLabel id="equipment-select-label">{t("qualitative.equipmentLabel")}</InputLabel>

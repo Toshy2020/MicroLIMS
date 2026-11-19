@@ -6,6 +6,7 @@ import { MarkdownView } from "./MarkdownView";
 import { scrollToHeading } from "./scrollToHeading";
 import { useChapterText } from "./useChapterText";
 import { BreadcrumbLabel } from "../../components/breadcrumbContext";
+import { Ltr } from "../../components/Ltr";
 import { useTranslation } from "../../i18n";
 
 interface HelpPageProps {
@@ -63,24 +64,28 @@ export function HelpPage({ loadChapter = loadChapterText }: HelpPageProps) {
   const { chapterId } = useParams();
   const chapter = chapterId ? CHAPTERS.find((c) => c.id === chapterId) : undefined;
 
+  const chapterTitle = (c: { number: number; title: string }) =>
+    t(`help:chapters.${String(c.number).padStart(2, "0")}`, { defaultValue: c.title });
+
   return (
     <Box component="section" aria-label={t("help:page.userGuide")}>
       {/* The chapter list needs no crumb of its own; a chapter (or an unknown one) names the last crumb. */}
-      {chapterId !== undefined && <BreadcrumbLabel label={chapter ? `${chapter.number}. ${chapter.title}` : t("help.chapterNotFound")} />}
+      {chapterId !== undefined && <BreadcrumbLabel label={chapter ? `${chapter.number}. ${chapterTitle(chapter)}` : t("help.chapterNotFound")} />}
       <Typography component="h1" variant="h4" sx={{ mb: 0.5 }}>{t("help:page.userGuide")}</Typography>
       <Typography variant="body2" sx={{ fontWeight: 600, mb: 2 }}>{t("help:shared.guidance")}</Typography>
       {chapterId === undefined ? (
         <List aria-label={t("help:page.chaptersAria")} disablePadding>
           {CHAPTERS.map((c) => (
             <ListItem key={c.id} disableGutters sx={{ py: 0.25 }}>
-              <Link component={RouterLink} to={`/help/${c.id}`}>
-                {`${c.number}. ${c.title}`}
+              <Link component={RouterLink} to={`/help/${c.id}`} sx={{ display: "inline-flex", gap: 0.5 }}>
+                <Ltr>{`${c.number}.`}</Ltr>
+                <span>{chapterTitle(c)}</span>
               </Link>
             </ListItem>
           ))}
         </List>
       ) : chapter ? (
-        <ChapterView key={chapter.id} chapterId={chapter.id} title={chapter.title} loadChapter={loadChapter} />
+        <ChapterView key={chapter.id} chapterId={chapter.id} title={chapterTitle(chapter)} loadChapter={loadChapter} />
       ) : (
         <Box>
           <Typography component="h2" variant="h5" sx={{ mb: 1 }}>{t("help:page.notFoundTitle")}</Typography>

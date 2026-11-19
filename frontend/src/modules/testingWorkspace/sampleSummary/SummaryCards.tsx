@@ -78,7 +78,10 @@ export function SampleIdentityCard({ summary: s }: { summary: SampleSummary }) {
         }}
       >
         <SummaryField label={t("sampleSummary.identity.referenceNumber")} value={<Ltr>{s.referenceNumber}</Ltr>} highlight />
-        <SummaryField label={t("sampleSummary.identity.category")} value={s.category} />
+        <SummaryField
+          label={t("sampleSummary.identity.category")}
+          value={t(`sampleCategoryFull.${s.category}`, { ns: "common", defaultValue: s.category })}
+        />
         <SummaryField label={t("sampleSummary.identity.receivedAt")} value={<Ltr>{formatDate(s.receivedAt)}</Ltr>} />
         <SummaryField label={t("sampleSummary.identity.expDate")} value={<Ltr>{formatCalendarDate(s.expDate)}</Ltr>} />
 

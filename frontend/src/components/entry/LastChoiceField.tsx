@@ -1,8 +1,9 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { Box, Button, Typography } from "@mui/material";
+import { i18n, useTranslation } from "../../i18n";
 
-export const LAST_CHOICE_CAPTION = "From your last entry";
-export const UNCONFIRMED_LOT_SAVE_REASON = "Confirm the pre-filled lot";
+export const LAST_CHOICE_CAPTION = i18n.getFixedT("en", "common")("entry.fromLastEntry");
+export const UNCONFIRMED_LOT_SAVE_REASON = i18n.getFixedT("en", "common")("entry.confirmLotReason");
 
 export type LastChoiceKind = "lot" | "equipment" | "field";
 
@@ -47,9 +48,10 @@ export function useLastChoiceDefault<T = number | string>(
     setConfirmed(true);
   }, []);
 
+  const { t } = useTranslation("common");
   const saveBlockedReason =
     kind === "lot" && isDefault && !confirmed
-      ? UNCONFIRMED_LOT_SAVE_REASON
+      ? t("entry.confirmLotReason")
       : null;
 
   return {
@@ -78,6 +80,7 @@ export function LastChoiceField({
   onConfirm,
   children,
 }: LastChoiceFieldProps) {
+  const { t } = useTranslation("common");
   const isConfirmed = confirmed ?? isInitialDefaultConfirmed(kind);
   const showConfirmButton = kind === "lot" && !isConfirmed;
 
@@ -112,7 +115,7 @@ export function LastChoiceField({
             variant="caption"
             sx={{ color: "text.secondary", fontWeight: 500, fontSize: 11 }}
           >
-            {LAST_CHOICE_CAPTION}
+            {t("entry.fromLastEntry")}
           </Typography>
           {showConfirmButton && (
             <Button
@@ -127,7 +130,7 @@ export function LastChoiceField({
                 textTransform: "none",
               }}
             >
-              Confirm
+              {t("entry.confirm")}
             </Button>
           )}
         </Box>

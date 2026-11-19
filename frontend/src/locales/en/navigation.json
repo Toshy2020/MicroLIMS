@@ -129,5 +129,12 @@
     "signOut": "Sign Out",
     "switchUserUnsaved_one": "You have {{count}} unsaved entry on this tablet. They stay on this tablet for the signed-in user and are not saved to MicroLIMS. Switch user anyway?",
     "switchUserUnsaved_other": "You have {{count}} unsaved entries on this tablet. They stay on this tablet for the signed-in user and are not saved to MicroLIMS. Switch user anyway?"
+  },
+  "favourites": {
+    "addAria": "Add {{name}} to favourites",
+    "removeAria": "Remove {{name}} from favourites",
+    "added": "Added to favourites",
+    "removed": "Removed from favourites",
+    "full": "You can have up to 15 favourites"
   }
 }

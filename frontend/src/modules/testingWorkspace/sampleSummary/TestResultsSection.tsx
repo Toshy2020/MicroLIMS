@@ -116,7 +116,7 @@ export function TestResultsSection({
                     flexWrap: "wrap"
                   }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
-                    <Ltr>{order.testCode}</Ltr>: {order.testDisplayName}
+                    {order.testDisplayName} (<Ltr>{order.testCode}</Ltr>)
                   </Typography>
                   {order.sectionName && (
                     <Chip

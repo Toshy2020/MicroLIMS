@@ -3,6 +3,7 @@ import PrintOutlinedIcon from "@mui/icons-material/PrintOutlined";
 import { Button, Tooltip } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
 import { labelService, type LabelEntityType, type LabelPrintStatus, type LabelTarget } from "../../services/labelService";
 import { PrintLabelsDialog } from "./PrintLabelsDialog";
@@ -32,6 +33,7 @@ function hasCreatePermission(entityType: LabelEntityType, permissions: readonly 
 }
 
 export function PrintLabelButton({ target }: PrintLabelButtonProps) {
+  const { t } = useTranslation("common");
   const { permissions } = useAuth();
   const reasonId = useId();
   const [status, setStatus] = useState<LabelPrintStatus | null>(null);
@@ -66,21 +68,21 @@ export function PrintLabelButton({ target }: PrintLabelButtonProps) {
   }, [hasCode, target.entityType, target.entityId, refreshNonce]);
 
   const isReprint = (status?.printCount ?? 0) > 0;
-  const label = isReprint ? "Reprint label" : "Print label";
+  const label = isReprint ? t("labels.printButton.reprint") : t("labels.printButton.print");
   const canCreate = hasCreatePermission(target.entityType, permissions);
   const canReprint = permissions.includes(PERMISSIONS.LABELS_REPRINT);
 
   let disabledReason: string | null = null;
   if (!hasCode) {
-    disabledReason = "Cannot print: record has no code yet.";
+    disabledReason = t("labels.printButton.noCode");
   } else if (status && !status.canPrint) {
-    disabledReason = status.blockedReason ?? "This record cannot be printed.";
+    disabledReason = status.blockedReason ?? t("labels.printButton.cannotPrint");
   } else if (isReprint && !canReprint) {
-    disabledReason = "You do not have permission to reprint labels.";
+    disabledReason = t("labels.printButton.noReprintPermission");
   } else if (status && !isReprint && !canCreate) {
-    disabledReason = "You do not have permission to print labels for this record.";
+    disabledReason = t("labels.printButton.noPrintPermission");
   } else if (!status && !canCreate && !canReprint) {
-    disabledReason = "You do not have permission to print labels for this record.";
+    disabledReason = t("labels.printButton.noPrintPermission");
   }
 
   const dialogTargets = useMemo(() => [target], [target]);

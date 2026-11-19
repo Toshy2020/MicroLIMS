@@ -794,5 +794,55 @@
     "Overdue": "متأخر",
     "TokenPendingConfirmation": "الرمز بانتظار أول استخدام",
     "NotRecorded": "غير مسجّل"
+  },
+  "sampleCategoryShort": {
+    "RawMaterial": "مادة خام",
+    "FinishedProduct": "منتج",
+    "PackagingMaterial": "مادة تعبئة",
+    "EnvironmentalMonitoring": "رصد بيئي",
+    "AfterCleaning": "بعد التنظيف",
+    "Water": "مياه",
+    "GPT": "اختبار تعزيز النمو (GPT)",
+    "ReferenceStrain": "سلالة مرجعية"
+  },
+  "sampleCategoryFull": {
+    "RawMaterial": "مادة خام",
+    "FinishedProduct": "منتج نهائي",
+    "PackagingMaterial": "مادة تعبئة وتغليف",
+    "EnvironmentalMonitoring": "رصد بيئي",
+    "AfterCleaning": "بعد التنظيف",
+    "Water": "مياه",
+    "GPT": "اختبار تعزيز النمو (GPT)",
+    "ReferenceStrain": "سلالة مرجعية"
+  },
+  "causeOfTesting": {
+    "Routine": "روتيني",
+    "Stability": "ثبات",
+    "Validation": "تحقق",
+    "Investigation": "تحقيق",
+    "Retest": "إعادة الاختبار",
+    "Complaint": "شكوى",
+    "Periodic": "دوري",
+    "Qualification": "تأهيل"
+  },
+  "labels": {
+    "printButton": {
+      "print": "طباعة الملصق",
+      "reprint": "إعادة طباعة الملصق",
+      "noCode": "تعذّرت الطباعة: السجل لا يملك رمزًا بعد.",
+      "cannotPrint": "لا يمكن طباعة هذا السجل.",
+      "noReprintPermission": "ليست لديك صلاحية إعادة طباعة الملصقات.",
+      "noPrintPermission": "ليست لديك صلاحية طباعة ملصقات هذا السجل."
+    }
+  },
+  "entry": {
+    "fromLastEntry": "من آخر إدخال لك",
+    "confirmLotReason": "تأكيد التشغيلة المعبأة مسبقًا",
+    "confirm": "تأكيد"
+  },
+  "datePicker": {
+    "clear": "مسح",
+    "chooseDate": "اختر التاريخ",
+    "chooseDateSelected": "اختر التاريخ، التاريخ المحدد هو {{date}}"
   }
 }

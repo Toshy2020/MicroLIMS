@@ -46,9 +46,32 @@
     "locked": "مقفل",
     "openFromWorkspace": "افتح من مساحة العمل",
     "take": "أخذ",
-    "release": "تحرير"
+    "release": "تحرير",
+    "actionTitle": {
+      "perform": "تنفيذ {{name}}",
+      "take": "أخذ {{name}}",
+      "read": "قراءة {{name}}",
+      "revise": "مراجعة وتعديل {{name}}",
+      "review": "مراجعة {{name}}",
+      "approve": "اعتماد {{name}}",
+      "assign": "إسناد {{name}}"
+    }
   },
   "group": {
-    "showAll": "عرض الكل <ltr>{{count}}</ltr>"
+    "showAll": "عرض الكل <ltr>{{count}}</ltr>",
+    "titles": {
+      "readyToRead": "جاهز للقراءة الآن",
+      "returned": "مُعاد إليّ",
+      "endingToday": "حضانة تنتهي اليوم",
+      "next24Hours": "حضانة تنتهي خلال 24 ساعة قادمة",
+      "toPerform": "اختبارات قيد التنفيذ",
+      "review": "بانتظار المراجعة",
+      "approval": "بانتظار اعتمادي",
+      "available": "متاح في قسمي",
+      "unassigned": "اختبارات غير مسندة",
+      "documents": "المستندات",
+      "equipment": "المعدات",
+      "materials": "أوساط زرعية ومحاليل وسلالات"
+    }
   }
 }

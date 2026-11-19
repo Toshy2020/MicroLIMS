@@ -42,9 +42,32 @@
     "locked": "Locked",
     "openFromWorkspace": "Open from the workspace",
     "take": "Take",
-    "release": "Release"
+    "release": "Release",
+    "actionTitle": {
+      "perform": "Perform {{name}}",
+      "take": "Take {{name}}",
+      "read": "Read {{name}}",
+      "revise": "Revise {{name}}",
+      "review": "Review {{name}}",
+      "approve": "Approve {{name}}",
+      "assign": "Assign {{name}}"
+    }
   },
   "group": {
-    "showAll": "Show all <ltr>{{count}}</ltr>"
+    "showAll": "Show all <ltr>{{count}}</ltr>",
+    "titles": {
+      "readyToRead": "Ready to read now",
+      "returned": "Returned to me",
+      "endingToday": "Incubation ending today",
+      "next24Hours": "Incubation ending in the next 24 hours",
+      "toPerform": "Tests to perform",
+      "review": "Awaiting my review",
+      "approval": "Awaiting my approval",
+      "available": "Available in my section",
+      "unassigned": "Unassigned tests",
+      "documents": "Documents",
+      "equipment": "Equipment",
+      "materials": "Media, solutions and strains"
+    }
   }
 }

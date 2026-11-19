@@ -1,6 +1,7 @@
 import { Box, useTheme } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import type { TFunction } from "i18next";
 import { useTranslation } from "../i18n";
 import { statusLabel, statusTone, StatusTone } from "../theme/statusTokens";
 
@@ -99,10 +100,13 @@ const categoryToneMap: Record<string, StatusTone> = {
   ReferenceStrain: "pale"
 };
 
-export function categoryLabel(category: string): string {
-  return categoryDisplayMap[category] ?? category;
+export function categoryLabel(category: string, t?: TFunction): string {
+  const fallback = categoryDisplayMap[category] ?? category;
+  if (!t) return fallback;
+  return t(`sampleCategoryShort.${category}`, { ns: "common", defaultValue: fallback });
 }
 
 export function CategoryBadge({ category }: { category: string }) {
-  return <Pill tone={categoryToneMap[category] ?? "pending"}>{categoryLabel(category)}</Pill>;
+  const { t } = useTranslation("common");
+  return <Pill tone={categoryToneMap[category] ?? "pending"}>{categoryLabel(category, t)}</Pill>;
 }

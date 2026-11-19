@@ -3,6 +3,7 @@ import { Box, Button, Chip, Paper, Stack, Typography } from "@mui/material";
 import { Link } from "react-router-dom";
 import { Trans } from "react-i18next";
 import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { MyWorkGroup as MyWorkGroupDto, MyWorkItem } from "../myWorkTypes";
 import { routeForGroup } from "../targetRoutes";
 import { MyWorkRow } from "./MyWorkRow";
@@ -16,6 +17,7 @@ export interface MyWorkGroupProps {
 }
 
 export function MyWorkGroup({ group, timeZoneId, onTake, onRelease, busyKey }: MyWorkGroupProps) {
+  const { t } = useTranslation("myWork");
   const headingId = useId();
 
   if (group.items.length === 0) return null;
@@ -37,7 +39,7 @@ export function MyWorkGroup({ group, timeZoneId, onTake, onRelease, busyKey }: M
       >
         <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
           <Typography id={headingId} component="h2" variant="h6" sx={{ fontSize: 16, fontWeight: 700 }}>
-            {group.title}
+            {t(`group.titles.${group.key}`, { defaultValue: group.title })}
           </Typography>
           <Chip
             size="small"

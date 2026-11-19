@@ -746,5 +746,55 @@
     "Overdue": "Overdue",
     "TokenPendingConfirmation": "Token awaiting first use",
     "NotRecorded": "Not recorded"
+  },
+  "sampleCategoryShort": {
+    "RawMaterial": "RM",
+    "FinishedProduct": "Product",
+    "PackagingMaterial": "PM",
+    "EnvironmentalMonitoring": "EM",
+    "AfterCleaning": "AC",
+    "Water": "Water",
+    "GPT": "GPT",
+    "ReferenceStrain": "Reference Strain"
+  },
+  "sampleCategoryFull": {
+    "RawMaterial": "Raw Material",
+    "FinishedProduct": "Finished Product",
+    "PackagingMaterial": "Packaging Material",
+    "EnvironmentalMonitoring": "Environmental Monitoring",
+    "AfterCleaning": "After Cleaning",
+    "Water": "Water",
+    "GPT": "GPT",
+    "ReferenceStrain": "Reference Strain"
+  },
+  "causeOfTesting": {
+    "Routine": "Routine",
+    "Stability": "Stability",
+    "Validation": "Validation",
+    "Investigation": "Investigation",
+    "Retest": "Retest",
+    "Complaint": "Complaint",
+    "Periodic": "Periodic",
+    "Qualification": "Qualification"
+  },
+  "labels": {
+    "printButton": {
+      "print": "Print label",
+      "reprint": "Reprint label",
+      "noCode": "Cannot print: record has no code yet.",
+      "cannotPrint": "This record cannot be printed.",
+      "noReprintPermission": "You do not have permission to reprint labels.",
+      "noPrintPermission": "You do not have permission to print labels for this record."
+    }
+  },
+  "entry": {
+    "fromLastEntry": "From your last entry",
+    "confirmLotReason": "Confirm the pre-filled lot",
+    "confirm": "Confirm"
+  },
+  "datePicker": {
+    "clear": "Clear",
+    "chooseDate": "Choose date",
+    "chooseDateSelected": "Choose date, selected date is {{date}}"
   }
 }

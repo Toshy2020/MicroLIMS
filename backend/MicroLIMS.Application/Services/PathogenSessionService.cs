@@ -7,6 +7,8 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Responses;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -584,14 +586,20 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsurePreparedAsync(sample, userId);
 
         var media = await _db.Media
             .Include(m => m.Material)
             .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
-            ?? throw new BusinessRuleException($"Media #{request.MediaLotId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenMediaNotFound,
+                $"Media #{request.MediaLotId} not found.",
+                new Dictionary<string, string> { ["mediaLotId"] = request.MediaLotId.ToString(CultureInfo.InvariantCulture) });
 
         if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
@@ -599,7 +607,10 @@ public class PathogenSessionService
         // The incubator is Laboratory Configuration equipment, which carries
         // the set point - never the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
-            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenIncubatorNotFound,
+                $"Incubator #{request.IncubatorEquipmentId} not found.",
+                new Dictionary<string, string> { ["incubatorId"] = request.IncubatorEquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var joining = await ResolveJoiningTestsAsync(sample, media, incubator);
 
@@ -742,13 +753,19 @@ public class PathogenSessionService
         CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -875,10 +892,16 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrder = sample.TestOrders.FirstOrDefault(t => t.Id == request.TestOrderId)
-            ?? throw new BusinessRuleException($"TestOrder #{request.TestOrderId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenTestOrderNotFound,
+                $"TestOrder #{request.TestOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = request.TestOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -922,7 +945,10 @@ public class PathogenSessionService
         // Laboratory Configuration equipment (carries the set point), never
         // the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, cancellationToken)
-            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenIncubatorNotFound,
+                $"Incubator #{request.IncubatorEquipmentId} not found.",
+                new Dictionary<string, string> { ["incubatorId"] = request.IncubatorEquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var chosen = await ResolveChosenConfirmatoryMediaAsync(request, testOrder, confirmatoryStep, incubator, cancellationToken);
 
@@ -1136,13 +1162,19 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -1227,7 +1259,10 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 1. Completeness Validation
         if (session.MissingResults.Count > 0)
@@ -1251,7 +1286,10 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 3. Mark TestOrders as completed / ready for review
         foreach (var order in sample.TestOrders)
@@ -1288,7 +1326,10 @@ public class PathogenSessionService
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // Rejecting a sample takes SectionHead or SystemAdministrator
         // (SampleApprovalController). This endpoint takes Analyst. Resetting used to

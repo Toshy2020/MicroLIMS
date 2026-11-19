@@ -11,6 +11,7 @@ using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -41,25 +42,39 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     private async Task<(TestOrder order, TestWorkflowStep step)> LoadOrderAndStepAsync(int testOrderId, string stepName)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         var test = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"No test definition for {order.TestCode}.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenNoTestDefinition,
+                $"No test definition for {order.TestCode}.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
         var step = test.Steps.FirstOrDefault(s => s.StepName == stepName)
-            ?? throw new BusinessRuleException($"Step '{stepName}' is not part of {order.TestCode}.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenStepNotInTest,
+                $"Step '{stepName}' is not part of {order.TestCode}.",
+                new Dictionary<string, string> { ["step"] = stepName, ["testCode"] = order.TestCode });
 
         RequireOrderNotFinalized(order);
 
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, test);
         if (currentStep is null)
-            throw new BusinessRuleException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+            throw new BusinessRuleException(
+                MessageCodes.IncubationAllStepsComplete,
+                $"All workflow steps for \"{order.TestCode}\" are already complete.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         await CheckPredecessorStepsReadyAsync(order, test, step);
 
         if (currentStep.StepName != stepName)
             throw new BusinessRuleException(
-                $"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+                MessageCodes.TestStepOrderViolation,
+                $"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".",
+                new Dictionary<string, string> { ["predecessor"] = currentStep.StepName, ["step"] = stepName });
 
         return (order, step);
     }
@@ -73,7 +88,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     private static int RequireTargetOrganism(TestWorkflowStep step) =>
         step.TargetOrganismId
         ?? throw new BusinessRuleException(
-            $"Step \"{step.StepName}\" has no target organism configured - complete this step's template in Test Master before recording results.");
+            MessageCodes.PathogenStepHasNoOrganism,
+            $"Step \"{step.StepName}\" has no target organism configured - complete this step's template in Test Master before recording results.",
+            new Dictionary<string, string> { ["step"] = step.StepName });
 
     // Same reasoning as RequireTargetOrganism, for the step's permitted
     // media list.
@@ -83,7 +100,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
             ?? await _db.TestWorkflowStepMedias
                 .FirstOrDefaultAsync(m => m.TestWorkflowStepId == step.Id)
             ?? throw new BusinessRuleException(
-                $"Step \"{step.StepName}\" has no assigned medium - complete this step's template in Test Master before recording results.");
+                MessageCodes.PathogenStepHasNoMedium,
+                $"Step \"{step.StepName}\" has no assigned medium - complete this step's template in Test Master before recording results.",
+                new Dictionary<string, string> { ["step"] = step.StepName });
 
         return medium;
     }
@@ -96,9 +115,15 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     private async Task<Media> LoadReleasedLotAsync(int mediaLotId, TestWorkflowStepMedia stepMedium, int testOrderId)
     {
         var lot = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == mediaLotId)
-            ?? throw new NotFoundException($"Media lot {mediaLotId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IncubationMediaLotNotFound,
+                $"Media lot {mediaLotId} not found.",
+                new Dictionary<string, string> { ["mediaLotId"] = mediaLotId.ToString(CultureInfo.InvariantCulture) });
         if (!lot.IsReleasedForUse || lot.Status == MediaStatus.OutOfStock || lot.Status == MediaStatus.QuarantineFailed)
-            throw new BusinessRuleException($"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenMediaLotNotReleased,
+                $"Media lot {lot.LotNumber} is not released for use, out of stock, or rejected.",
+                new Dictionary<string, string> { ["lot"] = lot.LotNumber });
         await SectionMediaRule.EnsureLotForTestOrderAsync(_db, lot, testOrderId);
         if (!StepMediumMatcher.Matches(stepMedium, lot.Material?.MediaProductId))
             throw new WorkflowStepException(WorkflowErrorCodes.MediaNotInPermittedList,
@@ -120,7 +145,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
-            throw new BusinessRuleException($"Step '{stepName}' is not a broth step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotBrothStep,
+                $"Step '{stepName}' is not a broth step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         // Load the incubation that was created when media was selected (handling step name casing / TSB aliases).
         var incubations = await _db.Incubations
@@ -162,7 +190,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
                     userId, existingResult.SubmittedAtUtc, NextStepUnlocked: true, WorkflowFinalResult: null, Flags: new List<string>());
             }
 
-            throw new BusinessRuleException($"Media must be selected for step \"{stepName}\" before this submission.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenMediaRequiredBeforeSubmission,
+                $"Media must be selected for step \"{stepName}\" before this submission.",
+                new Dictionary<string, string> { ["step"] = stepName });
         }
 
         // Verify that the minimum duration has elapsed, per the medium
@@ -230,25 +261,40 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         var (order, definition) = await LoadWithTemplateAsync(testOrderId);
         RequireOrderNotFinalized(order);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
-            ?? throw new BusinessRuleException($"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".");
+            ?? throw new BusinessRuleException(
+                MessageCodes.IncubationStepNotInTemplate,
+                $"Step \"{stepName}\" is not part of the workflow template for \"{order.TestCode}\".",
+                new Dictionary<string, string> { ["step"] = stepName, ["testCode"] = order.TestCode });
 
         if (step.StepType != StepType.SelectivePlating)
-            throw new BusinessRuleException($"Step '{stepName}' is not a selective plating step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotSelectivePlatingStep,
+                $"Step '{stepName}' is not a selective plating step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         var currentStep = await FindFirstIncompleteStepAsync(testOrderId, definition);
         if (currentStep is null)
-            throw new BusinessRuleException($"All workflow steps for \"{order.TestCode}\" are already complete.");
+            throw new BusinessRuleException(
+                MessageCodes.IncubationAllStepsComplete,
+                $"All workflow steps for \"{order.TestCode}\" are already complete.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         await CheckPredecessorStepsReadyAsync(order, definition, step);
 
         if (currentStep.StepName != stepName)
-            throw new BusinessRuleException($"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".");
+            throw new BusinessRuleException(
+                MessageCodes.TestStepOrderViolation,
+                $"Workflow order violation: step \"{currentStep.StepName}\" must be completed before \"{stepName}\".",
+                new Dictionary<string, string> { ["predecessor"] = currentStep.StepName, ["step"] = stepName });
 
         await RequireSamplePreparedAsync(testOrderId, order.SampleId, stepName, userId, order.CurrentStep);
 
         var alreadyOpen = await _db.Incubations.AnyAsync(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null);
         if (alreadyOpen)
-            throw new BusinessRuleException($"Incubation has already been started for step \"{stepName}\" - awaiting its result.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenIncubationAlreadyStarted,
+                $"Incubation has already been started for step \"{stepName}\" - awaiting its result.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
         var lot = await LoadReleasedLotAsync(mediaLotId, stepMedium, testOrderId);
@@ -296,13 +342,19 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.SelectivePlating)
-            throw new BusinessRuleException($"Step '{stepName}' is not a selective plating step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotSelectivePlatingStep,
+                $"Step '{stepName}' is not a selective plating step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         var incubation = await _db.Incubations
             .Where(i => i.TestOrderId == testOrderId && i.StepName == stepName && i.CompletedAt == null)
             .OrderByDescending(i => i.StartedAt)
             .FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException($"No active incubation found for step \"{stepName}\". Start incubation before recording observation.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenNoActiveIncubation,
+                $"No active incubation found for step \"{stepName}\". Start incubation before recording observation.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         var stepMedium = await RequireSingleStepMediumAsync(step);
 
@@ -416,7 +468,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.ConfirmatoryPlating)
-            throw new BusinessRuleException($"Step '{stepName}' is not a confirmatory plating step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotConfirmatoryPlatingStep,
+                $"Step '{stepName}' is not a confirmatory plating step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         if (selections.Count == 0)
             throw new WorkflowStepException(WorkflowErrorCodes.NoMediaSelected,
@@ -428,7 +483,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
 
         if (permitted.Count == 0)
             throw new BusinessRuleException(
-                $"Step \"{step.StepName}\" has no permitted media configured - complete this step's template in Test Master before recording results.");
+                MessageCodes.PathogenStepHasNoPermittedMedia,
+                $"Step \"{step.StepName}\" has no permitted media configured - complete this step's template in Test Master before recording results.",
+                new Dictionary<string, string> { ["step"] = step.StepName });
 
         var resolved = new List<(TestWorkflowStepMedia Medium, Media Lot, int EquipmentId)>();
         foreach (var selection in selections)
@@ -509,7 +566,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.ConfirmatoryPlating)
-            throw new BusinessRuleException($"Step '{stepName}' is not a confirmatory plating step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotConfirmatoryPlatingStep,
+                $"Step '{stepName}' is not a confirmatory plating step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         // The run still awaiting its plate readings - never simply "the
         // newest row for this step", which would let an already-read-out
@@ -591,17 +651,24 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     private async Task<StepResultDto> RecordAnalystDecisionCoreAsync(int testOrderId, AnalystDecision decision, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         RequireOrderNotFinalized(order);
 
         var confirmatory = await _db.WorkflowStepResults
             .Where(r => r.TestOrderId == testOrderId && r.StepType == StepType.ConfirmatoryPlating)
             .OrderByDescending(r => r.Id)
             .FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException("Confirmatory plating has not been completed for this test order.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenConfirmatoryPlatingNotCompleted,
+                "Confirmatory plating has not been completed for this test order.");
 
         if (confirmatory.ConfirmatoryResult != ConfirmatoryResult.AllConforming)
-            throw new BusinessRuleException("An analyst decision is only available after an all-conforming confirmatory result.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenAnalystDecisionNotAvailable,
+                "An analyst decision is only available after an all-conforming confirmatory result.");
 
         // Single-shot. Re-running it used to append a second Result row
         // and a Ready -> Ready history entry, leaving two contradictory
@@ -660,7 +727,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.BiochemicalTest)
-            throw new BusinessRuleException($"Step '{stepName}' is not a biochemical test step.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenNotBiochemicalStep,
+                $"Step '{stepName}' is not a biochemical test step.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         if (string.IsNullOrWhiteSpace(biochemicalResultText))
             throw new WorkflowStepException(WorkflowErrorCodes.BiochemicalResultRequired,
@@ -684,13 +754,18 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
             .OrderByDescending(s => s.StepOrder)
             .FirstOrDefault()
             ?? throw new BusinessRuleException(
-                $"Step \"{stepName}\" has no preceding selective or confirmatory plating step configured - check Test Master.");
+                MessageCodes.PathogenNoPrecedingPlateStep,
+                $"Step \"{stepName}\" has no preceding selective or confirmatory plating step configured - check Test Master.",
+                new Dictionary<string, string> { ["step"] = stepName });
 
         var precedingResult = await _db.WorkflowStepResults
             .Where(r => r.TestOrderId == testOrderId && r.StepName == precedingPlateStep.StepName)
             .OrderByDescending(r => r.Id)
             .FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException($"Step \"{precedingPlateStep.StepName}\" has not been completed for this test order.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenPrecedingStepNotCompleted,
+                $"Step \"{precedingPlateStep.StepName}\" has not been completed for this test order.",
+                new Dictionary<string, string> { ["step"] = precedingPlateStep.StepName });
 
         // ConfirmatoryPlating: both AllConforming and Inconclusive proceed to
         // biochemical ID - an Inconclusive plate reading doesn't rule out the
@@ -703,7 +778,9 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
             : precedingResult.SelectivePlatingObservation == GrowthObservation.GrowthConforming;
         if (!precedingConforms)
             throw new BusinessRuleException(
-                $"A biochemical test is only available after a conforming result on \"{precedingPlateStep.StepName}\".");
+                MessageCodes.PathogenBiochemicalNeedsConformingResult,
+                $"A biochemical test is only available after a conforming result on \"{precedingPlateStep.StepName}\".",
+                new Dictionary<string, string> { ["step"] = precedingPlateStep.StepName });
 
         // Reuses the preceding plate-based step's incubation as the step
         // instance - a biochemical test has no incubation window of its own.
@@ -759,7 +836,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         int workflowStepResultId, bool approve, string comment, int reviewerUserId)
     {
         var result = await _db.WorkflowStepResults.FirstOrDefaultAsync(r => r.Id == workflowStepResultId)
-            ?? throw new NotFoundException($"Workflow step result {workflowStepResultId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenStepResultNotFound,
+                $"Workflow step result {workflowStepResultId} not found.",
+                new Dictionary<string, string> { ["resultId"] = workflowStepResultId.ToString(CultureInfo.InvariantCulture) });
 
         if (await _sodGuard.DidUserPerformTestAsync(result.TestOrderId, reviewerUserId))
             throw new WorkflowStepException(WorkflowErrorCodes.SegregationOfDutiesViolation,
@@ -772,13 +852,19 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         // SubmitBiochemicalAsync still refuses it, with no path onwards.
         if (result.StepType != StepType.ConfirmatoryPlating)
             throw new BusinessRuleException(
-                $"Workflow step result {workflowStepResultId} is a {result.StepType} result - only a confirmatory plating result carries a biochemical decision.");
+                MessageCodes.PathogenStepResultWrongType,
+                $"Workflow step result {workflowStepResultId} is a {result.StepType} result - only a confirmatory plating result carries a biochemical decision.",
+                new Dictionary<string, string> { ["resultId"] = workflowStepResultId.ToString(CultureInfo.InvariantCulture), ["stepType"] = result.StepType.ToString() });
         if (!result.SkippedBiochemical)
             throw new BusinessRuleException(
-                $"Workflow step result {workflowStepResultId} was not submitted as Detected without biochemical confirmation - there is no biochemical decision to make on it.");
+                MessageCodes.PathogenNoBiochemicalDecisionToMake,
+                $"Workflow step result {workflowStepResultId} was not submitted as Detected without biochemical confirmation - there is no biochemical decision to make on it.",
+                new Dictionary<string, string> { ["resultId"] = workflowStepResultId.ToString(CultureInfo.InvariantCulture) });
 
         if (!approve && string.IsNullOrWhiteSpace(comment))
-            throw new BusinessRuleException("A reason is required when returning a result for biochemical confirmation.");
+            throw new BusinessRuleException(
+                MessageCodes.PathogenReturnReasonRequired,
+                "A reason is required when returning a result for biochemical confirmation.");
 
         var order = await _db.TestOrders.FirstAsync(t => t.Id == result.TestOrderId);
 
@@ -861,7 +947,10 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     private async Task FinalizeWorkflowAsync(int testOrderId, ResultStatus finalResult, int userId)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         _db.Results.Add(new Result
         {

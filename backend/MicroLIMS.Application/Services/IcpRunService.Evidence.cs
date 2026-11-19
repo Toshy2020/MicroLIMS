@@ -1,5 +1,7 @@
+using System.Globalization;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -23,7 +25,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
 
         var allowed = context switch
         {
@@ -32,7 +34,10 @@ public partial class IcpRunService
             _ => kind == IcpEvidenceKind.Other,
         };
         if (!allowed)
-            throw new BusinessRuleException($"{kind} evidence can't be attached to the {context} context.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEvidenceContextMismatch,
+                $"{kind} evidence can't be attached to the {context} context.",
+                new Dictionary<string, string> { ["kind"] = kind.ToString(), ["context"] = context.ToString() });
 
         var bytes = await ReadBoundedAsync(content, ct);
         ValidateEvidenceFile(fileName, contentType, bytes);
@@ -41,14 +46,21 @@ public partial class IcpRunService
         if (context == IcpEvidenceContext.Sample)
         {
             if (!runSampleId.HasValue)
-                throw new BusinessRuleException("Choose the sample this evidence belongs to.");
+                throw new BusinessRuleException(MessageCodes.IcpEvidenceSampleRequired, "Choose the sample this evidence belongs to.");
             runSample = run.Samples.FirstOrDefault(s => s.Id == runSampleId.Value)
-                ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
+                ?? throw new NotFoundException(
+                    MessageCodes.IcpRunSampleNotFound,
+                    $"Sample {runSampleId} not found on this run.",
+                    new Dictionary<string, string> { ["runSampleId"] = runSampleId.Value.ToString(CultureInfo.InvariantCulture) });
             if (runSample.Status == IcpRunSampleStatus.Removed)
-                throw new BusinessRuleException("Evidence can't be added to a removed sample.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpEvidenceCannotAddToRemovedSample,
+                    "Evidence can't be added to a removed sample.");
         }
         else if (runSampleId.HasValue)
-            throw new BusinessRuleException("Only sample evidence can be linked to a sample.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEvidenceOnlySampleCanLinkSample,
+                "Only sample evidence can be linked to a sample.");
 
         var evidence = new IcpEvidence
         {
@@ -78,20 +90,25 @@ public partial class IcpRunService
         int evidenceId, string reason, string fileName, string contentType, Stream content, int userId, CancellationToken ct = default)
     {
         var old = await _db.IcpEvidences.Include(e => e.IcpRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
-            ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpEvidenceNotFound,
+                $"Evidence {evidenceId} not found.",
+                new Dictionary<string, string> { ["evidenceId"] = evidenceId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureAccessAsync(old.IcpRun!, userId, ct);
 
         if (old.SupersededByEvidenceId.HasValue)
-            throw new BusinessRuleException("This evidence has already been superseded.");
+            throw new BusinessRuleException(MessageCodes.IcpEvidenceAlreadySuperseded, "This evidence has already been superseded.");
         if (old.IcpRun!.Status != IcpRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(MessageCodes.IcpReasonRequired, "A reason is required.");
 
         if (old.IcpRunSampleId is int oldSampleId
             && await _db.IcpRunSamples.AnyAsync(s => s.Id == oldSampleId && s.Status == IcpRunSampleStatus.Removed, ct))
-            throw new BusinessRuleException("Evidence can't be added to a removed sample.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEvidenceCannotAddToRemovedSample,
+                "Evidence can't be added to a removed sample.");
 
         var bytes = await ReadBoundedAsync(content, ct);
         ValidateEvidenceFile(fileName, contentType, bytes);
@@ -126,7 +143,10 @@ public partial class IcpRunService
     public async Task<(byte[] Content, string ContentType, string FileName)> DownloadEvidenceAsync(int evidenceId, int userId, CancellationToken ct = default)
     {
         var evidence = await _db.IcpEvidences.Include(e => e.IcpRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
-            ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpEvidenceNotFound,
+                $"Evidence {evidenceId} not found.",
+                new Dictionary<string, string> { ["evidenceId"] = evidenceId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureAccessAsync(evidence.IcpRun!, userId, ct, SectionAccess.Read);
 
@@ -151,15 +171,21 @@ public partial class IcpRunService
     private static void ValidateEvidenceFile(string fileName, string contentType, byte[] content)
     {
         if (content == null || content.Length == 0)
-            throw new BusinessRuleException("The uploaded file is empty.");
+            throw new BusinessRuleException(MessageCodes.IcpEvidenceFileEmpty, "The uploaded file is empty.");
         if (content.Length > MaxEvidenceBytes)
-            throw new BusinessRuleException($"File exceeds the maximum allowed size of {MaxEvidenceBytes / 1024 / 1024} MB.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEvidenceFileTooLarge,
+                $"File exceeds the maximum allowed size of {MaxEvidenceBytes / 1024 / 1024} MB.",
+                new Dictionary<string, string> { ["maxMb"] = (MaxEvidenceBytes / 1024 / 1024).ToString(CultureInfo.InvariantCulture) });
         if (string.IsNullOrWhiteSpace(fileName))
-            throw new BusinessRuleException("A file name is required.");
+            throw new BusinessRuleException(MessageCodes.IcpEvidenceFileNameRequired, "A file name is required.");
 
         var normalized = NormalizeContentType(contentType);
         if (!AllowedEvidenceContentTypes.Contains(normalized))
-            throw new BusinessRuleException($"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEvidenceFileTypeUnsupported,
+                $"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.",
+                new Dictionary<string, string> { ["contentType"] = normalized });
     }
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();

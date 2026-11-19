@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services.MasterData;
@@ -16,15 +17,23 @@ public partial class IcpRunService
 
     // First reason the calibration cannot be confirmed now, or null. Shared by
     // ConfirmCalibrationAsync and the DTO so the two never disagree.
-    private static string? ConfirmBlockReason(IcpRun run)
+    private static string? ConfirmBlockReason(IcpRun run) => ConfirmBlockWithCode(run)?.Message;
+
+    private static (string Code, string Message)? ConfirmBlockWithCode(IcpRun run)
     {
         var cal = run.Calibration;
-        if (run.Status != IcpRunStatus.Open) return "The run is closed.";
-        if (cal == null || cal.Status != IcpCalibrationStatus.Pending) return "The calibration has already been confirmed.";
-        if (cal.CalibrationStandardMaterialId == null) return "Choose the calibration standard lot.";
-        if (cal.Elements.Count == 0) return "Add the elements calibrated on this run, with their r.";
-        if (!run.Evidence.Any(IsCurrentCalibrationReport)) return MissingCalibrationReportReason;
-        if (!cal.Elements.Any(e => e.Passed)) return "No element passes the calibration check (r), so the instrument is not ready for testing.";
+        if (run.Status != IcpRunStatus.Open)
+            return (MessageCodes.IcpRunClosed, "The run is closed.");
+        if (cal == null || cal.Status != IcpCalibrationStatus.Pending)
+            return (MessageCodes.IcpCalibrationAlreadyConfirmed, "The calibration has already been confirmed.");
+        if (cal.CalibrationStandardMaterialId == null)
+            return (MessageCodes.IcpCalibrationStandardLotRequired, "Choose the calibration standard lot.");
+        if (cal.Elements.Count == 0)
+            return (MessageCodes.IcpCalibrationElementsRequired, "Add the elements calibrated on this run, with their r.");
+        if (!run.Evidence.Any(IsCurrentCalibrationReport))
+            return (MessageCodes.IcpCalibrationReportRequired, MissingCalibrationReportReason);
+        if (!cal.Elements.Any(e => e.Passed))
+            return (MessageCodes.IcpCalibrationNoPassingElement, "No element passes the calibration check (r), so the instrument is not ready for testing.");
         return null;
     }
 
@@ -40,10 +49,10 @@ public partial class IcpRunService
     {
         const string message = "The calibration standard must be a usable reference standard lot of this laboratory.";
         var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == materialId, ct)
-            ?? throw new BusinessRuleException(message);
+            ?? throw new BusinessRuleException(MessageCodes.IcpCalibrationStandardLotInvalid, message);
         if (lot.MaterialType != MaterialType.ReferenceStandard || lot.SectionId != sectionId
             || !LotUsability.Check(lot, lot.MaterialMasterEntryId ?? 0, null, _clock.LabToday).Usable)
-            throw new BusinessRuleException(message);
+            throw new BusinessRuleException(MessageCodes.IcpCalibrationStandardLotInvalid, message);
         return lot;
     }
 
@@ -54,10 +63,10 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
         var cal = run.Calibration;
         if (cal == null || cal.Status != IcpCalibrationStatus.Pending)
-            throw new BusinessRuleException("The calibration has already been confirmed.");
+            throw new BusinessRuleException(MessageCodes.IcpCalibrationAlreadyConfirmed, "The calibration has already been confirmed.");
 
         // Validate everything before mutating anything.
         Material? calLot = null;
@@ -70,9 +79,15 @@ public partial class IcpRunService
         {
             var symbol = IcpTestDefinitionRules.NormalizeSymbol(input.Symbol);
             if (!seen.Add(symbol))
-                throw new BusinessRuleException($"Element \"{symbol}\" is listed more than once.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpCalibrationDuplicateElement,
+                    $"Element \"{symbol}\" is listed more than once.",
+                    new Dictionary<string, string> { ["symbol"] = symbol });
             if (input.CorrelationR is < 0m or > 1m)
-                throw new BusinessRuleException($"{symbol}: r must be between 0 and 1.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpCalibrationRInvalid,
+                    $"{symbol}: r must be between 0 and 1.",
+                    new Dictionary<string, string> { ["symbol"] = symbol });
             // numeric(8,6): round before judging so save-time and confirm-time verdicts match what is stored.
             inputs.Add((symbol, input.CorrelationR is decimal r6 ? Math.Round(r6, 6, MidpointRounding.AwayFromZero) : null));
         }
@@ -106,8 +121,12 @@ public partial class IcpRunService
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
 
-        var blocked = ConfirmBlockReason(run);
-        if (blocked != null) throw new BusinessRuleException(blocked);
+        var blocked = ConfirmBlockWithCode(run);
+        if (blocked != null)
+        {
+            var (code, message) = blocked.Value;
+            throw new BusinessRuleException(code, message);
+        }
         var cal = run.Calibration!;
 
         // The lot was checked at save; it may have expired or run out since.

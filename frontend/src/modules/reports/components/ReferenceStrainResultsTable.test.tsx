@@ -207,4 +207,45 @@ describe("ReferenceStrainResultsTable", () => {
       await resetLanguage();
     }
   });
+
+  it("renders all 50 rows when pageSize is 50 and shows exactly one pagination", async () => {
+    const user = userEvent.setup();
+    const items = Array.from({ length: 50 }, (_, i) =>
+      makeStrain({ id: i + 1, cryovialCode: `CRYO-ROW-${i + 1}` })
+    );
+    const onPageChange = vi.fn();
+    const onPageSizeChange = vi.fn();
+    localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.DATA_EXPORT]));
+    localStorage.setItem("microlims_fullname", "Dr. Ada");
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <AuthProvider>
+            <ReferenceStrainResultsTable
+              results={{ items, totalCount: 120, page: 1, pageSize: 50 }}
+              loading={false}
+              error={null}
+              appliedParams={{ ...APPLIED_PARAMS, page: 1, pageSize: 50 }}
+              onPageChange={onPageChange}
+              onPageSizeChange={onPageSizeChange}
+              onClearFilters={vi.fn()}
+            />
+          </AuthProvider>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    const dataRows = screen.getAllByRole("row").slice(1);
+    expect(dataRows).toHaveLength(50);
+    expect(screen.getByText("CRYO-ROW-50")).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: /next page/i })).toHaveLength(1);
+    expect(screen.getAllByRole("combobox", { name: /rows per page/i })).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: /next page/i }));
+    expect(onPageChange).toHaveBeenCalledWith(2);
+
+    await user.click(screen.getByRole("combobox", { name: /rows per page/i }));
+    await user.click(screen.getByRole("option", { name: "100" }));
+    expect(onPageSizeChange).toHaveBeenCalledWith(100);
+  });
 });

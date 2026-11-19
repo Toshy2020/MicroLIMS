@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
 import {
-  Box, Paper, Typography, Chip, Checkbox, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack, useTheme
+  Box, Paper, Typography, Chip, Checkbox, Tooltip, IconButton, Menu, MenuItem, Button, Alert, Link, Stack, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -127,8 +125,8 @@ export function ReportResultsTable({
 
   const items = useMemo(() => results?.items ?? [], [results]);
   const totalCount = results?.totalCount ?? 0;
-  const page = appliedParams.page ?? 1;
-  const pageSize = appliedParams.pageSize ?? 25;
+  const page = results?.page ?? appliedParams.page ?? 1;
+  const pageSize = results?.pageSize ?? appliedParams.pageSize ?? 25;
 
   const selectionCount = selection.count;
   const selectedRecords = useMemo(
@@ -241,10 +239,6 @@ export function ReportResultsTable({
       isSelection: true
     });
   };
-
-  const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const pageEnd = Math.min(page * pageSize, totalCount);
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // Maps each toggleable ColumnKey to its real RegisterTable column definition -
   // visibleColumns (driven by the Columns menu) filters this list before
@@ -429,6 +423,14 @@ export function ReportResultsTable({
               }}
               selection={selection}
               isSelectable={(row) => row.approvalStatus === "Approved"}
+              serverPaged={{
+                totalCount,
+                page: Math.max(0, page - 1),
+                onPageChange: (nextZeroBasedPage) => onPageChange(nextZeroBasedPage + 1),
+                pageSize,
+                onPageSizeChange,
+                pageSizeOptions: ROWS_PER_PAGE_OPTIONS
+              }}
             />
           </Box>
 
@@ -463,26 +465,6 @@ export function ReportResultsTable({
               {t("search.table.copyReferenceNumber")}
             </MenuItem>
           </Menu>
-
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2, flexWrap: "wrap", gap: 1 }}>
-            <FormControl size="small">
-              <Select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))} inputProps={{ "aria-label": t("search.table.rowsPerPageAria") }}>
-                {ROWS_PER_PAGE_OPTIONS.map((n) => <MenuItem key={n} value={n}>{t("search.table.perPage", { count: n })}</MenuItem>)}
-              </Select>
-            </FormControl>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {t("search.table.rangeOf", { start: pageStart, end: pageEnd, total: totalCount })}
-              </Typography>
-              <IconButton aria-label={t("search.table.previousPage")} size="small" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-                <ChevronLeftIcon fontSize="small" />
-              </IconButton>
-              <IconButton aria-label={t("search.table.nextPage")} size="small" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
-                <ChevronRightIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
         </>
       )}
 

@@ -1,13 +1,10 @@
 import { useState } from "react";
 import {
-  Box, Paper, Typography, Chip, IconButton, Tooltip, Button, Alert, Stack,
-  FormControl, Select, MenuItem, useTheme
+  Box, Paper, Typography, Chip, IconButton, Tooltip, Button, Alert, Stack, useTheme
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { ReferenceStrainDetail, ReferenceStrainListItem, ReferenceStrainSearchParams, ReferenceStrainSearchResponse } from "../types/referenceStrainTypes";
 import { ReferenceStrainReportService } from "../services/ReferenceStrainReportService";
 import { ReferenceStrainDetailDialog } from "./ReferenceStrainDetailDialog";
@@ -69,9 +66,8 @@ export function ReferenceStrainResultsTable({
 
   const items = results?.items ?? [];
   const totalCount = results?.totalCount ?? 0;
-  const page = results?.page ?? 1;
-  const pageSize = results?.pageSize ?? 25;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const page = results?.page ?? appliedParams.page ?? 1;
+  const pageSize = results?.pageSize ?? appliedParams.pageSize ?? 25;
 
   const handleViewDetail = async (id: number) => {
     try {
@@ -265,48 +261,15 @@ export function ReferenceStrainResultsTable({
           )
         }}
         selection={selection}
+        serverPaged={{
+          totalCount,
+          page: Math.max(0, page - 1),
+          onPageChange: (nextZeroBasedPage) => onPageChange(nextZeroBasedPage + 1),
+          pageSize,
+          onPageSizeChange,
+          pageSizeOptions: ROWS_PER_PAGE_OPTIONS
+        }}
       />
-
-      {/* Pagination Footer */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, flexWrap: "wrap", gap: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("referenceStrain.table.rowsPerPage")}</Typography>
-          <FormControl size="small">
-            <Select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              sx={{ fontSize: 12, height: 32 }}
-              inputProps={{ "aria-label": t("referenceStrain.table.rowsPerPage") }}
-            >
-              {ROWS_PER_PAGE_OPTIONS.map((opt) => (
-                <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        <Stack direction="row" spacing={1} sx={{
-          alignItems: "center"
-        }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {t("referenceStrain.table.pageOf", { page, totalPages })}
-          </Typography>
-          <IconButton aria-label={t("referenceStrain.table.previousPage")}
-            size="small"
-            disabled={page <= 1 || loading}
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton aria-label={t("referenceStrain.table.nextPage")}
-            size="small"
-            disabled={page >= totalPages || loading}
-            onClick={() => onPageChange(page + 1)}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Stack>
-      </Box>
 
       {/* Detail Dialog */}
       <ReferenceStrainDetailDialog

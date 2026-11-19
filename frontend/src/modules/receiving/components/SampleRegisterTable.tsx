@@ -199,7 +199,7 @@ function resolveNextAction(sample: SampleRecord, caps: NextActionCapabilities, t
 
 const safeDateTime = (iso: string): string => {
   try {
-    return formatDateTimeWithTimeZone(iso);
+    return formatDateTimeWithTimeZone(iso, { english: true });
   } catch {
     return iso;
   }
@@ -246,13 +246,16 @@ const SAMPLE_COLUMN_DEFS: ReadonlyArray<{
   { key: "nextAction", exportValue: (s, t, caps) => resolveNextAction(s, caps, t)?.label ?? "" }
 ];
 
+// The file is English whatever the interface language: the English record is the regulated one.
+const englishT = (): ReceivingT => appI18n.getFixedT("en", "receiving") as ReceivingT;
+
 // The export columns for the register columns a user has chosen to show, in their order. Labels and values
-// are in the interface language, as on screen.
+// are always English.
 export function sampleExportColumns(
   visibleKeys: readonly string[],
   caps: NextActionCapabilities = { canSelectTests: false, canAssign: false }
 ): ExportColumn<SampleRecord>[] {
-  const t = appI18n.getFixedT(null, "receiving") as ReceivingT;
+  const t = englishT();
   const byKey = new Map(SAMPLE_COLUMN_DEFS.map((d) => [String(d.key), d]));
   return visibleKeys
     .map((key) => byKey.get(key))
@@ -260,6 +263,7 @@ export function sampleExportColumns(
     .map((d) => ({
       key: String(d.key),
       label: t(`register.columns.${d.key}`),
+      exportLabel: t(`register.columns.${d.key}`),
       sortValue: d.sortValue,
       exportValue: (s: SampleRecord) => d.exportValue(s, t, caps)
     }));
@@ -926,7 +930,8 @@ function SampleRegisterTableInner({
 
   const columns: RegisterColumn<SampleRecord>[] = SAMPLE_COLUMN_DEFS.map((d) => ({
     ...column(d.key, t(`register.columns.${d.key}`), d.sortValue),
-    exportValue: (s: SampleRecord) => d.exportValue(s, t, nextActionCaps)
+    exportLabel: englishT()(`register.columns.${d.key}`),
+    exportValue: (s: SampleRecord) => d.exportValue(s, englishT(), nextActionCaps)
   }));
 
   // Retest children of an expanded sample, each with the same visible columns

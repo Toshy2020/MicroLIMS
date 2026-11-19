@@ -9,6 +9,8 @@ export const MAX_EXPORT_ROWS = 5000;
 export interface ExportColumn<T> {
   key: string;
   label: string;
+  // The column title in the file. Printed and exported output is English whatever the interface language.
+  exportLabel?: string;
   // Used when the row has no value under `key`.
   sortValue?: (row: T) => string | number | null | undefined;
   // What the CSV carries for this column, as the screen shows it (formatted dates, labels, text of a rendered
@@ -81,5 +83,5 @@ export async function exportRegisterRows<T>({ tableKey, rows, columns, getRowId,
     })
   );
 
-  downloadCsv(`${tableKey}-export-${logResult.exportId}.csv`, buildCsv(headerRows, columns.map((c) => c.label), dataRows));
+  downloadCsv(`${tableKey}-export-${logResult.exportId}.csv`, buildCsv(headerRows, columns.map((c) => c.exportLabel ?? c.label), dataRows));
 }

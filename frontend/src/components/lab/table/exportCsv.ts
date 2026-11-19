@@ -18,8 +18,12 @@ function escapeCsvCell(value: string): string {
   return value;
 }
 
+// Invisible direction marks (the isolates around Arabic dates and the like) belong to the screen; a file
+// never carries them.
+const BIDI_CONTROL_RE = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+
 function formatCsvRow(cells: string[]): string {
-  return cells.map((c) => escapeCsvCell(neutralise(c))).join(",");
+  return cells.map((c) => escapeCsvCell(neutralise(c.replace(BIDI_CONTROL_RE, "")))).join(",");
 }
 
 export function buildCsv(

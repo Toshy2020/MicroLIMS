@@ -12,6 +12,7 @@ import type {
   ResultRecordSearchParams,
   ResultRecordSearchResponse,
 } from "../types/reportingTypes";
+import { i18n } from "../../../i18n";
 import { ReportResultsTable } from "./ReportResultsTable";
 
 vi.mock("../services/ReportingService", () => ({
@@ -348,5 +349,28 @@ describe("ReportResultsTable", () => {
       "Date/Time,Reference,Subject,Subject Detail,Category,Test Code,Test Name,Reported Value,Unit,Result Level,Alert Limit,Action Limit,Spec Limit,Status,Analyst,Approved By,Approval Date"
     );
     expect(lines[8]).toContain("'=FP-SEL-101");
+  });
+  it("Export Selected CSV is English with no Arabic characters or direction marks while the interface is Arabic", async () => {
+    await i18n.loadLanguages("ar");
+    await i18n.loadNamespaces(["reports", "common"]);
+    await i18n.changeLanguage("ar");
+    try {
+      const user = userEvent.setup();
+      const items = [makeRecord({ id: 101, referenceNumber: "FP-SEL-101", approvalStatus: "Approved" })];
+      renderTable({ items, totalCount: 1, page: 1, pageSize: 25 });
+
+      await user.click(screen.getByRole("checkbox", { name: /101/ }));
+      await user.click(screen.getByRole("button", { name: i18n.t("search.table.exportSelectedCsv", { ns: "reports" }) }));
+
+      await waitFor(() => {
+        expect(downloadedBlobs).toHaveLength(1);
+      });
+      const text = await downloadedBlobs[0].text();
+      expect(text).toContain("Date/Time,Reference,Subject");
+      expect(text).not.toMatch(/[\u0600-\u06FF]/);
+      expect(text).not.toMatch(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/);
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

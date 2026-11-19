@@ -101,7 +101,7 @@ export function SignatureDialog({
         {error && <Alert severity="error">{error}</Alert>}
         <Box>
           <Typography sx={{ fontWeight: 700 }}>{fullName ?? username}</Typography>
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{formatRoleName(role, roleName)}</Typography>
+          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{formatRoleName(role, roleName, t)}</Typography>
         </Box>
         {/* The recorded statement is English: it stays first and left-to-right in both languages. */}
         <Alert severity="info">

@@ -227,7 +227,7 @@ export function EscalationRuleDialog({
             >
               {NOTIFY_ROLE_OPTIONS.map((roleValue) => (
                 <MenuItem key={roleValue} value={roleValue}>
-                  {formatRoleName(roleValue)}
+                  {formatRoleName(roleValue, undefined, t)}
                 </MenuItem>
               ))}
             </TextField>

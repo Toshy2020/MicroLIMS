@@ -44,7 +44,7 @@ export function ProfilePage() {
       <Paper component="dl" sx={{ p: 2.5, maxWidth: 440, m: 0 }}>
         <Field label={t("profile.fullName")} value={info.fullName} />
         <Field label={t("profile.userId")} value={<Ltr>{info.username}</Ltr>} />
-        <Field label={t("profile.role")} value={formatRoleName(info.role, info.roleName)} />
+        <Field label={t("profile.role")} value={formatRoleName(info.role, info.roleName, t)} />
         <Field label={t("profile.lastLogin")} value={info.lastLoginAt ? <Ltr>{formatDateTimeWithTimeZone(info.lastLoginAt)}</Ltr> : t("profile.never")} />
         <Field label={t("profile.passwordLastChanged")} value={info.passwordChangedAt ? <Ltr>{formatDateTimeWithTimeZone(info.passwordChangedAt)}</Ltr> : t("profile.never")} />
       </Paper>

@@ -310,7 +310,7 @@ export function EscalationRulesPage() {
                           <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
                             {t("escalation.rules.thresholdValue", { hours: rule.thresholdWorkingHours })}
                           </TableCell>
-                          <TableCell>{formatRoleName(rule.notifyRoleType)}</TableCell>
+                          <TableCell>{formatRoleName(rule.notifyRoleType, undefined, t)}</TableCell>
                           <TableCell>
                             <Chip
                               label={statusLabel}
@@ -398,7 +398,7 @@ export function EscalationRulesPage() {
             ? t("escalation.rules.retireMessage", {
                 trigger: triggerLabel(retireTarget.trigger),
                 hours: retireTarget.thresholdWorkingHours,
-                role: formatRoleName(retireTarget.notifyRoleType)
+                role: formatRoleName(retireTarget.notifyRoleType, undefined, t)
               })
             : ""
         }

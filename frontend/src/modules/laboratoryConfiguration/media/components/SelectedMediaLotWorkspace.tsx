@@ -778,7 +778,7 @@ export function SelectedMediaLotWorkspace({
                     <Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                         {t("media.selectedLotWorkspace.timelineEventBy", {
-                          event: workflowEventLabel(ev.eventType, ev.decision),
+                          event: workflowEventLabel(ev.eventType, ev.decision, t),
                           user: ev.performedByName || t("media.selectedLotWorkspace.systemUser")
                         })}
                       </Typography>

@@ -1,17 +1,20 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../i18n";
+
 // Readable names for ReviewWorkflowEventType (backend/MicroLIMS.Domain/Enums/
 // ReviewWorkflowEventType.cs), which the summary APIs send as the enum's
 // C# name. Keyed by name, not position, so a newly appended event can't
 // shift every label after it.
-const EVENT_LABELS: Record<string, string> = {
-  SubmittedForReview: "Submitted for Review",
-  ReviewCompleted: "Review Completed",
-  SubmittedForApproval: "Submitted for Approval",
-  ApprovalDecisionMade: "Approval Decision",
-  SampleVoided: "Sample Voided",
-  SampleCorrected: "Sample Corrected",
-  SectionTestingClosed: "Section Testing Closed",
-  LaboratoryAdded: "Laboratory Added",
-  StorageLocationChanged: "Storage Location Changed"
+const EVENT_LABEL_KEYS: Record<string, string> = {
+  SubmittedForReview: "workflowEvents.SubmittedForReview",
+  ReviewCompleted: "workflowEvents.ReviewCompleted",
+  SubmittedForApproval: "workflowEvents.SubmittedForApproval",
+  ApprovalDecisionMade: "workflowEvents.ApprovalDecisionMade",
+  SampleVoided: "workflowEvents.SampleVoided",
+  SampleCorrected: "workflowEvents.SampleCorrected",
+  SectionTestingClosed: "workflowEvents.SectionTestingClosed",
+  LaboratoryAdded: "workflowEvents.LaboratoryAdded",
+  StorageLocationChanged: "workflowEvents.StorageLocationChanged"
 };
 
 // "SomeNewEvent" -> "Some New Event", so an event added on the backend before
@@ -20,11 +23,15 @@ function splitPascalCase(value: string): string {
   return value.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 }
 
-export function workflowEventLabel(eventType: string, decision?: string | null): string {
+export function workflowEventLabel(eventType: string, decision?: string | null, t?: TFunction): string {
+  const translate = t ?? i18n.getFixedT("en", "common");
   if (eventType === "ApprovalDecisionMade" && decision) {
-    if (decision === "Approve") return "Approved";
-    if (decision === "Reject") return "Rejected";
+    if (decision === "Approve") return translate("workflowEvents.approved", { ns: "common" });
+    if (decision === "Reject") return translate("workflowEvents.rejected", { ns: "common" });
   }
-  const label = EVENT_LABELS[eventType] ?? splitPascalCase(eventType);
-  return decision ? `${label} (${splitPascalCase(decision)})` : label;
+  const key = EVENT_LABEL_KEYS[eventType];
+  const label = key ? translate(key, { ns: "common" }) : splitPascalCase(eventType);
+  return decision
+    ? translate("workflowEvents.withDecision", { ns: "common", label, decision: splitPascalCase(decision) })
+    : label;
 }

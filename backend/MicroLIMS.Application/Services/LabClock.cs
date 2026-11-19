@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.Extensions.Configuration;
 using MicroLIMS.Application.Interfaces;
 
@@ -60,7 +61,9 @@ public class LabClock : ILabClock
         {
             // Never guess: run codes and expiry checks would silently use the wrong date.
             throw new BusinessRuleException(
-                $"Lab time zone '{timeZoneId}' (and fallback 'Egypt Standard Time') was not found on this server. Set Lab:TimeZoneId to a valid time zone id.");
+                MessageCodes.SettingsLabTimeZoneNotFound,
+                $"Lab time zone '{timeZoneId}' (and fallback 'Egypt Standard Time') was not found on this server. Set Lab:TimeZoneId to a valid time zone id.",
+                new Dictionary<string, string> { ["timeZoneId"] = timeZoneId ?? string.Empty });
         }
     }
 }

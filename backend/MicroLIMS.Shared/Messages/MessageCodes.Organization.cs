@@ -13,6 +13,7 @@ public static partial class MessageCodes
     public const string OrganizationSectionNotFoundOrInactive = "Organization.SectionNotFoundOrInactive";
     public const string OrganizationSectionNotInDepartment = "Organization.SectionNotInDepartment";
     public const string OrganizationTestingAlreadyClosed = "Organization.TestingAlreadyClosed";
+    public const string OrganizationUnknownLaboratory = "Organization.UnknownLaboratory";
 
     private static Dictionary<string, string[]> OrganizationParameters() => new()
     {
@@ -26,5 +27,6 @@ public static partial class MessageCodes
         [OrganizationSectionNotFoundOrInactive] = ["sectionId"],
         [OrganizationSectionNotInDepartment] = ["departmentId", "sectionId"],
         [OrganizationTestingAlreadyClosed] = [],
+        [OrganizationUnknownLaboratory] = ["labCode"],
     };
 }

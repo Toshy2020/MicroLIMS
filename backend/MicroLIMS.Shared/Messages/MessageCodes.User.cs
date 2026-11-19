@@ -37,6 +37,7 @@ public static partial class MessageCodes
     public const string UserEmergencyMustUseLocalSignIn = "User.EmergencyMustUseLocalSignIn";
     public const string UserEmergencyRequiresActiveMfa = "User.EmergencyRequiresActiveMfa";
     public const string UserFullNameRequired = "User.FullNameRequired";
+    public const string UserLastAdminPermissionHolder = "User.LastAdminPermissionHolder";
     public const string UserNoAssignedLaboratorySection = "User.NoAssignedLaboratorySection";
     public const string UserNoCompanyUsernameToRelink = "User.NoCompanyUsernameToRelink";
     public const string UserNotFound = "User.NotFound";
@@ -95,6 +96,7 @@ public static partial class MessageCodes
         [UserEmergencyMustUseLocalSignIn] = [],
         [UserEmergencyRequiresActiveMfa] = [],
         [UserFullNameRequired] = [],
+        [UserLastAdminPermissionHolder] = ["permission"],
         [UserNoAssignedLaboratorySection] = [],
         [UserNoCompanyUsernameToRelink] = [],
         [UserNotFound] = ["userId"],

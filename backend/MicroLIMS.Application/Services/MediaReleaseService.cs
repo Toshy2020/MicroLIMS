@@ -60,7 +60,10 @@ public class MediaReleaseService
     public async Task<ActionCheck> CheckDecideAsync(int mediaId, int sectionHeadUserId, bool approved, CancellationToken ct = default)
     {
         var media = await _db.Media.AsNoTracking().FirstOrDefaultAsync(m => m.Id == mediaId, ct)
-            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaLotNotFound,
+                $"Media lot {mediaId} not found.",
+                new Dictionary<string, string> { ["mediaId"] = mediaId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
         return await CheckDecideAsync(media, sectionHeadUserId, approved, ct);
     }
 
@@ -96,7 +99,10 @@ public class MediaReleaseService
     private async Task DecideCoreAsync(int mediaId, int sectionHeadUserId, string password, bool approved, string? comment, string? ipAddress)
     {
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
-            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaLotNotFound,
+                $"Media lot {mediaId} not found.",
+                new Dictionary<string, string> { ["mediaId"] = mediaId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
 
         (await CheckDecideAsync(media, sectionHeadUserId, approved)).ThrowIfRefused();
 

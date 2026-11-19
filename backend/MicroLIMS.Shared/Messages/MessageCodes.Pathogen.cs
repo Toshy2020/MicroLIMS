@@ -5,6 +5,7 @@ public static partial class MessageCodes
 {
     public const string PathogenAnalystDecisionNotAvailable = "Pathogen.AnalystDecisionNotAvailable";
     public const string PathogenBiochemicalNeedsConformingResult = "Pathogen.BiochemicalNeedsConformingResult";
+    public const string PathogenConfirmatoryObservationCountMismatch = "Pathogen.ConfirmatoryObservationCountMismatch";
     public const string PathogenConfirmatoryPlatingNotCompleted = "Pathogen.ConfirmatoryPlatingNotCompleted";
     public const string PathogenIncubationAlreadyStarted = "Pathogen.IncubationAlreadyStarted";
     public const string PathogenIncubatorNotFound = "Pathogen.IncubatorNotFound";
@@ -36,6 +37,7 @@ public static partial class MessageCodes
     {
         [PathogenAnalystDecisionNotAvailable] = [],
         [PathogenBiochemicalNeedsConformingResult] = ["step"],
+        [PathogenConfirmatoryObservationCountMismatch] = ["expected", "received"],
         [PathogenConfirmatoryPlatingNotCompleted] = [],
         [PathogenIncubationAlreadyStarted] = ["step"],
         [PathogenIncubatorNotFound] = ["incubatorId"],

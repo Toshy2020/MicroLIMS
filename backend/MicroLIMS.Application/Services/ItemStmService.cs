@@ -1,9 +1,11 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -17,7 +19,10 @@ public class ItemStmService(IMicroLimsDbContext db)
             .Where(i => i.Id == itemId)
             .Select(i => new { i.SopNumber })
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException($"Item {itemId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringItemNotFound,
+                $"Item {itemId} not found.",
+                new Dictionary<string, string> { ["itemId"] = itemId.ToString(CultureInfo.InvariantCulture) });
 
         var sop = (item.SopNumber ?? string.Empty).Trim();
         if (sop.Length == 0)

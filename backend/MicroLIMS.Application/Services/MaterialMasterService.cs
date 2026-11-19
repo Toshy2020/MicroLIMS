@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -112,7 +114,10 @@ public class MaterialMasterService
         EnsurePrefix(normalizedCode, r.Category, materialCategory);
 
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode, ct))
-            throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterCodeExists,
+                $"Material master entry code \"{normalizedCode}\" already exists.",
+                new Dictionary<string, string> { ["code"] = normalizedCode });
 
         var entry = new MaterialMasterEntry
         {
@@ -213,10 +218,14 @@ public class MaterialMasterService
         var hasStock = await _db.Materials.AnyAsync(m => m.MaterialMasterEntryId == id, ct);
 
         if (r.Category != entry.Category && hasStock)
-            throw new BusinessRuleException("This entry has linked stock lots; its category can't change.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterCategoryLockedByStock,
+                "This entry has linked stock lots; its category can't change.");
         var categoryChanged = r.MaterialCategoryId != entry.MaterialCategoryId;
         if (categoryChanged && hasStock)
-            throw new BusinessRuleException("This entry has linked stock lots; its material category can't change.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterMaterialCategoryLockedByStock,
+                "This entry has linked stock lots; its material category can't change.");
 
         // The category is checked against the owner lab only when it is being set or changed,
         // so an entry whose category was later deactivated or narrowed can still be renamed.
@@ -233,10 +242,15 @@ public class MaterialMasterService
         if (normalizedCode != entry.Code || categoryChanged)
         {
             if (normalizedCode != entry.Code && hasStock)
-                throw new BusinessRuleException("This entry has stock; change its code with a reason and an electronic signature.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMasterCodeChangeRequiresSignature,
+                    "This entry has stock; change its code with a reason and an electronic signature.");
             EnsurePrefix(normalizedCode, r.Category, materialCategory);
             if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
-                throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMasterCodeExists,
+                    $"Material master entry code \"{normalizedCode}\" already exists.",
+                    new Dictionary<string, string> { ["code"] = normalizedCode });
         }
 
         entry.Code = normalizedCode;
@@ -269,22 +283,30 @@ public class MaterialMasterService
         int id, string newCode, string reason, string password, int currentUserId, string? ipAddress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason for the code change is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCodeChangeReasonRequired,
+                "A reason for the code change is required.");
         var trimmedReason = reason.Trim();
 
-        if (string.IsNullOrWhiteSpace(newCode)) throw new BusinessRuleException("Code is required.");
+        if (string.IsNullOrWhiteSpace(newCode))
+            throw new BusinessRuleException(MessageCodes.TestDefinitionCodeRequired, "Code is required.");
         var normalizedCode = newCode.Trim().ToUpper();
 
         var entry = await LoadWithAccessAsync(id, currentUserId, ct);
 
         if (normalizedCode == entry.Code)
-            throw new BusinessRuleException("The new code must be different from the current code.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialNewCodeMustDiffer,
+                "The new code must be different from the current code.");
         var entryCategory = entry.MaterialCategoryId.HasValue
             ? await _db.MaterialCategories.FirstOrDefaultAsync(c => c.Id == entry.MaterialCategoryId.Value, ct)
             : null;
         EnsurePrefix(normalizedCode, entry.Category, entryCategory);
         if (await _db.MaterialMasterEntries.AnyAsync(e => e.Code == normalizedCode && e.Id != id, ct))
-            throw new BusinessRuleException($"Material master entry code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterCodeExists,
+                $"Material master entry code \"{normalizedCode}\" already exists.",
+                new Dictionary<string, string> { ["code"] = normalizedCode });
 
         var oldCode = entry.Code;
 
@@ -331,11 +353,16 @@ public class MaterialMasterService
     private async Task<MaterialMasterEntry> LoadWithAccessAsync(int id, int currentUserId, CancellationToken ct)
     {
         var entry = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == id, ct)
-            ?? throw new NotFoundException($"Material master entry {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionMaterialMasterEntryNotFound,
+                $"Material master entry {id} not found.",
+                new Dictionary<string, string> { ["entryId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(entry.SectionId))
-            throw new BusinessRuleException("Only the owner lab of a material master entry can change it.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterOwnerLabOnly,
+                "Only the owner lab of a material master entry can change it.");
 
         return entry;
     }
@@ -350,18 +377,31 @@ public class MaterialMasterService
         if (r.Category != MaterialMasterCategory.Other)
         {
             if (r.MaterialCategoryId.HasValue)
-                throw new BusinessRuleException("A material category is only allowed for Other materials.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialCategoryOnlyForOther,
+                    "A material category is only allowed for Other materials.");
             return null;
         }
 
         if (!r.MaterialCategoryId.HasValue)
-            throw new BusinessRuleException("Choose the material category for this Other material.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCategoryRequiredForOther,
+                "Choose the material category for this Other material.");
         var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == r.MaterialCategoryId.Value, ct)
-            ?? throw new BusinessRuleException($"Material category {r.MaterialCategoryId.Value} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MaterialCategoryNotFound,
+                $"Material category {r.MaterialCategoryId.Value} not found.",
+                new Dictionary<string, string> { ["categoryId"] = r.MaterialCategoryId.Value.ToString(CultureInfo.InvariantCulture) });
         if (!category.IsActive)
-            throw new BusinessRuleException($"Material category \"{category.Name}\" is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCategoryInactive,
+                $"Material category \"{category.Name}\" is inactive.",
+                new Dictionary<string, string> { ["name"] = category.Name });
         if (category.Sections.Count > 0 && category.Sections.All(s => s.SectionId != ownerSectionId))
-            throw new BusinessRuleException($"Material category \"{category.Name}\" is not available to the owner lab of this entry.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCategoryNotInOwnerLab,
+                $"Material category \"{category.Name}\" is not available to the owner lab of this entry.",
+                new Dictionary<string, string> { ["name"] = category.Name });
         return category;
     }
 
@@ -369,25 +409,58 @@ public class MaterialMasterService
     {
         var prefix = materialCategory != null ? PrefixFor(materialCategory) : PrefixFor(category);
         if (!normalizedCode.StartsWith(prefix, StringComparison.Ordinal) || normalizedCode.Length == prefix.Length)
-            throw new BusinessRuleException($"{materialCategory?.Name ?? CategoryLabel(category)} codes must start with \"{prefix}\".");
+        {
+            if (materialCategory != null)
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMasterCodePrefixRequired,
+                    $"{materialCategory.Name} codes must start with \"{prefix}\".",
+                    new Dictionary<string, string> { ["categoryName"] = materialCategory.Name, ["prefix"] = prefix });
+            switch (category)
+            {
+                case MaterialMasterCategory.ReferenceStandard:
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMasterCodePrefixReferenceStandard,
+                        $"Reference standard codes must start with \"{prefix}\".",
+                        new Dictionary<string, string> { ["prefix"] = prefix });
+                case MaterialMasterCategory.PrimaryStandard:
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMasterCodePrefixPrimaryStandard,
+                        $"Primary standard codes must start with \"{prefix}\".",
+                        new Dictionary<string, string> { ["prefix"] = prefix });
+                case MaterialMasterCategory.Indicator:
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMasterCodePrefixIndicator,
+                        $"Indicator codes must start with \"{prefix}\".",
+                        new Dictionary<string, string> { ["prefix"] = prefix });
+                case MaterialMasterCategory.Reagent:
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMasterCodePrefixReagent,
+                        $"Reagent codes must start with \"{prefix}\".",
+                        new Dictionary<string, string> { ["prefix"] = prefix });
+                default:
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMasterCodePrefixRequired,
+                        $"{category} codes must start with \"{prefix}\".",
+                        new Dictionary<string, string> { ["categoryName"] = category.ToString(), ["prefix"] = prefix });
+            }
+        }
     }
-
-    private static string CategoryLabel(MaterialMasterCategory category) => category switch
-    {
-        MaterialMasterCategory.ReferenceStandard => "Reference standard",
-        MaterialMasterCategory.PrimaryStandard => "Primary standard",
-        _ => category.ToString()
-    };
 
     private static void Validate(SaveMaterialMasterEntryRequest r)
     {
-        if (string.IsNullOrWhiteSpace(r.Code)) throw new BusinessRuleException("Code is required.");
-        if (string.IsNullOrWhiteSpace(r.Name)) throw new BusinessRuleException("Name is required.");
+        if (string.IsNullOrWhiteSpace(r.Code))
+            throw new BusinessRuleException(MessageCodes.TestDefinitionCodeRequired, "Code is required.");
+        if (string.IsNullOrWhiteSpace(r.Name))
+            throw new BusinessRuleException(MessageCodes.SolutionMasterNameRequired, "Name is required.");
         var hasIndicatorFields = r.WorkingConcentration != null || r.Solvent != null || r.TransitionRangeFrom != null
             || r.TransitionRangeTo != null || r.ColourChange != null || r.IndicatorUse != null;
         if (hasIndicatorFields && r.Category != MaterialMasterCategory.Indicator)
-            throw new BusinessRuleException("Indicator fields are only allowed for indicators.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialIndicatorFieldsOnlyForIndicators,
+                "Indicator fields are only allowed for indicators.");
         if (r.TransitionRangeFrom > r.TransitionRangeTo)
-            throw new BusinessRuleException("Transition range 'from' must not be above 'to'.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialTransitionRangeInvalid,
+                "Transition range 'from' must not be above 'to'.");
     }
 }

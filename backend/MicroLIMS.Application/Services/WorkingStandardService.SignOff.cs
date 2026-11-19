@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -18,10 +19,11 @@ public partial class WorkingStandardService
     public async Task<WorkingStandardQualificationDto> ReviewAsync(int id, WorkingStandardSignRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var q = await LoadAsync(id, userId, ct);
-        RequireStatus(q, WorkingStandardQualificationStatus.Assayed, "Only an assayed qualification can be reviewed.");
-        if (!q.Passed) throw new BusinessRuleException("A failed qualification can only be rejected.");
+        if (q.Status != WorkingStandardQualificationStatus.Assayed)
+            throw new BusinessRuleException(MessageCodes.StandardOnlyAssayedCanReview, "Only an assayed qualification can be reviewed.");
+        if (!q.Passed) throw new BusinessRuleException(MessageCodes.StandardFailedOnlyCanReject, "A failed qualification can only be rejected.");
         if (userId == q.PreparedByUserId)
-            throw new BusinessRuleException("The analyst who submitted the qualification cannot review it.");
+            throw new BusinessRuleException(MessageCodes.StandardSubmitterCannotReview, "The analyst who submitted the qualification cannot review it.");
         await RequireRunNotAbandonedAsync(q.Id, ct);
 
         var sig = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.Reviewed, EntityType, q.Id, r.Comment, ip);
@@ -38,7 +40,8 @@ public partial class WorkingStandardService
     public async Task<WorkingStandardQualificationDto> ReturnAsync(int id, WorkingStandardReturnRequest r, int userId, CancellationToken ct = default)
     {
         var q = await LoadAsync(id, userId, ct);
-        RequireStatus(q, WorkingStandardQualificationStatus.Assayed, "Only an assayed qualification can be returned.");
+        if (q.Status != WorkingStandardQualificationStatus.Assayed)
+            throw new BusinessRuleException(MessageCodes.StandardOnlyAssayedCanReturn, "Only an assayed qualification can be returned.");
         var reason = RequireReason(r.Reason);
 
         q.Status = WorkingStandardQualificationStatus.Draft;
@@ -61,32 +64,35 @@ public partial class WorkingStandardService
     public async Task<WorkingStandardQualificationDto> RejectAtReviewAsync(int id, WorkingStandardReasonRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var q = await LoadAsync(id, userId, ct);
-        RequireStatus(q, WorkingStandardQualificationStatus.Assayed, "Only an assayed qualification can be rejected at review.");
+        if (q.Status != WorkingStandardQualificationStatus.Assayed)
+            throw new BusinessRuleException(MessageCodes.StandardOnlyAssayedCanRejectAtReview, "Only an assayed qualification can be rejected at review.");
         if (userId == q.PreparedByUserId)
-            throw new BusinessRuleException("The analyst who submitted the qualification cannot reject it at review.");
+            throw new BusinessRuleException(MessageCodes.StandardSubmitterCannotRejectAtReview, "The analyst who submitted the qualification cannot reject it at review.");
         return await RejectAsync(q, r, userId, ip, ct);
     }
 
     public async Task<WorkingStandardQualificationDto> RejectAtApprovalAsync(int id, WorkingStandardReasonRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var q = await LoadAsync(id, userId, ct);
-        RequireStatus(q, WorkingStandardQualificationStatus.Reviewed, "Only a reviewed qualification can be rejected at approval.");
+        if (q.Status != WorkingStandardQualificationStatus.Reviewed)
+            throw new BusinessRuleException(MessageCodes.StandardOnlyReviewedCanRejectAtApproval, "Only a reviewed qualification can be rejected at approval.");
         if (userId == q.PreparedByUserId)
-            throw new BusinessRuleException("The analyst who submitted the qualification cannot reject it at approval.");
+            throw new BusinessRuleException(MessageCodes.StandardSubmitterCannotRejectAtApproval, "The analyst who submitted the qualification cannot reject it at approval.");
         if (userId == q.ReviewedByUserId)
-            throw new BusinessRuleException("The reviewer cannot also reject the qualification at approval.");
+            throw new BusinessRuleException(MessageCodes.StandardReviewerCannotRejectAtApproval, "The reviewer cannot also reject the qualification at approval.");
         return await RejectAsync(q, r, userId, ip, ct);
     }
 
     public async Task<WorkingStandardQualificationDto> ApproveAsync(int id, WorkingStandardSignRequest r, int userId, string? ip, CancellationToken ct = default)
     {
         var q = await LoadAsync(id, userId, ct);
-        RequireStatus(q, WorkingStandardQualificationStatus.Reviewed, "Only a reviewed qualification can be approved.");
-        if (!q.Passed) throw new BusinessRuleException("A failed qualification can only be rejected.");
+        if (q.Status != WorkingStandardQualificationStatus.Reviewed)
+            throw new BusinessRuleException(MessageCodes.StandardOnlyReviewedCanApprove, "Only a reviewed qualification can be approved.");
+        if (!q.Passed) throw new BusinessRuleException(MessageCodes.StandardFailedOnlyCanReject, "A failed qualification can only be rejected.");
         if (userId == q.PreparedByUserId)
-            throw new BusinessRuleException("The analyst who submitted the qualification cannot approve it.");
+            throw new BusinessRuleException(MessageCodes.StandardSubmitterCannotApprove, "The analyst who submitted the qualification cannot approve it.");
         if (userId == q.ReviewedByUserId)
-            throw new BusinessRuleException("The reviewer cannot also approve the qualification.");
+            throw new BusinessRuleException(MessageCodes.StandardReviewerCannotApprove, "The reviewer cannot also approve the qualification.");
         await RequireRunNotAbandonedAsync(q.Id, ct);
 
         var sig = await _signatures.SignAsync(userId, r.Password, SignatureMeaning.Approved, EntityType, q.Id, r.Comment, ip);
@@ -127,7 +133,7 @@ public partial class WorkingStandardService
         q.ApprovedSignature = sig;
         _db.CurrentUserId = userId;
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.WorkingStandardCode))
-            throw new BusinessRuleException("Another approval took that working standard code at the same moment - sign again.");
+            throw new BusinessRuleException(MessageCodes.StandardApprovalCodeClash, "Another approval took that working standard code at the same moment - sign again.");
         return await GetAsync(id, userId, ct);
     }
 
@@ -149,19 +155,14 @@ public partial class WorkingStandardService
     {
         if (await _db.HplcRunSamples.AnyAsync(s => s.WorkingStandardQualificationId == qualificationId
                 && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status == HplcRunStatus.Abandoned, ct))
-            throw new BusinessRuleException("The run that carried this assay was abandoned - reject the qualification.");
-    }
-
-    private static void RequireStatus(WorkingStandardQualification q, WorkingStandardQualificationStatus expected, string message)
-    {
-        if (q.Status != expected) throw new BusinessRuleException(message);
+            throw new BusinessRuleException(MessageCodes.StandardAssayRunAbandoned, "The run that carried this assay was abandoned - reject the qualification.");
     }
 
     private static string RequireReason(string? reason)
     {
         var t = reason?.Trim();
-        if (string.IsNullOrEmpty(t)) throw new BusinessRuleException("Enter a reason.");
-        if (t.Length > 500) throw new BusinessRuleException("The reason must be 500 characters or fewer.");
+        if (string.IsNullOrEmpty(t)) throw new BusinessRuleException(MessageCodes.StandardReasonRequired, "Enter a reason.");
+        if (t.Length > 500) throw new BusinessRuleException(MessageCodes.StandardReasonTooLong, "The reason must be 500 characters or fewer.");
         return t;
     }
 }

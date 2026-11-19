@@ -3,6 +3,7 @@ namespace MicroLIMS.Shared.Messages;
 // EquipmentPlan.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string EquipmentPlanApprovedPlanAlreadyCurrent = "EquipmentPlan.ApprovedPlanAlreadyCurrent";
     public const string EquipmentPlanCalendarEventNotFound = "EquipmentPlan.CalendarEventNotFound";
     public const string EquipmentPlanCalendarEventWrongInstrument = "EquipmentPlan.CalendarEventWrongInstrument";
     public const string EquipmentPlanCalibrationDateFuture = "EquipmentPlan.CalibrationDateFuture";
@@ -11,12 +12,19 @@ public static partial class MessageCodes
     public const string EquipmentPlanCertificateNotCurrent = "EquipmentPlan.CertificateNotCurrent";
     public const string EquipmentPlanCertificateNotFound = "EquipmentPlan.CertificateNotFound";
     public const string EquipmentPlanCertificateWrongInstrument = "EquipmentPlan.CertificateWrongInstrument";
+    public const string EquipmentPlanCodeLockedByPrintedLabel = "EquipmentPlan.CodeLockedByPrintedLabel";
     public const string EquipmentPlanContentTypeMismatch = "EquipmentPlan.ContentTypeMismatch";
+    public const string EquipmentPlanDocumentAlreadyVoided = "EquipmentPlan.DocumentAlreadyVoided";
     public const string EquipmentPlanDocumentIntegrityFailed = "EquipmentPlan.DocumentIntegrityFailed";
     public const string EquipmentPlanDocumentNotCertificate = "EquipmentPlan.DocumentNotCertificate";
+    public const string EquipmentPlanDocumentNotFoundForEquipment = "EquipmentPlan.DocumentNotFoundForEquipment";
     public const string EquipmentPlanDocumentReadFailed = "EquipmentPlan.DocumentReadFailed";
+    public const string EquipmentPlanDocumentValidationFailed = "EquipmentPlan.DocumentValidationFailed";
+    public const string EquipmentPlanDocumentVoidReasonRequired = "EquipmentPlan.DocumentVoidReasonRequired";
     public const string EquipmentPlanDuplicateEvent = "EquipmentPlan.DuplicateEvent";
     public const string EquipmentPlanEntryAlreadyRecorded = "EquipmentPlan.EntryAlreadyRecorded";
+    public const string EquipmentPlanEquipmentCodeExists = "EquipmentPlan.EquipmentCodeExists";
+    public const string EquipmentPlanEquipmentDocumentNotFound = "EquipmentPlan.EquipmentDocumentNotFound";
     public const string EquipmentPlanEquipmentNotFound = "EquipmentPlan.EquipmentNotFound";
     public const string EquipmentPlanEventAlreadyCancelled = "EquipmentPlan.EventAlreadyCancelled";
     public const string EquipmentPlanEventCancellationReasonRequired = "EquipmentPlan.EventCancellationReasonRequired";
@@ -32,17 +40,33 @@ public static partial class MessageCodes
     public const string EquipmentPlanFileEmpty = "EquipmentPlan.FileEmpty";
     public const string EquipmentPlanFileTooLarge = "EquipmentPlan.FileTooLarge";
     public const string EquipmentPlanFileTypeUnsupported = "EquipmentPlan.FileTypeUnsupported";
+    public const string EquipmentPlanGoLiveDateBeforeEarliest = "EquipmentPlan.GoLiveDateBeforeEarliest";
+    public const string EquipmentPlanGoLiveDateOutsideYear = "EquipmentPlan.GoLiveDateOutsideYear";
+    public const string EquipmentPlanLaboratoryRequired = "EquipmentPlan.LaboratoryRequired";
+    public const string EquipmentPlanLaboratorySectionInvalid = "EquipmentPlan.LaboratorySectionInvalid";
     public const string EquipmentPlanLogEntryAlreadyVoided = "EquipmentPlan.LogEntryAlreadyVoided";
     public const string EquipmentPlanLogEntryNotFound = "EquipmentPlan.LogEntryNotFound";
     public const string EquipmentPlanMaintenanceDateFuture = "EquipmentPlan.MaintenanceDateFuture";
+    public const string EquipmentPlanOnlyDraftCanApprove = "EquipmentPlan.OnlyDraftCanApprove";
+    public const string EquipmentPlanPlanApprovalRequiresDifferentUser = "EquipmentPlan.PlanApprovalRequiresDifferentUser";
+    public const string EquipmentPlanPlanMasterDataChanged = "EquipmentPlan.PlanMasterDataChanged";
+    public const string EquipmentPlanPlanRevisionNotFound = "EquipmentPlan.PlanRevisionNotFound";
+    public const string EquipmentPlanPlanRevisionReasonRequired = "EquipmentPlan.PlanRevisionReasonRequired";
+    public const string EquipmentPlanPlanYearAlreadyEnded = "EquipmentPlan.PlanYearAlreadyEnded";
+    public const string EquipmentPlanPlanYearOutOfRange = "EquipmentPlan.PlanYearOutOfRange";
     public const string EquipmentPlanPmEntryAlreadyRecorded = "EquipmentPlan.PmEntryAlreadyRecorded";
     public const string EquipmentPlanRangeEndBeforeStart = "EquipmentPlan.RangeEndBeforeStart";
+    public const string EquipmentPlanSerialNumberDuplicate = "EquipmentPlan.SerialNumberDuplicate";
+    public const string EquipmentPlanStatusChangeCommentRequired = "EquipmentPlan.StatusChangeCommentRequired";
+    public const string EquipmentPlanSupersessionReasonRequired = "EquipmentPlan.SupersessionReasonRequired";
     public const string EquipmentPlanVoidReasonRequired = "EquipmentPlan.VoidReasonRequired";
+    public const string EquipmentPlanVoidedDocumentCannotBeSuperseded = "EquipmentPlan.VoidedDocumentCannotBeSuperseded";
     public const string EquipmentPlanWebpInvalid = "EquipmentPlan.WebpInvalid";
     public const string EquipmentPlanWorkDoneRequired = "EquipmentPlan.WorkDoneRequired";
 
     private static Dictionary<string, string[]> EquipmentPlanParameters() => new()
     {
+        [EquipmentPlanApprovedPlanAlreadyCurrent] = ["year"],
         [EquipmentPlanCalendarEventNotFound] = ["id"],
         [EquipmentPlanCalendarEventWrongInstrument] = [],
         [EquipmentPlanCalibrationDateFuture] = [],
@@ -51,12 +75,19 @@ public static partial class MessageCodes
         [EquipmentPlanCertificateNotCurrent] = [],
         [EquipmentPlanCertificateNotFound] = ["certificateId"],
         [EquipmentPlanCertificateWrongInstrument] = [],
+        [EquipmentPlanCodeLockedByPrintedLabel] = [],
         [EquipmentPlanContentTypeMismatch] = ["ext", "mime"],
+        [EquipmentPlanDocumentAlreadyVoided] = [],
         [EquipmentPlanDocumentIntegrityFailed] = [],
         [EquipmentPlanDocumentNotCertificate] = [],
+        [EquipmentPlanDocumentNotFoundForEquipment] = ["documentId", "equipmentId"],
         [EquipmentPlanDocumentReadFailed] = [],
+        [EquipmentPlanDocumentValidationFailed] = ["message"],
+        [EquipmentPlanDocumentVoidReasonRequired] = [],
         [EquipmentPlanDuplicateEvent] = [],
         [EquipmentPlanEntryAlreadyRecorded] = ["code", "date"],
+        [EquipmentPlanEquipmentCodeExists] = ["code"],
+        [EquipmentPlanEquipmentDocumentNotFound] = ["documentId"],
         [EquipmentPlanEquipmentNotFound] = ["equipmentId"],
         [EquipmentPlanEventAlreadyCancelled] = [],
         [EquipmentPlanEventCancellationReasonRequired] = [],
@@ -72,12 +103,27 @@ public static partial class MessageCodes
         [EquipmentPlanFileEmpty] = [],
         [EquipmentPlanFileTooLarge] = ["maxMb"],
         [EquipmentPlanFileTypeUnsupported] = ["ext"],
+        [EquipmentPlanGoLiveDateBeforeEarliest] = ["earliest"],
+        [EquipmentPlanGoLiveDateOutsideYear] = ["year"],
+        [EquipmentPlanLaboratoryRequired] = [],
+        [EquipmentPlanLaboratorySectionInvalid] = [],
         [EquipmentPlanLogEntryAlreadyVoided] = [],
         [EquipmentPlanLogEntryNotFound] = ["entryId"],
         [EquipmentPlanMaintenanceDateFuture] = [],
+        [EquipmentPlanOnlyDraftCanApprove] = [],
+        [EquipmentPlanPlanApprovalRequiresDifferentUser] = [],
+        [EquipmentPlanPlanMasterDataChanged] = [],
+        [EquipmentPlanPlanRevisionNotFound] = ["id"],
+        [EquipmentPlanPlanRevisionReasonRequired] = [],
+        [EquipmentPlanPlanYearAlreadyEnded] = ["year"],
+        [EquipmentPlanPlanYearOutOfRange] = [],
         [EquipmentPlanPmEntryAlreadyRecorded] = ["code", "date"],
         [EquipmentPlanRangeEndBeforeStart] = [],
+        [EquipmentPlanSerialNumberDuplicate] = ["code", "serial", "manufacturer"],
+        [EquipmentPlanStatusChangeCommentRequired] = [],
+        [EquipmentPlanSupersessionReasonRequired] = [],
         [EquipmentPlanVoidReasonRequired] = [],
+        [EquipmentPlanVoidedDocumentCannotBeSuperseded] = [],
         [EquipmentPlanWebpInvalid] = [],
         [EquipmentPlanWorkDoneRequired] = [],
     };

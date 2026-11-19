@@ -1,4 +1,6 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -41,12 +43,15 @@ public class EquipmentPlanService
 
         var earliest = today > yearStart ? today : yearStart;
         if (earliest > yearEnd)
-            throw new BusinessRuleException($"The {year} plan year has already ended. Generate a plan for the current or a later year.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanPlanYearAlreadyEnded, $"The {year} plan year has already ended. Generate a plan for the current or a later year.",
+                new Dictionary<string, string> { ["year"] = year.ToString(CultureInfo.InvariantCulture) });
         var effectiveFrom = goLiveDate ?? earliest;
         if (effectiveFrom < earliest)
-            throw new BusinessRuleException($"The go-live date cannot be before {earliest:yyyy-MM-dd}. Earlier dates would plan work that can no longer be done.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanGoLiveDateBeforeEarliest, $"The go-live date cannot be before {earliest:yyyy-MM-dd}. Earlier dates would plan work that can no longer be done.",
+                new Dictionary<string, string> { ["earliest"] = earliest.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
         if (effectiveFrom > yearEnd)
-            throw new BusinessRuleException($"The go-live date must fall inside {year}.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanGoLiveDateOutsideYear, $"The go-live date must fall inside {year}.",
+                new Dictionary<string, string> { ["year"] = year.ToString(CultureInfo.InvariantCulture) });
 
         var approved = await _db.EquipmentPlanRevisions.AsNoTracking()
             .AnyAsync(r => r.Year == year && r.Status == PlanRevisionStatus.Approved);
@@ -59,7 +64,8 @@ public class EquipmentPlanService
         var toRetire = RetirementCandidates(existing, plan);
         var toReschedule = RescheduleCandidates(existing, plan);
         if (approved && toAdd.Count == 0 && toRetire.Count == 0 && toReschedule.Count == 0)
-            throw new BusinessRuleException($"The approved plan for {year} already matches the master data. There is nothing to revise.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanApprovedPlanAlreadyCurrent, $"The approved plan for {year} already matches the master data. There is nothing to revise.",
+                new Dictionary<string, string> { ["year"] = year.ToString(CultureInfo.InvariantCulture) });
 
         return await UnitOfWork.RunAsync(_db, async () =>
         {
@@ -97,7 +103,8 @@ public class EquipmentPlanService
     public async Task<EquipmentPlanPreviewResponse> GetPreviewAsync(int id)
     {
         var revision = await _db.EquipmentPlanRevisions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Plan revision {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanPlanRevisionNotFound, $"Plan revision {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (revision.Status != PlanRevisionStatus.Draft)
             return await PreviewAsync(revision, null, null, null);
@@ -114,27 +121,28 @@ public class EquipmentPlanService
     {
         var revision = await _db.EquipmentPlanRevisions.Include(r => r.CreatedTasks)
             .FirstOrDefaultAsync(r => r.Id == revisionId)
-            ?? throw new NotFoundException($"Plan revision {revisionId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanPlanRevisionNotFound, $"Plan revision {revisionId} not found.",
+                new Dictionary<string, string> { ["id"] = revisionId.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, revision);
 
         if (revision.Status != PlanRevisionStatus.Draft)
-            throw new BusinessRuleException("Only a draft revision can be approved.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanOnlyDraftCanApprove, "Only a draft revision can be approved.");
 
         if (revision.GeneratedByUserId == userId)
-            throw new BusinessRuleException("The plan must be approved by someone other than the person who generated it.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanPlanApprovalRequiresDifferentUser, "The plan must be approved by someone other than the person who generated it.");
 
         var previous = await _db.EquipmentPlanRevisions
             .FirstOrDefaultAsync(r => r.Year == revision.Year && r.Status == PlanRevisionStatus.Approved);
         var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
         if (previous is not null && reason is null)
-            throw new BusinessRuleException("A reason is required to approve a revision of a year that already has an approved plan.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanPlanRevisionReasonRequired, "A reason is required to approve a revision of a year that already has an approved plan.");
 
         var plan = await BuildPlanAsync(revision.Year, revision.EffectiveFrom);
         var existingKeys = await AllKeysAsync(revision.Year);
         var expectedAdds = plan.Tasks.Where(t => !existingKeys.Contains(KeyOf(t))).Select(KeyOf).ToHashSet();
         var draftKeys = revision.CreatedTasks.Select(KeyOf).ToHashSet();
         if (!expectedAdds.SetEquals(draftKeys))
-            throw new BusinessRuleException("The master data has changed since this draft was generated. Generate the draft again before approving it.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanPlanMasterDataChanged, "The master data has changed since this draft was generated. Generate the draft again before approving it.");
 
         var live = await LiveTasksAsync(revision.Year);
         var toRetire = RetirementCandidates(live, plan);
@@ -210,7 +218,7 @@ public class EquipmentPlanService
     private static void ValidateYear(int year)
     {
         if (year is < 2000 or > 2100)
-            throw new BusinessRuleException("Choose a plan year between 2000 and 2100.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanPlanYearOutOfRange, "Choose a plan year between 2000 and 2100.");
     }
 
     private async Task<GeneratedEquipmentPlan> BuildPlanAsync(int year, DateOnly effectiveFrom)

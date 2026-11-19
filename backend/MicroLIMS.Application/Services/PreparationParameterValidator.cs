@@ -1,4 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 namespace MicroLIMS.Application.Services;
 
 // The preparation parameters an analyst confirms and a Section Head
@@ -26,15 +28,21 @@ public class PreparationParameterValidator
     public Task ValidateAsync(PreparationParameters p)
     {
         if (string.IsNullOrWhiteSpace(p.Diluent))
-            throw new BusinessRuleException("Diluent is required.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionDiluentRequired,
+                "Diluent is required.");
 
         if (string.IsNullOrWhiteSpace(p.Neutralizer))
-            throw new BusinessRuleException("Neutralizer is required.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionNeutralizerRequired,
+                "Neutralizer is required.");
 
         if (p.Technique.Equals("Filtration", StringComparison.OrdinalIgnoreCase))
         {
             if (p.FiltrationVolume is null || p.WashingVolume is null)
-                throw new BusinessRuleException("Filtration technique requires both Filtration Volume and Washing Volume.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionFiltrationVolumesRequired,
+                    "Filtration technique requires both Filtration Volume and Washing Volume.");
         }
 
         return Task.CompletedTask;

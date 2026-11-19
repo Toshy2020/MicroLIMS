@@ -8,6 +8,8 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -59,7 +61,10 @@ public class ItemService
             _db.CurrentUserId = currentUserId;
 
         if (await _db.Items.AnyAsync(i => i.Code == request.Code, cancellationToken))
-            throw new BusinessRuleException($"An item with code '{request.Code}' already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ItemDuplicateCode,
+                $"An item with code '{request.Code}' already exists.",
+                new Dictionary<string, string> { ["code"] = request.Code });
 
         var item = new Item
         {
@@ -95,12 +100,18 @@ public class ItemService
         EnsureMinimumQuantity(update);
 
         var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Item {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {id} not found.",
+                new Dictionary<string, string> { ["itemId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, item);
         await _reasonGuard.EnsureAsync(MasterRecordType.Item, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
 
         if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id, cancellationToken))
-            throw new BusinessRuleException($"An item with code '{update.Code}' already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ItemDuplicateCode,
+                $"An item with code '{update.Code}' already exists.",
+                new Dictionary<string, string> { ["code"] = update.Code });
 
         item.Name = update.Name;
         item.Code = update.Code;
@@ -121,9 +132,13 @@ public class ItemService
     private static void EnsureMinimumQuantity(ItemSaveRequest r)
     {
         if (r.MinSampleQuantity <= 0 || r.MinRetestSampleQuantity <= 0)
-            throw new BusinessRuleException("Minimum sample quantity must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.ItemMinSampleQuantityPositive,
+                "Minimum sample quantity must be greater than zero.");
         if ((r.MinSampleQuantity != null || r.MinRetestSampleQuantity != null) && string.IsNullOrWhiteSpace(r.MinSampleQuantityUnit))
-            throw new BusinessRuleException("Enter the unit for the minimum sample quantity.");
+            throw new BusinessRuleException(
+                MessageCodes.ItemMinSampleQuantityUnitRequired,
+                "Enter the unit for the minimum sample quantity.");
     }
 
     private static void EnsureAllowedCategory(SampleCategory category)
@@ -131,6 +146,7 @@ public class ItemService
         if (!AllowedItemCategories.Contains(category))
         {
             throw new BusinessRuleException(
+                MessageCodes.ItemCategoryNotAllowed,
                 "Items can only be configured for Product, Raw Material, or " +
                 "Packaging Material categories. Water, Environmental Monitoring, " +
                 "After Cleaning, and GPT are managed via their dedicated " +
@@ -155,7 +171,10 @@ public class ItemService
         CancellationToken cancellationToken = default)
     {
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Item {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {id} not found.",
+                new Dictionary<string, string> { ["itemId"] = id.ToString(CultureInfo.InvariantCulture) });
         await _reasonGuard.EnsureAsync(
             MasterRecordType.Item,
             id,
@@ -180,18 +199,25 @@ public class ItemService
         CancellationToken cancellationToken = default)
     {
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Item {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {id} not found.",
+                new Dictionary<string, string> { ["itemId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var sampleCount = await _db.Samples.CountAsync(s => s.ItemId == id, cancellationToken);
         if (sampleCount > 0)
             throw new BusinessRuleException(
-                $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.");
+                MessageCodes.ItemCannotDeleteUsed,
+                $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.",
+                new Dictionary<string, string> { ["name"] = item.Name, ["sampleCount"] = sampleCount.ToString(CultureInfo.InvariantCulture) });
 
         // NotApplicableTest.ItemId is Restrict too; the signed records must survive, so refuse.
         var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id, cancellationToken);
         if (naCount > 0)
             throw new BusinessRuleException(
-                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.");
+                MessageCodes.ItemCannotDeleteNotApplicable,
+                $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.",
+                new Dictionary<string, string> { ["name"] = item.Name, ["naCount"] = naCount.ToString(CultureInfo.InvariantCulture) });
 
         await _reasonGuard.EnsureAsync(MasterRecordType.Item, id, ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
         if (_db.CurrentUserId is null && currentUserId > 0)

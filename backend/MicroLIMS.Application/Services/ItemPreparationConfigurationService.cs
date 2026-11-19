@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -67,7 +69,10 @@ public class ItemPreparationConfigurationService
     public async Task<ItemPreparationConfigurationDto> UpsertAsync(int itemId, PreparationParameters p, int userId)
     {
         if (!await _db.Items.AnyAsync(i => i.Id == itemId))
-            throw new NotFoundException($"Item {itemId} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {itemId} not found.",
+                new Dictionary<string, string> { ["itemId"] = itemId.ToString(CultureInfo.InvariantCulture) });
 
         // The diluent and neutralizer must each name a master; the text is filled
         // from it (client text is ignored), so validate the resolved parameters.
@@ -104,10 +109,15 @@ public class ItemPreparationConfigurationService
     public async Task<ItemPreparationConfigurationDto> ApproveAsync(int itemId, int userId)
     {
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == itemId)
-            ?? throw new BusinessRuleException($"Item {itemId} has no preparation configuration to approve.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ItemNoPreparationConfiguration,
+                $"Item {itemId} has no preparation configuration to approve.",
+                new Dictionary<string, string> { ["itemId"] = itemId.ToString(CultureInfo.InvariantCulture) });
 
         if (config.ApprovalStatus == ApprovalGateStatus.Approved)
-            throw new BusinessRuleException("This preparation configuration is already approved.");
+            throw new BusinessRuleException(
+                MessageCodes.ItemPreparationAlreadyApproved,
+                "This preparation configuration is already approved.");
 
         config.ApprovalStatus = ApprovalGateStatus.Approved;
         config.ApprovedByUserId = userId;

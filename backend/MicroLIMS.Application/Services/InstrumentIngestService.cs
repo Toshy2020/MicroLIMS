@@ -12,6 +12,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -62,21 +63,23 @@ public class InstrumentIngestService
         // file or row is written.
         var content = request.ReportContent ?? Array.Empty<byte>();
         if (content.Length == 0)
-            throw new BusinessRuleException("The report file is empty.");
+            throw new BusinessRuleException(MessageCodes.InstrumentReportFileEmpty, "The report file is empty.");
         if (content.Length > MaxReportBytes)
-            throw new BusinessRuleException($"The report file is larger than the {MaxReportBytes / (1024 * 1024)} MB limit.");
+            throw new BusinessRuleException(MessageCodes.InstrumentReportFileTooLarge, $"The report file is larger than the {MaxReportBytes / (1024 * 1024)} MB limit.",
+                new Dictionary<string, string> { ["maxMb"] = (MaxReportBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) });
         var sha256 = Convert.ToHexString(SHA256.HashData(content)).ToLowerInvariant();
         if (!string.Equals(sha256, request.ReportSha256?.Trim().ToLowerInvariant(), StringComparison.Ordinal))
-            throw new BusinessRuleException("The report hash does not match the received bytes; the report was not stored.");
+            throw new BusinessRuleException(MessageCodes.InstrumentReportHashMismatch, "The report hash does not match the received bytes; the report was not stored.");
         if (string.IsNullOrWhiteSpace(request.SequenceName) || request.SequenceName.Length > 200)
-            throw new BusinessRuleException("The sequence name is required and must be at most 200 characters.");
+            throw new BusinessRuleException(MessageCodes.InstrumentSequenceNameInvalid, "The sequence name is required and must be at most 200 characters.");
         if (string.IsNullOrWhiteSpace(request.ReportFileName) || request.ReportFileName.Length > 260)
-            throw new BusinessRuleException("The report file name is required and must be at most 260 characters.");
+            throw new BusinessRuleException(MessageCodes.InstrumentReportFileNameInvalid, "The report file name is required and must be at most 260 characters.");
         if (request.OperatorAsReported is { Length: > 200 })
-            throw new BusinessRuleException("The operator name is longer than 200 characters.");
+            throw new BusinessRuleException(MessageCodes.InstrumentOperatorNameTooLong, "The operator name is longer than 200 characters.");
 
         if (request.ManifestJson is { Length: > MaxManifestChars })
-            throw new BusinessRuleException($"The manifest is larger than the {MaxManifestChars / (1024 * 1024)} MB limit.");
+            throw new BusinessRuleException(MessageCodes.InstrumentManifestTooLarge, $"The manifest is larger than the {MaxManifestChars / (1024 * 1024)} MB limit.",
+                new Dictionary<string, string> { ["maxMb"] = (MaxManifestChars / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) });
 
         var acquisition = ConvertAcquisitionTime(agent, request.AcquiredAtLocalText);
         var manifest = ReadManifest(request.ManifestJson);
@@ -101,7 +104,7 @@ public class InstrumentIngestService
     {
         var sha256 = reportSha256?.Trim().ToLowerInvariant() ?? string.Empty;
         if (!Sha256Pattern.IsMatch(sha256))
-            throw new BusinessRuleException("The report hash must be 64 hexadecimal characters.");
+            throw new BusinessRuleException(MessageCodes.InstrumentReportHashFormat, "The report hash must be 64 hexadecimal characters.");
 
         var versions = await _db.InstrumentIngestVersions.AsNoTracking()
             .Where(v => v.ReportSha256 == sha256
@@ -109,7 +112,7 @@ public class InstrumentIngestService
             .OrderBy(v => v.InstrumentIngestId).ThenBy(v => v.VersionNo)
             .ToListAsync(ct);
         if (versions.Count == 0)
-            throw new NotFoundException("No report with that hash was received for this instrument.");
+            throw new NotFoundException(MessageCodes.InstrumentReportNotFoundForHash, "No report with that hash was received for this instrument.");
         return versions.Select(v => Receipt(v, alreadyReceived: true)).ToList();
     }
 
@@ -301,16 +304,23 @@ public class InstrumentIngestService
     private static Acquisition ConvertAcquisitionTime(InstrumentAgentContext agent, string? localText)
     {
         if (!DateTime.TryParseExact(localText, LocalTimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var local))
-            throw new BusinessRuleException($"The acquisition time must be written as {LocalTimeFormat} (instrument local time).");
+            throw new BusinessRuleException(MessageCodes.InstrumentAcquisitionTimeFormat, $"The acquisition time must be written as {LocalTimeFormat} (instrument local time).",
+                new Dictionary<string, string> { ["format"] = LocalTimeFormat });
         // Extreme years would overflow the offset arithmetic below and are never real.
         if (local.Year is < MinAcquisitionYear or > MaxAcquisitionYear)
-            throw new BusinessRuleException($"The acquisition year must be between {MinAcquisitionYear} and {MaxAcquisitionYear}.");
+            throw new BusinessRuleException(MessageCodes.InstrumentAcquisitionYearRange, $"The acquisition year must be between {MinAcquisitionYear} and {MaxAcquisitionYear}.",
+                new Dictionary<string, string>
+                {
+                    ["minYear"] = MinAcquisitionYear.ToString(CultureInfo.InvariantCulture),
+                    ["maxYear"] = MaxAcquisitionYear.ToString(CultureInfo.InvariantCulture)
+                });
 
         TimeZoneInfo zone;
         try { zone = TimeZoneInfo.FindSystemTimeZoneById(agent.TimeZoneId ?? string.Empty); }
         catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException)
         {
-            throw new BusinessRuleException($"The agent's time zone '{agent.TimeZoneId}' is not known to the server.");
+            throw new BusinessRuleException(MessageCodes.InstrumentAgentTimeZoneUnknown, $"The agent's time zone '{agent.TimeZoneId}' is not known to the server.",
+                new Dictionary<string, string> { ["timeZoneId"] = agent.TimeZoneId ?? string.Empty });
         }
 
         local = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);

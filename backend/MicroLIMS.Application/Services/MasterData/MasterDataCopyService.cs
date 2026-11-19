@@ -7,6 +7,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -57,11 +59,17 @@ public class MasterDataCopyService
     {
         var sourceExists = await _db.Items.AsNoTracking().AnyAsync(i => i.Id == r.SourceItemId, ct);
         if (!sourceExists)
-            throw new NotFoundException($"Source item {r.SourceItemId} not found.");
+            throw new NotFoundException(
+                MessageCodes.MasterDataSourceItemNotFound,
+                $"Source item {r.SourceItemId} not found.",
+                new Dictionary<string, string> { ["sourceItemId"] = r.SourceItemId.ToString(CultureInfo.InvariantCulture) });
 
         var targetExists = await _db.Items.AsNoTracking().AnyAsync(i => i.Id == r.TargetItemId, ct);
         if (!targetExists)
-            throw new NotFoundException($"Target item {r.TargetItemId} not found.");
+            throw new NotFoundException(
+                MessageCodes.MasterDataTargetItemNotFound,
+                $"Target item {r.TargetItemId} not found.",
+                new Dictionary<string, string> { ["targetItemId"] = r.TargetItemId.ToString(CultureInfo.InvariantCulture) });
 
         var requestedIds = r.SpecificationIds?.Distinct().ToList() ?? [];
 
@@ -98,17 +106,25 @@ public class MasterDataCopyService
     {
         var requestedIds = r.SpecificationIds?.Distinct().ToList() ?? [];
         if (requestedIds.Count == 0)
-            throw new BusinessRuleException("Select at least one specification to copy.");
+            throw new BusinessRuleException(
+                MessageCodes.MasterDataSelectSpecificationToCopy,
+                "Select at least one specification to copy.");
 
         var sourceItem = await _db.Items
             .AsNoTracking()
             .FirstOrDefaultAsync(i => i.Id == r.SourceItemId, ct);
         if (sourceItem is null)
-            throw new NotFoundException($"Source item {r.SourceItemId} not found.");
+            throw new NotFoundException(
+                MessageCodes.MasterDataSourceItemNotFound,
+                $"Source item {r.SourceItemId} not found.",
+                new Dictionary<string, string> { ["sourceItemId"] = r.SourceItemId.ToString(CultureInfo.InvariantCulture) });
 
         var targetExists = await _db.Items.AsNoTracking().AnyAsync(i => i.Id == r.TargetItemId, ct);
         if (!targetExists)
-            throw new NotFoundException($"Target item {r.TargetItemId} not found.");
+            throw new NotFoundException(
+                MessageCodes.MasterDataTargetItemNotFound,
+                $"Target item {r.TargetItemId} not found.",
+                new Dictionary<string, string> { ["targetItemId"] = r.TargetItemId.ToString(CultureInfo.InvariantCulture) });
 
         var loaded = await _db.Specifications
             .AsNoTracking()
@@ -121,9 +137,15 @@ public class MasterDataCopyService
         foreach (var id in requestedIds)
         {
             if (!byId.TryGetValue(id, out var spec))
-                throw new NotFoundException($"Specification {id} was not found on source item {r.SourceItemId}.");
+                throw new NotFoundException(
+                    MessageCodes.MasterDataSpecificationNotOnSource,
+                    $"Specification {id} was not found on source item {r.SourceItemId}.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture), ["sourceItemId"] = r.SourceItemId.ToString(CultureInfo.InvariantCulture) });
             if (spec.IsRetired)
-                throw new BusinessRuleException($"Retired specification {id} cannot be copied.");
+                throw new BusinessRuleException(
+                    MessageCodes.MasterDataRetiredSpecificationCannotCopy,
+                    $"Retired specification {id} cannot be copied.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
             orderedSpecs.Add(spec);
         }
 
@@ -176,7 +198,10 @@ public class MasterDataCopyService
                 .Include(i => i.AssignedTests)
                 .FirstOrDefaultAsync(i => i.Id == copyFrom.SourceItemId, ct);
             if (sourceItem is null)
-                throw new NotFoundException($"Source item {copyFrom.SourceItemId} not found.");
+                throw new NotFoundException(
+                    MessageCodes.MasterDataSourceItemNotFound,
+                    $"Source item {copyFrom.SourceItemId} not found.",
+                    new Dictionary<string, string> { ["sourceItemId"] = copyFrom.SourceItemId.ToString(CultureInfo.InvariantCulture) });
 
             // Code, Name, SopNumber and documents are never copied from sourceItem:
             // Name/Code/SopNumber always come from request, and documents are not touched.

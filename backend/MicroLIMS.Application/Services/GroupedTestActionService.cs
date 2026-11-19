@@ -7,6 +7,8 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -441,14 +443,19 @@ public class GroupedTestActionService
         {
             if (!request.MediaLotId.HasValue || request.MediaLotId.Value <= 0)
             {
-                throw new BusinessRuleException("Media lot must be selected for this workflow transition.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaMediaLotRequiredForTransition,
+                    "Media lot must be selected for this workflow transition.");
             }
 
             media = await _db.Media.Include(m => m.Material)
                 .FirstOrDefaultAsync(m => m.Id == request.MediaLotId.Value, ct);
             if (media == null)
             {
-                throw new BusinessRuleException($"Media lot {request.MediaLotId.Value} was not found.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaMediaLotNotFound,
+                    $"Media lot {request.MediaLotId.Value} was not found.",
+                    new Dictionary<string, string> { ["mediaLotId"] = request.MediaLotId.Value.ToString(CultureInfo.InvariantCulture) });
             }
             BatchSelectMediaRules.EnsureMediaLotUsable(media, _time.GetUtcNow().UtcDateTime);
         }
@@ -714,13 +721,19 @@ public class GroupedTestActionService
     private async Task<(TestOrder order, TestDefinition definition)> LoadDefinitionAsync(int testOrderId, CancellationToken ct)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         var definition = await _db.TestDefinitions
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
             .Include(t => t.Steps).ThenInclude(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
             .Include(t => t.Steps).ThenInclude(s => s.IncubationStages)
             .FirstOrDefaultAsync(t => t.Code == order.TestCode, ct)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.TestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
         return (order, definition);
     }
 }

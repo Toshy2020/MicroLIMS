@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -5,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.EquipmentPlan;
 
@@ -86,22 +88,35 @@ public class EquipmentWorkService
         string? ip)
     {
         var equipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var cert = await _db.EquipmentDocuments.FirstOrDefaultAsync(d => d.Id == r.CertificateDocumentId)
-            ?? throw new NotFoundException($"Calibration certificate {r.CertificateDocumentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanCertificateNotFound,
+                $"Calibration certificate {r.CertificateDocumentId} not found.",
+                new Dictionary<string, string>
+                {
+                    ["certificateId"] = r.CertificateDocumentId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (cert.EquipmentInventoryId != equipmentId)
-            throw new BusinessRuleException("The calibration certificate belongs to a different instrument.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanCertificateWrongInstrument,
+                "The calibration certificate belongs to a different instrument.");
 
         if (cert.DocumentType != EquipmentDocumentType.CalibrationCertificate)
-            throw new BusinessRuleException("The document is not a calibration certificate.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentNotCertificate,
+                "The document is not a calibration certificate.");
 
         if (cert.Status != MaterialDocumentStatus.Current)
-            throw new BusinessRuleException("The calibration certificate is not current.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanCertificateNotCurrent,
+                "The calibration certificate is not current.");
 
         if (r.CalibratedOn > _clock.LabToday)
-            throw new BusinessRuleException("Calibration date cannot be in the future.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanCalibrationDateFuture,
+                "Calibration date cannot be in the future.");
 
         var completedDates = await _db.EquipmentTasks
             .LiveTasks()
@@ -121,12 +136,19 @@ public class EquipmentWorkService
 
         if (previousActual.HasValue && r.CalibratedOn <= previousActual.Value)
         {
-            throw new BusinessRuleException($"Calibration date must be after the previous actual date ({previousActual.Value:yyyy-MM-dd}).");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentPlanCalibrationDateNotAfterPrevious,
+                $"Calibration date must be after the previous actual date ({previousActual.Value:yyyy-MM-dd}).",
+                new Dictionary<string, string>
+                {
+                    ["date"] = previousActual.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                });
         }
 
         if (r.CertificateNextDue.HasValue && r.CertificateNextDue.Value <= r.CalibratedOn)
         {
-            throw new BusinessRuleException("Certificate next due date must be after the calibration date.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanCertificateDueAfterCalibration,
+                "Certificate next due date must be after the calibration date.");
         }
 
         return await UnitOfWork.RunAsync(_db, async () =>
@@ -321,21 +343,32 @@ public class EquipmentWorkService
         string? ip)
     {
         var equipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (string.IsNullOrWhiteSpace(r.WorkDone))
-            throw new BusinessRuleException("Work done is required.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanWorkDoneRequired, "Work done is required.");
 
         if (r.PerformedOn > _clock.LabToday)
-            throw new BusinessRuleException("Maintenance performed date cannot be in the future.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanMaintenanceDateFuture,
+                "Maintenance performed date cannot be in the future.");
 
         if (r.CalendarEventId.HasValue)
         {
             var calEvent = await _db.CalendarEvents.FirstOrDefaultAsync(c => c.Id == r.CalendarEventId.Value)
-                ?? throw new NotFoundException($"Calendar event {r.CalendarEventId.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.EquipmentPlanCalendarEventNotFound,
+                    $"Calendar event {r.CalendarEventId.Value} not found.",
+                    new Dictionary<string, string>
+                    {
+                        ["id"] = r.CalendarEventId.Value.ToString(CultureInfo.InvariantCulture)
+                    });
 
             if (calEvent.EquipmentInventoryId != null && calEvent.EquipmentInventoryId != equipmentId)
-                throw new BusinessRuleException("The calendar event belongs to a different instrument.");
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanCalendarEventWrongInstrument,
+                    "The calendar event belongs to a different instrument.");
         }
 
         if (r.EntryType == MaintenanceEntryType.PreventiveMaintenance)
@@ -349,7 +382,14 @@ public class EquipmentWorkService
 
             if (pmExists)
             {
-                throw new BusinessRuleException($"A preventive maintenance entry for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd} is already recorded.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanPmEntryAlreadyRecorded,
+                    $"A preventive maintenance entry for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd} is already recorded.",
+                    new Dictionary<string, string>
+                    {
+                        ["code"] = equipment.Code,
+                        ["date"] = r.PerformedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    });
             }
         }
         else
@@ -366,7 +406,14 @@ public class EquipmentWorkService
 
             if (existingWorkEntries.Any(w => string.Equals(w.Trim(), trimmedWork, StringComparison.OrdinalIgnoreCase)))
             {
-                throw new BusinessRuleException($"This entry is already recorded for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd}.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentPlanEntryAlreadyRecorded,
+                    $"This entry is already recorded for {equipment.Code} on {r.PerformedOn:yyyy-MM-dd}.",
+                    new Dictionary<string, string>
+                    {
+                        ["code"] = equipment.Code,
+                        ["date"] = r.PerformedOn.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                    });
             }
         }
 
@@ -546,13 +593,18 @@ public class EquipmentWorkService
         string? ip)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to void a maintenance log entry.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanVoidReasonRequired,
+                "A reason is required to void a maintenance log entry.");
 
         var entry = await _db.MaintenanceLogEntries.FirstOrDefaultAsync(e => e.Id == entryId)
-            ?? throw new NotFoundException($"Maintenance log entry {entryId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanLogEntryNotFound,
+                $"Maintenance log entry {entryId} not found.",
+                new Dictionary<string, string> { ["entryId"] = entryId.ToString(CultureInfo.InvariantCulture) });
 
         if (entry.VoidedAt.HasValue)
-            throw new BusinessRuleException("Maintenance log entry is already voided.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanLogEntryAlreadyVoided,
+                "Maintenance log entry is already voided.");
 
         await UnitOfWork.RunAsync(_db, async () =>
         {
@@ -599,7 +651,10 @@ public class EquipmentWorkService
     {
         var exists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!exists)
-            throw new NotFoundException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var entries = await _db.MaintenanceLogEntries
             .Where(e => e.EquipmentInventoryId == equipmentId)

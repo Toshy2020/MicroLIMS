@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ClipboardEvent as ReactClipboardEvent } from "react";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../../i18n";
 import { Alert, Box, Button, IconButton, Paper, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import ContentPasteIcon from "@mui/icons-material/ContentPaste";
@@ -33,8 +35,6 @@ import {
 } from "./emRoomTestConfigPaste";
 import type { PendingEmTestConfig } from "./emRoomTestConfigPaste";
 
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-
 type PasteMode = "rooms" | "configs";
 
 type PendingDelete =
@@ -42,50 +42,57 @@ type PendingDelete =
   | { kind: "room"; room: EmRoom }
   | { kind: "config"; config: RoomTestConfig; room: EmRoom };
 
-const ROOM_PENDING_COLUMNS: PendingBatchColumn<PendingEmRoom>[] = [
-  { key: "name", label: "Room name", sx: { fontWeight: 600 }, render: (r) => r.name },
-  { key: "departmentName", label: "Department", render: (r) => r.departmentName },
-  { key: "gradeClassification", label: "Grade", render: (r) => `Grade ${r.gradeClassification}` },
-  { key: "kind", label: "Type", render: (r) => r.kind },
-  { key: "parentRoomName", label: "Sits in room", render: (r) => r.parentRoomName || "—" },
-  { key: "frequencyLabelText", label: "Frequency", render: (r) => r.frequencyLabelText || "Same as department" }
-];
+function getRoomPendingColumns(t: TFunction<"labConfig">): PendingBatchColumn<PendingEmRoom>[] {
+  return [
+  { key: "name", label: t("environmentalMonitoring.page.roomsColumns.name"), sx: { fontWeight: 600 }, render: (r) => r.name },
+  { key: "departmentName", label: t("environmentalMonitoring.page.roomsColumns.department"), render: (r) => r.departmentName },
+  { key: "gradeClassification", label: t("environmentalMonitoring.page.roomsColumns.grade"), render: (r) => t("environmentalMonitoring.grade", { grade: r.gradeClassification }) },
+  { key: "kind", label: t("environmentalMonitoring.page.roomsColumns.type"), render: (r) => r.kind },
+  { key: "parentRoomName", label: t("environmentalMonitoring.page.roomsColumns.sitsIn"), render: (r) => r.parentRoomName || "—" },
+  { key: "frequencyLabelText", label: t("environmentalMonitoring.page.roomsColumns.frequency"), render: (r) => r.frequencyLabelText || t("environmentalMonitoring.page.sameAsDepartment") }
+  ];
+}
 
-const CONFIG_PENDING_COLUMNS: PendingBatchColumn<PendingEmTestConfig>[] = [
-  { key: "roomLabel", label: "Room", sx: { fontWeight: 600 }, render: (r) => r.roomLabel },
-  { key: "testTypeLabel", label: "Test type", render: (r) => r.testTypeLabel },
+function getConfigPendingColumns(t: TFunction<"labConfig">): PendingBatchColumn<PendingEmTestConfig>[] {
+  return [
+  { key: "roomLabel", label: t("environmentalMonitoring.page.configColumns.room"), sx: { fontWeight: 600 }, render: (r) => r.roomLabel },
+  { key: "testTypeLabel", label: t("environmentalMonitoring.page.configColumns.testType"), render: (r) => r.testTypeLabel },
   {
     key: "testCode",
-    label: "Test",
+    label: t("environmentalMonitoring.page.configColumns.test"),
     sx: { fontFamily: monospaceFontFamily, fontWeight: 600 },
     render: (r) => r.testCode
   },
   {
     key: "alertLimit",
-    label: "Alert limit",
+    label: t("environmentalMonitoring.page.configColumns.alert"),
     sx: { fontVariantNumeric: "tabular-nums" },
     render: (r) => r.alertLimit || "—"
   },
   {
     key: "actionLimit",
-    label: "Action limit",
+    label: t("environmentalMonitoring.page.configColumns.action"),
     sx: { fontVariantNumeric: "tabular-nums" },
     render: (r) => r.actionLimit || "—"
   },
   {
     key: "specLimit",
-    label: "Spec limit",
+    label: t("environmentalMonitoring.page.configColumns.spec"),
     sx: { fontVariantNumeric: "tabular-nums" },
     render: (r) => r.specLimit || "—"
   },
-  { key: "unit", label: "Unit", render: (r) => r.unit || "—" }
-];
+  { key: "unit", label: t("environmentalMonitoring.page.configColumns.unit"), render: (r) => r.unit || "—" }
+  ];
+}
 
 // Departments -> rooms (with grade) -> per-room test configurations and
 // limits. Master/detail like the Water page: departments on the left,
 // the selected department's rooms as cards on the right, every add/edit
 // in a side panel.
 export function EMConfigPage() {
+  const { t } = useTranslation("labConfig");
+  const roomPendingColumns = getRoomPendingColumns(t);
+  const configPendingColumns = getConfigPendingColumns(t);
   const { options: testOptions } = useTestDefinitions();
   const [departments, setDepartments] = useState<EmDepartment[]>([]);
   const [configsByRoom, setConfigsByRoom] = useState<Record<number, RoomTestConfig[]>>({});
@@ -126,7 +133,7 @@ export function EMConfigPage() {
       setLoadError(null);
       setSelectedDeptId((current) => (current != null && depts.some((d) => d.id === current) ? current : depts[0]?.id ?? null));
     } catch (e: unknown) {
-      setLoadError(getErrorMessage(e, "Could not load the environmental monitoring configuration."));
+      setLoadError(getErrorMessage(e, i18n.t("environmentalMonitoring.page.loadError", { ns: "labConfig" })));
     } finally {
       setLoading(false);
     }
@@ -208,12 +215,12 @@ export function EMConfigPage() {
       await EMConfigService.createRoomsBatch(payload);
       const count = pendingRooms.length;
       setPendingRooms([]);
-      setMessage({ text: `${plural(count, "room")} added.`, ok: true });
+      setMessage({ text: t("environmentalMonitoring.page.roomsAdded", { rooms: t("environmentalMonitoring.roomCount", { count }) }), ok: true });
       await load();
     } catch (e: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         e,
-        "Could not save rooms. Nothing was created."
+        t("environmentalMonitoring.page.roomsBatchError")
       );
       if (rowErrors) {
         setPendingRooms((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -233,12 +240,12 @@ export function EMConfigPage() {
       await EMConfigService.createRoomTestConfigurationsBatch(payload);
       const count = pendingConfigs.length;
       setPendingConfigs([]);
-      setMessage({ text: `${plural(count, "test configuration")} added.`, ok: true });
+      setMessage({ text: t("environmentalMonitoring.page.configsAdded", { configs: t("environmentalMonitoring.configCount", { count }) }), ok: true });
       await load();
     } catch (e: unknown) {
       const { summary, rowErrors } = extractBatchSaveErrors(
         e,
-        "Could not save test configurations. Nothing was created."
+        t("environmentalMonitoring.page.configsBatchError")
       );
       if (rowErrors) {
         setPendingConfigs((prev) => prev.map((row, idx) => ({ ...row, errors: rowErrors[idx] })));
@@ -257,12 +264,12 @@ export function EMConfigPage() {
     .map((d) => {
       const rooms = d.rooms ?? [];
       const empty = rooms.filter((r) => (configsByRoom[r.id] ?? []).length === 0).length;
-      const details = [rooms.length === 0 ? "No rooms yet" : plural(rooms.length, "room"), frequencyLabel(d) || d.testingFrequency].filter(Boolean).join(" · ");
+      const details = [rooms.length === 0 ? t("environmentalMonitoring.page.noRoomsYet") : t("environmentalMonitoring.roomCount", { count: rooms.length }), frequencyLabel(d) || d.testingFrequency].filter(Boolean).join(" · ");
       return {
         id: d.id,
         title: d.name,
         subtitle: details,
-        badge: rooms.length === 0 ? undefined : empty > 0 ? { label: `${plural(empty, "room")} without tests`, tone: "inconclusive" } : { label: "Complete", tone: "notDetected" }
+        badge: rooms.length === 0 ? undefined : empty > 0 ? { label: t("environmentalMonitoring.roomsWithoutTests", { count: empty }), tone: "inconclusive" } : { label: t("environmentalMonitoring.page.complete"), tone: "notDetected" }
       };
     });
 
@@ -286,45 +293,49 @@ export function EMConfigPage() {
     try {
       if (target.kind === "dept") {
         await EMConfigService.deleteDepartment(target.dept.id);
-        setMessage({ text: `"${target.dept.name}" deleted.`, ok: true });
+        setMessage({ text: t("environmentalMonitoring.page.deptDeleted", { name: target.dept.name }), ok: true });
       } else if (target.kind === "room") {
         await EMConfigService.deleteRoom(target.room.id);
-        setMessage({ text: `Room "${target.room.name}" deleted.`, ok: true });
+        setMessage({ text: t("environmentalMonitoring.page.roomDeleted", { name: target.room.name }), ok: true });
       } else {
         await EMConfigService.deleteRoomTestConfiguration(target.config.id);
-        setMessage({ text: `Test removed from ${target.room.name}.`, ok: true });
+        setMessage({ text: t("environmentalMonitoring.page.testRemoved", { room: target.room.name }), ok: true });
       }
       load();
     } catch (e: unknown) {
-      setMessage({ text: getErrorMessage(e, "Could not delete this record."), ok: false });
+      setMessage({ text: getErrorMessage(e, t("environmentalMonitoring.page.deleteError")), ok: false });
     }
   };
 
   const deleteMessage = !pendingDelete
     ? ""
     : pendingDelete.kind === "dept"
-      ? `Delete department "${pendingDelete.dept.name}"? This cannot be undone.`
+      ? t("environmentalMonitoring.page.deleteDept", { name: pendingDelete.dept.name })
       : pendingDelete.kind === "room"
-        ? `Delete room "${pendingDelete.room.name}"? This cannot be undone.`
-        : `Remove the ${emTestTypeLabel(pendingDelete.config.testType)} / ${pendingDelete.config.testCode} test from ${pendingDelete.room.name}?`;
+        ? t("environmentalMonitoring.page.deleteRoom", { name: pendingDelete.room.name })
+        : t("environmentalMonitoring.page.removeTest", {
+          type: t(`environmentalMonitoring.testTypes.${pendingDelete.config.testType}`, { defaultValue: emTestTypeLabel(pendingDelete.config.testType) }),
+          code: pendingDelete.config.testCode,
+          room: pendingDelete.room.name
+        });
 
   const pasteBarHelper =
     pasteMode === "rooms"
-      ? "Columns in order: Room name, Department, Grade, Type (Room or LAF, optional), Sits in room (required for LAF), Frequency (optional)."
-      : "Columns in order: Room (or Department / Room), Test type, Test, Alert limit, Action limit, Spec limit, Unit (optional).";
+      ? t("environmentalMonitoring.page.pasteRoomsHelper")
+      : t("environmentalMonitoring.page.pasteConfigsHelper");
 
   const pasteBarPlaceholder =
     pasteMode === "rooms"
-      ? "Paste rows copied from a spreadsheet (Room name, Department, Grade, Type, Sits in room, Frequency)"
-      : "Paste rows copied from a spreadsheet (Room, Test type, Test, Alert limit, Action limit, Spec limit, Unit)";
+      ? t("environmentalMonitoring.page.pasteRoomsPlaceholder")
+      : t("environmentalMonitoring.page.pasteConfigsPlaceholder");
 
   return (
     <Box sx={{ pb: 4 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1.5, mb: 2 }}>
-        <PageHeader title="Environmental Monitoring" subtitle="Departments, their rooms and grades, and per-room test limits." />
+        <PageHeader title={t("environmentalMonitoring.page.title")} subtitle={t("environmentalMonitoring.page.subtitle")} />
         <Stack direction="row" sx={{ gap: 1.5, flexWrap: "wrap" }}>
           <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: null })} sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}>
-            Add department
+            {t("environmentalMonitoring.page.addDepartment")}
           </Button>
           <Button
             variant="outlined"
@@ -334,7 +345,7 @@ export function EMConfigPage() {
             onClick={() => setPasteMode((m) => (m === "rooms" ? null : "rooms"))}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Paste rooms
+            {t("environmentalMonitoring.page.pasteRooms")}
           </Button>
           <Button
             variant="outlined"
@@ -344,7 +355,7 @@ export function EMConfigPage() {
             onClick={() => setPasteMode((m) => (m === "configs" ? null : "configs"))}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Paste test configurations
+            {t("environmentalMonitoring.page.pasteConfigs")}
           </Button>
           <Button
             variant="contained"
@@ -353,7 +364,7 @@ export function EMConfigPage() {
             onClick={() => setRoomPanel({ open: true, room: null })}
             sx={{ textTransform: "none", fontWeight: 700, whiteSpace: "nowrap" }}
           >
-            Add room
+            {t("environmentalMonitoring.page.addRoom")}
           </Button>
         </Stack>
       </Stack>
@@ -365,7 +376,7 @@ export function EMConfigPage() {
               autoFocus
               size="small"
               fullWidth
-              label={pasteMode === "rooms" ? "Paste room rows" : "Paste test configuration rows"}
+              label={pasteMode === "rooms" ? t("environmentalMonitoring.page.pasteRoomsLabel") : t("environmentalMonitoring.page.pasteConfigsLabel")}
               placeholder={pasteBarPlaceholder}
               value=""
               onChange={() => {}}
@@ -373,14 +384,14 @@ export function EMConfigPage() {
               helperText={pasteBarHelper}
             />
             <Button onClick={() => setPasteMode(null)} sx={{ textTransform: "none", flexShrink: 0 }}>
-              Close
+              {t("environmentalMonitoring.page.close")}
             </Button>
           </Stack>
         </Paper>
       )}
 
       {loadError && (
-        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>Retry</Button>}>
+        <Alert severity="error" sx={{ mb: 2 }} action={<Button color="inherit" size="small" onClick={load}>{t("environmentalMonitoring.page.retry")}</Button>}>
           {loadError}
         </Alert>
       )}
@@ -391,10 +402,10 @@ export function EMConfigPage() {
       )}
 
       <PendingBatchList
-        title={`Pending rooms (${pendingRooms.length})`}
-        subtitle={`Review the ${plural(pendingRooms.length, "room")} below. Nothing is saved until you click Save.`}
-        ariaLabel="Pending rooms"
-        columns={ROOM_PENDING_COLUMNS}
+        title={t("environmentalMonitoring.page.pendingRoomsTitle", { count: pendingRooms.length })}
+        subtitle={t("environmentalMonitoring.page.pendingSubtitle", { items: t("environmentalMonitoring.roomCount", { count: pendingRooms.length }) })}
+        ariaLabel={t("environmentalMonitoring.page.pendingRoomsAria")}
+        columns={roomPendingColumns}
         rows={pendingRooms}
         getRowKey={(r, i) => `${r.departmentId}-${r.name}-${i}`}
         getRowLabel={(r) => r.name}
@@ -412,10 +423,10 @@ export function EMConfigPage() {
       />
 
       <PendingBatchList
-        title={`Pending test configurations (${pendingConfigs.length})`}
-        subtitle={`Review the ${plural(pendingConfigs.length, "test configuration")} below. Nothing is saved until you click Save.`}
-        ariaLabel="Pending test configurations"
-        columns={CONFIG_PENDING_COLUMNS}
+        title={t("environmentalMonitoring.page.pendingConfigsTitle", { count: pendingConfigs.length })}
+        subtitle={t("environmentalMonitoring.page.pendingSubtitle", { items: t("environmentalMonitoring.configCount", { count: pendingConfigs.length }) })}
+        ariaLabel={t("environmentalMonitoring.page.pendingConfigsAria")}
+        columns={configPendingColumns}
         rows={pendingConfigs}
         getRowKey={(r, i) => `${r.roomId}-${r.testType}-${r.testCode}-${i}`}
         getRowLabel={(r) => `${r.roomName} ${r.testCode}`}
@@ -434,30 +445,30 @@ export function EMConfigPage() {
 
       <SummaryTiles
         tiles={[
-          { label: "Departments", value: departments.length },
-          { label: "Rooms", value: allRooms.length },
-          { label: "Tests configured", value: configCount },
-          { label: "Rooms without tests", value: plural(roomsWithoutTests, "room"), tone: roomsWithoutTests > 0 ? "inconclusive" : undefined }
+          { label: t("environmentalMonitoring.page.tiles.departments"), value: departments.length },
+          { label: t("environmentalMonitoring.page.tiles.rooms"), value: allRooms.length },
+          { label: t("environmentalMonitoring.page.tiles.testsConfigured"), value: configCount },
+          { label: t("environmentalMonitoring.page.tiles.roomsWithoutTests"), value: t("environmentalMonitoring.roomCount", { count: roomsWithoutTests }), tone: roomsWithoutTests > 0 ? "inconclusive" : undefined }
         ]}
       />
 
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "300px minmax(0, 1fr)" }, gap: 2.5, alignItems: "start" }}>
         <ConfigMasterList
-          searchLabel="Find a department or room"
-          searchPlaceholder="e.g. Filling"
+          searchLabel={t("environmentalMonitoring.page.searchLabel")}
+          searchPlaceholder={t("environmentalMonitoring.page.searchPlaceholder")}
           search={search}
           onSearchChange={setSearch}
           items={listItems}
           selectedId={selectedDeptId}
           onSelect={setSelectedDeptId}
           loading={loading}
-          emptyText={q ? "Nothing matches your search." : "No departments yet. Use “Add department” to create one."}
+          emptyText={q ? t("environmentalMonitoring.page.noMatch") : t("environmentalMonitoring.page.noDepartments")}
         />
 
         <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
           {!selectedDept ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography sx={{ fontWeight: 600 }}>{loading ? "Loading..." : "Select a department"}</Typography>
+              <Typography sx={{ fontWeight: 600 }}>{loading ? t("environmentalMonitoring.page.loading") : t("environmentalMonitoring.page.selectDepartment")}</Typography>
             </Box>
           ) : (
             <>
@@ -466,15 +477,15 @@ export function EMConfigPage() {
                   <Typography component="h2" sx={{ fontSize: 20, fontWeight: 700 }}>{selectedDept.name}</Typography>
                   <Stack useFlexGap direction="row" spacing={0.75} sx={{ mt: 0.5, alignItems: "center", flexWrap: "wrap" }}>
                     {selectedDept.class && <ToneChip label={selectedDept.class} tone="pending" />}
-                    {(frequencyLabel(selectedDept) || selectedDept.testingFrequency) && <ToneChip label={`Tested ${(frequencyLabel(selectedDept) || selectedDept.testingFrequency).toLowerCase()}`} tone="pending" />}
-                    <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{plural((selectedDept.rooms ?? []).length, "room")}</Typography>
+                    {(frequencyLabel(selectedDept) || selectedDept.testingFrequency) && <ToneChip label={t("environmentalMonitoring.page.tested", { frequency: (frequencyLabel(selectedDept) || selectedDept.testingFrequency).toLowerCase() })} tone="pending" />}
+                    <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("environmentalMonitoring.roomCount", { count: (selectedDept.rooms ?? []).length })}</Typography>
                   </Stack>
                 </Box>
                 <Button variant="outlined" onClick={() => setDeptPanel({ open: true, dept: selectedDept })}>
-                  Edit department
+                  {t("environmentalMonitoring.page.editDepartment")}
                 </Button>
-                <Tooltip title="Delete department">
-                  <IconButton aria-label={`Delete ${selectedDept.name}`} color="error" onClick={() => setPendingDelete({ kind: "dept", dept: selectedDept })}>
+                <Tooltip title={t("environmentalMonitoring.page.deleteDepartment")}>
+                  <IconButton aria-label={t("environmentalMonitoring.page.deleteAria", { name: selectedDept.name })} color="error" onClick={() => setPendingDelete({ kind: "dept", dept: selectedDept })}>
                     <DeleteIcon />
                   </IconButton>
                 </Tooltip>
@@ -500,11 +511,11 @@ export function EMConfigPage() {
                   onClick={() => setRoomPanel({ open: true, room: null })}
                   sx={{ minHeight: 120, borderStyle: "dashed", borderRadius: 2, textTransform: "none", fontWeight: 600 }}
                 >
-                  Add room to {selectedDept.name}
+                  {t("environmentalMonitoring.page.addRoomTo", { name: selectedDept.name })}
                 </Button>
               </Box>
               {q && deptRooms.length === 0 && (
-                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>No rooms here match your search.</Typography>
+                <Typography sx={{ px: 2.75, pb: 2.75, fontSize: 14, color: "text.secondary" }}>{t("environmentalMonitoring.page.noRoomMatch")}</Typography>
               )}
             </>
           )}

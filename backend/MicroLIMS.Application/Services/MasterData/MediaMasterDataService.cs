@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -7,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -66,32 +68,50 @@ public class MediaMasterDataService
     public async Task<object> CreateMediaConfigurationAsync(CreateMediaConfigurationRequest request)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == request.MediaProductId)
-            ?? throw new BusinessRuleException($"Media product with ID {request.MediaProductId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaProductNotFound,
+                $"Media product with ID {request.MediaProductId} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = request.MediaProductId.ToString(CultureInfo.InvariantCulture) });
         if (!product.IsActive)
-            throw new BusinessRuleException($"Media product \"{product.Name}\" is inactive and can't get a new configuration.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaInactiveProductCannotConfigure,
+                $"Media product \"{product.Name}\" is inactive and can't get a new configuration.",
+                new Dictionary<string, string> { ["name"] = product.Name });
 
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == request.MediaIncubationConditionId)
-            ?? throw new BusinessRuleException($"Incubation condition {request.MediaIncubationConditionId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaIncubationConditionMissing,
+                $"Incubation condition {request.MediaIncubationConditionId} not found.",
+                new Dictionary<string, string> { ["id"] = request.MediaIncubationConditionId.ToString(CultureInfo.InvariantCulture) });
         if (condition.MediaProductId != product.Id)
         {
-            throw new BusinessRuleException("The chosen incubation condition belongs to a different media product.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubationConditionWrongProduct,
+                "The chosen incubation condition belongs to a different media product.");
         }
 
         var exists = await _db.MediaConfigurations.AnyAsync(m => m.MediaProductId == request.MediaProductId);
         if (exists)
         {
-            throw new BusinessRuleException($"'{product.Name}' already has an evaluation configuration. Edit it instead.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaConfigurationAlreadyExists,
+                $"'{product.Name}' already has an evaluation configuration. Edit it instead.",
+                new Dictionary<string, string> { ["name"] = product.Name });
         }
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
-            throw new BusinessRuleException("Valid evaluation type is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaEvaluationTypeRequired,
+                "Valid evaluation type is required.");
 
         if (request.EvaluationType == EvaluationType.GrowthPromotion)
         {
             if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
                 request.RecoveryPercentMin > request.RecoveryPercentMax)
             {
-                throw new BusinessRuleException("Recovery percent min cannot exceed recovery percent max.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaRecoveryPercentRangeInvalid,
+                    "Recovery percent min cannot exceed recovery percent max.");
             }
         }
 
@@ -111,12 +131,17 @@ public class MediaMasterDataService
             {
                 var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
                 if (!organismExists)
-                    throw new BusinessRuleException($"Organism with ID {ch.OrganismId} not found.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaOrganismNotFound,
+                        $"Organism with ID {ch.OrganismId} not found.",
+                        new Dictionary<string, string> { ["organismId"] = ch.OrganismId.ToString(CultureInfo.InvariantCulture) });
 
                 if (request.EvaluationType == EvaluationType.IndicationInhibition)
                 {
                     if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
-                        throw new BusinessRuleException("Challenge role is required for Indication/Inhibition evaluation.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MediaChallengeRoleRequired,
+                            "Challenge role is required for Indication/Inhibition evaluation.");
                 }
 
                 entity.Challenges.Add(new MediaConfigurationChallenge
@@ -168,33 +193,50 @@ public class MediaMasterDataService
         var entity = await _db.MediaConfigurations
             .Include(m => m.Challenges)
             .FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new NotFoundException($"Media configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaConfigurationNotFound,
+                $"Media configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (request.MediaProductId != entity.MediaProductId)
         {
-            throw new BusinessRuleException("A configuration can't be moved to another media product.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaConfigurationCannotMoveProduct,
+                "A configuration can't be moved to another media product.");
         }
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == entity.MediaProductId)
-            ?? throw new BusinessRuleException($"Media product with ID {entity.MediaProductId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaProductNotFound,
+                $"Media product with ID {entity.MediaProductId} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = entity.MediaProductId.ToString(CultureInfo.InvariantCulture) });
 
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == request.MediaIncubationConditionId)
-            ?? throw new BusinessRuleException($"Incubation condition {request.MediaIncubationConditionId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaIncubationConditionMissing,
+                $"Incubation condition {request.MediaIncubationConditionId} not found.",
+                new Dictionary<string, string> { ["id"] = request.MediaIncubationConditionId.ToString(CultureInfo.InvariantCulture) });
         if (condition.MediaProductId != entity.MediaProductId)
         {
-            throw new BusinessRuleException("The chosen incubation condition belongs to a different media product.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubationConditionWrongProduct,
+                "The chosen incubation condition belongs to a different media product.");
         }
 
         if (!Enum.IsDefined(typeof(EvaluationType), request.EvaluationType))
-            throw new BusinessRuleException("Valid evaluation type is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaEvaluationTypeRequired,
+                "Valid evaluation type is required.");
 
         if (request.EvaluationType == EvaluationType.GrowthPromotion)
         {
             if (request.RecoveryPercentMin.HasValue && request.RecoveryPercentMax.HasValue &&
                 request.RecoveryPercentMin > request.RecoveryPercentMax)
             {
-                throw new BusinessRuleException("Recovery percent min cannot exceed recovery percent max.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaRecoveryPercentRangeInvalid,
+                    "Recovery percent min cannot exceed recovery percent max.");
             }
         }
 
@@ -210,12 +252,17 @@ public class MediaMasterDataService
         {
             var organismExists = await _db.Organisms.AnyAsync(o => o.Id == ch.OrganismId);
             if (!organismExists)
-                throw new BusinessRuleException($"Organism with ID {ch.OrganismId} not found.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaOrganismNotFound,
+                    $"Organism with ID {ch.OrganismId} not found.",
+                    new Dictionary<string, string> { ["organismId"] = ch.OrganismId.ToString(CultureInfo.InvariantCulture) });
 
             if (request.EvaluationType == EvaluationType.IndicationInhibition)
             {
                 if (!ch.ChallengeRole.HasValue || !Enum.IsDefined(typeof(ChallengeRole), ch.ChallengeRole.Value))
-                    throw new BusinessRuleException("Challenge role is required for Indication/Inhibition evaluation.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeRoleRequired,
+                        "Challenge role is required for Indication/Inhibition evaluation.");
             }
         }
 
@@ -223,7 +270,9 @@ public class MediaMasterDataService
             .GroupBy(c => new { c.OrganismId, Role = request.EvaluationType == EvaluationType.IndicationInhibition ? c.ChallengeRole : null })
             .Any(g => g.Count() > 1);
         if (duplicateIncoming)
-            throw new BusinessRuleException("Duplicate challenge organism and role combination in request.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDuplicate,
+                "Duplicate challenge organism and role combination in request.");
 
         var toRemove = entity.Challenges.Where(existing =>
             !incomingChallenges.Any(inc =>
@@ -300,7 +349,10 @@ public class MediaMasterDataService
     public async Task<object> DeleteMediaConfigurationAsync(int id)
     {
         var entity = await _db.MediaConfigurations.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new NotFoundException($"Media configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaConfigurationNotFound,
+                $"Media configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         _db.MediaConfigurations.Remove(entity);
         await _db.SaveChangesAsync();

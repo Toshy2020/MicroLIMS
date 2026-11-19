@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 namespace MicroLIMS.Application.Helpers;
 
 // Every administrative change to a user or role carries the administrator's
@@ -12,9 +14,15 @@ public static class AdminActionReason
     {
         var trimmed = reason?.Trim();
         if (string.IsNullOrEmpty(trimmed))
-            throw new BusinessRuleException($"A reason is required to {action}.");
+            throw new BusinessRuleException(
+                MessageCodes.UserAdminReasonRequired,
+                $"A reason is required to {action}.",
+                new Dictionary<string, string> { ["action"] = action });
         if (trimmed.Length > MaxLength)
-            throw new BusinessRuleException($"The reason must be {MaxLength} characters or fewer.");
+            throw new BusinessRuleException(
+                MessageCodes.UserAdminReasonTooLong,
+                $"The reason must be {MaxLength} characters or fewer.",
+                new Dictionary<string, string> { ["maxLength"] = MaxLength.ToString(CultureInfo.InvariantCulture) });
         return trimmed;
     }
 }

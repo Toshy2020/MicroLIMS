@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -19,7 +20,10 @@ public static class ServerSort
         {
             "asc" => true,
             "desc" => false,
-            _ => throw new BusinessRuleException($"Invalid sort direction '{sortDir}'. Expected 'asc' or 'desc'.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.TableViewInvalidSortDirection,
+                $"Invalid sort direction '{sortDir}'. Expected 'asc' or 'desc'.",
+                new Dictionary<string, string> { ["sortDir"] = sortDir ?? string.Empty })
         };
     }
 

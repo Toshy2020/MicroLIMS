@@ -3,6 +3,7 @@ namespace MicroLIMS.Shared.Messages;
 // TableView.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string TableViewInvalidSortDirection = "TableView.InvalidSortDirection";
     public const string TableViewMaxPersonalViewsReached = "TableView.MaxPersonalViewsReached";
     public const string TableViewNameAlreadyExistsHere = "TableView.NameAlreadyExistsHere";
     public const string TableViewNameAlreadySharedWithSection = "TableView.NameAlreadySharedWithSection";
@@ -23,6 +24,7 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> TableViewParameters() => new()
     {
+        [TableViewInvalidSortDirection] = ["sortDir"],
         [TableViewMaxPersonalViewsReached] = ["max"],
         [TableViewNameAlreadyExistsHere] = ["name"],
         [TableViewNameAlreadySharedWithSection] = ["name"],

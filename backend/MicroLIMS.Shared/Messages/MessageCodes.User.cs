@@ -21,6 +21,8 @@ public static partial class MessageCodes
     public const string UserAccessReviewPeriodLabelTooLong = "User.AccessReviewPeriodLabelTooLong";
     public const string UserAccessReviewQualityAssuranceOnly = "User.AccessReviewQualityAssuranceOnly";
     public const string UserAccessReviewReportUnreadable = "User.AccessReviewReportUnreadable";
+    public const string UserAdminReasonRequired = "User.AdminReasonRequired";
+    public const string UserAdminReasonTooLong = "User.AdminReasonTooLong";
     public const string UserCannotDisableOwnAccount = "User.CannotDisableOwnAccount";
     public const string UserCannotModifyOwnRole = "User.CannotModifyOwnRole";
     public const string UserCannotModifyOwnRolePermissions = "User.CannotModifyOwnRolePermissions";
@@ -77,6 +79,8 @@ public static partial class MessageCodes
         [UserAccessReviewPeriodLabelTooLong] = [],
         [UserAccessReviewQualityAssuranceOnly] = [],
         [UserAccessReviewReportUnreadable] = [],
+        [UserAdminReasonRequired] = ["action"],
+        [UserAdminReasonTooLong] = ["maxLength"],
         [UserCannotDisableOwnAccount] = [],
         [UserCannotModifyOwnRole] = [],
         [UserCannotModifyOwnRolePermissions] = [],

@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Services;
 
 namespace MicroLIMS.Application.Helpers;
@@ -36,7 +37,7 @@ public static class WorkingStandardCalculator
     public static decimal DriedBasisPotency(decimal meanAssayPercent, decimal moisturePercent)
     {
         if (moisturePercent < 0m || moisturePercent >= 100m)
-            throw new BusinessRuleException("Moisture content must be at least 0 and below 100.");
+            throw new BusinessRuleException(MessageCodes.MaterialMoistureOutOfRange, "Moisture content must be at least 0 and below 100.");
         return Math.Round(meanAssayPercent * 100m / (100m - moisturePercent), 3, MidpointRounding.AwayFromZero);
     }
 
@@ -44,7 +45,7 @@ public static class WorkingStandardCalculator
     {
         ArgumentNullException.ThrowIfNull(replicateAssayPercents);
         if (replicateAssayPercents.Count == 0)
-            throw new BusinessRuleException("At least one replicate is required.");
+            throw new BusinessRuleException(MessageCodes.TitrationReplicateRequired, "At least one replicate is required.");
 
         var mean = replicateAssayPercents.Average();
         var rsd = SampleRsd(replicateAssayPercents);

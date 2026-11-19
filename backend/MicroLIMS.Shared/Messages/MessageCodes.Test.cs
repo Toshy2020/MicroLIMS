@@ -30,6 +30,7 @@ public static partial class MessageCodes
     public const string TestEverySpecMustBeSuppliedOnce = "Test.EverySpecMustBeSuppliedOnce";
     public const string TestHplcSpecMustLinkAnalyte = "Test.HplcSpecMustLinkAnalyte";
     public const string TestIcpSpecMustLinkElement = "Test.IcpSpecMustLinkElement";
+    public const string TestInvalidPhyschemArea = "Test.InvalidPhyschemArea";
     public const string TestLocationLimitsNotConfigured = "Test.LocationLimitsNotConfigured";
     public const string TestLocationNumericValueRequired = "Test.LocationNumericValueRequired";
     public const string TestLocationResultsMissing = "Test.LocationResultsMissing";
@@ -102,6 +103,7 @@ public static partial class MessageCodes
         [TestEverySpecMustBeSuppliedOnce] = [],
         [TestHplcSpecMustLinkAnalyte] = [],
         [TestIcpSpecMustLinkElement] = [],
+        [TestInvalidPhyschemArea] = [],
         [TestLocationLimitsNotConfigured] = ["point", "testCode"],
         [TestLocationNumericValueRequired] = ["point"],
         [TestLocationResultsMissing] = ["locations"],

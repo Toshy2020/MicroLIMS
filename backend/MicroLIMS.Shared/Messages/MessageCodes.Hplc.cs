@@ -84,6 +84,7 @@ public static partial class MessageCodes
     public const string HplcInternalStandardAssayOnly = "Hplc.InternalStandardAssayOnly";
     public const string HplcInternalStandardLocked = "Hplc.InternalStandardLocked";
     public const string HplcInternalStandardNameTooLong = "Hplc.InternalStandardNameTooLong";
+    public const string HplcInternalStandardResponseDefault = "Hplc.InternalStandardResponseDefault";
     public const string HplcInternalStandardResponseRequired = "Hplc.InternalStandardResponseRequired";
     public const string HplcIsocraticNoGradientSteps = "Hplc.IsocraticNoGradientSteps";
     public const string HplcLotMissingMoisture = "Hplc.LotMissingMoisture";
@@ -128,6 +129,7 @@ public static partial class MessageCodes
     public const string HplcRatioPercentNotUsedInGradient = "Hplc.RatioPercentNotUsedInGradient";
     public const string HplcReasonRequired = "Hplc.ReasonRequired";
     public const string HplcReasonTooLong = "Hplc.ReasonTooLong";
+    public const string HplcReferenceSolutionAreaRequired = "Hplc.ReferenceSolutionAreaRequired";
     public const string HplcReferenceSolutionPercentInvalid = "Hplc.ReferenceSolutionPercentInvalid";
     public const string HplcRelatedSubstancesHplcOnly = "Hplc.RelatedSubstancesHplcOnly";
     public const string HplcRelatedSubstancesSingleAnalyte = "Hplc.RelatedSubstancesSingleAnalyte";
@@ -267,6 +269,7 @@ public static partial class MessageCodes
         [HplcInternalStandardAssayOnly] = [],
         [HplcInternalStandardLocked] = [],
         [HplcInternalStandardNameTooLong] = [],
+        [HplcInternalStandardResponseDefault] = [],
         [HplcInternalStandardResponseRequired] = ["analyte"],
         [HplcIsocraticNoGradientSteps] = [],
         [HplcLotMissingMoisture] = ["lot"],
@@ -311,6 +314,7 @@ public static partial class MessageCodes
         [HplcRatioPercentNotUsedInGradient] = [],
         [HplcReasonRequired] = [],
         [HplcReasonTooLong] = [],
+        [HplcReferenceSolutionAreaRequired] = ["analyte"],
         [HplcReferenceSolutionPercentInvalid] = [],
         [HplcRelatedSubstancesHplcOnly] = [],
         [HplcRelatedSubstancesSingleAnalyte] = [],

@@ -452,6 +452,52 @@ public class NotificationCentrePostgresTests
     }
 
     [PostgresFact]
+    public async Task NotificationPreferences_Save_SetsActingUserInAudit()
+    {
+        // The service gets a fresh act DbContext with CurrentUserId NOT set, so a
+        // correct audit UserId can only come from the service setting it explicitly.
+        int analystId;
+        int headId;
+        int sectionId;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var sec = await CreateSectionAsync(arrangeDb, "AUD");
+            sectionId = sec.Id;
+            analystId = (await CreateUserAsync(arrangeDb, RoleType.Analyst, sec.Id)).Id;
+            headId = (await CreateUserAsync(arrangeDb, RoleType.SectionHead, sec.Id)).Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            Assert.Null(actDb.CurrentUserId);
+            var service = new NotificationPreferencesService(
+                actDb, new UserSectionScopeService(actDb), new PermissionService(actDb));
+
+            await service.UpdatePreferencesAsync(analystId,
+                [new UpdateNotificationPreferenceItem("MediaExpiry", EmailMode.Digest)]);
+            await service.SetMandatoryAsync(headId, sectionId, ["MediaExpiry"]);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var pref = await assertDb.UserNotificationPreferences.AsNoTracking()
+                .SingleAsync(p => p.UserId == analystId && p.Type == "MediaExpiry");
+            var prefAudit = await assertDb.AuditLogs.AsNoTracking().SingleAsync(
+                a => a.EntityName == nameof(UserNotificationPreference)
+                  && a.EntityId == $"{pref.UserId}:{pref.Type}");
+            Assert.Equal(analystId, prefAudit.UserId);
+
+            var mandatory = await assertDb.MandatoryNotificationTypes.AsNoTracking()
+                .SingleAsync(m => m.SectionId == sectionId && m.Type == "MediaExpiry");
+            var mandatoryAudit = await assertDb.AuditLogs.AsNoTracking().SingleAsync(
+                a => a.EntityName == nameof(MandatoryNotificationType)
+                  && a.EntityId == $"{mandatory.SectionId}:{mandatory.Type}");
+            Assert.Equal(headId, mandatoryAudit.UserId);
+        }
+    }
+
+    [PostgresFact]
     public async Task Mandatory_OverridesUserOff()
     {
         var now = new DateTimeOffset(2026, 11, 15, 10, 0, 0, TimeSpan.Zero);

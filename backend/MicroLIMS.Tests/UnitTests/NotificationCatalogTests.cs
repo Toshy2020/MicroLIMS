@@ -19,6 +19,10 @@ public class NotificationCatalogTests
     private static string ApplicationDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", "..", "MicroLIMS.Application"));
 
+    // Current service publishing: `new NotificationRequest(Type: "..." ...)` or a positional first string arg.
+    private static readonly Regex NotificationRequestTypeRegex =
+        new(@"new\s+NotificationRequest\s*\(\s*(?:Type\s*:\s*)?""([^""]+)""", RegexOptions.Singleline);
+
     [Fact]
     public void EveryTypeWrittenInApplicationCode_IsInCatalog()
     {
@@ -44,11 +48,27 @@ public class NotificationCatalogTests
             foreach (Match m in directRegex.Matches(source)) discovered.Add(m.Groups[1].Value);
             foreach (Match m in computedRegex.Matches(source)) discovered.Add(m.Groups[1].Value);
             foreach (Match m in constRegex.Matches(source)) discovered.Add(m.Groups[1].Value);
+            foreach (Match m in NotificationRequestTypeRegex.Matches(source)) discovered.Add(m.Groups[1].Value);
         }
 
         Assert.NotEmpty(discovered);
         var missing = discovered.Where(t => !NotificationCatalog.Types.ContainsKey(t)).OrderBy(t => t).ToList();
         Assert.True(missing.Count == 0, "Notification types written in Application are missing from NotificationCatalog: " + string.Join(", ", missing));
+    }
+
+    [Fact]
+    public void NotificationRequestTypeRegex_FindsNamedAndPositionalType()
+    {
+        const string named = "new NotificationRequest(\n    Type: \"CalibrationDue\",\n    UserIds: ids)";
+        const string positional = "new NotificationRequest(\n    \"CalibrationDue\",\n    ids)";
+
+        var namedMatch = NotificationRequestTypeRegex.Match(named);
+        var positionalMatch = NotificationRequestTypeRegex.Match(positional);
+
+        Assert.True(namedMatch.Success);
+        Assert.Equal("CalibrationDue", namedMatch.Groups[1].Value);
+        Assert.True(positionalMatch.Success);
+        Assert.Equal("CalibrationDue", positionalMatch.Groups[1].Value);
     }
 
     [Fact]

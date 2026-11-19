@@ -83,5 +83,6 @@ public sealed class UnassignedTestsSource : UnassignedTestsSourceBase
     protected override string Action => "assign";
     protected override string TargetType => "sample-assign";
     protected override bool Holds(MyWorkContext ctx) => ctx.Permissions.Contains(PermissionConstants.SamplesAssignAnalyst);
-    protected override IQueryable<TestOrder> InScope(IQueryable<TestOrder> query, MyWorkContext ctx) => query.InSections(ctx, t => t.SectionId);
+    protected override IQueryable<TestOrder> InScope(IQueryable<TestOrder> query, MyWorkContext ctx) =>
+        query.InSections(ctx, t => t.SectionId, t => t.Sample!.Category);
 }

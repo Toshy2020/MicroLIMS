@@ -812,6 +812,166 @@ public class TestSelfAssignmentPostgresTests
         Assert.Empty(still.Actions);
     }
 
+    [PostgresFact]
+    public async Task PhyschemArea_RmPmOnlyUser_SeesNoFinishedProductInMyWork_AndCannotTakeFpTest_FpUserSeesAndTakesIt()
+    {
+        User rmpmUser, fpUser;
+        TestOrder fpAvailable, rmAvailable, fpToPerformRmpm, fpToPerformFp, fpIncOrderRmpm, fpIncOrderFp;
+        Incubation fpIncRmpm, fpIncFp;
+        Sample fpReviewSample;
+
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrange);
+            var perms = new[]
+            {
+                PermissionConstants.TestsSelfAssign,
+                PermissionConstants.SamplesAssignAnalyst,
+                PermissionConstants.SamplesReview
+            };
+            rmpmUser = await NewUserAsync(arrange, "rmpm", RoleType.Analyst, perms);
+            fpUser = await NewUserAsync(arrange, "fponly", RoleType.Analyst, perms);
+
+            arrange.UserOrgMemberships.AddRange(
+                new UserOrgMembership
+                {
+                    UserId = rmpmUser.Id,
+                    DepartmentId = w.Fp.DepartmentId,
+                    SectionId = w.Fp.Id,
+                    PhyschemArea = PhyschemArea.RawPackaging
+                },
+                new UserOrgMembership
+                {
+                    UserId = fpUser.Id,
+                    DepartmentId = w.Fp.DepartmentId,
+                    SectionId = w.Fp.Id,
+                    PhyschemArea = PhyschemArea.FinishedProduct
+                });
+            await arrange.SaveChangesAsync();
+
+            var uid = Guid.NewGuid().ToString("N")[..8];
+            var rmSample = new Sample
+            {
+                ReferenceNumber = $"RM-{uid}",
+                Category = SampleCategory.RawMaterial,
+                CauseOfTestingId = w.CauseId,
+                ReceivedAt = Now.AddHours(-2),
+                ReceivedByUserId = rmpmUser.Id,
+                Status = SampleStatus.InTesting
+            };
+            arrange.Samples.Add(rmSample);
+            await arrange.SaveChangesAsync();
+
+            fpAvailable = await NewTestAsync(arrange, w, w.Fp);
+            rmAvailable = await NewTestAsync(arrange, w, w.Fp, onSample: rmSample);
+            fpToPerformRmpm = await NewTestAsync(arrange, w, w.Fp, assignedTo: rmpmUser.Id);
+            fpToPerformFp = await NewTestAsync(arrange, w, w.Fp, assignedTo: fpUser.Id);
+
+            fpIncOrderRmpm = await NewTestAsync(arrange, w, w.Fp, assignedTo: rmpmUser.Id, status: ApprovalStatus.InProgress);
+            fpIncOrderFp = await NewTestAsync(arrange, w, w.Fp, assignedTo: fpUser.Id, status: ApprovalStatus.InProgress);
+            fpIncRmpm = new Incubation
+            {
+                TestOrderId = fpIncOrderRmpm.Id,
+                StepNumber = 1,
+                StepName = "Inc",
+                StartedAt = Now.AddDays(-1),
+                StartedByUserId = rmpmUser.Id,
+                ExpectedReadingAt = Now.AddMinutes(-15)
+            };
+            fpIncFp = new Incubation
+            {
+                TestOrderId = fpIncOrderFp.Id,
+                StepNumber = 1,
+                StepName = "Inc",
+                StartedAt = Now.AddDays(-1),
+                StartedByUserId = fpUser.Id,
+                ExpectedReadingAt = Now.AddMinutes(-15)
+            };
+            arrange.Incubations.AddRange(fpIncRmpm, fpIncFp);
+
+            fpReviewSample = new Sample
+            {
+                ReferenceNumber = $"FPRV-{uid}",
+                Category = SampleCategory.FinishedProduct,
+                CauseOfTestingId = w.CauseId,
+                ReceivedAt = Now.AddHours(-3),
+                ReceivedByUserId = fpUser.Id,
+                Status = SampleStatus.UnderReview
+            };
+            arrange.Samples.Add(fpReviewSample);
+            await arrange.SaveChangesAsync();
+            arrange.TestOrders.Add(new TestOrder
+            {
+                SampleId = fpReviewSample.Id,
+                TestCode = $"TRV{uid}",
+                SectionId = w.Fp.Id,
+                Status = ApprovalStatus.ResultEntered,
+                CurrentStep = WorkflowStep.Ready
+            });
+            arrange.SampleSectionSignoffs.Add(new SampleSectionSignoff
+            {
+                SampleId = fpReviewSample.Id,
+                SectionId = w.Fp.Id,
+                Status = SectionSignoffStatus.UnderReview,
+                SubmittedForReviewAt = Now.AddHours(-1)
+            });
+            await arrange.SaveChangesAsync();
+        }
+
+        async Task<MyWorkResponse> FullMyWorkAsync(int userId)
+        {
+            await using var actDb = _fixture.CreateDbContext();
+            var svc = new MyWorkService(
+                actDb,
+                new UserSectionScopeService(actDb),
+                new LabClock(new FixedTimeProvider(new DateTimeOffset(Now)), LabClock.ResolveTimeZone("Africa/Cairo")),
+                new Settings(),
+                new NoopErrors(),
+                new IMyWorkSource[]
+                {
+                    new IncubationSource(actDb),
+                    new ReturnedTestsSource(actDb),
+                    new AssignedTestsSource(actDb),
+                    new ReviewSource(actDb),
+                    new ApprovalSource(actDb),
+                    new AvailableTestsSource(actDb),
+                    new UnassignedTestsSource(actDb)
+                });
+            var resp = await svc.GetAsync(userId, null);
+            Assert.Empty(resp.UnavailableSources);
+            return resp;
+        }
+
+        var rmpmWork = await FullMyWorkAsync(rmpmUser.Id);
+        var rmpmItems = rmpmWork.Groups.SelectMany(g => g.Items).ToList();
+        Assert.DoesNotContain(rmpmItems, i => i.Target.TestOrderId == fpAvailable.Id);
+        Assert.DoesNotContain(rmpmItems, i => i.Target.TestOrderId == fpToPerformRmpm.Id);
+        Assert.DoesNotContain(rmpmItems, i => i.Target.IncubationId == fpIncRmpm.Id);
+        Assert.DoesNotContain(rmpmItems, i => i.Target.SampleId == fpReviewSample.Id);
+        Assert.Contains(rmpmItems, i => i.GroupKey == "available" && i.Target.TestOrderId == rmAvailable.Id);
+        Assert.Contains(rmpmItems, i => i.GroupKey == "unassigned" && i.Target.TestOrderId == rmAvailable.Id);
+
+        var fpWork = await FullMyWorkAsync(fpUser.Id);
+        var fpItems = fpWork.Groups.SelectMany(g => g.Items).ToList();
+        Assert.Contains(fpItems, i => i.GroupKey == "available" && i.Target.TestOrderId == fpAvailable.Id);
+        Assert.Contains(fpItems, i => i.GroupKey == "unassigned" && i.Target.TestOrderId == fpAvailable.Id);
+        Assert.Contains(fpItems, i => i.GroupKey == "toPerform" && i.Target.TestOrderId == fpToPerformFp.Id);
+        Assert.Contains(fpItems, i => i.GroupKey == "readyToRead" && i.Target.IncubationId == fpIncFp.Id);
+        Assert.Contains(fpItems, i => i.GroupKey == "review" && i.Target.SampleId == fpReviewSample.Id);
+        Assert.DoesNotContain(fpItems, i => i.Target.TestOrderId == rmAvailable.Id);
+
+        // rmpm-only user cannot take an FP test.
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() => TakeAsync(fpAvailable.Id, rmpmUser.Id));
+        Assert.Null((await PersistedAsync(fpAvailable.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(fpAvailable.Id, "TEST_TAKEN"));
+
+        // fp user can take the FP test.
+        await TakeAsync(fpAvailable.Id, fpUser.Id);
+        Assert.Equal(fpUser.Id, (await PersistedAsync(fpAvailable.Id)).AssignedAnalystId);
+        var audit = Assert.Single(await AuditAsync(fpAvailable.Id, "TEST_TAKEN"));
+        Assert.Equal(fpUser.Id, audit.UserId);
+    }
+
     // ---- migration ----
 
     [PostgresFact]

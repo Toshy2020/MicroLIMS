@@ -117,7 +117,7 @@ public sealed class TestSelfAssignmentService
         var permission = await CheckPermissionAsync(userId, ct);
         if (!permission.Allowed) return permission;
 
-        var order = await _db.TestOrders.AsNoTracking().SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
+        var order = await _db.TestOrders.AsNoTracking().Include(t => t.Sample).SingleOrDefaultAsync(t => t.Id == testOrderId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleTestNotFound,
                 $"Test {testOrderId} not found.",
@@ -133,6 +133,26 @@ public sealed class TestSelfAssignmentService
         if (readable is not null && !readable.Contains(order.SectionId))
             return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), null);
 
+        var sectionCode = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.Id == order.SectionId)
+            .Select(s => s.Code)
+            .FirstOrDefaultAsync(ct);
+        if (sectionCode == Helpers.PhyschemAreas.SectionCode)
+        {
+            var category = order.Sample?.Category
+                ?? await _db.Samples.AsNoTracking()
+                    .Where(s => s.Id == order.SampleId)
+                    .Select(s => (SampleCategory?)s.Category)
+                    .FirstOrDefaultAsync(ct);
+            if (category is SampleCategory sampleCategory)
+            {
+                var requiredArea = Helpers.PhyschemAreas.OfCategory(sampleCategory);
+                var readableAreas = await _scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
+                if (!readableAreas.Contains(requiredArea))
+                    return (ActionCheck.Denied("You do not have access to this Physicochemical Laboratory area."), null);
+            }
+        }
+
         if (!await SectionSelfAssignmentService.IsEnabledAsync(_db, order.SectionId, ct))
             return (ActionCheck.No("Taking tests is switched off in this section. Ask a Section Head to assign this test."), null);
 
@@ -146,6 +166,21 @@ public sealed class TestSelfAssignmentService
             return (ActionCheck.No("This test is closed, replaced or outsourced and can no longer be taken."), null);
 
         var (assignable, user) = await AnalystAssignmentRules.CheckAssignableAsync(_db, _scope, userId, userId, new[] { order.SectionId }, now, ct);
+        if (assignable.Allowed && sectionCode == Helpers.PhyschemAreas.SectionCode)
+        {
+            var category = order.Sample?.Category
+                ?? await _db.Samples.AsNoTracking()
+                    .Where(s => s.Id == order.SampleId)
+                    .Select(s => (SampleCategory?)s.Category)
+                    .FirstOrDefaultAsync(ct);
+            if (category is SampleCategory sampleCategory)
+            {
+                var requiredArea = Helpers.PhyschemAreas.OfCategory(sampleCategory);
+                var memberAreas = await _scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Write);
+                if (!memberAreas.Contains(requiredArea))
+                    return (ActionCheck.Denied("You do not have access to this Physicochemical Laboratory area."), null);
+            }
+        }
         return (assignable, user);
     }
 

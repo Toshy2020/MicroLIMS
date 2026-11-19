@@ -56,6 +56,12 @@ internal abstract class SignoffQueueSource
             .AsSplitQuery()
             .ToListAsync(ct);
         var entries = SectionReviewQueues.Entries(samples, Status, sectionIds);
+        if (ctx.PhyschemSectionId is int fpId && ctx.ReadablePhyschemCategories is { } allowed)
+        {
+            entries = entries
+                .Where(e => e.SectionId != fpId || allowed.Contains(e.Sample.Category))
+                .ToList();
+        }
         if (entries.Count == 0) return new List<Entry>();
 
         var performed = await _guard.GetTestOrderIdsPerformedByAsync(

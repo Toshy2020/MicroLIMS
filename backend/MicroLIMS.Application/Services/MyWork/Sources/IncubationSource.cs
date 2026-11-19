@@ -31,7 +31,7 @@ public sealed class IncubationSource : IMyWorkSource
             .Where(SampleWorkflowQueues.IsOpenIncubationOnActiveTest)
             .Where(i => i.TestOrder!.AssignedAnalystId == userId || i.StartedByUserId == userId)
             .Where(i => !returned.Any(r => r.TestOrderId == i.TestOrderId))
-            .InSections(ctx, i => i.TestOrder!.SectionId);
+            .InSections(ctx, i => i.TestOrder!.SectionId, i => i.TestOrder!.Sample!.Category);
     }
 
     private IQueryable<Incubation> Ready(MyWorkContext ctx) =>

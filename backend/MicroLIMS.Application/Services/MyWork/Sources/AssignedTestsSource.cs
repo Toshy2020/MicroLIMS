@@ -29,7 +29,7 @@ public sealed class AssignedTestsSource : IMyWorkSource
             .Where(AnalystQueries.IsActiveTest)
             .Where(t => !t.Incubations.Any(i => i.CompletedAt == null))
             .Where(t => !returned.Any(r => r.TestOrderId == t.Id))
-            .InSections(ctx, t => t.SectionId);
+            .InSections(ctx, t => t.SectionId, t => t.Sample!.Category);
     }
 
     // Overdue once the sample has been open longer than the workflow window (ForStatusAge); otherwise no urgency.

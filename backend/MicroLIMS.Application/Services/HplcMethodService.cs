@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -99,11 +101,17 @@ public partial class HplcMethodService
     public async Task<HplcMethodResponse> GetByIdAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         var method = await QueryWithIncludes().AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         return HplcMethodResponse.From(method);
     }
@@ -115,7 +123,10 @@ public partial class HplcMethodService
         var abbr = await ValidateCommonAsync(r, sectionId, null, null, ct);
 
         if (await _db.HplcMethods.AnyAsync(m => m.SectionId == sectionId && m.Abbreviation == abbr, ct))
-            throw new BusinessRuleException($"An HPLC method abbreviated \"{abbr}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationExists,
+                $"An HPLC method abbreviated \"{abbr}\" already exists.",
+                new Dictionary<string, string> { ["abbreviation"] = abbr });
 
         var method = new HplcMethod
         {
@@ -163,19 +174,28 @@ public partial class HplcMethodService
             .Include(m => m.Analytes)
             .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         RecordVersion.EnsureCurrent(_db, method);
 
         if (r.Technique != method.Technique || r.ResultMode != method.ResultMode)
-            throw new BusinessRuleException("The technique and result mode can't be changed after the method is created.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodTechniqueAndResultModeLocked,
+                "The technique and result mode can't be changed after the method is created.");
 
         var normalizedIs = string.IsNullOrWhiteSpace(r.InternalStandardName) ? null : r.InternalStandardName.Trim();
         if (normalizedIs != null && (r.Technique != HplcTechnique.Hplc || r.ResultMode != HplcResultMode.Assay))
-            throw new BusinessRuleException("An internal standard applies to HPLC assay methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcInternalStandardAssayOnly,
+                "An internal standard applies to HPLC assay methods only.");
 
         if (normalizedIs != method.InternalStandardName)
-            throw new BusinessRuleException("The internal standard can't be changed after the method is created.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcInternalStandardLocked,
+                "The internal standard can't be changed after the method is created.");
 
         var alreadyUsedSolutionIds = new HashSet<int>(method.MobilePhases.Select(p => p.SolutionMasterId)) { method.DiluentSolutionId };
         var alreadyUsedStandardIds = new HashSet<int>(method.Analytes.Select(a => a.StandardEntryId));
@@ -183,16 +203,25 @@ public partial class HplcMethodService
         var abbr = await ValidateCommonAsync(r, method.SectionId, alreadyUsedSolutionIds, alreadyUsedStandardIds, ct);
 
         if (await _db.HplcMethods.AnyAsync(m => m.SectionId == method.SectionId && m.Abbreviation == abbr && m.Id != id, ct))
-            throw new BusinessRuleException($"An HPLC method abbreviated \"{abbr}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationExists,
+                $"An HPLC method abbreviated \"{abbr}\" already exists.",
+                new Dictionary<string, string> { ["abbreviation"] = abbr });
 
         // Never orphan a specification row - refuse before any child is touched.
         var incomingAnalyteIds = r.Analytes.Where(a => a.Id.HasValue).Select(a => a.Id!.Value).ToHashSet();
         foreach (var existingAnalyte in method.Analytes.Where(a => !incomingAnalyteIds.Contains(a.Id)))
         {
             if (await _db.Specifications.AnyAsync(s => s.HplcMethodAnalyteId == existingAnalyte.Id, ct))
-                throw new BusinessRuleException($"Analyte \"{existingAnalyte.Name}\" is used by specifications; it can't be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteUsedBySpecifications,
+                    $"Analyte \"{existingAnalyte.Name}\" is used by specifications; it can't be removed.",
+                    new Dictionary<string, string> { ["analyte"] = existingAnalyte.Name });
             if (await _db.WorkingStandardQualifications.AnyAsync(w => w.HplcMethodAnalyteId == existingAnalyte.Id, ct))
-                throw new BusinessRuleException($"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteUsedByQualifications,
+                    $"Analyte \"{existingAnalyte.Name}\" is used by working standard qualifications; it can't be removed.",
+                    new Dictionary<string, string> { ["analyte"] = existingAnalyte.Name });
         }
 
         var ownImpurityIds = method.Impurities.Select(i => i.Id).ToHashSet();
@@ -200,9 +229,14 @@ public partial class HplcMethodService
         foreach (var impurityId in (r.Impurities ?? new()).Where(i => i.Id.HasValue).Select(i => i.Id!.Value))
         {
             if (!ownImpurityIds.Contains(impurityId))
-                throw new BusinessRuleException($"Impurity {impurityId} does not belong to this method.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMethodImpurityNotFound,
+                    $"Impurity {impurityId} does not belong to this method.",
+                    new Dictionary<string, string> { ["impurityId"] = impurityId.ToString(CultureInfo.InvariantCulture) });
             if (!seenImpurityIds.Add(impurityId))
-                throw new BusinessRuleException("Each impurity can appear only once.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDuplicateImpurityId,
+                    "Each impurity can appear only once.");
         }
 
         // Same for impurities named by a related-substances specification row.
@@ -214,14 +248,20 @@ public partial class HplcMethodService
                 .Where(s => s.HplcMethodImpurityId != null && removedImpurityIds.Contains(s.HplcMethodImpurityId.Value))
                 .Select(s => s.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (usedImpurityId != null)
-                throw new BusinessRuleException($"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityUsedBySpecification,
+                    $"Impurity {method.Impurities.First(i => i.Id == usedImpurityId).Name} is used by a specification and cannot be removed.",
+                    new Dictionary<string, string> { ["impurity"] = method.Impurities.First(i => i.Id == usedImpurityId).Name });
 
             // ... and by peaks recorded on samples.
             var peakImpurityId = await _db.HplcReplicatePeaks
                 .Where(p => p.HplcMethodImpurityId != null && removedImpurityIds.Contains(p.HplcMethodImpurityId.Value))
                 .Select(p => p.HplcMethodImpurityId).FirstOrDefaultAsync(ct);
             if (peakImpurityId != null)
-                throw new BusinessRuleException($"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityHasRecordedPeaks,
+                    $"Impurity {method.Impurities.First(i => i.Id == peakImpurityId).Name} has recorded peaks and cannot be removed.",
+                    new Dictionary<string, string> { ["impurity"] = method.Impurities.First(i => i.Id == peakImpurityId).Name });
 
             // ... and by the snapshot of an open run, which validates entered peaks against it.
             var openSnapshots = await _db.HplcRuns
@@ -232,7 +272,10 @@ public partial class HplcMethodService
                 var snapshotImpurities = JsonSerializer.Deserialize<HplcMethodResponse>(json, JsonOptions)?.Impurities;
                 var used = snapshotImpurities?.FirstOrDefault(i => removedImpurityIds.Contains(i.Id));
                 if (used != null)
-                    throw new BusinessRuleException($"Impurity {used.Name} is used by an open HPLC run and cannot be removed.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcImpurityUsedByOpenRun,
+                        $"Impurity {used.Name} is used by an open HPLC run and cannot be removed.",
+                        new Dictionary<string, string> { ["impurity"] = used.Name });
             }
         }
 
@@ -269,11 +312,17 @@ public partial class HplcMethodService
         var before = JsonSerializer.Serialize(await GetByIdAsync(id, currentUserId, ct), JsonOptions);
 
         var method = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetConfigurableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         method.IsActive = isActive;
         method.LastModifiedByUserId = currentUserId;
@@ -299,11 +348,17 @@ public partial class HplcMethodService
     public async Task<List<HplcMethodHistoryEntry>> GetHistoryAsync(int id, int currentUserId, CancellationToken ct = default)
     {
         var method = await _db.HplcMethods.FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC method {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(currentUserId, ct);
         if (scope != null && !scope.Contains(method.SectionId))
-            throw new NotFoundException($"HPLC method {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {id} not found.",
+                new Dictionary<string, string> { ["methodId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var logs = await _db.AuditLogs
             .Include(a => a.Changes)
@@ -336,10 +391,14 @@ public partial class HplcMethodService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcReasonRequired,
+                "A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcReasonTooLong,
+                "Reason cannot exceed 500 characters.");
         return trimmed;
     }
 
@@ -539,60 +598,98 @@ public partial class HplcMethodService
     private static void ValidateRelatedSubstances(SaveHplcMethodRequest r)
     {
         if (r.Analytes.Any(a => a.TheoreticalWeightStdMg != 0m || a.TheoreticalWeightTestMg != 0m))
-            throw new BusinessRuleException("Theoretical weights are not used in a related-substances method.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcTheoreticalWeightsNotUsedForRelatedSubstances,
+                "Theoretical weights are not used in a related-substances method.");
         if (!(r.ReferenceSolutionPercent > 0m && r.ReferenceSolutionPercent <= 100m))
-            throw new BusinessRuleException("Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
+            throw new BusinessRuleException(
+                MessageCodes.HplcReferenceSolutionPercentInvalid,
+                "Enter the reference solution concentration as % of the test solution (above 0, up to 100).");
         if (r.DisregardLimitPercent < 0m || r.DisregardLimitPercent > 100m)
-            throw new BusinessRuleException("The disregard limit must be between 0 and 100 %.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDisregardLimitOutOfRange,
+                "The disregard limit must be between 0 and 100 %.");
 
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var i in r.Impurities ?? new List<HplcImpurityInput>())
         {
             if (string.IsNullOrWhiteSpace(i.Name) || !names.Add(i.Name.Trim()))
-                throw new BusinessRuleException("Each impurity needs a unique name.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityNameRequiredAndUnique,
+                    "Each impurity needs a unique name.");
             if (i.Name.Trim().Length > 100)
-                throw new BusinessRuleException("Impurity names are at most 100 characters.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcImpurityNameTooLong,
+                    "Impurity names are at most 100 characters.");
             if (i.CorrectionFactor <= 0m || i.CorrectionFactor > 100m)
-                throw new BusinessRuleException("The correction factor must be greater than zero and at most 100.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcCorrectionFactorOutOfRange,
+                    "The correction factor must be greater than zero and at most 100.");
             if (i.RelativeRetention <= 0m || i.RelativeRetention > 100m)
-                throw new BusinessRuleException("The relative retention must be greater than zero and at most 100.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcRelativeRetentionOutOfRange,
+                    "The relative retention must be greater than zero and at most 100.");
         }
     }
 
     private async Task ValidateCleaningResidueAsync(SaveHplcMethodRequest r, CancellationToken ct)
     {
         if (r.Technique != HplcTechnique.Hplc)
-            throw new BusinessRuleException("Cleaning residue is available for HPLC methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcCleaningResidueHplcOnly,
+                "Cleaning residue is available for HPLC methods only.");
 
         if (!r.ProductItemId.HasValue)
-            throw new BusinessRuleException("A finished product item is required for a cleaning-residue method.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcCleaningResidueProductItemRequired,
+                "A finished product item is required for a cleaning-residue method.");
 
         var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == r.ProductItemId.Value, ct)
-            ?? throw new BusinessRuleException($"Item {r.ProductItemId.Value} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.HplcProductItemNotFound,
+                $"Item {r.ProductItemId.Value} not found.",
+                new Dictionary<string, string> { ["itemId"] = r.ProductItemId.Value.ToString(CultureInfo.InvariantCulture) });
         if (item.Category != SampleCategory.FinishedProduct)
-            throw new BusinessRuleException("The cleaning-residue method must reference a Finished Product item.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcCleaningResidueMustReferenceFinishedProduct,
+                "The cleaning-residue method must reference a Finished Product item.");
 
         if (!(r.SampleSolutionVolumeMl > 0m))
-            throw new BusinessRuleException("Sample extraction volume (mL) must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcSampleExtractionVolumeMustBePositive,
+                "Sample extraction volume (mL) must be greater than zero.");
 
         if (r.Analytes.Count < 1)
-            throw new BusinessRuleException("At least one analyte is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcAtLeastOneAnalyteRequired,
+                "At least one analyte is required.");
 
         var usesCm2 = false;
         foreach (var a in r.Analytes)
         {
             if (!(a.StandardConcentrationUgPerMl > 0m))
-                throw new BusinessRuleException($"{a.Name}: standard concentration (µg/mL) is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteStandardConcentrationRequired,
+                    $"{a.Name}: standard concentration (µg/mL) is required.",
+                    new Dictionary<string, string> { ["analyte"] = a.Name });
             if (!(a.MacoLimit > 0m))
-                throw new BusinessRuleException($"{a.Name}: MACO limit must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteMacoLimitMustBePositive,
+                    $"{a.Name}: MACO limit must be greater than zero.",
+                    new Dictionary<string, string> { ["analyte"] = a.Name });
             if (!a.MacoUnit.HasValue)
-                throw new BusinessRuleException($"{a.Name}: MACO unit is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteMacoUnitRequired,
+                    $"{a.Name}: MACO unit is required.",
+                    new Dictionary<string, string> { ["analyte"] = a.Name });
             if (a.MacoUnit == MacoUnit.UgPerCm2)
                 usesCm2 = true;
         }
 
         if (usesCm2 && !(r.SwabAreaCm2 > 0m))
-            throw new BusinessRuleException("Swabbed area (cm²) must be greater than zero when an analyte uses µg/cm².");
+            throw new BusinessRuleException(
+                MessageCodes.HplcSwabAreaMustBePositive,
+                "Swabbed area (cm²) must be greater than zero when an analyte uses µg/cm².");
     }
 
     private async Task<string> ValidateCommonAsync(
@@ -607,46 +704,76 @@ public partial class HplcMethodService
         if (isName != null)
         {
             if (r.Technique != HplcTechnique.Hplc || r.ResultMode != HplcResultMode.Assay)
-                throw new BusinessRuleException("An internal standard applies to HPLC assay methods only.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcInternalStandardAssayOnly,
+                    "An internal standard applies to HPLC assay methods only.");
             if (isName.Length > 100)
-                throw new BusinessRuleException("Internal standard name cannot exceed 100 characters.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcInternalStandardNameTooLong,
+                    "Internal standard name cannot exceed 100 characters.");
         }
 
         if (string.IsNullOrWhiteSpace(r.Name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodNameRequired,
+                "Name is required.");
 
         if (string.IsNullOrWhiteSpace(r.Abbreviation))
-            throw new BusinessRuleException("Abbreviation is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationRequired,
+                "Abbreviation is required.");
         var abbr = r.Abbreviation.Trim().ToUpperInvariant();
         if (abbr.Length < 2 || abbr.Length > 20 || !System.Text.RegularExpressions.Regex.IsMatch(abbr, "^[A-Z0-9-]+$"))
-            throw new BusinessRuleException("Abbreviation must be 2-20 uppercase letters, digits or hyphens.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodAbbreviationInvalid,
+                "Abbreviation must be 2-20 uppercase letters, digits or hyphens.");
 
         if (string.IsNullOrWhiteSpace(r.ColumnDesignation))
-            throw new BusinessRuleException("Column designation is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnDesignationRequired,
+                "Column designation is required.");
 
         if (r.ColumnLengthMm <= 0m || r.ColumnInternalDiameterMm <= 0m || r.FlowRateMlPerMin <= 0m || r.InjectionVolumeUl <= 0m || r.RunTimeMin <= 0m)
-            throw new BusinessRuleException("Column and run parameters must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnAndRunParametersMustBePositive,
+                "Column and run parameters must be greater than zero.");
 
         if (r.EquilibrationMin.HasValue && r.EquilibrationMin.Value < 0m)
-            throw new BusinessRuleException("Equilibration time must be zero or more.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcEquilibrationTimeCannotBeNegative,
+                "Equilibration time must be zero or more.");
 
         // Diluent - Review Focus: a diluent pointing at a Mobile Phase solution is refused.
         var diluent = await _db.SolutionMasters.FirstOrDefaultAsync(s => s.Id == r.DiluentSolutionId, ct)
-            ?? throw new BusinessRuleException("Diluent solution not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.HplcDiluentSolutionNotFound,
+                "Diluent solution not found.");
         if (diluent.SectionId != sectionId)
-            throw new BusinessRuleException("The diluent solution belongs to another laboratory.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDiluentWrongLaboratory,
+                "The diluent solution belongs to another laboratory.");
         if (diluent.Type != SolutionType.Diluent)
-            throw new BusinessRuleException("The diluent solution must be of type Diluent.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDiluentWrongType,
+                "The diluent solution must be of type Diluent.");
         if (!diluent.IsActive && !alreadyUsedSolutionIds.Contains(diluent.Id))
-            throw new BusinessRuleException("The diluent solution is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDiluentInactive,
+                "The diluent solution is inactive.");
 
         if (r.ResultMode == HplcResultMode.RelatedSubstances && r.Technique != HplcTechnique.Hplc)
-            throw new BusinessRuleException("Related substances is available for HPLC methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcRelatedSubstancesHplcOnly,
+                "Related substances is available for HPLC methods only.");
         if (r.ResultMode == HplcResultMode.RelatedSubstances && r.Analytes?.Count != 1)
-            throw new BusinessRuleException("A related-substances method has exactly one analyte: the principal peak.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcRelatedSubstancesSingleAnalyte,
+                "A related-substances method has exactly one analyte: the principal peak.");
         if (r.ResultMode != HplcResultMode.RelatedSubstances
             && (r.Impurities?.Count > 0 || r.ReferenceSolutionPercent.HasValue || r.DisregardLimitPercent.HasValue))
-            throw new BusinessRuleException("Impurities and reference-solution values belong to related-substances methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcImpuritiesRelatedSubstancesOnly,
+                "Impurities and reference-solution values belong to related-substances methods only.");
 
         if (r.Technique == HplcTechnique.Gc)
             ValidateGcSection(r);
@@ -655,18 +782,27 @@ public partial class HplcMethodService
 
         // Analytes
         if (r.Analytes.Count < 1)
-            throw new BusinessRuleException("At least one analyte is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcAtLeastOneAnalyteRequired,
+                "At least one analyte is required.");
 
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var a in r.Analytes)
         {
             if (string.IsNullOrWhiteSpace(a.Name))
-                throw new BusinessRuleException("Analyte name is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteNameRequired,
+                    "Analyte name is required.");
             if (!names.Add(a.Name.Trim()))
-                throw new BusinessRuleException($"Analyte name \"{a.Name}\" is used more than once.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteNameDuplicate,
+                    $"Analyte name \"{a.Name}\" is used more than once.",
+                    new Dictionary<string, string> { ["analyte"] = a.Name });
 
             if (a.StandardInjections < 1)
-                throw new BusinessRuleException("Standard injections must be at least 1.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardInjectionsMinOne,
+                    "Standard injections must be at least 1.");
 
             if ((a.SstMaxRsdPercent.HasValue && a.SstMaxRsdPercent.Value <= 0m)
                 || (a.SstMinResolution.HasValue && a.SstMinResolution.Value <= 0m)
@@ -675,14 +811,25 @@ public partial class HplcMethodService
                 || (a.SstMinRetentionFactor.HasValue && a.SstMinRetentionFactor.Value <= 0m)
                 || (a.SstMinSignalToNoise.HasValue && a.SstMinSignalToNoise.Value <= 0m)
                 || (a.SstMinPeakToValley.HasValue && a.SstMinPeakToValley.Value <= 0m))
-                throw new BusinessRuleException("System suitability criteria must be greater than zero when given.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcSstCriteriaMustBePositive,
+                    "System suitability criteria must be greater than zero when given.");
 
             var standard = await _db.MaterialMasterEntries.FirstOrDefaultAsync(e => e.Id == a.StandardEntryId, ct)
-                ?? throw new BusinessRuleException($"Standard entry {a.StandardEntryId} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcStandardEntryNotFound,
+                    $"Standard entry {a.StandardEntryId} not found.",
+                    new Dictionary<string, string> { ["standardEntryId"] = a.StandardEntryId.ToString(CultureInfo.InvariantCulture) });
             if (standard.Category != MaterialMasterCategory.ReferenceStandard)
-                throw new BusinessRuleException($"Standard entry \"{standard.Code}\" must be a reference standard.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardEntryMustBeReferenceStandard,
+                    $"Standard entry \"{standard.Code}\" must be a reference standard.",
+                    new Dictionary<string, string> { ["standard"] = standard.Code });
             if (!standard.IsActive && !alreadyUsedStandardIds.Contains(standard.Id))
-                throw new BusinessRuleException($"Standard entry \"{standard.Code}\" is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardEntryInactive,
+                    $"Standard entry \"{standard.Code}\" is inactive.",
+                    new Dictionary<string, string> { ["standard"] = standard.Code });
         }
 
         return abbr;
@@ -692,52 +839,82 @@ public partial class HplcMethodService
         SaveHplcMethodRequest r, int sectionId, HashSet<int> alreadyUsedSolutionIds, CancellationToken ct)
     {
         if (!(r.ParticleSizeUm > 0m) || !(r.ColumnTemperatureC > 0m))
-            throw new BusinessRuleException("Column and run parameters must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnAndRunParametersMustBePositive,
+                "Column and run parameters must be greater than zero.");
 
         if (r.DetectorType is not (HplcDetectorType.UV or HplcDetectorType.PDA or HplcDetectorType.FLD
             or HplcDetectorType.RI or HplcDetectorType.ELSD or HplcDetectorType.Other))
-            throw new BusinessRuleException($"Detector {r.DetectorType} is not an HPLC detector.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDetectorNotHplc,
+                $"Detector {r.DetectorType} is not an HPLC detector.",
+                new Dictionary<string, string> { ["detector"] = r.DetectorType.ToString() });
 
         if (r.ResultMode == HplcResultMode.ResidualSolvents)
-            throw new BusinessRuleException("Residual solvents mode is only available for GC methods.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcResidualSolventsGcOnly,
+                "Residual solvents mode is only available for GC methods.");
         if (r.ResultMode == HplcResultMode.RelatedSubstances)
             ValidateRelatedSubstances(r);
         if (r.ResultMode == HplcResultMode.CleaningResidue)
             await ValidateCleaningResidueAsync(r, ct);
         else if (r.ProductItemId.HasValue || r.SwabAreaCm2.HasValue || r.Analytes.Any(a => a.MacoLimit.HasValue || a.MacoUnit.HasValue))
-            throw new BusinessRuleException("Cleaning residue settings belong to cleaning residue methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcCleaningResidueSettingsOnly,
+                "Cleaning residue settings belong to cleaning residue methods only.");
 
         if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
             || r.DetectorTemperatureC.HasValue || (r.ResultMode != HplcResultMode.CleaningResidue && r.SampleSolutionVolumeMl.HasValue)
             || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled
             || (r.ResultMode != HplcResultMode.CleaningResidue && r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue)))
-            throw new BusinessRuleException("GC settings are not used on an HPLC method.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcGcSettingsNotUsedForHplc,
+                "GC settings are not used on an HPLC method.");
 
         // Mobile phases
         if (r.MobilePhases.Count < 1)
-            throw new BusinessRuleException("At least one mobile phase is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcAtLeastOneMobilePhaseRequired,
+                "At least one mobile phase is required.");
 
         var channels = new HashSet<string>();
         foreach (var mp in r.MobilePhases)
         {
             var channel = mp.Channel?.Trim().ToUpperInvariant() ?? string.Empty;
             if (channel.Length != 1 || channel[0] < 'A' || channel[0] > 'D')
-                throw new BusinessRuleException("Mobile phase channel must be A, B, C or D.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseChannelInvalid,
+                    "Mobile phase channel must be A, B, C or D.");
             if (!channels.Add(channel))
-                throw new BusinessRuleException($"Channel \"{channel}\" is used more than once.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseChannelDuplicate,
+                    $"Channel \"{channel}\" is used more than once.",
+                    new Dictionary<string, string> { ["channel"] = channel });
         }
 
         // Review Focus: a mobile phase channel pointing at a Diluent solution is refused.
         foreach (var mp in r.MobilePhases)
         {
             var solution = await _db.SolutionMasters.FirstOrDefaultAsync(s => s.Id == mp.SolutionMasterId, ct)
-                ?? throw new BusinessRuleException($"Solution {mp.SolutionMasterId} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcSolutionNotFound,
+                    $"Solution {mp.SolutionMasterId} not found.",
+                    new Dictionary<string, string> { ["solutionId"] = mp.SolutionMasterId.ToString(CultureInfo.InvariantCulture) });
             if (solution.SectionId != sectionId)
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionWrongLaboratory,
+                    $"Mobile phase solution \"{solution.Name}\" belongs to another laboratory.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
             if (solution.Type != SolutionType.MobilePhase)
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" must be of type MobilePhase.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionWrongType,
+                    $"Mobile phase solution \"{solution.Name}\" must be of type MobilePhase.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
             if (!solution.IsActive && !alreadyUsedSolutionIds.Contains(solution.Id))
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionInactive,
+                    $"Mobile phase solution \"{solution.Name}\" is inactive.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
         }
 
         // Ratios: all null, or all given and summing to 100 (isocratic only; must be null for gradient).
@@ -747,61 +924,96 @@ public partial class HplcMethodService
         if (r.ElutionMode == ElutionMode.Gradient)
         {
             if (anyRatio)
-                throw new BusinessRuleException("Ratio percent is not used in gradient mode.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcRatioPercentNotUsedInGradient,
+                    "Ratio percent is not used in gradient mode.");
         }
         else
         {
             if (anyRatio && !allRatio)
-                throw new BusinessRuleException("Provide a ratio percent for every mobile phase channel, or none.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcRatioPercentAllOrNone,
+                    "Provide a ratio percent for every mobile phase channel, or none.");
             if (allRatio && ratios.Sum(x => x!.Value) != 100m)
-                throw new BusinessRuleException("Mobile phase ratios must sum to 100%.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseRatiosMustSumTo100,
+                    "Mobile phase ratios must sum to 100%.");
         }
 
         // Gradient table
         if (r.ElutionMode == ElutionMode.Gradient)
         {
             if (r.GradientSteps.Count < 2)
-                throw new BusinessRuleException("Gradient elution requires at least 2 steps.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcGradientMinTwoSteps,
+                    "Gradient elution requires at least 2 steps.");
 
             decimal? previousTime = null;
             for (var i = 0; i < r.GradientSteps.Count; i++)
             {
                 var step = r.GradientSteps[i];
                 if (i == 0 && step.TimeMin != 0m)
-                    throw new BusinessRuleException("The first gradient step must start at time 0.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientFirstStepMustStartAtZero,
+                        "The first gradient step must start at time 0.");
                 if (previousTime.HasValue && step.TimeMin <= previousTime.Value)
-                    throw new BusinessRuleException("Gradient step times must strictly increase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepTimesMustIncrease,
+                        "Gradient step times must strictly increase.");
                 previousTime = step.TimeMin;
 
                 if (step.PercentA + step.PercentB + step.PercentC + step.PercentD != 100m)
-                    throw new BusinessRuleException($"Gradient step at {step.TimeMin} min: %A+%B+%C+%D must equal 100.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepSumMustEqual100,
+                        $"Gradient step at {step.TimeMin} min: %A+%B+%C+%D must equal 100.",
+                        new Dictionary<string, string> { ["timeMin"] = step.TimeMin.ToString(CultureInfo.InvariantCulture) });
 
                 if (!channels.Contains("A") && step.PercentA != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel A, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel A, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "A" });
                 if (!channels.Contains("B") && step.PercentB != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel B, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel B, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "B" });
                 if (!channels.Contains("C") && step.PercentC != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel C, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel C, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "C" });
                 if (!channels.Contains("D") && step.PercentD != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel D, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel D, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "D" });
             }
         }
         else if (r.GradientSteps.Count > 0)
         {
-            throw new BusinessRuleException("Isocratic elution must not have gradient steps.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcIsocraticNoGradientSteps,
+                "Isocratic elution must not have gradient steps.");
         }
 
         foreach (var a in r.Analytes)
         {
             if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
-                throw new BusinessRuleException("Analyte wavelength must be between 190 and 900 nm.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteWavelengthOutOfRange,
+                    "Analyte wavelength must be between 190 and 900 nm.");
 
             if (r.ResultMode is not (HplcResultMode.RelatedSubstances or HplcResultMode.CleaningResidue)
                 && (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m))
-                throw new BusinessRuleException("Theoretical weights must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcTheoreticalWeightsMustBePositive,
+                    "Theoretical weights must be greater than zero.");
 
             if (a.StandardDilution.HasValue && a.StandardDilution.Value <= 0m)
-                throw new BusinessRuleException("Standard dilution must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardDilutionMustBePositive,
+                    "Standard dilution must be greater than zero.");
         }
     }
 }

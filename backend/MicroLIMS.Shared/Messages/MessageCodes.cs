@@ -18,6 +18,7 @@ public static partial class MessageCodes
     public static IReadOnlyDictionary<string, string[]> ParameterNames { get; } = Combine(
         AssayParameters(),
         AuthParameters(),
+        ControlChartParameters(),
         ColumnParameters(),
         CryovialParameters(),
         DisintegrationParameters(),
@@ -30,6 +31,7 @@ public static partial class MessageCodes
         MediaParameters(),
         MonitoringParameters(),
         OosParameters(),
+        OrganismParameters(),
         OutsourcedParameters(),
         PathogenParameters(),
         ReceivingParameters(),

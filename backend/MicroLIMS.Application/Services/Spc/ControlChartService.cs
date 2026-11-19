@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Spc;
 
@@ -40,7 +41,8 @@ public class ControlChartService
 
     public async Task<ControlChartResult> GetChartAsync(ControlChartQuery q, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(q.SubjectName)) throw new BusinessRuleException("subjectName is required.");
+        if (string.IsNullOrWhiteSpace(q.SubjectName))
+            throw new BusinessRuleException(MessageCodes.ControlChartSubjectNameRequired, "subjectName is required.");
         ControlChartCalculator.Validate(q.Settings);
         var test = await RequireNumericTestAsync(q.TestCode, ct);
 
@@ -59,7 +61,7 @@ public class ControlChartService
             _ => new CapabilitySpec(current.SpecLower, current.SpecUpper)
         };
         if (spec.Lsl.HasValue && spec.Usl.HasValue && spec.Lsl > spec.Usl)
-            throw new BusinessRuleException("The lower capability limit must not be above the upper limit.");
+            throw new BusinessRuleException(MessageCodes.ControlChartCapabilityLimitsOrder, "The lower capability limit must not be above the upper limit.");
 
         var stats = ControlChartCalculator.Compute(values, q.Settings, spec, inCalc);
 
@@ -126,14 +128,14 @@ public class ControlChartService
         ApplyTrendLimitsRequest r, int userId, string? ip, IReadOnlyCollection<int>? sectionIds, CancellationToken ct)
     {
         if (r.Category is not (SampleCategory.EnvironmentalMonitoring or SampleCategory.Water))
-            throw new BusinessRuleException("Limits can only be applied to Water and Environmental Monitoring configurations.");
+            throw new BusinessRuleException(MessageCodes.ControlChartLimitsCategoryNotAllowed, "Limits can only be applied to Water and Environmental Monitoring configurations.");
         if (r.Items is null || r.Items.Count == 0)
-            throw new BusinessRuleException("Select at least one location to update.");
+            throw new BusinessRuleException(MessageCodes.ControlChartLocationRequired, "Select at least one location to update.");
         if (r.Items.Select(i => (i.Kind, i.ConfigurationId)).Distinct().Count() != r.Items.Count)
-            throw new BusinessRuleException("A configuration is listed more than once.");
+            throw new BusinessRuleException(MessageCodes.ControlChartDuplicateConfiguration, "A configuration is listed more than once.");
         var reason = r.Reason?.Trim();
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason for change is required.");
+            throw new BusinessRuleException(MessageCodes.ControlChartReasonRequired, "A reason for change is required.");
         if (string.IsNullOrEmpty(r.Password))
             throw new SignatureVerificationException("Password is required to sign.");
         ControlChartCalculator.Validate(r.Settings);
@@ -152,11 +154,27 @@ public class ControlChartService
                 throw new DbUpdateConcurrencyException(
                     $"The limits for {location} changed after the analysis was loaded (version {item.Version}, now {entity.Version}). Reload and try again.");
             if (!string.Equals(location, item.SubjectName, StringComparison.Ordinal))
-                throw new BusinessRuleException($"Configuration {item.ConfigurationId} belongs to {location}, not {item.SubjectName}.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartConfigurationLocationMismatch,
+                    $"Configuration {item.ConfigurationId} belongs to {location}, not {item.SubjectName}.",
+                    new Dictionary<string, string>
+                    {
+                        ["configurationId"] = item.ConfigurationId.ToString(CultureInfo.InvariantCulture),
+                        ["location"] = location,
+                        ["subjectName"] = item.SubjectName
+                    });
 
             var specMax = SpecLimitParser.Parse(spec).Max;
             if (specMax.HasValue && item.ActionLimit > specMax.Value)
-                throw new BusinessRuleException($"{location}: the action limit {Fmt(item.ActionLimit)} is above the specification limit {spec}.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartActionAboveSpecification,
+                    $"{location}: the action limit {Fmt(item.ActionLimit)} is above the specification limit {spec}.",
+                    new Dictionary<string, string>
+                    {
+                        ["actionLimit"] = Fmt(item.ActionLimit),
+                        ["location"] = location,
+                        ["specLimit"] = spec
+                    });
 
             var pts = bySubject.TryGetValue(location, out var v) ? v : new List<SeriesPoint>();
             var stats = ControlChartCalculator.Compute(pts.Select(p => p.Value).ToList(), r.Settings, null, InCalculation(pts, r.Settings));
@@ -196,9 +214,15 @@ public class ControlChartService
     private static void ValidateLimitPair(ApplyLimitItem item)
     {
         if (item.AlertLimit < 0 || item.ActionLimit < 0)
-            throw new BusinessRuleException($"{item.SubjectName}: limits cannot be negative.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartNegativeLimits,
+                $"{item.SubjectName}: limits cannot be negative.",
+                new Dictionary<string, string> { ["subjectName"] = item.SubjectName });
         if (item.AlertLimit > item.ActionLimit)
-            throw new BusinessRuleException($"{item.SubjectName}: the alert limit must not be above the action limit.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartAlertAboveAction,
+                $"{item.SubjectName}: the alert limit must not be above the action limit.",
+                new Dictionary<string, string> { ["subjectName"] = item.SubjectName });
     }
 
     private async Task<(IVersionedEntity Entity, string Location, string Spec)> LoadConfigurationAsync(
@@ -209,20 +233,48 @@ public class ControlChartService
             case RoomTestConfigurationKind when category == SampleCategory.EnvironmentalMonitoring:
             {
                 var c = await _db.RoomTestConfigurations.Include(x => x.Room).FirstOrDefaultAsync(x => x.Id == item.ConfigurationId, ct)
-                    ?? throw new NotFoundException($"Room test configuration {item.ConfigurationId} not found.");
-                if (!c.IsActive) throw new BusinessRuleException($"Room test configuration {c.Id} is inactive.");
-                if (c.TestCode != testCode) throw new BusinessRuleException($"Room test configuration {c.Id} is for {c.TestCode}, not {testCode}.");
+                    ?? throw new NotFoundException(
+                        MessageCodes.ControlChartRoomConfigurationNotFound,
+                        $"Room test configuration {item.ConfigurationId} not found.",
+                        new Dictionary<string, string> { ["configurationId"] = item.ConfigurationId.ToString(CultureInfo.InvariantCulture) });
+                if (!c.IsActive) throw new BusinessRuleException(
+                    MessageCodes.ControlChartRoomConfigurationInactive,
+                    $"Room test configuration {c.Id} is inactive.",
+                    new Dictionary<string, string> { ["configurationId"] = c.Id.ToString(CultureInfo.InvariantCulture) });
+                if (c.TestCode != testCode) throw new BusinessRuleException(
+                    MessageCodes.ControlChartRoomConfigurationTestMismatch,
+                    $"Room test configuration {c.Id} is for {c.TestCode}, not {testCode}.",
+                    new Dictionary<string, string>
+                    {
+                        ["configurationId"] = c.Id.ToString(CultureInfo.InvariantCulture),
+                        ["configuredTestCode"] = c.TestCode,
+                        ["requestedTestCode"] = testCode
+                    });
                 return (c, c.Room?.Name ?? string.Empty, c.SpecLimit);
             }
             case SamplingConfigurationKind when category == SampleCategory.Water:
             {
                 var c = await _db.SamplingConfigurations.Include(x => x.WaterSamplingPoint).FirstOrDefaultAsync(x => x.Id == item.ConfigurationId, ct)
-                    ?? throw new NotFoundException($"Water sampling configuration {item.ConfigurationId} not found.");
-                if (c.TestCode != testCode) throw new BusinessRuleException($"Water sampling configuration {c.Id} is for {c.TestCode}, not {testCode}.");
+                    ?? throw new NotFoundException(
+                        MessageCodes.ControlChartSamplingConfigurationNotFound,
+                        $"Water sampling configuration {item.ConfigurationId} not found.",
+                        new Dictionary<string, string> { ["configurationId"] = item.ConfigurationId.ToString(CultureInfo.InvariantCulture) });
+                if (c.TestCode != testCode) throw new BusinessRuleException(
+                    MessageCodes.ControlChartSamplingConfigurationTestMismatch,
+                    $"Water sampling configuration {c.Id} is for {c.TestCode}, not {testCode}.",
+                    new Dictionary<string, string>
+                    {
+                        ["configurationId"] = c.Id.ToString(CultureInfo.InvariantCulture),
+                        ["configuredTestCode"] = c.TestCode,
+                        ["requestedTestCode"] = testCode
+                    });
                 return (c, c.WaterSamplingPoint?.Code ?? string.Empty, c.SpecLimit);
             }
             default:
-                throw new BusinessRuleException($"'{item.Kind}' is not a {category} limit configuration.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartInvalidConfigurationKind,
+                    $"'{item.Kind}' is not a {category} limit configuration.",
+                    new Dictionary<string, string> { ["category"] = category.ToString(), ["kind"] = item.Kind });
         }
     }
 
@@ -230,7 +282,7 @@ public class ControlChartService
     {
         RoomTestConfiguration c => (c.AlertLimit, c.ActionLimit),
         SamplingConfiguration c => (c.AlertLimit, c.ActionLimit),
-        _ => throw new BusinessRuleException("Unsupported configuration.")
+        _ => throw new BusinessRuleException(MessageCodes.ControlChartUnsupportedConfiguration, "Unsupported configuration.")
     };
 
     private static void SetLimits(IVersionedEntity e, string alert, string action)
@@ -246,11 +298,17 @@ public class ControlChartService
 
     private async Task<TestDefinition> RequireNumericTestAsync(string testCode, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(testCode)) throw new BusinessRuleException("testCode is required.");
+        if (string.IsNullOrWhiteSpace(testCode)) throw new BusinessRuleException(MessageCodes.ControlChartTestCodeRequired, "testCode is required.");
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == testCode, ct)
-            ?? throw new BusinessRuleException($"Test code \"{testCode}\" is not configured in Test Master.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ControlChartTestNotConfigured,
+                $"Test code \"{testCode}\" is not configured in Test Master.",
+                new Dictionary<string, string> { ["testCode"] = testCode });
         if (test.WorkflowType != WorkflowType.CountTest)
-            throw new BusinessRuleException($"Control charts are only available for numeric results. {testCode} produces qualitative results.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartNonNumericTest,
+                $"Control charts are only available for numeric results. {testCode} produces qualitative results.",
+                new Dictionary<string, string> { ["testCode"] = testCode });
         return test;
     }
 

@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Mfa;
 
@@ -56,10 +58,14 @@ public sealed class MfaAdminService : IMfaAdminService
     public async Task ResetAsync(int targetUserId, string reason, int actingUserId, CancellationToken ct = default)
     {
         if (actingUserId == targetUserId)
-            throw new BusinessRuleException("System Administrators cannot reset multi-factor authentication for their own account.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaCannotResetOwnAccount,
+                "System Administrators cannot reset multi-factor authentication for their own account.");
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to reset multi-factor authentication.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaResetReasonRequired,
+                "A reason is required to reset multi-factor authentication.");
 
         var trimmedReason = reason.Trim();
         string? notifyEmail = null;
@@ -68,10 +74,15 @@ public sealed class MfaAdminService : IMfaAdminService
         try
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
-                ?? throw new NotFoundException($"User {targetUserId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.UserNotFound,
+                    $"User {targetUserId} not found.",
+                    new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
             if (!user.IsActive)
-                throw new BusinessRuleException("Cannot reset multi-factor authentication for a disabled user account. Please enable the account first.");
+                throw new BusinessRuleException(
+                    MessageCodes.AuthMfaCannotResetDisabledUser,
+                    "Cannot reset multi-factor authentication for a disabled user account. Please enable the account first.");
 
             var nowUtc = _time.GetUtcNow().UtcDateTime;
             _db.CurrentReason = trimmedReason;
@@ -166,19 +177,29 @@ public sealed class MfaAdminService : IMfaAdminService
         CancellationToken ct = default)
     {
         if (actingUserId == targetUserId)
-            throw new BusinessRuleException("System Administrators cannot assign a hardware token to their own account.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaCannotAssignTokenToOwnAccount,
+                "System Administrators cannot assign a hardware token to their own account.");
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to assign a hardware token.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTokenAssignReasonRequired,
+                "A reason is required to assign a hardware token.");
 
         if (string.IsNullOrWhiteSpace(serialNumber))
-            throw new BusinessRuleException("The hardware token serial number is required.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTokenSerialRequired,
+                "The hardware token serial number is required.");
 
         if (stepSeconds is not (30 or 60))
-            throw new BusinessRuleException("TOTP step must be 30 or 60 seconds.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTotpStepInvalid,
+                "TOTP step must be 30 or 60 seconds.");
 
         if (string.IsNullOrWhiteSpace(seed))
-            throw new BusinessRuleException("The hardware token seed is not valid.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTokenSeedInvalid,
+                "The hardware token seed is not valid.");
 
         byte[] seedBytes = DecodeSeedOrThrow(seed, seedIsHex);
         string protectedSecret;
@@ -198,16 +219,23 @@ public sealed class MfaAdminService : IMfaAdminService
         try
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
-                ?? throw new NotFoundException($"User {targetUserId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.UserNotFound,
+                    $"User {targetUserId} not found.",
+                    new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
             if (!user.IsActive)
-                throw new BusinessRuleException("Cannot assign a hardware token for a disabled user account. Please enable the account first.");
+                throw new BusinessRuleException(
+                    MessageCodes.AuthMfaCannotAssignTokenToDisabledUser,
+                    "Cannot assign a hardware token for a disabled user account. Please enable the account first.");
 
             var hasActive = await _db.UserMfaCredentials
                 .AsNoTracking()
                 .AnyAsync(c => c.UserId == targetUserId && c.Status == MfaCredentialStatus.Active, ct);
             if (hasActive)
-                throw new BusinessRuleException("Two-factor authentication is already active for this user. Reset it before assigning a hardware token.");
+                throw new BusinessRuleException(
+                    MessageCodes.AuthMfaAlreadyActiveForHardwareToken,
+                    "Two-factor authentication is already active for this user. Reset it before assigning a hardware token.");
 
             var existingPending = await _db.UserMfaCredentials
                 .Where(c => c.UserId == targetUserId && c.Status == MfaCredentialStatus.Pending)
@@ -275,7 +303,10 @@ public sealed class MfaAdminService : IMfaAdminService
     public async Task<IReadOnlyList<TrustedDeviceInfo>> ListTrustedDevicesAsync(int targetUserId, CancellationToken ct = default)
     {
         if (!await _db.Users.AsNoTracking().AnyAsync(u => u.Id == targetUserId, ct))
-            throw new NotFoundException($"User {targetUserId} not found.");
+            throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         var nowUtc = _time.GetUtcNow().UtcDateTime;
         return await _db.TrustedDevices
@@ -293,7 +324,9 @@ public sealed class MfaAdminService : IMfaAdminService
         {
             var device = await _db.TrustedDevices
                 .FirstOrDefaultAsync(d => d.Id == deviceId && d.UserId == targetUserId && d.RevokedAt == null, ct)
-                ?? throw new NotFoundException("Trusted device not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.AuthTrustedDeviceNotFound,
+                    "Trusted device not found.");
 
             device.RevokedAt = _time.GetUtcNow().UtcDateTime;
             device.RevokedByUserId = actingUserId;
@@ -325,11 +358,15 @@ public sealed class MfaAdminService : IMfaAdminService
         }
         catch (FormatException)
         {
-            throw new BusinessRuleException("The hardware token seed is not valid.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTokenSeedInvalid,
+                "The hardware token seed is not valid.");
         }
 
         if (decoded.Length == 0)
-            throw new BusinessRuleException("The hardware token seed is not valid.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaTokenSeedInvalid,
+                "The hardware token seed is not valid.");
 
         return decoded;
     }

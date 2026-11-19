@@ -80,9 +80,9 @@
     "timeoutTitle": "تحذير انتهاء الجلسة",
     "timeoutBody": "سيتم تسجيل خروجك بسبب عدم النشاط خلال {{duration}}.",
     "stayLoggedIn": "البقاء في الجلسة",
-    "benchOfferLabel": "عرض وضع المنضدة",
-    "benchOfferText": "يبدو أن هذه شاشة لمس. هل تريد تفعيل وضع المنضدة للحصول على أزرار أكبر ولوحات أرقام؟",
-    "benchOfferAccept": "تفعيل وضع المنضدة",
+    "benchOfferLabel": "عرض وضع منصة العمل",
+    "benchOfferText": "يبدو أن هذه شاشة لمس. هل تريد تفعيل وضع منصة العمل للحصول على أزرار أكبر ولوحات أرقام؟",
+    "benchOfferAccept": "تفعيل وضع منصة العمل",
     "benchOfferDecline": "ليس الآن"
   },
   "sidebar": {
@@ -179,8 +179,8 @@
       "comfortableAria": "كثافة مريحة",
       "compact": "مضغوط",
       "compactAria": "كثافة مضغوطة",
-      "compactDisabledAria": "كثافة مضغوطة (معطّلة في وضع المنضدة)",
-      "compactDisabledTooltip": "يتطلب وضع المنضدة تباعد صفوف مريحًا"
+      "compactDisabledAria": "كثافة مضغوطة (معطّلة في وضع منصة العمل)",
+      "compactDisabledTooltip": "يتطلب وضع منصة العمل تباعد صفوف مريحًا"
     },
     "bulkActionBar": {
       "canBeActioned": "{{eligible}} من {{total}} قابلة للإجراء ({{action}}).",
@@ -444,7 +444,7 @@
       "MediaLot": "تشغيلة أوساط زرعية",
       "SolutionPreparation": "تحضير محلول",
       "Cryovial": "قارورة مجمدة",
-      "MaterialStockLot": "دفعة مخزون مادة",
+      "MaterialStockLot": "تشغيلة مخزون مادة",
       "EquipmentAsset": "معدات"
     },
     "wizardReview": {

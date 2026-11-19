@@ -310,7 +310,7 @@ describe("WaterConfigPage language", () => {
     await i18n.loadNamespaces(["labConfig"]);
     try {
       await renderPage();
-      await user.click(await screen.findByRole("button", { name: "إضافة موقع عينة" }));
+      await user.click(await screen.findByRole("button", { name: "إضافة موقع أخذ العينات" }));
       expect(await screen.findByText("1 · تفاصيل الموقع")).toBeTruthy();
     } finally {
       await i18n.changeLanguage("en");

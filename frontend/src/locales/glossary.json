@@ -1,5 +1,8 @@
 {
-  "Sample": "عينة",
+  "Sample": [
+    "عينة",
+    "العينات"
+  ],
   "Samples": "عينات",
   "Test": "اختبار",
   "Tests": "اختبارات",
@@ -29,5 +32,11 @@
   "Deviation": "انحراف",
   "Investigation": "تحقيق",
   "Expiry": "انتهاء الصلاحية",
-  "Certificate of Analysis": "شهادة التحليل"
+  "Certificate of Analysis": "شهادة التحليل",
+  "Lot": [
+    "تشغيلة",
+    "تشغيلات",
+    "تشغيلت"
+  ],
+  "Bench mode": "وضع منصة العمل"
 }

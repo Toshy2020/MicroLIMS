@@ -42,7 +42,7 @@ describe("WaterLocationPendingList language", () => {
     await i18n.loadNamespaces(["labConfig"]);
     try {
       renderList();
-      expect(screen.getByText("مواقع عينة بانتظار الحفظ (2)")).toBeTruthy();
+      expect(screen.getByText("مواقع أخذ العينات بانتظار الحفظ (2)")).toBeTruthy();
       expect(screen.getByText("رمز النقطة")).toBeTruthy();
     } finally {
       await i18n.changeLanguage("en");

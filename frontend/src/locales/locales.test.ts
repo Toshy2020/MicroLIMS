@@ -64,15 +64,30 @@ function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function glossaryViolations(en: Flat, ar: Flat, terms: Record<string, string>): string[] {
+// A glossary entry is the preferred Arabic term, or a list of accepted forms (the first is preferred), e.g.
+// "Sample": ["عينة", "العينات"] so that "موقع أخذ العينات" is accepted for "sample location".
+type GlossaryTerms = Record<string, string | string[]>;
+
+function acceptedForms(arabic: string | string[]): string[] {
+  return Array.isArray(arabic) ? arabic : [arabic];
+}
+
+// Placeholders ({{lot}}) and markup tags (<strong>) are not English words.
+function englishWords(text: string): string {
+  return text.replace(/\{\{[^}]*\}\}/g, " ").replace(/<[^>]*>/g, " ");
+}
+
+function glossaryViolations(en: Flat, ar: Flat, terms: GlossaryTerms): string[] {
   const problems: string[] = [];
   for (const [key, arText] of Object.entries(ar)) {
     const enText = englishText(en, key);
     if (enText === undefined) continue;
-    for (const [term, arabicTerm] of Object.entries(terms)) {
-      const inEnglish = new RegExp(`(?<![A-Za-z])${escapeRegExp(term)}(?![A-Za-z])`, "i").test(enText);
-      if (inEnglish && !arText.includes(arabicTerm)) {
-        problems.push(`${key}: English contains "${term}" so Arabic must contain "${arabicTerm}"`);
+    const words = englishWords(enText);
+    for (const [term, arabic] of Object.entries(terms)) {
+      const inEnglish = new RegExp(`(?<![A-Za-z])${escapeRegExp(term)}(?![A-Za-z])`, "i").test(words);
+      const forms = acceptedForms(arabic);
+      if (inEnglish && !forms.some((form) => arText.includes(form))) {
+        problems.push(`${key}: English contains "${term}" so Arabic must contain "${forms.join('" or "')}"`);
       }
     }
   }
@@ -134,15 +149,25 @@ describe("locale files", () => {
     expect(glossaryViolations({ a: "Out of specification" }, { a: "خارج الحدود" }, terms)).toHaveLength(1);
   });
 
+  it("accepts any listed form of a term and ignores placeholders and tags", () => {
+    const terms = { Sample: ["عينة", "العينات"], Lot: ["تشغيلة", "تشغيلات"] };
+    expect(glossaryViolations({ a: "Sample locations" }, { a: "مواقع أخذ العينات" }, terms)).toEqual([]);
+    expect(glossaryViolations({ a: "Sample locations" }, { a: "مواقع" }, terms)).toHaveLength(1);
+    expect(glossaryViolations({ a: "{{name}}, {{lot}}" }, { a: "{{name}}، {{lot}}" }, terms)).toEqual([]);
+    expect(glossaryViolations({ a: "<lot>Media</lot> lot" }, { a: "دفعة" }, terms)).toHaveLength(1);
+  });
+
   it("keeps every glossary entry complete and unique", () => {
     const entries = Object.entries(glossary);
     expect(entries.length).toBeGreaterThan(0);
     for (const [term, arabic] of entries) {
       expect(term.trim()).not.toBe("");
-      expect(arabic.trim()).not.toBe("");
-      expect(/[؀-ۿ]/.test(arabic)).toBe(true);
+      for (const form of acceptedForms(arabic)) {
+        expect(form.trim()).not.toBe("");
+        expect(/[؀-ۿ]/.test(form)).toBe(true);
+      }
     }
-    const arabicTerms = entries.map(([, a]) => a);
+    const arabicTerms = entries.map(([, a]) => acceptedForms(a)[0]);
     expect(new Set(arabicTerms).size).toBe(arabicTerms.length);
   });
 });

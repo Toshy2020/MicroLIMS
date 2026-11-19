@@ -24,6 +24,7 @@ public static partial class MessageCodes
         DisintegrationParameters(),
         DissolutionParameters(),
         DocumentParameters(),
+        EquipmentConfigParameters(),
         HplcParameters(),
         IcpParameters(),
         IncubationParameters(),

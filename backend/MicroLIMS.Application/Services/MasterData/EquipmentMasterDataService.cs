@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
@@ -50,7 +52,10 @@ public class EquipmentMasterDataService
             .Include(e => e.CompatibleColumns)
             .FirstOrDefaultAsync(e => e.Id == id);
         if (eq == null)
-            throw new NotFoundException($"Equipment {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.EquipmentConfigEquipmentNotFound,
+                $"Equipment {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         return EquipmentResponse.From(eq);
     }
 
@@ -70,41 +75,61 @@ public class EquipmentMasterDataService
             .AsNoTracking()
             .AnyAsync(a => a.Id == assetId, cancellationToken);
         if (!assetExists)
-            throw new NotFoundException($"Equipment inventory asset {assetId} not found.");
+            throw new NotFoundException(
+                MessageCodes.EquipmentConfigEquipmentInventoryAssetNotFound,
+                $"Equipment inventory asset {assetId} not found.",
+                new Dictionary<string, string> { ["assetId"] = assetId.ToString(CultureInfo.InvariantCulture) });
 
         var alreadyLinked = await _db.Equipment
             .AsNoTracking()
             .AnyAsync(e => e.EquipmentInventoryId == assetId && (excludeEquipmentId == null || e.Id != excludeEquipmentId.Value), cancellationToken);
         if (alreadyLinked)
-            throw new BusinessRuleException("This asset is already linked to another instrument.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigAssetAlreadyLinked,
+                "This asset is already linked to another instrument.");
     }
 
     public async Task<EquipmentResponse> CreateEquipmentAsync(int currentUserId, CreateEquipmentRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigNameRequired,
+                "Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new BusinessRuleException("Code is required.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigCodeRequired,
+                "Code is required.");
         if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim(), cancellationToken))
-            throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigCodeAlreadyExists,
+                $"Equipment code \"{request.Code}\" already exists.",
+                new Dictionary<string, string> { ["code"] = request.Code });
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
-            throw new BusinessRuleException("Vendor cannot exceed 100 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigVendorTooLong,
+                "Vendor cannot exceed 100 characters.");
 
         if (request.Type == EquipmentType.Hplc)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is required for HPLC equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareHplcRequired,
+                    "CDS Software is required for HPLC equipment.");
         }
         else if (request.Type == EquipmentType.IcpOes)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is required for ICP-OES equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareIcpOesRequired,
+                    "CDS Software is required for ICP-OES equipment.");
         }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareOnlyHplcIcpOes,
+                    "CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, cancellationToken);
@@ -210,35 +235,53 @@ public class EquipmentMasterDataService
         await _scope.EnsureEquipmentAccessAsync(currentUserId, id, cancellationToken);
 
         var entity = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Equipment {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentConfigEquipmentNotFound,
+                $"Equipment {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         RecordVersion.EnsureCurrent(_db, entity);
         await _reasonGuard.EnsureAsync(MasterRecordType.Equipment, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
 
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigNameRequired,
+                "Name is required.");
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new BusinessRuleException("Code is required.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigCodeRequired,
+                "Code is required.");
         if (await _db.Equipment.AnyAsync(e => e.Code == request.Code.Trim() && e.Id != id, cancellationToken))
-            throw new BusinessRuleException($"Equipment code \"{request.Code}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigCodeAlreadyExists,
+                $"Equipment code \"{request.Code}\" already exists.",
+                new Dictionary<string, string> { ["code"] = request.Code });
 
         if (!string.IsNullOrWhiteSpace(request.Vendor) && request.Vendor.Length > 100)
-            throw new BusinessRuleException("Vendor cannot exceed 100 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigVendorTooLong,
+                "Vendor cannot exceed 100 characters.");
 
         if (request.Type == EquipmentType.Hplc)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is required for HPLC equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareHplcRequired,
+                    "CDS Software is required for HPLC equipment.");
         }
         else if (request.Type == EquipmentType.IcpOes)
         {
             if (!request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is required for ICP-OES equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareIcpOesRequired,
+                    "CDS Software is required for ICP-OES equipment.");
         }
         else
         {
             if (request.CdsSoftware.HasValue)
-                throw new BusinessRuleException("CDS Software is only allowed for HPLC and ICP-OES equipment.");
+                throw new BusinessRuleException(
+                    MessageCodes.EquipmentConfigCdsSoftwareOnlyHplcIcpOes,
+                    "CDS Software is only allowed for HPLC and ICP-OES equipment.");
         }
 
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)

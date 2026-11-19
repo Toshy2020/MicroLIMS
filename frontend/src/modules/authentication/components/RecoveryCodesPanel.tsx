@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Box, Button, Checkbox, FormControlLabel, Stack, Typography } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 
 export interface RecoveryCodesPanelProps {
@@ -16,8 +17,9 @@ export function RecoveryCodesPanel({
   codes,
   onDone,
   submitting = false,
-  introText = "These codes are shown once. Save them in a safe place in case you lose access to your second factor."
+  introText
 }: RecoveryCodesPanelProps) {
+  const { t } = useTranslation("account");
   const [savedConfirmed, setSavedConfirmed] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -39,10 +41,10 @@ export function RecoveryCodesPanel({
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <Box>
         <Typography component="h2" variant="h6">
-          Save your recovery codes
+          {t("recoveryCodes.title")}
         </Typography>
         <Typography sx={{ mt: 0.5, fontSize: 14, color: "text.secondary" }}>
-          {introText}
+          {introText ?? t("recoveryCodes.intro")}
         </Typography>
       </Box>
 
@@ -81,10 +83,10 @@ export function RecoveryCodesPanel({
 
       <Stack direction="row" spacing={1} className="no-print">
         <Button type="button" variant="outlined" size="small" onClick={handleCopy}>
-          {copied ? "Copied" : "Copy codes"}
+          {copied ? t("recoveryCodes.copied") : t("recoveryCodes.copyCodes")}
         </Button>
         <Button type="button" variant="outlined" size="small" onClick={() => window.print()}>
-          Print
+          {t("recoveryCodes.print")}
         </Button>
       </Stack>
 
@@ -97,7 +99,7 @@ export function RecoveryCodesPanel({
             disabled={submitting}
           />
         }
-        label="I have saved these codes"
+        label={t("recoveryCodes.savedLabel")}
       />
 
       <Button
@@ -108,7 +110,7 @@ export function RecoveryCodesPanel({
         disabled={!savedConfirmed || submitting}
         onClick={onDone}
       >
-        {submitting ? "Continuing…" : "Continue"}
+        {submitting ? t("recoveryCodes.continuing") : t("recoveryCodes.continue")}
       </Button>
     </Box>
   );

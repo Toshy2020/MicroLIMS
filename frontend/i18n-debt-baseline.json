@@ -1,11 +1,11 @@
 {
-  "total": 1420,
+  "total": 1364,
   "modules": {
     "components": 37,
     "modules/admin": 13,
     "modules/auditReview": 2,
     "modules/auditSearch": 10,
-    "modules/authentication": 59,
+    "modules/authentication": 3,
     "modules/dashboard": 13,
     "modules/discussions": 95,
     "modules/documentControl": 6,

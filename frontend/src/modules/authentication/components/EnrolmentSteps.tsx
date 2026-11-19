@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
+import { i18n, useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import type { EnrolmentStart } from "../services/mfaService";
@@ -21,6 +22,7 @@ function formatManualKey(key: string): string {
  * Shared authenticator enrolment steps: fetch QR/manual key -> verify 6-digit code -> acknowledge recovery codes.
  */
 export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) {
+  const { t } = useTranslation("account");
   const [enrolmentStart, setEnrolmentStart] = useState<EnrolmentStart | null>(null);
   const [loadingStart, setLoadingStart] = useState(true);
   const [startError, setStartError] = useState<string | null>(null);
@@ -47,7 +49,7 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
       })
       .catch((err: unknown) => {
         if (!active) return;
-        setStartError(serverMessage(err) ?? getErrorMessage(err, "Could not start second-factor setup."));
+        setStartError(serverMessage(err) ?? getErrorMessage(err, i18n.t("enrolment.startFailed", { ns: "account" })));
         setLoadingStart(false);
       });
 
@@ -87,7 +89,7 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
       setRecoveryCodes(result.recoveryCodes);
     } catch (err: unknown) {
       refocusCodeRef.current = true;
-      setCodeError(serverMessage(err) ?? getErrorMessage(err, "The code is not correct."));
+      setCodeError(serverMessage(err) ?? getErrorMessage(err, t("enrolment.codeIncorrect")));
     } finally {
       setSubmitting(false);
     }
@@ -108,7 +110,7 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
   if (loadingStart) {
     return (
       <Typography variant="body2" color="text.secondary">
-        Preparing authenticator setup…
+        {t("enrolment.preparing")}
       </Typography>
     );
   }
@@ -117,10 +119,10 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
     return (
       <Stack spacing={2}>
         <Alert severity="error" role="alert">
-          {startError ?? "Could not start second-factor setup."}
+          {startError ?? t("enrolment.startFailed")}
         </Alert>
         <Button type="button" variant="outlined" onClick={() => setReloadNonce((n) => n + 1)}>
-          Try again
+          {t("enrolment.tryAgain")}
         </Button>
       </Stack>
     );
@@ -131,21 +133,21 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
   return (
     <Box component="form" onSubmit={handleConfirm} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <Typography variant="body2" color="text.secondary">
-        Scan this QR code with your authenticator app, or enter the key manually, then confirm with a 6-digit code.
+        {t("enrolment.scanInstructions")}
       </Typography>
 
       <Box sx={{ display: "flex", justifyContent: "center", p: 1.5, borderRadius: 1, border: 1, borderColor: "divider", bgcolor: "background.default" }}>
         <Box
           component="img"
           src={qrSrc}
-          alt="QR code to add MicroLIMS to your authenticator app"
+          alt={t("enrolment.qrAlt")}
           sx={{ width: 180, height: 180, display: "block" }}
         />
       </Box>
 
       <Box sx={{ p: 1.5, borderRadius: 1, border: 1, borderColor: "divider", bgcolor: "background.default" }}>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-          Setup key
+          {t("enrolment.setupKey")}
         </Typography>
         <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: "center", justifyContent: "space-between" }}>
           <Typography
@@ -161,7 +163,7 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
             {formatManualKey(enrolmentStart.manualKey)}
           </Typography>
           <Button type="button" variant="outlined" size="small" onClick={handleCopyKey}>
-            {copiedKey ? "Copied" : "Copy key"}
+            {copiedKey ? t("enrolment.copied") : t("enrolment.copyKey")}
           </Button>
         </Stack>
       </Box>
@@ -181,7 +183,7 @@ export function EnrolmentSteps({ start, confirm, onDone }: EnrolmentStepsProps) 
       />
 
       <Button type="submit" variant="contained" size="large" disabled={submitting}>
-        {submitting ? "Confirming…" : "Confirm"}
+        {submitting ? t("enrolment.confirming") : t("enrolment.confirm")}
       </Button>
     </Box>
   );
@@ -201,6 +203,7 @@ export function AuthenticatedEnrolmentFlow({
   startWithPassword,
   onDone
 }: AuthenticatedEnrolmentFlowProps) {
+  const { t } = useTranslation("account");
   const [password, setPassword] = useState("");
   const [submittedPassword, setSubmittedPassword] = useState<string | null>(null);
   const [initialStart, setInitialStart] = useState<(() => Promise<EnrolmentStart>) | null>(null);
@@ -227,10 +230,10 @@ export function AuthenticatedEnrolmentFlow({
         sx={{ display: "flex", flexDirection: "column", gap: 2 }}
       >
         <Typography variant="body2" color="text.secondary">
-          Enter your current password before setting up your authenticator app.
+          {t("enrolment.enterPassword")}
         </Typography>
         <TextField
-          label="Password"
+          label={t("enrolment.password")}
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -243,7 +246,7 @@ export function AuthenticatedEnrolmentFlow({
           }}
         />
         <Button type="submit" variant="contained" size="large" disabled={!password}>
-          Continue
+          {t("enrolment.continue")}
         </Button>
       </Box>
     );

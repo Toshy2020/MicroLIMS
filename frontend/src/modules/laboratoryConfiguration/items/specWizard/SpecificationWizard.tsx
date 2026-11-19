@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "../../../../i18n";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
-import type { WizardStep } from "../../../../components/config/useWizard";
+import type { WizardSaveContext, WizardStep } from "../../../../components/config/useWizard";
 import { useLaboratorySections } from "../../../../hooks/useLaboratorySections";
 import { useMyLabs } from "../../../../hooks/useMyLabs";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
@@ -237,6 +237,11 @@ function OpenSpecificationWizard({
     [isEditing, editingSpec?.id]
   );
 
+  const reloadedSpecRef = useRef<SpecificationDto | null>(null);
+  useEffect(() => {
+    reloadedSpecRef.current = null;
+  }, [editingSpec?.id]);
+
   const reloadOriginal = useMemo(
     () =>
       isEditing && editingSpec?.id != null
@@ -249,6 +254,7 @@ function OpenSpecificationWizard({
             if (!fresh) {
               throw new Error(t("specWizard.specMissingError"));
             }
+            reloadedSpecRef.current = fresh;
             return fromSpecification(fresh, {
               itemId: item.id,
               itemCategory: item.category,
@@ -262,27 +268,33 @@ function OpenSpecificationWizard({
   );
 
   const handleSave = useCallback(
-    async (model: SpecFormModel, reason: string | null) => {
+    async (model: SpecFormModel, reason: string | null, saveCtx: WizardSaveContext<SpecFormModel>) => {
       const basePayload: UpdateSpecificationPayload = {
         ...toBasePayload(model),
         grade: null
       };
-      const { writes, removes } = planSpecGradeOperations(model, isEditing, editingSpec);
+      const activeSpec = reloadedSpecRef.current ?? editingSpec;
+      const { writes, removes } = planSpecGradeOperations(model, isEditing, activeSpec);
 
       let wrote = false;
       try {
         for (const w of writes) {
           if (w.existing?.id != null) {
             const updatePayload: UpdateSpecificationPayload = { ...basePayload, grade: w.grade };
+            const version = reloadedSpecRef.current
+              ? w.existing.version
+              : w.existing.id === editingSpec?.id
+                ? (saveCtx.recordVersion ?? w.existing.version)
+                : w.existing.version;
             if (reason) {
               await SpecificationService.update(
                 w.existing.id,
                 updatePayload,
-                w.existing.version,
+                version,
                 reason
               );
             } else {
-              await SpecificationService.update(w.existing.id, updatePayload, w.existing.version);
+              await SpecificationService.update(w.existing.id, updatePayload, version);
             }
           } else {
             const createPayload: CreateSpecificationPayload = {
@@ -347,6 +359,8 @@ function OpenSpecificationWizard({
       steps={steps}
       initial={initialModel}
       original={isEditing ? initialModel : undefined}
+      recordVersion={isEditing ? (editingSpec?.version ?? null) : null}
+      getRecordVersion={() => reloadedSpecRef.current?.version ?? null}
       draftKey={draftKey}
       draftFields={SPEC_DRAFT_FIELDS}
       validateOnServer={validateOnServer}

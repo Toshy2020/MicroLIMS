@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "../../../../contexts/AuthContext";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
@@ -613,5 +614,44 @@ describe("SpecificationWizard", () => {
     } finally {
       await i18n.changeLanguage("en");
     }
+  });
+
+  it("after 409 conflict, reloads version 8 and sends version 8 on retry", async () => {
+    const conflictErr = new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      statusText: "Conflict",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: { message: "Modified by another user" },
+    });
+    vi.mocked(SpecificationService.update)
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({ id: 42, testCode: "PH", version: 9 });
+    vi.mocked(SpecificationService.getForItem).mockResolvedValue([
+      { ...editingPhSpec, version: 8, referenceStandard: "USP <791> rev 2" },
+    ]);
+
+    const { user, onSuccess } = renderWizard({ editingSpec: editingPhSpec, existingSpecs: [editingPhSpec] });
+
+    const paramInput = await screen.findByRole("textbox", { name: "Parameter Name *" });
+    await user.clear(paramInput);
+    await user.type(paramInput, "pH Revised");
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    const saveButton = await screen.findByRole("button", { name: "Save" });
+    await waitFor(() => expect((saveButton as HTMLButtonElement).disabled).toBe(false));
+    await user.click(saveButton);
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Review and save again" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(SpecificationService.update).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(SpecificationService.update).mock.calls[0][2]).toBe(3);
+    expect(vi.mocked(SpecificationService.update).mock.calls[1][2]).toBe(8);
+    expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 });

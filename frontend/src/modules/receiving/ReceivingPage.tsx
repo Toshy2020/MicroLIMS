@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Box, Button, Snackbar, Alert } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -12,7 +12,7 @@ import { useTranslation } from "../../i18n";
 
 import { CreatedSampleRef, SampleRecord } from "./types/receivingTypes";
 import { ReceiveService } from "./services/ReceiveService";
-import { SampleRegisterTable } from "./components/SampleRegisterTable";
+import { SampleRegisterTable, SAMPLE_REGISTER_DEFAULTS } from "./components/SampleRegisterTable";
 import { NewSampleDialog } from "./dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDialog";
@@ -24,6 +24,7 @@ import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLa
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { useRowSelection } from "../../components/lab/table/useRowSelection";
+import { useTableState } from "../../components/lab/table/useTableState";
 import { fetchAllPages } from "../../services/fetchAllPages";
 
 // The main Receiving area only offers these three item-based categories
@@ -43,7 +44,17 @@ export function ReceivingPage() {
   const canCorrect = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
   // Rows are selectable here only to export them; with no export permission the register offers no checkboxes.
   const canExport = permissions.includes(PERMISSIONS.DATA_EXPORT);
-  const selection = useRowSelection<number>("receiving");
+  const tableState = useTableState("samples.receiving", SAMPLE_REGISTER_DEFAULTS);
+  const selectionResetKey = useMemo(() => {
+    const sortedFilters = Object.keys(tableState.state.filters)
+      .sort()
+      .map((k) => [k, tableState.state.filters[k]]);
+    return JSON.stringify({
+      filters: sortedFilters,
+      search: tableState.state.search
+    });
+  }, [tableState.state.filters, tableState.state.search]);
+  const selection = useRowSelection<number>(selectionResetKey);
 
   const [samples, setSamples] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -141,6 +152,7 @@ export function ReceivingPage() {
       <SampleRegisterTable
         samples={samples}
         tableKey="samples.receiving"
+        tableState={tableState}
         selection={canExport ? selection : undefined}
         legacyColumnsKey="microlims.receivingRegister.columns"
         onTestClick={(_test, sample) => setSummarySampleId(sample.sampleId)}

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
@@ -328,7 +329,8 @@ describe("TestMasterWizard", () => {
     expect(onUpdateTest).toHaveBeenCalledWith(
       71,
       expect.objectContaining({ displayName: "pH Updated" }),
-      "Revised SOP-09 display name."
+      "Revised SOP-09 display name.",
+      4
     );
   });
 
@@ -385,5 +387,70 @@ describe("TestMasterWizard", () => {
         })
       ]
     });
+  });
+
+  it("after 409 conflict, reloads version 8 and sends version 8 on retry", async () => {
+    const editingTest: TestDefinitionOption = {
+      id: 71,
+      version: 2,
+      code: "PH",
+      displayName: "pH",
+      sectionId: 1,
+      workflowType: "Measurement",
+      equationType: "Measurement",
+      replicateCount: 2,
+      evaluationBasis: "Mean",
+      physchemArea: "FinishedProduct",
+      isActive: true
+    };
+    const conflictErr = new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      statusText: "Conflict",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: { message: "Modified by another user" },
+    });
+    vi.mocked(masterDataOptions.getTestDefinitions).mockResolvedValue([
+      { ...editingTest, version: 8, displayName: "pH Server" }
+    ]);
+    const onUpdateTest = vi
+      .fn()
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({ ...editingTest, version: 9, displayName: "pH Updated" });
+
+    const user = userEvent.setup();
+    const { onSaved } = renderWizard({
+      lab: "fp",
+      area: "fp",
+      defaultSectionId: 1,
+      sections: [fpSection],
+      mySections: [fpSection],
+      editingTest,
+      onUpdateTest
+    });
+
+    const dialog = await screen.findByRole("dialog");
+    const nameInput = await within(dialog).findByLabelText(/^Display Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "pH Updated");
+
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+    await user.click(within(dialog).getByRole("button", { name: /^Next$/i }));
+
+    const saveBtn = (await within(dialog).findByRole("button", { name: /^Save$/i })) as HTMLButtonElement;
+    await waitFor(() => expect(saveBtn.disabled).toBe(false));
+    await user.click(saveBtn);
+
+    await screen.findByRole("alert");
+    const reviewBtn = screen.getByRole("button", { name: "Review and save again" }) as HTMLButtonElement;
+    await waitFor(() => expect(reviewBtn.disabled).toBe(false));
+    await user.click(reviewBtn);
+    await user.click(await within(dialog).findByRole("button", { name: /^Save$/i }));
+
+    await waitFor(() => expect(onUpdateTest).toHaveBeenCalledTimes(2));
+    expect(onUpdateTest.mock.calls[0][3]).toBe(2);
+    expect(onUpdateTest.mock.calls[1][3]).toBe(8);
+    expect(onSaved).toHaveBeenCalledTimes(1);
   });
 });

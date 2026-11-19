@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
-import type { WizardStep } from "../../../../components/config/useWizard";
+import type { WizardSaveContext, WizardStep } from "../../../../components/config/useWizard";
 import type { TestDefinitionOption } from "../../../../hooks/useTestDefinitions";
 import {
   getMySections,
@@ -63,7 +63,8 @@ export interface TestMasterWizardProps {
   onUpdateTest: (
     id: number,
     payload: UpdateTestDefinitionPayload,
-    reason?: string
+    reason?: string,
+    version?: number
   ) => Promise<TestDefinitionOption>;
   onReloadDefinitions?: () => Promise<void>;
   onClose: () => void;
@@ -314,6 +315,11 @@ function OpenTestMasterWizard({
     [isEditing, editingTest?.id]
   );
 
+  const reloadedTestRef = useRef<TestDefinitionOption | null>(null);
+  useEffect(() => {
+    reloadedTestRef.current = null;
+  }, [editingTest?.id]);
+
   const reloadOriginal = useMemo(
     () =>
       isEditing && editingTest?.id != null
@@ -323,6 +329,7 @@ function OpenTestMasterWizard({
             if (!fresh) {
               throw new Error(tRef.current("testWizard.wizard.noLongerExistsError"));
             }
+            reloadedTestRef.current = fresh;
             const [freshStages, freshSteps] = await Promise.all([
               needsStageFetch(lab, fresh.workflowType)
                 ? masterDataOptions.getTestDefinitionStageReplicates(fresh.id)
@@ -347,11 +354,15 @@ function OpenTestMasterWizard({
   );
 
   const handleSave = useCallback(
-    async (model: TestFormModel, reason: string | null) => {
+    async (model: TestFormModel, reason: string | null, saveCtx: WizardSaveContext<TestFormModel>) => {
       if (model.editingId != null) {
         const editId = model.editingId;
         const updatePayload = toTestPayload(model) as UpdateTestDefinitionPayload;
-        const updated = await onUpdateTest(editId, updatePayload, reason ?? undefined);
+        const version = saveCtx.recordVersion ?? editingTest?.version;
+        const updated =
+          version != null
+            ? await onUpdateTest(editId, updatePayload, reason ?? undefined, version)
+            : await onUpdateTest(editId, updatePayload, reason ?? undefined);
 
         const stagePlan = planStageOperations(model.initialStages, model.stages);
         for (const del of stagePlan.deletes) {
@@ -402,7 +413,7 @@ function OpenTestMasterWizard({
       const created = await onCreateWithSteps(payload);
       await Promise.resolve(onSaved?.(created, model, "create"));
     },
-    [onCreateWithSteps, onUpdateTest, onReloadDefinitions, onSaved]
+    [editingTest?.version, onCreateWithSteps, onUpdateTest, onReloadDefinitions, onSaved]
   );
 
   const title = editingTest
@@ -429,6 +440,8 @@ function OpenTestMasterWizard({
       steps={steps}
       initial={initialModel}
       original={isEditing ? initialModel : undefined}
+      recordVersion={isEditing ? (editingTest?.version ?? null) : null}
+      getRecordVersion={() => reloadedTestRef.current?.version ?? null}
       draftKey={draftKey}
       draftFields={[...TEST_DRAFT_FIELDS]}
       validateOnServer={validateOnServer}

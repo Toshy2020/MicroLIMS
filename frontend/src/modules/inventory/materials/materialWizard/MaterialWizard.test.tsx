@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../../contexts/AuthContext";
@@ -19,7 +20,7 @@ import { ECOLI_STRAIN, fillMaterial, mockMaterialLookups } from "./materialWizar
 // Service-boundary mocks only (CLAUDE.md Rule 4.5). MaterialService has no uploadDocument here:
 // the wizard must never try to upload a document while receiving a lot.
 vi.mock("../services/MaterialService", () => ({
-  MaterialService: { getTypeOptions: vi.fn(), getDefaultUnit: vi.fn(), create: vi.fn(), update: vi.fn() }
+  MaterialService: { getTypeOptions: vi.fn(), getDefaultUnit: vi.fn(), getAll: vi.fn(), create: vi.fn(), update: vi.fn() }
 }));
 vi.mock("../../equipment/services/EquipmentInventoryService", () => ({
   EquipmentInventoryService: { getAll: vi.fn() }
@@ -451,5 +452,40 @@ describe("MaterialWizard when lists fail to load", () => {
     renderWizard();
     await screen.findByRole("dialog");
     expect(await screen.findByText(/Could not load reference organisms/)).toBeTruthy();
+  }, 20000);
+
+  it("after 409 conflict, reloads version 8 and sends version 8 on retry", async () => {
+    const user = userEvent.setup();
+    const conflictErr = new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      statusText: "Conflict",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: { message: "Modified by another user" },
+    });
+    const legacyItem = EDITED_LOTS.legacySupplement;
+    vi.mocked(MaterialService.update)
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({ ...legacyItem, version: 9 });
+    vi.mocked(MaterialService.getAll).mockResolvedValue([
+      { ...legacyItem, version: 8, location: "Shelf Z9" },
+    ]);
+
+    const props = renderWizard({ editingItem: legacyItem });
+    await screen.findByRole("dialog");
+    await waitFor(() => expect(MaterialService.getTypeOptions).toHaveBeenCalled());
+    await next(user);
+    await next(user);
+    await save(user);
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Review and save again" }));
+    const saveButton = await within(dialog()).findByRole("button", { name: /^Save$/ });
+    await user.click(saveButton);
+
+    await waitFor(() => expect(MaterialService.update).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(MaterialService.update).mock.calls[0][2]).toBe(4);
+    expect(vi.mocked(MaterialService.update).mock.calls[1][2]).toBe(8);
+    expect(props.onSuccess).toHaveBeenCalledWith("Material stock updated successfully.");
   }, 20000);
 });

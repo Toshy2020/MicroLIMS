@@ -1,14 +1,14 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "../../../../i18n";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
-import type { WizardStep } from "../../../../components/config/useWizard";
+import type { WizardSaveContext, WizardStep } from "../../../../components/config/useWizard";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialItem } from "../types/materialTypes";
 import { createDatesStep } from "./DatesStep";
 import { createLotStep } from "./LotStep";
 import { createMaterialStep } from "./MaterialStep";
 import { useMaterialLookups, type MaterialLookups } from "./materialLookups";
-import { firstMaterialError, toMaterialPayload, type MaterialFormModel } from "./materialFormModel";
+import { firstMaterialError, fromMaterial, toMaterialPayload, type MaterialFormModel } from "./materialFormModel";
 import { buildMaterialContext } from "./materialSelections";
 
 export interface CreatedMaterialRef {
@@ -83,8 +83,29 @@ function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialW
     [getContext]
   );
 
+  const reloadedMaterialRef = useRef<MaterialItem | null>(null);
+  useEffect(() => {
+    reloadedMaterialRef.current = null;
+  }, [editingItem?.id]);
+
+  const reloadOriginal = useMemo(
+    () =>
+      editingItem
+        ? async () => {
+            const all = (await MaterialService.getAll()) as MaterialItem[];
+            const fresh = all.find((m) => m.id === editingItem.id);
+            if (!fresh) {
+              throw new Error(t("wizard.errors.materialMissing"));
+            }
+            reloadedMaterialRef.current = fresh;
+            return fromMaterial(fresh);
+          }
+        : undefined,
+    [editingItem, t]
+  );
+
   const handleSave = useCallback(
-    async (model: MaterialFormModel) => {
+    async (model: MaterialFormModel, _reason: string | null, saveCtx: WizardSaveContext<MaterialFormModel>) => {
       const ctx = getContext(model);
       // The steps check as the user goes; this also covers a form reached by jumping to Review.
       const message = firstMaterialError(model, ctx);
@@ -92,7 +113,8 @@ function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialW
       const payload = toMaterialPayload(model, ctx);
 
       if (editingItem) {
-        await MaterialService.update(editingItem.id, payload, editingItem.version);
+        const version = saveCtx.recordVersion ?? editingItem.version;
+        await MaterialService.update(editingItem.id, payload, version);
         onSuccess(t("wizard.saved.updated"));
         return;
       }
@@ -119,6 +141,9 @@ function OpenMaterialWizard({ open, onClose, onSuccess, editingItem }: MaterialW
       draftKey={editingItem ? `material-edit-${editingItem.id}` : "material-create"}
       steps={steps}
       initial={lookups.initial}
+      recordVersion={editingItem?.version ?? null}
+      getRecordVersion={() => reloadedMaterialRef.current?.version ?? null}
+      reloadOriginal={reloadOriginal}
       onSave={handleSave}
       onClose={onClose}
     />
@@ -131,11 +156,14 @@ interface WizardFrameProps {
   draftKey: string;
   steps: WizardStep<MaterialFormModel>[];
   initial: MaterialFormModel;
-  onSave: (model: MaterialFormModel) => Promise<void>;
+  recordVersion: number | null;
+  getRecordVersion: () => number | null;
+  reloadOriginal?: () => Promise<MaterialFormModel>;
+  onSave: (model: MaterialFormModel, reason: string | null, context: WizardSaveContext<MaterialFormModel>) => Promise<void>;
   onClose: () => void;
 }
 
-function WizardFrame({ title, mode, draftKey, steps, initial, onSave, onClose }: WizardFrameProps) {
+function WizardFrame({ title, mode, draftKey, steps, initial, recordVersion, getRecordVersion, reloadOriginal, onSave, onClose }: WizardFrameProps) {
   return (
     <ConfigWizard
       open
@@ -144,6 +172,9 @@ function WizardFrame({ title, mode, draftKey, steps, initial, onSave, onClose }:
       steps={steps}
       initial={initial}
       original={mode === "edit" ? initial : undefined}
+      recordVersion={recordVersion}
+      getRecordVersion={getRecordVersion}
+      reloadOriginal={reloadOriginal}
       draftKey={draftKey}
       draftFields={[...MATERIAL_DRAFT_FIELDS]}
       onSave={onSave}

@@ -1,7 +1,7 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { ConfigWizard } from "../../../../components/config/ConfigWizard";
-import type { WizardStep } from "../../../../components/config/useWizard";
+import type { WizardSaveContext, WizardStep } from "../../../../components/config/useWizard";
 import { useTranslation } from "../../../../i18n";
 import type { LaboratorySection } from "../../../../services/laboratorySectionService";
 import { masterDataUsageService } from "../../../../services/masterDataUsageService";
@@ -9,6 +9,7 @@ import type { EquipmentItem } from "../../../inventory/equipment/types/equipment
 import {
   EquipmentConfigurationService,
   type ConfiguredEquipmentSummary,
+  type EquipmentResponse,
   type UpdateEquipmentRequest
 } from "../services/EquipmentConfigurationService";
 import { createDocumentsStep } from "./DocumentsStep";
@@ -124,19 +125,37 @@ function OpenEquipmentWizard({
     [editing]
   );
 
+  const reloadedEquipmentRef = useRef<EquipmentResponse | null>(null);
+  useEffect(() => {
+    reloadedEquipmentRef.current = null;
+  }, [editing?.id]);
+
+  const reloadOriginal = useMemo(
+    () =>
+      editing
+        ? async () => {
+            const fresh = await EquipmentConfigurationService.getEquipmentById(editing.id);
+            reloadedEquipmentRef.current = fresh;
+            return fromEquipment(fresh);
+          }
+        : undefined,
+    [editing]
+  );
+
   const handleSave = useCallback(
-    async (model: EquipmentFormModel, reason: string | null) => {
+    async (model: EquipmentFormModel, reason: string | null, saveCtx: WizardSaveContext<EquipmentFormModel>) => {
       const payload = toEquipmentPayload(model, ctxRef.current);
       if (editing) {
+        const version = saveCtx.recordVersion ?? editing.version;
         if (reason) {
           await EquipmentConfigurationService.updateEquipment(
             editing.id,
             payload as UpdateEquipmentRequest,
-            editing.version,
+            version,
             reason
           );
         } else {
-          await EquipmentConfigurationService.updateEquipment(editing.id, payload as UpdateEquipmentRequest, editing.version);
+          await EquipmentConfigurationService.updateEquipment(editing.id, payload as UpdateEquipmentRequest, version);
         }
         toast.success(t("equipmentWizard.updatedToast"));
         await onSaved(null);
@@ -170,6 +189,9 @@ function OpenEquipmentWizard({
       steps={steps}
       initial={initial}
       original={isEditing ? initial : undefined}
+      recordVersion={isEditing ? (editing?.version ?? null) : null}
+      getRecordVersion={() => reloadedEquipmentRef.current?.version ?? null}
+      reloadOriginal={reloadOriginal}
       draftKey={draftKey}
       draftFields={[...EQUIPMENT_DRAFT_FIELDS]}
       usage={usageFn}

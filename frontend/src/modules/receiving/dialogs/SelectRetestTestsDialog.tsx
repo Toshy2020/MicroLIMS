@@ -156,6 +156,7 @@ export function SelectRetestTestsDialog({ open, sample, canSelect, onClose, onSu
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("selectRetest.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

@@ -224,6 +224,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("voidSample.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

@@ -121,9 +121,10 @@ export function useTestDefinitions() {
     codeOrPayload: string | UpdateTestDefinitionPayload,
     displayName?: string,
     sectionId?: number | null,
-    reason?: string
+    reason?: string,
+    versionOverride?: number
   ) => {
-    const version = options.find((o) => o.id === id)?.version;
+    const version = versionOverride ?? options.find((o) => o.id === id)?.version;
     const updated = reason
       ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason)
       : await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version);

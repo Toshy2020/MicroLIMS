@@ -31,6 +31,11 @@ export interface WizardSaveAndNextAction {
   onSaved(): void;
 }
 
+export interface WizardSaveContext<M> {
+  original?: M;
+  recordVersion: number | null;
+}
+
 export interface ConfigWizardProps<M> {
   open?: boolean;
   title: string;
@@ -38,6 +43,8 @@ export interface ConfigWizardProps<M> {
   steps: WizardStep<M>[];
   initial: M;
   original?: M;
+  recordVersion?: number | null;
+  getRecordVersion?: (record: M) => number | null;
   draftKey: string;
   draftFields: (keyof M)[];
   validateOnServer?(model: M): Promise<FieldError[]>;
@@ -46,7 +53,7 @@ export interface ConfigWizardProps<M> {
   reloadOriginal?(): Promise<M>;
   // The saved record, so the wizard can warn when someone else changes it while it is open.
   liveRecord?: { type: string; id: number | null };
-  onSave(model: M, reason: string | null): Promise<void>;
+  onSave(model: M, reason: string | null, context: WizardSaveContext<M>): Promise<void>;
   onClose(): void;
   saveAndNext?:
     | WizardSaveAndNextAction
@@ -75,6 +82,15 @@ function isConflictError(err: unknown): boolean {
   return false;
 }
 
+function readRecordVersion<M>(record: M, getRecordVersion?: (record: M) => number | null): number | null {
+  if (getRecordVersion) return getRecordVersion(record);
+  if (typeof record === "object" && record !== null && "version" in record) {
+    const version = (record as { version?: unknown }).version;
+    return typeof version === "number" ? version : null;
+  }
+  return null;
+}
+
 export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
   const {
     open = true,
@@ -82,6 +98,8 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     steps,
     initial,
     original,
+    recordVersion = null,
+    getRecordVersion,
     draftKey,
     draftFields,
     validateOnServer,
@@ -97,6 +115,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
   const [model, setModel] = useState<M>(initial);
   const [baselineInitial, setBaselineInitial] = useState<M>(initial);
   const [activeOriginal, setActiveOriginal] = useState<M | undefined>(original);
+  const [reloadedVersion, setReloadedVersion] = useState<number | null | undefined>(undefined);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
   const [visitedKeys, setVisitedKeys] = useState<Set<string>>(() => {
     const first = steps.find((s) => (s.applies ? s.applies(initial) : true));
@@ -143,6 +162,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
     setModel(initial);
     setBaselineInitial(initial);
     setActiveOriginal(original);
+    setReloadedVersion(undefined);
     setActiveStepIndex(0);
     setVisitedKeys(new Set([first ? first.key : REVIEW_STEP_KEY]));
     setStepErrors({});
@@ -201,7 +221,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
   const draft = useBenchDraft<M>({
     formKey: "config-wizard",
     recordKey: draftKey,
-    recordVersion: null,
+    recordVersion,
     title,
     values: model,
     pick: pickDraft,
@@ -392,7 +412,14 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       setSaving(true);
       setSaveError(null);
       try {
-        await onSave(model, reason);
+        const effectiveRecordVersion =
+          reloadedVersion !== undefined
+            ? reloadedVersion
+            : (draft.draftRecordVersion ?? recordVersion);
+        await onSave(model, reason, {
+          original: activeOriginal,
+          recordVersion: effectiveRecordVersion,
+        });
         if (liveRecord) noteOwnSave(liveRecord.type, liveRecord.id);
         await draft.onSubmitted();
         setReasonDialogOpen(false);
@@ -421,6 +448,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
             try {
               const fresh = await reloadOriginal();
               setActiveOriginal(fresh);
+              setReloadedVersion(readRecordVersion(fresh, getRecordVersion));
               setConflictState({ active: true, reloading: false, reloadError: null });
             } catch (reloadErr: unknown) {
               setConflictState({
@@ -442,7 +470,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
         setSaving(false);
       }
     },
-    [model, onSave, draft, resolvedSaveAndNext, onClose, reloadOriginal, liveRecord]
+    [model, onSave, draft, resolvedSaveAndNext, onClose, reloadOriginal, liveRecord, activeOriginal, reloadedVersion, recordVersion, getRecordVersion]
   );
 
   const handleSaveClick = useCallback(
@@ -473,13 +501,14 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       setModel(fresh);
       setBaselineInitial(fresh);
       setActiveOriginal(fresh);
+      setReloadedVersion(readRecordVersion(fresh, getRecordVersion));
       setServerErrors([]);
       setSaveError(null);
       setConflictState({ active: false, reloading: false, reloadError: null });
     } catch (err: unknown) {
       setReloadLatestError(getErrorMessage(err, i18n.t("components.configWizard.reloadLatestFailed", { ns: "common" })));
     }
-  }, [reloadOriginal]);
+  }, [reloadOriginal, getRecordVersion]);
 
   const requestClose = useCallback(() => {
     if (saving) return;

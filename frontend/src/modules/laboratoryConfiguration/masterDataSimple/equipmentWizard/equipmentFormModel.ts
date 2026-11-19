@@ -4,6 +4,7 @@ import type {
   CdsSoftware,
   ConfiguredEquipmentSummary,
   CreateEquipmentRequest,
+  EquipmentResponse,
   EquipmentType,
   UpdateEquipmentRequest
 } from "../services/EquipmentConfigurationService";
@@ -76,13 +77,15 @@ const TYPE_BY_NUMBER: Record<string, string> = {
 export const normalizeEquipmentTypeValue = (type: string | number): string =>
   TYPE_BY_NUMBER[String(type)] || String(type);
 
-export function fromEquipment(eq: ConfiguredEquipmentSummary): EquipmentFormModel {
+export function fromEquipment(eq: ConfiguredEquipmentSummary | EquipmentResponse): EquipmentFormModel {
+  const inventoryLocation = "inventoryLocation" in eq ? eq.inventoryLocation : undefined;
+  const manufacturerName = "manufacturerName" in eq ? eq.manufacturerName : undefined;
   return {
     name: eq.name,
     code: eq.code,
     type: normalizeEquipmentTypeValue(eq.type),
-    location: eq.location || eq.inventoryLocation || "",
-    vendor: eq.vendor || eq.manufacturerName || "",
+    location: eq.location || inventoryLocation || "",
+    vendor: eq.vendor || manufacturerName || "",
     cdsSoftware: eq.cdsSoftware ? String(eq.cdsSoftware) : "",
     connectionSettings: eq.connectionSettings || "",
     setPointTemperature: eq.setPointTemperature != null ? String(eq.setPointTemperature) : "",

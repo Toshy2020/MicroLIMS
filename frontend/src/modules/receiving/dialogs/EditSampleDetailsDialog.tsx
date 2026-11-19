@@ -576,6 +576,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("editSample.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

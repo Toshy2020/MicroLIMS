@@ -21,10 +21,11 @@ import {
   useWizard,
   type ConfigWizardProps,
   type WizardSaveAndNextAction,
+  type WizardSaveContext,
   type WizardStep,
 } from "./useWizard";
 
-export type { ConfigWizardProps, WizardSaveAndNextAction, WizardStep };
+export type { ConfigWizardProps, WizardSaveAndNextAction, WizardSaveContext, WizardStep };
 
 function findFocusableForElement(el: HTMLElement): HTMLElement | null {
   if (el instanceof HTMLInputElement && el.classList.contains("MuiSelect-nativeInput")) {

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { i18n } from "../../../../i18n";
@@ -19,7 +20,7 @@ import { chooseType, clickNext, clickSave } from "./equipmentWizard.testUtils";
 
 // Service-boundary mocks only (CLAUDE.md Rule 4.5).
 vi.mock("../services/EquipmentConfigurationService", () => ({
-  EquipmentConfigurationService: { createEquipment: vi.fn(), updateEquipment: vi.fn() }
+  EquipmentConfigurationService: { createEquipment: vi.fn(), updateEquipment: vi.fn(), getEquipmentById: vi.fn() }
 }));
 
 vi.mock("../../../../services/masterDataUsageService", () => ({
@@ -305,5 +306,42 @@ describe("EquipmentWizard", () => {
     } finally {
       await i18n.changeLanguage("en");
     }
+  });
+
+  it("after 409 conflict, reloads version 8 and sends version 8 on retry", async () => {
+    const conflictErr = new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      statusText: "Conflict",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: { message: "Modified by another user" },
+    });
+    vi.mocked(EquipmentConfigurationService.updateEquipment)
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({ ...saved, version: 9 });
+    vi.mocked(EquipmentConfigurationService.getEquipmentById).mockResolvedValue({
+      ...saved,
+      version: 8,
+      location: "Room 999",
+    });
+
+    const user = userEvent.setup();
+    const { onSaved } = renderWizard({ editing: source });
+    const dialog = await screen.findByRole("dialog");
+    await user.clear(within(dialog).getByLabelText("Location"));
+    await user.type(within(dialog).getByLabelText("Location"), "Room 202");
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickSave(user, dialog);
+
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "Review and save again" }));
+    await clickSave(user, dialog);
+
+    await waitFor(() => expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[0][2]).toBe(3);
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][2]).toBe(8);
+    expect(onSaved).toHaveBeenCalledWith(null);
   });
 });

@@ -18,6 +18,7 @@ interface SampleModel {
   includeDetails: boolean;
   details: string;
   ephemeralSecretNote: string;
+  version?: number;
 }
 
 const EMPTY_MODEL: SampleModel = {
@@ -399,7 +400,7 @@ describe("ConfigWizard", () => {
     expect(onSave.mock.calls[0][1]).toBe("Valid audit reason 123");
   });
 
-  it("keeps user model on 409 conflict, reloads original, shows diff, and offers Review and save again", async () => {
+  it("keeps user model on 409 conflict, reloads original, shows diff, and passes reloaded version on retry", async () => {
     const user = userEvent.setup();
     const initial: SampleModel = {
       name: "Initial",
@@ -407,10 +408,12 @@ describe("ConfigWizard", () => {
       includeDetails: true,
       details: "Original details",
       ephemeralSecretNote: "",
+      version: 1,
     };
     const serverLatest: SampleModel = {
       ...initial,
       details: "Server updated details",
+      version: 8,
     };
     const onSave = vi
       .fn()
@@ -422,6 +425,7 @@ describe("ConfigWizard", () => {
       mode: "edit",
       initial,
       original: initial,
+      recordVersion: 1,
       reloadOriginal,
       onSave,
     });
@@ -443,7 +447,9 @@ describe("ConfigWizard", () => {
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[0][2]).toEqual({ original: initial, recordVersion: 1 });
     expect(onSave.mock.calls[1][0].name).toBe("My Local Name");
+    expect(onSave.mock.calls[1][2]).toEqual({ original: serverLatest, recordVersion: 8 });
   });
 
   it("persists and restores only draftFields across close and reopen", async () => {

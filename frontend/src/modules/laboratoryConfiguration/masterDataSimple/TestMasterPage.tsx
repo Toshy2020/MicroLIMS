@@ -337,7 +337,7 @@ export function TestMasterPage({ lab = "micro", area }: { lab?: TestMasterLab; a
         mySections={mySections}
         hplcMethods={hplcMethods}
         onCreateWithSteps={addWithSteps}
-        onUpdateTest={(id, payload, reason) => update(id, payload, undefined, undefined, reason)}
+        onUpdateTest={(id, payload, reason, version) => update(id, payload, undefined, undefined, reason, version)}
         onReloadDefinitions={reload}
         onClose={() => setWizardMode(null)}
         onSaved={(saved, savedModel, mode) => {

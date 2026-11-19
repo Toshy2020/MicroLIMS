@@ -224,7 +224,8 @@
       "moistureRange": "Moisture content must be at least 0 and below 100.",
       "requiredFields": "Material name, batch/lot number, receiving date, storage location, and quantity received are required.",
       "quantityPositive": "Quantity received must be greater than zero.",
-      "sectionRequired": "Laboratory section is required."
+      "sectionRequired": "Laboratory section is required.",
+      "materialMissing": "This material lot no longer exists."
     },
     "material": {
       "type": "Material Type",

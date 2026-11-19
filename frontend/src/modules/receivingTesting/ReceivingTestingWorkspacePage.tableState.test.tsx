@@ -531,4 +531,25 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     const restoredCol = screen.getAllByRole("columnheader").find((h) => h.textContent?.trim() === "Batch / Control No.");
     expect(restoredCol?.getAttribute("aria-sort")).toBe("descending");
   });
+
+  it("clears select-all-matching and bulk bar when a filter changes", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await screen.findByText("Alpha Syrup");
+
+    await check(user, "Alpha Syrup", "FP-0091");
+    expect(await screen.findByText("1 selected")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Select all 120 that match/i }));
+    expect(await screen.findByText("120 selected")).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: /^Filters/ }));
+    await user.click(await screen.findByRole("combobox", { name: "Sample Status" }));
+    await user.click(await screen.findByRole("option", { name: "Under Testing" }));
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByText("120 selected")).toBeNull());
+    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
+    const boxes = screen.getAllByRole("checkbox", { name: /for grouped actions$/ }) as HTMLInputElement[];
+    expect(boxes.every((b) => !b.checked)).toBe(true);
+  });
 });

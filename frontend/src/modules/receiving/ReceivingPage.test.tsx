@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useSearchParams } from "react-router-dom";
 import { lightTheme } from "../../theme";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
@@ -252,6 +252,54 @@ describe("ReceivingPage export", () => {
     await screen.findByText("Lactose Monohydrate");
     expect(screen.queryByRole("checkbox", { name: /Select Lactose Monohydrate/ })).toBeNull();
     expect(screen.queryByRole("button", { name: "Export selected" })).toBeNull();
+  });
+
+  it("clears select-all-matching and bulk bar when filter or search changes", async () => {
+    const user = userEvent.setup();
+    const secondSample: SampleRecord = {
+      ...createdSample,
+      id: 502,
+      sampleId: 502,
+      referenceNumber: "RM-2026-0502",
+      displayName: "Microcrystalline Cellulose",
+    };
+    vi.mocked(ReceiveService.getRecordsPaged).mockImplementation(async (filter) => {
+      const items = filter?.category === "RawMaterial" ? [createdSample, secondSample] : [];
+      return { items, totalCount: items.length, page: 1, pageSize: 100, totalPages: items.length ? 1 : 0 };
+    });
+
+    function FilterTrigger() {
+      const [, setSearchParams] = useSearchParams();
+      return (
+        <button type="button" onClick={() => setSearchParams({ q: "Lactose" })}>
+          Apply Test Search
+        </button>
+      );
+    }
+
+    seedPermissions([PERMISSIONS.SAMPLES_RECEIVE, PERMISSIONS.DATA_EXPORT]);
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <AuthProvider>
+          <MemoryRouter>
+            <ReceivingPage />
+            <FilterTrigger />
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+
+    await user.click(await screen.findByRole("checkbox", { name: /Select Lactose Monohydrate/ }));
+    expect(await screen.findByText("1 selected")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: /Select all 2 that match/i }));
+    expect(await screen.findByText("2 selected")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Export selected" })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Apply Test Search" }));
+
+    await waitFor(() => expect(screen.queryByText("2 selected")).toBeNull());
+    expect(screen.queryByRole("button", { name: "Export selected" })).toBeNull();
+    expect((screen.getByRole("checkbox", { name: /Select Lactose Monohydrate/ }) as HTMLInputElement).checked).toBe(false);
   });
 });
 

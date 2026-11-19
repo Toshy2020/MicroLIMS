@@ -94,6 +94,12 @@ public static class MessageCodes
     public const string MonitoringWindowEndNotWorkingDay = "Monitoring.WindowEndNotWorkingDay";
     public const string MonitoringWindowUnchanged = "Monitoring.WindowUnchanged";
     public const string MonitoringWorkingWeekdayRequired = "Monitoring.WorkingWeekdayRequired";
+    public const string OosDocumentNotFound = "Oos.DocumentNotFound";
+    public const string OosDocumentNotFoundForGroup = "Oos.DocumentNotFoundForGroup";
+    public const string OosDocumentValidationFailed = "Oos.DocumentValidationFailed";
+    public const string OosGroupNotFound = "Oos.GroupNotFound";
+    public const string OosSupersessionReasonRequired = "Oos.SupersessionReasonRequired";
+    public const string OosVoidedDocumentCannotBeSuperseded = "Oos.VoidedDocumentCannotBeSuperseded";
     public const string ReceivingAllTestsNotApplicable = "Receiving.AllTestsNotApplicable";
     public const string ReceivingChooseAtLeastOneLab = "Receiving.ChooseAtLeastOneLab";
     public const string ReceivingGradeAppliesToNoTests = "Receiving.GradeAppliesToNoTests";
@@ -279,6 +285,12 @@ public static class MessageCodes
         [MonitoringWindowEndNotWorkingDay] = ["date"],
         [MonitoringWindowUnchanged] = None,
         [MonitoringWorkingWeekdayRequired] = None,
+        [OosDocumentNotFound] = ["documentId"],
+        [OosDocumentNotFoundForGroup] = ["documentId", "oosGroupCode"],
+        [OosDocumentValidationFailed] = ["message"],
+        [OosGroupNotFound] = ["oosGroupCode"],
+        [OosSupersessionReasonRequired] = None,
+        [OosVoidedDocumentCannotBeSuperseded] = None,
         [ReceivingAllTestsNotApplicable] = ["item"],
         [ReceivingChooseAtLeastOneLab] = None,
         [ReceivingGradeAppliesToNoTests] = ["grade", "item"],

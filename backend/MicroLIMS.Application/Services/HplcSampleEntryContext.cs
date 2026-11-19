@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -43,13 +45,17 @@ public sealed class HplcSampleEntryContext
     // returned to the analyst - until it is submitted again.
     public bool Editable => EditableProblem() == null;
 
-    public string? EditableProblem()
+    public string? EditableProblem() => EditableProblemWithCode()?.Message;
+
+    public (string Code, string Message)? EditableProblemWithCode()
     {
-        if (RunSample.Status != HplcRunSampleStatus.Assigned) return "This sample was removed from the run.";
-        if (Submitted) return "The result has already been sent for review.";
+        if (RunSample.Status != HplcRunSampleStatus.Assigned)
+            return (MessageCodes.HplcRunSampleRemoved, "This sample was removed from the run.");
+        if (Submitted)
+            return (MessageCodes.HplcResultAlreadySubmitted, "The result has already been sent for review.");
         if (Run.Status == HplcRunStatus.Open) return null;
         if (Run.Status == HplcRunStatus.Completed && Returned) return null;
-        return "The run is closed.";
+        return (MessageCodes.HplcRunClosed, "The run is closed.");
     }
 
     // First reason the sample cannot be sent for review, or null.
@@ -146,7 +152,10 @@ public sealed class HplcSampleEntryContext
         HplcResultMode.ResidualSolvents => HplcResidualSolventEvaluator.Evaluate(BuildResidualSolventInputs()),
         HplcResultMode.RelatedSubstances => CalculateRelatedSubstances().Select(r => r.Row).ToList(),
         HplcResultMode.CleaningResidue => CleaningResidueCalculator.Evaluate(BuildCleaningResidueInputs()),
-        _ => throw new BusinessRuleException($"Unsupported result mode {Snapshot.ResultMode}."),
+        _ => throw new BusinessRuleException(
+            MessageCodes.HplcUnsupportedResultMode,
+            $"Unsupported result mode {Snapshot.ResultMode}.",
+            new Dictionary<string, string> { ["mode"] = Snapshot.ResultMode.ToString() }),
     };
 
     public List<HplcCleaningResidueInput> BuildCleaningResidueInputs()
@@ -260,10 +269,15 @@ public sealed class HplcSampleEntryContext
             .Include(s => s.Replicates).ThenInclude(r => r.Responses)
             .Include(s => s.Replicates).ThenInclude(r => r.Peaks)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
-            ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcRunSampleRecordNotFound,
+                $"Run sample {runSampleId} not found.",
+                new Dictionary<string, string> { ["runSampleId"] = runSampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (runSample.TestOrderId is not int testOrderId)
-            throw new BusinessRuleException("This run sample is a working standard qualification - open it from its qualification entry.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcRunSampleIsWorkingStandardQualification,
+                "This run sample is a working standard qualification - open it from its qualification entry.");
 
         var run = await db.HplcRuns
             .Include(r => r.Sst).ThenInclude(s => s!.Analytes)
@@ -277,7 +291,7 @@ public sealed class HplcSampleEntryContext
 
         var definition = await db.TestDefinitions.FirstAsync(t => t.Code == order.TestCode, ct);
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The run's method snapshot could not be read.");
+            ?? throw new BusinessRuleException(MessageCodes.HplcMethodSnapshotUnreadable, "The run's method snapshot could not be read.");
 
         List<Specification> specs;
         if (order.Sample?.ItemId is int itemId)

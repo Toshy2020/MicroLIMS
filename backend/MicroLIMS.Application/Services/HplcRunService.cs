@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -117,7 +119,10 @@ public partial class HplcRunService
     {
         HplcResultMode.Assay => true,
         HplcResultMode.ResidualSolvents or HplcResultMode.RelatedSubstances => false,
-        _ => throw new BusinessRuleException($"Unsupported result mode {mode}."),
+        _ => throw new BusinessRuleException(
+            MessageCodes.HplcUnsupportedResultMode,
+            $"Unsupported result mode {mode}.",
+            new Dictionary<string, string> { ["mode"] = mode.ToString() }),
     };
 
     private static List<string> MissingSstEntries(HplcRun run)
@@ -261,11 +266,20 @@ public partial class HplcRunService
         return result;
     }
 
-    private async Task<string?> DetermineUnavailableReasonAsync(Equipment equipment, CancellationToken ct)
+    private async Task<string?> DetermineUnavailableReasonAsync(Equipment equipment, CancellationToken ct) =>
+        (await DetermineUnavailableAsync(equipment, ct))?.Reason;
+
+    private async Task<(string Code, string Reason, Dictionary<string, string>? Params)?> DetermineUnavailableAsync(
+        Equipment equipment, CancellationToken ct)
     {
         var today = _clock.LabToday;
         if (equipment.CalibrationDueDate.HasValue && DateOnly.FromDateTime(equipment.CalibrationDueDate.Value) < today)
-            return $"Calibration overdue since {equipment.CalibrationDueDate:yyyy-MM-dd}.";
+        {
+            var date = equipment.CalibrationDueDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return (MessageCodes.HplcCalibrationOverdue,
+                $"Calibration overdue since {equipment.CalibrationDueDate:yyyy-MM-dd}.",
+                new Dictionary<string, string> { ["date"] = date });
+        }
 
         var codeUpper = equipment.Code.ToUpperInvariant();
         var inventory = await _db.EquipmentInventories.AsNoTracking()
@@ -273,7 +287,11 @@ public partial class HplcRunService
             .FirstOrDefaultAsync(ct);
 
         if (inventory != null && (inventory.Status == EquipmentOperationalStatus.OutOfService || inventory.Status == EquipmentOperationalStatus.Retired))
-            return $"Equipment is {inventory.Status}.";
+        {
+            return (MessageCodes.HplcEquipmentUnavailable,
+                $"Equipment is {inventory.Status}.",
+                new Dictionary<string, string> { ["status"] = inventory.Status.ToString() });
+        }
 
         return null;
     }
@@ -283,19 +301,31 @@ public partial class HplcRunService
     public async Task<HplcRunDto> StartRunAsync(StartHplcRunRequest r, int userId, CancellationToken ct = default)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId, ct)
-            ?? throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcEquipmentNotFound,
+                $"Equipment {r.EquipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = r.EquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
-            throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcEquipmentNotFound,
+                $"Equipment {r.EquipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = r.EquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var hasOpenRun = await _db.HplcRuns.AnyAsync(run => run.EquipmentId == equipment.Id && run.Status == HplcRunStatus.Open, ct);
         if (hasOpenRun)
-            throw new BusinessRuleException($"\"{equipment.Name}\" already has an open run.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcEquipmentHasOpenRun,
+                $"\"{equipment.Name}\" already has an open run.",
+                new Dictionary<string, string> { ["equipment"] = equipment.Name });
 
-        var unavailableReason = await DetermineUnavailableReasonAsync(equipment, ct);
-        if (unavailableReason != null)
-            throw new BusinessRuleException(unavailableReason);
+        var unavailable = await DetermineUnavailableAsync(equipment, ct);
+        if (unavailable != null)
+        {
+            var (code, reason, parameters) = unavailable.Value;
+            throw new BusinessRuleException(code, reason, parameters);
+        }
 
         var method = await _db.HplcMethods
             .Include(m => m.Section)
@@ -306,35 +336,74 @@ public partial class HplcRunService
             .Include(m => m.Analytes).ThenInclude(a => a.StandardEntry)
             .Include(m => m.Impurities)
             .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId, ct)
-            ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcMethodNotFound,
+                $"HPLC method {r.HplcMethodId} not found.",
+                new Dictionary<string, string> { ["methodId"] = r.HplcMethodId.ToString(CultureInfo.InvariantCulture) });
 
         if (equipment.Type != HplcTechniqueEquipment.For(method.Technique))
-            throw new BusinessRuleException($"\"{equipment.Name}\" is not a {HplcTechniqueEquipment.Label(method.Technique)} instrument; method {method.Abbreviation} needs one.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcEquipmentWrongTechnique,
+                $"\"{equipment.Name}\" is not a {HplcTechniqueEquipment.Label(method.Technique)} instrument; method {method.Abbreviation} needs one.",
+                new Dictionary<string, string>
+                {
+                    ["equipment"] = equipment.Name,
+                    ["technique"] = HplcTechniqueEquipment.Label(method.Technique),
+                    ["method"] = method.Abbreviation
+                });
 
         if (!method.IsActive)
-            throw new BusinessRuleException($"HPLC method \"{method.Name}\" is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodInactive,
+                $"HPLC method \"{method.Name}\" is inactive.",
+                new Dictionary<string, string> { ["method"] = method.Name });
 
         if (method.SectionId != equipment.SectionId)
-            throw new BusinessRuleException("The HPLC method belongs to another laboratory.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMethodWrongLaboratory,
+                "The HPLC method belongs to another laboratory.");
 
         var column = await _db.ChromatographyColumns.Include(c => c.CompatibleEquipment)
             .FirstOrDefaultAsync(c => c.Id == r.ChromatographyColumnId, ct)
-            ?? throw new NotFoundException($"Column {r.ChromatographyColumnId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcColumnNotFound,
+                $"Column {r.ChromatographyColumnId} not found.",
+                new Dictionary<string, string> { ["columnId"] = r.ChromatographyColumnId.ToString(CultureInfo.InvariantCulture) });
 
         if (!column.IsActive)
-            throw new BusinessRuleException($"Column \"{column.Name}\" is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnInactive,
+                $"Column \"{column.Name}\" is inactive.",
+                new Dictionary<string, string> { ["column"] = column.Name });
 
         if (!column.CompatibleEquipment.Any(e => e.Id == equipment.Id))
-            throw new BusinessRuleException($"Column \"{column.Name}\" is not compatible with \"{equipment.Name}\".");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnIncompatibleWithEquipment,
+                $"Column \"{column.Name}\" is not compatible with \"{equipment.Name}\".",
+                new Dictionary<string, string> { ["column"] = column.Name, ["equipment"] = equipment.Name });
 
         if (string.IsNullOrWhiteSpace(column.UspDesignation))
-            throw new BusinessRuleException($"Column {column.Code} has no USP designation; set it in the column master.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnMissingUspDesignation,
+                $"Column {column.Code} has no USP designation; set it in the column master.",
+                new Dictionary<string, string> { ["column"] = column.Code });
         if (!string.Equals(column.UspDesignation.Trim(), method.ColumnDesignation?.Trim(), StringComparison.OrdinalIgnoreCase))
-            throw new BusinessRuleException($"Column {column.Code} is USP {column.UspDesignation}; method {method.Abbreviation} requires {method.ColumnDesignation}.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnWrongUspDesignation,
+                $"Column {column.Code} is USP {column.UspDesignation}; method {method.Abbreviation} requires {method.ColumnDesignation}.",
+                new Dictionary<string, string>
+                {
+                    ["column"] = column.Code,
+                    ["actual"] = column.UspDesignation,
+                    ["method"] = method.Abbreviation,
+                    ["required"] = method.ColumnDesignation ?? string.Empty
+                });
 
         var inputs = r.MobilePhases ?? new List<HplcMobilePhaseAssignmentInput>();
         if (inputs.Count != method.MobilePhases.Count)
-            throw new BusinessRuleException("Select a prepared mobile phase for every channel this method uses.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcMobilePhaseRequiredForAllChannels,
+                "Select a prepared mobile phase for every channel this method uses.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var mobilePhaseEntities = new List<HplcRunMobilePhase>();
@@ -342,19 +411,37 @@ public partial class HplcRunService
         {
             var input = inputs.FirstOrDefault(mp => string.Equals(mp.Channel, channelDef.Channel, StringComparison.OrdinalIgnoreCase));
             if (input == null)
-                throw new BusinessRuleException($"Select a prepared mobile phase for channel {channelDef.Channel}.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseRequiredForChannel,
+                    $"Select a prepared mobile phase for channel {channelDef.Channel}.",
+                    new Dictionary<string, string> { ["channel"] = channelDef.Channel });
 
             var prep = await _db.SolutionPreparations.FirstOrDefaultAsync(p => p.Id == input.SolutionPreparationId, ct)
-                ?? throw new NotFoundException($"Solution preparation {input.SolutionPreparationId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.HplcSolutionPreparationNotFound,
+                    $"Solution preparation {input.SolutionPreparationId} not found.",
+                    new Dictionary<string, string> { ["preparationId"] = input.SolutionPreparationId.ToString(CultureInfo.InvariantCulture) });
 
             if (prep.Type != SolutionType.MobilePhase)
-                throw new BusinessRuleException($"Channel {channelDef.Channel}: the selected preparation is not a mobile phase.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationNotMobilePhase,
+                    $"Channel {channelDef.Channel}: the selected preparation is not a mobile phase.",
+                    new Dictionary<string, string> { ["channel"] = channelDef.Channel });
             if (prep.SolutionMasterId != channelDef.SolutionMasterId)
-                throw new BusinessRuleException($"Channel {channelDef.Channel}: the selected preparation is not of this channel's solution.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationWrongSolution,
+                    $"Channel {channelDef.Channel}: the selected preparation is not of this channel's solution.",
+                    new Dictionary<string, string> { ["channel"] = channelDef.Channel });
             if (prep.HplcMethodId != method.Id)
-                throw new BusinessRuleException($"Channel {channelDef.Channel}: the selected preparation was not prepared for this method.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationWrongMethod,
+                    $"Channel {channelDef.Channel}: the selected preparation was not prepared for this method.",
+                    new Dictionary<string, string> { ["channel"] = channelDef.Channel });
             if (SolutionPreparationResponse.EffectiveStatusOf(prep, nowUtc) != SolutionPreparationStatus.Prepared)
-                throw new BusinessRuleException($"Channel {channelDef.Channel}: the selected preparation is not currently prepared.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationNotPrepared,
+                    $"Channel {channelDef.Channel}: the selected preparation is not currently prepared.",
+                    new Dictionary<string, string> { ["channel"] = channelDef.Channel });
 
             mobilePhaseEntities.Add(new HplcRunMobilePhase { Channel = channelDef.Channel, SolutionPreparationId = prep.Id });
         }
@@ -412,9 +499,9 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
         if (run.Sst == null || run.Sst.Status != HplcSstStatus.Pending)
-            throw new BusinessRuleException("System suitability has already been confirmed.");
+            throw new BusinessRuleException(MessageCodes.HplcSstAlreadyConfirmed, "System suitability has already been confirmed.");
 
         var method = await _db.HplcMethods.Include(m => m.Analytes).FirstAsync(m => m.Id == run.HplcMethodId, ct);
         var methodAnalyteById = method.Analytes.ToDictionary(a => a.Id);
@@ -424,35 +511,64 @@ public partial class HplcRunService
         var hasIs = !string.IsNullOrWhiteSpace(snapshot?.InternalStandardName);
 
         if (!hasIs && (r.Analytes ?? new()).Any(a => a.InternalStandardResponses != null && a.InternalStandardResponses.Count > 0))
-            throw new BusinessRuleException("This method has no internal standard.");
+            throw new BusinessRuleException(MessageCodes.HplcMethodHasNoInternalStandard, "This method has no internal standard.");
 
         foreach (var input in r.Analytes ?? new List<SaveSstAnalyteInput>())
         {
             var analyteRow = run.Sst.Analytes.FirstOrDefault(a => a.Id == input.HplcSstAnalyteId)
-                ?? throw new BusinessRuleException($"Analyte {input.HplcSstAnalyteId} does not belong to this system suitability record.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcSstAnalyteNotInRecord,
+                    $"Analyte {input.HplcSstAnalyteId} does not belong to this system suitability record.",
+                    new Dictionary<string, string> { ["analyteId"] = input.HplcSstAnalyteId.ToString(CultureInfo.InvariantCulture) });
 
             if (!methodAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var methodAnalyte))
-                throw new BusinessRuleException($"{analyteRow.AnalyteName}: method analyte not found.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMethodAnalyteNotFound,
+                    $"{analyteRow.AnalyteName}: method analyte not found.",
+                    new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
 
             if (weighsStandard && input.StandardWeightMg <= 0)
-                throw new BusinessRuleException($"{analyteRow.AnalyteName}: standard weight must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardWeightMustBePositive,
+                    $"{analyteRow.AnalyteName}: standard weight must be greater than zero.",
+                    new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId, ct)
-                ?? throw new BusinessRuleException($"{analyteRow.AnalyteName}: standard material not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcStandardMaterialNotFound,
+                    $"{analyteRow.AnalyteName}: standard material not found.",
+                    new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
 
             if (lot.SectionId != run.SectionId)
-                throw new BusinessRuleException($"{analyteRow.AnalyteName}: standard lot belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardLotWrongLaboratory,
+                    $"{analyteRow.AnalyteName}: standard lot belongs to another laboratory.",
+                    new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
 
             var check = LotUsability.Check(lot, methodAnalyte.StandardEntryId, null, today);
             if (!check.Usable)
-                throw new BusinessRuleException($"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardLotUnusable,
+                    $"{analyteRow.AnalyteName}: lot {lot.LotLabel}: {check.Reason}",
+                    new Dictionary<string, string>
+                    {
+                        ["analyte"] = analyteRow.AnalyteName,
+                        ["lot"] = lot.LotLabel,
+                        ["reason"] = check.Reason ?? string.Empty
+                    });
 
             if (weighsStandard)
             {
                 if (!lot.Purity.HasValue)
-                    throw new BusinessRuleException($"Lot {lot.LotLabel} has no purity recorded.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcLotMissingPurity,
+                        $"Lot {lot.LotLabel} has no purity recorded.",
+                        new Dictionary<string, string> { ["lot"] = lot.LotLabel });
                 if (!lot.MoisturePercent.HasValue)
-                    throw new BusinessRuleException($"Lot {lot.LotLabel} has no moisture content recorded.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcLotMissingMoisture,
+                        $"Lot {lot.LotLabel} has no moisture content recorded.",
+                        new Dictionary<string, string> { ["lot"] = lot.LotLabel });
             }
 
             analyteRow.StandardMaterialId = lot.Id;
@@ -474,7 +590,10 @@ public partial class HplcRunService
             if (hasIs && (responses.Count > 0 || (isResponses != null && isResponses.Count > 0)))
             {
                 if (isResponses == null || isResponses.Count != responses.Count || isResponses.Any(x => x <= 0m))
-                    throw new BusinessRuleException($"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcInternalStandardResponseRequired,
+                        $"{analyteRow.AnalyteName}: enter an internal standard response (above zero) for every injection.",
+                        new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
             }
 
             for (var i = 0; i < responses.Count; i++)
@@ -510,28 +629,37 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
         if (run.Sst == null || run.Sst.Status != HplcSstStatus.Pending)
-            throw new BusinessRuleException("System suitability has already been confirmed.");
+            throw new BusinessRuleException(MessageCodes.HplcSstAlreadyConfirmed, "System suitability has already been confirmed.");
 
         var missingEntries = MissingSstEntries(run);
         if (missingEntries.Count > 0)
-            throw new BusinessRuleException(MissingSstReason(missingEntries));
+            throw new BusinessRuleException(
+                MessageCodes.HplcSstEntriesIncomplete,
+                MissingSstReason(missingEntries),
+                new Dictionary<string, string> { ["entries"] = string.Join("; ", missingEntries) });
 
         if (!run.Evidence.Any(IsCurrentSstStandardReport))
-            throw new BusinessRuleException(MissingStandardReportReason);
+            throw new BusinessRuleException(MessageCodes.HplcSstStandardReportRequired, MissingStandardReportReason);
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         foreach (var mp in run.MobilePhases)
         {
             if (mp.SolutionPreparation == null)
-                throw new BusinessRuleException($"Channel {mp.Channel}: the selected preparation no longer exists.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationMissing,
+                    $"Channel {mp.Channel}: the selected preparation no longer exists.",
+                    new Dictionary<string, string> { ["channel"] = mp.Channel });
             if (SolutionPreparationResponse.EffectiveStatusOf(mp.SolutionPreparation, nowUtc) != SolutionPreparationStatus.Prepared)
-                throw new BusinessRuleException($"Channel {mp.Channel}: the mobile phase preparation has expired since it was selected.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcChannelPreparationExpired,
+                    $"Channel {mp.Channel}: the mobile phase preparation has expired since it was selected.",
+                    new Dictionary<string, string> { ["channel"] = mp.Channel });
         }
 
         var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The run's method snapshot could not be read.");
+            ?? throw new BusinessRuleException(MessageCodes.HplcMethodSnapshotUnreadable, "The run's method snapshot could not be read.");
         var snapshotAnalyteById = snapshot.Analytes.ToDictionary(a => a.Id);
 
         // Pure evaluation only - no mutation yet (sign-first, see class comment).
@@ -539,7 +667,10 @@ public partial class HplcRunService
         foreach (var analyteRow in run.Sst.Analytes)
         {
             if (!snapshotAnalyteById.TryGetValue(analyteRow.HplcMethodAnalyteId, out var snapAnalyte))
-                throw new BusinessRuleException($"{analyteRow.AnalyteName}: method analyte snapshot not found.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMethodAnalyteSnapshotNotFound,
+                    $"{analyteRow.AnalyteName}: method analyte snapshot not found.",
+                    new Dictionary<string, string> { ["analyte"] = analyteRow.AnalyteName });
 
             var criteria = new SstCriteria(
                 snapAnalyte.SstMaxRsdPercent, snapAnalyte.SstMinResolution, snapAnalyte.SstMaxTailingFactor,
@@ -608,20 +739,33 @@ public partial class HplcRunService
         foreach (var g in groups)
         {
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == g.Key, ct)
-                ?? throw new BusinessRuleException($"{g.First().AnalyteName}: standard material not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcStandardMaterialNotFound,
+                    $"{g.First().AnalyteName}: standard material not found.",
+                    new Dictionary<string, string> { ["analyte"] = g.First().AnalyteName });
             var mg = g.Sum(a => a.StandardWeightMg!.Value);
             var quantity = lot.Unit switch
             {
                 MaterialUnit.Gram => mg / 1000m,
                 MaterialUnit.Kilogram => mg / 1_000_000m,
                 _ => throw new BusinessRuleException(
-                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it."),
+                    MessageCodes.HplcLotUnitIncompatibleWithMg,
+                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it.",
+                    new Dictionary<string, string> { ["lot"] = lot.LotLabel, ["unit"] = lot.Unit.ToString() }),
             };
             foreach (var a in g)
             {
                 var check = LotUsability.Check(lot, snapshotAnalyteById[a.HplcMethodAnalyteId].StandardEntryId, quantity, today);
                 if (!check.Usable)
-                    throw new BusinessRuleException($"{a.AnalyteName}: lot {lot.LotLabel}: {check.Reason}");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcStandardLotUnusable,
+                        $"{a.AnalyteName}: lot {lot.LotLabel}: {check.Reason}",
+                        new Dictionary<string, string>
+                        {
+                            ["analyte"] = a.AnalyteName,
+                            ["lot"] = lot.LotLabel,
+                            ["reason"] = check.Reason ?? string.Empty
+                        });
             }
             plan.Add((lot, quantity));
         }
@@ -638,7 +782,7 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
 
         ValidateEvidenceFile(fileName, contentType, content);
 
@@ -646,7 +790,10 @@ public partial class HplcRunService
         if (runSampleId.HasValue)
         {
             runSample = run.Samples.FirstOrDefault(s => s.Id == runSampleId.Value)
-                ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
+                ?? throw new NotFoundException(
+                    MessageCodes.HplcRunSampleNotFound,
+                    $"Sample {runSampleId} not found on this run.",
+                    new Dictionary<string, string> { ["runSampleId"] = runSampleId.Value.ToString(CultureInfo.InvariantCulture) });
         }
 
         var evidence = new HplcEvidence
@@ -677,16 +824,19 @@ public partial class HplcRunService
         int evidenceId, string reason, string fileName, string contentType, byte[] content, int userId, CancellationToken ct = default)
     {
         var old = await _db.HplcEvidences.Include(e => e.HplcRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
-            ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcEvidenceNotFound,
+                $"Evidence {evidenceId} not found.",
+                new Dictionary<string, string> { ["evidenceId"] = evidenceId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureAccessAsync(old.HplcRun!, userId, ct);
 
         if (old.SupersededByEvidenceId.HasValue)
-            throw new BusinessRuleException("This evidence has already been superseded.");
+            throw new BusinessRuleException(MessageCodes.HplcEvidenceAlreadySuperseded, "This evidence has already been superseded.");
         if (old.HplcRun!.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(MessageCodes.HplcReasonRequired, "A reason is required.");
 
         ValidateEvidenceFile(fileName, contentType, content);
 
@@ -720,7 +870,10 @@ public partial class HplcRunService
     public async Task<(byte[] Content, string ContentType, string FileName)> DownloadEvidenceAsync(int evidenceId, int userId, CancellationToken ct = default)
     {
         var evidence = await _db.HplcEvidences.Include(e => e.HplcRun).FirstOrDefaultAsync(e => e.Id == evidenceId, ct)
-            ?? throw new NotFoundException($"Evidence {evidenceId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcEvidenceNotFound,
+                $"Evidence {evidenceId} not found.",
+                new Dictionary<string, string> { ["evidenceId"] = evidenceId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureAccessAsync(evidence.HplcRun!, userId, ct, SectionAccess.Read);
 
@@ -760,15 +913,21 @@ public partial class HplcRunService
     private static void ValidateEvidenceFile(string fileName, string contentType, byte[] content)
     {
         if (content == null || content.Length == 0)
-            throw new BusinessRuleException("The uploaded file is empty.");
+            throw new BusinessRuleException(MessageCodes.HplcEvidenceFileEmpty, "The uploaded file is empty.");
         if (content.Length > MaxEvidenceBytes)
-            throw new BusinessRuleException($"File exceeds the maximum allowed size of {MaxEvidenceBytes / 1024 / 1024} MB.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcEvidenceFileTooLarge,
+                $"File exceeds the maximum allowed size of {MaxEvidenceBytes / 1024 / 1024} MB.",
+                new Dictionary<string, string> { ["maxMb"] = (MaxEvidenceBytes / 1024 / 1024).ToString(CultureInfo.InvariantCulture) });
         if (string.IsNullOrWhiteSpace(fileName))
-            throw new BusinessRuleException("A file name is required.");
+            throw new BusinessRuleException(MessageCodes.HplcEvidenceFileNameRequired, "A file name is required.");
 
         var normalized = NormalizeContentType(contentType);
         if (!AllowedEvidenceContentTypes.Contains(normalized))
-            throw new BusinessRuleException($"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcEvidenceFileTypeUnsupported,
+                $"File type \"{normalized}\" is not supported. Allowed types: PDF, PNG, JPEG.",
+                new Dictionary<string, string> { ["contentType"] = normalized });
     }
 
     private static string NormalizeContentType(string contentType) => contentType.Split(';')[0].Trim().ToLowerInvariant();
@@ -785,7 +944,7 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
 
         var trimmedReason = ValidateReason(reason);
 
@@ -800,11 +959,17 @@ public partial class HplcRunService
     public async Task<List<HplcRunListItem>> GetRunHistoryAsync(int equipmentId, int userId, CancellationToken ct = default)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
-            throw new NotFoundException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var runs = await _db.HplcRuns.AsNoTracking()
             .Include(r => r.HplcMethod)
@@ -825,10 +990,10 @@ public partial class HplcRunService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(MessageCodes.HplcReasonRequired, "A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException(MessageCodes.HplcReasonTooLong, "Reason cannot exceed 500 characters.");
         return trimmed;
     }
 
@@ -838,7 +1003,10 @@ public partial class HplcRunService
     {
         var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(run.SectionId))
-            throw new NotFoundException($"HPLC run {run.Id} not found.");
+            throw new NotFoundException(
+                MessageCodes.HplcRunNotFound,
+                $"HPLC run {run.Id} not found.",
+                new Dictionary<string, string> { ["runId"] = run.Id.ToString(CultureInfo.InvariantCulture) });
     }
 
     private async Task<HplcRun> LoadRunAsync(int id, CancellationToken ct) =>
@@ -853,7 +1021,10 @@ public partial class HplcRunService
             .Include(r => r.Samples)
             .Include(r => r.Evidence)
             .FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new NotFoundException($"HPLC run {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcRunNotFound,
+                $"HPLC run {id} not found.",
+                new Dictionary<string, string> { ["runId"] = id.ToString(CultureInfo.InvariantCulture) });
 
     private async Task<HplcRunDto> BuildDtoAsync(HplcRun run, CancellationToken ct)
     {

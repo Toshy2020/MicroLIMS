@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -40,23 +41,34 @@ public sealed class IcpSampleEntryContext
         IcpElementAvailability.Evaluate(NeededElements, Run.Calibration!, Clock.UtcNow.UtcDateTime, Clock);
 
     // Editable while the run is open, or - after a submitted result was returned to the analyst - until submitted again.
-    public string? EditableProblem()
+    public string? EditableProblem() => EditableProblemWithCode()?.Message;
+
+    public (string Code, string Message)? EditableProblemWithCode()
     {
-        if (RunSample.Status != IcpRunSampleStatus.Assigned) return "This sample was removed from the run.";
-        if (Submitted) return "The result has already been sent for review.";
+        if (RunSample.Status != IcpRunSampleStatus.Assigned)
+            return (MessageCodes.IcpRunSampleRemoved, "This sample was removed from the run.");
+        if (Submitted)
+            return (MessageCodes.IcpResultAlreadySubmitted, "The result has already been sent for review.");
         if (Run.Status == IcpRunStatus.Open) return null;
         if (Run.Status == IcpRunStatus.Completed && Returned) return null;
-        return "The run is closed.";
+        return (MessageCodes.IcpRunClosed, "The run is closed.");
     }
 
     // Null while the calibration is confirmed and inside its validity window.
-    public string? CalibrationProblem()
+    public string? CalibrationProblem() => CalibrationProblemWithCode()?.Message;
+
+    public (string Code, string Message, Dictionary<string, string>? Params)? CalibrationProblemWithCode()
     {
         var expiresAt = IcpElementAvailability.ExpiresAt(Run.Calibration!);
         if (expiresAt is null)
-            return "Confirm the calibration before entering results.";
+            return (MessageCodes.IcpCalibrationConfirmBeforeEntry, "Confirm the calibration before entering results.", null);
         if (expiresAt < Clock.UtcNow.UtcDateTime)
-            return $"Calibration expired at {Clock.ToLabLocal(expiresAt.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)}.";
+        {
+            var formatted = Clock.ToLabLocal(expiresAt.Value).ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+            return (MessageCodes.IcpCalibrationExpiredAt,
+                $"Calibration expired at {formatted}.",
+                new Dictionary<string, string> { ["expiresAt"] = formatted });
+        }
         return null;
     }
 
@@ -111,7 +123,10 @@ public sealed class IcpSampleEntryContext
         var runSample = await db.IcpRunSamples
             .Include(s => s.Concentrations)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
-            ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpRunSampleRecordNotFound,
+                $"Run sample {runSampleId} not found.",
+                new Dictionary<string, string> { ["runSampleId"] = runSampleId.ToString(CultureInfo.InvariantCulture) });
 
         var run = await db.IcpRuns
             .Include(r => r.Calibration).ThenInclude(c => c!.Elements)

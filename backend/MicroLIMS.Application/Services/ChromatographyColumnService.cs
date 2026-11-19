@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -43,7 +45,10 @@ public class ChromatographyColumnService
     {
         var d = value?.Trim().ToUpperInvariant();
         if (string.IsNullOrEmpty(d)) return null;
-        if (d.Length > 10) throw new BusinessRuleException("USP designation cannot exceed 10 characters.");
+        if (d.Length > 10)
+            throw new BusinessRuleException(
+                MessageCodes.ColumnUspDesignationTooLong,
+                "USP designation cannot exceed 10 characters.");
         return d;
     }
 
@@ -80,7 +85,10 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new NotFoundException($"Chromatography column {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.ColumnNotFound,
+                $"Chromatography column {id} not found.",
+                new Dictionary<string, string> { ["columnId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         return ChromatographyColumnResponse.From(column);
     }
@@ -88,16 +96,25 @@ public class ChromatographyColumnService
     public async Task<ChromatographyColumnResponse> CreateAsync(CreateChromatographyColumnRequest request, int currentUserId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new BusinessRuleException("Column code is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnCodeRequired,
+                "Column code is required.");
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Column name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnNameRequired,
+                "Column name is required.");
 
         var normalizedCode = request.Code.Trim().ToUpper();
         if (await _db.ChromatographyColumns.AnyAsync(c => c.Code == normalizedCode, ct))
-            throw new BusinessRuleException($"Column code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnCodeExists,
+                $"Column code \"{normalizedCode}\" already exists.",
+                new Dictionary<string, string> { ["code"] = normalizedCode });
 
         if (request.SerialNumber != null && request.SerialNumber.Length > 100)
-            throw new BusinessRuleException("Serial number cannot exceed 100 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnSerialNumberTooLong,
+                "Serial number cannot exceed 100 characters.");
 
         var sectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, ct);
 
@@ -110,14 +127,22 @@ public class ChromatographyColumnService
                 .ToListAsync(ct);
 
             if (compatibleEquipment.Count != distinctIds.Count)
-                throw new BusinessRuleException("One or more specified compatible equipment items do not exist.");
+                throw new BusinessRuleException(
+                    MessageCodes.ColumnCompatibleEquipmentNotFound,
+                    "One or more specified compatible equipment items do not exist.");
 
             foreach (var eq in compatibleEquipment)
             {
                 if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
-                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
+                    throw new BusinessRuleException(
+                        MessageCodes.ColumnCompatibleEquipmentNotChromatography,
+                        $"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.",
+                        new Dictionary<string, string> { ["equipment"] = eq.Code });
                 if (eq.SectionId != sectionId)
-                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
+                    throw new BusinessRuleException(
+                        MessageCodes.ColumnCompatibleEquipmentWrongSection,
+                        $"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.",
+                        new Dictionary<string, string> { ["equipment"] = eq.Code });
             }
         }
 
@@ -151,21 +176,33 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new NotFoundException($"Chromatography column {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.ColumnNotFound,
+                $"Chromatography column {id} not found.",
+                new Dictionary<string, string> { ["columnId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         RecordVersion.EnsureCurrent(_db, column);
 
         if (string.IsNullOrWhiteSpace(request.Code))
-            throw new BusinessRuleException("Column code is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnCodeRequired,
+                "Column code is required.");
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Column name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnNameRequired,
+                "Column name is required.");
 
         var normalizedCode = request.Code.Trim().ToUpper();
         if (await _db.ChromatographyColumns.AnyAsync(c => c.Code == normalizedCode && c.Id != id, ct))
-            throw new BusinessRuleException($"Column code \"{normalizedCode}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnCodeExists,
+                $"Column code \"{normalizedCode}\" already exists.",
+                new Dictionary<string, string> { ["code"] = normalizedCode });
 
         if (request.SerialNumber != null && request.SerialNumber.Length > 100)
-            throw new BusinessRuleException("Serial number cannot exceed 100 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.ColumnSerialNumberTooLong,
+                "Serial number cannot exceed 100 characters.");
 
         if (request.SectionId.HasValue && request.SectionId.Value != column.SectionId)
         {
@@ -180,14 +217,22 @@ public class ChromatographyColumnService
                 .ToListAsync(ct);
 
             if (compatibleEquipment.Count != distinctIds.Count)
-                throw new BusinessRuleException("One or more specified compatible equipment items do not exist.");
+                throw new BusinessRuleException(
+                    MessageCodes.ColumnCompatibleEquipmentNotFound,
+                    "One or more specified compatible equipment items do not exist.");
 
             foreach (var eq in compatibleEquipment)
             {
                 if (eq.Type != EquipmentType.Hplc && eq.Type != EquipmentType.Gc)
-                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.");
+                    throw new BusinessRuleException(
+                        MessageCodes.ColumnCompatibleEquipmentNotChromatography,
+                        $"Equipment \"{eq.Code}\" is not an HPLC or GC instrument. Only chromatography equipment can be linked to a column.",
+                        new Dictionary<string, string> { ["equipment"] = eq.Code });
                 if (eq.SectionId != column.SectionId)
-                    throw new BusinessRuleException($"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.");
+                    throw new BusinessRuleException(
+                        MessageCodes.ColumnCompatibleEquipmentWrongSection,
+                        $"Equipment \"{eq.Code}\" belongs to another section. Compatible equipment must belong to the same laboratory section as the column.",
+                        new Dictionary<string, string> { ["equipment"] = eq.Code });
             }
 
             column.CompatibleEquipment.Clear();
@@ -218,7 +263,10 @@ public class ChromatographyColumnService
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         if (column == null)
-            throw new NotFoundException($"Chromatography column {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.ColumnNotFound,
+                $"Chromatography column {id} not found.",
+                new Dictionary<string, string> { ["columnId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         column.IsActive = false;
         column.LastModifiedByUserId = currentUserId;

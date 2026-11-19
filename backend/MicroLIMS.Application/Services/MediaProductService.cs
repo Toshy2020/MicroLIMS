@@ -1,5 +1,7 @@
 using MicroLIMS.Application.Helpers;
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -95,7 +97,8 @@ public class MediaProductService
         var trimmedName = ValidateName(name);
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MediaProductNotFound, $"Media product with ID {id} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, product);
 
         await EnsureUniqueNameAsync(trimmedName, id);
@@ -120,7 +123,8 @@ public class MediaProductService
     public async Task<MediaProductResponse> SetActiveAsync(int id, bool isActive)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MediaProductNotFound, $"Media product with ID {id} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         product.IsActive = isActive;
         await _db.SaveChangesAsync();
@@ -135,16 +139,17 @@ public class MediaProductService
         int id, string newCode, string reason, string password, int userId, string? ipAddress)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason for the code change is required.");
+            throw new BusinessRuleException(MessageCodes.MediaCodeChangeReasonRequired, "A reason for the code change is required.");
         var trimmedReason = reason.Trim();
 
         var trimmedCode = ValidateCode(newCode);
 
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MediaProductNotFound, $"Media product with ID {id} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (string.Equals(product.Code, trimmedCode, StringComparison.Ordinal))
-            throw new BusinessRuleException("The new code must be different from the current code.");
+            throw new BusinessRuleException(MessageCodes.MediaNewCodeMustDiffer, "The new code must be different from the current code.");
 
         await EnsureUniqueCodeAsync(trimmedCode, id);
 
@@ -182,15 +187,22 @@ public class MediaProductService
     public async Task DeleteAsync(int id)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Media product with ID {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MediaProductNotFound, $"Media product with ID {id} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var configCount = await _db.MediaConfigurations.CountAsync(c => c.MediaProductId == id);
         var batchCount = await _db.Materials.CountAsync(m => m.MediaProductId == id);
 
         if (configCount > 0 || batchCount > 0)
         {
-            throw new BusinessRuleException(
-                $"Cannot delete media product '{product.Name}' because it is referenced by {configCount} media configuration(s) and {batchCount} material batch(es).");
+            throw new BusinessRuleException(MessageCodes.MediaProductReferencedByConfigsAndBatches,
+                $"Cannot delete media product '{product.Name}' because it is referenced by {configCount} media configuration(s) and {batchCount} material batch(es).",
+                new Dictionary<string, string>
+                {
+                    ["name"] = product.Name,
+                    ["configCount"] = configCount.ToString(CultureInfo.InvariantCulture),
+                    ["batchCount"] = batchCount.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         var stepMediaCount = await _db.TestWorkflowStepMedias
@@ -199,16 +211,26 @@ public class MediaProductService
 
         if (stepMediaCount > 0)
         {
-            throw new BusinessRuleException(
-                $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.");
+            throw new BusinessRuleException(MessageCodes.MediaProductUsedByStepMedia,
+                $"Cannot delete media product '{product.Name}' because it is used by {stepMediaCount} Test Master step medium/media.",
+                new Dictionary<string, string>
+                {
+                    ["name"] = product.Name,
+                    ["stepMediaCount"] = stepMediaCount.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         var preparationCount = await _db.ItemPreparationConfigurations
             .CountAsync(c => c.DiluentMediaProductId == id || c.NeutralizerMediaProductId == id);
         if (preparationCount > 0)
         {
-            throw new BusinessRuleException(
-                $"Cannot delete media product '{product.Name}' because it is the diluent or neutralizer of {preparationCount} Item preparation configuration(s).");
+            throw new BusinessRuleException(MessageCodes.MediaProductUsedByItemPreparation,
+                $"Cannot delete media product '{product.Name}' because it is the diluent or neutralizer of {preparationCount} Item preparation configuration(s).",
+                new Dictionary<string, string>
+                {
+                    ["name"] = product.Name,
+                    ["preparationCount"] = preparationCount.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         var unusedConditions = await _db.MediaIncubationConditions
@@ -223,20 +245,20 @@ public class MediaProductService
     private static string ValidateName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Media product name is required.");
+            throw new BusinessRuleException(MessageCodes.MediaProductNameRequired, "Media product name is required.");
         var trimmed = name.Trim();
         if (trimmed.Length > 200)
-            throw new BusinessRuleException("Media product name cannot exceed 200 characters.");
+            throw new BusinessRuleException(MessageCodes.MediaProductNameTooLong, "Media product name cannot exceed 200 characters.");
         return trimmed;
     }
 
     private static string ValidateCode(string code)
     {
         if (string.IsNullOrWhiteSpace(code))
-            throw new BusinessRuleException("Media product code is required.");
+            throw new BusinessRuleException(MessageCodes.MediaProductCodeRequired, "Media product code is required.");
         var trimmed = code.Trim();
         if (!CodeRegex.IsMatch(trimmed))
-            throw new BusinessRuleException(
+            throw new BusinessRuleException(MessageCodes.MediaProductCodeFormat,
                 "Media product code must be 2-10 characters, start with an alphanumeric character, and contain only letters, digits, '.', or '-'.");
         return trimmed;
     }
@@ -248,7 +270,8 @@ public class MediaProductService
             .FirstOrDefaultAsync(p => (excludeId == null || p.Id != excludeId.Value) && p.Name.ToLower() == lower);
 
         if (clashing != null)
-            throw new BusinessRuleException($"A media product named '{clashing.Name}' already exists.");
+            throw new BusinessRuleException(MessageCodes.MediaProductNameExists, $"A media product named '{clashing.Name}' already exists.",
+                new Dictionary<string, string> { ["name"] = clashing.Name });
     }
 
     private async Task EnsureUniqueCodeAsync(string trimmedCode, int? excludeId = null)
@@ -258,6 +281,11 @@ public class MediaProductService
             .FirstOrDefaultAsync(p => (excludeId == null || p.Id != excludeId.Value) && p.Code.ToLower() == lower);
 
         if (clashing != null)
-            throw new BusinessRuleException($"A media product with code '{clashing.Code}' already exists ('{clashing.Name}').");
+            throw new BusinessRuleException(MessageCodes.MediaProductCodeExists, $"A media product with code '{clashing.Code}' already exists ('{clashing.Name}').",
+                new Dictionary<string, string>
+                {
+                    ["code"] = clashing.Code,
+                    ["name"] = clashing.Name
+                });
     }
 }

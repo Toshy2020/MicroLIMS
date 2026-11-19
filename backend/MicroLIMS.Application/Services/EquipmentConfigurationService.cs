@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -142,7 +144,8 @@ public class EquipmentConfigurationService
     public async Task<EquipmentResponse> LinkInventoryEquipmentToMasterAsync(int inventoryEquipmentId, int userId)
     {
         var inv = await _db.EquipmentInventories.FindAsync(inventoryEquipmentId)
-            ?? throw new NotFoundException($"Inventory equipment {inventoryEquipmentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentConfigInventoryEquipmentNotFound, $"Inventory equipment {inventoryEquipmentId} not found.",
+                new Dictionary<string, string> { ["inventoryEquipmentId"] = inventoryEquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var normalizedCode = inv.Code.Trim().ToLower();
         var existingMaster = await _db.Equipment.FirstOrDefaultAsync(e => e.Code.ToLower() == normalizedCode);
@@ -157,7 +160,7 @@ public class EquipmentConfigurationService
         // The inventory register predates sections and only holds
         // Microbiology equipment, so a linked master lands in MICRO.
         var sectionId = await _db.DocumentSections.Where(s => s.Code == "MICRO").Select(s => (int?)s.Id).FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException("The Microbiology laboratory section (code MICRO) is missing.");
+            ?? throw new BusinessRuleException(MessageCodes.EquipmentConfigMicrobiologySectionMissing, "The Microbiology laboratory section (code MICRO) is missing.");
 
         var master = new Equipment
         {
@@ -178,13 +181,15 @@ public class EquipmentConfigurationService
     public async Task<EquipmentResponse> UpdateIncubatorSetPointAsync(int equipmentId, UpdateIncubatorSetPointRequest r, int userId)
     {
         if (string.IsNullOrWhiteSpace(r.Reason))
-            throw new BusinessRuleException("A reason explaining the change to the set point temperature is required.");
+            throw new BusinessRuleException(MessageCodes.EquipmentConfigSetPointReasonRequired, "A reason explaining the change to the set point temperature is required.");
 
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentConfigEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (equipment.Type != EquipmentType.Incubator)
-            throw new BusinessRuleException($"Equipment {equipment.Code} is not an incubator.");
+            throw new BusinessRuleException(MessageCodes.EquipmentConfigNotAnIncubator, $"Equipment {equipment.Code} is not an incubator.",
+                new Dictionary<string, string> { ["code"] = equipment.Code });
 
         decimal prevSetPoint = equipment.SetPointTemperature ?? 0m;
         equipment.SetPointTemperature = r.NewSetPoint;
@@ -259,13 +264,19 @@ public class EquipmentConfigurationService
     public async Task<AutoclaveProgramDto> SaveAutoclaveProgramAsync(SaveAutoclaveProgramRequest r, int userId)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId && e.Type == EquipmentType.Autoclave)
-            ?? throw new BusinessRuleException($"Autoclave equipment {r.EquipmentId} not found.");
+            ?? throw new BusinessRuleException(MessageCodes.EquipmentConfigAutoclaveNotFound, $"Autoclave equipment {r.EquipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = r.EquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (r.Id == null || r.Id == 0)
         {
             // Create
             if (await _db.AutoclavePrograms.AnyAsync(p => p.EquipmentId == r.EquipmentId && p.ProgramCode == r.ProgramCode))
-                throw new BusinessRuleException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
+                throw new BusinessRuleException(MessageCodes.EquipmentConfigProgramCodeExists, $"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.",
+                    new Dictionary<string, string>
+                    {
+                        ["programCode"] = r.ProgramCode,
+                        ["code"] = equipment.Code
+                    });
 
             var program = new AutoclaveProgram
             {
@@ -316,11 +327,17 @@ public class EquipmentConfigurationService
         {
             // Update
             var program = await _db.AutoclavePrograms.FirstOrDefaultAsync(p => p.Id == r.Id.Value)
-                ?? throw new BusinessRuleException($"Autoclave program {r.Id.Value} not found.");
+                ?? throw new BusinessRuleException(MessageCodes.EquipmentConfigAutoclaveProgramNotFound, $"Autoclave program {r.Id.Value} not found.",
+                    new Dictionary<string, string> { ["id"] = r.Id.Value.ToString(CultureInfo.InvariantCulture) });
             RecordVersion.EnsureCurrent(_db, program);
 
             if (r.ProgramCode != program.ProgramCode && await _db.AutoclavePrograms.AnyAsync(p => p.EquipmentId == r.EquipmentId && p.ProgramCode == r.ProgramCode))
-                throw new BusinessRuleException($"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.");
+                throw new BusinessRuleException(MessageCodes.EquipmentConfigProgramCodeExists, $"Program code \"{r.ProgramCode}\" already exists on autoclave {equipment.Code}.",
+                    new Dictionary<string, string>
+                    {
+                        ["programCode"] = r.ProgramCode,
+                        ["code"] = equipment.Code
+                    });
 
             var history = new AutoclaveProgramHistory
             {
@@ -365,7 +382,8 @@ public class EquipmentConfigurationService
     public async Task SetAutoclaveProgramStatusAsync(int programId, bool isActive, string comment, int userId)
     {
         var program = await _db.AutoclavePrograms.Include(p => p.Equipment).FirstOrDefaultAsync(p => p.Id == programId)
-            ?? throw new NotFoundException($"Autoclave program {programId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentConfigAutoclaveProgramNotFound, $"Autoclave program {programId} not found.",
+                new Dictionary<string, string> { ["id"] = programId.ToString(CultureInfo.InvariantCulture) });
 
         if (program.IsActive == isActive) return;
 

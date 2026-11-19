@@ -202,7 +202,7 @@ export function createLimitStep(
   return {
     key: "limit",
     title: t("specWizard.limitStep.title"),
-    validate: (model) => validateStep("limit", model),
+    validate: (model) => validateStep("limit", model, i18n.getFixedT(i18n.language, "labConfig")),
     render: (ctx) => <LimitStepView {...ctx} lookup={getLookup()} />,
     summary: (model) => {
       const displaySpec = modelToDisplaySpec(model);

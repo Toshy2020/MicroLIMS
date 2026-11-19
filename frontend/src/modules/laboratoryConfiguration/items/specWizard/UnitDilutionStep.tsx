@@ -108,7 +108,7 @@ export function createUnitDilutionStep(
   return {
     key: "unit",
     title: t("specWizard.unitStep.title"),
-    validate: (model) => validateStep("unit", model),
+    validate: (model) => validateStep("unit", model, i18n.getFixedT(i18n.language, "labConfig")),
     render: (ctx) => <UnitDilutionStepView {...ctx} />,
     summary: (model) => {
       const rows = [

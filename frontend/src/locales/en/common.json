@@ -461,7 +461,12 @@
       "save": "Save",
       "discardTitle": "Discard unsaved changes?",
       "discardMessage": "You have unsaved changes. Closing now discards them.",
-      "discard": "Discard"
+      "discard": "Discard",
+      "serverValidationFailed": "Server validation could not be completed.",
+      "usageCheckFailed": "Usage could not be checked.",
+      "recordModifiedByAnother": "Record was modified by another user.",
+      "reloadLatestFailed": "Could not reload the latest record.",
+      "saveChangesFailed": "Failed to save changes."
     },
     "summaryTiles": {
       "filtering": "Filtering"

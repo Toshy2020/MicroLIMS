@@ -501,7 +501,12 @@
       "save": "حفظ",
       "discardTitle": "تجاهل التغييرات غير المحفوظة؟",
       "discardMessage": "لديك تغييرات غير محفوظة. سيؤدي الإغلاق الآن إلى تجاهلها.",
-      "discard": "تجاهل"
+      "discard": "تجاهل",
+      "serverValidationFailed": "تعذّر إكمال التحقق من الخادم.",
+      "usageCheckFailed": "تعذّر التحقق من الاستخدام.",
+      "recordModifiedByAnother": "تم تعديل السجل بواسطة مستخدم آخر.",
+      "reloadLatestFailed": "تعذّر إعادة تحميل أحدث سجل.",
+      "saveChangesFailed": "تعذّر حفظ التغييرات."
     },
     "summaryTiles": {
       "filtering": "قيد التصفية"

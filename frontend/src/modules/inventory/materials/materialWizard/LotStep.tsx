@@ -1,5 +1,5 @@
 import { Box, FormControl, InputLabel, MenuItem, Select, TextField } from "@mui/material";
-import { useTranslation } from "../../../../i18n";
+import { i18n, useTranslation } from "../../../../i18n";
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { LoadFailuresAlert } from "../../../../components/LoadErrorAlert";
 import { MATERIAL_UNITS, type MaterialItem, type MaterialUnit } from "../types/materialTypes";
@@ -113,7 +113,7 @@ export function createLotStep(
   return {
     key: "lot",
     title: tw("wizard.steps.lot"),
-    validate: (model) => validateStep("lot", model, getContext(model)),
+    validate: (model) => validateStep("lot", model, getContext(model), i18n.getFixedT(i18n.language, "inventory")),
     render: ({ model, set, errors }) => (
       <LotStepView model={model} set={set} errors={errors} editing={getEditing()} lookups={getLookups()} />
     ),

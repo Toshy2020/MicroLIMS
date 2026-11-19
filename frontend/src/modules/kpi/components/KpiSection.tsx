@@ -26,7 +26,7 @@ function StageBars({ points, unit }: { points: KpiSeriesPoint[]; unit: string })
             <Box sx={{ position: "absolute", inset: 0, width: `${((p.value ?? 0) / max) * 100}%`, borderRadius: 1, bgcolor: theme.custom.chartSequential[3] }} />
           </Box>
           <Typography sx={secondary}>
-            {t("section.stageMedian", { median: formatKpiValue(unit, p.value), p90: formatKpiValue(unit, p.secondary), n: p.n })}
+            {t("section.stageMedian", { median: formatKpiValue(unit, p.value, t), p90: formatKpiValue(unit, p.secondary, t), n: p.n })}
           </Typography>
         </Box>
       ))}
@@ -123,7 +123,7 @@ function SeriesBlock({ entry }: { entry: KpiEntry }) {
 function Panel({ entry, onOpenRecords }: { entry: KpiEntry; onOpenRecords(key: string): void }) {
   const { t } = useTranslation("kpi");
   const theme = useTheme();
-  const view = entryView(entry);
+  const view = entryView(entry, t);
   return (
     <Paper sx={{ p: 2, height: "100%" }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
@@ -147,7 +147,7 @@ function Panel({ entry, onOpenRecords }: { entry: KpiEntry; onOpenRecords(key: s
       )}
       {view.kind === "value" && (
         <Stack spacing={1}>
-          {formatExtras(entry).map((x) => (
+          {formatExtras(entry, t).map((x) => (
             <Typography key={x.label} sx={secondary}>{x.label} {x.text}</Typography>
           ))}
           {view.muted && <Typography sx={secondary}>{t("shared.tooFew")}</Typography>}

@@ -212,6 +212,20 @@
       "addedAs": "Material added to stock as {{stockId}}.",
       "added": "Material added to stock successfully."
     },
+    "errors": {
+      "mediaProduct": "Choose the configured media product for this dehydrated media.",
+      "referenceOrganism": "Choose the reference organism for this lyophilized microorganism.",
+      "category": "Choose the material category for this lot.",
+      "masterEntry": "Choose the material master entry for this lot.",
+      "expiryRequired": "{{category}} lots need an expiry date.",
+      "purityPrimaryRequired": "Purity percentage is required for primary standards.",
+      "purityReferenceRequired": "Purity percentage is required for reference standards.",
+      "purityRange": "Purity must be greater than 0 and less than or equal to 100.",
+      "moistureRange": "Moisture content must be at least 0 and below 100.",
+      "requiredFields": "Material name, batch/lot number, receiving date, storage location, and quantity received are required.",
+      "quantityPositive": "Quantity received must be greater than zero.",
+      "sectionRequired": "Laboratory section is required."
+    },
     "material": {
       "type": "Material Type",
       "legacyHelper": "Received before material categories; the stored type is kept.",

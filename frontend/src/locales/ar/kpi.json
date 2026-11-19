@@ -211,5 +211,24 @@
       "weightedOnTime": "الالتزام بالمواعيد الموزون",
       "weightedRightFirstTime": "الصحة من المرة الأولى الموزونة"
     }
+  },
+  "format": {
+    "daysValue": "{{value}} أيام",
+    "testsValue": "{{value}} اختبارات",
+    "noResult": "لم تُعَد أي نتيجة لهذا المؤشر.",
+    "priorPeriod": "الفترة السابقة: {{value}} (n={{n}})",
+    "extras": {
+      "p90": "P90",
+      "alertRate": "معدل التنبيه",
+      "actionRate": "معدل الإجراء"
+    },
+    "flags": {
+      "AdverseTrend": "اتجاه سلبي"
+    },
+    "directions": {
+      "HigherIsBetter": "الأعلى أفضل",
+      "LowerIsBetter": "الأدنى أفضل",
+      "Neutral": "لا يوجد اتجاه أفضل أو أسوأ"
+    }
   }
 }

@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 import { Trans } from "react-i18next";
-import { useTranslation } from "../../../../i18n";
+import { i18n, useTranslation } from "../../../../i18n";
 
 import type { WizardStep } from "../../../../components/config/useWizard";
 import { DateField } from "../../../../components/DateField";
@@ -63,7 +63,7 @@ export function createDatesStep(
   return {
     key: "dates",
     title: tw("wizard.steps.dates"),
-    validate: (model) => validateStep("dates", model, getContext(model)),
+    validate: (model) => validateStep("dates", model, getContext(model), i18n.getFixedT(i18n.language, "inventory")),
     render: ({ model, set, errors }) => (
       <DatesStepView model={model} set={set} errors={errors} editing={getEditing()} lookups={getLookups()} />
     ),

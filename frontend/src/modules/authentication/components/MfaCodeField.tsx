@@ -1,5 +1,6 @@
 import type { Ref } from "react";
 import { TextField } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 
 export interface MfaCodeFieldProps {
@@ -22,9 +23,10 @@ export function MfaCodeField({
   autoFocus = false,
   inputRef
 }: MfaCodeFieldProps) {
+  const { t } = useTranslation("account");
   return (
     <TextField
-      label="6-digit code"
+      label={t("mfaCode.label")}
       value={value}
       onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
       error={Boolean(error)}

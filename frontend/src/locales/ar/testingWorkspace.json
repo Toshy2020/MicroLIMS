@@ -760,11 +760,26 @@
     "remainingMinutes": "متبقٍ {{minutes}} دقيقة و{{seconds}} ثانية",
     "remainingSeconds": "متبقٍ {{seconds}} ثانية",
     "closed": {
-      "REJECTED": { "label": "مرفوض", "text": "✗ مرفوض" },
-      "VOIDED": { "label": "مُبطل", "text": "مُبطل: شُطب من السجل" },
-      "CANCELLED": { "label": "ملغى", "text": "ملغى" },
-      "SUPERSEDED": { "label": "مُستبدَل", "text": "مُستبدَل: أُعيد اختباره على عينة جديدة" },
-      "ON_HOLD": { "label": "معلّق", "text": "معلّق بانتظار نتيجة إعادة الاختبار" }
+      "REJECTED": {
+        "label": "مرفوض",
+        "text": "✗ مرفوض"
+      },
+      "VOIDED": {
+        "label": "مُبطل",
+        "text": "مُبطل: شُطب من السجل"
+      },
+      "CANCELLED": {
+        "label": "ملغى",
+        "text": "ملغى"
+      },
+      "SUPERSEDED": {
+        "label": "مُستبدَل",
+        "text": "مُستبدَل: أُعيد اختباره على عينة جديدة"
+      },
+      "ON_HOLD": {
+        "label": "معلّق",
+        "text": "معلّق بانتظار نتيجة إعادة الاختبار"
+      }
     },
     "unitRooms": "غرف",
     "unitParts": "أجزاء",
@@ -1689,5 +1704,9 @@
       "sessionCompletedStatus": "✓ مكتمل ومقفل",
       "sessionReadyForReviewStatus": "جاهز للمراجعة الفنية"
     }
+  },
+  "externalLab": {
+    "badge": "مختبر خارجي: {{lab}}",
+    "report": "التقرير الخارجي"
   }
 }

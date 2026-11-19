@@ -1,0 +1,64 @@
+{
+  "shared": {
+    "guidance": "Guidance only. Your approved SOPs take precedence.",
+    "retry": "Retry",
+    "close": "Close",
+    "chapterLoadFailed": "This chapter could not be loaded."
+  },
+  "about": {
+    "loadFailed": "The server version could not be loaded.",
+    "title": "About MicroLIMS",
+    "applicationVersion": "Application version",
+    "serverVersion": "Server version",
+    "environment": "Environment",
+    "loading": "Loading…",
+    "unavailable": "Unavailable",
+    "loadingServerVersion": "Loading the server version…"
+  },
+  "menu": {
+    "help": "Help",
+    "pageHelp": "Help for this page",
+    "fullGuide": "Full guide",
+    "shortcuts": "Keyboard shortcuts",
+    "whatsNew": "What's new",
+    "replayTour": "Replay tour",
+    "about": "About"
+  },
+  "panel": {
+    "loadingChapterAria": "Loading chapter",
+    "searchResultsAria": "Search results",
+    "searching": "Searching",
+    "searchFailed": "Search failed. Try again.",
+    "noResults": "No results for \"{{query}}\"",
+    "results_one": "{{count}} result for \"{{query}}\"",
+    "results_other": "{{count}} results for \"{{query}}\"",
+    "title": "Help",
+    "closeAria": "Close help",
+    "version": "Version {{version}}",
+    "search": "Search the guide",
+    "openFullGuide": "Open the full guide"
+  },
+  "page": {
+    "userGuide": "User guide",
+    "allChapters": "All chapters",
+    "loadingAria": "Loading {{title}}",
+    "chaptersAria": "Guide chapters",
+    "notFoundTitle": "Chapter not found",
+    "notFoundMessage": "There is no guide chapter called \"{{id}}\".",
+    "backToChapters": "Back to all chapters"
+  },
+  "whatsNew": {
+    "title": "What's new",
+    "none": "No release notes are available for your role.",
+    "version": "Version {{version}}",
+    "readGuideAria": "Read guide: {{text}}",
+    "readGuide": "Read guide"
+  },
+  "tour": {
+    "step": "Step {{current}} of {{total}}",
+    "skip": "Skip",
+    "back": "Back",
+    "finish": "Finish",
+    "next": "Next"
+  }
+}

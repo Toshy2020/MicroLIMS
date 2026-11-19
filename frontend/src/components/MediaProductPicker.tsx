@@ -10,6 +10,7 @@ import {
   Theme,
   useTheme
 } from "@mui/material";
+import { useTranslation } from "../i18n";
 import { FloatingDialog } from "./FloatingDialog";
 import { useMediaProducts, MediaProductOption } from "../hooks/useMediaProducts";
 
@@ -36,7 +37,7 @@ const filter = createFilterOptions<Option>({
 export function MediaProductPicker({
   value,
   onChange,
-  label = "Media Product",
+  label: labelProp,
   required = false,
   disabled = false,
   size = "small",
@@ -47,6 +48,8 @@ export function MediaProductPicker({
   options: externalOptions
 }: MediaProductPickerProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
+  const label = labelProp ?? t("components.mediaProductPicker.label");
   const { options: hookOptions, loading, create } = useMediaProducts();
   // Inactive products can't be used for new lots; one already chosen (an old lot being edited) stays visible.
   const options = (externalOptions ?? hookOptions).filter((o) => o.isActive !== false || o.id === value);
@@ -60,7 +63,7 @@ export function MediaProductPicker({
 
   const handleCreate = async () => {
     if (!dialogName.trim() || !dialogCode.trim()) {
-      setDialogError("Both product name and code are required.");
+      setDialogError(t("components.mediaProductPicker.bothRequired"));
       return;
     }
 
@@ -74,7 +77,7 @@ export function MediaProductPicker({
       setDialogCode("");
     } catch (err: unknown) {
       const responseMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setDialogError(responseMessage ?? "Failed to create media product.");
+      setDialogError(responseMessage ?? t("components.mediaProductPicker.createFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -91,7 +94,7 @@ export function MediaProductPicker({
         value={selected}
         getOptionLabel={(o) => {
           if (typeof o === "string") return o;
-          if ("isNew" in o) return "+ Add media product";
+          if ("isNew" in o) return t("components.mediaProductPicker.addOption");
           return `${o.code}: ${o.name}`;
         }}
         isOptionEqualToValue={(o, v) => {
@@ -128,7 +131,7 @@ export function MediaProductPicker({
                 {...restProps}
                 style={{ ...restProps.style, color: theme.palette.primary.main, fontWeight: 600 }}
               >
-                + Add media product
+                {t("components.mediaProductPicker.addOption")}
               </li>
             );
           }
@@ -145,7 +148,7 @@ export function MediaProductPicker({
             required={required}
             error={error}
             helperText={helperText}
-            placeholder="Select media product"
+            placeholder={t("components.mediaProductPicker.placeholder")}
           />
         )}
       />
@@ -153,20 +156,20 @@ export function MediaProductPicker({
       {allowCreate && (
         <FloatingDialog
           open={dialogOpen}
-          title="Add Media Product"
+          title={t("components.mediaProductPicker.dialogTitle")}
           onClose={() => setDialogOpen(false)}
           maxWidth="xs"
           actions={
             <>
               <Button onClick={() => setDialogOpen(false)} disabled={submitting}>
-                Cancel
+                {t("components.mediaProductPicker.cancel")}
               </Button>
               <Button
                 variant="contained"
                 onClick={handleCreate}
                 disabled={!dialogName.trim() || !dialogCode.trim() || submitting}
               >
-                {submitting ? "Adding..." : "Add Product"}
+                {submitting ? t("components.mediaProductPicker.adding") : t("components.mediaProductPicker.addProduct")}
               </Button>
             </>
           }
@@ -174,21 +177,21 @@ export function MediaProductPicker({
           <Stack spacing={2} sx={{ mt: 1 }}>
             {dialogError && <Alert severity="error">{dialogError}</Alert>}
             <TextField
-              label="Product Name"
+              label={t("components.mediaProductPicker.productName")}
               required
               value={dialogName}
               onChange={(e) => setDialogName(e.target.value)}
-              placeholder="e.g. Tryptic Soy Agar"
+              placeholder={t("components.mediaProductPicker.nameExample")}
               autoFocus
               size="small"
             />
             <TextField
-              label="Product Code"
+              label={t("components.mediaProductPicker.productCode")}
               required
               value={dialogCode}
               onChange={(e) => setDialogCode(e.target.value)}
-              placeholder="e.g. TSA"
-              helperText="2-10 characters (letters, digits, dot, hyphen)"
+              placeholder={t("components.mediaProductPicker.codeExample")}
+              helperText={t("components.mediaProductPicker.codeHelper")}
               size="small"
               onKeyDown={(e) => {
                 if (e.key === "Enter" && dialogName.trim() && dialogCode.trim() && !submitting) {

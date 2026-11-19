@@ -11,7 +11,8 @@ import {
   ListItem,
   Typography
 } from "@mui/material";
-import { HELP_GUIDANCE, useHelpPanel, type HelpTarget } from "../HelpPanelContext";
+import { useTranslation } from "../../../i18n";
+import { useHelpPanel, type HelpTarget } from "../HelpPanelContext";
 import type { RoleType } from "../tour/tourSteps";
 import { monospaceFontFamily } from "../../../theme/palette";
 import { itemsForRole, RELEASE_NOTES, type ReleaseNote, type ReleaseNoteItem } from "./releaseNotes";
@@ -42,6 +43,7 @@ export function WhatsNewDialog({
   mode = "latest",
   notes = RELEASE_NOTES
 }: WhatsNewDialogProps) {
+  const { t } = useTranslation("help");
   const { openPanel } = useHelpPanel();
   const titleId = useId();
   const [suppressRestoreFocus, setSuppressRestoreFocus] = useState(false);
@@ -91,16 +93,16 @@ export function WhatsNewDialog({
     >
       <DialogTitle id={titleId}>
         <Typography component="span" variant="h6">
-          What&apos;s new
+          {t("whatsNew.title")}
         </Typography>
       </DialogTitle>
       <DialogContent dividers>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1.5 }}>
-          {HELP_GUIDANCE}
+          {t("shared.guidance")}
         </Typography>
         {sections.length === 0 ? (
           <Typography variant="body2" color="text.secondary">
-            No release notes are available for your role.
+            {t("whatsNew.none")}
           </Typography>
         ) : (
           sections.map((section, idx) => (
@@ -112,7 +114,7 @@ export function WhatsNewDialog({
                   variant="subtitle1"
                   sx={{ fontWeight: 700, fontFamily: monospaceFontFamily, fontVariantNumeric: "tabular-nums" }}
                 >
-                  {`Version ${section.version}`}
+                  {t("whatsNew.version", { version: section.version })}
                 </Typography>
                 <Typography
                   variant="caption"
@@ -137,10 +139,10 @@ export function WhatsNewDialog({
                           size="small"
                           variant="text"
                           onClick={() => handleOpenGuide(guide)}
-                          aria-label={`Read guide: ${item.text}`}
+                          aria-label={t("whatsNew.readGuideAria", { text: item.text })}
                           sx={{ mt: 0.25, px: 0, minWidth: 0, textTransform: "none" }}
                         >
-                          Read guide
+                          {t("whatsNew.readGuide")}
                         </Button>
                       )}
                     </ListItem>
@@ -153,7 +155,7 @@ export function WhatsNewDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} autoFocus>
-          Close
+          {t("shared.close")}
         </Button>
       </DialogActions>
     </Dialog>

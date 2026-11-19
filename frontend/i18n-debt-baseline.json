@@ -1,15 +1,14 @@
 {
-  "total": 964,
+  "total": 768,
   "modules": {
-    "components": 129,
+    "components": 37,
     "modules/admin": 13,
     "modules/auditReview": 2,
     "modules/auditSearch": 10,
-    "modules/authentication": 59,
+    "modules/authentication": 3,
     "modules/dashboard": 13,
     "modules/discussions": 4,
     "modules/documentControl": 6,
-    "modules/help": 46,
     "modules/hplcWorkspace": 31,
     "modules/icpWorkspace": 10,
     "modules/inventory": 73,
@@ -19,7 +18,7 @@
     "modules/notifications": 1,
     "modules/reports": 40,
     "modules/roles": 1,
-    "modules/testingWorkspace": 305,
+    "modules/testingWorkspace": 303,
     "modules/users": 5,
     "pages": 3,
     "pwa": 2

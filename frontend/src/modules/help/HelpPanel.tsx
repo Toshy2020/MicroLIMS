@@ -6,6 +6,7 @@ import {
 import { keyframes } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink, useLocation } from "react-router-dom";
+import { useTranslation } from "../../i18n";
 import { chapterForPath } from "./content/helpMap";
 import { loadChapterText } from "./content/guideLoader";
 import { searchGuide } from "./content/searchIndex";
@@ -31,6 +32,7 @@ type SearchState =
   | { status: "error" };
 
 export function HelpPanel({ services }: { services?: HelpPanelServices }) {
+  const { t } = useTranslation("help");
   const { closePanel, request } = useHelpPanel();
   const location = useLocation();
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -118,19 +120,19 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
   }, []);
 
   let announcement = "";
-  if (found.status === "searching") announcement = "Searching";
-  else if (found.status === "error") announcement = "Search failed. Try again.";
+  if (found.status === "searching") announcement = t("panel.searching");
+  else if (found.status === "error") announcement = t("panel.searchFailed");
   else if (found.status === "done") {
     announcement =
       found.results.length === 0
-        ? `No results for "${found.query}"`
-        : `${found.results.length} result${found.results.length === 1 ? "" : "s"} for "${found.query}"`;
+        ? t("panel.noResults", { query: found.query })
+        : t("panel.results", { count: found.results.length, query: found.query });
   }
 
   let content;
   if (found.status === "done" && found.results.length > 0) {
     content = (
-      <List aria-label="Search results" dense disablePadding>
+      <List aria-label={t("panel.searchResultsAria")} dense disablePadding>
         {found.results.map((r) => (
           <li key={`${r.chapterId}:${r.heading}`}>
             <ListItemButton onClick={() => openResult(r)}>
@@ -146,7 +148,7 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
     );
   } else if (state.status === "loading") {
     content = (
-      <Box role="status" aria-label="Loading chapter">
+      <Box role="status" aria-label={t("panel.loadingChapterAria")}>
         <Skeleton variant="text" width="70%" height={36} />
         <Skeleton variant="text" />
         <Skeleton variant="text" />
@@ -156,8 +158,8 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
     );
   } else if (state.status === "error") {
     content = (
-      <Alert severity="error" action={<Button color="inherit" size="small" onClick={retry}>Retry</Button>}>
-        This chapter could not be loaded.
+      <Alert severity="error" action={<Button color="inherit" size="small" onClick={retry}>{t("shared.retry")}</Button>}>
+        {t("shared.chapterLoadFailed")}
       </Alert>
     );
   } else {
@@ -197,19 +199,19 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
             ref={headingRef}
             sx={{ outline: "none" }}
           >
-            Help
+            {t("panel.title")}
           </Typography>
-          <IconButton aria-label="Close help" onClick={closePanel} size="small">
+          <IconButton aria-label={t("panel.closeAria")} onClick={closePanel} size="small">
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>{HELP_GUIDANCE}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>{t("shared.guidance")}</Typography>
         <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
-          {`Version ${__APP_VERSION__}`}
+          {t("panel.version", { version: __APP_VERSION__ })}
         </Typography>
         <TextField
           type="search"
-          label="Search the guide"
+          label={t("panel.search")}
           size="small"
           fullWidth
           value={query}
@@ -227,7 +229,7 @@ export function HelpPanel({ services }: { services?: HelpPanelServices }) {
 
       <Box sx={{ px: 2, py: 1, borderTop: 1, borderColor: "divider" }}>
         <Link component={RouterLink} to={`/help/${target.chapterId}`}>
-          Open the full guide
+          {t("panel.openFullGuide")}
         </Link>
       </Box>
     </Box>

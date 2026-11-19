@@ -9,6 +9,7 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import {
   MasterRecordType,
   UsageSummary,
@@ -23,11 +24,12 @@ export interface WhereUsedPanelProps {
 
 type LoadState =
   | { status: "loading" }
-  | { status: "error"; message: string }
+  | { status: "error"; message: string | null }
   | { status: "loaded"; summary: UsageSummary };
 
 export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsedPanelProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [retryToken, setRetryToken] = useState(0);
   const [state, setState] = useState<LoadState>(() =>
     providedSummary !== undefined
@@ -53,10 +55,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
-        const message =
-          err instanceof Error && err.message
-            ? err.message
-            : "Could not load where-used information.";
+        const message = err instanceof Error && err.message ? err.message : null;
         setState({ status: "error", message });
       });
 
@@ -68,7 +67,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
   return (
     <Box
       component="section"
-      aria-label="Where used"
+      aria-label={t("components.whereUsedPanel.title")}
       sx={{
         p: 2,
         border: 1,
@@ -78,7 +77,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
       }}
     >
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-        Where used
+        {t("components.whereUsedPanel.title")}
       </Typography>
 
       {state.status === "loading" && (
@@ -89,7 +88,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
         >
           <CircularProgress size={16} />
           <Typography variant="body2" color="text.secondary">
-            Checking where this record is used...
+            {t("components.whereUsedPanel.checking")}
           </Typography>
         </Box>
       )}
@@ -104,11 +103,11 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
               size="small"
               onClick={() => setRetryToken((n) => n + 1)}
             >
-              Retry
+              {t("components.whereUsedPanel.retry")}
             </Button>
           }
         >
-          {state.message}
+          {state.message ?? t("components.whereUsedPanel.loadFailed")}
         </Alert>
       )}
 
@@ -117,7 +116,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
         if (visibleLines.length === 0) {
           return (
             <Typography variant="body2" color="text.secondary">
-              Not used anywhere
+              {t("components.whereUsedPanel.notUsed")}
             </Typography>
           );
         }
@@ -175,7 +174,7 @@ export function WhereUsedPanel({ type, id, summary: providedSummary }: WhereUsed
                         borderColor: openTone.border,
                       }}
                     >
-                      Open
+                      {t("components.whereUsedPanel.open")}
                     </Box>
                   )}
                 </Box>

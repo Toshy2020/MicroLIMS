@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { Alert, Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { FloatingDialog } from "../FloatingDialog";
 
 export interface ChangeReasonDialogProps {
@@ -25,9 +26,9 @@ const DEFAULT_MAX_LENGTH = 500;
  */
 export function ChangeReasonDialog({
   open,
-  title = "Change reason",
-  message = "This change affects active laboratory work and requires a reason for the audit trail.",
-  confirmText = "Confirm",
+  title: titleProp,
+  message: messageProp,
+  confirmText: confirmTextProp,
   loading = false,
   error = null,
   minLength = DEFAULT_MIN_LENGTH,
@@ -35,6 +36,10 @@ export function ChangeReasonDialog({
   onConfirm,
   onCancel,
 }: ChangeReasonDialogProps) {
+  const { t } = useTranslation();
+  const title = titleProp ?? t("components.changeReasonDialog.title");
+  const message = messageProp ?? t("components.changeReasonDialog.message");
+  const confirmText = confirmTextProp ?? t("components.changeReasonDialog.confirm");
   const [reason, setReason] = useState("");
   const [attempted, setAttempted] = useState(false);
 
@@ -52,8 +57,8 @@ export function ChangeReasonDialog({
   const showShortError = (attempted || reason.length > 0) && isTooShort;
 
   const counterText = isTooShort
-    ? `${trimmed.length} / ${minLength} characters minimum`
-    : `${trimmed.length} / ${maxLength} characters`;
+    ? t("components.changeReasonDialog.counterMin", { length: trimmed.length, min: minLength })
+    : t("components.changeReasonDialog.counter", { length: trimmed.length, max: maxLength });
 
   const handleConfirm = () => {
     setAttempted(true);
@@ -76,7 +81,7 @@ export function ChangeReasonDialog({
       actions={
         <>
           <Button type="button" onClick={onCancel} disabled={loading}>
-            Cancel
+            {t("components.changeReasonDialog.cancel")}
           </Button>
           <Button
             type="button"
@@ -100,7 +105,7 @@ export function ChangeReasonDialog({
           message
         )}
         <TextField
-          label="Reason for change"
+          label={t("components.changeReasonDialog.reasonLabel")}
           name="changeReason"
           required
           multiline
@@ -119,8 +124,8 @@ export function ChangeReasonDialog({
             <>
               <span>
                 {showShortError
-                  ? `Enter at least ${minLength} characters.`
-                  : "Recorded in the audit trail."}
+                  ? t("components.changeReasonDialog.enterAtLeast", { min: minLength })
+                  : t("components.changeReasonDialog.recorded")}
               </span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>{counterText}</span>
             </>

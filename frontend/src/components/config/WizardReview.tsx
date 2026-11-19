@@ -3,6 +3,7 @@ import {
   Alert, Box, Button, CircularProgress, Paper, Stack,
   Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme,
 } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import type { FieldError } from "../../services/apiTypes";
 import { diffValues, type WizardDiffItem, type WizardSummaryItem } from "./diffValues";
 import { WhereUsedPanel } from "./WhereUsedPanel";
@@ -47,12 +48,13 @@ function DiffTable({ diffs, beforeHeader, afterHeader }: {
   afterHeader: string;
 }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const headerSx = { color: theme.custom.chrome.tableHeaderText, fontWeight: 600 };
   return (
-    <Table size="small" aria-label="Changed fields">
+    <Table size="small" aria-label={t("components.wizardReview.changedFieldsAria")}>
       <TableHead>
         <TableRow sx={{ bgcolor: theme.custom.chrome.tableHeaderBg }}>
-          <TableCell sx={headerSx}>Field</TableCell>
+          <TableCell sx={headerSx}>{t("components.wizardReview.field")}</TableCell>
           <TableCell sx={headerSx}>{beforeHeader}</TableCell>
           <TableCell sx={headerSx}>{afterHeader}</TableCell>
         </TableRow>
@@ -82,6 +84,7 @@ export function WizardReview<M>({
   hasUsage, usageState, usageBlocked, onRetryUsage, reasonRequired,
   conflictState, onDismissConflict, saveError, onEditStep, extraReview,
 }: WizardReviewProps<M>) {
+  const { t } = useTranslation();
   const stepTitleByKey = new Map(applicableSteps.map((s) => [s.key, s.title]));
   const currentSummaryRows = collectSummary(steps, model);
   const originalSummaryRows = original ? collectSummary(steps, original) : [];
@@ -104,18 +107,18 @@ export function WizardReview<M>({
               onClick={onDismissConflict}
               disabled={conflictState.reloading}
             >
-              Review and save again
+              {t("components.wizardReview.reviewAndSaveAgain")}
             </Button>
           }
         >
           <Stack spacing={1.5}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              This record was changed by someone else while you were editing. Your input has been kept.
+              {t("components.wizardReview.conflictMessage")}
             </Typography>
             {conflictState.reloading && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <CircularProgress size={16} />
-                <Typography variant="body2">Loading latest record...</Typography>
+                <Typography variant="body2">{t("components.wizardReview.loadingLatest")}</Typography>
               </Box>
             )}
             {conflictState.reloadError && (
@@ -123,9 +126,9 @@ export function WizardReview<M>({
             )}
             {!conflictState.reloading && original && (
               diffs.length > 0 ? (
-                <DiffTable diffs={diffs} beforeHeader="Current record" afterHeader="Your input" />
+                <DiffTable diffs={diffs} beforeHeader={t("components.wizardReview.currentRecord")} afterHeader={t("components.wizardReview.yourInput")} />
               ) : (
-                <Typography variant="body2">No differences against the latest record.</Typography>
+                <Typography variant="body2">{t("components.wizardReview.noDifferences")}</Typography>
               )
             )}
           </Stack>
@@ -135,7 +138,7 @@ export function WizardReview<M>({
       {validatingServer && (
         <Box role="status" aria-busy="true" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <CircularProgress size={16} />
-          <Typography variant="body2" color="text.secondary">Validating configuration...</Typography>
+          <Typography variant="body2" color="text.secondary">{t("components.wizardReview.validating")}</Typography>
         </Box>
       )}
 
@@ -144,7 +147,7 @@ export function WizardReview<M>({
           severity="error"
           action={
             <Button type="button" color="inherit" size="small" onClick={onRetryServerValidation}>
-              Retry
+              {t("components.wizardReview.retry")}
             </Button>
           }
         >
@@ -156,7 +159,7 @@ export function WizardReview<M>({
         <Alert severity="error" role="alert">
           <Stack spacing={0.5}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              Please fix the following issues before saving:
+              {t("components.wizardReview.fixIssues")}
             </Typography>
             {Object.entries(serverErrorsByStep).map(([stepKey, fields]) =>
               Object.entries(fields).map(([field, msg]) => {
@@ -165,7 +168,7 @@ export function WizardReview<M>({
                   <Box key={`${stepKey}-${field}`} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                     <Typography variant="body2">{stepTitle}: {msg}</Typography>
                     <Button type="button" size="small" color="inherit" onClick={() => onEditStep(stepKey, field)}>
-                      Go to {stepTitle}
+                      {t("components.wizardReview.goTo", { step: stepTitle })}
                     </Button>
                   </Box>
                 );
@@ -181,16 +184,16 @@ export function WizardReview<M>({
       )}
 
       {mode === "edit" && original && !conflictState.active && (
-        <Box component="section" aria-label="Changes">
+        <Box component="section" aria-label={t("components.wizardReview.changes")}>
           <Typography variant="subtitle2" component="h3" sx={{ mb: 1, fontWeight: 600 }}>
-            Changes
+            {t("components.wizardReview.changes")}
           </Typography>
           {diffs.length > 0 ? (
             <Paper variant="outlined">
-              <DiffTable diffs={diffs} beforeHeader="Before" afterHeader="After" />
+              <DiffTable diffs={diffs} beforeHeader={t("components.wizardReview.before")} afterHeader={t("components.wizardReview.after")} />
             </Paper>
           ) : (
-            <Typography variant="body2" color="text.secondary">No changes made.</Typography>
+            <Typography variant="body2" color="text.secondary">{t("components.wizardReview.noChanges")}</Typography>
           )}
         </Box>
       )}
@@ -206,7 +209,7 @@ export function WizardReview<M>({
                 {step.title}
               </Typography>
               <Button type="button" size="small" onClick={() => onEditStep(step.key, firstFocusField)}>
-                Edit
+                {t("components.wizardReview.edit")}
               </Button>
             </Box>
             <Stack spacing={0.75}>
@@ -231,7 +234,7 @@ export function WizardReview<M>({
           {usageState.status === "loading" && (
             <Box role="status" aria-busy="true" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <CircularProgress size={16} />
-              <Typography variant="body2" color="text.secondary">Checking where this record is used...</Typography>
+              <Typography variant="body2" color="text.secondary">{t("components.wizardReview.checkingUsage")}</Typography>
             </Box>
           )}
           {usageState.status === "error" && (
@@ -239,19 +242,18 @@ export function WizardReview<M>({
               severity="error"
               action={
                 <Button type="button" color="inherit" size="small" onClick={onRetryUsage}>
-                  Retry
+                  {t("components.wizardReview.retry")}
                 </Button>
               }
             >
-              {usageBlocked ? "Usage could not be checked. Retry before saving." : usageState.error}
+              {usageBlocked ? t("components.wizardReview.usageNotChecked") : usageState.error}
             </Alert>
           )}
           {usageState.status === "loaded" && usageState.summary && (
             <Stack spacing={1.5}>
               {reasonRequired && usageState.summary.openWorkCount > 0 && (
                 <Alert severity="warning">
-                  This change affects {usageState.summary.openWorkCount} open work{" "}
-                  {usageState.summary.openWorkCount === 1 ? "item" : "items"}. A reason will be required when you save.
+                  {t("components.wizardReview.openWork", { count: usageState.summary.openWorkCount })}
                 </Alert>
               )}
               <WhereUsedPanel type={usageState.summary.type} id={usageState.summary.id} summary={usageState.summary} />

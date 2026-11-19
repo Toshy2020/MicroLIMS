@@ -6,6 +6,7 @@ import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
 import { AboutDialog } from "./AboutDialog";
 import { useHelpPanel } from "./HelpPanelContext";
 import { ShortcutsDialog } from "../../components/entry/ShortcutsDialog";
+import { useTranslation } from "../../i18n";
 import { useOptionalAuth } from "../../contexts/AuthContext";
 import { TOUR_STEPS, type RoleType } from "./tour/tourSteps";
 import { WhatsNewDialog } from "./whatsNew/WhatsNewDialog";
@@ -18,6 +19,7 @@ function toRoleType(value: string | null | undefined): RoleType | null {
 }
 
 export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNote[] } = {}) {
+  const { t } = useTranslation("help");
   const { helpButtonRef: buttonRef, openPanel, startTour, whatsNewNotes: contextNotes } = useHelpPanel();
   const auth = useOptionalAuth();
   const validRole = toRoleType(auth?.role);
@@ -58,13 +60,13 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
 
   return (
     <>
-      <Tooltip title="Help">
+      <Tooltip title={t("menu.help")}>
         <IconButton
           ref={buttonRef}
           data-tour="help-menu"
           onClick={(e) => setAnchor(e.currentTarget)}
           sx={{ color: "inherit" }}
-          aria-label="Help"
+          aria-label={t("menu.help")}
           aria-controls={anchor ? MENU_ID : undefined}
           aria-haspopup="menu"
           aria-expanded={Boolean(anchor)}
@@ -86,7 +88,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             openPanel();
           }}
         >
-          <ListItemText primary="Help for this page" />
+          <ListItemText primary={t("menu.pageHelp")} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -94,7 +96,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             navigate("/help");
           }}
         >
-          <ListItemText primary="Full guide" />
+          <ListItemText primary={t("menu.fullGuide")} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -103,7 +105,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             setShortcutsOpen(true);
           }}
         >
-          <ListItemText primary="Keyboard shortcuts" />
+          <ListItemText primary={t("menu.shortcuts")} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -111,7 +113,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             setWhatsNewOpen(true);
           }}
         >
-          <ListItemText primary="What's new" />
+          <ListItemText primary={t("menu.whatsNew")} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -119,7 +121,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             startTour();
           }}
         >
-          <ListItemText primary="Replay tour" />
+          <ListItemText primary={t("menu.replayTour")} />
         </MenuItem>
         <MenuItem
           onClick={() => {
@@ -127,7 +129,7 @@ export function HelpMenu({ whatsNewNotes }: { whatsNewNotes?: readonly ReleaseNo
             setAboutOpen(true);
           }}
         >
-          <ListItemText primary="About" />
+          <ListItemText primary={t("menu.about")} />
         </MenuItem>
       </Menu>
       <AboutDialog

@@ -2,7 +2,8 @@ import { useRef, useState, useId } from "react";
 import type { MouseEvent } from "react";
 import { Box, Button, IconButton, Popover, Typography } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
-import { HELP_GUIDANCE, useHelpPanel } from "../modules/help/HelpPanelContext";
+import { useTranslation } from "../i18n";
+import { useHelpPanel } from "../modules/help/HelpPanelContext";
 import type { HelpTarget } from "../modules/help/HelpPanelContext";
 import { useBenchMode } from "../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../theme/benchTheme";
@@ -46,6 +47,7 @@ interface FieldHintProps {
 
 // Opens on click, Enter or Space (a native button). Hover does nothing.
 export function FieldHint({ id, label, hint }: FieldHintProps) {
+  const { t } = useTranslation();
   const { benchMode } = useBenchMode();
   const { openPanel } = useHelpPanel();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +79,7 @@ export function FieldHint({ id, label, hint }: FieldHintProps) {
     <>
       <IconButton
         ref={buttonRef}
-        aria-label={`About ${label}`}
+        aria-label={t("components.fieldHint.aboutAria", { label })}
         aria-haspopup="dialog"
         aria-expanded={Boolean(anchor)}
         onClick={onOpen}
@@ -111,12 +113,12 @@ export function FieldHint({ id, label, hint }: FieldHintProps) {
           {hint.text}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          {HELP_GUIDANCE}
+          {t("shared.guidance", { ns: "help" })}
         </Typography>
         {guide && (
           <Box sx={{ mt: 1 }}>
             <Button size="small" onClick={() => onReadMore(guide)} sx={{ minHeight: size }}>
-              Read more
+              {t("components.fieldHint.readMore")}
             </Button>
           </Box>
         )}

@@ -16,6 +16,9 @@ import {
 } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { toast } from "sonner";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
 import { FloatingDialog } from "../../../components/FloatingDialog";
@@ -30,9 +33,10 @@ import { AuthenticatedEnrolmentFlow } from "./EnrolmentSteps";
 import { MfaCodeField } from "./MfaCodeField";
 import { RecoveryCodesPanel } from "./RecoveryCodesPanel";
 
-function factorTypeLabel(type: string | null | undefined): string {
-  if (type === "HardwareToken") return "Hardware token";
-  return "Authenticator app";
+function useFactorTypeLabel() {
+  const { t } = useTranslation("account");
+  return (type: string | null | undefined): string =>
+    type === "HardwareToken" ? t("security.hardwareToken") : t("security.authenticatorApp");
 }
 
 function SecurityField({ label, value }: { label: string; value: string }) {
@@ -55,6 +59,7 @@ interface RemoveFactorDialogProps {
 }
 
 function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProps) {
+  const { t } = useTranslation("account");
   const formId = useId();
   const messageId = useId();
   const [password, setPassword] = useState("");
@@ -78,10 +83,10 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
     setError(null);
     try {
       await mfaService.removeFactor(password, code);
-      toast.success("Second factor removed.");
+      toast.success(t("security.removed"));
       onRemoved();
     } catch (err: unknown) {
-      const msg = serverMessage(err) ?? getErrorMessage(err, "Could not remove second factor.");
+      const msg = serverMessage(err) ?? getErrorMessage(err, t("security.removeFailed"));
       setError(msg);
       toast.error(msg);
     } finally {
@@ -100,11 +105,11 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <WarningAmberRoundedIcon color="error" aria-hidden />
-        Remove second factor
+        {t("security.removeTitle")}
       </DialogTitle>
       <DialogContent>
         <Typography id={messageId} variant="body2" sx={{ mb: 2 }}>
-          Enter your password and current 6-digit code to remove two-factor authentication from your account.
+          {t("security.removeMessage")}
         </Typography>
         <Box
           component="form"
@@ -115,7 +120,7 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
         >
           {error && <Alert severity="error" role="alert">{error}</Alert>}
           <TextField
-            label="Password"
+            label={t("security.password")}
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -132,7 +137,7 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={submitting} autoFocus>
-          Cancel
+          {t("security.cancel")}
         </Button>
         <Button
           type="submit"
@@ -142,7 +147,7 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
           disabled={submitting || !password || code.length < 6}
           startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          Remove second factor
+          {t("security.removeTitle")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -153,6 +158,8 @@ function RemoveFactorDialog({ open, onClose, onRemoved }: RemoveFactorDialogProp
  * Self-service MFA status, setup, recovery-code regeneration, removal, and trusted computers.
  */
 export function ProfileSecuritySection() {
+  const { t } = useTranslation("account");
+  const factorTypeLabel = useFactorTypeLabel();
   const [status, setStatus] = useState<MfaStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -191,7 +198,7 @@ export function ProfileSecuritySection() {
       })
       .catch((err: unknown) => {
         if (!controller.signal.aborted) {
-          setLoadError(serverMessage(err) ?? getErrorMessage(err, "Could not load security settings."));
+          setLoadError(serverMessage(err) ?? getErrorMessage(err, i18n.t("security.loadFailed", { ns: "account" })));
           setLoading(false);
         }
       });
@@ -219,7 +226,7 @@ export function ProfileSecuritySection() {
       setRegenCode("");
       setRegeneratedCodes(res.recoveryCodes);
     } catch (err: unknown) {
-      const msg = serverMessage(err) ?? getErrorMessage(err, "Could not regenerate recovery codes.");
+      const msg = serverMessage(err) ?? getErrorMessage(err, t("security.regenerateFailed"));
       setRegenError(msg);
       toast.error(msg);
     } finally {
@@ -233,10 +240,10 @@ export function ProfileSecuritySection() {
     try {
       await mfaService.forgetTrustedDevice(forgetTarget.id);
       setForgetTarget(null);
-      toast.success("Trusted computer removed.");
+      toast.success(t("security.trustedRemoved"));
       reloadStatus();
     } catch (err: unknown) {
-      toast.error(serverMessage(err) ?? getErrorMessage(err, "Could not remove trusted computer."));
+      toast.error(serverMessage(err) ?? getErrorMessage(err, t("security.trustedRemoveFailed")));
     } finally {
       setForgetLoading(false);
     }
@@ -252,7 +259,7 @@ export function ProfileSecuritySection() {
 
   return (
     <Box sx={{ mt: 4 }}>
-      <SectionTitle>Security</SectionTitle>
+      <SectionTitle>{t("security.title")}</SectionTitle>
 
       {loading && !status ? (
         <Paper sx={{ p: 2.5, maxWidth: 680 }}>
@@ -264,7 +271,7 @@ export function ProfileSecuritySection() {
           sx={{ maxWidth: 680 }}
           action={
             <Button color="inherit" size="small" onClick={reloadStatus}>
-              Retry
+              {t("security.retry")}
             </Button>
           }
         >
@@ -275,19 +282,19 @@ export function ProfileSecuritySection() {
           <Paper sx={{ p: 2.5 }}>
             <Box component="dl" sx={{ m: 0 }}>
               <SecurityField
-                label="Second factor"
-                value={status.enrolled ? factorTypeLabel(status.type) : "Not enrolled"}
+                label={t("security.secondFactor")}
+                value={status.enrolled ? factorTypeLabel(status.type) : t("security.notEnrolled")}
               />
               {status.enrolled && status.confirmedAt && (
                 <SecurityField
-                  label="Confirmed"
+                  label={t("security.confirmed")}
                   value={formatDateTimeWithTimeZone(status.confirmedAt)}
                 />
               )}
               {status.enrolled && (
                 <SecurityField
-                  label="Recovery codes"
-                  value={`${status.recoveryCodesRemaining} remaining`}
+                  label={t("security.recoveryCodes")}
+                  value={t("security.remaining", { count: status.recoveryCodesRemaining })}
                 />
               )}
             </Box>
@@ -295,12 +302,12 @@ export function ProfileSecuritySection() {
             <Stack direction="row" spacing={1.5} useFlexGap sx={{ mt: 2, alignItems: "center", flexWrap: "wrap" }}>
               {!status.enrolled ? (
                 <Button variant="contained" onClick={() => setSetupOpen(true)}>
-                  Set up
+                  {t("security.setUp")}
                 </Button>
               ) : (
                 <>
                   <Button variant="outlined" onClick={() => setRegenOpen(true)}>
-                    Regenerate recovery codes
+                    {t("security.regenerateCodes")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -308,11 +315,11 @@ export function ProfileSecuritySection() {
                     disabled={status.required}
                     onClick={() => setRemoveOpen(true)}
                   >
-                    Remove
+                    {t("security.remove")}
                   </Button>
                   {status.required && (
                     <Typography variant="body2" color="text.secondary">
-                      Your role requires a second factor
+                      {t("security.roleRequires")}
                     </Typography>
                   )}
                 </>
@@ -322,19 +329,19 @@ export function ProfileSecuritySection() {
 
           <Paper sx={{ p: 2.5 }}>
             <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
-              Trusted computers
+              {t("security.trustedComputers")}
             </Typography>
 
             {status.trustedDevices.length === 0 ? (
               <EmptyState
-                title="No trusted computers"
-                description="Computers you choose to trust during sign-in will appear here."
+                title={t("security.noTrustedTitle")}
+                description={t("security.noTrustedDescription")}
               />
             ) : (
               <Stack spacing={1.5}>
                 {status.trustedDevices.map((device) => {
                   const browserLabel = describeUserAgent(device.userAgent);
-                  const ipLabel = device.createdIp || "Unknown IP";
+                  const ipLabel = device.createdIp || t("security.unknownIp");
                   return (
                     <Box
                       key={device.id}
@@ -350,27 +357,34 @@ export function ProfileSecuritySection() {
                       }}
                     >
                       <Box sx={{ minWidth: 0 }}>
-                        <Tooltip title={device.userAgent || "Unknown browser"}>
+                        <Tooltip title={device.userAgent || t("security.unknownBrowser")}>
                           <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                             {browserLabel}
                           </Typography>
                         </Tooltip>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                          IP: {ipLabel}
+                          <Trans i18nKey="security.ipLine" ns="account" values={{ ip: ipLabel }} components={{ ltr: <Ltr>{null}</Ltr> }} />
                         </Typography>
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                          Trusted: {formatDateTimeWithTimeZone(device.createdAt)} · Expires:{" "}
-                          {formatDateTimeWithTimeZone(device.expiresAt)}
+                          <Trans
+                            i18nKey="security.trustedLine"
+                            ns="account"
+                            values={{
+                              created: formatDateTimeWithTimeZone(device.createdAt),
+                              expires: formatDateTimeWithTimeZone(device.expiresAt)
+                            }}
+                            components={{ ltr: <Ltr>{null}</Ltr> }}
+                          />
                         </Typography>
                       </Box>
                       <Button
                         variant="outlined"
                         size="small"
                         color="error"
-                        aria-label={`Forget ${browserLabel} (${ipLabel})`}
+                        aria-label={t("security.forgetAria", { browser: browserLabel, ip: ipLabel })}
                         onClick={() => setForgetTarget(device)}
                       >
-                        Forget
+                        {t("security.forget")}
                       </Button>
                     </Box>
                   );
@@ -384,7 +398,7 @@ export function ProfileSecuritySection() {
       <FloatingDialog
         open={setupOpen}
         onClose={() => setSetupOpen(false)}
-        title="Set up second factor"
+        title={t("security.setupTitle")}
         maxWidth="xs"
       >
         <Box sx={{ pt: 1 }}>
@@ -403,13 +417,13 @@ export function ProfileSecuritySection() {
         <FloatingDialog
           open={regenOpen}
           onClose={closeRegenDialog}
-          title="Regenerate recovery codes"
+          title={t("security.regenerateTitle")}
           maxWidth="xs"
         >
           <Box sx={{ pt: 1 }}>
             <RecoveryCodesPanel
               codes={regeneratedCodes}
-              introText="Your previous recovery codes are no longer valid. Save these new codes before continuing."
+              introText={t("security.regeneratedIntro")}
               onDone={() => {
                 closeRegenDialog();
                 reloadStatus();
@@ -422,18 +436,18 @@ export function ProfileSecuritySection() {
           open={regenOpen}
           onClose={closeRegenDialog}
           onSubmit={handleRegenSubmit}
-          title="Regenerate recovery codes"
-          submitLabel="Regenerate"
+          title={t("security.regenerateTitle")}
+          submitLabel={t("security.regenerate")}
           submitting={regenSubmitting}
           submitDisabled={!regenPassword || regenCode.length < 6}
           error={regenError}
           maxWidth="xs"
         >
           <Typography variant="body2" color="text.secondary">
-            Generating a new set invalidates any unused recovery codes.
+            {t("security.regenerateWarning")}
           </Typography>
           <TextField
-            label="Password"
+            label={t("security.password")}
             type="password"
             value={regenPassword}
             onChange={(e) => setRegenPassword(e.target.value)}
@@ -462,12 +476,15 @@ export function ProfileSecuritySection() {
       <ConfirmationDialog
         open={Boolean(forgetTarget)}
         destructive
-        title="Forget trusted computer"
-        confirmText="Forget"
+        title={t("security.forgetTitle")}
+        confirmText={t("security.forget")}
         loading={forgetLoading}
         message={
           forgetTarget
-            ? `Next time you sign in from ${describeUserAgent(forgetTarget.userAgent)} (${forgetTarget.createdIp || "Unknown IP"}), a 6-digit code will be required.`
+            ? t("security.forgetMessage", {
+                browser: describeUserAgent(forgetTarget.userAgent),
+                ip: forgetTarget.createdIp || t("security.unknownIp")
+              })
             : ""
         }
         onCancel={() => setForgetTarget(null)}

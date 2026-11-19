@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -46,7 +48,10 @@ public class AfterCleaningMasterDataService
     public async Task<MachineResponse> UpdateMachineAsync(int id, UpdateMachineRequest request)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new NotFoundException($"Machine {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachineNotFound,
+                $"Machine {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, machine);
         if (request.IsActive.HasValue) machine.IsActive = request.IsActive.Value;
         machine.Name = request.Name;
@@ -60,15 +65,32 @@ public class AfterCleaningMasterDataService
     public async Task<object> DeleteMachineAsync(int id)
     {
         var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == id)
-            ?? throw new NotFoundException($"Machine {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachineNotFound,
+                $"Machine {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var partCount = await _db.MachineParts.CountAsync(p => p.MachineId == id);
         if (partCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{machine.Name}' - it still has {partCount} part(s). Delete those first.");
+            throw new BusinessRuleException(
+                MessageCodes.AfterCleaningMachineHasParts,
+                $"Cannot delete '{machine.Name}' - it still has {partCount} part(s). Delete those first.",
+                new Dictionary<string, string>
+                {
+                    ["name"] = machine.Name,
+                    ["partCount"] = partCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         var sampleCount = await _db.Samples.CountAsync(s => s.MachineId == id);
         if (sampleCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{machine.Name}' - it has been used to receive {sampleCount} sample(s).");
+            throw new BusinessRuleException(
+                MessageCodes.AfterCleaningMachineUsedBySamples,
+                $"Cannot delete '{machine.Name}' - it has been used to receive {sampleCount} sample(s).",
+                new Dictionary<string, string>
+                {
+                    ["name"] = machine.Name,
+                    ["sampleCount"] = sampleCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.Machines.Remove(machine);
         await _db.SaveChangesAsync();
@@ -86,7 +108,10 @@ public class AfterCleaningMasterDataService
     public async Task<MachinePartResponse> UpdateMachinePartAsync(int id, UpdateMachinePartRequest request)
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Machine part {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachinePartNotFound,
+                $"Machine part {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, part);
         if (request.IsActive.HasValue) part.IsActive = request.IsActive.Value;
         part.Name = request.Name;
@@ -101,11 +126,21 @@ public class AfterCleaningMasterDataService
     public async Task<object> DeleteMachinePartAsync(int id)
     {
         var part = await _db.MachineParts.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Machine part {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachinePartNotFound,
+                $"Machine part {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var configCount = await _db.MachinePartConfigurations.CountAsync(c => c.MachinePartId == id);
         if (configCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{part.Name}' - it still has {configCount} test configuration(s). Delete those first.");
+            throw new BusinessRuleException(
+                MessageCodes.AfterCleaningMachinePartHasConfigs,
+                $"Cannot delete '{part.Name}' - it still has {configCount} test configuration(s). Delete those first.",
+                new Dictionary<string, string>
+                {
+                    ["name"] = part.Name,
+                    ["configCount"] = configCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.MachineParts.Remove(part);
         await _db.SaveChangesAsync();
@@ -123,7 +158,14 @@ public class AfterCleaningMasterDataService
         var duplicate = await _db.MachinePartConfigurations.AnyAsync(c =>
             c.MachinePartId == machinePartId && c.TestType == testType && c.TestCode == testCode && c.Id != exceptId);
         if (duplicate)
-            throw new BusinessRuleException($"{testCode} ({testType}) is already configured for this part.");
+            throw new BusinessRuleException(
+                MessageCodes.AfterCleaningPartTestAlreadyConfigured,
+                $"{testCode} ({testType}) is already configured for this part.",
+                new Dictionary<string, string>
+                {
+                    ["testCode"] = testCode,
+                    ["testType"] = testType
+                });
     }
 
     // HPLC and ICP part tests take the limit from the cleaning method (MACO) or the ICP test (ppm).
@@ -132,7 +174,17 @@ public class AfterCleaningMasterDataService
         if (limitType == null) return;
         var workflowType = await _db.TestDefinitions.Where(d => d.Code == testCode).Select(d => (WorkflowType?)d.WorkflowType).FirstOrDefaultAsync();
         if (workflowType is WorkflowType.HplcMethodAssay or WorkflowType.IcpMethodAssay)
-            throw new BusinessRuleException($"{testCode} takes its limit from the {(workflowType == WorkflowType.HplcMethodAssay ? "cleaning HPLC method" : "ICP test")}; leave the part limit empty.");
+        {
+            if (workflowType == WorkflowType.HplcMethodAssay)
+                throw new BusinessRuleException(
+                    MessageCodes.AfterCleaningPartLimitFromHplcMethod,
+                    $"{testCode} takes its limit from the cleaning HPLC method; leave the part limit empty.",
+                    new Dictionary<string, string> { ["testCode"] = testCode });
+            throw new BusinessRuleException(
+                MessageCodes.AfterCleaningPartLimitFromIcpTest,
+                $"{testCode} takes its limit from the ICP test; leave the part limit empty.",
+                new Dictionary<string, string> { ["testCode"] = testCode });
+        }
     }
 
     public async Task<MachinePartConfigurationResponse> CreateMachinePartConfigurationAsync(int currentUserId, CreateMachinePartConfigRequest request)
@@ -166,7 +218,10 @@ public class AfterCleaningMasterDataService
     public async Task<MachinePartConfigurationResponse> UpdateMachinePartConfigurationAsync(int currentUserId, int id, UpdateMachinePartConfigRequest request)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachinePartConfigNotFound,
+                $"Machine part configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Machine part configuration");
@@ -198,14 +253,23 @@ public class AfterCleaningMasterDataService
     public async Task<object> DeleteMachinePartConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.MachinePartConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Machine part configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AfterCleaningMachinePartConfigNotFound,
+                $"Machine part configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Machine part configuration");
 
         var usedBy = await _db.SampleLocations.CountAsync(l => l.MachinePartConfigurationId == id);
         if (usedBy > 0)
             throw new BusinessRuleException(
-                $"{entity.TestCode} has already been tested on this part ({usedBy} sample location(s)), so it cannot be removed.");
+                MessageCodes.AfterCleaningMachinePartConfigUsedBySamples,
+                $"{entity.TestCode} has already been tested on this part ({usedBy} sample location(s)), so it cannot be removed.",
+                new Dictionary<string, string>
+                {
+                    ["testCode"] = entity.TestCode,
+                    ["usedBy"] = usedBy.ToString(CultureInfo.InvariantCulture)
+                });
         _db.MachinePartConfigurations.Remove(entity);
         await _db.SaveChangesAsync();
         return new { };

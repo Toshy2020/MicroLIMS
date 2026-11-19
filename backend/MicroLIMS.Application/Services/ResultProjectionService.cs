@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Domain.Entities;
@@ -120,10 +122,23 @@ public class ResultProjectionService
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .FirstOrDefaultAsync(r => r.Id == countTestReadingId)
-            ?? throw new NotFoundException($"CountTestReading {countTestReadingId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ResultCountTestReadingNotFound,
+                $"CountTestReading {countTestReadingId} not found.",
+                new Dictionary<string, string> { ["countTestReadingId"] = countTestReadingId.ToString(CultureInfo.InvariantCulture) });
 
-        var order = reading.TestOrder ?? throw new BusinessRuleException($"CountTestReading {countTestReadingId} has no TestOrder.");
-        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.");
+        var order = reading.TestOrder ?? throw new BusinessRuleException(
+            MessageCodes.ResultCountTestReadingMissingTestOrder,
+            $"CountTestReading {countTestReadingId} has no TestOrder.",
+            new Dictionary<string, string> { ["countTestReadingId"] = countTestReadingId.ToString(CultureInfo.InvariantCulture) });
+        var sample = order.Sample ?? throw new BusinessRuleException(
+            MessageCodes.ResultCountTestReadingMissingSample,
+            $"TestOrder {order.Id} has no Sample - cannot project CountTestReading {countTestReadingId}.",
+            new Dictionary<string, string>
+            {
+                ["testOrderId"] = order.Id.ToString(CultureInfo.InvariantCulture),
+                ["countTestReadingId"] = countTestReadingId.ToString(CultureInfo.InvariantCulture)
+            });
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == reading.EnteredByUserId);
@@ -179,12 +194,28 @@ public class ResultProjectionService
             .Include(r => r.TestAnalysis)
             .Include(r => r.TestOrder!).ThenInclude(o => o.Sample!).ThenInclude(s => s.Item)
             .FirstOrDefaultAsync(r => r.Id == parameterResultId)
-            ?? throw new NotFoundException($"ParameterResult {parameterResultId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ResultParameterResultNotFound,
+                $"ParameterResult {parameterResultId} not found.",
+                new Dictionary<string, string> { ["parameterResultId"] = parameterResultId.ToString(CultureInfo.InvariantCulture) });
 
-        var order = paramResult.TestOrder ?? throw new BusinessRuleException($"ParameterResult {parameterResultId} has no TestOrder.");
-        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.");
+        var order = paramResult.TestOrder ?? throw new BusinessRuleException(
+            MessageCodes.ResultParameterResultMissingTestOrder,
+            $"ParameterResult {parameterResultId} has no TestOrder.",
+            new Dictionary<string, string> { ["parameterResultId"] = parameterResultId.ToString(CultureInfo.InvariantCulture) });
+        var sample = order.Sample ?? throw new BusinessRuleException(
+            MessageCodes.ResultParameterResultMissingSample,
+            $"TestOrder {order.Id} has no Sample - cannot project ParameterResult {parameterResultId}.",
+            new Dictionary<string, string>
+            {
+                ["testOrderId"] = order.Id.ToString(CultureInfo.InvariantCulture),
+                ["parameterResultId"] = parameterResultId.ToString(CultureInfo.InvariantCulture)
+            });
         var analysis = paramResult.TestAnalysis ?? await _db.TestAnalyses.FirstOrDefaultAsync(e => e.Id == paramResult.TestAnalysisId)
-            ?? throw new BusinessRuleException($"ParameterResult {parameterResultId} has no TestAnalysis.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ResultParameterResultMissingTestAnalysis,
+                $"ParameterResult {parameterResultId} has no TestAnalysis.",
+                new Dictionary<string, string> { ["parameterResultId"] = parameterResultId.ToString(CultureInfo.InvariantCulture) });
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = await _db.Users.FirstOrDefaultAsync(u => u.Id == analysis.EnteredByUserId);
@@ -234,17 +265,29 @@ public class ResultProjectionService
             .Include(o => o.Sample!).ThenInclude(s => s.Item)
             .Include(o => o.Sample!).ThenInclude(s => s.WaterSamplingPoint)
             .FirstOrDefaultAsync(o => o.Id == testOrderId)
-            ?? throw new NotFoundException($"TestOrder {testOrderId} not found.");
-        var sample = order.Sample ?? throw new BusinessRuleException($"TestOrder {testOrderId} has no Sample.");
+            ?? throw new NotFoundException(
+                MessageCodes.ResultTestOrderNotFound,
+                $"TestOrder {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        var sample = order.Sample ?? throw new BusinessRuleException(
+            MessageCodes.ResultTestOrderMissingSample,
+            $"TestOrder {testOrderId} has no Sample.",
+            new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"Test code \"{order.TestCode}\" has no workflow template configured.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ResultTestCodeMissingWorkflowTemplate,
+                $"Test code \"{order.TestCode}\" has no workflow template configured.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         var finalResult = await _db.WorkflowStepResults
             .Where(r => r.TestOrderId == testOrderId)
             .OrderByDescending(r => r.Id)
             .FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException($"TestOrder {testOrderId} has no workflow step result recorded yet.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.ResultTestOrderMissingWorkflowStepResult,
+                $"TestOrder {testOrderId} has no workflow step result recorded yet.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         // SkippedBiochemical/BiochemicalResultText are the only fields a
         // concluding WorkflowStepResult can carry that represent a
@@ -318,13 +361,25 @@ public class ResultProjectionService
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart)
             .Include(l => l.WaterSamplingPoint)
             .FirstOrDefaultAsync(l => l.Id == sampleLocationId)
-            ?? throw new NotFoundException($"SampleLocation {sampleLocationId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ResultSampleLocationNotFound,
+                $"SampleLocation {sampleLocationId} not found.",
+                new Dictionary<string, string> { ["sampleLocationId"] = sampleLocationId.ToString(CultureInfo.InvariantCulture) });
 
         if (location.Status is null)
-            throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no result recorded yet.");
+            throw new BusinessRuleException(
+                MessageCodes.ResultSampleLocationMissingResult,
+                $"SampleLocation {sampleLocationId} has no result recorded yet.",
+                new Dictionary<string, string> { ["sampleLocationId"] = sampleLocationId.ToString(CultureInfo.InvariantCulture) });
 
-        var sample = location.Sample ?? throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no Sample.");
-        var order = location.TestOrder ?? throw new BusinessRuleException($"SampleLocation {sampleLocationId} has no TestOrder.");
+        var sample = location.Sample ?? throw new BusinessRuleException(
+            MessageCodes.ResultSampleLocationMissingSample,
+            $"SampleLocation {sampleLocationId} has no Sample.",
+            new Dictionary<string, string> { ["sampleLocationId"] = sampleLocationId.ToString(CultureInfo.InvariantCulture) });
+        var order = location.TestOrder ?? throw new BusinessRuleException(
+            MessageCodes.ResultSampleLocationMissingTestOrder,
+            $"SampleLocation {sampleLocationId} has no TestOrder.",
+            new Dictionary<string, string> { ["sampleLocationId"] = sampleLocationId.ToString(CultureInfo.InvariantCulture) });
 
         var testDefinition = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == order.TestCode);
         var enteredBy = location.EnteredByUserId is int enteredByUserId
@@ -387,7 +442,10 @@ public class ResultProjectionService
     public async Task RefreshApprovalFieldsAsync(int sampleId)
     {
         var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ResultSampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var approvedBy = sample.ApprovedByUserId is int approvedByUserId
             ? await _db.Users.FirstOrDefaultAsync(u => u.Id == approvedByUserId)

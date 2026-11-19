@@ -16,7 +16,9 @@ public static partial class MessageCodes
     // Code -> the parameter names its sentence uses. Each prefix lives in its own file
     // (MessageCodes.<Prefix>.cs); a code listed twice fails here with a duplicate-key error.
     public static IReadOnlyDictionary<string, string[]> ParameterNames { get; } = Combine(
+        AfterCleaningParameters(),
         AssayParameters(),
+        AuditReviewParameters(),
         AuthParameters(),
         ControlChartParameters(),
         ColumnParameters(),
@@ -37,16 +39,20 @@ public static partial class MessageCodes
         OutsourcedParameters(),
         PathogenParameters(),
         ReceivingParameters(),
+        ReferenceListParameters(),
+        ResultParameters(),
         SampleParameters(),
         SolutionParameters(),
         SpecificationParameters(),
         StandardParameters(),
+        TableViewParameters(),
         TestDefinitionParameters(),
         TestParameters(),
         TitrantParameters(),
         TitrationParameters(),
         UserParameters(),
         UvParameters(),
+        WasteParameters(),
         WeightVariationParameters(),
         WorkflowStepParameters());
 

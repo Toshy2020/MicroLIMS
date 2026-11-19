@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -6,6 +7,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -82,7 +84,10 @@ public class BiologicalWasteDestructionService
     {
         var destruction = await Query().FirstOrDefaultAsync(d => d.Id == id);
         if (destruction is null || (sectionIds != null && !sectionIds.Contains(destruction.SectionId)))
-            throw new NotFoundException($"Biological waste destruction {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.WasteDestructionNotFound,
+                $"Biological waste destruction {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         return (await ToDtosAsync(new List<BiologicalWasteDestruction> { destruction }))[0];
     }
 
@@ -101,20 +106,34 @@ public class BiologicalWasteDestructionService
         var others = r.OtherItems ?? new();
 
         if (string.IsNullOrWhiteSpace(r.CycleNumber))
-            throw new BusinessRuleException("The autoclave cycle number is required.");
+            throw new BusinessRuleException(
+                MessageCodes.WasteCycleNumberRequired,
+                "The autoclave cycle number is required.");
         var cycleStartedAt = DateTime.SpecifyKind(r.CycleStartedAt, DateTimeKind.Utc);
         if (cycleStartedAt > now + ClockTolerance)
-            throw new BusinessRuleException("The autoclave cycle start cannot be in the future.");
+            throw new BusinessRuleException(
+                MessageCodes.WasteCycleStartInFuture,
+                "The autoclave cycle start cannot be in the future.");
         if (thawIds.Count + batchIds.Count + others.Count == 0)
-            throw new BusinessRuleException("Select at least one thawed vial, withdrawn batch or other waste item destroyed in this cycle.");
+            throw new BusinessRuleException(
+                MessageCodes.WasteItemRequired,
+                "Select at least one thawed vial, withdrawn batch or other waste item destroyed in this cycle.");
 
         var autoclave = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.AutoclaveEquipmentId && e.Type == EquipmentType.Autoclave)
-            ?? throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.WasteEquipmentNotAutoclave,
+                "Selected equipment is not a valid autoclave.");
         await _scope.EnsureEquipmentAccessAsync(userId, autoclave.Id);
         var program = await _db.AutoclavePrograms.FirstOrDefaultAsync(p => p.Id == r.AutoclaveProgramId && p.EquipmentId == autoclave.Id)
-            ?? throw new BusinessRuleException($"The selected program does not belong to autoclave {autoclave.Code}.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.WasteProgramWrongAutoclave,
+                $"The selected program does not belong to autoclave {autoclave.Code}.",
+                new Dictionary<string, string> { ["autoclaveCode"] = autoclave.Code });
         if (!program.IsActive)
-            throw new BusinessRuleException($"Autoclave program {program.ProgramCode} is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.WasteProgramInactive,
+                $"Autoclave program {program.ProgramCode} is inactive.",
+                new Dictionary<string, string> { ["programCode"] = program.ProgramCode });
 
         var sectionIds = await _scope.GetMemberSectionIdsAsync(userId);
         var items = new List<BiologicalWasteDestructionItem>();
@@ -127,14 +146,27 @@ public class BiologicalWasteDestructionService
         foreach (var id in thawIds)
         {
             var thaw = thaws.FirstOrDefault(t => t.Id == id)
-                ?? throw new NotFoundException($"Thawed vial {id} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.WasteThawedVialNotFound,
+                    $"Thawed vial {id} not found.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
             var vial = $"{thaw.Cryovial!.Code} vial thawed {thaw.ThawedAt:dd-MMM-yyyy HH:mm}";
             if (sectionIds != null && !sectionIds.Contains(thaw.Cryovial.Material!.SectionId))
                 throw new UnauthorizedAccessException($"The {vial} belongs to a laboratory section you do not have access to.");
             if (thaw.DestructionItem is not null)
-                throw new BusinessRuleException($"The {vial} has already been destroyed.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteThawedVialAlreadyDestroyed,
+                    $"The {vial} has already been destroyed.",
+                    new Dictionary<string, string> { ["vial"] = vial });
             if (!thaw.Cryovial.IsDestroyed && thaw.ThawedAt.Add(CryovialThaw.UsableFor) > now)
-                throw new BusinessRuleException($"The {vial} is still within its {CryovialThaw.UsableFor.TotalHours:0}-hour use window and is not yet eligible for destruction.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteThawedVialWithinUseWindow,
+                    $"The {vial} is still within its {CryovialThaw.UsableFor.TotalHours:0}-hour use window and is not yet eligible for destruction.",
+                    new Dictionary<string, string>
+                    {
+                        ["vial"] = vial,
+                        ["hours"] = CryovialThaw.UsableFor.TotalHours.ToString("0", CultureInfo.InvariantCulture)
+                    });
 
             items.Add(new BiologicalWasteDestructionItem
             {
@@ -152,13 +184,22 @@ public class BiologicalWasteDestructionService
         foreach (var id in batchIds)
         {
             var batch = batches.FirstOrDefault(c => c.Id == id)
-                ?? throw new NotFoundException($"Cryovial {id} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.WasteCryovialNotFound,
+                    $"Cryovial {id} not found.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
             if (sectionIds != null && !sectionIds.Contains(batch.Material!.SectionId))
                 throw new UnauthorizedAccessException($"Cryovial batch {batch.Code} belongs to a laboratory section you do not have access to.");
             if (!batch.IsDestroyed)
-                throw new BusinessRuleException($"Cryovial batch {batch.Code} has not been withdrawn - only a withdrawn batch's unthawed vials can be destroyed.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteCryovialBatchNotWithdrawn,
+                    $"Cryovial batch {batch.Code} has not been withdrawn - only a withdrawn batch's unthawed vials can be destroyed.",
+                    new Dictionary<string, string> { ["code"] = batch.Code });
             if (batch.VialsRemaining <= 0)
-                throw new BusinessRuleException($"Cryovial batch {batch.Code} has no unthawed vials left to destroy.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteCryovialBatchNoVialsLeft,
+                    $"Cryovial batch {batch.Code} has no unthawed vials left to destroy.",
+                    new Dictionary<string, string> { ["code"] = batch.Code });
 
             items.Add(new BiologicalWasteDestructionItem
             {
@@ -173,11 +214,19 @@ public class BiologicalWasteDestructionService
         foreach (var o in others)
         {
             if (string.IsNullOrWhiteSpace(o.Description))
-                throw new BusinessRuleException("Every other waste item needs a description.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteOtherItemDescriptionRequired,
+                    "Every other waste item needs a description.");
             if (o.Quantity <= 0)
-                throw new BusinessRuleException($"Quantity for \"{o.Description.Trim()}\" must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteOtherItemQuantityPositive,
+                    $"Quantity for \"{o.Description.Trim()}\" must be greater than zero.",
+                    new Dictionary<string, string> { ["description"] = o.Description.Trim() });
             if (string.IsNullOrWhiteSpace(o.Unit))
-                throw new BusinessRuleException($"Unit for \"{o.Description.Trim()}\" is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.WasteOtherItemUnitRequired,
+                    $"Unit for \"{o.Description.Trim()}\" is required.",
+                    new Dictionary<string, string> { ["description"] = o.Description.Trim() });
             items.Add(new BiologicalWasteDestructionItem
             {
                 ItemType = BiologicalWasteItemType.Other,

@@ -49,7 +49,7 @@ public sealed class RecordLabelResolver : IRecordLabelResolver
         if (testOrderIds.Count > 0) await AddTestOrdersAsync(testOrderIds, InScope, result, ct);
         if (itemIds.Count > 0) await AddItemsAsync(itemIds, result, ct);
         if (documentIds.Count > 0) await AddDocumentsAsync(userId, documentIds, result, ct);
-        if (equipmentIds.Count > 0) await AddEquipmentAsync(equipmentIds, InScope, result, ct);
+        if (equipmentIds.Count > 0) await AddEquipmentAsync(equipmentIds, InScope, scope is null, result, ct);
         if (materialIds.Count > 0) await AddMaterialsAsync(materialIds, InScope, result, ct);
         if (mediaIds.Count > 0) await AddMediaAsync(mediaIds, InScope, result, ct);
         if (solutionIds.Count > 0) await AddSolutionsAsync(solutionIds, InScope, result, ct);
@@ -135,16 +135,18 @@ public sealed class RecordLabelResolver : IRecordLabelResolver
                 (string.IsNullOrWhiteSpace(d.CompanyDocumentCode) ? d.MicroLimsDocumentId : d.CompanyDocumentCode, d.Title, RecordNavigationTargets.Document(d.Id));
     }
 
-    // Same rule as EnsureEquipmentAccessAsync: the equipment's section.
-    private async Task AddEquipmentAsync(List<int> ids, Func<int, bool> inScope,
+    // The frontend tracks "equipment" records by EquipmentInventory id (the /inventory/equipment register).
+    // Same rule as EquipmentInventoryService.GetAllAsync: a user sees an inventory row only when its section is in
+    // scope; a row without a section is visible only to a user holding Sections.ViewAll (scope == null).
+    private async Task AddEquipmentAsync(List<int> ids, Func<int, bool> inScope, bool viewAll,
         Dictionary<(string Type, int Id), (string Identifier, string Title, string Route)> result, CancellationToken ct)
     {
-        var rows = await _db.Equipment.AsNoTracking()
+        var rows = await _db.EquipmentInventories.AsNoTracking()
             .Where(e => ids.Contains(e.Id))
-            .Select(e => new { e.Id, e.SectionId, e.Code, e.Name })
+            .Select(e => new { e.Id, e.SectionId, e.Code, e.InstrumentType })
             .ToListAsync(ct);
-        foreach (var e in rows.Where(e => inScope(e.SectionId)))
-            result[(RecentRecordTypes.Equipment, e.Id)] = (e.Code, e.Name, $"{RecordNavigationTargets.EquipmentAsset()}?equipmentId={e.Id}");
+        foreach (var e in rows.Where(e => e.SectionId.HasValue ? inScope(e.SectionId.Value) : viewAll))
+            result[(RecentRecordTypes.Equipment, e.Id)] = (e.Code, e.InstrumentType, $"{RecordNavigationTargets.EquipmentAsset()}?equipmentId={e.Id}");
     }
 
     // Same rule as EnsureMaterialAccessAsync: the material's section.

@@ -153,11 +153,12 @@ public class RecentRecordPostgresTests
         };
         db.DocumentMasters.Add(master);
 
-        var equipment = new Equipment
+        var equipment = new EquipmentInventory
         {
-            Name = "Recent incubator " + tag, Code = $"INC-{Guid.NewGuid():N}"[..14], Type = EquipmentType.Incubator, SetPointTemperature = 32, SectionId = section.Id
+            InstrumentType = "Recent incubator " + tag, Code = $"INC-{Guid.NewGuid():N}"[..14], ManufacturerName = "Binder", Location = "Lab 1",
+            Status = EquipmentOperationalStatus.InService, SectionId = section.Id, CreatedByUserId = creatorUserId, LastModifiedByUserId = creatorUserId
         };
-        db.Equipment.Add(equipment);
+        db.EquipmentInventories.Add(equipment);
 
         Material NewMaterial() => new()
         {
@@ -470,5 +471,124 @@ public class RecentRecordPostgresTests
 
         await using var assertDb = _fixture.CreateDbContext();
         Assert.Empty(await assertDb.RecentRecords.AsNoTracking().Where(r => r.UserId == user.Id).ToListAsync());
+    }
+
+    [PostgresFact]
+    public async Task EquipmentInventory_ResolvesOwnCodeAndName_OutOfScopeDropped()
+    {
+        var mySection = await NewSectionAsync();
+        var otherSection = await NewSectionAsync();
+        var user = await NewUserAsync(mySection);
+        var tag = Guid.NewGuid().ToString("N")[..8];
+
+        int inScopeInventoryId;
+        int outOfScopeInventoryId;
+        int nullSectionInventoryId;
+        string expectedCode = $"INV-IN-{tag}";
+        string expectedTitle = $"Analytical Balance {tag}";
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            // Seed extra EquipmentInventories first so inScopeInventoryId does not collide with any existing Equipment row id.
+            var outOfScope = new EquipmentInventory
+            {
+                Code = $"INV-OUT-{tag}",
+                InstrumentType = $"Out Balance {tag}",
+                ManufacturerName = "Mettler",
+                Location = "Room B",
+                Status = EquipmentOperationalStatus.InService,
+                SectionId = otherSection.Id,
+                CreatedByUserId = user.Id,
+                LastModifiedByUserId = user.Id
+            };
+            var nullSection = new EquipmentInventory
+            {
+                Code = $"INV-NULL-{tag}",
+                InstrumentType = $"Unassigned Balance {tag}",
+                ManufacturerName = "Mettler",
+                Location = "Room C",
+                Status = EquipmentOperationalStatus.InService,
+                SectionId = null,
+                CreatedByUserId = user.Id,
+                LastModifiedByUserId = user.Id
+            };
+            var inScope = new EquipmentInventory
+            {
+                Code = expectedCode,
+                InstrumentType = expectedTitle,
+                ManufacturerName = "Sartorius",
+                Location = "Room A",
+                Status = EquipmentOperationalStatus.InService,
+                SectionId = mySection.Id,
+                CreatedByUserId = user.Id,
+                LastModifiedByUserId = user.Id
+            };
+            arrangeDb.EquipmentInventories.AddRange(outOfScope, nullSection, inScope);
+            await arrangeDb.SaveChangesAsync();
+
+            inScopeInventoryId = inScope.Id;
+            outOfScopeInventoryId = outOfScope.Id;
+            nullSectionInventoryId = nullSection.Id;
+        }
+
+        // An id that exists only in the Equipment master table (above every inventory id) must not resolve.
+        int masterOnlyId;
+        await using (var masterDb = _fixture.CreateDbContext())
+        {
+            var maxInventoryId = await masterDb.EquipmentInventories.AsNoTracking().MaxAsync(e => e.Id);
+            Equipment master;
+            do
+            {
+                master = new Equipment
+                {
+                    Name = "Master only " + tag, Code = $"EQM-{Guid.NewGuid():N}"[..14], Type = EquipmentType.Incubator,
+                    SetPointTemperature = 32, SectionId = mySection.Id
+                };
+                masterDb.Equipment.Add(master);
+                await masterDb.SaveChangesAsync();
+            } while (master.Id <= maxInventoryId);
+            masterOnlyId = master.Id;
+        }
+
+        await TouchAsync(user.Id, RecentRecordTypes.Equipment, masterOnlyId, T0.AddMinutes(-1));
+        await TouchAsync(user.Id, RecentRecordTypes.Equipment, outOfScopeInventoryId, T0);
+        await TouchAsync(user.Id, RecentRecordTypes.Equipment, nullSectionInventoryId, T0.AddMinutes(1));
+        await TouchAsync(user.Id, RecentRecordTypes.Equipment, inScopeInventoryId, T0.AddMinutes(2));
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var stored = await assertDb.RecentRecords.AsNoTracking()
+                .Where(r => r.UserId == user.Id)
+                .ToListAsync();
+            var single = Assert.Single(stored);
+            Assert.Equal(RecentRecordTypes.Equipment, single.RecordType);
+            Assert.Equal(inScopeInventoryId, single.RecordId);
+        }
+
+        var list = await ListAsync(user.Id);
+        var dto = Assert.Single(list);
+        Assert.Equal(RecentRecordTypes.Equipment, dto.RecordType);
+        Assert.Equal(inScopeInventoryId, dto.RecordId);
+        Assert.Equal(expectedCode, dto.Identifier);
+        Assert.Equal(expectedTitle, dto.Title);
+        Assert.Equal($"/inventory/equipment?equipmentId={inScopeInventoryId}", dto.Route);
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var resolver = new RecordLabelResolver(actDb, new UserSectionScopeService(actDb), new DocumentAuthorizationService(actDb));
+            var resolved = await resolver.ResolveAsync(user.Id, new[]
+            {
+                (RecentRecordTypes.Equipment, inScopeInventoryId),
+                (RecentRecordTypes.Equipment, outOfScopeInventoryId),
+                (RecentRecordTypes.Equipment, nullSectionInventoryId),
+                (RecentRecordTypes.Equipment, masterOnlyId)
+            });
+
+            var entry = Assert.Single(resolved);
+            Assert.Equal((RecentRecordTypes.Equipment, inScopeInventoryId), entry.Key);
+            Assert.Equal(expectedCode, entry.Value.Identifier);
+            Assert.Equal(expectedTitle, entry.Value.Title);
+            Assert.Equal($"/inventory/equipment?equipmentId={inScopeInventoryId}", entry.Value.Route);
+        }
     }
 }

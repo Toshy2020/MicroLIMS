@@ -21,6 +21,8 @@ public sealed class AvailableTestsSource : UnassignedTestsSourceBase
     {
         var sections = ctx.MemberSectionIds.ToArray();
         var disabled = SectionSelfAssignmentService.DisabledSectionIds(_db);
-        return query.Where(t => sections.Contains(t.SectionId) && !disabled.Contains(t.SectionId));
+        return query
+            .Where(t => sections.Contains(t.SectionId) && !disabled.Contains(t.SectionId))
+            .InPhyschemArea(ctx, t => t.SectionId, t => t.Sample!.Category);
     }
 }

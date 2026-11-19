@@ -416,6 +416,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSignalR();
         services.AddSingleton<LiveHubConnectionTracker>();
+        services.AddScoped<LiveRecordReadAuthorizer>();
         services.AddSingleton<ILiveSignalPublisher, SignalRLiveSignalPublisher>();
         // Where uploaded files physically live. "Local" writes under
         // Storage:BasePath and is for development only - on Render that

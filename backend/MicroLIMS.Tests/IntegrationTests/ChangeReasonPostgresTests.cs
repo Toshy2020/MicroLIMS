@@ -287,6 +287,203 @@ public class ChangeReasonPostgresTests
     }
 
     [PostgresFact]
+    public async Task SectionScopedEditor_OpenWorkOnlyInAnotherSection_EditWithoutReason_Refused_NothingChanged()
+    {
+        var tag = Tag();
+        var testCode = "XSEC-" + tag;
+        var originalItemName = "Original Item " + tag;
+        int editorUserId;
+        int itemId;
+        int specId;
+        int auditCountBefore;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var micro = TestServiceFactory.EnsureMicroSection(arrangeDb);
+            var fp = await arrangeDb.DocumentSections.FirstOrDefaultAsync(s => s.Code == "FP");
+            if (fp is null)
+            {
+                fp = new DocumentSection
+                {
+                    DepartmentId = micro.DepartmentId,
+                    Code = "FP",
+                    Name = "Physicochemical",
+                    IsActive = true
+                };
+                arrangeDb.DocumentSections.Add(fp);
+                await arrangeDb.SaveChangesAsync();
+            }
+
+            var headRoleId = await arrangeDb.Roles.AsNoTracking()
+                .Where(r => r.Type == RoleType.SectionHead)
+                .OrderBy(r => r.Id)
+                .Select(r => r.Id)
+                .FirstAsync();
+
+            var editor = new User
+            {
+                FullName = "Micro Section Head " + tag,
+                Username = "cr_mhead_" + tag.ToLowerInvariant(),
+                Email = $"cr_mhead_{tag.ToLowerInvariant()}@example.test",
+                PasswordHash = TestPasswords.Hash(Password),
+                RoleId = headRoleId,
+                IsActive = true
+            };
+            arrangeDb.Users.Add(editor);
+            await arrangeDb.SaveChangesAsync();
+
+            arrangeDb.UserOrgMemberships.Add(new UserOrgMembership
+            {
+                UserId = editor.Id,
+                DepartmentId = micro.DepartmentId,
+                SectionId = micro.Id
+            });
+
+            var td = new TestDefinition
+            {
+                Code = testCode,
+                DisplayName = "Cross-Section Test " + tag,
+                SectionId = micro.Id,
+                WorkflowType = WorkflowType.Measurement
+            };
+            arrangeDb.TestDefinitions.Add(td);
+
+            var item = new Item
+            {
+                Code = "ITM-XS-" + tag,
+                Name = originalItemName,
+                Category = SampleCategory.RawMaterial
+            };
+            arrangeDb.Items.Add(item);
+
+            var cause = new CauseOfTesting { Name = "Routine-XS-" + tag };
+            arrangeDb.CausesOfTesting.Add(cause);
+            await arrangeDb.SaveChangesAsync();
+
+            var spec = new Specification
+            {
+                ItemId = item.Id,
+                TestCode = testCode,
+                ParameterName = "Appearance",
+                LimitType = LimitType.Range,
+                LowerLimit = 1m,
+                UpperLimit = 10m,
+                LowerInclusive = true,
+                UpperInclusive = true,
+                Unit = "mg"
+            };
+            arrangeDb.Specifications.Add(spec);
+
+            // Open sample and test order exist ONLY in the other section (FP), which editor cannot read.
+            var sample = new Sample
+            {
+                Category = SampleCategory.RawMaterial,
+                ItemId = item.Id,
+                ControlNumber = "CTL-XS-" + tag,
+                ReferenceNumber = "REF-XS-" + tag,
+                CauseOfTestingId = cause.Id,
+                ReceivedByUserId = _fixture.SeededUserId,
+                Status = SampleStatus.InTesting,
+                LabSectionId = fp.Id
+            };
+            sample.TestOrders.Add(new TestOrder
+            {
+                TestCode = testCode,
+                Status = ApprovalStatus.Pending,
+                CurrentStep = WorkflowStep.Waiting,
+                SectionId = fp.Id
+            });
+            arrangeDb.Samples.Add(sample);
+            await arrangeDb.SaveChangesAsync();
+
+            editorUserId = editor.Id;
+            itemId = item.Id;
+            specId = spec.Id;
+            auditCountBefore = await arrangeDb.AuditLogs.AsNoTracking()
+                .CountAsync(a => (a.EntityName == nameof(Item) && a.EntityId == itemId.ToString())
+                              || (a.EntityName == nameof(Specification) && a.EntityId == specId.ToString()));
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            // Where-used panel for the section-scoped user remains section-scoped (0 readable open work, counted in other-sections).
+            var usageSvc = new MasterDataUsageService(actDb, new UserSectionScopeService(actDb));
+            var scopedItemUsage = await usageSvc.GetAsync(MasterRecordType.Item, itemId, editorUserId);
+            Assert.Equal(0, scopedItemUsage.OpenWorkCount);
+            Assert.Contains(scopedItemUsage.Lines, l => l.Key == "other-sections" && l.Count > 0);
+
+            var itemEx = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                new ItemService(actDb).UpdateAsync(
+                    itemId,
+                    new ItemSaveRequest(
+                        Name: "Mutated Item " + tag,
+                        Code: "ITM-XS-" + tag,
+                        Category: SampleCategory.RawMaterial,
+                        SopNumber: null,
+                        AssignedTests: new List<ItemTestRequest>()),
+                    changeReason: null,
+                    currentUserId: editorUserId));
+            Assert.Contains(itemEx.FieldErrors, e => e.Field == ChangeReasonGuard.FieldName);
+
+            var specEx = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                BuildSpecService(actDb).UpdateSpecificationAsync(
+                    editorUserId,
+                    specId,
+                    new UpdateSpecificationRequest(
+                        TestCode: testCode,
+                        ParameterName: "Appearance",
+                        LimitType: LimitType.Range,
+                        LowerLimit: 2m,
+                        UpperLimit: 12m,
+                        LowerInclusive: true,
+                        UpperInclusive: true,
+                        Unit: "mg"),
+                    changeReason: null));
+            Assert.Contains(specEx.FieldErrors, e => e.Field == ChangeReasonGuard.FieldName);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var persistedItem = await assertDb.Items.AsNoTracking().SingleAsync(i => i.Id == itemId);
+            Assert.Equal(originalItemName, persistedItem.Name);
+
+            var persistedSpec = await assertDb.Specifications.AsNoTracking().SingleAsync(s => s.Id == specId);
+            Assert.Equal(1m, persistedSpec.LowerLimit);
+            Assert.Equal(10m, persistedSpec.UpperLimit);
+
+            var auditCountAfter = await assertDb.AuditLogs.AsNoTracking()
+                .CountAsync(a => (a.EntityName == nameof(Item) && a.EntityId == itemId.ToString())
+                              || (a.EntityName == nameof(Specification) && a.EntityId == specId.ToString()));
+            Assert.Equal(auditCountBefore, auditCountAfter);
+        }
+
+        // With a reason the same edit succeeds and is persisted.
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            await new ItemService(actDb).UpdateAsync(
+                itemId,
+                new ItemSaveRequest(
+                    Name: "Mutated Item " + tag,
+                    Code: "ITM-XS-" + tag,
+                    Category: SampleCategory.RawMaterial,
+                    SopNumber: null,
+                        AssignedTests: new List<ItemTestRequest>()),
+                changeReason: "Correcting the item name per change request",
+                currentUserId: editorUserId);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var persistedItem = await assertDb.Items.AsNoTracking().SingleAsync(i => i.Id == itemId);
+            Assert.Equal("Mutated Item " + tag, persistedItem.Name);
+            var audit = await assertDb.AuditLogs.AsNoTracking()
+                .Where(a => a.EntityName == nameof(Item) && a.EntityId == itemId.ToString() && a.Reason == "Correcting the item name per change request")
+                .ToListAsync();
+            Assert.NotEmpty(audit);
+        }
+    }
+
+    [PostgresFact]
     public async Task EditSpec_ClientClaimsNoOpenWork_ServerStillRequiresReason()
     {
         var (_, specId, testCode, _) = await SeedSpecWithOptionalOpenOrderAsync(withOpenOrder: true);

@@ -151,10 +151,31 @@ public sealed class MyWorkService : IMyWorkService
                 select p.Code)
             .ToListAsync(ct);
 
+        var physchemSectionId = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.Code == Helpers.PhyschemAreas.SectionCode)
+            .Select(s => (int?)s.Id)
+            .FirstOrDefaultAsync(ct);
+
+        IReadOnlyCollection<SampleCategory>? readablePhyschemCategories = null;
+        if (physchemSectionId is int fpId
+            && ((readable is null || readable.Contains(fpId)) || members.Contains(fpId)))
+        {
+            var areas = await _scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
+            if (areas.Count < 2)
+            {
+                readablePhyschemCategories = areas
+                    .SelectMany(Helpers.PhyschemAreas.CategoriesOf)
+                    .Distinct()
+                    .ToArray();
+            }
+        }
+
         return new MyWorkContext(
             userId, permissionCodes.ToHashSet(StringComparer.Ordinal), readable, members, lab, nowUtc, EndOfLabDayUtc(nowUtc),
             await _settings.GetIntAsync(SystemSettingKeys.MyWorkLookAheadDays, ct),
-            await _settings.GetIntAsync(SystemSettingKeys.MyWorkReadOverdueHours, ct));
+            await _settings.GetIntAsync(SystemSettingKeys.MyWorkReadOverdueHours, ct),
+            physchemSectionId,
+            readablePhyschemCategories);
     }
 
     // The next local midnight in the laboratory time zone, expressed in UTC.

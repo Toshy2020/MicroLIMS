@@ -20,7 +20,7 @@ public sealed class ReturnedTestsSource : IMyWorkSource
         DateTime ReturnedAt, int SectionId, string SectionName, string Lab);
 
     private IQueryable<Domain.Entities.TestReturnEvent> Mine(MyWorkContext ctx) =>
-        AnalystQueries.MyPendingReturns(_db, ctx.UserId).InSections(ctx, e => e.TestOrder!.SectionId);
+        AnalystQueries.MyPendingReturns(_db, ctx.UserId).InSections(ctx, e => e.TestOrder!.SectionId, e => e.TestOrder!.Sample!.Category);
 
     public async Task<MyWorkSourceResult> GetAsync(MyWorkContext ctx, int take, CancellationToken ct)
     {

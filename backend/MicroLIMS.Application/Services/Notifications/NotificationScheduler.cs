@@ -335,14 +335,33 @@ public sealed class NotificationScheduler
             .ToListAsync(ct);
 
         var activeKeys = new HashSet<string>(StringComparer.Ordinal);
-        IReadOnlyCollection<int>? recipients = null;
+        var recipientsBySection = new Dictionary<int, IReadOnlyCollection<int>>();
+        IReadOnlyCollection<int>? unscopedRecipients = null;
 
         foreach (var equipment in dueEquipment)
         {
             var dedupeKey = $"{CalibrationDuePrefix}{equipment.Id}";
             activeKeys.Add(dedupeKey);
 
-            recipients ??= await _recipients.PermissionHoldersAsync(PermissionConstants.EquipmentWorkRecord, ct);
+            IReadOnlyCollection<int> recipients;
+            if (equipment.SectionId is int sectionId)
+            {
+                if (!recipientsBySection.TryGetValue(sectionId, out var cached))
+                {
+                    cached = await _recipients.PermissionHoldersInSectionAsync(
+                        PermissionConstants.EquipmentWorkRecord, sectionId, ct);
+                    recipientsBySection[sectionId] = cached;
+                }
+
+                recipients = cached;
+            }
+            else
+            {
+                unscopedRecipients ??= await _recipients.PermissionHoldersInSectionAsync(
+                    PermissionConstants.EquipmentWorkRecord, null, ct);
+                recipients = unscopedRecipients;
+            }
+
             if (recipients.Count == 0)
             {
                 continue;

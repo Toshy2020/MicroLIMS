@@ -627,6 +627,168 @@ public class LiveSignalsPostgresTests
         Assert.DoesNotContain(signals, s => s.Key == $"sample:{forbiddenSample.Id}");
     }
 
+    private sealed record ScopedConfigRecords(int SolutionMaster, int Column, int HplcMethod, int KpiSetting);
+
+    private async Task<ScopedConfigRecords> SeedScopedConfigAsync(int sectionId)
+    {
+        await using var db = _fixture.CreateDbContext();
+        var uid = Guid.NewGuid().ToString("N")[..8];
+        var solution = new SolutionMaster
+        {
+            SectionId = sectionId, Name = $"Diluent {uid}", Type = SolutionType.Diluent,
+            ShelfLifeValue = 30, ShelfLifeUnit = ShelfLifeUnit.Days, StorageCondition = "Room", FinalVolumeMl = 1000m,
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId
+        };
+        db.SolutionMasters.Add(solution);
+        var column = new ChromatographyColumn
+        {
+            Code = $"COL-{uid}", Name = $"Column {uid}", SectionId = sectionId,
+            CreatedByUserId = _fixture.SeededUserId, LastModifiedByUserId = _fixture.SeededUserId
+        };
+        db.ChromatographyColumns.Add(column);
+        await db.SaveChangesAsync();
+        var method = new HplcMethod
+        {
+            Name = $"HPLC {uid}", Abbreviation = "H" + uid, SectionId = sectionId, DiluentSolutionId = solution.Id,
+            ResultMode = HplcResultMode.Assay, Technique = HplcTechnique.Hplc, IsActive = true
+        };
+        var kpi = new KpiSetting { SectionId = sectionId, UpdatedByUserId = _fixture.SeededUserId };
+        db.HplcMethods.Add(method);
+        db.KpiSettings.Add(kpi);
+        await db.SaveChangesAsync();
+        return new ScopedConfigRecords(solution.Id, column.Id, method.Id, kpi.Id);
+    }
+
+    [PostgresFact]
+    public async Task WatchRecord_SectionScopedAndPermissionGatedConfig_RefusedOutsideReadRule()
+    {
+        var (dept, sec1, sec2) = await SeedSectionsAsync();
+        var analyst = await SeedUserInSectionAsync(RoleType.Analyst, dept.Id, sec1.Id);
+        var head = await SeedUserInSectionAsync(RoleType.SectionHead, dept.Id, sec1.Id);
+        var own = await SeedScopedConfigAsync(sec1.Id);
+        var other = await SeedScopedConfigAsync(sec2.Id);
+
+        var (app, client) = await StartLiveServerAsync();
+        await using var _ = app;
+        var server = app.GetTestServer();
+
+        await using var analystConn = BuildHubConnection(server, await LoginAsync(client, analyst.Username), onSignal: _ => { });
+        await StartAndAwaitConnectedAsync(analystConn);
+
+        // Another section's records are refused; the analyst's own section is allowed.
+        await Assert.ThrowsAsync<HubException>(() => analystConn.InvokeAsync("WatchRecord", "solutionMaster", other.SolutionMaster));
+        await Assert.ThrowsAsync<HubException>(() => analystConn.InvokeAsync("WatchRecord", "chromatographyColumn", other.Column));
+        await Assert.ThrowsAsync<HubException>(() => analystConn.InvokeAsync("WatchRecord", "hplcMethod", other.HplcMethod));
+        await analystConn.InvokeAsync("WatchRecord", "solutionMaster", own.SolutionMaster);
+        await analystConn.InvokeAsync("WatchRecord", "chromatographyColumn", own.Column);
+        await analystConn.InvokeAsync("WatchRecord", "hplcMethod", own.HplcMethod);
+
+        // Permission-gated types: an analyst holds none of these permissions.
+        int roleId;
+        int monitoringSettingsId;
+        await using (var db = _fixture.CreateDbContext())
+        {
+            roleId = await db.Roles.AsNoTracking().Select(r => r.Id).FirstAsync();
+            var settings = await db.MonitoringSettings.AsNoTracking().Select(m => (int?)m.Id).FirstOrDefaultAsync();
+            if (settings is null)
+            {
+                var row = new MonitoringSettings();
+                db.MonitoringSettings.Add(row);
+                await db.SaveChangesAsync();
+                settings = row.Id;
+            }
+            monitoringSettingsId = settings.Value;
+        }
+        await Assert.ThrowsAsync<HubException>(() => analystConn.InvokeAsync("WatchRecord", "role", roleId));
+        await Assert.ThrowsAsync<HubException>(() => analystConn.InvokeAsync("WatchRecord", "sectionSelfAssignmentSetting", sec1.Id));
+        // The seeded analyst role holds MonitoringPlan.View, so the same record is allowed for it ...
+        await analystConn.InvokeAsync("WatchRecord", "monitoringSettings", monitoringSettingsId);
+
+        // ... and refused for a user whose role grants no permissions at all.
+        User bare;
+        await using (var db = _fixture.CreateDbContext())
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var bareRole = new Role { Type = RoleType.Analyst, Name = $"Bare {suffix}", IsActive = true };
+            db.Roles.Add(bareRole);
+            await db.SaveChangesAsync();
+            bare = new User
+            {
+                Username = $"ls_bare_{suffix}", PasswordHash = BCrypt.Net.BCrypt.HashPassword(TestPassword),
+                FullName = $"Bare {suffix}", Email = $"ls_bare_{suffix}@example.test", RoleId = bareRole.Id,
+                IsActive = true, MustChangePassword = false
+            };
+            db.Users.Add(bare);
+            await db.SaveChangesAsync();
+            db.UserOrgMemberships.Add(new UserOrgMembership { UserId = bare.Id, DepartmentId = dept.Id, SectionId = sec1.Id });
+            await db.SaveChangesAsync();
+        }
+        await using var bareConn = BuildHubConnection(server, await LoginAsync(client, bare.Username), onSignal: _ => { });
+        await StartAndAwaitConnectedAsync(bareConn);
+        await Assert.ThrowsAsync<HubException>(() => bareConn.InvokeAsync("WatchRecord", "monitoringSettings", monitoringSettingsId));
+
+        // A section head: own section's KPI settings and self-assignment setting, never another section's.
+        await using (var db = _fixture.CreateDbContext())
+        {
+            db.SectionSelfAssignmentSettings.AddRange(
+                new SectionSelfAssignmentSetting { SectionId = sec1.Id, Enabled = true, ChangedAt = DateTime.UtcNow },
+                new SectionSelfAssignmentSetting { SectionId = sec2.Id, Enabled = true, ChangedAt = DateTime.UtcNow });
+            await db.SaveChangesAsync();
+        }
+        await using var headConn = BuildHubConnection(server, await LoginAsync(client, head.Username), onSignal: _ => { });
+        await StartAndAwaitConnectedAsync(headConn);
+        await headConn.InvokeAsync("WatchRecord", "kpiSetting", own.KpiSetting);
+        await headConn.InvokeAsync("WatchRecord", "sectionSelfAssignmentSetting", sec1.Id);
+        await Assert.ThrowsAsync<HubException>(() => headConn.InvokeAsync("WatchRecord", "kpiSetting", other.KpiSetting));
+        await Assert.ThrowsAsync<HubException>(() => headConn.InvokeAsync("WatchRecord", "sectionSelfAssignmentSetting", sec2.Id));
+        await Assert.ThrowsAsync<HubException>(() => bareConn.InvokeAsync("WatchRecord", "kpiSetting", own.KpiSetting));
+        await Assert.ThrowsAsync<HubException>(() => headConn.InvokeAsync("WatchRecord", "role", roleId)); // Roles.Manage is not a section head grant
+    }
+
+    [PostgresFact]
+    public async Task WatchRecord_GroupDroppedWhenSectionMembershipRevoked()
+    {
+        var (dept, sec1, _) = await SeedSectionsAsync();
+        var user = await SeedUserInSectionAsync(RoleType.Analyst, dept.Id, sec1.Id);
+        var own = await SeedScopedConfigAsync(sec1.Id);
+
+        var (app, client) = await StartLiveServerAsync();
+        await using var _ = app;
+        var server = app.GetTestServer();
+
+        var signals = new ConcurrentQueue<LiveSignal>();
+        await using var conn = BuildHubConnection(server, await LoginAsync(client, user.Username), onSignal: s => signals.Enqueue(s));
+        await StartAndAwaitConnectedAsync(conn);
+        await conn.InvokeAsync("WatchRecord", "chromatographyColumn", own.Column);
+
+        await using (var scope = app.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>();
+            db.QueueSignal(LiveSignalKinds.Record, $"chromatographyColumn:{own.Column}");
+            await db.SaveChangesAsync();
+        }
+        await WaitUntilAsync(() => signals.FirstOrDefault(s => s.Key == $"chromatographyColumn:{own.Column}"), "signal while a member");
+
+        // Revoke membership, then let the connection re-evaluate (every WatchRecord does, even a refused one).
+        await using (var db = _fixture.CreateDbContext())
+        {
+            db.UserOrgMemberships.RemoveRange(db.UserOrgMemberships.Where(m => m.UserId == user.Id));
+            await db.SaveChangesAsync();
+        }
+        await Assert.ThrowsAsync<HubException>(() => conn.InvokeAsync("WatchRecord", "chromatographyColumn", own.Column));
+
+        signals.Clear();
+        await using (var scope = app.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IMicroLimsDbContext>();
+            db.QueueSignal(LiveSignalKinds.Record, $"chromatographyColumn:{own.Column}");
+            db.QueueSignal(LiveSignalKinds.Notifications, $"user:{user.Id}");
+            await db.SaveChangesAsync();
+        }
+        await WaitUntilAsync(() => signals.FirstOrDefault(s => s.Key == $"user:{user.Id}"), "marker signal");
+        Assert.DoesNotContain(signals, s => s.Key == $"chromatographyColumn:{own.Column}");
+    }
+
     [PostgresFact]
     public async Task Signal_PublishedAfterCommit()
     {

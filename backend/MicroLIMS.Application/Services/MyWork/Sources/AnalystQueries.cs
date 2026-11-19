@@ -45,6 +45,46 @@ internal static class AnalystQueries
         return query.Where(Expression.Lambda<Func<T, bool>>(contains, sectionId.Parameters));
     }
 
+    public static IQueryable<T> InSections<T>(
+        this IQueryable<T> query,
+        MyWorkContext ctx,
+        Expression<Func<T, int>> sectionId,
+        Expression<Func<T, SampleCategory>> sampleCategory)
+    {
+        query = query.InSections(ctx, sectionId);
+        return query.InPhyschemArea(ctx, sectionId, sampleCategory);
+    }
+
+    public static IQueryable<T> InPhyschemArea<T>(
+        this IQueryable<T> query,
+        MyWorkContext ctx,
+        Expression<Func<T, int>> sectionId,
+        Expression<Func<T, SampleCategory>> sampleCategory)
+    {
+        if (ctx.PhyschemSectionId is not int fpId || ctx.ReadablePhyschemCategories is not { } allowed)
+            return query;
+
+        var param = sectionId.Parameters[0];
+        var categoryBody = sampleCategory.Parameters[0] == param
+            ? sampleCategory.Body
+            : new ParameterReplacer(sampleCategory.Parameters[0], param).Visit(sampleCategory.Body)!;
+        var categories = allowed.ToArray();
+        var notFp = Expression.NotEqual(sectionId.Body, Expression.Constant(fpId));
+        var inCategories = Expression.Call(
+            typeof(Enumerable),
+            nameof(Enumerable.Contains),
+            new[] { typeof(SampleCategory) },
+            Expression.Constant(categories),
+            categoryBody);
+        var body = Expression.OrElse(notFp, inCategories);
+        return query.Where(Expression.Lambda<Func<T, bool>>(body, param));
+    }
+
+    private sealed class ParameterReplacer(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : base.VisitParameter(node);
+    }
+
     public static Expression<Func<T, bool>> Not<T>(Expression<Func<T, bool>> predicate) =>
         Expression.Lambda<Func<T, bool>>(Expression.Not(predicate.Body), predicate.Parameters);
 }

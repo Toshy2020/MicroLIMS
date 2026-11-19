@@ -349,13 +349,65 @@ public class SampleBulkAssignPostgresTests
 
         var fpRow = Assert.Single(result.Rows, r => r.SampleId == fpSample.Id);
         Assert.False(fpRow.Assigned);
-        Assert.Equal("This sample has no open tests you can assign.", fpRow.RefusedReason);
+        Assert.Equal($"#{fpSample.Id}", fpRow.ReferenceNumber);
+        Assert.Equal($"Sample {fpSample.Id} not found.", fpRow.RefusedReason);
 
         Assert.Null((await PersistedAsync(fpOrder.Id)).AssignedAnalystId);
         Assert.Empty(await AuditAsync(fpOrder.Id));
 
         Assert.Equal(analystInBoth.Id, (await PersistedAsync(microOrder.Id)).AssignedAnalystId);
         Assert.Single(await AuditAsync(microOrder.Id));
+    }
+
+    [PostgresFact]
+    public async Task UnreadableSample_ReportedExactlyLikeNotFound_DoesNotRevealReferenceNumber()
+    {
+        User headInMicroOnly, analystInBoth;
+        Sample unreadableFpSample, readableUnwritableSample;
+        TestOrder fpOrder, readableFpOrder;
+        const int missingId = 1_999_999_999;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrangeDb);
+            headInMicroOnly = await NewUserAsync(arrangeDb, "headMicro", RoleType.SectionHead, w.Micro);
+            analystInBoth = await NewUserAsync(arrangeDb, "analystBoth", RoleType.Analyst, w.Micro, w.Fp);
+            (unreadableFpSample, fpOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Fp);
+
+            // Multi-section sample: closed test in Micro (so headInMicroOnly can read the sample),
+            // open test in FP (so headInMicroOnly cannot assign any open test on it).
+            (readableUnwritableSample, _) = await NewSampleWithTestAsync(arrangeDb, w, w.Micro, status: ApprovalStatus.Approved);
+            (_, readableFpOrder) = await NewSampleWithTestAsync(arrangeDb, w, w.Fp, existingSample: readableUnwritableSample);
+        }
+
+        BulkAssignResult result;
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            result = await BuildBulkService(actDb).AssignAsync(
+                new BulkAssignRequest(new[] { unreadableFpSample.Id, missingId, readableUnwritableSample.Id }, analystInBoth.Id, null),
+                headInMicroOnly.Id);
+        }
+
+        Assert.Equal(0, result.AssignedCount);
+        Assert.Equal(3, result.RefusedCount);
+
+        var unreadableRow = Assert.Single(result.Rows, r => r.SampleId == unreadableFpSample.Id);
+        var missingRow = Assert.Single(result.Rows, r => r.SampleId == missingId);
+        Assert.False(unreadableRow.Assigned);
+        Assert.Equal($"#{unreadableFpSample.Id}", unreadableRow.ReferenceNumber);
+        Assert.DoesNotContain(unreadableFpSample.ReferenceNumber, unreadableRow.ReferenceNumber);
+        Assert.Equal($"Sample {unreadableFpSample.Id} not found.", unreadableRow.RefusedReason);
+        Assert.Equal(missingRow.RefusedReason!.Replace(missingId.ToString(), unreadableFpSample.Id.ToString()), unreadableRow.RefusedReason);
+
+        var readableUnwritableRow = Assert.Single(result.Rows, r => r.SampleId == readableUnwritableSample.Id);
+        Assert.False(readableUnwritableRow.Assigned);
+        Assert.Equal(readableUnwritableSample.ReferenceNumber, readableUnwritableRow.ReferenceNumber);
+        Assert.Equal("This sample has no open tests you can assign.", readableUnwritableRow.RefusedReason);
+
+        Assert.Null((await PersistedAsync(fpOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(fpOrder.Id));
+        Assert.Null((await PersistedAsync(readableFpOrder.Id)).AssignedAnalystId);
+        Assert.Empty(await AuditAsync(readableFpOrder.Id));
     }
 
     [PostgresFact]

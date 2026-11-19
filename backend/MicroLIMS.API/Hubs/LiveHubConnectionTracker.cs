@@ -75,6 +75,25 @@ public sealed class LiveHubConnectionTracker
         return await RefreshConnectionCoreAsync(entry, ct);
     }
 
+    /// <summary>Remembers a record group the connection joined so a later re-evaluation can drop it.</summary>
+    public void TrackWatch(string connectionId, string type, int id)
+    {
+        if (_connections.TryGetValue(connectionId, out var entry))
+        {
+            lock (entry.Watched)
+                entry.Watched.Add((type, id));
+        }
+    }
+
+    public void UntrackWatch(string connectionId, string type, int id)
+    {
+        if (_connections.TryGetValue(connectionId, out var entry))
+        {
+            lock (entry.Watched)
+                entry.Watched.Remove((type, id));
+        }
+    }
+
     public void Unregister(string connectionId)
     {
         if (_connections.TryRemove(connectionId, out var entry))
@@ -151,6 +170,24 @@ public sealed class LiveHubConnectionTracker
             }
 
             entry.SectionIds = targetSet;
+
+            // Record groups joined through WatchRecord: drop the ones the user can no longer read.
+            (string Type, int Id)[] watched;
+            lock (entry.Watched)
+                watched = entry.Watched.ToArray();
+            if (watched.Length > 0)
+            {
+                var authorizer = scope.ServiceProvider.GetRequiredService<LiveRecordReadAuthorizer>();
+                foreach (var (type, id) in watched)
+                {
+                    if (await authorizer.CanReadAsync(entry.UserId, entry.Principal, type, id, ct))
+                        continue;
+                    await _hubContext.Groups.RemoveFromGroupAsync(entry.ConnectionId, $"record:{type}:{id}", ct);
+                    lock (entry.Watched)
+                        entry.Watched.Remove((type, id));
+                }
+            }
+
             return true;
         }
         finally
@@ -168,6 +205,7 @@ public sealed class LiveHubConnectionTracker
         public SemaphoreSlim SyncLock { get; } = new(1, 1);
         public CancellationTokenSource Cts { get; } = new();
         public HashSet<int> SectionIds { get; set; } = new();
+        public HashSet<(string Type, int Id)> Watched { get; } = new();
         public ITimer? Timer { get; set; }
         public volatile bool IsDisposed;
 

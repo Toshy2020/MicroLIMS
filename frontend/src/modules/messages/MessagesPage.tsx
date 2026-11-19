@@ -14,6 +14,7 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutlined";
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLiveRefresh } from "../../hooks/useLiveRefresh";
+import { i18n, useTranslation } from "../../i18n";
 import { ConversationSummary } from "./types/messageTypes";
 import { messageService } from "./services/messageService";
 import { ConversationList } from "./components/ConversationList";
@@ -21,6 +22,7 @@ import { ChatWindow } from "./components/ChatWindow";
 import { NewConversationDialog } from "./components/NewConversationDialog";
 
 export function MessagesPage() {
+  const { t } = useTranslation("messages");
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const { userId } = useAuth();
@@ -41,7 +43,7 @@ export function MessagesPage() {
       }
     } catch (err: unknown) {
       const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(apiErr.response?.data?.message || apiErr.message || "Failed to load conversations.");
+      setError(apiErr.response?.data?.message || apiErr.message || i18n.t("page.loadError", { ns: "messages" }));
     } finally {
       setLoading(false);
     }
@@ -78,8 +80,8 @@ export function MessagesPage() {
       {/* Top Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 1.5, flexShrink: 0 }}>
         <PageHeader
-          title="Direct & Group Messages"
-          subtitle="Real-time workplace discussions with laboratory analysts, reviewers, and section heads."
+          title={t("page.title")}
+          subtitle={t("page.subtitle")}
         />
         <Button
           variant="contained"
@@ -88,7 +90,7 @@ export function MessagesPage() {
           onClick={() => setNewDialogOpen(true)}
           sx={{ fontWeight: 600, mt: 0.5 }}
         >
-          New Message
+          {t("page.newMessage")}
         </Button>
       </Box>
 
@@ -166,12 +168,12 @@ export function MessagesPage() {
                 >
                   <ChatBubbleOutlineIcon sx={{ fontSize: 56, color: "text.disabled", mb: 1.5 }} />
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Select a conversation
+                    {t("emptyPane.title")}
                   </Typography>
                   {/* No second New Message button here - the one in the page
                       header is the single place to start a conversation. */}
                   <Typography variant="body2" sx={{ textAlign: "center", maxWidth: 300 }}>
-                    Choose a conversation from the list, or use New Message above to start one.
+                    {t("emptyPane.body")}
                   </Typography>
                 </Box>
               )}

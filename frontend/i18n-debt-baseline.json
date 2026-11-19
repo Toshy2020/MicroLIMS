@@ -1,5 +1,5 @@
 {
-  "total": 1350,
+  "total": 1321,
   "modules": {
     "components": 129,
     "modules/admin": 13,
@@ -14,7 +14,7 @@
     "modules/icpWorkspace": 10,
     "modules/inventory": 73,
     "modules/laboratoryConfiguration": 554,
-    "modules/messages": 31,
+    "modules/messages": 2,
     "modules/navigation": 12,
     "modules/notifications": 1,
     "modules/reports": 40,

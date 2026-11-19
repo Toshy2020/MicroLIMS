@@ -16,6 +16,7 @@ import { ConversationSummary, DirectMessage } from "../types/messageTypes";
 import { messageService } from "../services/messageService";
 import { useLiveRefresh } from "../../../hooks/useLiveRefresh";
 import { brandColors } from "../../../theme";
+import { useTranslation } from "../../../i18n";
 import { toast } from "sonner";
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent }: Props) {
+  const { t } = useTranslation("messages");
   const [messages, setMessages] = useState<DirectMessage[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [text, setText] = useState<string>("");
@@ -76,7 +78,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
       setMessages((prev) => [...prev, msg]);
       onMessageSent();
     } catch {
-      toast.error("Failed to send message.");
+      toast.error(t("chat.sendError"));
     } finally {
       setSending(false);
     }
@@ -90,7 +92,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
   };
 
   const otherParticipant = conversation.participants.find((p) => p.userId !== currentUserId);
-  const displayTitle = conversation.title || otherParticipant?.fullName || "Conversation";
+  const displayTitle = conversation.title || otherParticipant?.fullName || t("chat.fallbackTitle");
   const initial = displayTitle.charAt(0).toUpperCase();
 
   const participantsTooltip = conversation.participants
@@ -113,7 +115,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
         }}
       >
         {onBack && (
-          <IconButton aria-label="Back to conversations" onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
+          <IconButton aria-label={t("chat.back")} onClick={onBack} size="small" sx={{ mr: 0.5, display: { md: "none" } }}>
             <ArrowBackIcon fontSize="small" />
           </IconButton>
         )}
@@ -137,10 +139,13 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
           <Tooltip title={participantsTooltip}>
             <Typography sx={{ fontSize: 12, color: "text.secondary", cursor: "pointer" }} noWrap>
               {conversation.isGroup
-                ? `${conversation.participants.length} members: ${conversation.participants.map((p) => p.fullName).join(", ")}`
+                ? t("chat.members", {
+                    count: conversation.participants.length,
+                    names: conversation.participants.map((p) => p.fullName).join(", ")
+                  })
                 : otherParticipant?.jobTitle
-                ? `${otherParticipant.jobTitle} • ${otherParticipant.roleName}`
-                : otherParticipant?.roleName || "Colleague"}
+                ? t("chat.jobRole", { jobTitle: otherParticipant.jobTitle, roleName: otherParticipant.roleName })
+                : otherParticipant?.roleName || t("chat.colleague")}
             </Typography>
           </Tooltip>
         </Box>
@@ -164,8 +169,8 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
           </Box>
         ) : messages.length === 0 ? (
           <Box sx={{ textAlign: "center", my: "auto", py: 6, color: "text.secondary" }}>
-            <Typography variant="body2">No messages in this conversation yet.</Typography>
-            <Typography variant="caption">Say hello to start the conversation!</Typography>
+            <Typography variant="body2">{t("chat.noMessages")}</Typography>
+            <Typography variant="caption">{t("chat.sayHello")}</Typography>
           </Box>
         ) : (
           messages.map((m) => {
@@ -223,7 +228,7 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
       <Divider />
       <Box sx={{ p: 1.5, display: "flex", alignItems: "flex-end", gap: 1 }}>
         <TextField
-          placeholder="Write a message... (Press Enter to send)"
+          placeholder={t("chat.placeholder")}
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -237,9 +242,9 @@ export function ChatWindow({ conversation, currentUserId, onBack, onMessageSent 
               borderRadius: 2
             }
           }}
-          slotProps={{ htmlInput: { "aria-label": "Message" } }}
+          slotProps={{ htmlInput: { "aria-label": t("chat.inputLabel") } }}
         />
-        <IconButton aria-label="Send message"
+        <IconButton aria-label={t("chat.sendAria")}
           color="primary"
           onClick={handleSend}
           disabled={!text.trim() || sending}

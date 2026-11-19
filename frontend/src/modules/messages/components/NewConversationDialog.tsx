@@ -25,6 +25,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import { messageService } from "../services/messageService";
 import { UserDirectoryItem, ConversationSummary } from "../types/messageTypes";
 import { brandColors } from "../../../theme";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   open: boolean;
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export function NewConversationDialog({ open, currentUserId, onClose, onCreated }: Props) {
+  const { t } = useTranslation("messages");
   const [isGroup, setIsGroup] = useState<boolean>(false);
   const [title, setTitle] = useState<string>("");
   const [selectedUsers, setSelectedUsers] = useState<UserDirectoryItem[]>([]);
@@ -65,15 +67,15 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
 
   const handleSubmit = async () => {
     if (selectedUsers.length === 0) {
-      setError("Please select at least one recipient.");
+      setError(t("dialog.noRecipient"));
       return;
     }
     if (isGroup && !title.trim()) {
-      setError("Group conversation title is required.");
+      setError(t("dialog.groupTitleRequired"));
       return;
     }
     if (!initialMessage.trim()) {
-      setError("Initial message cannot be empty.");
+      setError(t("dialog.initialEmpty"));
       return;
     }
 
@@ -89,8 +91,9 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
       });
       handleReset();
       onCreated(conv);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to create conversation.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      setError(apiErr.response?.data?.message || apiErr.message || t("dialog.createFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -108,17 +111,17 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
     <Dialog open={open} onClose={submitting ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
         <AddCommentIcon color="primary" />
-        New Message
+        {t("page.newMessage")}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
         {directoryLoadFailed && (
-          <Alert severity="error">The user directory could not be loaded, so no recipients can be listed. Close and reopen this dialog to try again.</Alert>
+          <Alert severity="error">{t("dialog.directoryFailed")}</Alert>
         )}
         {error && <Alert severity="error">{error}</Alert>}
 
         <FormControl component="fieldset">
           <FormLabel component="legend" sx={{ fontSize: 13, fontWeight: 600 }}>
-            Conversation Type
+            {t("dialog.conversationType")}
           </FormLabel>
           <RadioGroup
             row
@@ -137,7 +140,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               label={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <PersonIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  <Typography variant="body2">Direct Message (1-on-1)</Typography>
+                  <Typography variant="body2">{t("dialog.direct")}</Typography>
                 </Box>
               }
             />
@@ -147,7 +150,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               label={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <GroupIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                  <Typography variant="body2">Group Conversation</Typography>
+                  <Typography variant="body2">{t("dialog.group")}</Typography>
                 </Box>
               }
             />
@@ -156,10 +159,10 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
 
         {isGroup && (
           <TextField
-            label="Group Title"
+            label={t("dialog.groupTitle")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Microbiology Team, Water Testing Group..."
+            placeholder={t("dialog.groupPlaceholder")}
             fullWidth
             required
             size="small"
@@ -183,8 +186,8 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
           renderInput={(params) => (
             <TextField
               {...params}
-              label={isGroup ? "Select Participants" : "Select Recipient"}
-              placeholder="Search colleagues by name..."
+              label={isGroup ? t("dialog.selectParticipants") : t("dialog.selectRecipient")}
+              placeholder={t("dialog.searchPlaceholder")}
               size="small"
               required
               slotProps={{
@@ -210,7 +213,10 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
               <Box>
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{option.fullName}</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  {option.roleName} {option.jobTitle ? `• ${option.jobTitle}` : ""}
+                  {t("dialog.roleJob", {
+                    role: option.roleName,
+                    job: option.jobTitle ? t("dialog.jobTitle", { jobTitle: option.jobTitle }) : ""
+                  })}
                 </Typography>
               </Box>
             </Box>
@@ -239,10 +245,10 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
         />
 
         <TextField
-          label="Initial Message"
+          label={t("dialog.initialMessage")}
           value={initialMessage}
           onChange={(e) => setInitialMessage(e.target.value)}
-          placeholder="Type your message here..."
+          placeholder={t("dialog.initialPlaceholder")}
           fullWidth
           multiline
           minRows={3}
@@ -253,7 +259,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={submitting} color="inherit">
-          Cancel
+          {t("dialog.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -262,7 +268,7 @@ export function NewConversationDialog({ open, currentUserId, onClose, onCreated 
           disabled={submitting || selectedUsers.length === 0 || !initialMessage.trim()}
           startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : <AddCommentIcon />}
         >
-          {submitting ? "Sending..." : "Send Message"}
+          {submitting ? t("dialog.sending") : t("dialog.send")}
         </Button>
       </DialogActions>
     </Dialog>

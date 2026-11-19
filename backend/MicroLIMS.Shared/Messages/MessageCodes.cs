@@ -13,7 +13,26 @@ namespace MicroLIMS.Shared.Messages;
 // Application or API carries one of these codes (UncodedMessageRatchetTests).
 public static class MessageCodes
 {
+    public const string AssayHplcSubmitProblem = "Assay.HplcSubmitProblem";
+    public const string AssayIcpSubmitProblem = "Assay.IcpSubmitProblem";
+    public const string AssaySpecNotLinkedToElement = "Assay.SpecNotLinkedToElement";
     public const string AuthRoleDoesNotIncludeAction = "Auth.RoleDoesNotIncludeAction";
+    public const string DisintegrationCalculationDataDeserializationFailed = "Disintegration.CalculationDataDeserializationFailed";
+    public const string DisintegrationInvalidExistingUnitCount = "Disintegration.InvalidExistingUnitCount";
+    public const string DisintegrationInvalidUnitCount = "Disintegration.InvalidUnitCount";
+    public const string DisintegrationMaxStage1FailuresRange = "Disintegration.MaxStage1FailuresRange";
+    public const string DisintegrationMinPassTotalRange = "Disintegration.MinPassTotalRange";
+    public const string DisintegrationMissingCalculationData = "Disintegration.MissingCalculationData";
+    public const string DisintegrationNextStageNotRequired = "Disintegration.NextStageNotRequired";
+    public const string DisintegrationNoActiveEntry = "Disintegration.NoActiveEntry";
+    public const string DisintegrationNoActiveParameterResult = "Disintegration.NoActiveParameterResult";
+    public const string DisintegrationStage1UnitCount = "Disintegration.Stage1UnitCount";
+    public const string DisintegrationStage2UnitCount = "Disintegration.Stage2UnitCount";
+    public const string DisintegrationStageUnitsMinOne = "Disintegration.StageUnitsMinOne";
+    public const string DisintegrationTimeLimitPositive = "Disintegration.TimeLimitPositive";
+    public const string DisintegrationTimePositive = "Disintegration.TimePositive";
+    public const string DisintegrationUnitMinutesRequired = "Disintegration.UnitMinutesRequired";
+    public const string DisintegrationWrongWorkflow = "Disintegration.WrongWorkflow";
     public const string DissolutionCalculationDataDeserializationFailed = "Dissolution.CalculationDataDeserializationFailed";
     public const string DissolutionConditionCountMismatch = "Dissolution.ConditionCountMismatch";
     public const string DissolutionConditionFieldRequired = "Dissolution.ConditionFieldRequired";
@@ -303,13 +322,58 @@ public static class MessageCodes
     public const string UvTotalVolumePositive = "Uv.TotalVolumePositive";
     public const string UvTotalVolumeRequired = "Uv.TotalVolumeRequired";
     public const string UvWavelengthOutOfRange = "Uv.WavelengthOutOfRange";
+    public const string WeightVariationCalculationDataDeserializationFailed = "WeightVariation.CalculationDataDeserializationFailed";
+    public const string WeightVariationCapsuleFieldsOnly = "WeightVariation.CapsuleFieldsOnly";
+    public const string WeightVariationCapsuleFieldsRequired = "WeightVariation.CapsuleFieldsRequired";
+    public const string WeightVariationCapsulePercentageOrder = "WeightVariation.CapsulePercentageOrder";
+    public const string WeightVariationCapsuleS1Order = "WeightVariation.CapsuleS1Order";
+    public const string WeightVariationCapsuleS2MaxOutsideTooHigh = "WeightVariation.CapsuleS2MaxOutsideTooHigh";
+    public const string WeightVariationDosageFormNotConfigured = "WeightVariation.DosageFormNotConfigured";
+    public const string WeightVariationInvalidUnitCount = "WeightVariation.InvalidUnitCount";
+    public const string WeightVariationMaxOutsideNonNegative = "WeightVariation.MaxOutsideNonNegative";
+    public const string WeightVariationMissingCalculationData = "WeightVariation.MissingCalculationData";
+    public const string WeightVariationNextStageNotRequired = "WeightVariation.NextStageNotRequired";
+    public const string WeightVariationNoActiveEntry = "WeightVariation.NoActiveEntry";
+    public const string WeightVariationNoActiveParameterResult = "WeightVariation.NoActiveParameterResult";
+    public const string WeightVariationPercentagesPositive = "WeightVariation.PercentagesPositive";
+    public const string WeightVariationShellLessThanGross = "WeightVariation.ShellLessThanGross";
+    public const string WeightVariationShellWeightPositive = "WeightVariation.ShellWeightPositive";
+    public const string WeightVariationStage1UnitCount = "WeightVariation.Stage1UnitCount";
+    public const string WeightVariationStage2UnitCount = "WeightVariation.Stage2UnitCount";
+    public const string WeightVariationTabletBandOrder = "WeightVariation.TabletBandOrder";
+    public const string WeightVariationTabletBandWeightLimitsPositive = "WeightVariation.TabletBandWeightLimitsPositive";
+    public const string WeightVariationTabletFieldsOnly = "WeightVariation.TabletFieldsOnly";
+    public const string WeightVariationTabletsNoStage2 = "WeightVariation.TabletsNoStage2";
+    public const string WeightVariationTabletWeightPositive = "WeightVariation.TabletWeightPositive";
+    public const string WeightVariationUnitCountMinOne = "WeightVariation.UnitCountMinOne";
+    public const string WeightVariationUnitsRequired = "WeightVariation.UnitsRequired";
+    public const string WeightVariationWrongWorkflow = "WeightVariation.WrongWorkflow";
 
     private static readonly string[] None = [];
 
     // Code -> the parameter names its sentence uses.
     public static IReadOnlyDictionary<string, string[]> ParameterNames { get; } = new Dictionary<string, string[]>
     {
+        [AssayHplcSubmitProblem] = ["message"],
+        [AssayIcpSubmitProblem] = ["message"],
+        [AssaySpecNotLinkedToElement] = ["parameter"],
         [AuthRoleDoesNotIncludeAction] = None,
+        [DisintegrationCalculationDataDeserializationFailed] = None,
+        [DisintegrationInvalidExistingUnitCount] = ["count"],
+        [DisintegrationInvalidUnitCount] = ["stage1", "total", "count"],
+        [DisintegrationMaxStage1FailuresRange] = ["max"],
+        [DisintegrationMinPassTotalRange] = ["total"],
+        [DisintegrationMissingCalculationData] = None,
+        [DisintegrationNextStageNotRequired] = None,
+        [DisintegrationNoActiveEntry] = None,
+        [DisintegrationNoActiveParameterResult] = None,
+        [DisintegrationStage1UnitCount] = ["count"],
+        [DisintegrationStage2UnitCount] = ["count"],
+        [DisintegrationStageUnitsMinOne] = None,
+        [DisintegrationTimeLimitPositive] = None,
+        [DisintegrationTimePositive] = None,
+        [DisintegrationUnitMinutesRequired] = None,
+        [DisintegrationWrongWorkflow] = ["testOrderId"],
         [DissolutionCalculationDataDeserializationFailed] = None,
         [DissolutionConditionCountMismatch] = ["expected", "received"],
         [DissolutionConditionFieldRequired] = ["field"],
@@ -599,5 +663,31 @@ public static class MessageCodes
         [UvTotalVolumePositive] = None,
         [UvTotalVolumeRequired] = None,
         [UvWavelengthOutOfRange] = ["min", "max"],
+        [WeightVariationCalculationDataDeserializationFailed] = None,
+        [WeightVariationCapsuleFieldsOnly] = ["unit"],
+        [WeightVariationCapsuleFieldsRequired] = ["unit"],
+        [WeightVariationCapsulePercentageOrder] = None,
+        [WeightVariationCapsuleS1Order] = None,
+        [WeightVariationCapsuleS2MaxOutsideTooHigh] = ["total"],
+        [WeightVariationDosageFormNotConfigured] = None,
+        [WeightVariationInvalidUnitCount] = ["stage1", "stage2", "count"],
+        [WeightVariationMaxOutsideNonNegative] = None,
+        [WeightVariationMissingCalculationData] = None,
+        [WeightVariationNextStageNotRequired] = None,
+        [WeightVariationNoActiveEntry] = None,
+        [WeightVariationNoActiveParameterResult] = None,
+        [WeightVariationPercentagesPositive] = None,
+        [WeightVariationShellLessThanGross] = ["unit"],
+        [WeightVariationShellWeightPositive] = ["unit"],
+        [WeightVariationStage1UnitCount] = ["count"],
+        [WeightVariationStage2UnitCount] = ["count"],
+        [WeightVariationTabletBandOrder] = None,
+        [WeightVariationTabletBandWeightLimitsPositive] = None,
+        [WeightVariationTabletFieldsOnly] = ["unit"],
+        [WeightVariationTabletsNoStage2] = None,
+        [WeightVariationTabletWeightPositive] = ["unit"],
+        [WeightVariationUnitCountMinOne] = None,
+        [WeightVariationUnitsRequired] = None,
+        [WeightVariationWrongWorkflow] = ["testOrderId"],
     };
 }

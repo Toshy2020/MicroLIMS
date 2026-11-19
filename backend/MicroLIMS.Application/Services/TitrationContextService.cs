@@ -4,6 +4,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -56,11 +58,20 @@ public class TitrationContextService
 
         var order = await _db.TestOrders.AsNoTracking().Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         var t = await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(d => d.Code == order.TestCode, ct)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.TestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
         if (t.WorkflowType != WorkflowType.Titration)
-            throw new BusinessRuleException($"Test order {testOrderId} is not a Titration workflow.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrationNotTitrationWorkflow,
+                $"Test order {testOrderId} is not a Titration workflow.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var cfg = TitrationConfig.From(t);
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -113,7 +124,9 @@ public class TitrationContextService
 
     private async Task<SolutionMaster> LoadMasterAsync(int id, CancellationToken ct) =>
         await _db.SolutionMasters.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct)
-            ?? throw new BusinessRuleException("The titrant solution master configured on this test no longer exists.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.TitrationTitrantMasterMissing,
+                "The titrant solution master configured on this test no longer exists.");
 
     private async Task<List<TitrantPreparationOption>> OptionsAsync(
         int masterId, int sectionId, TitrationConfig cfg, bool requireTemperature, DateTime nowUtc, CancellationToken ct)
@@ -141,7 +154,10 @@ public record TitrationConfig(
     {
         if (!t.TitrationType.HasValue || !t.TitrationMode.HasValue || !t.TitrationCalculation.HasValue
             || !t.TitrationEndpoint.HasValue || !t.TitrantSolutionMasterId.HasValue || !t.ReplicateCount.HasValue)
-            throw new BusinessRuleException($"Test \"{t.Code}\" is not fully configured as a titration test in Test Master.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrationTestNotFullyConfigured,
+                $"Test \"{t.Code}\" is not fully configured as a titration test in Test Master.",
+                new Dictionary<string, string> { ["code"] = t.Code });
         return new TitrationConfig(
             t.TitrationType.Value, t.TitrationNonAqueous ?? false, t.TitrationMode.Value, t.TitrationCalculation.Value,
             t.TitrationEndpoint.Value, t.TitrantSolutionMasterId.Value, t.TitrationExcessSolutionMasterId,

@@ -1,4 +1,6 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 namespace MicroLIMS.Application.Services.Spc;
 
 // Statistical process control maths for one series of results, in date
@@ -94,25 +96,39 @@ public static class ControlChartCalculator
     public static void Validate(ControlChartSettings s)
     {
         if (s.MovingRangeLength is < 2 or > 10)
-            throw new BusinessRuleException("Moving range length must be between 2 and 10.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartMovingRangeLengthRange,
+                "Moving range length must be between 2 and 10.");
         if (s.Method == LimitMethod.Percentile)
         {
             if (s.AlertPercentile is < 0 or > 100 || s.ActionPercentile is < 0 or > 100)
-                throw new BusinessRuleException("Percentiles must be between 0 and 100.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartPercentileRange,
+                    "Percentiles must be between 0 and 100.");
             if (s.AlertPercentile > s.ActionPercentile)
-                throw new BusinessRuleException("The alert percentile must not be above the action percentile.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartAlertNotAboveActionPercentile,
+                    "The alert percentile must not be above the action percentile.");
         }
         else
         {
             if (s.AlertK <= 0 || s.ActionK <= 0)
-                throw new BusinessRuleException("The alert and action multipliers (k) must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartMultipliersPositive,
+                    "The alert and action multipliers (k) must be greater than zero.");
             if (s.AlertK > s.ActionK)
-                throw new BusinessRuleException("The alert multiplier (k) must not be above the action multiplier.");
+                throw new BusinessRuleException(
+                    MessageCodes.ControlChartAlertNotAboveActionMultiplier,
+                    "The alert multiplier (k) must not be above the action multiplier.");
         }
         if (s.MinimumPoints < 0)
-            throw new BusinessRuleException("Minimum data points cannot be negative.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartMinDataPointsNonNegative,
+                "Minimum data points cannot be negative.");
         if (s.EnabledRules.Any(r => r is < 1 or > 8))
-            throw new BusinessRuleException("Control chart rules are numbered 1 to 8.");
+            throw new BusinessRuleException(
+                MessageCodes.ControlChartRuleNumberRange,
+                "Control chart rules are numbered 1 to 8.");
     }
 
     // Span-w moving range: max - min of each run of w consecutive values,
@@ -137,7 +153,9 @@ public static class ControlChartCalculator
     // PERCENTILE.INC: linear interpolation between closest ranks.
     public static double Percentile(IReadOnlyList<double> sorted, double p)
     {
-        if (sorted.Count == 0) throw new BusinessRuleException("No values.");
+        if (sorted.Count == 0) throw new BusinessRuleException(
+            MessageCodes.ControlChartNoValues,
+            "No values.");
         var rank = Math.Clamp(p, 0, 100) / 100 * (sorted.Count - 1);
         var lo = (int)Math.Floor(rank);
         var hi = (int)Math.Ceiling(rank);

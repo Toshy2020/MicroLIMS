@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Kpi;
 
@@ -90,9 +91,13 @@ public class AnalystAvailabilityService
     {
         var reason = Validate(r);
         var row = await _db.AnalystAvailabilities.FirstOrDefaultAsync(a => a.Id == id, ct)
-            ?? throw new NotFoundException("Availability entry not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.KpiAvailabilityEntryNotFound,
+                "Availability entry not found.");
         if (row.UserId != r.UserId)
-            throw new BusinessRuleException("An entry cannot be moved to another analyst; correct the dates or enter a new entry.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiEntryCannotMoveAnalyst,
+                "An entry cannot be moved to another analyst; correct the dates or enter a new entry.");
         await EnsureEditableAsync(row.UserId, enteredByUserId, ct);
         await EnsureNoOverlapAsync(row.UserId, r.FromDate, r.ToDate, exceptId: id, ct);
         _db.CurrentUserId = enteredByUserId;
@@ -119,18 +124,28 @@ public class AnalystAvailabilityService
     private static string Validate(SaveAvailabilityRequest r)
     {
         var reason = (r.Reason ?? string.Empty).Trim();
-        if (reason.Length == 0) throw new BusinessRuleException("A reason is required.");
-        if (reason.Length > 500) throw new BusinessRuleException("The reason must be 500 characters or fewer.");
-        if (r.ToDate < r.FromDate) throw new BusinessRuleException("The end date must not be before the start date.");
+        if (reason.Length == 0) throw new BusinessRuleException(
+            MessageCodes.HplcReasonRequired,
+            "A reason is required.");
+        if (reason.Length > 500) throw new BusinessRuleException(
+            MessageCodes.KpiReasonTooLong,
+            "The reason must be 500 characters or fewer.");
+        if (r.ToDate < r.FromDate) throw new BusinessRuleException(
+            MessageCodes.KpiEndDateBeforeStart,
+            "The end date must not be before the start date.");
         if (r.FractionAvailable < 0 || r.FractionAvailable > 1 || decimal.Round(r.FractionAvailable, 2) != r.FractionAvailable)
-            throw new BusinessRuleException("Fraction available must be between 0 and 1 with at most two decimals.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiFractionAvailableRange,
+                "Fraction available must be between 0 and 1 with at most two decimals.");
         return reason;
     }
 
     private async Task EnsureEditableAsync(int analystId, int editorId, CancellationToken ct)
     {
         if (!await _db.Users.AnyAsync(u => u.Id == analystId && u.IsActive, ct))
-            throw new BusinessRuleException("The analyst does not exist or is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiAnalystNotFoundInactive,
+                "The analyst does not exist or is inactive.");
         var editorScope = await _scope.GetMemberSectionIdsAsync(editorId, ct);
         if (!await KpiUserScope.InScopeAsync(_scope, analystId, editorScope, ct))
             throw new UnauthorizedAccessException("You may only record availability for analysts in your laboratory sections.");
@@ -139,7 +154,9 @@ public class AnalystAvailabilityService
     private async Task EnsureNoOverlapAsync(int userId, DateOnly from, DateOnly to, int exceptId, CancellationToken ct)
     {
         if (await _db.AnalystAvailabilities.AnyAsync(a => a.UserId == userId && a.Id != exceptId && a.FromDate <= to && a.ToDate >= from, ct))
-            throw new BusinessRuleException("This period overlaps an existing availability entry for the analyst. Correct that entry instead.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiAvailabilityOverlap,
+                "This period overlaps an existing availability entry for the analyst. Correct that entry instead.");
     }
 
     private async Task<List<AnalystAvailabilityDto>> ToDtosAsync(List<AnalystAvailability> rows, CancellationToken ct)

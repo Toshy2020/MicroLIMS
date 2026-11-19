@@ -3,6 +3,7 @@ namespace MicroLIMS.Shared.Messages;
 // Material.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string MaterialCannotReleaseReceivedLot = "Material.CannotReleaseReceivedLot";
     public const string MaterialCategoryCannotChangeOnUpdate = "Material.CategoryCannotChangeOnUpdate";
     public const string MaterialCategoryCodePrefixFormat = "Material.CategoryCodePrefixFormat";
     public const string MaterialCategoryCodePrefixLockedByEntries = "Material.CategoryCodePrefixLockedByEntries";
@@ -33,7 +34,9 @@ public static partial class MessageCodes
     public const string MaterialIndicatorFieldsOnlyForIndicators = "Material.IndicatorFieldsOnlyForIndicators";
     public const string MaterialInsufficientStock = "Material.InsufficientStock";
     public const string MaterialLegacyTypeRetired = "Material.LegacyTypeRetired";
+    public const string MaterialLotAlreadyDecided = "Material.LotAlreadyDecided";
     public const string MaterialLotAwaitingRelease = "Material.LotAwaitingRelease";
+    public const string MaterialLotNoReleaseNeeded = "Material.LotNoReleaseNeeded";
     public const string MaterialLotRejected = "Material.LotRejected";
     public const string MaterialMasterCategoryLockedByStock = "Material.MasterCategoryLockedByStock";
     public const string MaterialMasterCodeChangeRequiresSignature = "Material.MasterCodeChangeRequiresSignature";
@@ -55,6 +58,7 @@ public static partial class MessageCodes
     public const string MaterialMediaProductRequired = "Material.MediaProductRequired";
     public const string MaterialMoistureOnlyForReferenceStandards = "Material.MoistureOnlyForReferenceStandards";
     public const string MaterialMoistureOutOfRange = "Material.MoistureOutOfRange";
+    public const string MaterialNameTooLong = "Material.NameTooLong";
     public const string MaterialNewCodeMustDiffer = "Material.NewCodeMustDiffer";
     public const string MaterialOrganismMismatch = "Material.OrganismMismatch";
     public const string MaterialPasswordRequiredToSignChange = "Material.PasswordRequiredToSignChange";
@@ -67,7 +71,11 @@ public static partial class MessageCodes
     public const string MaterialReferenceOrganismNotFound = "Material.ReferenceOrganismNotFound";
     public const string MaterialReferenceOrganismOnlyForLyophilized = "Material.ReferenceOrganismOnlyForLyophilized";
     public const string MaterialReferenceOrganismRequired = "Material.ReferenceOrganismRequired";
+    public const string MaterialRejectCommentRequired = "Material.RejectCommentRequired";
+    public const string MaterialStatedValueRequired = "Material.StatedValueRequired";
+    public const string MaterialStatedValueTooLong = "Material.StatedValueTooLong";
     public const string MaterialStorageConditionTooLong = "Material.StorageConditionTooLong";
+    public const string MaterialSupplierAttributeNotFound = "Material.SupplierAttributeNotFound";
     public const string MaterialSupersessionReasonRequired = "Material.SupersessionReasonRequired";
     public const string MaterialTransitionRangeInvalid = "Material.TransitionRangeInvalid";
     public const string MaterialTypeNotOfferedInLab = "Material.TypeNotOfferedInLab";
@@ -79,6 +87,7 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> MaterialParameters() => new()
     {
+        [MaterialCannotReleaseReceivedLot] = [],
         [MaterialCategoryCannotChangeOnUpdate] = [],
         [MaterialCategoryCodePrefixFormat] = [],
         [MaterialCategoryCodePrefixLockedByEntries] = [],
@@ -109,7 +118,9 @@ public static partial class MessageCodes
         [MaterialIndicatorFieldsOnlyForIndicators] = [],
         [MaterialInsufficientStock] = ["materialName", "batchNumber", "remaining", "unit", "requested"],
         [MaterialLegacyTypeRetired] = [],
+        [MaterialLotAlreadyDecided] = ["batchNumber", "approvalStatus"],
         [MaterialLotAwaitingRelease] = ["batchNumber", "materialName"],
+        [MaterialLotNoReleaseNeeded] = ["batchNumber"],
         [MaterialLotRejected] = ["batchNumber", "materialName"],
         [MaterialMasterCategoryLockedByStock] = [],
         [MaterialMasterCodeChangeRequiresSignature] = [],
@@ -131,6 +142,7 @@ public static partial class MessageCodes
         [MaterialMediaProductRequired] = [],
         [MaterialMoistureOnlyForReferenceStandards] = [],
         [MaterialMoistureOutOfRange] = [],
+        [MaterialNameTooLong] = [],
         [MaterialNewCodeMustDiffer] = [],
         [MaterialOrganismMismatch] = [],
         [MaterialPasswordRequiredToSignChange] = [],
@@ -143,7 +155,11 @@ public static partial class MessageCodes
         [MaterialReferenceOrganismNotFound] = ["referenceOrganismId"],
         [MaterialReferenceOrganismOnlyForLyophilized] = [],
         [MaterialReferenceOrganismRequired] = [],
+        [MaterialRejectCommentRequired] = [],
+        [MaterialStatedValueRequired] = [],
+        [MaterialStatedValueTooLong] = [],
         [MaterialStorageConditionTooLong] = [],
+        [MaterialSupplierAttributeNotFound] = ["id"],
         [MaterialSupersessionReasonRequired] = [],
         [MaterialTransitionRangeInvalid] = [],
         [MaterialTypeNotOfferedInLab] = ["typeLabel"],

@@ -3,6 +3,8 @@ namespace MicroLIMS.Shared.Messages;
 // Organism.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string OrganismAtccNumberInUse = "Organism.AtccNumberInUse";
+    public const string OrganismCannotDeleteReferenced = "Organism.CannotDeleteReferenced";
     public const string OrganismCodeAlreadyExists = "Organism.CodeAlreadyExists";
     public const string OrganismCodeChangeReasonRequired = "Organism.CodeChangeReasonRequired";
     public const string OrganismCodePrefixRequired = "Organism.CodePrefixRequired";
@@ -10,6 +12,7 @@ public static partial class MessageCodes
     public const string OrganismCodeTooLong = "Organism.CodeTooLong";
     public const string OrganismCodeUnchanged = "Organism.CodeUnchanged";
     public const string OrganismCultureCollectionRequired = "Organism.CultureCollectionRequired";
+    public const string OrganismDuplicateScientificName = "Organism.DuplicateScientificName";
     public const string OrganismHasStockChangeCode = "Organism.HasStockChangeCode";
     public const string OrganismHasStockIdentityLocked = "Organism.HasStockIdentityLocked";
     public const string OrganismInactive = "Organism.Inactive";
@@ -22,6 +25,8 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> OrganismParameters() => new()
     {
+        [OrganismAtccNumberInUse] = ["atccNumber", "organism"],
+        [OrganismCannotDeleteReferenced] = ["name", "totalUses", "configChallengeCount", "challengeCount", "cryovialCount", "materialCount", "targetStepCount", "strainCount"],
         [OrganismCodeAlreadyExists] = ["code"],
         [OrganismCodeChangeReasonRequired] = [],
         [OrganismCodePrefixRequired] = ["prefix"],
@@ -29,6 +34,7 @@ public static partial class MessageCodes
         [OrganismCodeTooLong] = [],
         [OrganismCodeUnchanged] = [],
         [OrganismCultureCollectionRequired] = [],
+        [OrganismDuplicateScientificName] = ["scientificName"],
         [OrganismHasStockChangeCode] = [],
         [OrganismHasStockIdentityLocked] = [],
         [OrganismInactive] = ["code", "name"],

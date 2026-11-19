@@ -4,6 +4,7 @@ using System.Text.Json;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Helpers;
 
@@ -68,11 +69,17 @@ public static class GravimetricCalculator
             decimal w2 = rep.Final - container;
 
             if (w1 <= 0m)
-                throw new BusinessRuleException("Initial sample weight (W1) must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.CalculationInitialWeightPositive,
+                    "Initial sample weight (W1) must be greater than zero.");
             if (w2 < 0m)
-                throw new BusinessRuleException("Final weight (W2) cannot be negative.");
+                throw new BusinessRuleException(
+                    MessageCodes.CalculationFinalWeightNonNegative,
+                    "Final weight (W2) cannot be negative.");
             if (w2 > w1)
-                throw new BusinessRuleException("Final weight (W2) cannot be greater than initial weight (W1).");
+                throw new BusinessRuleException(
+                    MessageCodes.CalculationFinalWeightNotAboveInitial,
+                    "Final weight (W2) cannot be greater than initial weight (W1).");
 
             decimal percent = equationType == EquationType.GravimetricLoss
                 ? ((w1 - w2) * 100m) / w1

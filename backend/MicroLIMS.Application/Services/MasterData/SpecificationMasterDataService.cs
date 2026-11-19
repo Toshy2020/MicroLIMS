@@ -9,6 +9,8 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Responses;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -48,7 +50,10 @@ public class SpecificationMasterDataService
             .Where(o => o.Id == testOrderId)
             .Select(o => new { o.SampleId, o.TestCode, o.Sample!.ItemId })
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         if (order.ItemId is not int itemId)
             return new List<SpecificationRowDto>();
 
@@ -208,11 +213,16 @@ public class SpecificationMasterDataService
         CancellationToken cancellationToken = default)
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Specification {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SpecificationSpecificationNotFound,
+                $"Specification {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, spec);
 
         if (spec.IsRetired)
-            throw new BusinessRuleException("Retired specifications cannot be edited; reinstate the specification first.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRetiredCannotEdit,
+                "Retired specifications cannot be edited; reinstate the specification first.");
 
         // Check both the row's current lab and the lab it would move to -
         // a Section Head may not reassign a row into or out of their lab
@@ -290,11 +300,16 @@ public class SpecificationMasterDataService
         CancellationToken cancellationToken = default)
     {
         var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Specification {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SpecificationSpecificationNotFound,
+                $"Specification {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
 
         if (spec.IsRetired)
-            throw new BusinessRuleException("This specification is already retired.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationAlreadyRetired,
+                "This specification is already retired.");
 
         var hasResults = await _db.ParameterResults.AsNoTracking()
                 .AnyAsync(pr => pr.SpecificationId == id, cancellationToken)
@@ -327,11 +342,16 @@ public class SpecificationMasterDataService
         CancellationToken cancellationToken = default)
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Specification {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SpecificationSpecificationNotFound,
+                $"Specification {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
 
         if (!spec.IsRetired)
-            throw new BusinessRuleException("Specification is not retired.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationNotRetired,
+                "Specification is not retired.");
 
         await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Retire, changeReason, currentUserId, cancellationToken);
 

@@ -6,6 +6,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Kpi;
 
@@ -42,14 +43,24 @@ public class KpiSettingsService
     public async Task<KpiSettingsDto> UpdateAsync(int sectionId, UpdateKpiSettingsRequest r, int userId, CancellationToken ct = default)
     {
         var reason = (r.Reason ?? string.Empty).Trim();
-        if (reason.Length == 0) throw new BusinessRuleException("A reason for the change is required.");
-        if (reason.Length > 500) throw new BusinessRuleException("The reason must be 500 characters or fewer.");
+        if (reason.Length == 0) throw new BusinessRuleException(
+            MessageCodes.KpiChangeReasonRequired,
+            "A reason for the change is required.");
+        if (reason.Length > 500) throw new BusinessRuleException(
+            MessageCodes.KpiReasonTooLong,
+            "The reason must be 500 characters or fewer.");
         if (r.HoursPerAnalystDay <= 0 || r.HoursPerAnalystDay > 24 || decimal.Round(r.HoursPerAnalystDay, 2) != r.HoursPerAnalystDay)
-            throw new BusinessRuleException("Hours per analyst day must be greater than 0 and at most 24, with at most two decimals.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiHoursPerDayRange,
+                "Hours per analyst day must be greater than 0 and at most 24, with at most two decimals.");
         if (r.WorkingWeekdays is < 1 or > 127)
-            throw new BusinessRuleException("Select at least one working weekday.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiWorkingWeekdayRequired,
+                "Select at least one working weekday.");
         if (r.LoadHorizonDays is < 1 or > 30)
-            throw new BusinessRuleException("The load horizon must be between 1 and 30 working days.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiLoadHorizonRange,
+                "The load horizon must be between 1 and 30 working days.");
 
         await EnsureSectionAccessAsync(sectionId, userId, ct, SectionAccess.Configure);
         _db.CurrentUserId = userId;
@@ -87,7 +98,9 @@ public class KpiSettingsService
     private async Task EnsureSectionAccessAsync(int sectionId, int userId, CancellationToken ct, SectionAccess access = SectionAccess.Write)
     {
         if (!await _db.DocumentSections.AnyAsync(s => s.Id == sectionId && s.IsActive, ct))
-            throw new NotFoundException("Laboratory section not found.");
+            throw new NotFoundException(
+                MessageCodes.KpiLabSectionNotFound,
+                "Laboratory section not found.");
         var ids = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (ids is not null && !ids.Contains(sectionId))
             throw new UnauthorizedAccessException("You do not have access to this laboratory section.");

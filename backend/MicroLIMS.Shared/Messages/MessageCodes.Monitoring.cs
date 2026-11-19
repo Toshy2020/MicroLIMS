@@ -52,6 +52,8 @@ public static partial class MessageCodes
     public const string MonitoringNoCleaningHplcMethod = "Monitoring.NoCleaningHplcMethod";
     public const string MonitoringNoLocationsFulfilOccurrence = "Monitoring.NoLocationsFulfilOccurrence";
     public const string MonitoringNotAWorkingDay = "Monitoring.NotAWorkingDay";
+    public const string MonitoringNotLessThanNeedsLower = "Monitoring.NotLessThanNeedsLower";
+    public const string MonitoringNotMoreThanNeedsUpper = "Monitoring.NotMoreThanNeedsUpper";
     public const string MonitoringOccurrenceAlreadySkipped = "Monitoring.OccurrenceAlreadySkipped";
     public const string MonitoringOccurrenceBelongsToDraftRevision = "Monitoring.OccurrenceBelongsToDraftRevision";
     public const string MonitoringOccurrenceInDraftRevision = "Monitoring.OccurrenceInDraftRevision";
@@ -75,7 +77,9 @@ public static partial class MessageCodes
     public const string MonitoringPlanYearEnded = "Monitoring.PlanYearEnded";
     public const string MonitoringPreviousProductItemRequired = "Monitoring.PreviousProductItemRequired";
     public const string MonitoringPreviousProductRequired = "Monitoring.PreviousProductRequired";
+    public const string MonitoringQualitativeNeedsExpectedResult = "Monitoring.QualitativeNeedsExpectedResult";
     public const string MonitoringRangeEndBeforeStart = "Monitoring.RangeEndBeforeStart";
+    public const string MonitoringRangeLimitNeedsBound = "Monitoring.RangeLimitNeedsBound";
     public const string MonitoringRangeTooLong = "Monitoring.RangeTooLong";
     public const string MonitoringReadingRequiredForAverage = "Monitoring.ReadingRequiredForAverage";
     public const string MonitoringReasonTooShort = "Monitoring.ReasonTooShort";
@@ -108,6 +112,7 @@ public static partial class MessageCodes
     public const string MonitoringTargetDateOutsideWindow = "Monitoring.TargetDateOutsideWindow";
     public const string MonitoringTargetRequiredForManualEntry = "Monitoring.TargetRequiredForManualEntry";
     public const string MonitoringTooManyDeviationsToClose = "Monitoring.TooManyDeviationsToClose";
+    public const string MonitoringUnsupportedLimitType = "Monitoring.UnsupportedLimitType";
     public const string MonitoringWaterBatchPerLocationNotAvailable = "Monitoring.WaterBatchPerLocationNotAvailable";
     public const string MonitoringWaterDepartmentInUse = "Monitoring.WaterDepartmentInUse";
     public const string MonitoringWaterDepartmentInactive = "Monitoring.WaterDepartmentInactive";
@@ -179,6 +184,8 @@ public static partial class MessageCodes
         [MonitoringNoCleaningHplcMethod] = ["productName", "testCode"],
         [MonitoringNoLocationsFulfilOccurrence] = ["label"],
         [MonitoringNotAWorkingDay] = ["date"],
+        [MonitoringNotLessThanNeedsLower] = [],
+        [MonitoringNotMoreThanNeedsUpper] = [],
         [MonitoringOccurrenceAlreadySkipped] = [],
         [MonitoringOccurrenceBelongsToDraftRevision] = [],
         [MonitoringOccurrenceInDraftRevision] = ["label"],
@@ -202,7 +209,9 @@ public static partial class MessageCodes
         [MonitoringPlanYearEnded] = ["year"],
         [MonitoringPreviousProductItemRequired] = [],
         [MonitoringPreviousProductRequired] = [],
+        [MonitoringQualitativeNeedsExpectedResult] = [],
         [MonitoringRangeEndBeforeStart] = [],
+        [MonitoringRangeLimitNeedsBound] = [],
         [MonitoringRangeTooLong] = ["maxDays"],
         [MonitoringReadingRequiredForAverage] = [],
         [MonitoringReasonTooShort] = [],
@@ -235,6 +244,7 @@ public static partial class MessageCodes
         [MonitoringTargetDateOutsideWindow] = [],
         [MonitoringTargetRequiredForManualEntry] = [],
         [MonitoringTooManyDeviationsToClose] = ["max"],
+        [MonitoringUnsupportedLimitType] = ["limitType"],
         [MonitoringWaterBatchPerLocationNotAvailable] = [],
         [MonitoringWaterDepartmentInUse] = ["name", "pointCount"],
         [MonitoringWaterDepartmentInactive] = ["department"],

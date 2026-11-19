@@ -39,10 +39,12 @@ public static partial class MessageCodes
     public const string SolutionDiluentNotLinkedToMaster = "Solution.DiluentNotLinkedToMaster";
     public const string SolutionDiluentRecipeInactive = "Solution.DiluentRecipeInactive";
     public const string SolutionDiluentRecipeRequired = "Solution.DiluentRecipeRequired";
+    public const string SolutionDiluentRequired = "Solution.DiluentRequired";
     public const string SolutionDiluentSolutionRecipeOnly = "Solution.DiluentSolutionRecipeOnly";
     public const string SolutionDiluentSourceRequired = "Solution.DiluentSourceRequired";
     public const string SolutionEquivalenceInvalid = "Solution.EquivalenceInvalid";
     public const string SolutionFactorRangeInvalid = "Solution.FactorRangeInvalid";
+    public const string SolutionFiltrationVolumesRequired = "Solution.FiltrationVolumesRequired";
     public const string SolutionFinalVolumeInvalid = "Solution.FinalVolumeInvalid";
     public const string SolutionFinalVolumeRequired = "Solution.FinalVolumeRequired";
     public const string SolutionHplcMethodDoesNotUseMobilePhase = "Solution.HplcMethodDoesNotUseMobilePhase";
@@ -84,6 +86,7 @@ public static partial class MessageCodes
     public const string SolutionNeutralizerNotLinkedToMaster = "Solution.NeutralizerNotLinkedToMaster";
     public const string SolutionNeutralizerRecipeInactive = "Solution.NeutralizerRecipeInactive";
     public const string SolutionNeutralizerRecipeRequired = "Solution.NeutralizerRecipeRequired";
+    public const string SolutionNeutralizerRequired = "Solution.NeutralizerRequired";
     public const string SolutionNeutralizerSolutionRecipeOnly = "Solution.NeutralizerSolutionRecipeOnly";
     public const string SolutionNeutralizerSourceRequired = "Solution.NeutralizerSourceRequired";
     public const string SolutionNominalStrengthRequired = "Solution.NominalStrengthRequired";
@@ -183,10 +186,12 @@ public static partial class MessageCodes
         [SolutionDiluentNotLinkedToMaster] = [],
         [SolutionDiluentRecipeInactive] = ["name"],
         [SolutionDiluentRecipeRequired] = [],
+        [SolutionDiluentRequired] = [],
         [SolutionDiluentSolutionRecipeOnly] = [],
         [SolutionDiluentSourceRequired] = [],
         [SolutionEquivalenceInvalid] = [],
         [SolutionFactorRangeInvalid] = [],
+        [SolutionFiltrationVolumesRequired] = [],
         [SolutionFinalVolumeInvalid] = [],
         [SolutionFinalVolumeRequired] = [],
         [SolutionHplcMethodDoesNotUseMobilePhase] = [],
@@ -228,6 +233,7 @@ public static partial class MessageCodes
         [SolutionNeutralizerNotLinkedToMaster] = [],
         [SolutionNeutralizerRecipeInactive] = ["name"],
         [SolutionNeutralizerRecipeRequired] = [],
+        [SolutionNeutralizerRequired] = [],
         [SolutionNeutralizerSolutionRecipeOnly] = [],
         [SolutionNeutralizerSourceRequired] = [],
         [SolutionNominalStrengthRequired] = [],

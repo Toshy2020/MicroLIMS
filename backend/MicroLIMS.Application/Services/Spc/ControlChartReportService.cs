@@ -7,6 +7,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Spc;
 
@@ -74,10 +75,19 @@ public class ControlChartReportService
     public async Task<GeneratedReport> GenerateAsync(ControlChartReportRequest r, int userId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
         var title = r.Title?.Trim();
-        if (string.IsNullOrWhiteSpace(title)) throw new BusinessRuleException("A report title is required.");
-        if (title.Length > 200) throw new BusinessRuleException("The report title must be 200 characters or fewer.");
-        if (r.Sections is null || r.Sections.Count == 0) throw new BusinessRuleException("Add at least one chart to the report.");
-        if (r.Sections.Count > MaxSections) throw new BusinessRuleException($"A report can hold at most {MaxSections} charts.");
+        if (string.IsNullOrWhiteSpace(title)) throw new BusinessRuleException(
+            MessageCodes.ControlChartReportTitleRequired,
+            "A report title is required.");
+        if (title.Length > 200) throw new BusinessRuleException(
+            MessageCodes.ControlChartReportTitleTooLong,
+            "The report title must be 200 characters or fewer.");
+        if (r.Sections is null || r.Sections.Count == 0) throw new BusinessRuleException(
+            MessageCodes.ControlChartReportNeedsChart,
+            "Add at least one chart to the report.");
+        if (r.Sections.Count > MaxSections) throw new BusinessRuleException(
+            MessageCodes.ControlChartReportTooManyCharts,
+            $"A report can hold at most {MaxSections} charts.",
+            new Dictionary<string, string> { ["maxSections"] = MaxSections.ToString(CultureInfo.InvariantCulture) });
 
         var images = r.Sections.Select((s, i) => DecodeImage(s.ImagePng, i + 1)).ToList();
 
@@ -154,17 +164,32 @@ public class ControlChartReportService
 
     private static byte[] DecodeImage(string? base64, int index)
     {
-        if (string.IsNullOrWhiteSpace(base64)) throw new BusinessRuleException($"Chart {index} has no image.");
+        if (string.IsNullOrWhiteSpace(base64)) throw new BusinessRuleException(
+            MessageCodes.ControlChartChartImageMissing,
+            $"Chart {index} has no image.",
+            new Dictionary<string, string> { ["index"] = index.ToString(CultureInfo.InvariantCulture) });
         var comma = base64.IndexOf(',');
         if (base64.StartsWith("data:", StringComparison.Ordinal) && comma > 0) base64 = base64[(comma + 1)..];
 
         byte[] bytes;
         try { bytes = Convert.FromBase64String(base64); }
-        catch (FormatException) { throw new BusinessRuleException($"Chart {index} image is not valid base64."); }
+        catch (FormatException) { throw new BusinessRuleException(
+            MessageCodes.ControlChartChartImageNotBase64,
+            $"Chart {index} image is not valid base64.",
+            new Dictionary<string, string> { ["index"] = index.ToString(CultureInfo.InvariantCulture) }); }
 
-        if (bytes.Length > MaxImageBytes) throw new BusinessRuleException($"Chart {index} image is larger than {MaxImageBytes / (1024 * 1024)} MB.");
-        if (!PngHeader.TryReadSize(bytes, out var w, out var h)) throw new BusinessRuleException($"Chart {index} image is not a PNG.");
-        if (w > MaxImagePixels || h > MaxImagePixels) throw new BusinessRuleException($"Chart {index} image is larger than {MaxImagePixels} × {MaxImagePixels} pixels.");
+        if (bytes.Length > MaxImageBytes) throw new BusinessRuleException(
+            MessageCodes.ControlChartChartImageTooLarge,
+            $"Chart {index} image is larger than {MaxImageBytes / (1024 * 1024)} MB.",
+            new Dictionary<string, string> { ["index"] = index.ToString(CultureInfo.InvariantCulture), ["maxMb"] = (MaxImageBytes / (1024 * 1024)).ToString(CultureInfo.InvariantCulture) });
+        if (!PngHeader.TryReadSize(bytes, out var w, out var h)) throw new BusinessRuleException(
+            MessageCodes.ControlChartChartImageNotPng,
+            $"Chart {index} image is not a PNG.",
+            new Dictionary<string, string> { ["index"] = index.ToString(CultureInfo.InvariantCulture) });
+        if (w > MaxImagePixels || h > MaxImagePixels) throw new BusinessRuleException(
+            MessageCodes.ControlChartChartImagePixelLimit,
+            $"Chart {index} image is larger than {MaxImagePixels} × {MaxImagePixels} pixels.",
+            new Dictionary<string, string> { ["index"] = index.ToString(CultureInfo.InvariantCulture), ["maxPixels"] = MaxImagePixels.ToString(CultureInfo.InvariantCulture) });
         return bytes;
     }
 

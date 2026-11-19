@@ -6,6 +6,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -44,7 +46,10 @@ public class SupplierStatedAttributeService
 
             var itemExists = await _db.Items.AnyAsync(i => i.Id == r.ItemId);
             if (!itemExists)
-                throw new NotFoundException($"Item {r.ItemId} not found.");
+                throw new NotFoundException(
+                    MessageCodes.HplcProductItemNotFound,
+                    $"Item {r.ItemId} not found.",
+                    new Dictionary<string, string> { ["itemId"] = r.ItemId.ToString(CultureInfo.InvariantCulture) });
 
             var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
             var validatedGrade = await ValidateGradeAsync(r.ItemId, r.Grade);
@@ -87,7 +92,10 @@ public class SupplierStatedAttributeService
             _db.CurrentUserId = userId;
 
             var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
-                ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MaterialSupplierAttributeNotFound,
+                    $"Supplier-stated attribute {id} not found.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
             var (trimmedName, trimmedValue) = ValidateNameAndValue(r.Name, r.StatedValue);
             var validatedGrade = await ValidateGradeAsync(entity.ItemId, r.Grade);
@@ -130,7 +138,10 @@ public class SupplierStatedAttributeService
             _db.CurrentUserId = userId;
 
             var entity = await _db.SupplierStatedAttributes.FirstOrDefaultAsync(a => a.Id == id)
-                ?? throw new NotFoundException($"Supplier-stated attribute {id} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MaterialSupplierAttributeNotFound,
+                    $"Supplier-stated attribute {id} not found.",
+                    new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
             var changes = new List<AuditFieldChange>
             {
@@ -181,16 +192,24 @@ public class SupplierStatedAttributeService
     private static (string Name, string StatedValue) ValidateNameAndValue(string? name, string? statedValue)
     {
         if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.EquipmentConfigNameRequired,
+                "Name is required.");
         var trimmedName = name.Trim();
         if (trimmedName.Length > 200)
-            throw new BusinessRuleException("Name must be 200 characters or fewer.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialNameTooLong,
+                "Name must be 200 characters or fewer.");
 
         if (string.IsNullOrWhiteSpace(statedValue))
-            throw new BusinessRuleException("Stated value is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialStatedValueRequired,
+                "Stated value is required.");
         var trimmedValue = statedValue.Trim();
         if (trimmedValue.Length > 500)
-            throw new BusinessRuleException("Stated value must be 500 characters or fewer.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialStatedValueTooLong,
+                "Stated value must be 500 characters or fewer.");
 
         return (trimmedName, trimmedValue);
     }
@@ -208,7 +227,10 @@ public class SupplierStatedAttributeService
 
             var match = itemGrades.FirstOrDefault(g => string.Equals(g, normalized, StringComparison.OrdinalIgnoreCase));
             if (match is null)
-                throw new BusinessRuleException($"Grade {normalized} has no specification for this item.");
+                throw new BusinessRuleException(
+                    MessageCodes.ReceivingGradeHasNoSpecification,
+                    $"Grade {normalized} has no specification for this item.",
+                    new Dictionary<string, string> { ["grade"] = normalized });
 
             return match;
         }

@@ -1,6 +1,8 @@
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -14,7 +16,9 @@ public static class BatchSelectMediaRules
         if (stepNameLower.Contains("result") || stepNameLower.Contains("reading") ||
             (stepNameLower.Contains("count") && !stepNameLower.Contains("incubation") && !stepNameLower.Contains("tamc") && !stepNameLower.Contains("tymc")))
         {
-            throw new BusinessRuleException("Grouped actions cannot be executed against analytical result-entry operations. Result entry must be performed individually.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaGroupedActionResultEntryBlocked,
+                "Grouped actions cannot be executed against analytical result-entry operations. Result entry must be performed individually.");
         }
     }
 
@@ -28,11 +32,17 @@ public static class BatchSelectMediaRules
     {
         if (!media.IsReleasedForUse || IsMediaStatusBlocked(media.Status))
         {
-            throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.");
+            throw new BusinessRuleException(
+                MessageCodes.IncubationMediaLotNotReleased,
+                $"Media lot \"{media.LotNumber}\" is not released for use, out of stock, or rejected.",
+                new Dictionary<string, string> { ["lot"] = media.LotNumber });
         }
         if (IsMediaExpiredAt(media.ExpiryDate, now))
         {
-            throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is expired (expired on {media.ExpiryDate:yyyy-MM-dd}).");
+            throw new BusinessRuleException(
+                MessageCodes.MediaMediaLotExpired,
+                $"Media lot \"{media.LotNumber}\" is expired (expired on {media.ExpiryDate:yyyy-MM-dd}).",
+                new Dictionary<string, string> { ["lot"] = media.LotNumber, ["expiryDate"] = media.ExpiryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
         }
     }
 
@@ -40,15 +50,24 @@ public static class BatchSelectMediaRules
     {
         if (incubator == null)
         {
-            throw new BusinessRuleException($"Incubator equipment {incubatorEquipmentId} was not found or is not an incubator.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubatorNotFound,
+                $"Incubator equipment {incubatorEquipmentId} was not found or is not an incubator.",
+                new Dictionary<string, string> { ["incubatorId"] = incubatorEquipmentId.ToString(CultureInfo.InvariantCulture) });
         }
         if (incubator.SetPointTemperature == null)
         {
-            throw new BusinessRuleException($"Incubator \"{incubator.Code}\" has no calibrated set point temperature.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubatorNoSetPoint,
+                $"Incubator \"{incubator.Code}\" has no calibrated set point temperature.",
+                new Dictionary<string, string> { ["code"] = incubator.Code });
         }
         if (incubator.CalibrationDueDate != null && incubator.CalibrationDueDate < now)
         {
-            throw new BusinessRuleException($"Incubator \"{incubator.Code}\" calibration expired on {incubator.CalibrationDueDate:yyyy-MM-dd}.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubatorCalibrationExpired,
+                $"Incubator \"{incubator.Code}\" calibration expired on {incubator.CalibrationDueDate:yyyy-MM-dd}.",
+                new Dictionary<string, string> { ["code"] = incubator.Code, ["calibrationDueDate"] = incubator.CalibrationDueDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
         }
     }
 

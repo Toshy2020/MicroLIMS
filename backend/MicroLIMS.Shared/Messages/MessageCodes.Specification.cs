@@ -4,6 +4,7 @@ namespace MicroLIMS.Shared.Messages;
 public static partial class MessageCodes
 {
     public const string SpecificationAcceptanceCriteriaRequiredForStages = "Specification.AcceptanceCriteriaRequiredForStages";
+    public const string SpecificationAlreadyRetired = "Specification.AlreadyRetired";
     public const string SpecificationAnalyteNotInTestMethod = "Specification.AnalyteNotInTestMethod";
     public const string SpecificationDilutionFactorOnlyCountTiered = "Specification.DilutionFactorOnlyCountTiered";
     public const string SpecificationDisintegrationLabelClaimNotAllowed = "Specification.DisintegrationLabelClaimNotAllowed";
@@ -73,6 +74,7 @@ public static partial class MessageCodes
     public const string SpecificationNotApplicableOnlyDraftHeadApprove = "Specification.NotApplicableOnlyDraftHeadApprove";
     public const string SpecificationNotApplicableOnlyHeadApprovedFinalApprove = "Specification.NotApplicableOnlyHeadApprovedFinalApprove";
     public const string SpecificationNotApplicableReasonRequired = "Specification.NotApplicableReasonRequired";
+    public const string SpecificationNotRetired = "Specification.NotRetired";
     public const string SpecificationParameterNameRequired = "Specification.ParameterNameRequired";
     public const string SpecificationPpmOnlyResidualSolvent = "Specification.PpmOnlyResidualSolvent";
     public const string SpecificationProductionStageInvalid = "Specification.ProductionStageInvalid";
@@ -88,6 +90,8 @@ public static partial class MessageCodes
     public const string SpecificationRelatedSubstanceOnlyRelatedMethods = "Specification.RelatedSubstanceOnlyRelatedMethods";
     public const string SpecificationRelatedSubstanceRowRequired = "Specification.RelatedSubstanceRowRequired";
     public const string SpecificationResidualSolventMustBePpmNotMoreThan = "Specification.ResidualSolventMustBePpmNotMoreThan";
+    public const string SpecificationRetiredCannotEdit = "Specification.RetiredCannotEdit";
+    public const string SpecificationSpecificationNotFound = "Specification.SpecificationNotFound";
     public const string SpecificationStageLabelRequiredForStages = "Specification.StageLabelRequiredForStages";
     public const string SpecificationTargetAndToleranceRequired = "Specification.TargetAndToleranceRequired";
     public const string SpecificationTestCodeRequired = "Specification.TestCodeRequired";
@@ -123,6 +127,7 @@ public static partial class MessageCodes
     private static Dictionary<string, string[]> SpecificationParameters() => new()
     {
         [SpecificationAcceptanceCriteriaRequiredForStages] = [],
+        [SpecificationAlreadyRetired] = [],
         [SpecificationAnalyteNotInTestMethod] = ["testCode"],
         [SpecificationDilutionFactorOnlyCountTiered] = [],
         [SpecificationDisintegrationLabelClaimNotAllowed] = [],
@@ -192,6 +197,7 @@ public static partial class MessageCodes
         [SpecificationNotApplicableOnlyDraftHeadApprove] = [],
         [SpecificationNotApplicableOnlyHeadApprovedFinalApprove] = [],
         [SpecificationNotApplicableReasonRequired] = [],
+        [SpecificationNotRetired] = [],
         [SpecificationParameterNameRequired] = [],
         [SpecificationPpmOnlyResidualSolvent] = [],
         [SpecificationProductionStageInvalid] = [],
@@ -207,6 +213,8 @@ public static partial class MessageCodes
         [SpecificationRelatedSubstanceOnlyRelatedMethods] = [],
         [SpecificationRelatedSubstanceRowRequired] = [],
         [SpecificationResidualSolventMustBePpmNotMoreThan] = [],
+        [SpecificationRetiredCannotEdit] = [],
+        [SpecificationSpecificationNotFound] = ["id"],
         [SpecificationStageLabelRequiredForStages] = [],
         [SpecificationTargetAndToleranceRequired] = [],
         [SpecificationTestCodeRequired] = [],

@@ -4,6 +4,8 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -38,18 +40,31 @@ public class MaterialReleaseService
         await _scope.EnsureMaterialAccessAsync(userId, materialId);
 
         var material = await _db.Materials.FirstOrDefaultAsync(m => m.Id == materialId)
-            ?? throw new NotFoundException($"Material {materialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaAdditiveMaterialNotFound,
+                $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, material);
 
         if (material.ApprovalStatus is null)
-            throw new BusinessRuleException($"Lot {material.BatchNumber} does not need a release.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLotNoReleaseNeeded,
+                $"Lot {material.BatchNumber} does not need a release.",
+                new Dictionary<string, string> { ["batchNumber"] = material.BatchNumber });
         if (material.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new BusinessRuleException($"Lot {material.BatchNumber} has already been decided ({material.ApprovalStatus}).");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLotAlreadyDecided,
+                $"Lot {material.BatchNumber} has already been decided ({material.ApprovalStatus}).",
+                new Dictionary<string, string> { ["batchNumber"] = material.BatchNumber, ["approvalStatus"] = material.ApprovalStatus.ToString() });
         if (!approved && string.IsNullOrWhiteSpace(comment))
-            throw new BusinessRuleException("A comment is required when rejecting a lot.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialRejectCommentRequired,
+                "A comment is required when rejecting a lot.");
 
         if (await _segregationOfDuties.DidUserReceiveMaterialAsync(materialId, userId))
-            throw new BusinessRuleException("You cannot release a lot you received.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCannotReleaseReceivedLot,
+                "You cannot release a lot you received.");
 
         // Signs first - a wrong password throws and nothing below is written (the
         // signature, the event and the state change commit in one SaveChangesAsync).

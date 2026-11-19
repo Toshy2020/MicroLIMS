@@ -39,7 +39,10 @@ public static partial class MessageCodes
     public const string TestDefinitionPerContainerOnlyForQualitative = "TestDefinition.PerContainerOnlyForQualitative";
     public const string TestDefinitionRecordNotFound = "TestDefinition.RecordNotFound";
     public const string TestDefinitionReplicateCountRangeForEquation = "TestDefinition.ReplicateCountRangeForEquation";
+    public const string TestDefinitionSampleReplicatesAtLeastOne = "TestDefinition.SampleReplicatesAtLeastOne";
     public const string TestDefinitionSstOnlyForHplcOrDissolution = "TestDefinition.SstOnlyForHplcOrDissolution";
+    public const string TestDefinitionStageReplicateNotFound = "TestDefinition.StageReplicateNotFound";
+    public const string TestDefinitionStageReplicateRoleExists = "TestDefinition.StageReplicateRoleExists";
     public const string TestDefinitionStandardMaterialMasterNotFound = "TestDefinition.StandardMaterialMasterNotFound";
     public const string TestDefinitionStandardMaterialRequiredForAssay = "TestDefinition.StandardMaterialRequiredForAssay";
     public const string TestDefinitionStandardMaterialWrongLab = "TestDefinition.StandardMaterialWrongLab";
@@ -96,7 +99,10 @@ public static partial class MessageCodes
         [TestDefinitionPerContainerOnlyForQualitative] = [],
         [TestDefinitionRecordNotFound] = ["id"],
         [TestDefinitionReplicateCountRangeForEquation] = ["equationType"],
+        [TestDefinitionSampleReplicatesAtLeastOne] = [],
         [TestDefinitionSstOnlyForHplcOrDissolution] = [],
+        [TestDefinitionStageReplicateNotFound] = ["replicateId", "id"],
+        [TestDefinitionStageReplicateRoleExists] = ["role"],
         [TestDefinitionStandardMaterialMasterNotFound] = [],
         [TestDefinitionStandardMaterialRequiredForAssay] = [],
         [TestDefinitionStandardMaterialWrongLab] = [],

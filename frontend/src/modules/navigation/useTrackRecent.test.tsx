@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useState } from "react";
 import { recentRecordsService } from "./services/recentRecordsService";
 import { useTrackRecent } from "./useTrackRecent";
@@ -55,6 +55,9 @@ describe("useTrackRecent", () => {
     vi.mocked(recentRecordsService.touch).mockRejectedValue(new Error("network"));
     render(<SampleScreen load={vi.fn().mockResolvedValue({ id: 5, code: "S-5" })} />);
     expect(await screen.findByRole("heading", { name: "S-5" })).toBeTruthy();
-    expect(recentRecordsService.touch).toHaveBeenCalledTimes(1);
+    // The opening is reported in an effect that runs after the heading is shown: wait for it.
+    await waitFor(() => expect(recentRecordsService.touch).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole("heading", { name: "S-5" })).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

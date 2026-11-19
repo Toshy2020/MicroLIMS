@@ -4,6 +4,7 @@ namespace MicroLIMS.Shared.Messages;
 public static partial class MessageCodes
 {
     public const string IcpActualWeightOnlyForAssay = "Icp.ActualWeightOnlyForAssay";
+    public const string IcpAtLeastOneElementRequired = "Icp.AtLeastOneElementRequired";
     public const string IcpCalibrationAlreadyConfirmed = "Icp.CalibrationAlreadyConfirmed";
     public const string IcpCalibrationConfirmBeforeAssigning = "Icp.CalibrationConfirmBeforeAssigning";
     public const string IcpCalibrationConfirmBeforeEntry = "Icp.CalibrationConfirmBeforeEntry";
@@ -17,7 +18,14 @@ public static partial class MessageCodes
     public const string IcpCalibrationReportRequired = "Icp.CalibrationReportRequired";
     public const string IcpCalibrationStandardLotInvalid = "Icp.CalibrationStandardLotInvalid";
     public const string IcpCalibrationStandardLotRequired = "Icp.CalibrationStandardLotRequired";
+    public const string IcpDuplicateElementId = "Icp.DuplicateElementId";
+    public const string IcpElementCleaningLimitNonNegative = "Icp.ElementCleaningLimitNonNegative";
+    public const string IcpElementNotInTest = "Icp.ElementNotInTest";
     public const string IcpElementNotNeededByTest = "Icp.ElementNotNeededByTest";
+    public const string IcpElementSymbolInvalid = "Icp.ElementSymbolInvalid";
+    public const string IcpElementTargetPpmPositive = "Icp.ElementTargetPpmPositive";
+    public const string IcpElementUsedBySpecificationsCannotRemove = "Icp.ElementUsedBySpecificationsCannotRemove";
+    public const string IcpElementUsedBySpecificationsCannotRename = "Icp.ElementUsedBySpecificationsCannotRename";
     public const string IcpEquipmentHasOpenRun = "Icp.EquipmentHasOpenRun";
     public const string IcpEquipmentNotFound = "Icp.EquipmentNotFound";
     public const string IcpEquipmentNotIcpOes = "Icp.EquipmentNotIcpOes";
@@ -32,6 +40,7 @@ public static partial class MessageCodes
     public const string IcpEvidenceNotFound = "Icp.EvidenceNotFound";
     public const string IcpEvidenceOnlySampleCanLinkSample = "Icp.EvidenceOnlySampleCanLinkSample";
     public const string IcpEvidenceSampleRequired = "Icp.EvidenceSampleRequired";
+    public const string IcpImpurityTestNoTarget = "Icp.ImpurityTestNoTarget";
     public const string IcpNoCalibratedElementPasses = "Icp.NoCalibratedElementPasses";
     public const string IcpNoSpecificationConfigured = "Icp.NoSpecificationConfigured";
     public const string IcpPendingSamplesBlockCompletion = "Icp.PendingSamplesBlockCompletion";
@@ -48,16 +57,24 @@ public static partial class MessageCodes
     public const string IcpRunSampleRecordNotFound = "Icp.RunSampleRecordNotFound";
     public const string IcpRunSampleRemoved = "Icp.RunSampleRemoved";
     public const string IcpRunSampleResultAlreadySubmitted = "Icp.RunSampleResultAlreadySubmitted";
+    public const string IcpSampleFormRequired = "Icp.SampleFormRequired";
     public const string IcpSampleResultReportRequired = "Icp.SampleResultReportRequired";
     public const string IcpSampleWeightRequired = "Icp.SampleWeightRequired";
     public const string IcpSelectAtLeastOneTest = "Icp.SelectAtLeastOneTest";
+    public const string IcpSettingsOnlyForIcpTests = "Icp.SettingsOnlyForIcpTests";
     public const string IcpSingleElementResultRequired = "Icp.SingleElementResultRequired";
+    public const string IcpSpecificGravityPositive = "Icp.SpecificGravityPositive";
+    public const string IcpSpecificationsBlockModeChange = "Icp.SpecificationsBlockModeChange";
     public const string IcpTestOrderAlreadyAssignedToRun = "Icp.TestOrderAlreadyAssignedToRun";
     public const string IcpTestOrderNotEligibleForRun = "Icp.TestOrderNotEligibleForRun";
+    public const string IcpTestTypeRequired = "Icp.TestTypeRequired";
+    public const string IcpTheoreticalVolumePositive = "Icp.TheoreticalVolumePositive";
+    public const string IcpTheoreticalWeightPositive = "Icp.TheoreticalWeightPositive";
 
     private static Dictionary<string, string[]> IcpParameters() => new()
     {
         [IcpActualWeightOnlyForAssay] = [],
+        [IcpAtLeastOneElementRequired] = [],
         [IcpCalibrationAlreadyConfirmed] = [],
         [IcpCalibrationConfirmBeforeAssigning] = [],
         [IcpCalibrationConfirmBeforeEntry] = [],
@@ -71,7 +88,14 @@ public static partial class MessageCodes
         [IcpCalibrationReportRequired] = [],
         [IcpCalibrationStandardLotInvalid] = [],
         [IcpCalibrationStandardLotRequired] = [],
+        [IcpDuplicateElementId] = ["elementId"],
+        [IcpElementCleaningLimitNonNegative] = ["symbol"],
+        [IcpElementNotInTest] = ["elementId"],
         [IcpElementNotNeededByTest] = [],
+        [IcpElementSymbolInvalid] = [],
+        [IcpElementTargetPpmPositive] = ["symbol"],
+        [IcpElementUsedBySpecificationsCannotRemove] = ["symbol"],
+        [IcpElementUsedBySpecificationsCannotRename] = ["symbol"],
         [IcpEquipmentHasOpenRun] = ["equipment"],
         [IcpEquipmentNotFound] = ["equipmentId"],
         [IcpEquipmentNotIcpOes] = ["equipment"],
@@ -86,6 +110,7 @@ public static partial class MessageCodes
         [IcpEvidenceNotFound] = ["evidenceId"],
         [IcpEvidenceOnlySampleCanLinkSample] = [],
         [IcpEvidenceSampleRequired] = [],
+        [IcpImpurityTestNoTarget] = ["symbol"],
         [IcpNoCalibratedElementPasses] = [],
         [IcpNoSpecificationConfigured] = [],
         [IcpPendingSamplesBlockCompletion] = ["count"],
@@ -102,11 +127,18 @@ public static partial class MessageCodes
         [IcpRunSampleRecordNotFound] = ["runSampleId"],
         [IcpRunSampleRemoved] = [],
         [IcpRunSampleResultAlreadySubmitted] = [],
+        [IcpSampleFormRequired] = [],
         [IcpSampleResultReportRequired] = [],
         [IcpSampleWeightRequired] = [],
         [IcpSelectAtLeastOneTest] = [],
+        [IcpSettingsOnlyForIcpTests] = [],
         [IcpSingleElementResultRequired] = ["symbol"],
+        [IcpSpecificGravityPositive] = [],
+        [IcpSpecificationsBlockModeChange] = [],
         [IcpTestOrderAlreadyAssignedToRun] = ["testOrderId", "runCode"],
         [IcpTestOrderNotEligibleForRun] = ["testOrderId"],
+        [IcpTestTypeRequired] = [],
+        [IcpTheoreticalVolumePositive] = [],
+        [IcpTheoreticalWeightPositive] = [],
     };
 }

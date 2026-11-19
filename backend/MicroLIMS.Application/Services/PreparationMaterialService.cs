@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -7,6 +8,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -46,8 +48,6 @@ public class PreparationMaterialService
         _time = timeProvider ?? TimeProvider.System;
     }
 
-    private static string RoleName(PreparationMaterialRole role) => role == PreparationMaterialRole.Diluent ? "diluent" : "neutralizer";
-
     public static PreparationMaterialChoice ChoiceOf(ItemPreparationConfiguration c, PreparationMaterialRole role) =>
         role == PreparationMaterialRole.Diluent
             ? new(c.DiluentSource, c.DiluentMediaProductId, c.DiluentSolutionMasterId, c.DiluentMaterialMasterEntryId)
@@ -82,17 +82,63 @@ public class PreparationMaterialService
 
     public async Task<ResolvedPreparationMaterial> ResolveAsync(PreparationMaterialRole role, PreparationMaterialChoice? choice)
     {
-        var what = RoleName(role);
         if (choice?.Source is not PreparationMaterialSource source)
+        {
+            if (role == PreparationMaterialRole.Neutralizer)
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionNeutralizerSourceRequired,
+                    "Choose where the neutralizer comes from: a media product, a solution recipe or a material entry, or contained in the medium.");
             throw new BusinessRuleException(
-                $"Choose where the {what} comes from: a media product, a solution recipe or a material entry"
-                + (role == PreparationMaterialRole.Neutralizer ? ", or contained in the medium." : "."));
+                MessageCodes.SolutionDiluentSourceRequired,
+                "Choose where the diluent comes from: a media product, a solution recipe or a material entry.");
+        }
 
         // Exactly the id matching the source may be set.
         void OnlyOne(bool media, bool solution, bool entry)
         {
             if ((!media && choice.MediaProductId.HasValue) || (!solution && choice.SolutionMasterId.HasValue) || (!entry && choice.MaterialMasterEntryId.HasValue))
-                throw new BusinessRuleException($"The {what} source is {source}: set only the {SourceIdName(source)}.");
+            {
+                if (role == PreparationMaterialRole.Diluent)
+                {
+                    switch (source)
+                    {
+                        case PreparationMaterialSource.MediaProduct:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionDiluentMediaProductOnly,
+                                "The diluent source is MediaProduct: set only the media product.");
+                        case PreparationMaterialSource.SolutionRecipe:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionDiluentSolutionRecipeOnly,
+                                "The diluent source is SolutionRecipe: set only the solution recipe.");
+                        case PreparationMaterialSource.MaterialEntry:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionDiluentMaterialEntryOnly,
+                                "The diluent source is MaterialEntry: set only the material entry.");
+                    }
+                }
+                else
+                {
+                    switch (source)
+                    {
+                        case PreparationMaterialSource.MediaProduct:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionNeutralizerMediaProductOnly,
+                                "The neutralizer source is MediaProduct: set only the media product.");
+                        case PreparationMaterialSource.SolutionRecipe:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionNeutralizerSolutionRecipeOnly,
+                                "The neutralizer source is SolutionRecipe: set only the solution recipe.");
+                        case PreparationMaterialSource.MaterialEntry:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionNeutralizerMaterialEntryOnly,
+                                "The neutralizer source is MaterialEntry: set only the material entry.");
+                        case PreparationMaterialSource.ContainedInMedium:
+                            throw new BusinessRuleException(
+                                MessageCodes.SolutionNeutralizerContainedInMediumSourceOnly,
+                                "The neutralizer source is ContainedInMedium: set only the source.");
+                    }
+                }
+            }
         }
 
         switch (source)
@@ -101,55 +147,104 @@ public class PreparationMaterialService
             {
                 OnlyOne(true, false, false);
                 if (choice.MediaProductId is not int id)
-                    throw new BusinessRuleException($"Choose the media product for the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(MessageCodes.SolutionDiluentMediaProductRequired, "Choose the media product for the diluent.");
+                    throw new BusinessRuleException(MessageCodes.SolutionNeutralizerMediaProductRequired, "Choose the media product for the neutralizer.");
+                }
                 var product = await _db.MediaProducts.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id)
-                    ?? throw new BusinessRuleException($"Media product {id} not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.SolutionMediaProductNotFound,
+                        $"Media product {id} not found.",
+                        new Dictionary<string, string> { ["mediaProductId"] = id.ToString(CultureInfo.InvariantCulture) });
                 if (!product.IsActive)
-                    throw new BusinessRuleException($"Media product '{product.Name}' is inactive and can't be chosen as the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(
+                            MessageCodes.SolutionDiluentMediaProductInactive,
+                            $"Media product '{product.Name}' is inactive and can't be chosen as the diluent.",
+                            new Dictionary<string, string> { ["name"] = product.Name });
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionNeutralizerMediaProductInactive,
+                        $"Media product '{product.Name}' is inactive and can't be chosen as the neutralizer.",
+                        new Dictionary<string, string> { ["name"] = product.Name });
+                }
                 return new(new(source, MediaProductId: product.Id), product.Name);
             }
             case PreparationMaterialSource.SolutionRecipe:
             {
                 OnlyOne(false, true, false);
                 if (choice.SolutionMasterId is not int id)
-                    throw new BusinessRuleException($"Choose the solution recipe for the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(MessageCodes.SolutionDiluentRecipeRequired, "Choose the solution recipe for the diluent.");
+                    throw new BusinessRuleException(MessageCodes.SolutionNeutralizerRecipeRequired, "Choose the solution recipe for the neutralizer.");
+                }
                 var master = await _db.SolutionMasters.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id)
-                    ?? throw new BusinessRuleException($"Solution recipe {id} not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.SolutionRecipeNotFound,
+                        $"Solution recipe {id} not found.",
+                        new Dictionary<string, string> { ["solutionMasterId"] = id.ToString(CultureInfo.InvariantCulture) });
                 if (!master.IsActive)
-                    throw new BusinessRuleException($"Solution recipe '{master.Name}' is inactive and can't be chosen as the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(
+                            MessageCodes.SolutionDiluentRecipeInactive,
+                            $"Solution recipe '{master.Name}' is inactive and can't be chosen as the diluent.",
+                            new Dictionary<string, string> { ["name"] = master.Name });
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionNeutralizerRecipeInactive,
+                        $"Solution recipe '{master.Name}' is inactive and can't be chosen as the neutralizer.",
+                        new Dictionary<string, string> { ["name"] = master.Name });
+                }
                 if (!master.Type.IsGeneral())
                     throw new BusinessRuleException(
-                        $"Solution recipe '{master.Name}' is a {master.Type} recipe; choose a Diluent, Reagent or Neutralizer recipe.");
+                        MessageCodes.SolutionRecipeWrongType,
+                        $"Solution recipe '{master.Name}' is a {master.Type} recipe; choose a Diluent, Reagent or Neutralizer recipe.",
+                        new Dictionary<string, string> { ["name"] = master.Name, ["type"] = master.Type.ToString() });
                 return new(new(source, SolutionMasterId: master.Id), master.Name);
             }
             case PreparationMaterialSource.MaterialEntry:
             {
                 OnlyOne(false, false, true);
                 if (choice.MaterialMasterEntryId is not int id)
-                    throw new BusinessRuleException($"Choose the material entry for the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(MessageCodes.SolutionDiluentMaterialEntryRequired, "Choose the material entry for the diluent.");
+                    throw new BusinessRuleException(MessageCodes.SolutionNeutralizerMaterialEntryRequired, "Choose the material entry for the neutralizer.");
+                }
                 var entry = await _db.MaterialMasterEntries.AsNoTracking().FirstOrDefaultAsync(e => e.Id == id)
-                    ?? throw new BusinessRuleException($"Material entry {id} not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.SolutionMaterialEntryNotFound,
+                        $"Material entry {id} not found.",
+                        new Dictionary<string, string> { ["entryId"] = id.ToString(CultureInfo.InvariantCulture) });
                 if (!entry.IsActive)
-                    throw new BusinessRuleException($"Material entry '{entry.Name}' is inactive and can't be chosen as the {what}.");
+                {
+                    if (role == PreparationMaterialRole.Diluent)
+                        throw new BusinessRuleException(
+                            MessageCodes.SolutionDiluentMaterialEntryInactive,
+                            $"Material entry '{entry.Name}' is inactive and can't be chosen as the diluent.",
+                            new Dictionary<string, string> { ["name"] = entry.Name });
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionNeutralizerMaterialEntryInactive,
+                        $"Material entry '{entry.Name}' is inactive and can't be chosen as the neutralizer.",
+                        new Dictionary<string, string> { ["name"] = entry.Name });
+                }
                 return new(new(source, MaterialMasterEntryId: entry.Id), entry.Name);
             }
             case PreparationMaterialSource.ContainedInMedium:
                 if (role != PreparationMaterialRole.Neutralizer)
-                    throw new BusinessRuleException("Only the neutralizer can be contained in the medium; choose the diluent's source.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionOnlyNeutralizerContainedInMedium,
+                        "Only the neutralizer can be contained in the medium; choose the diluent's source.");
                 OnlyOne(false, false, false);
                 return new(new(source), ContainedInMediumName);
             default:
-                throw new BusinessRuleException($"Unknown {what} source.");
+                if (role == PreparationMaterialRole.Diluent)
+                    throw new BusinessRuleException(MessageCodes.SolutionUnknownDiluentSource, "Unknown diluent source.");
+                throw new BusinessRuleException(MessageCodes.SolutionUnknownNeutralizerSource, "Unknown neutralizer source.");
         }
     }
-
-    private static string SourceIdName(PreparationMaterialSource s) => s switch
-    {
-        PreparationMaterialSource.MediaProduct => "media product",
-        PreparationMaterialSource.SolutionRecipe => "solution recipe",
-        PreparationMaterialSource.MaterialEntry => "material entry",
-        _ => "source"
-    };
 
     // ---- Confirmation: validate the picked lot --------------------------------
 
@@ -158,24 +253,42 @@ public class PreparationMaterialService
     public async Task<PreparationLot?> RequireLotAsync(
         PreparationMaterialRole role, PreparationMaterialChoice configured, int? lotId, int userId, CancellationToken ct = default)
     {
-        var what = RoleName(role);
         if (configured.Source is null)
         {
             if (lotId.HasValue)
+            {
+                if (role == PreparationMaterialRole.Diluent)
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionDiluentNotLinkedToMaster,
+                        "The diluent of this item is not linked to a master record yet, so no diluent lot can be recorded.");
                 throw new BusinessRuleException(
-                    $"The {what} of this item is not linked to a master record yet, so no {what} lot can be recorded.");
+                    MessageCodes.SolutionNeutralizerNotLinkedToMaster,
+                    "The neutralizer of this item is not linked to a master record yet, so no neutralizer lot can be recorded.");
+            }
             return null;
         }
 
         if (configured.Source == PreparationMaterialSource.ContainedInMedium)
         {
             if (lotId.HasValue)
-                throw new BusinessRuleException($"The {what} is contained in the medium; no {what} lot is picked.");
+            {
+                if (role == PreparationMaterialRole.Diluent)
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionDiluentContainedInMediumNoLot,
+                        "The diluent is contained in the medium; no diluent lot is picked.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionNeutralizerContainedInMediumNoLot,
+                    "The neutralizer is contained in the medium; no neutralizer lot is picked.");
+            }
             return null;
         }
 
         if (lotId is not int id)
-            throw new BusinessRuleException($"Pick the {what} lot used.");
+        {
+            if (role == PreparationMaterialRole.Diluent)
+                throw new BusinessRuleException(MessageCodes.SolutionDiluentLotRequired, "Pick the diluent lot used.");
+            throw new BusinessRuleException(MessageCodes.SolutionNeutralizerLotRequired, "Pick the neutralizer lot used.");
+        }
 
         var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -186,31 +299,66 @@ public class PreparationMaterialService
             case PreparationMaterialSource.MediaProduct:
             {
                 var media = await _db.Media.Include(m => m.Material).FirstOrDefaultAsync(m => m.Id == id, ct)
-                    ?? throw new BusinessRuleException($"Media lot {id} not found.");
-                RequireReadable(readable, media.Material!.SectionId, $"Media lot {media.LotNumber}");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.MediaLotNotFound,
+                        $"Media lot {id} not found.",
+                        new Dictionary<string, string> { ["mediaId"] = id.ToString(CultureInfo.InvariantCulture) });
+                if (readable is not null && !readable.Contains(media.Material!.SectionId))
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionMediaLotWrongSection,
+                        $"Media lot {media.LotNumber} belongs to a laboratory section you can't access.",
+                        new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
                 var productName = await _db.MediaProducts.AsNoTracking()
                     .Where(p => p.Id == configured.MediaProductId).Select(p => p.Name).FirstOrDefaultAsync(ct) ?? "the configured media product";
                 var check = CheckMedia(media, configured.MediaProductId, productName, now);
-                if (!check.Usable) throw new BusinessRuleException(check.Reason);
+                if (!check.Usable)
+                {
+                    var code = check.Code!;
+                    throw new BusinessRuleException(code, check.Reason!, check.Params);
+                }
                 return new(source, media.Id, null, null, Truncate(media.LotNumber));
             }
             case PreparationMaterialSource.SolutionRecipe:
             {
                 var prep = await _db.SolutionPreparations.Include(p => p.SolutionMaster).FirstOrDefaultAsync(p => p.Id == id, ct)
-                    ?? throw new BusinessRuleException($"Solution preparation {id} not found.");
-                RequireReadable(readable, prep.SectionId, $"Preparation {LabelOf(prep)}");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.SolutionPreparationNotFound,
+                        $"Solution preparation {id} not found.",
+                        new Dictionary<string, string> { ["preparationId"] = id.ToString(CultureInfo.InvariantCulture) });
+                var prepLabel = LabelOf(prep);
+                if (readable is not null && !readable.Contains(prep.SectionId))
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionPreparationWrongSection,
+                        $"Preparation {prepLabel} belongs to a laboratory section you can't access.",
+                        new Dictionary<string, string> { ["label"] = prepLabel });
                 var check = CheckSolution(prep, configured.SolutionMasterId, now);
-                if (!check.Usable) throw new BusinessRuleException(check.Reason);
-                return new(source, null, prep.Id, null, Truncate(LabelOf(prep)));
+                if (!check.Usable)
+                {
+                    var code = check.Code!;
+                    throw new BusinessRuleException(code, check.Reason!, check.Params);
+                }
+                return new(source, null, prep.Id, null, Truncate(prepLabel));
             }
             default:
             {
                 var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == id, ct)
-                    ?? throw new BusinessRuleException($"Stock lot {id} not found.");
-                RequireReadable(readable, lot.SectionId, $"Stock lot {LabelOf(lot)}");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.SolutionStockLotNotFound,
+                        $"Stock lot {id} not found.",
+                        new Dictionary<string, string> { ["materialId"] = id.ToString(CultureInfo.InvariantCulture) });
+                var lotLabel = LabelOf(lot);
+                if (readable is not null && !readable.Contains(lot.SectionId))
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionStockLotWrongSection,
+                        $"Stock lot {lotLabel} belongs to a laboratory section you can't access.",
+                        new Dictionary<string, string> { ["lotLabel"] = lotLabel });
                 var check = CheckMaterial(lot, configured.MaterialMasterEntryId, now);
-                if (!check.Usable) throw new BusinessRuleException(check.Reason);
-                return new(source, null, null, lot.Id, Truncate(LabelOf(lot)));
+                if (!check.Usable)
+                {
+                    var code = check.Code!;
+                    throw new BusinessRuleException(code, check.Reason!, check.Params);
+                }
+                return new(source, null, null, lot.Id, Truncate(lotLabel));
             }
         }
     }
@@ -245,50 +393,71 @@ public class PreparationMaterialService
         $"{(role == PreparationMaterialRole.Diluent ? "Diluent" : "Neutralizer")}: {name} ({(source?.ToString() ?? "unmapped")})"
         + (string.IsNullOrEmpty(lotCode) ? string.Empty : $", lot {lotCode}");
 
-    private static void RequireReadable(IReadOnlyList<int>? readable, int sectionId, string what)
-    {
-        if (readable is not null && !readable.Contains(sectionId))
-            throw new BusinessRuleException($"{what} belongs to a laboratory section you can't access.");
-    }
-
     // ---- Lot rules, shared by validation and the options list -------------------
 
-    private static LotCheck CheckMedia(Media media, int? productId, string productName, DateTime now)
+    private sealed record CodedLotCheck(bool Usable, string? Reason, string? Code = null, Dictionary<string, string>? Params = null);
+
+    private static CodedLotCheck CheckMedia(Media media, int? productId, string productName, DateTime now)
     {
         if (media.Material?.MediaProductId != productId)
-            return new(false, $"Media lot {media.LotNumber} is not a lot of {productName}.");
+            return new(false, $"Media lot {media.LotNumber} is not a lot of {productName}.",
+                MessageCodes.SolutionMediaLotWrongProduct,
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber, ["productName"] = productName });
         if (!media.IsReleasedForUse)
-            return new(false, $"Media lot {media.LotNumber} is not released for use.");
+            return new(false, $"Media lot {media.LotNumber} is not released for use.",
+                MessageCodes.SolutionMediaLotNotReleased,
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
         if (media.Status != MediaStatus.Active)
-            return new(false, $"Media lot {media.LotNumber} is {media.Status} and cannot be used.");
+            return new(false, $"Media lot {media.LotNumber} is {media.Status} and cannot be used.",
+                MessageCodes.SolutionMediaLotWrongStatus,
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber, ["status"] = media.Status.ToString() });
         if (media.ExpiryDate <= now)
-            return new(false, $"Media lot {media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
+            return new(false, $"Media lot {media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.",
+                MessageCodes.SolutionMediaLotExpired,
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber, ["expiresAt"] = media.ExpiryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) });
         return new(true, null);
     }
 
-    private static LotCheck CheckSolution(SolutionPreparation prep, int? masterId, DateTime now)
+    private static CodedLotCheck CheckSolution(SolutionPreparation prep, int? masterId, DateTime now)
     {
         var label = LabelOf(prep);
         if (prep.SolutionMasterId != masterId)
-            return new(false, $"Preparation {label} is not a preparation of the configured solution recipe.");
+            return new(false, $"Preparation {label} is not a preparation of the configured solution recipe.",
+                MessageCodes.SolutionPreparationWrongMaster,
+                new Dictionary<string, string> { ["label"] = label });
         var status = SolutionPreparationResponse.EffectiveStatusOf(prep, now);
         if (status == SolutionPreparationStatus.Expired)
-            return new(false, $"Preparation {label} expired on {prep.ExpiresAt:yyyy-MM-dd}.");
+            return new(false, $"Preparation {label} expired on {prep.ExpiresAt:yyyy-MM-dd}.",
+                MessageCodes.MediaAdditiveSolutionExpired,
+                new Dictionary<string, string> { ["label"] = label, ["expiresAt"] = prep.ExpiresAt?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty });
         if (status != SolutionPreparationStatus.Prepared)
-            return new(false, $"Preparation {label} is {status} and cannot be used.");
+            return new(false, $"Preparation {label} is {status} and cannot be used.",
+                MessageCodes.MediaAdditiveSolutionInvalidStatus,
+                new Dictionary<string, string> { ["label"] = label, ["status"] = status.ToString() });
         if (prep.ApprovalStatus == ApprovalGateStatus.PendingReview)
-            return new(false, $"Preparation {label} is awaiting release.");
+            return new(false, $"Preparation {label} is awaiting release.",
+                MessageCodes.MediaAdditiveSolutionAwaitingRelease,
+                new Dictionary<string, string> { ["label"] = label });
         if (prep.ApprovalStatus == ApprovalGateStatus.Rejected)
-            return new(false, $"Preparation {label} was rejected.");
+            return new(false, $"Preparation {label} was rejected.",
+                MessageCodes.MediaAdditiveSolutionRejected,
+                new Dictionary<string, string> { ["label"] = label });
         return new(true, null);
     }
 
-    private static LotCheck CheckMaterial(Material lot, int? entryId, DateTime now)
+    private static CodedLotCheck CheckMaterial(Material lot, int? entryId, DateTime now)
     {
+        var label = LabelOf(lot);
         if (entryId is not int id)
-            return new(false, $"Stock lot {LabelOf(lot)} does not match the configured material entry.");
+            return new(false, $"Stock lot {label} does not match the configured material entry.",
+                MessageCodes.SolutionStockLotWrongEntry,
+                new Dictionary<string, string> { ["lotLabel"] = label });
         var check = LotUsability.Check(lot, id, null, DateOnly.FromDateTime(now));
-        return check.Usable ? check : new(false, $"Stock lot {LabelOf(lot)} cannot be used: {check.Reason}");
+        return check.Usable
+            ? new(true, null)
+            : new(false, $"Stock lot {label} cannot be used: {check.Reason}",
+                MessageCodes.SolutionStockLotUnusable,
+                new Dictionary<string, string> { ["lotLabel"] = label, ["reason"] = check.Reason ?? string.Empty });
     }
 
     private static string LabelOf(SolutionPreparation p) => p.Code ?? $"#{p.Id}";
@@ -390,20 +559,31 @@ public class PreparationMaterialService
     {
         var given = new[] { mediaId, solutionPreparationId, materialId }.Count(v => v.HasValue);
         if (given != 1)
-            throw new BusinessRuleException("Give exactly one of mediaId, solutionPreparationId or materialId.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionWhereUsedRequiresSingleId,
+                "Give exactly one of mediaId, solutionPreparationId or materialId.");
 
         var readable = (await _scope.GetReadableSectionIdsAsync(userId, ct))?.ToList();
 
         int lotSectionId;
         if (mediaId.HasValue)
             lotSectionId = (await _db.Media.AsNoTracking().Where(m => m.Id == mediaId).Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync(ct))
-                ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MediaLotNotFound,
+                    $"Media lot {mediaId} not found.",
+                    new Dictionary<string, string> { ["mediaId"] = mediaId.Value.ToString(CultureInfo.InvariantCulture) });
         else if (solutionPreparationId.HasValue)
             lotSectionId = (await _db.SolutionPreparations.AsNoTracking().Where(p => p.Id == solutionPreparationId).Select(p => (int?)p.SectionId).FirstOrDefaultAsync(ct))
-                ?? throw new NotFoundException($"Solution preparation {solutionPreparationId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.SolutionPreparationNotFound,
+                    $"Solution preparation {solutionPreparationId} not found.",
+                    new Dictionary<string, string> { ["preparationId"] = solutionPreparationId.Value.ToString(CultureInfo.InvariantCulture) });
         else
             lotSectionId = (await _db.Materials.AsNoTracking().Where(m => m.Id == materialId).Select(m => (int?)m.SectionId).FirstOrDefaultAsync(ct))
-                ?? throw new NotFoundException($"Stock lot {materialId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.SolutionStockLotNotFound,
+                    $"Stock lot {materialId} not found.",
+                    new Dictionary<string, string> { ["materialId"] = materialId!.Value.ToString(CultureInfo.InvariantCulture) });
 
         if (readable is not null && !readable.Contains(lotSectionId))
             throw new UnauthorizedAccessException("This lot belongs to a laboratory section you are not assigned to.");

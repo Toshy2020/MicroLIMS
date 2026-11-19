@@ -44,6 +44,7 @@ public static partial class MessageCodes
         TestParameters(),
         TitrantParameters(),
         TitrationParameters(),
+        UserParameters(),
         UvParameters(),
         WeightVariationParameters());
 

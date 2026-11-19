@@ -3,6 +3,7 @@ using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
@@ -10,6 +11,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Validation;
 
 namespace MicroLIMS.Application.Services;
@@ -91,7 +93,9 @@ public class UserService
             null or "" or "active" => true,
             "inactive" => false,
             "all" => null,
-            _ => throw new BusinessRuleException("Status must be 'active', 'inactive' or 'all'.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.UserStatusFilterInvalid,
+                "Status must be 'active', 'inactive' or 'all'.")
         };
         var query = _db.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
         if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
@@ -110,7 +114,10 @@ public class UserService
     public async Task<List<UserDirectoryDto>> GetDirectoryAsync(string? requiredPermission = null)
     {
         if (!string.IsNullOrWhiteSpace(requiredPermission) && !DirectoryPermissionFilters.Contains(requiredPermission))
-            throw new BusinessRuleException($"Directory cannot be filtered by permission '{requiredPermission}'.");
+            throw new BusinessRuleException(
+                MessageCodes.UserDirectoryPermissionFilterNotAllowed,
+                $"Directory cannot be filtered by permission '{requiredPermission}'.",
+                new Dictionary<string, string> { ["requiredPermission"] = requiredPermission });
 
         var query = _db.Users.Include(u => u.Role).Where(u => u.IsActive);
         if (!string.IsNullOrWhiteSpace(requiredPermission))
@@ -145,7 +152,10 @@ public class UserService
     public async Task<UserDto> GetByIdAsync(int id)
     {
         var user = await _db.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
-            ?? throw new NotFoundException($"User {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {id} not found.",
+                new Dictionary<string, string> { ["userId"] = id.ToString(CultureInfo.InvariantCulture) });
         return await ToDtoAsync(user);
     }
 
@@ -159,27 +169,35 @@ public class UserService
     {
         var trimmedReason = AdminActionReason.Require(reason, "create a user");
         if (string.IsNullOrWhiteSpace(user.Username))
-            throw new BusinessRuleException("Username is required.");
+            throw new BusinessRuleException(MessageCodes.UserUsernameRequired, "Username is required.");
         if (string.IsNullOrWhiteSpace(user.FullName))
-            throw new BusinessRuleException("Full Name is required.");
+            throw new BusinessRuleException(MessageCodes.UserFullNameRequired, "Full Name is required.");
 
         if (user.SignInMethod != SignInMethod.Directory)
         {
             var passwordFailures = PasswordPolicy.Validate(plainPassword ?? string.Empty, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
             if (passwordFailures.Count > 0)
-                throw new BusinessRuleException(string.Join(" ", passwordFailures));
+                throw new BusinessRuleException(
+                    MessageCodes.UserPasswordPolicyFailed,
+                    string.Join(" ", passwordFailures),
+                    new Dictionary<string, string> { ["message"] = string.Join(" ", passwordFailures) });
         }
 
         if (await _db.Users.AnyAsync(u => u.Username == user.Username, ct))
-            throw new BusinessRuleException($"Username '{user.Username}' is already taken.");
+            throw new BusinessRuleException(
+                MessageCodes.UserUsernameAlreadyTaken,
+                $"Username '{user.Username}' is already taken.",
+                new Dictionary<string, string> { ["username"] = user.Username });
         var role = await _db.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == user.RoleId, ct)
-            ?? throw new BusinessRuleException("Selected role does not exist.");
+            ?? throw new BusinessRuleException(MessageCodes.UserSelectedRoleNotFound, "Selected role does not exist.");
 
         string? directoryUsername = null;
         if (user.SignInMethod == SignInMethod.Directory || !string.IsNullOrWhiteSpace(user.DirectoryUsername))
         {
             if (user.SignInMethod == SignInMethod.Directory && string.IsNullOrWhiteSpace(user.DirectoryUsername))
-                throw new BusinessRuleException("A company username is required for company sign-in.");
+                throw new BusinessRuleException(
+                    MessageCodes.UserCompanyUsernameRequired,
+                    "A company username is required for company sign-in.");
             directoryUsername = DirectoryUsernameRules.NormalizeOrThrow(user.DirectoryUsername);
             await EnsureDirectoryUsernameFreeAsync(directoryUsername, exceptUserId: null, ct);
         }
@@ -230,16 +248,22 @@ public class UserService
     {
         var trimmedReason = AdminActionReason.Require(reason, "change a user's profile");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, user);
 
         if (string.IsNullOrWhiteSpace(fullName))
-            throw new BusinessRuleException("Full Name is required.");
+            throw new BusinessRuleException(MessageCodes.UserFullNameRequired, "Full Name is required.");
         if (string.IsNullOrWhiteSpace(username))
-            throw new BusinessRuleException("Username is required.");
+            throw new BusinessRuleException(MessageCodes.UserUsernameRequired, "Username is required.");
 
         if (user.Username != username && await _db.Users.AnyAsync(u => u.Username == username && u.Id != targetUserId))
-            throw new BusinessRuleException($"Username '{username}' is already taken.");
+            throw new BusinessRuleException(
+                MessageCodes.UserUsernameAlreadyTaken,
+                $"Username '{username}' is already taken.",
+                new Dictionary<string, string> { ["username"] = username });
 
         _db.CurrentUserId = actingUserId > 0 ? actingUserId : _db.CurrentUserId;
         _db.CurrentReason = trimmedReason;
@@ -282,7 +306,9 @@ public class UserService
         var targetEmergency = signIn.IsEmergencyAccount ?? user.IsEmergencyAccount;
 
         if (targetMethod == SignInMethod.Directory && targetDirectoryUsername is null)
-            throw new BusinessRuleException("A company username is required for company sign-in.");
+            throw new BusinessRuleException(
+                MessageCodes.UserCompanyUsernameRequired,
+                "A company username is required for company sign-in.");
 
         if (user.IsEmergencyAccount && !targetEmergency)
             ApplyEmergencyChange(user, false, reason, actingUserId);
@@ -291,7 +317,9 @@ public class UserService
             || !string.Equals(targetDirectoryUsername, user.DirectoryUsername, StringComparison.Ordinal))
         {
             if (user.IsEmergencyAccount && targetMethod != SignInMethod.Local)
-                throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+                throw new BusinessRuleException(
+                    MessageCodes.UserEmergencyMustUseLocalSignIn,
+                    "Emergency accounts must use Local sign-in.");
             if (targetDirectoryUsername is not null)
                 await EnsureDirectoryUsernameFreeAsync(targetDirectoryUsername, user.Id, ct);
             ApplySsoLinkChange(user, targetMethod, targetDirectoryUsername, reason, actingUserId);
@@ -314,13 +342,18 @@ public class UserService
         var reason = AdminActionReason.Require(rawReason, "change a user's role");
 
         if (actingUserId == targetUserId)
-            throw new BusinessRuleException("System Administrators cannot modify their own role.");
+            throw new BusinessRuleException(
+                MessageCodes.UserCannotModifyOwnRole,
+                "System Administrators cannot modify their own role.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         var newRole = await _db.Roles.FirstOrDefaultAsync(r => r.Id == newRoleId)
-            ?? throw new BusinessRuleException("Selected role does not exist.");
+            ?? throw new BusinessRuleException(MessageCodes.UserSelectedRoleNotFound, "Selected role does not exist.");
 
         // Self-changes are blocked above, but two administrators could still
         // demote each other until nobody is left.
@@ -370,10 +403,15 @@ public class UserService
         reason = AdminActionReason.Require(reason, isActive ? "enable a user account" : "disable a user account");
 
         if (!isActive && actingUserId == targetUserId)
-            throw new BusinessRuleException("System Administrators cannot disable their own account.");
+            throw new BusinessRuleException(
+                MessageCodes.UserCannotDisableOwnAccount,
+                "System Administrators cannot disable their own account.");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         if (!isActive)
             await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.UserDisabledOrDeleted(targetUserId));
@@ -428,7 +466,10 @@ public class UserService
     {
         var trimmedReason = AdminActionReason.Require(reason, "change a user's email address");
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId)
-            ?? throw new NotFoundException($"User {userId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {userId} not found.",
+                new Dictionary<string, string> { ["userId"] = userId.ToString(CultureInfo.InvariantCulture) });
         _db.CurrentReason = trimmedReason;
         user.Email = email;
         await _db.SaveChangesAsync();
@@ -437,7 +478,10 @@ public class UserService
     public async Task<List<UserSessionDto>> GetActiveSessionsAsync(int targetUserId)
     {
         if (!await _db.Users.AnyAsync(u => u.Id == targetUserId))
-            throw new NotFoundException($"User {targetUserId} not found.");
+            throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         var now = _time.GetUtcNow().UtcDateTime;
         return await _db.RefreshTokens
@@ -455,7 +499,10 @@ public class UserService
     {
         reason = AdminActionReason.Require(reason, "revoke a user's sessions");
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         _db.CurrentReason = reason;
         var revoked = await _authService.RevokeAllRefreshTokensAsync(targetUserId);
@@ -486,7 +533,10 @@ public class UserService
     {
         reason = AdminActionReason.Require(reason, "unlock a user account");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         _db.CurrentReason = reason;
         var prevFailed = user.FailedLoginAttempts;
@@ -524,7 +574,10 @@ public class UserService
         reason = AdminActionReason.Require(reason, "reset a user's password");
         _db.CurrentReason = reason;
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         await _authService.RequestPasswordResetAsync(user.Username);
 
@@ -547,7 +600,10 @@ public class UserService
     {
         reason = AdminActionReason.Require(reason, "force a password change");
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         _db.CurrentReason = reason;
         var prevMust = user.MustChangePassword;
@@ -579,7 +635,10 @@ public class UserService
             isEmergencyAccount ? "mark an account as an emergency administrator" : "remove emergency administrator status");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         if (isEmergencyAccount)
             await EnsureEmergencyEligibleAsync(targetUserId, user.Role?.Type, user.SignInMethod, CancellationToken.None);
@@ -595,22 +654,30 @@ public class UserService
     private async Task EnsureEmergencyEligibleAsync(int userId, RoleType? roleType, SignInMethod signInMethod, CancellationToken ct)
     {
         if (roleType != RoleType.SystemAdministrator)
-            throw new BusinessRuleException("Only a System Administrator account can be marked as an emergency account.");
+            throw new BusinessRuleException(
+                MessageCodes.UserEmergencyAdminOnly,
+                "Only a System Administrator account can be marked as an emergency account.");
 
         if (signInMethod != SignInMethod.Local)
-            throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+            throw new BusinessRuleException(
+                MessageCodes.UserEmergencyMustUseLocalSignIn,
+                "Emergency accounts must use Local sign-in.");
 
         var hasActiveMfa = userId > 0 && await _db.UserMfaCredentials
             .AsNoTracking()
             .AnyAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct);
         if (!hasActiveMfa)
-            throw new BusinessRuleException("An emergency account must have an active second factor.");
+            throw new BusinessRuleException(
+                MessageCodes.UserEmergencyRequiresActiveMfa,
+                "An emergency account must have an active second factor.");
 
         var otherEmergencyCount = await _db.Users
             .AsNoTracking()
             .CountAsync(u => u.Id != userId && u.IsEmergencyAccount, ct);
         if (otherEmergencyCount >= 3)
-            throw new BusinessRuleException("At most 3 emergency administrator accounts may be configured.");
+            throw new BusinessRuleException(
+                MessageCodes.UserEmergencyMaxCountReached,
+                "At most 3 emergency administrator accounts may be configured.");
     }
 
     private void ApplyEmergencyChange(User user, bool isEmergencyAccount, string reason, int actingUserId)
@@ -641,11 +708,16 @@ public class UserService
         var trimmedReason = AdminActionReason.Require(reason, "update a user's sign-in method");
 
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         var normalizedDirectoryUsername = User.NormalizeDirectoryUsername(directoryUsername);
         if (user.IsEmergencyAccount && signInMethod != SignInMethod.Local)
-            throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+            throw new BusinessRuleException(
+                MessageCodes.UserEmergencyMustUseLocalSignIn,
+                "Emergency accounts must use Local sign-in.");
 
         if (normalizedDirectoryUsername is not null)
             await EnsureDirectoryUsernameFreeAsync(normalizedDirectoryUsername, targetUserId, CancellationToken.None);
@@ -662,7 +734,10 @@ public class UserService
                 u => u.DirectoryUsername == normalizedDirectoryUsername && (exceptUserId == null || u.Id != exceptUserId),
                 ct))
         {
-            throw new BusinessRuleException($"Directory username '{normalizedDirectoryUsername}' is already linked to another user.");
+            throw new BusinessRuleException(
+                MessageCodes.UserDirectoryUsernameAlreadyLinked,
+                $"Directory username '{normalizedDirectoryUsername}' is already linked to another user.",
+                new Dictionary<string, string> { ["directoryUsername"] = normalizedDirectoryUsername });
         }
     }
 
@@ -742,13 +817,20 @@ public class UserService
         var trimmedReason = AdminActionReason.Require(reason, "re-link a user's company account");
 
         if (actingUserId == targetUserId)
-            throw new BusinessRuleException("You cannot re-link your own company account. Ask another administrator.");
+            throw new BusinessRuleException(
+                MessageCodes.UserCannotRelinkOwnCompanyAccount,
+                "You cannot re-link your own company account. Ask another administrator.");
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
-            ?? throw new NotFoundException($"User {targetUserId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {targetUserId} not found.",
+                new Dictionary<string, string> { ["userId"] = targetUserId.ToString(CultureInfo.InvariantCulture) });
 
         if (user.DirectoryUsername is null)
-            throw new BusinessRuleException("This user has no company username to re-link.");
+            throw new BusinessRuleException(
+                MessageCodes.UserNoCompanyUsernameToRelink,
+                "This user has no company username to re-link.");
 
         _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
         _db.CurrentReason = trimmedReason;

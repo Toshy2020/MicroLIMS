@@ -3,6 +3,8 @@ namespace MicroLIMS.Shared.Messages;
 // TestDefinition.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string TestDefinitionAreaInUseByItems = "TestDefinition.AreaInUseByItems";
+    public const string TestDefinitionAreaRequired = "TestDefinition.AreaRequired";
     public const string TestDefinitionCodeAlreadyExists = "TestDefinition.CodeAlreadyExists";
     public const string TestDefinitionCodeRequired = "TestDefinition.CodeRequired";
     public const string TestDefinitionConditionFieldsTooLong = "TestDefinition.ConditionFieldsTooLong";
@@ -28,17 +30,23 @@ public static partial class MessageCodes
     public const string TestDefinitionHplcMethodRequiredForAssay = "TestDefinition.HplcMethodRequiredForAssay";
     public const string TestDefinitionIcpUsesCalibrationNotSst = "TestDefinition.IcpUsesCalibrationNotSst";
     public const string TestDefinitionLegacyHplcRetired = "TestDefinition.LegacyHplcRetired";
+    public const string TestDefinitionLossOnDryingRoleNeedsGravimetricLoss = "TestDefinition.LossOnDryingRoleNeedsGravimetricLoss";
     public const string TestDefinitionMeasurementEvaluationBasisRequired = "TestDefinition.MeasurementEvaluationBasisRequired";
     public const string TestDefinitionMeasurementReplicateCountRange = "TestDefinition.MeasurementReplicateCountRange";
     public const string TestDefinitionMethodAbbreviationInvalid = "TestDefinition.MethodAbbreviationInvalid";
     public const string TestDefinitionMethodAbbreviationRequired = "TestDefinition.MethodAbbreviationRequired";
     public const string TestDefinitionMoistureRoleChangeReasonRequired = "TestDefinition.MoistureRoleChangeReasonRequired";
+    public const string TestDefinitionPerContainerOnlyForQualitative = "TestDefinition.PerContainerOnlyForQualitative";
     public const string TestDefinitionRecordNotFound = "TestDefinition.RecordNotFound";
     public const string TestDefinitionReplicateCountRangeForEquation = "TestDefinition.ReplicateCountRangeForEquation";
     public const string TestDefinitionSstOnlyForHplcOrDissolution = "TestDefinition.SstOnlyForHplcOrDissolution";
+    public const string TestDefinitionStandardMaterialMasterNotFound = "TestDefinition.StandardMaterialMasterNotFound";
+    public const string TestDefinitionStandardMaterialRequiredForAssay = "TestDefinition.StandardMaterialRequiredForAssay";
+    public const string TestDefinitionStandardMaterialWrongLab = "TestDefinition.StandardMaterialWrongLab";
     public const string TestDefinitionTitrationChangeReasonRequired = "TestDefinition.TitrationChangeReasonRequired";
     public const string TestDefinitionUnknownUvCalculationMode = "TestDefinition.UnknownUvCalculationMode";
     public const string TestDefinitionUvFieldsOnlyForUv = "TestDefinition.UvFieldsOnlyForUv";
+    public const string TestDefinitionWaterRoleNeedsKarlFischer = "TestDefinition.WaterRoleNeedsKarlFischer";
     public const string TestDefinitionWeightVariationNoSystemSuitability = "TestDefinition.WeightVariationNoSystemSuitability";
     public const string TestDefinitionWorkflowMustBeDisintegration = "TestDefinition.WorkflowMustBeDisintegration";
     public const string TestDefinitionWorkflowMustBeDissolution = "TestDefinition.WorkflowMustBeDissolution";
@@ -52,6 +60,8 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> TestDefinitionParameters() => new()
     {
+        [TestDefinitionAreaInUseByItems] = ["items", "area"],
+        [TestDefinitionAreaRequired] = [],
         [TestDefinitionCodeAlreadyExists] = ["code"],
         [TestDefinitionCodeRequired] = [],
         [TestDefinitionConditionFieldsTooLong] = [],
@@ -77,17 +87,23 @@ public static partial class MessageCodes
         [TestDefinitionHplcMethodRequiredForAssay] = [],
         [TestDefinitionIcpUsesCalibrationNotSst] = [],
         [TestDefinitionLegacyHplcRetired] = [],
+        [TestDefinitionLossOnDryingRoleNeedsGravimetricLoss] = [],
         [TestDefinitionMeasurementEvaluationBasisRequired] = [],
         [TestDefinitionMeasurementReplicateCountRange] = [],
         [TestDefinitionMethodAbbreviationInvalid] = [],
         [TestDefinitionMethodAbbreviationRequired] = [],
         [TestDefinitionMoistureRoleChangeReasonRequired] = [],
+        [TestDefinitionPerContainerOnlyForQualitative] = [],
         [TestDefinitionRecordNotFound] = ["id"],
         [TestDefinitionReplicateCountRangeForEquation] = ["equationType"],
         [TestDefinitionSstOnlyForHplcOrDissolution] = [],
+        [TestDefinitionStandardMaterialMasterNotFound] = [],
+        [TestDefinitionStandardMaterialRequiredForAssay] = [],
+        [TestDefinitionStandardMaterialWrongLab] = [],
         [TestDefinitionTitrationChangeReasonRequired] = [],
         [TestDefinitionUnknownUvCalculationMode] = [],
         [TestDefinitionUvFieldsOnlyForUv] = [],
+        [TestDefinitionWaterRoleNeedsKarlFischer] = [],
         [TestDefinitionWeightVariationNoSystemSuitability] = [],
         [TestDefinitionWorkflowMustBeDisintegration] = [],
         [TestDefinitionWorkflowMustBeDissolution] = [],

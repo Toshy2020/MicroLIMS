@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -7,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
@@ -56,12 +58,18 @@ public class AuditTrailReviewService : IAuditTrailReviewService
         var periodTo = NormalizeUtc(request.PeriodToUtc);
 
         if (periodFrom >= periodTo)
-            throw new BusinessRuleException("Review period start must be earlier than period end.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewPeriodStartNotBeforeEnd,
+                "Review period start must be earlier than period end.");
         if (periodTo > now)
-            throw new BusinessRuleException("Review period end cannot be in the future.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewPeriodEndInFuture,
+                "Review period end cannot be in the future.");
 
         if (!Enum.IsDefined(request.ScopeKind))
-            throw new BusinessRuleException("Invalid audit trail review scope kind.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewInvalidScopeKind,
+                "Invalid audit trail review scope kind.");
 
         var (scopeEntityName, scopeRecordId) = ValidateScope(request.ScopeKind, request.EntityName, request.RecordId);
 
@@ -115,7 +123,10 @@ public class AuditTrailReviewService : IAuditTrailReviewService
                 r.CutoffAuditLogId
             })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Audit trail review {reviewId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AuditReviewNotFound,
+                $"Audit trail review {reviewId} not found.",
+                new Dictionary<string, string> { ["reviewId"] = reviewId.ToString(CultureInfo.InvariantCulture) });
 
         var (normalizedPage, normalizedPageSize) = Paging.Normalize(page, pageSize, DefaultPageSize);
 
@@ -170,10 +181,15 @@ public class AuditTrailReviewService : IAuditTrailReviewService
                 r.CutoffAuditLogId
             })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Audit trail review {reviewId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AuditReviewNotFound,
+                $"Audit trail review {reviewId} not found.",
+                new Dictionary<string, string> { ["reviewId"] = reviewId.ToString(CultureInfo.InvariantCulture) });
 
         if (review.Status != AuditTrailReviewStatus.InProgress)
-            throw new BusinessRuleException("Findings cannot be added to a signed audit trail review.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewSignedCannotAddFindings,
+                "Findings cannot be added to a signed audit trail review.");
 
         var inScope = await BuildScopeQuery(
                 review.PeriodFromUtc,
@@ -185,14 +201,24 @@ public class AuditTrailReviewService : IAuditTrailReviewService
             .AnyAsync(ct);
 
         if (!inScope)
-            throw new BusinessRuleException($"Audit log entry {auditLogId} is outside the fixed scope of audit trail review {reviewId}.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewEntryOutsideScope,
+                $"Audit log entry {auditLogId} is outside the fixed scope of audit trail review {reviewId}.",
+                new Dictionary<string, string>
+                {
+                    ["auditLogId"] = auditLogId.ToString(CultureInfo.InvariantCulture),
+                    ["reviewId"] = reviewId.ToString(CultureInfo.InvariantCulture)
+                });
 
         var duplicate = await _db.AuditTrailReviewFindings
             .AsNoTracking()
             .AnyAsync(f => f.ReviewId == reviewId && f.AuditLogId == auditLogId, ct);
 
         if (duplicate)
-            throw new BusinessRuleException($"A finding has already been recorded for audit log entry {auditLogId} in this review.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewDuplicateFinding,
+                $"A finding has already been recorded for audit log entry {auditLogId} in this review.",
+                new Dictionary<string, string> { ["auditLogId"] = auditLogId.ToString(CultureInfo.InvariantCulture) });
 
         var now = _time.GetUtcNow().UtcDateTime;
         var finding = new AuditTrailReviewFinding
@@ -248,7 +274,10 @@ public class AuditTrailReviewService : IAuditTrailReviewService
 
         var review = await _db.AuditTrailReviews
             .FirstOrDefaultAsync(r => r.Id == reviewId, ct)
-            ?? throw new NotFoundException($"Audit trail review {reviewId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AuditReviewNotFound,
+                $"Audit trail review {reviewId} not found.",
+                new Dictionary<string, string> { ["reviewId"] = reviewId.ToString(CultureInfo.InvariantCulture) });
 
         if (review.StartedByUserId != actingUserId)
             throw new UnauthorizedAccessException("Only the user who started the audit trail review may sign it.");
@@ -257,7 +286,9 @@ public class AuditTrailReviewService : IAuditTrailReviewService
         RecordVersion.EnsureCurrent(_db, review);
 
         if (review.Status != AuditTrailReviewStatus.InProgress)
-            throw new BusinessRuleException("This audit trail review is already signed.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewAlreadySigned,
+                "This audit trail review is already signed.");
 
         var trimmedConclusion = RequireBoundedText(conclusion, "Conclusion", MaxTextLength);
 
@@ -301,10 +332,15 @@ public class AuditTrailReviewService : IAuditTrailReviewService
 
         var finding = await _db.AuditTrailReviewFindings
             .FirstOrDefaultAsync(f => f.Id == findingId, ct)
-            ?? throw new NotFoundException($"Audit trail review finding {findingId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AuditReviewFindingNotFound,
+                $"Audit trail review finding {findingId} not found.",
+                new Dictionary<string, string> { ["findingId"] = findingId.ToString(CultureInfo.InvariantCulture) });
 
         if (finding.Status != AuditFindingStatus.Open)
-            throw new BusinessRuleException("This finding is already closed.");
+            throw new BusinessRuleException(
+                MessageCodes.AuditReviewFindingAlreadyClosed,
+                "This finding is already closed.");
 
         var now = _time.GetUtcNow().UtcDateTime;
         _db.CurrentUserId = actingUserId;
@@ -454,7 +490,10 @@ public class AuditTrailReviewService : IAuditTrailReviewService
                     .ToList()
             })
             .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException($"Audit trail review {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.AuditReviewNotFound,
+                $"Audit trail review {id} not found.",
+                new Dictionary<string, string> { ["reviewId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var userIds = new List<int> { review.StartedByUserId };
         foreach (var f in review.Findings)
@@ -572,9 +611,60 @@ public class AuditTrailReviewService : IAuditTrailReviewService
     {
         var trimmed = value?.Trim();
         if (string.IsNullOrEmpty(trimmed))
-            throw new BusinessRuleException($"{fieldName} is required.");
+        {
+            switch (fieldName)
+            {
+                case "Title":
+                    throw new BusinessRuleException(MessageCodes.AuditReviewTitleRequired, "Title is required.");
+                case "Finding note":
+                    throw new BusinessRuleException(MessageCodes.AuditReviewFindingNoteRequired, "Finding note is required.");
+                case "Conclusion":
+                    throw new BusinessRuleException(MessageCodes.AuditReviewConclusionRequired, "Conclusion is required.");
+                case "Closing comment":
+                    throw new BusinessRuleException(MessageCodes.AuditReviewClosingCommentRequired, "Closing comment is required.");
+                case "Scope entity name":
+                    throw new BusinessRuleException(MessageCodes.AuditReviewScopeEntityNameRequired, "Scope entity name is required.");
+                default:
+                    throw new BusinessRuleException(MessageCodes.AuditReviewScopeRecordIdRequired, "Scope record ID is required.");
+            }
+        }
         if (trimmed.Length > maxLength)
-            throw new BusinessRuleException($"{fieldName} must be {maxLength} characters or fewer.");
+        {
+            var max = maxLength.ToString(CultureInfo.InvariantCulture);
+            switch (fieldName)
+            {
+                case "Title":
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewTitleTooLong,
+                        $"Title must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+                case "Finding note":
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewFindingNoteTooLong,
+                        $"Finding note must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+                case "Conclusion":
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewConclusionTooLong,
+                        $"Conclusion must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+                case "Closing comment":
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewClosingCommentTooLong,
+                        $"Closing comment must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+                case "Scope entity name":
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewScopeEntityNameTooLong,
+                        $"Scope entity name must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+                default:
+                    throw new BusinessRuleException(
+                        MessageCodes.AuditReviewScopeRecordIdTooLong,
+                        $"Scope record ID must be {maxLength} characters or fewer.",
+                        new Dictionary<string, string> { ["max"] = max });
+            }
+        }
         return trimmed;
     }
 
@@ -592,7 +682,9 @@ public class AuditTrailReviewService : IAuditTrailReviewService
             AuditReviewScopeKind.Record => (
                 RequireBoundedText(rawEntityName, "Scope entity name", MaxEntityNameLength),
                 RequireBoundedText(rawRecordId, "Scope record ID", MaxRecordIdLength)),
-            _ => throw new BusinessRuleException("Invalid audit trail review scope kind.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.AuditReviewInvalidScopeKind,
+                "Invalid audit trail review scope kind.")
         };
     }
 }

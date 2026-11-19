@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -30,7 +32,10 @@ public class ReferenceListMasterDataService
     public async Task<CauseOfTestingResponse> CreateCauseOfTestingAsync(string name)
     {
         if (await _db.CausesOfTesting.AnyAsync(c => c.Name.ToLower() == name.ToLower()))
-            throw new BusinessRuleException($"Cause of Testing \"{name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListCauseOfTestingExists,
+                $"Cause of Testing \"{name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = name });
 
         var entity = new CauseOfTesting { Name = name };
         _db.CausesOfTesting.Add(entity);
@@ -41,11 +46,17 @@ public class ReferenceListMasterDataService
     public async Task<CauseOfTestingResponse> UpdateCauseOfTestingAsync(int id, string name)
     {
         var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Cause of Testing {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListCauseOfTestingNotFound,
+                $"Cause of Testing {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.CausesOfTesting.AnyAsync(c => c.Id != id && c.Name.ToLower() == name.ToLower()))
-            throw new BusinessRuleException($"Cause of Testing \"{name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListCauseOfTestingExists,
+                $"Cause of Testing \"{name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = name });
 
         entity.Name = name;
         await _db.SaveChangesAsync();
@@ -58,11 +69,21 @@ public class ReferenceListMasterDataService
     public async Task<object> DeleteCauseOfTestingAsync(int id)
     {
         var entity = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Cause of Testing {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListCauseOfTestingNotFound,
+                $"Cause of Testing {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var sampleCount = await _db.Samples.CountAsync(s => s.CauseOfTestingId == id);
         if (sampleCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{entity.Name}' - it is referenced by {sampleCount} sample(s).");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListCauseOfTestingInUse,
+                $"Cannot delete '{entity.Name}' - it is referenced by {sampleCount} sample(s).",
+                new Dictionary<string, string>
+                {
+                    ["name"] = entity.Name,
+                    ["sampleCount"] = sampleCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.CausesOfTesting.Remove(entity);
         await _db.SaveChangesAsync();
@@ -75,7 +96,10 @@ public class ReferenceListMasterDataService
     public async Task<SamplerResponse> CreateSamplerAsync(string name)
     {
         if (await _db.Samplers.AnyAsync(s => s.Name.ToLower() == name.ToLower()))
-            throw new BusinessRuleException($"Sampler \"{name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListSamplerExists,
+                $"Sampler \"{name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = name });
 
         var entity = new Sampler { Name = name };
         _db.Samplers.Add(entity);
@@ -86,11 +110,17 @@ public class ReferenceListMasterDataService
     public async Task<SamplerResponse> UpdateSamplerAsync(int id, string name)
     {
         var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new NotFoundException($"Sampler {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListSamplerNotFound,
+                $"Sampler {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (await _db.Samplers.AnyAsync(s => s.Id != id && s.Name.ToLower() == name.ToLower()))
-            throw new BusinessRuleException($"Sampler \"{name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListSamplerExists,
+                $"Sampler \"{name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = name });
 
         entity.Name = name;
         await _db.SaveChangesAsync();
@@ -100,7 +130,10 @@ public class ReferenceListMasterDataService
     public async Task<object> DeleteSamplerAsync(int id)
     {
         var entity = await _db.Samplers.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new NotFoundException($"Sampler {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListSamplerNotFound,
+                $"Sampler {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         _db.Samplers.Remove(entity);
         await _db.SaveChangesAsync();
@@ -113,10 +146,15 @@ public class ReferenceListMasterDataService
     public async Task<ProductionStageResponse> CreateProductionStageAsync(CreateProductionStageRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListNameRequired,
+                "Name is required.");
 
         if (await _db.ProductionStages.AnyAsync(s => s.Name.ToLower() == request.Name.ToLower()))
-            throw new BusinessRuleException($"Production Stage \"{request.Name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListProductionStageExists,
+                $"Production Stage \"{request.Name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = request.Name });
 
         var entity = new ProductionStage { Name = request.Name, Role = request.Role };
         _db.ProductionStages.Add(entity);
@@ -127,14 +165,22 @@ public class ReferenceListMasterDataService
     public async Task<ProductionStageResponse> UpdateProductionStageAsync(int id, UpdateProductionStageRequest request)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new NotFoundException($"Production Stage {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListProductionStageNotFound,
+                $"Production Stage {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (string.IsNullOrWhiteSpace(request.Name))
-            throw new BusinessRuleException("Name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListNameRequired,
+                "Name is required.");
 
         if (await _db.ProductionStages.AnyAsync(s => s.Id != id && s.Name.ToLower() == request.Name.ToLower()))
-            throw new BusinessRuleException($"Production Stage \"{request.Name}\" already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.ReferenceListProductionStageExists,
+                $"Production Stage \"{request.Name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = request.Name });
 
         entity.Name = request.Name;
         entity.Role = request.Role;
@@ -145,7 +191,10 @@ public class ReferenceListMasterDataService
     public async Task<object> DeleteProductionStageAsync(int id)
     {
         var entity = await _db.ProductionStages.FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new NotFoundException($"Production Stage {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.ReferenceListProductionStageNotFound,
+                $"Production Stage {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         _db.ProductionStages.Remove(entity);
         await _db.SaveChangesAsync();

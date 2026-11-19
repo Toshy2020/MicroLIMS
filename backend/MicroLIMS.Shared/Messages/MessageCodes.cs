@@ -17,6 +17,7 @@ public static partial class MessageCodes
     // (MessageCodes.<Prefix>.cs); a code listed twice fails here with a duplicate-key error.
     public static IReadOnlyDictionary<string, string[]> ParameterNames { get; } = Combine(
         AssayParameters(),
+        AuditReviewParameters(),
         AuthParameters(),
         ControlChartParameters(),
         ColumnParameters(),
@@ -36,6 +37,7 @@ public static partial class MessageCodes
         OutsourcedParameters(),
         PathogenParameters(),
         ReceivingParameters(),
+        ReferenceListParameters(),
         ResultParameters(),
         SampleParameters(),
         SolutionParameters(),

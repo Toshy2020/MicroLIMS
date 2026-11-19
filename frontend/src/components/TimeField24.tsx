@@ -4,6 +4,8 @@ import type { SxProps, Theme } from "@mui/material";
 
 // "HH:mm" on the 24-hour clock: the same wire format a native <input type="time"> produced,
 // without the browser's locale-dependent 12-hour AM/PM rendering.
+// Format notation, not prose: identical in every language.
+const TIME_FORMAT_HINT = "HH:mm";
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export function isValidTime24(value: string): boolean {
@@ -33,7 +35,7 @@ export function TimeField24({ value, onChange, ariaLabel, sx }: TimeField24Props
     <TextField
       size="small"
       value={shown}
-      placeholder="HH:mm"
+      placeholder={TIME_FORMAT_HINT}
       error={invalid}
       onChange={(e) => {
         const next = autoColon(e.target.value);

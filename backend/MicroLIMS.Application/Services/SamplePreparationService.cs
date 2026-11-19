@@ -1,5 +1,7 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
@@ -68,7 +70,9 @@ public class SamplePreparationService
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
 
         if (sample.ItemId is null)
-            throw new BusinessRuleException("This sample has no Item and cannot use the preparation configuration flow.");
+            throw new BusinessRuleException(
+                MessageCodes.SamplePreparationRequiresItem,
+                "This sample has no Item and cannot use the preparation configuration flow.");
 
         // The text fields are the display names of the chosen masters.
         var diluent = await _materials.ResolveAsync(PreparationMaterialRole.Diluent, request.DiluentChoice);
@@ -136,13 +140,18 @@ public class SamplePreparationService
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
 
         if (sample.ItemId is null)
-            throw new BusinessRuleException("This sample has no Item and cannot use the preparation configuration flow.");
+            throw new BusinessRuleException(
+                MessageCodes.SamplePreparationRequiresItem,
+                "This sample has no Item and cannot use the preparation configuration flow.");
 
         var config = await _db.ItemPreparationConfigurations.FirstOrDefaultAsync(c => c.ItemId == sample.ItemId.Value)
-            ?? throw new BusinessRuleException("This item has no preparation configuration to confirm.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SamplePreparationConfigMissingToConfirm,
+                "This item has no preparation configuration to confirm.");
 
         if (request.ExpectedConfigurationId is int expectedConfigId && config.Id != expectedConfigId)
             throw new BusinessRuleException(
+                MessageCodes.SamplePreparationConfigChanged,
                 "This item's preparation configuration changed after the group was loaded. "
                 + "Reload the grouped action and review the steps before confirming.");
 
@@ -182,10 +191,15 @@ public class SamplePreparationService
     private async Task<Sample> LoadPreparableSampleAsync(int sampleId, int userId)
     {
         var sample = await _db.Samples.FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == sampleId))
-            throw new BusinessRuleException("This sample has already been prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAlreadyPrepared,
+                "This sample has already been prepared.");
 
         // Ownership Rule: once analysts are assigned to the sample's tests,
         // only one of them may prepare the sample unless reassigned.
@@ -204,7 +218,9 @@ public class SamplePreparationService
                 .ToListAsync();
             var assignedName = assignedNames.Count > 0 ? string.Join(", ", assignedNames) : $"User #{assignedAnalystIds[0]}";
             throw new BusinessRuleException(
-                $"This sample is assigned to {assignedName}. Only the assigned analyst may perform sample preparation, unless reassigned by an authorized Section Head.");
+                MessageCodes.SamplePreparationAssignedToAnother,
+                $"This sample is assigned to {assignedName}. Only the assigned analyst may perform sample preparation, unless reassigned by an authorized Section Head.",
+                new Dictionary<string, string> { ["assignedName"] = assignedName });
         }
 
         return sample;
@@ -261,9 +277,13 @@ public class SamplePreparationService
     public async Task<PreparationLotOptionsDto> GetLotOptionsForSampleAsync(int sampleId, int userId, CancellationToken ct = default)
     {
         var itemId = await _db.Samples.AsNoTracking().Where(s => s.Id == sampleId).Select(s => s.ItemId).FirstOrDefaultAsync(ct)
-            ?? throw new BusinessRuleException("This sample has no Item and cannot use the preparation configuration flow.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SamplePreparationRequiresItem,
+                "This sample has no Item and cannot use the preparation configuration flow.");
         var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.ItemId == itemId, ct)
-            ?? throw new BusinessRuleException("This item has no preparation configuration yet.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SamplePreparationConfigMissing,
+                "This item has no preparation configuration yet.");
         return await _materials.GetLotOptionsAsync(config, userId, ct);
     }
 
@@ -271,7 +291,10 @@ public class SamplePreparationService
     public async Task<PreparationLotOptionsDto> GetLotOptionsForConfigurationAsync(int configurationId, int userId, CancellationToken ct = default)
     {
         var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.Id == configurationId, ct)
-            ?? throw new NotFoundException($"Preparation configuration {configurationId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SamplePreparationConfigNotFound,
+                $"Preparation configuration {configurationId} not found.",
+                new Dictionary<string, string> { ["configurationId"] = configurationId.ToString(CultureInfo.InvariantCulture) });
         return await _materials.GetLotOptionsAsync(config, userId, ct);
     }
 
@@ -429,10 +452,14 @@ public class SamplePreparationService
     {
         var ids = (request.SampleIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new BusinessRuleException("No samples were selected for grouped preparation.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleGroupedPreparationNoSamples,
+                "No samples were selected for grouped preparation.");
 
         var config = await _db.ItemPreparationConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.Id == request.ConfigurationId, ct)
-            ?? throw new BusinessRuleException("The preparation configuration for this group no longer exists.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleGroupedPreparationConfigMissing,
+                "The preparation configuration for this group no longer exists.");
 
         // One diluent lot and one neutralizer lot for the whole group (D10): check them once
         // up front, so a bad pick fails the run before any signature instead of skipping every sample.

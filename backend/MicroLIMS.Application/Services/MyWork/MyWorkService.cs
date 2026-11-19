@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.MyWork;
 
@@ -64,7 +65,10 @@ public sealed class MyWorkService : IMyWorkService
                 var result = await source.GetAsync(ctx, GroupCap, ct);
                 var unknown = result.Items.FirstOrDefault(i => GroupDefinitions.All(g => g.Key != i.GroupKey));
                 if (unknown is not null)
-                    throw new BusinessRuleException($"Source '{source.Key}' returned an item for unknown group '{unknown.GroupKey}'.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SampleMyWorkUnknownGroup,
+                        $"Source '{source.Key}' returned an item for unknown group '{unknown.GroupKey}'.",
+                        new Dictionary<string, string> { ["sourceKey"] = source.Key, ["groupKey"] = unknown.GroupKey });
 
                 items.AddRange(result.Items);
                 foreach (var (group, count) in result.TotalsByGroup)

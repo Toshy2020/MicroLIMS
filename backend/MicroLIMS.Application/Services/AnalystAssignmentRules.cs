@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -46,7 +48,10 @@ public static class AnalystAssignmentRules
         int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc, CancellationToken ct = default)
     {
         var user = await db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == assigneeId, ct)
-            ?? throw new NotFoundException($"User {assigneeId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleAssigneeNotFound,
+                $"User {assigneeId} not found.",
+                new Dictionary<string, string> { ["userId"] = assigneeId.ToString(CultureInfo.InvariantCulture) });
 
         if (!user.IsActive)
             return (ActionCheck.No($"User '{user.FullName}' is not active."), user);

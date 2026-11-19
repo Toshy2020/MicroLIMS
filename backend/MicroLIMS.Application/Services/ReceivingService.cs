@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Validators;
@@ -22,7 +23,14 @@ public class ReceivingService : IReceivingService
     public async Task<SampleDto> ReceiveSampleAsync(ItemBasedReceiveRequest request)
     {
         var errors = _validator.Validate(request);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        if (errors.Count > 0)
+        {
+            var message = string.Join(" ", errors);
+            throw new BusinessRuleException(
+                MessageCodes.ReceivingValidationFailed,
+                message,
+                new Dictionary<string, string> { ["message"] = message });
+        }
 
         var sample = await _workflow.ReceiveAsync(request);
         return TestingWorkspaceService.ToDto(sample);

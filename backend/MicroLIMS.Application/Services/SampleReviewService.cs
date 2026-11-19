@@ -1,3 +1,4 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Exceptions;
@@ -68,7 +69,10 @@ public class SampleReviewService
     public async Task<bool> CanSubmitForReviewAsync(int sampleId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (!IsBeingTested(sample)) return false;
 
@@ -83,7 +87,10 @@ public class SampleReviewService
     public async Task AutoSubmitForReviewIfReadyAsync(int sampleId, int triggeredByUserId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (!IsBeingTested(sample)) return;
 
@@ -130,7 +137,10 @@ public class SampleReviewService
     private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var (check, section) = await CheckCompleteReviewAsync(sample, reviewerUserId, sectionId);
         check.ThrowIfRefused();
@@ -257,15 +267,25 @@ public class SampleReviewService
         if (!required)
         {
             if (quantity is not null || !string.IsNullOrWhiteSpace(unit))
-                throw new BusinessRuleException("Retention quantity is recorded only at the physicochemical review of a raw material.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetentionNotApplicable,
+                    "Retention quantity is recorded only at the physicochemical review of a raw material.");
             return null;
         }
 
-        if (quantity is null) throw new BusinessRuleException("Enter the retention quantity kept for this raw material.");
-        if (quantity <= 0) throw new BusinessRuleException("Retention quantity must be greater than zero.");
-        if (quantity >= 1_000_000m) throw new BusinessRuleException("Retention quantity must be less than 1,000,000.");
+        if (quantity is null) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityRequired,
+            "Enter the retention quantity kept for this raw material.");
+        if (quantity <= 0) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityPositive,
+            "Retention quantity must be greater than zero.");
+        if (quantity >= 1_000_000m) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityTooLarge,
+            "Retention quantity must be less than 1,000,000.");
         return RetentionUnits.FirstOrDefault(u => string.Equals(u, unit?.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?? throw new BusinessRuleException("Retention unit must be g, mg, kg, mL or L.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleRetentionUnitInvalid,
+                "Retention unit must be g, mg, kg, mL or L.");
     }
 
     public Task<TestReturnEventResponse> ReturnToAnalystAsync(
@@ -276,7 +296,10 @@ public class SampleReviewService
         int testOrderId, int reviewerId, string? reason, CancellationToken ct = default)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
@@ -290,7 +313,10 @@ public class SampleReviewService
         var dependents = returnable.Dependents;
         // Never null once the check is allowed; this keeps the compiler's null analysis honest.
         var definition = returnable.Definition
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleTestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
 
@@ -315,7 +341,10 @@ public class SampleReviewService
     public async Task<ActionCheck> CheckReturnToAnalystAsync(int testOrderId, int actingUserId, CancellationToken ct = default)
     {
         var order = await _db.TestOrders.AsNoTracking().FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         var sample = await _db.Samples.AsNoTracking().Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
         return (await CheckReturnToAnalystAsync(order, sample, actingUserId, forAction: false, ct)).Check;

@@ -183,6 +183,7 @@ public sealed class NotificationPreferencesService
             }
         }
 
+        _db.CurrentUserId = userId;
         await _db.SaveChangesAsync(ct);
         return await GetPreferencesAsync(userId, ct);
     }
@@ -277,6 +278,7 @@ public sealed class NotificationPreferencesService
             });
         }
 
+        _db.CurrentUserId = actorUserId;
         await _db.SaveChangesAsync(ct);
         return await GetMandatoryAsync(actorUserId, sectionId, ct);
     }

@@ -167,12 +167,17 @@ describe("EquipmentInventoryPage register", () => {
     await ready();
     const search = screen.getByRole("textbox", { name: SEARCH });
     await user.type(search, "mettler");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-BL-02")).toBe(true);
+    // Wait for the final result, not an intermediate one while the search is still being typed.
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-BL-02")).toBe(true);
+    });
     await user.clear(search);
     await user.type(search, "sn-300");
-    await waitFor(() => expect(hasCode("EQ-IN-03")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasCode("EQ-IN-03")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    });
     await user.click(screen.getByRole("button", { name: "Reset" }));
     await waitFor(() => expect(registerRows()).toHaveLength(4));
     expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();

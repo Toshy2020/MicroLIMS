@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
@@ -6,6 +7,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -42,32 +44,56 @@ public class SolutionPreparationReleaseService
     private async Task DecideCoreAsync(int id, ReleaseSolutionPreparationRequest r, int userId, string? ipAddress)
     {
         var prep = await _db.SolutionPreparations.Include(p => p.StatusHistory).FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Solution preparation {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetSectionIdsAsync(userId, SectionAccess.Write);
         if (scope != null && !scope.Contains(prep.SectionId))
-            throw new NotFoundException($"Solution preparation {id} not found.");
+            throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         RecordVersion.EnsureCurrent(_db, prep);
 
         var now = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, now) != SolutionPreparationStatus.Prepared)
-            throw new BusinessRuleException("This preparation is closed.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionPreparationClosed,
+                "This preparation is closed.");
 
         var label = prep.Code ?? $"#{prep.Id}";
         if (prep.ApprovalStatus is null)
-            throw new BusinessRuleException($"Preparation {label} does not need a release.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionReleaseNotNeeded,
+                $"Preparation {label} does not need a release.",
+                new Dictionary<string, string> { ["label"] = label });
         if (prep.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new BusinessRuleException($"Preparation {label} has already been decided ({prep.ApprovalStatus}).");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionReleaseAlreadyDecided,
+                $"Preparation {label} has already been decided ({prep.ApprovalStatus}).",
+                new Dictionary<string, string>
+                {
+                    ["label"] = label,
+                    ["status"] = prep.ApprovalStatus.ToString()
+                });
 
         var comment = string.IsNullOrWhiteSpace(r.Comment) ? null : r.Comment.Trim();
         if (!r.Approved && comment is null)
-            throw new BusinessRuleException("A comment is required when rejecting a preparation.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionRejectCommentRequired,
+                "A comment is required when rejecting a preparation.");
         if (comment is { Length: > 500 })
-            throw new BusinessRuleException("Comment cannot exceed 500 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionRejectCommentTooLong,
+                "Comment cannot exceed 500 characters.");
 
         if (await _segregationOfDuties.DidUserPrepareSolutionAsync(id, userId))
-            throw new BusinessRuleException("You cannot release a preparation you prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionCannotReleaseOwnPreparation,
+                "You cannot release a preparation you prepared.");
 
         // Signs first - a wrong password throws and nothing below is written (the
         // signature, the event and the state change commit in one SaveChangesAsync).

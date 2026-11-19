@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -46,7 +48,10 @@ public static class CryovialThaw
     {
         var check = EnsureUsableCore(cryovial, utcNow);
         if (check.VialsRemaining <= 0)
-            throw new BusinessRuleException($"No vials remaining in batch {cryovial.Code}.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialNoVialsRemaining,
+                $"No vials remaining in batch {cryovial.Code}.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
 
         cryovial.VialsRemaining--;
         var thaw = new ThawEvent
@@ -65,9 +70,24 @@ public static class CryovialThaw
     public static void EnsureThawedVialUsable(ThawEvent thaw, DateTime utcNow)
     {
         if (thaw.DestructionItem is not null)
-            throw new BusinessRuleException($"The vial of {thaw.Cryovial?.Code} thawed {thaw.ThawedAt:dd-MMM-yyyy HH:mm} has been destroyed.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialThawedVialDestroyed,
+                $"The vial of {thaw.Cryovial?.Code} thawed {thaw.ThawedAt:dd-MMM-yyyy HH:mm} has been destroyed.",
+                new Dictionary<string, string>
+                {
+                    ["code"] = thaw.Cryovial?.Code ?? string.Empty,
+                    ["thawedAt"] = thaw.ThawedAt.ToString("dd-MMM-yyyy HH:mm", CultureInfo.InvariantCulture)
+                });
         if (thaw.ThawedAt.Add(UsableFor) <= utcNow)
-            throw new BusinessRuleException($"The vial of {thaw.Cryovial?.Code} thawed {thaw.ThawedAt:dd-MMM-yyyy HH:mm} is more than {UsableFor.TotalHours:0} hours old and can no longer be used - it is due for destruction.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialThawedVialExpired,
+                $"The vial of {thaw.Cryovial?.Code} thawed {thaw.ThawedAt:dd-MMM-yyyy HH:mm} is more than {UsableFor.TotalHours:0} hours old and can no longer be used - it is due for destruction.",
+                new Dictionary<string, string>
+                {
+                    ["code"] = thaw.Cryovial?.Code ?? string.Empty,
+                    ["thawedAt"] = thaw.ThawedAt.ToString("dd-MMM-yyyy HH:mm", CultureInfo.InvariantCulture),
+                    ["hours"] = UsableFor.TotalHours.ToString("0", CultureInfo.InvariantCulture)
+                });
     }
 
     // Approved, not destroyed/withdrawn, not expired - required both to
@@ -85,11 +105,20 @@ public static class CryovialThaw
             utcNow);
 
         if (!check.IsApproved)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is not approved for use.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialNotApprovedForUse,
+                $"Cryovial batch {cryovial.Code} is not approved for use.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
         if (check.IsDestroyed)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has been withdrawn for destruction and cannot be used.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialWithdrawnForDestruction,
+                $"Cryovial batch {cryovial.Code} has been withdrawn for destruction and cannot be used.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
         if (check.IsExpired)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is expired and cannot be used.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialBatchExpired,
+                $"Cryovial batch {cryovial.Code} is expired and cannot be used.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
 
         return check;
     }

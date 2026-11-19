@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -58,7 +60,10 @@ public class MediaIncubationConditionService
         int mediaProductId, int minH, int maxH, decimal tMin, decimal tMax)
     {
         var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == mediaProductId)
-            ?? throw new NotFoundException($"Media product with ID {mediaProductId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaProductNotFound,
+                $"Media product with ID {mediaProductId} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = mediaProductId.ToString(CultureInfo.InvariantCulture) });
 
         ValidateRange(minH, maxH, tMin, tMax);
 
@@ -72,7 +77,16 @@ public class MediaIncubationConditionService
         if (exists)
         {
             throw new BusinessRuleException(
-                $"'{product.Name}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.");
+                MessageCodes.MediaIncubationConditionDuplicate,
+                $"'{product.Name}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.",
+                new Dictionary<string, string>
+                {
+                    ["productName"] = product.Name,
+                    ["minH"] = minH.ToString(CultureInfo.InvariantCulture),
+                    ["maxH"] = maxH.ToString(CultureInfo.InvariantCulture),
+                    ["tMin"] = tMin.ToString(CultureInfo.InvariantCulture),
+                    ["tMax"] = tMax.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         var condition = new MediaIncubationCondition
@@ -95,7 +109,10 @@ public class MediaIncubationConditionService
         var condition = await _db.MediaIncubationConditions
             .Include(c => c.MediaProduct)
             .FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Incubation condition with ID {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaIncubationConditionNotFound,
+                $"Incubation condition with ID {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, condition);
 
         await EnsureNotLockedAsync(id);
@@ -117,7 +134,16 @@ public class MediaIncubationConditionService
                 ?? string.Empty;
 
             throw new BusinessRuleException(
-                $"'{productName}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.");
+                MessageCodes.MediaIncubationConditionDuplicate,
+                $"'{productName}' already has an incubation condition of {minH}–{maxH} h at {tMin}–{tMax} °C.",
+                new Dictionary<string, string>
+                {
+                    ["productName"] = productName,
+                    ["minH"] = minH.ToString(CultureInfo.InvariantCulture),
+                    ["maxH"] = maxH.ToString(CultureInfo.InvariantCulture),
+                    ["tMin"] = tMin.ToString(CultureInfo.InvariantCulture),
+                    ["tMax"] = tMax.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         condition.IncubationMinHours = minH;
@@ -132,7 +158,10 @@ public class MediaIncubationConditionService
     public async Task DeleteAsync(int id)
     {
         var condition = await _db.MediaIncubationConditions.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Incubation condition with ID {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaIncubationConditionNotFound,
+                $"Incubation condition with ID {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureNotLockedAsync(id);
 
@@ -143,13 +172,19 @@ public class MediaIncubationConditionService
     private static void ValidateRange(int minH, int maxH, decimal tMin, decimal tMax)
     {
         if (minH <= 0)
-            throw new BusinessRuleException("Incubation min hours must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubationMinHoursInvalid,
+                "Incubation min hours must be greater than zero.");
         if (maxH < minH)
-            throw new BusinessRuleException("Incubation max hours cannot be less than min hours.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaIncubationMaxHoursBelowMin,
+                "Incubation max hours cannot be less than min hours.");
         // Strictly below, matching WorkflowTemplateValidator rule 5 for the
         // step media that copy these values.
         if (tMin >= tMax)
-            throw new BusinessRuleException("Temperature min must be below temperature max.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaTemperatureMinNotBelowMax,
+                "Temperature min must be below temperature max.");
     }
 
     private async Task EnsureNotLockedAsync(int id)
@@ -160,7 +195,13 @@ public class MediaIncubationConditionService
         if (configCount > 0 || stepMediaCount > 0)
         {
             throw new BusinessRuleException(
-                $"This incubation condition is used by {configCount} evaluation configuration(s) and {stepMediaCount} Test Master step medium/media, so it can't be changed or deleted. Add a new condition instead.");
+                MessageCodes.MediaIncubationConditionInUse,
+                $"This incubation condition is used by {configCount} evaluation configuration(s) and {stepMediaCount} Test Master step medium/media, so it can't be changed or deleted. Add a new condition instead.",
+                new Dictionary<string, string>
+                {
+                    ["configCount"] = configCount.ToString(CultureInfo.InvariantCulture),
+                    ["stepMediaCount"] = stepMediaCount.ToString(CultureInfo.InvariantCulture)
+                });
         }
     }
 }

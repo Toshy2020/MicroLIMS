@@ -4,6 +4,7 @@ import type { SxProps, Theme } from "@mui/material";
 import type { KpiDefinition, KpiEntry, KpiResult } from "../types/kpiTypes";
 import { entryView, flagLabel, formatExtras, formatPrior } from "../utils/kpiFormat";
 import { useTranslation } from "../../../i18n";
+import { kpiDefinition, kpiName } from "../utils/kpiText";
 
 // Gap messages and flags from the server, in the one non-failure warning tone.
 export function KpiChips({ result }: { result: KpiResult }) {
@@ -39,12 +40,13 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
   const { t } = useTranslation("kpi");
   const theme = useTheme();
   const view = entryView(entry, t);
+  const name = kpiName(t, entry.key, entry.name);
 
   if (view.kind === "error") {
     const tone = theme.custom.status.detected;
     return (
       <Paper sx={{ p: 2, height: "100%", border: `1px solid ${tone.border}` }}>
-        <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{entry.name}</Typography>
+        <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{name}</Typography>
         <Typography role="alert" sx={{ fontSize: 16, fontWeight: 700, color: tone.text, my: 0.5 }}>
           {t("shared.couldNotCalculate")}
         </Typography>
@@ -60,13 +62,13 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
   const button = (
     <ButtonBase
       onClick={() => onOpenRecords(entry.key)}
-      aria-label={t("tile.openRecords", { name: entry.name, value: label })}
+      aria-label={t("tile.openRecords", { name, value: label })}
       sx={{
         display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5,
         width: "100%", height: "100%", p: 2, textAlign: "left", borderRadius: "inherit"
       }}
     >
-      <Text sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{entry.name}</Text>
+      <Text sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>{name}</Text>
       {view.kind === "noData" ? (
         <Text sx={{ fontSize: 20, fontWeight: 700, color: "text.secondary" }}>{t("shared.noData")}</Text>
       ) : (
@@ -93,7 +95,7 @@ export function KpiTile({ entry, definition, onOpenRecords }: KpiTileProps) {
 
   return (
     <Paper sx={{ height: "100%" }}>
-      {definition ? <Tooltip title={definition.definition} arrow describeChild>{button}</Tooltip> : button}
+      {definition ? <Tooltip title={kpiDefinition(t, definition.key, definition.definition)} arrow describeChild>{button}</Tooltip> : button}
     </Paper>
   );
 }

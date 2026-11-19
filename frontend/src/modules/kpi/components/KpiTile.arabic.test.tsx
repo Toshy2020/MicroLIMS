@@ -37,8 +37,19 @@ describe("KpiTile in Arabic", () => {
     await renderInArabic(<KpiTile entry={entry} onOpenRecords={() => {}} />, ["common", "kpi"]);
 
     expect(document.documentElement.dir).toBe("rtl");
-    expect(screen.getByRole("button", { name: "Right first time: 87.5%. عرض السجلات" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "صحيح من أول مرة: 87.5%. عرض السجلات" })).toBeTruthy();
+    expect(screen.getByText("صحيح من أول مرة")).toBeTruthy();
+    expect(screen.queryByText("Right first time")).toBeNull();
     expect(screen.getByText("ن = 8")).toBeTruthy();
     expect(screen.getByText("87.5%")).toBeTruthy();
+  });
+
+  it("shows the server name for a KPI key the client has no translation for", async () => {
+    await renderInArabic(
+      <KpiTile entry={{ ...entry, key: "future-kpi", name: "Future measure" }} onOpenRecords={() => {}} />,
+      ["common", "kpi"]
+    );
+
+    expect(screen.getByText("Future measure")).toBeTruthy();
   });
 });

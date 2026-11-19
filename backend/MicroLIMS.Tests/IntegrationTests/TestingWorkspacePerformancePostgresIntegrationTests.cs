@@ -195,6 +195,9 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
 
         // 1. Seed N samples
         await SeedSamplesBulkAsync(db, BaseSampleCountN, startIndex: 1, batchTag: "LN_N", causeId, itemId);
+        // Fresh planner statistics after the bulk insert, as autovacuum keeps them in production;
+        // without them the plan can change between the two timings and the ratio becomes noise.
+        await db.Database.ExecuteSqlRawAsync("ANALYZE \"Samples\";");
 
         var service = new TestingWorkspaceService(db, new UserSectionScopeService(db));
         var firstPage = new TestingWorkspaceFilterDto { Page = 1, PageSize = ScalingPageSize };
@@ -208,6 +211,7 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
         // 2. Seed remaining up to 8N samples
         int additionalSamples = ScaledSampleCount8N - BaseSampleCountN;
         await SeedSamplesBulkAsync(db, additionalSamples, startIndex: BaseSampleCountN + 1, batchTag: "LN_8N", causeId, itemId);
+        await db.Database.ExecuteSqlRawAsync("ANALYZE \"Samples\";");
 
         double time8N = await BestPageTimeMsAsync(service, firstPage, ScaledSampleCount8N);
 
@@ -221,11 +225,11 @@ public class TestingWorkspacePerformancePostgresIntegrationTests
             "Likely regression: the request maps or loads the whole table instead of the page.");
     }
 
-    // Best of 5 passes filters out transient GC/runner jitter.
+    // Best of 7 passes filters out transient GC/runner jitter.
     private static async Task<double> BestPageTimeMsAsync(TestingWorkspaceService service, TestingWorkspaceFilterDto filter, int expectedTotal)
     {
         double best = double.MaxValue;
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < 7; i++)
         {
             var sw = Stopwatch.StartNew();
             var res = await service.GetActiveSamplesAsync(filter);

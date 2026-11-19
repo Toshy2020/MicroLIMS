@@ -218,5 +218,31 @@
       "LowerIsBetter": "Lower is better",
       "Neutral": "No better or worse direction"
     }
+  },
+  "kpiNames": {
+    "backlog-aging": "Backlog aging",
+    "em-excursion-rate": "EM excursion rate",
+    "incubation-reads-on-time": "Incubation reads on time",
+    "on-time-all-stages": "On time, all stages",
+    "oos-rate": "OOS rate",
+    "retest-rate": "Retest rate",
+    "returns-by-test": "Returns by test",
+    "right-first-time": "Right first time",
+    "sample-tat": "Sample turnaround time",
+    "stage-tat": "Time in each stage",
+    "wip-backlog": "WIP backlog"
+  },
+  "kpiDefinitions": {
+    "backlog-aging": "Open work grouped by how much of its own target it has used: within 50%, 50 to 100%, or over 100%. Targets differ by workflow, so age in days alone would mislead.",
+    "em-excursion-rate": "Environmental monitoring results at alert or action level, divided by all environmental monitoring results that have a level. The alert-level and action-level rates are also shown separately. A trend flag appears when the alert-level rate is above 2.5% or the action-level rate is above 0.15%, with at least 5 results.",
+    "incubation-reads-on-time": "Share of completed incubation windows that were read no later than the expected reading time plus a 4 hour grace.",
+    "on-time-all-stages": "Share of approved samples that met every stage target: analyst stage within the longest per-workflow target of the sample's assigned tests (7 days where no target is configured), then review within 24 h and approval within 24 h, for every section you can see.",
+    "oos-rate": "Samples that belong to an out-of-specification group, divided by all samples that received an approval decision in the period. The retest rate is a subset of this figure. This is a laboratory quality signal, not an analyst penalty.",
+    "retest-rate": "Samples with a 'retest retained sample' decision, divided by all samples that received an approval decision in the period. It is a subset of the OOS rate. It describes the laboratory, not an individual analyst.",
+    "returns-by-test": "Number of times a test was returned to the analyst in the period, grouped by test code in alphabetical order. A return is a reviewer sending a result back; it is a process signal and is never grouped by person.",
+    "right-first-time": "Work units of approved tests that were never returned to the analyst, divided by the work units of all approved tests. Tests without a work-unit profile are left out and listed as a gap; they are never given a default weight.",
+    "sample-tat": "Median calendar days from receipt to final approval, with the 90th percentile alongside. Percentiles are linearly interpolated.",
+    "stage-tat": "Median and 90th percentile days spent in testing, incubation, review and approval for samples approved in the period. This is a breakdown: read the stage values, there is no single headline number. Incubation runs inside testing, so the stages overlap.",
+    "wip-backlog": "Tests that are open right now: waiting, running or incubating. Tests that have a result and wait for review or approval are shown in the backlog aging section instead."
   }
 }

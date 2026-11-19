@@ -21,6 +21,7 @@ import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
 import { DateField } from "../../components/DateField";
+import { TimeField24 } from "../../components/TimeField24";
 import { Ltr } from "../../components/Ltr";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
@@ -565,15 +566,13 @@ export function QualitativePanel({
                     required
                     fullWidth
                   />
-                  <TextField
-                    size="small"
-                    type="time"
+                  <TimeField24
                     value={analysedAt.slice(11, 16)}
-                    onChange={(e) => {
+                    onChange={(time) => {
                       const datePart = analysedAt.slice(0, 10) || getLocalIsoString().slice(0, 10);
-                      setAnalysedAt(`${datePart}T${e.target.value || "00:00"}`);
+                      setAnalysedAt(`${datePart}T${time}`);
                     }}
-                    slotProps={{ htmlInput: { "aria-label": t("qualitative.analysisTime"), dir: "ltr" } }}
+                    ariaLabel={t("qualitative.analysisTime")}
                     sx={{ minWidth: 115 }}
                   />
                 </Box>

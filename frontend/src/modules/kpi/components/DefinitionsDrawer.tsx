@@ -9,6 +9,7 @@ import { kpiDashboardService } from "../services/kpiDashboardService";
 import type { KpiDefinitions } from "../types/kpiTypes";
 import { formatUnits } from "../utils/kpiFormat";
 import { useTranslation } from "../../../i18n";
+import { kpiDefinition, kpiName } from "../utils/kpiText";
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -66,11 +67,11 @@ export function DefinitionsDrawer({ open, onClose, from, to }: DefinitionsDrawer
         <Box>
           {kpis.map((k) => (
             <Box key={k.key} component="section" sx={{ mb: 2 }}>
-              <Typography component="h3" sx={{ fontSize: 15, fontWeight: 700 }}>{k.name}</Typography>
+              <Typography component="h3" sx={{ fontSize: 15, fontWeight: 700 }}>{kpiName(t, k.key, k.name)}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
                 {t("definitions.unit", { unit: k.unit, direction: t(`directions.${k.direction}`) })}
               </Typography>
-              <Field label={t("definitions.fields.definition")}>{k.definition}</Field>
+              <Field label={t("definitions.fields.definition")}>{kpiDefinition(t, k.key, k.definition)}</Field>
               <Field label={t("definitions.fields.clockEvents")}>{k.clockEvents}</Field>
               <Field label={t("definitions.fields.population")}>{k.population}</Field>
               <Field label={t("definitions.fields.source")}>{k.source}</Field>

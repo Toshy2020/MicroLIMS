@@ -8,6 +8,7 @@ import type { KpiEntry, KpiSeriesPoint } from "../types/kpiTypes";
 import { entryView, formatExtras, formatKpiValue, scaleKpiValue } from "../utils/kpiFormat";
 import { KpiChips } from "./KpiTile";
 import { useTranslation } from "../../../i18n";
+import { kpiName } from "../utils/kpiText";
 
 const secondary = { fontSize: 12, color: "text.secondary" } as const;
 
@@ -124,12 +125,13 @@ function Panel({ entry, onOpenRecords }: { entry: KpiEntry; onOpenRecords(key: s
   const { t } = useTranslation("kpi");
   const theme = useTheme();
   const view = entryView(entry, t);
+  const name = kpiName(t, entry.key, entry.name);
   return (
     <Paper sx={{ p: 2, height: "100%" }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-        <Typography component="h3" sx={{ fontSize: 14, fontWeight: 700 }}>{entry.name}</Typography>
+        <Typography component="h3" sx={{ fontSize: 14, fontWeight: 700 }}>{name}</Typography>
         {view.kind !== "error" && (
-          <Button size="small" onClick={() => onOpenRecords(entry.key)} aria-label={t("section.showRecordsFor", { name: entry.name })}>
+          <Button size="small" onClick={() => onOpenRecords(entry.key)} aria-label={t("section.showRecordsFor", { name })}>
             {t("section.records")}
           </Button>
         )}

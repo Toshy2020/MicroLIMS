@@ -241,7 +241,10 @@ export function Tour({ steps, onFinish }: TourProps) {
       placement="bottom-start"
       modifiers={[
         { name: "offset", options: { offset: [0, 10] } },
-        { name: "preventOverflow", options: { padding: 12, altBoundary: true, rootBoundary: "viewport" } }
+        // MUI Popper already registers preventOverflow with altBoundary: true and Popper.js merges
+        // options by name, so altBoundary must be turned off explicitly: otherwise the overflow is
+        // measured against the anchor and the popover is pushed off-screen in RTL.
+        { name: "preventOverflow", options: { padding: 12, altBoundary: false, rootBoundary: "viewport" } }
       ]}
       sx={{ zIndex: theme.zIndex.modal - 1 }}
     >

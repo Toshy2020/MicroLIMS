@@ -171,17 +171,17 @@ describe("EquipmentInventoryPage register", () => {
     await waitFor(() => {
       expect(registerRows()).toHaveLength(1);
       expect(hasCode("EQ-BL-02")).toBe(true);
-    });
+    }, { timeout: 5000 });
     await user.clear(search);
     await user.type(search, "sn-300");
     await waitFor(() => {
       expect(hasCode("EQ-IN-03")).toBe(true);
       expect(registerRows()).toHaveLength(1);
-    });
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
     expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();
-    // Types three searches; give it room when the suite runs on a loaded machine.
+    // Types three searches; on a loaded CI machine one filter pass can take over a second.
   }, 15000);
 
   it("instrument type, status, location and calibration dropdowns each filter the list", async () => {

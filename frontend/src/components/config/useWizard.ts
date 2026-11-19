@@ -221,7 +221,7 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
   const draft = useBenchDraft<M>({
     formKey: "config-wizard",
     recordKey: draftKey,
-    recordVersion: null,
+    recordVersion,
     title,
     values: model,
     pick: pickDraft,
@@ -412,7 +412,10 @@ export function useWizard<M extends object>(props: ConfigWizardProps<M>) {
       setSaving(true);
       setSaveError(null);
       try {
-        const effectiveRecordVersion = reloadedVersion !== undefined ? reloadedVersion : recordVersion;
+        const effectiveRecordVersion =
+          reloadedVersion !== undefined
+            ? reloadedVersion
+            : (draft.draftRecordVersion ?? recordVersion);
         await onSave(model, reason, {
           original: activeOriginal,
           recordVersion: effectiveRecordVersion,

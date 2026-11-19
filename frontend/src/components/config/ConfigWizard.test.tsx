@@ -476,6 +476,76 @@ describe("ConfigWizard", () => {
     expect((screen.getByLabelText("Session note") as HTMLInputElement).value).toBe("");
   });
 
+  it("restores draft's starting recordVersion, triggers 409 when record changed meanwhile, and retries with reloaded version", async () => {
+    const user = userEvent.setup();
+    const initialV3: SampleModel = {
+      name: "Start",
+      code: "C-1",
+      includeDetails: true,
+      details: "Initial details",
+      ephemeralSecretNote: "",
+      version: 3,
+    };
+    const first = renderWizard({
+      mode: "edit",
+      draftKey: "draft-version-test",
+      initial: initialV3,
+      original: initialV3,
+      recordVersion: 3,
+    });
+
+    const nameInput = screen.getByLabelText("Name");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Draft Name");
+    await new Promise((r) => setTimeout(r, 500));
+    const stored = await rawStoredDrafts();
+    expect(stored.some((d) => d.recordVersion === 3)).toBe(true);
+    first.unmount();
+
+    const serverV6: SampleModel = {
+      ...initialV3,
+      name: "Colleague Name",
+      details: "Colleague Details",
+      version: 6,
+    };
+    const onSave = vi
+      .fn()
+      .mockRejectedValueOnce(makeConflictError())
+      .mockResolvedValueOnce(undefined);
+    const reloadOriginal = vi.fn().mockResolvedValue(serverV6);
+
+    renderWizard({
+      mode: "edit",
+      draftKey: "draft-version-test",
+      initial: serverV6,
+      original: serverV6,
+      recordVersion: 6,
+      reloadOriginal,
+      onSave,
+    });
+
+    const notice = await screen.findByRole("region", { name: "Unsaved entry found" });
+    await user.click(within(notice).getByRole("button", { name: "Restore entry" }));
+    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Draft Name");
+
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await screen.findByRole("alert");
+    expect(onSave).toHaveBeenCalledTimes(1);
+    expect(onSave.mock.calls[0][2]).toEqual({ original: serverV6, recordVersion: 3 });
+
+    const reviewBtn = screen.getByRole("button", { name: "Review and save again" }) as HTMLButtonElement;
+    await waitFor(() => expect(reviewBtn.disabled).toBe(false));
+    await user.click(reviewBtn);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[1][0].name).toBe("Draft Name");
+    expect(onSave.mock.calls[1][2]).toEqual({ original: serverV6, recordVersion: 6 });
+  });
+
   it("asks before closing on Escape when dirty with Cancel focused, and closes directly when clean", async () => {
     const user = userEvent.setup();
     const clean = renderWizard();

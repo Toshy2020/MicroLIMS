@@ -344,4 +344,69 @@ describe("EquipmentWizard", () => {
     expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][2]).toBe(8);
     expect(onSaved).toHaveBeenCalledWith(null);
   });
+
+  it("sends the restored draft's starting version so a newer server record triggers 409 conflict flow", async () => {
+    const user = userEvent.setup();
+    const first = render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <MemoryRouter>
+            <EquipmentWizard
+              open
+              mySections={[micro]}
+              inventory={[asset]}
+              editing={source}
+              onSaved={vi.fn()}
+              onClose={vi.fn()}
+            />
+          </MemoryRouter>
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+    const firstDialog = await screen.findByRole("dialog");
+    await user.clear(within(firstDialog).getByLabelText("Location"));
+    await user.type(within(firstDialog).getByLabelText("Location"), "Room Draft");
+    await new Promise((r) => setTimeout(r, 500));
+    first.unmount();
+
+    const conflictErr = new AxiosError("Conflict", "ERR_BAD_REQUEST", undefined, undefined, {
+      status: 409,
+      statusText: "Conflict",
+      headers: {},
+      config: { headers: new AxiosHeaders() },
+      data: { message: "Modified by another user" },
+    });
+    vi.mocked(EquipmentConfigurationService.updateEquipment)
+      .mockRejectedValueOnce(conflictErr)
+      .mockResolvedValueOnce({ ...saved, version: 7 });
+    vi.mocked(EquipmentConfigurationService.getEquipmentById).mockResolvedValue({
+      ...saved,
+      version: 6,
+      location: "Room Colleague",
+    });
+
+    const { onSaved } = renderWizard({ editing: { ...source, version: 6, location: "Room Colleague" } });
+    const dialog = await screen.findByRole("dialog");
+    const notice = await within(dialog).findByRole("region", { name: "Unsaved entry found" });
+    await user.click(within(notice).getByRole("button", { name: "Restore entry" }));
+    expect((within(dialog).getByLabelText("Location") as HTMLInputElement).value).toBe("Room Draft");
+
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickNext(user, dialog);
+    await clickSave(user, dialog);
+
+    await screen.findByRole("alert");
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[0][2]).toBe(3);
+
+    const reviewBtn = screen.getByRole("button", { name: "Review and save again" }) as HTMLButtonElement;
+    await waitFor(() => expect(reviewBtn.disabled).toBe(false));
+    await user.click(reviewBtn);
+    await clickSave(user, dialog);
+
+    await waitFor(() => expect(EquipmentConfigurationService.updateEquipment).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][1]).toMatchObject({ location: "Room Draft" });
+    expect(vi.mocked(EquipmentConfigurationService.updateEquipment).mock.calls[1][2]).toBe(6);
+    expect(onSaved).toHaveBeenCalledWith(null);
+  });
 });

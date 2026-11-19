@@ -45,9 +45,14 @@ const mockSummary = (over: Partial<SampleSummary> = {}): SampleSummary => ({
   ...over
 });
 
+// "The server has not answered": the buttons stay usable, as before.
+const unknownAvailability = { get: () => null, loading: false, failed: false, refresh: vi.fn() };
+
 const defaultProps = {
   canReview: true,
   canApprove: false,
+  reviewAvailability: unknownAvailability,
+  approvalAvailability: unknownAvailability,
   comment: "",
   setComment: vi.fn(),
   decision: "Approve" as const,

@@ -1,4 +1,6 @@
 import { Stack, Typography } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
 import { ToneChip } from "./ToneChip";
 
 export interface LimitPillsProps {
@@ -14,14 +16,20 @@ export interface LimitPillsProps {
   expectedResultText?: string | null;
 }
 
-export function formatChemistryLimit(props: {
-  limitType?: string | null;
-  lowerLimit?: number | null;
-  upperLimit?: number | null;
-  expectedResultText?: string | null;
-  unit?: string | null;
-  specLimit?: string | null;
-}): string {
+export function formatChemistryLimit(
+  props: {
+    limitType?: string | null;
+    lowerLimit?: number | null;
+    upperLimit?: number | null;
+    expectedResultText?: string | null;
+    unit?: string | null;
+    specLimit?: string | null;
+  },
+  t: TFunction = i18n.getFixedT("en", "common")
+): string {
+  const notSet = t("components.limitPills.notSet");
+  const nlt = (value: number | string) => t("components.limitPills.nlt", { value });
+  const nmt = (value: number | string) => t("components.limitPills.nmt", { value });
   const { limitType, lowerLimit, upperLimit, expectedResultText, unit, specLimit } = props;
   const unitSuffix = unit ? ` ${unit}` : "";
 
@@ -30,29 +38,29 @@ export function formatChemistryLimit(props: {
       if (lowerLimit != null && upperLimit != null) {
         return `${lowerLimit} \u2013 ${upperLimit}${unitSuffix}`;
       }
-      if (lowerLimit != null) return `NLT ${lowerLimit}${unitSuffix}`;
-      if (upperLimit != null) return `NMT ${upperLimit}${unitSuffix}`;
-      return specLimit ? `${specLimit}${unitSuffix}` : "not set";
+      if (lowerLimit != null) return `${nlt(lowerLimit)}${unitSuffix}`;
+      if (upperLimit != null) return `${nmt(upperLimit)}${unitSuffix}`;
+      return specLimit ? `${specLimit}${unitSuffix}` : notSet;
 
     case "NotMoreThan":
       return upperLimit != null
-        ? `NMT ${upperLimit}${unitSuffix}`
+        ? `${nmt(upperLimit)}${unitSuffix}`
         : specLimit
-          ? `NMT ${specLimit}${unitSuffix}`
-          : "not set";
+          ? `${nmt(specLimit)}${unitSuffix}`
+          : notSet;
 
     case "NotLessThan":
       return lowerLimit != null
-        ? `NLT ${lowerLimit}${unitSuffix}`
+        ? `${nlt(lowerLimit)}${unitSuffix}`
         : specLimit
-          ? `NLT ${specLimit}${unitSuffix}`
-          : "not set";
+          ? `${nlt(specLimit)}${unitSuffix}`
+          : notSet;
 
     case "Qualitative":
-      return expectedResultText || specLimit || "not set";
+      return expectedResultText || specLimit || notSet;
 
     default:
-      return specLimit ? `${specLimit}${unitSuffix}` : "not set";
+      return specLimit ? `${specLimit}${unitSuffix}` : notSet;
   }
 }
 
@@ -68,15 +76,19 @@ export function LimitPills({
   upperLimit,
   expectedResultText
 }: LimitPillsProps) {
+  const { t } = useTranslation();
   if (limitType) {
-    const label = formatChemistryLimit({
-      limitType,
-      lowerLimit,
-      upperLimit,
-      expectedResultText,
-      unit,
-      specLimit
-    });
+    const label = formatChemistryLimit(
+      {
+        limitType,
+        lowerLimit,
+        upperLimit,
+        expectedResultText,
+        unit,
+        specLimit
+      },
+      t
+    );
     return (
       <Stack useFlexGap direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
         <ToneChip label={label} tone="detected" />
@@ -84,12 +96,12 @@ export function LimitPills({
     );
   }
 
-  const v = (x?: string | null) => (x && x.trim() !== "" ? x : "not set");
+  const v = (x?: string | null) => (x && x.trim() !== "" ? x : t("components.limitPills.notSet"));
   return (
     <Stack useFlexGap direction="row" spacing={0.75} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 0.5 }}>
-      <ToneChip label={`Alert ${v(alertLimit)}`} tone={alertLimit ? "inconclusive" : "pending"} />
-      <ToneChip label={`Action ${v(actionLimit)}`} tone={actionLimit ? "action" : "pending"} />
-      <ToneChip label={`Spec ${v(specLimit)}`} tone={specLimit ? "detected" : "pending"} />
+      <ToneChip label={t("components.limitPills.alert", { value: v(alertLimit) })} tone={alertLimit ? "inconclusive" : "pending"} />
+      <ToneChip label={t("components.limitPills.action", { value: v(actionLimit) })} tone={actionLimit ? "action" : "pending"} />
+      <ToneChip label={t("components.limitPills.spec", { value: v(specLimit) })} tone={specLimit ? "detected" : "pending"} />
       {unit && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{unit}</Typography>}
     </Stack>
   );

@@ -13,10 +13,13 @@ import {
   TableRow,
   Typography
 } from "@mui/material";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { tableHeadSx } from "../../../theme";
 import { AuditSearchService } from "../services/AuditSearchService";
 import type { LoginHistoryItem, SecurityEventItem } from "../types/auditTypes";
+import { i18n, useTranslation } from "../../../i18n";
+
+const tl = (key: string): string => i18n.t(key, { ns: "auditSearch" });
 
 interface Props {
   kind: "security-events" | "login-history";
@@ -27,6 +30,7 @@ const PAGE = 100;
 // Security Events and Login History. Both need System.ViewSecurityAudit on the server;
 // the parent only shows the tabs to holders of it, and a 403 here is reported, not hidden.
 export function SecurityTrailPanel({ kind }: Props) {
+  const { t } = useTranslation("auditSearch");
   const [events, setEvents] = useState<SecurityEventItem[]>([]);
   const [logins, setLogins] = useState<LoginHistoryItem[]>([]);
   const [cursor, setCursor] = useState<number | null>(null);
@@ -51,7 +55,7 @@ export function SecurityTrailPanel({ kind }: Props) {
           setHasMore(res.hasMore);
         }
       } catch {
-        setError("Failed to load the security audit trail. You may not hold the System.ViewSecurityAudit permission.");
+        setError(tl("security.loadError"));
       } finally {
         setLoading(false);
       }
@@ -77,19 +81,19 @@ export function SecurityTrailPanel({ kind }: Props) {
             <Table stickyHeader size="small">
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell sx={headCell}>Date / Time</TableCell>
-                  <TableCell sx={headCell}>Event</TableCell>
-                  <TableCell sx={headCell}>Outcome</TableCell>
-                  <TableCell sx={headCell}>Actor</TableCell>
-                  <TableCell sx={headCell}>Target</TableCell>
-                  <TableCell sx={headCell}>IP</TableCell>
-                  <TableCell sx={headCell}>Reason</TableCell>
+                  <TableCell sx={headCell}>{t("results.dateTime")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.event")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.outcome")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.actor")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.target")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.ip")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.reason")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {events.map((e) => (
                   <TableRow key={e.id} hover>
-                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatLabDateTime(e.occurredAtUtc)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDateTimeWithTimeZone(e.occurredAtUtc)}</TableCell>
                     <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>{e.eventCode}</TableCell>
                     <TableCell>
                       <Chip
@@ -100,9 +104,9 @@ export function SecurityTrailPanel({ kind }: Props) {
                       />
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>
-                      {e.actorIsSystem ? "System" : e.actorUserId ? `User #${e.actorUserId}` : "-"}
+                      {e.actorIsSystem ? t("security.system") : e.actorUserId ? t("security.userNum", { id: e.actorUserId }) : "-"}
                     </TableCell>
-                    <TableCell sx={{ fontSize: 12 }}>{e.targetUsername ?? (e.targetUserId ? `User #${e.targetUserId}` : "-")}</TableCell>
+                    <TableCell sx={{ fontSize: 12 }}>{e.targetUsername ?? (e.targetUserId ? t("security.userNum", { id: e.targetUserId }) : "-")}</TableCell>
                     <TableCell sx={{ fontSize: 12, fontFamily: "monospace" }}>{e.ipAddress ?? "-"}</TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{e.reason ?? "-"}</TableCell>
                   </TableRow>
@@ -113,22 +117,22 @@ export function SecurityTrailPanel({ kind }: Props) {
             <Table stickyHeader size="small">
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell sx={headCell}>Date / Time</TableCell>
-                  <TableCell sx={headCell}>Username</TableCell>
-                  <TableCell sx={headCell}>Result</TableCell>
-                  <TableCell sx={headCell}>Failure reason</TableCell>
-                  <TableCell sx={headCell}>IP</TableCell>
+                  <TableCell sx={headCell}>{t("results.dateTime")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.username")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.result")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.failureReason")}</TableCell>
+                  <TableCell sx={headCell}>{t("security.ip")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {logins.map((l) => (
                   <TableRow key={l.id} hover>
-                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatLabDateTime(l.timestamp)}</TableCell>
+                    <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>{formatDateTimeWithTimeZone(l.timestamp)}</TableCell>
                     <TableCell sx={{ fontSize: 12 }}>{l.username}</TableCell>
                     <TableCell>
                       <Chip
                         size="small"
-                        label={l.success ? "Success" : "Failed"}
+                        label={l.success ? t("security.success") : t("security.failed")}
                         color={l.success ? "success" : "error"}
                         sx={{ fontSize: 11, height: 20 }}
                       />
@@ -142,12 +146,12 @@ export function SecurityTrailPanel({ kind }: Props) {
           )}
         </TableContainer>
         {empty && !error && (
-          <Typography sx={{ p: 4, textAlign: "center", fontSize: 13, color: "text.secondary" }}>No records found.</Typography>
+          <Typography sx={{ p: 4, textAlign: "center", fontSize: 13, color: "text.secondary" }}>{t("security.noRecords")}</Typography>
         )}
         {hasMore && (
           <Box sx={{ p: 1.5, textAlign: "center", borderTop: "1px solid", borderColor: "divider" }}>
             <Button size="small" disabled={loading} onClick={() => void load(cursor, true)} sx={{ textTransform: "none" }}>
-              {loading ? "Loading..." : "Load older"}
+              {loading ? t("security.loading") : t("security.loadOlder")}
             </Button>
           </Box>
         )}

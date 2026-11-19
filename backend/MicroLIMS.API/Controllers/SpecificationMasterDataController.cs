@@ -1,7 +1,9 @@
+using MicroLIMS.API.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -22,13 +24,18 @@ namespace MicroLIMS.API.Controllers;
 public class SpecificationMasterDataController : ControllerBase
 {
     private readonly SpecificationMasterDataService _service;
+    private readonly MasterDataCopyService _copyService;
 
-    public SpecificationMasterDataController(SpecificationMasterDataService service)
+    public SpecificationMasterDataController(
+        SpecificationMasterDataService service,
+        MasterDataCopyService copyService)
     {
         _service = service;
+        _copyService = copyService;
     }
 
     private int CurrentUserId => int.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var uid) ? uid : 0;
+    private CancellationToken Ct => HttpContext?.RequestAborted ?? CancellationToken.None;
 
     // ---- Specifications (Product) ----
     [HttpGet("specifications")]
@@ -48,12 +55,39 @@ public class SpecificationMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/batch")]
+    public async Task<IActionResult> CreateSpecificationsBatch(List<CreateSpecificationRequest> request, CancellationToken ct = default) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateSpecificationsBatchAsync(CurrentUserId, request, ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/validate")]
+    public async Task<IActionResult> ValidateSpecification(
+        ValidateSpecificationRequest request,
+        [FromQuery] int? id = null) =>
+        Ok(ApiResponse<IReadOnlyList<FieldError>>.Ok(await _service.ValidateSpecificationAsync(CurrentUserId, request, id, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("specifications/{id}")]
     public async Task<IActionResult> UpdateSpecification(int id, UpdateSpecificationRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateSpecificationAsync(CurrentUserId, id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateSpecificationAsync(CurrentUserId, id, request, ChangeReasonHeader.Read(Request), Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpDelete("specifications/{id}")]
     public async Task<IActionResult> DeleteSpecification(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.DeleteSpecificationAsync(CurrentUserId, id)));
+        Ok(ApiResponse<SpecificationDeleteOutcome>.Ok(await _service.DeleteSpecificationAsync(CurrentUserId, id, ChangeReasonHeader.Read(Request), Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/{id}/reinstate")]
+    public async Task<IActionResult> ReinstateSpecification(int id) =>
+        Ok(ApiResponse<SpecificationResponse>.Ok(await _service.ReinstateSpecificationAsync(CurrentUserId, id, ChangeReasonHeader.Read(Request), Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/copy/preview")]
+    public async Task<IActionResult> PreviewCopySpecifications(CopySpecificationsRequest request) =>
+        Ok(ApiResponse<IReadOnlyList<CopySpecificationsPreviewRow>>.Ok(await _copyService.PreviewAsync(request, CurrentUserId, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("specifications/copy")]
+    public async Task<IActionResult> CopySpecifications(CopySpecificationsRequest request) =>
+        Ok(ApiResponse<int>.Ok(await _copyService.CopyAsync(request, CurrentUserId, Ct)));
 }

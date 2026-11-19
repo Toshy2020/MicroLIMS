@@ -7,9 +7,10 @@ import NatureOutlinedIcon from "@mui/icons-material/NatureOutlined";
 import CleaningServicesOutlinedIcon from "@mui/icons-material/CleaningServicesOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { SampleCategoryKey } from "../types/receivingTypes";
-import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
+import { getReceivingCategories } from "../constants/receivingConstants";
 import { brandColors } from "../../../theme";
 import { clickable } from "../../../utils/clickable";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   selectedCategory: SampleCategoryKey | null;
@@ -30,11 +31,12 @@ const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
 
 export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowedCategories }: Props) {
   const theme = useTheme();
-  const availableCategories = RECEIVING_CATEGORIES.filter((c) => allowedCategories.includes(c.key));
+  const { t } = useTranslation("receiving");
+  const availableCategories = getReceivingCategories(t).filter((c) => allowedCategories.includes(c.key));
   return (
     <Box sx={{ py: 1 }}>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-        Select the type of sample you want to receive. The selected category will apply to all sample rows in this batch.
+        {t("newSample.typeSelectorPrompt")}
       </Typography>
 
       <Grid container spacing={1.5}>
@@ -100,10 +102,10 @@ export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowed
                       lineHeight: 1.3
                     }}
                   >
-                    {cat.label}
+                    {t(`categories.${cat.key}.label`)}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.35 }}>
-                    {cat.description}
+                    {t(`categories.${cat.key}.description`)}
                   </Typography>
                 </Box>
                 {isSelected && (

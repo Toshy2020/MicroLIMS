@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box,
@@ -34,25 +34,13 @@ import type { RegisterColumn } from "../../../components/lab";
 import type { HplcRunDto, HplcRunListItem, HplcRunMobilePhaseDto } from "../types";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { useTechnique } from "../useTechnique";
-
-const MOBILE_PHASE_COLUMNS: RegisterColumn<HplcRunMobilePhaseDto>[] = [
-  { key: "channel", label: "Channel", render: (mp) => <strong>Channel {mp.channel}</strong>, sortable: true },
-  { key: "solutionMasterName", label: "Solution", sortable: true },
-  {
-    key: "solutionPreparationCode",
-    label: "Preparation Code",
-    render: (mp) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{mp.solutionPreparationCode ?? "—"}</span>
-  },
-  {
-    key: "expiresAt",
-    label: "Expiry Date",
-    render: (mp) => (mp.expiresAt ? new Date(mp.expiresAt).toLocaleDateString() : "—"),
-    sortable: true,
-    sortValue: (mp) => mp.expiresAt ?? null
-  }
-];
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function HplcInstrumentWorkspace() {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -77,6 +65,33 @@ export function HplcInstrumentWorkspace() {
   const [historyRuns, setHistoryRuns] = useState<HplcRunListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mobilePhaseColumns = useMemo<RegisterColumn<HplcRunMobilePhaseDto>[]>(
+    () => [
+      { key: "channel", label: t("run.mobilePhases.channel"), render: (mp) => <strong>{t("run.mobilePhases.channelValue", { channel: mp.channel })}</strong>, sortable: true },
+      { key: "solutionMasterName", label: t("run.mobilePhases.solution"), sortable: true },
+      {
+        key: "solutionPreparationCode",
+        label: t("run.mobilePhases.preparationCode"),
+        render: (mp) => (
+          <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>
+            {mp.solutionPreparationCode ? <Ltr>{mp.solutionPreparationCode}</Ltr> : "—"}
+          </span>
+        )
+      },
+      {
+        key: "expiresAt",
+        label: t("run.mobilePhases.expiryDate"),
+        render: (mp) => (mp.expiresAt ? <Ltr>{formatDateTimeWithTimeZone(mp.expiresAt)}</Ltr> : "—"),
+        sortable: true,
+        sortValue: (mp) => mp.expiresAt ?? null
+      }
+    ],
+    [t]
+  );
+
+  // The last crumb names the run (its reference), or the instrument while no run is open.
+  const [instrumentLabel, setInstrumentLabel] = useState<string | null>(null);
+  useBreadcrumb(runId ? (error ? t("run.breadcrumbUnavailable") : run?.code ?? null) : instrumentLabel);
 
   // Abandon Dialog
   const [abandonOpen, setAbandonOpen] = useState(false);
@@ -109,11 +124,11 @@ export function HplcInstrumentWorkspace() {
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load run data.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [runId]);
+  }, [runId, t]);
 
   useEffect(() => {
     if (runId) {
@@ -126,14 +141,18 @@ export function HplcInstrumentWorkspace() {
           if (matched?.activeRun) {
             navigate(routes.run(equipmentId, matched.activeRun.runId), { replace: true });
           } else {
+            setInstrumentLabel(matched ? `${matched.code} ${matched.name}` : t("run.instrumentNotFound"));
             HplcWorkspaceService.getRunHistory(equipmentId).then(setHistoryRuns);
             setActiveTab(4);
             setLoading(false);
           }
         })
-        .catch(() => setLoading(false));
+        .catch(() => {
+          setInstrumentLabel(t("run.instrumentUnavailable"));
+          setLoading(false);
+        });
     }
-  }, [equipmentId, runId, navigate, loadRunData, technique, routes]);
+  }, [equipmentId, runId, navigate, loadRunData, technique, routes, t]);
 
   // A failed load showed the History tab as if this instrument had no runs.
   const [historyLoadFailed, setHistoryLoadFailed] = useState(false);
@@ -160,11 +179,11 @@ export function HplcInstrumentWorkspace() {
     try {
       await HplcWorkspaceService.abandonRun(run.id, abandonReason.trim());
       setAbandonOpen(false);
-      toast.info("Run marked as abandoned.");
+      toast.info(t("run.abandonedToast"));
       loadRunData();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not abandon run.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.abandonError"));
     } finally {
       setAbandoning(false);
     }
@@ -175,11 +194,11 @@ export function HplcInstrumentWorkspace() {
     setCompleting(true);
     try {
       await HplcWorkspaceService.completeRun(run.id);
-      toast.success("Run completed.");
+      toast.success(t("run.completedToast"));
       loadRunData();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not complete run.");
+      setError(e.response?.data?.message ?? e.message ?? t("run.completeError"));
     } finally {
       setCompleting(false);
     }
@@ -192,8 +211,8 @@ export function HplcInstrumentWorkspace() {
   if (!run && activeTab !== 4) {
     return (
       <Box sx={{ p: 3 }}>
-        <Alert severity="warning">Run not found or closed.</Alert>
-        <Button onClick={() => navigate(routes.root)} sx={{ mt: 2 }}>Back to Instruments</Button>
+        <Alert severity="warning">{t("run.notFoundAlert")}</Alert>
+        <Button onClick={() => navigate(routes.root)} sx={{ mt: 2 }}>{t("run.backToInstruments")}</Button>
       </Box>
     );
   }
@@ -205,7 +224,7 @@ export function HplcInstrumentWorkspace() {
         onClick={() => navigate(routes.root)}
         sx={{ mb: 1.5, textTransform: "none", color: "text.secondary" }}
       >
-        Instruments
+        {t("run.instruments")}
       </Button>
 
       {run && (
@@ -241,28 +260,28 @@ export function HplcInstrumentWorkspace() {
           "& .MuiTab-root": { textTransform: "none", fontWeight: 600, fontSize: 14 }
         }}
       >
-        <Tab label="Overview" />
-        <Tab label="System Suitability" />
-        <Tab label={`Samples (${run?.samples?.length ?? 0})`} />
-        <Tab label={`Evidence (${run?.evidence?.length ?? 0})`} />
-        <Tab label="Run History" />
+        <Tab label={t("run.tabs.overview")} />
+        <Tab label={t("run.tabs.sst")} />
+        <Tab label={t("run.tabs.samples", { count: run?.samples?.length ?? 0 })} />
+        <Tab label={t("run.tabs.evidence", { count: run?.evidence?.length ?? 0 })} />
+        <Tab label={t("run.tabs.history")} />
       </Tabs>
 
       {/* Tab 0: Run setup */}
       {activeTab === 0 && run && (
         <Stack spacing={2}>
-          <ResultSection step={1} title="Run setup">
+          <ResultSection step={1} title={t("run.sections.runSetup")}>
             <Stack spacing={2}>
               {technique !== "Gc" && (
                 <>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    Assigned Mobile Phases
+                    {t("run.sections.assignedMobilePhases")}
                   </Typography>
                   <RegisterTable
-                    columns={MOBILE_PHASE_COLUMNS}
+                    columns={mobilePhaseColumns}
                     rows={run.mobilePhases}
                     getRowId={(mp) => mp.id}
-                    empty={{ title: "No mobile phases assigned" }}
+                    empty={{ title: t("run.sections.noMobilePhases") }}
                   />
                 </>
               )}
@@ -274,7 +293,7 @@ export function HplcInstrumentWorkspace() {
 
       {/* Tab 1: System Suitability */}
       {activeTab === 1 && run && (
-        <ResultSection step={2} title="System suitability" status={run.sst?.status}>
+        <ResultSection step={2} title={t("run.sections.sst")} status={run.sst?.status}>
           <SystemSuitabilityPanel
             run={run}
             method={method}
@@ -286,7 +305,7 @@ export function HplcInstrumentWorkspace() {
 
       {/* Tab 2: Samples */}
       {activeTab === 2 && run && (
-        <ResultSection step={3} title="Sample assignment">
+        <ResultSection step={3} title={t("run.sections.sampleAssignment")}>
           <SampleAssignmentPanel
             run={run}
             canOperate={canOperate}
@@ -297,7 +316,7 @@ export function HplcInstrumentWorkspace() {
 
       {/* Tab 3: Evidence */}
       {activeTab === 3 && run && (
-        <ResultSection step={4} title="Testing & evidence">
+        <ResultSection step={4} title={t("run.sections.testingEvidence")}>
           <ChromatogramEvidencePanel
             run={run}
             canOperate={canOperate}
@@ -309,7 +328,7 @@ export function HplcInstrumentWorkspace() {
       {/* Tab 4: History */}
       {activeTab === 4 && historyLoadFailed && (
         <LoadErrorAlert
-          message="The run history for this instrument could not be loaded."
+          message={t("run.historyLoadError")}
           onRetry={() => setHistoryReloadKey((k) => k + 1)}
         />
       )}
@@ -325,17 +344,17 @@ export function HplcInstrumentWorkspace() {
       {/* Abandon Run Dialog */}
       <ReasonDialog
         open={abandonOpen}
-        title={`Abandon ${label} Run`}
+        title={t("run.abandonDialog.title", { label })}
         onClose={() => setAbandonOpen(false)}
         onConfirm={handleAbandonRun}
-        confirmText="Abandon Run"
+        confirmText={t("run.abandonDialog.confirmText")}
         confirmColor="error"
         loading={abandoning}
-        loadingText="Abandoning..."
+        loadingText={t("run.abandonDialog.loadingText")}
         reason={abandonReason}
         onReasonChange={setAbandonReason}
-        label="Reason for Abandoning"
-        placeholder="Explain why this run is being abandoned..."
+        label={t("run.abandonDialog.label")}
+        placeholder={t("run.abandonDialog.placeholder")}
       />
     </Box>
   );

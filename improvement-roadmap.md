@@ -77,6 +77,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B1. Barcode / QR labels and scanning — Size L
 
+**Status:** Implemented on branch `r1/b4-qa-role`, not released.
+
 **Goal.** Print a label for every physical object and open or select a record by scanning it.
 
 **Current state.** No barcode, label or print-audit code exists. `barcode-labels-recon-report.md` already contains the full recon and names the gaps G1–G14. This package implements that report.
@@ -98,9 +100,21 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Done when.** A sample can be registered, labelled, and opened by scan; a media lot can be selected by scan during a test; every print and reprint has an audit row; PostgreSQL tests cover uniqueness, immutability and reprint permission.
 
+**Open manual gates (need the laboratory before release):**
+1. Test print on the chosen thermal printer and label stock at 100% scale; adjust sizes on the Label Formats page.
+2. Readback of all six label types with the handheld scanners and with a tablet camera.
+3. A scan with the Arabic keyboard layout active on a real workstation.
+4. QA approval of the label SOP and of the two library qualification records (`ZXing.Net` and `barcode-detector`).
+
 ### B2. Multi-factor authentication — Size M
 
-**Current state.** No TOTP or MFA code exists. Login is username and password with lockout, password history and session revocation.
+**Current state.** Implemented on branch `r1/b4-qa-role`, not released. TOTP enrolment (authenticator app QR/manual key and admin-assigned hardware tokens), AES-256-GCM secret encryption with key rotation (`AesGcmSecretProtector`) and startup validation (`MfaStartupValidator`), configurable policy (`Off`, `Optional`, `RequiredForRoles`, `RequiredForAll`), `10` single-use recovery codes, trusted browsers, admin MFA reset with reason, and `[AuditRedacted]` / `SecurityAuditEvent` logging are in place. Draft requirements (`URS-SEC-015` to `URS-SEC-022`, `FS-SEC-015` to `FS-SEC-022`), conflicts (`CONF-188` to `CONF-190`), and SOP/upgrade outline (`documents/SOP/SOP-Multi-Factor-Authentication.md`) are written.
+
+**Open manual checks before release.**
+1. Live trial with a real authenticator app and a real physical hardware token (`30` s and `60` s step).
+2. End-to-end verification of SMTP e-mail notifications (recovery-code used alert and admin MFA reset alert).
+3. Server configuration of `Mfa:ActiveKeyId` and `Mfa:EncryptionKeys` (before API startup under default `RequiredForRoles` policy) and NTP clock-sync check.
+4. QA approval of `SOP-Multi-Factor-Authentication.md` and resolution of open conflicts (`CONF-188` to `CONF-190`).
 
 **Scope.**
 1. TOTP enrolment with QR code, recovery codes, and admin reset with a reason.
@@ -111,11 +125,13 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 **Spec:** `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-multi-factor-authentication.md`.
 
-**Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets.
+**Done when.** Enrolment, login challenge, recovery and admin reset all work, each with an audit row, and `AuditCredentialRedactionTests` covers the new secrets (plus open manual checks and QA approval above).
 
 ### B3. Single sign-on (OIDC / LDAP) — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. Decision D-4 is closed: separate MicroLIMS signing password.
+**Spec:** `docs/superpowers/specs/2026-11-10-single-sign-on-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-single-sign-on.md`. **Documents:** draft requirements `URS-SEC-023` to `URS-SEC-031`, draft functional specifications `FS-SEC-023` to `FS-SEC-037` (`FS-SEC-035` to `FS-SEC-037` planned, not yet implemented), conflicts `CONF-191` to `CONF-197`, and SOP draft outline `documents/SOP/SOP-Single-Sign-On.md`.
+
+**Decision D-4 closed 2026-11-10:** separate MicroLIMS signing password.
 
 **Scope.**
 1. OpenID Connect login against the company identity provider (Microsoft Entra ID or similar), mapped to an existing MicroLIMS user. Roles and section assignments stay in MicroLIMS so Access Review keeps working.
@@ -127,6 +143,8 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### B4. Quality Assurance (QA) role — Size M
 
+**Status:** Implemented on branch `r1/b4-qa-role`, not released.
+
 **Goal.** Add a QA role that is independent of the laboratory, so quality decisions are not taken by the people who produce the results.
 
 **Current state.** The system roles are System Administrator, Section Head, Reviewer, Analyst and QC Manager. There is no QA role; QC Manager is the highest laboratory role. Requested by the user on 2026-11-11.
@@ -136,13 +154,15 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 **Design spec:** `docs/superpowers/specs/2026-11-11-qa-role-design.md`
 **Implementation plan:** `docs/superpowers/plans/2026-11-11-qa-role.md`
 
+**Open manual check before release:** Sign in as a QA user and open each laboratory action by direct link to verify read-only/refusal behaviour in the live UI.
+
 ---
 
 ## 4. Phase 2 — Daily experience (UI/UX)
 
 ### C1. "My Work" — one screen for today's tasks — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-10-my-work-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-my-work.md`.
+**Spec:** `docs/superpowers/specs/2026-11-10-my-work-design.md`. **Plan:** `docs/superpowers/plans/2026-11-10-my-work.md`. **Documents:** draft requirements `URS-NTF-006` to `URS-NTF-010`, draft functional specifications `FS-NTF-006` to `FS-NTF-010`, conflicts `CONF-198` to `CONF-200`, and user-guide chapter `documentation/guide/45-my-work.md`.
 
 **Current state.** Role dashboards exist (`AnalystDashboardPage`, `ReviewerDashboardPage`, `SectionHeadDashboardPage`) with a `TodaysWorkTable` and an attention panel. The work is still spread across the dashboard, the workspaces, Document Control, equipment and media pages.
 
@@ -182,7 +202,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C4. Faster data entry — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead.
+**Spec:** `docs/superpowers/specs/2026-11-11-faster-data-entry-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-faster-data-entry.md`. Server-side drafts were dropped: device drafts from C2 are used instead. **Documents:** draft requirements `URS-RCV-013`, `URS-RCV-014`, `URS-MIC-013` to `URS-MIC-015`, `URS-MDM-025`, `URS-ADM-013`; draft functional specifications `FS-RCV-013`, `FS-RCV-014`, `FS-MIC-012` to `FS-MIC-014`, `FS-MDM-036`, `FS-MDM-037`, `FS-ADM-013`; conflicts `CONF-201` to `CONF-205`; and user-guide sections in `documentation/guide/` (chapters 6, 12, 15, 23, 24, 28, 30, 31, and 32).
 
 **Scope.**
 1. Keyboard navigation in entry grids: Enter and arrow keys move between cells, Tab order follows the reading order.
@@ -193,7 +213,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C5. Notification centre and real-time updates — Size M
 
-**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`.
+**Spec:** `docs/superpowers/specs/2026-11-11-notifications-live-updates-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-notifications-live-updates.md`. **Documents:** draft requirements `URS-NTF-012` to `URS-NTF-018`, draft functional specifications `FS-NTF-012` to `FS-NTF-021`, conflict `CONF-206`, and SOP notes in `documents/SOP/README.md` (notifications are aids, not records; escalation rules and working hours are controlled configuration). The user guide chapter `documentation/guide/09-notifications-messages.md` is not updated by this package.
 
 **Current state.** `NotificationLog` and `DashboardNotificationService` exist, and the header has a notification button. Updates come from polling; there is no SignalR.
 
@@ -214,7 +234,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 
 ### C7. Simplify configuration screens — Size L
 
-**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`.
+**Spec:** `docs/superpowers/specs/2026-11-11-simpler-configuration-design.md`. **Plan:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md`. **Documents:** draft requirements `URS-MDM-026` to `URS-MDM-031` and `URS-INV-011`, draft functional specifications `FS-MDM-038` to `FS-MDM-045` and `FS-INV-012`, conflict `CONF-207` (also bears on `CONF-150`), and SOP notes in `documents/SOP/README.md` (change reasons and retirement). **For the guide owner (not edited here):** `documentation/guide/31-items-test-master-specifications.md` and `documentation/guide/32-laboratory-configuration.md` need the new screens described: step-by-step wizards with a review step, where-used panel, change-reason prompts, retire and reinstate of specifications, "Copy specifications", "New from existing" for items, tests and equipment, the analyst preview, and the Add Material wizard.
 
 **Current state.** The largest components are configuration dialogs: `SpecificationParameterDialog.tsx` (1,908 lines), `TestMasterPage.tsx` (1,621), `EquipmentPage.tsx` (1,609), `AddMaterialDialog.tsx` (1,262).
 
@@ -425,7 +445,7 @@ Phases 0, 1 and 2 can run in parallel if more than one person is available. Phas
 | D-1 | Who owns and approves the URS/FS (QA, Section Heads)? | A1, A2 |
 | D-2 | Your OOS SOP: phases, time limits, who approves each phase, retest rules for microbiology and for physicochemical | D1 |
 | D-3 | Build CAPA and Change Control inside MicroLIMS, or integrate with an existing QMS? | D2 |
-| D-4 | E-signature under SSO: keep a separate MicroLIMS signing password, or re-authenticate against the identity provider at signing? | B3 |
+| D-4 | E-signature under SSO: keep a separate MicroLIMS signing password, or re-authenticate against the identity provider at signing? **Closed 2026-11-10: separate MicroLIMS signing password.** | B3 |
 | D-5 | Stability SOP: conditions, time points, pull windows, and whether statistical shelf-life evaluation is wanted | D3 |
 | D-6 | Competency gate: is a Section Head override allowed? | D4 |
 | D-7 | Offline at the bench: is "draft only until the server accepts it" enough, or is true offline recording required? | C2 |

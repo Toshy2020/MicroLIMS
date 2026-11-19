@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -130,11 +132,20 @@ public partial class IcpRunService
         return result;
     }
 
-    private async Task<string?> DetermineUnavailableReasonAsync(Equipment equipment, CancellationToken ct)
+    private async Task<string?> DetermineUnavailableReasonAsync(Equipment equipment, CancellationToken ct) =>
+        (await DetermineUnavailableAsync(equipment, ct))?.Reason;
+
+    private async Task<(string Code, string Reason, Dictionary<string, string>? Params)?> DetermineUnavailableAsync(
+        Equipment equipment, CancellationToken ct)
     {
         var today = _clock.LabToday;
         if (equipment.CalibrationDueDate.HasValue && DateOnly.FromDateTime(equipment.CalibrationDueDate.Value) < today)
-            return $"Calibration overdue since {equipment.CalibrationDueDate:yyyy-MM-dd}.";
+        {
+            var date = equipment.CalibrationDueDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return (MessageCodes.IcpCalibrationOverdue,
+                $"Calibration overdue since {equipment.CalibrationDueDate:yyyy-MM-dd}.",
+                new Dictionary<string, string> { ["date"] = date });
+        }
 
         var codeUpper = equipment.Code.ToUpperInvariant();
         var inventory = await _db.EquipmentInventories.AsNoTracking()
@@ -142,7 +153,11 @@ public partial class IcpRunService
             .FirstOrDefaultAsync(ct);
 
         if (inventory != null && (inventory.Status == EquipmentOperationalStatus.OutOfService || inventory.Status == EquipmentOperationalStatus.Retired))
-            return $"Equipment is {inventory.Status}.";
+        {
+            return (MessageCodes.IcpEquipmentUnavailable,
+                $"Equipment is {inventory.Status}.",
+                new Dictionary<string, string> { ["status"] = inventory.Status.ToString() });
+        }
 
         return null;
     }
@@ -152,22 +167,37 @@ public partial class IcpRunService
     public async Task<IcpRunDto> StartRunAsync(StartIcpRunRequest r, int userId, CancellationToken ct = default)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == r.EquipmentId, ct)
-            ?? throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpEquipmentNotFound,
+                $"Equipment {r.EquipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = r.EquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
-            throw new NotFoundException($"Equipment {r.EquipmentId} not found.");
+            throw new NotFoundException(
+                MessageCodes.IcpEquipmentNotFound,
+                $"Equipment {r.EquipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = r.EquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (equipment.Type != EquipmentType.IcpOes)
-            throw new BusinessRuleException($"\"{equipment.Name}\" is not an ICP-OES instrument.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEquipmentNotIcpOes,
+                $"\"{equipment.Name}\" is not an ICP-OES instrument.",
+                new Dictionary<string, string> { ["equipment"] = equipment.Name });
 
         var hasOpenRun = await _db.IcpRuns.AnyAsync(run => run.EquipmentId == equipment.Id && run.Status == IcpRunStatus.Open, ct);
         if (hasOpenRun)
-            throw new BusinessRuleException($"\"{equipment.Name}\" already has an open run.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpEquipmentHasOpenRun,
+                $"\"{equipment.Name}\" already has an open run.",
+                new Dictionary<string, string> { ["equipment"] = equipment.Name });
 
-        var unavailableReason = await DetermineUnavailableReasonAsync(equipment, ct);
-        if (unavailableReason != null)
-            throw new BusinessRuleException(unavailableReason);
+        var unavailable = await DetermineUnavailableAsync(equipment, ct);
+        if (unavailable != null)
+        {
+            var (code, reason, parameters) = unavailable.Value;
+            throw new BusinessRuleException(code, reason, parameters);
+        }
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         var labLocal = _clock.ToLabLocal(nowUtc);
@@ -210,7 +240,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
 
         var trimmedReason = ValidateReason(reason);
 
@@ -225,11 +255,17 @@ public partial class IcpRunService
     public async Task<List<IcpRunListItem>> GetRunHistoryAsync(int equipmentId, int userId, CancellationToken ct = default)
     {
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetReadableSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(equipment.SectionId))
-            throw new NotFoundException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException(
+                MessageCodes.IcpEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var runs = await _db.IcpRuns.AsNoTracking()
             .Include(r => r.Calibration)
@@ -251,10 +287,10 @@ public partial class IcpRunService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(MessageCodes.IcpReasonRequired, "A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException(MessageCodes.IcpReasonTooLong, "Reason cannot exceed 500 characters.");
         return trimmed;
     }
 
@@ -264,7 +300,10 @@ public partial class IcpRunService
     {
         var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(run.SectionId))
-            throw new NotFoundException($"ICP run {run.Id} not found.");
+            throw new NotFoundException(
+                MessageCodes.IcpRunNotFound,
+                $"ICP run {run.Id} not found.",
+                new Dictionary<string, string> { ["runId"] = run.Id.ToString(CultureInfo.InvariantCulture) });
     }
 
     private async Task<IcpRun> LoadRunAsync(int id, CancellationToken ct) =>
@@ -276,7 +315,10 @@ public partial class IcpRunService
             .Include(r => r.Samples)
             .Include(r => r.Evidence)
             .FirstOrDefaultAsync(r => r.Id == id, ct)
-            ?? throw new NotFoundException($"ICP run {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpRunNotFound,
+                $"ICP run {id} not found.",
+                new Dictionary<string, string> { ["runId"] = id.ToString(CultureInfo.InvariantCulture) });
 
     private async Task<IcpRunDto> BuildDtoAsync(IcpRun run, CancellationToken ct)
     {

@@ -73,7 +73,8 @@ export async function captureChartsAsPng(container: HTMLElement, scale = 2): Pro
 }
 
 export function downloadCsv(csv: string, filename: string): void {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  // A file never carries the invisible direction marks used for screen text.
+  const blob = new Blob([csv.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, "")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

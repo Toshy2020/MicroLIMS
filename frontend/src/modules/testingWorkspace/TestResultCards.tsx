@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { CollapsibleTestCard, SecondaryToggle } from "./CollapsibleTestCard";
 import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } from "./SampleReportPage";
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
@@ -23,6 +24,7 @@ export function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis
 }
 
 export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
+  const { t } = useTranslation("testingWorkspace");
   const open = async (e: React.MouseEvent) => {
     e.stopPropagation(); // the card header toggles on click
     const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(reportId!));
@@ -31,8 +33,8 @@ export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: 
   };
   return (
     <>
-      <span className="location-status-chip" style={{ background: "#6b7280" }}>External lab: {lab}</span>
-      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>External report</a></>}
+      <span className="location-status-chip" style={{ background: "#6b7280" }}>{t("externalLab.badge", { lab })}</span>
+      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>{t("externalLab.report")}</a></>}
       {" · "}
     </>
   );
@@ -422,6 +424,7 @@ function CardFooter({ enteredBy, enteredAt }: { enteredBy: string | null | undef
 // single Result with neither - covers every non-quantitative shape the
 // original TestCard handled.
 function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
+  const { t } = useTranslation("testingWorkspace");
   const incubation = test.incubations[test.incubations.length - 1];
   const lastResult = test.results[test.results.length - 1];
   const hasLocations = test.locations.length > 0;
@@ -477,7 +480,7 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
               <div key={i} style={{ fontSize: 12, display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
                 <span style={{ color: "var(--color-text-tertiary)" }}>{p.stepName}</span>
                 <span>
-                  <strong>{pathogenObservationLabel(p.observation)}</strong>
+                  <strong>{pathogenObservationLabel(p.observation, t)}</strong>
                   <span style={{ color: "var(--color-text-quaternary)" }}> · {p.observedByName} · {dt(p.observedAt)}</span>
                 </span>
               </div>

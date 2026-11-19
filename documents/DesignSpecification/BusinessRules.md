@@ -201,6 +201,68 @@ Media Preparation → Sterility → Recovery → Release (or Rejected)
 - Every login attempt — success or failure, with reason — is recorded
   in `LoginHistory`.
 
+### 10.1 Quality Assurance independence
+
+**Files:** `Shared/Constants/SegregationOfDutiesRules.cs`,
+`Application/Services/RoleService.cs`
+
+- A role of type Quality Assurance (the system role `QA` and any custom
+  role based on it), and any role holding `Audit.Review` or
+  `Access.Review.Sign`, can never hold an administration permission or
+  a laboratory execution or approval permission. The only approval
+  permissions it may hold are `Documents.Review` and
+  `Documents.Approve`. The forbidden list is
+  `SegregationOfDutiesRules.QaForbiddenCodes`.
+- The rule is checked on the server when a role is created and whenever
+  its permissions are changed. A refused change returns the message
+  "A Quality Assurance role cannot hold: <codes>."
+- Quality Assurance reads all laboratories through `Sections.ViewAll`
+  and has no section membership, so every write that needs membership
+  is refused.
+
+### 10.2 Access review signer
+
+**File:** `Application/Services/AccessReviewService.cs`
+
+- Recording findings on, and signing, an access review needs
+  `Access.Review.Sign`.
+- While no active, unlocked user holds `Access.Review.Sign`, the
+  administrator who manages access reviews may still decide and sign,
+  so a site is not blocked on the day of upgrade. From the moment such a user exists, anyone
+  without `Access.Review.Sign` is refused with "Access reviews are
+  decided and signed by Quality Assurance."
+- A person named in a finding cannot sign the review (unchanged).
+
+### 10.3 Audit trail review
+
+**File:** `Application/Services/AuditTrailReviewService.cs`
+
+- A review fixes its scope when it is started: period, scope, the
+  highest audit entry ID at that moment (the cut-off) and the entry
+  count. Entries written later are not part of the review; the review
+  reports how many newer entries exist.
+- Starting a review, recording findings, signing and closing need
+  `Audit.Review`. Reading reviews needs `Audit.View`.
+- A review is completed by an electronic signature (user ID and
+  password) with the meaning "Audit trail reviewed". A signed review
+  and its findings cannot be changed or deleted; PostgreSQL triggers
+  enforce this.
+- The scope columns cannot be changed after the review is started, even
+  before it is signed.
+
+### 10.4 Quality Assurance approver for controlled documents
+
+**Files:** `Application/Services/DocumentControl/DocumentApprovalService.cs`,
+`DocumentEffectiveDateService.cs`
+
+- A Quality Assurance user may be assigned as reviewer or approver of a
+  document. Section Head override powers are not given to Quality
+  Assurance.
+- A document type may be set to require a Quality Assurance approver
+  (`DocumentType.RequiresQaApprover`, off by default). When it is on, a
+  revision of that type can only be approved by a Quality Assurance
+  user. The author of a revision cannot approve it (unchanged).
+
 ---
 
 ## 11. Audit Trail

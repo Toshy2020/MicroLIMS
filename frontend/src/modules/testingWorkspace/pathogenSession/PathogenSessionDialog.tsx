@@ -32,6 +32,11 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { brandColors } from "../../../theme";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { FieldHint, hintDescribedBy } from "../../../components/FieldHint";
+import { hints } from "../hints";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   open: boolean;
@@ -41,16 +46,25 @@ interface Props {
   onSessionCompleted?: () => void;
 }
 
-const STEPS = [
-  "Overview",              // Step 0
-  "Shared TSB",            // Step 1
-  "Test Workflows",        // Step 2
-  "Primary Matrix",        // Step 3 (Panel A)
-  "Confirmatory Plating",  // Step 4 (Panel B)
-  "Review & Complete"      // Step 5 (Panel C)
-];
+const STEP_KEYS = [
+  "overview",              // Step 0
+  "sharedTsb",             // Step 1
+  "testWorkflows",         // Step 2
+  "primaryMatrix",         // Step 3 (Panel A)
+  "confirmatoryPlating",   // Step 4 (Panel B)
+  "reviewComplete"         // Step 5 (Panel C)
+] as const;
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+    return apiErr.response?.data?.message ?? apiErr.message ?? fallback;
+  }
+  return fallback;
+}
 
 export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdated, onSessionCompleted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
   // Reset discards every step record and result for the sample - Section Head only.
   const canResetSession = permissions.includes(PERMISSIONS.TEST_WORKFLOW_SUPERVISE);
@@ -82,11 +96,11 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           setActiveStep(0);
         }
       })
-      .catch((err) => {
-        setError(err?.response?.data?.message ?? "Could not load pathogen testing session.");
+      .catch((err: unknown) => {
+        setError(getErrorMessage(err, t("pathogenSession.dialog.loadError")));
       })
       .finally(() => setLoading(false));
-  }, [open, sampleId]);
+  }, [open, sampleId, t]);
 
   const handleSessionUpdated = (updated: PathogenTestingSessionDto) => {
     setSession(updated);
@@ -112,7 +126,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
     setResetting(true);
     setError(null);
     try {
-      const updated = await PathogenSessionService.resetSession(sampleId, resetReason || "Section Head requested session reset");
+      const updated = await PathogenSessionService.resetSession(sampleId, resetReason || t("pathogenSession.dialog.defaultResetReason"));
       setSession(updated);
       setActiveStep(0);
       setResetDialogOpen(false);
@@ -120,8 +134,8 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
       if (onSessionUpdated) {
         onSessionUpdated(updated);
       }
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to reset session.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("pathogenSession.dialog.resetFailed")));
     } finally {
       setResetting(false);
     }
@@ -189,11 +203,20 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
             </Box>
             <Box>
               <Typography sx={{ fontSize: 17, fontWeight: 800, color: "common.white", lineHeight: 1.2 }}>
-                Pathogen Testing Session Workspace
+                {t("pathogenSession.dialog.title")}
               </Typography>
               {session && (
                 <Typography sx={{ fontSize: 12, color: "rgba(255,255,255,0.85)", mt: 0.25 }}>
-                  Session: <strong>{session.sessionId}</strong> · Sample: <strong>{session.sampleReferenceNumber}</strong> ({session.departmentOrAreaName})
+                  <Trans
+                    i18nKey="pathogenSession.dialog.sessionSubtitle"
+                    ns="testingWorkspace"
+                    values={{
+                      sessionId: session.sessionId,
+                      sampleRef: session.sampleReferenceNumber,
+                      department: session.departmentOrAreaName
+                    }}
+                    components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
               )}
             </Box>
@@ -228,7 +251,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                   "&:hover": { borderColor: "common.white", bgcolor: "rgba(255,255,255,0.1)" }
                 }}
               >
-                Reset Session
+                {t("pathogenSession.dialog.resetSession")}
               </Button>
             )}
           </Stack>
@@ -238,9 +261,9 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
         session && (
           <Box sx={{ px: 4, pt: 2.5, pb: 1.5, bgcolor: "background.paper" }}>
             <Stepper nonLinear activeStep={activeStep}>
-              {STEPS.map((label, index) => {
+              {STEP_KEYS.map((stepKey, index) => {
                 const isTsbStep = index === 1;
-                const hasTsb = session.assignedTests.some((t) => t.requiresTsb);
+                const hasTsb = session.assignedTests.some((testItem) => testItem.requiresTsb);
                 const isConfirmatoryStep = index === 4;
                 const isConfDisabled = isConfirmatoryStep && !hasEligibleConfirmations;
                 const isReviewStep = index === 5;
@@ -248,11 +271,11 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                 const isStepDisabled = isConfDisabled || isReviewDisabled;
 
                 let stepLabelSuffix = "";
-                if (isTsbStep && !hasTsb) stepLabelSuffix = "(N/A)";
-                if (isConfirmatoryStep && !hasEligibleConfirmations) stepLabelSuffix = "(N/A)";
+                if (isTsbStep && !hasTsb) stepLabelSuffix = t("pathogenSession.dialog.naSuffix");
+                if (isConfirmatoryStep && !hasEligibleConfirmations) stepLabelSuffix = t("pathogenSession.dialog.naSuffix");
 
                 return (
-                  <Step key={label} disabled={isStepDisabled}>
+                  <Step key={stepKey} disabled={isStepDisabled}>
                     <StepButton
                       onClick={() => {
                         if (!isStepDisabled) {
@@ -269,7 +292,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
                       <Stack direction="row" spacing={0.5} sx={{
                         alignItems: "center"
                       }}>
-                        <span>{label} {stepLabelSuffix}</span>
+                        <span>{t(`pathogenSession.dialog.steps.${stepKey}`)} {stepLabelSuffix}</span>
                         {isStepDisabled && <LockOutlinedIcon sx={{ fontSize: 12, color: "text.secondary" }} />}
                       </Stack>
                     </StepButton>
@@ -354,24 +377,33 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
           paper: { sx: { borderRadius: 2 } }
         }}
       >
-        <DialogTitle sx={{ fontWeight: 700 }}>Reset Testing Session & Steps?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>{t("pathogenSession.dialog.resetConfirmTitle")}</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            This will reset all workflow step records, incubations, primary observations, and confirmatory results for Sample <strong>{session?.sampleReferenceNumber}</strong> back to the initial "Not Started" state.
+            <Trans
+              i18nKey="pathogenSession.dialog.resetConfirmBody"
+              ns="testingWorkspace"
+              values={{ sampleRef: session?.sampleReferenceNumber ?? "" }}
+              components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <TextField
-            label="Reason for Reset *"
-            fullWidth
-            size="small"
-            value={resetReason}
-            onChange={(e) => setResetReason(e.target.value)}
-            placeholder="e.g. Test configuration error / Wrong media lot selected / Operational error"
-            multiline
-            rows={2}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("pathogen-reason-for-reset") } }}
+              label={t("pathogenSession.dialog.resetReasonLabel")}
+              fullWidth
+              size="small"
+              value={resetReason}
+              onChange={(e) => setResetReason(e.target.value)}
+              placeholder={t("pathogenSession.dialog.resetReasonPlaceholder")}
+              multiline
+              rows={2}
+            />
+            <FieldHint id="pathogen-reason-for-reset" label={t("pathogenSession.dialog.resetReasonHintLabel")} hint={hints.reasonForReset} />
+          </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setResetDialogOpen(false)} disabled={resetting}>Cancel</Button>
+          <Button onClick={() => setResetDialogOpen(false)} disabled={resetting}>{t("pathogenSession.dialog.cancel")}</Button>
           <Button
             variant="contained"
             color="error"
@@ -379,7 +411,7 @@ export function PathogenSessionDialog({ open, sampleId, onClose, onSessionUpdate
             disabled={resetting || !resetReason.trim()}
             startIcon={resetting ? <CircularProgress size={16} color="inherit" /> : <RestartAltIcon />}
           >
-            {resetting ? "Resetting..." : "Confirm Reset"}
+            {resetting ? t("pathogenSession.dialog.resetting") : t("pathogenSession.dialog.confirmReset")}
           </Button>
         </DialogActions>
       </Dialog>

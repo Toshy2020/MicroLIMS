@@ -227,6 +227,7 @@ export const lightThemeOptions: ThemeOptions = {
     }
   },
   custom: {
+    bench: false,
     status: statusTonesByMode.light,
     countdown: countdownTokensByMode.light,
     chartPalette: chartPaletteByMode.light,
@@ -286,6 +287,7 @@ export const darkThemeOptions: ThemeOptions = {
     }
   },
   custom: {
+    bench: false,
     status: statusTonesByMode.dark,
     countdown: countdownTokensByMode.dark,
     chartPalette: chartPaletteByMode.dark,

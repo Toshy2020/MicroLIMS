@@ -14,6 +14,8 @@ import {
 import { reassignmentService } from "../services/reassignmentService";
 import { getErrorMessage } from "../../../utils/errorMessage";
 import type { ReassignmentCandidate, ReassignmentItem } from "../types/reassignmentTypes";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
 
 interface ReassignDialogProps {
   item: ReassignmentItem | null;
@@ -25,6 +27,7 @@ interface ReassignDialogProps {
 // member of the document's department whose role holds the needed permission and who passes the segregation of
 // duties rules); the server checks all of it again on save.
 export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [candidates, setCandidates] = useState<ReassignmentCandidate[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<ReassignmentCandidate | null>(null);
@@ -43,10 +46,10 @@ export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogPr
     reassignmentService
       .getCandidates(item.itemType, item.itemId)
       .then((list) => { if (live) setCandidates(list); })
-      .catch((e) => { if (live) setError(getErrorMessage(e, "Could not load the eligible users.")); })
+      .catch((e) => { if (live) setError(getErrorMessage(e, t("reassignDialog.loadError"))); })
       .finally(() => { if (live) setLoading(false); });
     return () => { live = false; };
-  }, [item]);
+  }, [item, t]);
 
   const canSave = !!item && !!selected && reason.trim().length > 0 && !saving;
 
@@ -58,7 +61,7 @@ export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogPr
       await reassignmentService.reassign({ itemType: item.itemType, itemId: item.itemId, newUserId: selected.userId, reason: reason.trim() });
       onReassigned(item, selected);
     } catch (e) {
-      setError(getErrorMessage(e, "Could not reassign this responsibility."));
+      setError(getErrorMessage(e, t("reassignDialog.reassignError")));
     } finally {
       setSaving(false);
     }
@@ -66,24 +69,31 @@ export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogPr
 
   return (
     <Dialog open={!!item} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Reassign: {item?.roleNeeded}</DialogTitle>
+      <DialogTitle>{t("reassignDialog.title", { role: item?.roleNeeded })}</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {item && (
           <Typography variant="body2">
             <strong>{item.documentCode}</strong> &ndash; {item.documentTitle}
-            {item.revisionNumber ? ` (revision ${item.revisionNumber})` : ""}
+            {item.revisionNumber ? t("reassignDialog.revisionSuffix", { rev: item.revisionNumber }) : ""}
             <br />
-            Currently held by an inactive user ({item.holderName ?? "name not shown"}). The new holder must be an active member of{" "}
-            <strong>{item.departmentName}</strong> whose role holds <code>{item.requiredPermission}</code>.
+            <Trans
+              i18nKey="reassignDialog.description"
+              ns="documentControl"
+              values={{
+                holder: item.holderName ?? t("reassignDialog.nameNotShown"),
+                department: item.departmentName,
+                permission: item.requiredPermission
+              }}
+              components={{ strong: <strong />, code: <code /> }}
+            />
           </Typography>
         )}
         {error && <Alert severity="error">{error}</Alert>}
         {loading ? (
-          <CircularProgress size={24} aria-label="Loading eligible users" />
+          <CircularProgress size={24} aria-label={t("reassignDialog.loadingAria")} />
         ) : candidates.length === 0 && !error ? (
           <Alert severity="warning">
-            Nobody is eligible. Add a user to {item?.departmentName} (Administration &gt; Organization) whose role holds{" "}
-            {item?.requiredPermission}, then try again.
+            {t("reassignDialog.noCandidates", { department: item?.departmentName, permission: item?.requiredPermission })}
           </Alert>
         ) : (
           <Autocomplete
@@ -99,11 +109,11 @@ export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogPr
                 </Typography>
               </li>
             )}
-            renderInput={(params) => <TextField {...params} label="New holder" required size="small" />}
+            renderInput={(params) => <TextField {...params} label={t("reassignDialog.newHolderLabel")} required size="small" />}
           />
         )}
         <TextField
-          label="Reason"
+          label={t("reassignDialog.reasonLabel")}
           size="small"
           multiline
           rows={2}
@@ -111,13 +121,13 @@ export function ReassignDialog({ item, onClose, onReassigned }: ReassignDialogPr
           fullWidth
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Why this person takes over (recorded in the audit trail)"
+          placeholder={t("reassignDialog.reasonPlaceholder")}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={saving} color="inherit">Cancel</Button>
+        <Button onClick={onClose} disabled={saving} color="inherit">{t("common.cancel")}</Button>
         <Button variant="contained" onClick={save} disabled={!canSave}>
-          {saving ? "Reassigning..." : "Reassign"}
+          {saving ? t("reassignDialog.reassigning") : t("reassignDialog.submit")}
         </Button>
       </DialogActions>
     </Dialog>

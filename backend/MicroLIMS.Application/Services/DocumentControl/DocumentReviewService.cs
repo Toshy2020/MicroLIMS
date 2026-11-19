@@ -6,7 +6,9 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -16,17 +18,20 @@ public class DocumentReviewService : IDocumentReviewService
     private readonly IAuditEventService _audit;
     private readonly IDocumentAuthorizationService _auth;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public DocumentReviewService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
@@ -144,8 +149,21 @@ public class DocumentReviewService : IDocumentReviewService
         revision.RevisionStatus = DocumentRevisionStatus.InReview;
         _db.DocumentReviewTasks.Add(task);
 
+        _db.QueueSignal(LiveSignalKinds.Record, $"document:{revision.DocumentMasterId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{request.ReviewerUserId}");
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
+
+        await _publisher.PublishAsync(new NotificationRequest(
+            Type: "DocumentTask",
+            UserIds: new[] { request.ReviewerUserId },
+            Message: $"Document {revision.DocumentMaster.MicroLimsDocumentId} (Rev {revision.RevisionNumber}) was assigned to you for technical review.",
+            TargetType: "document-review",
+            TargetId: task.Id,
+            SectionId: revision.DocumentMaster.SectionId,
+            DedupeKey: $"DocumentTask:review:{task.Id}",
+            DueAtUtc: request.DueDate));
 
         var changes = new List<AuditFieldChange>
         {
@@ -608,6 +626,8 @@ public class DocumentReviewService : IDocumentReviewService
             // Advance revision to AwaitingApproval (DC-URS-073)
             task.DocumentRevision.RevisionStatus = DocumentRevisionStatus.AwaitingApproval;
 
+            await _publisher.ResolveAsync($"DocumentTask:review:{task.Id}");
+
             _db.CurrentUserId = userId;
             await _db.SaveChangesAsync();
 
@@ -642,6 +662,8 @@ public class DocumentReviewService : IDocumentReviewService
 
             // Return revision to Draft status so author can make corrections (DC-URS-072, DC-URS-1D-010)
             task.DocumentRevision.RevisionStatus = DocumentRevisionStatus.Draft;
+
+            await _publisher.ResolveAsync($"DocumentTask:review:{task.Id}");
 
             _db.CurrentUserId = userId;
             await _db.SaveChangesAsync();

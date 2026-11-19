@@ -1,18 +1,32 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../i18n";
+
 export type SolutionType = "MobilePhase" | "Diluent" | "Titrant" | "Reagent" | "Neutralizer";
 
 export type SolutionComponentKind = "Material" | "PreparedSolution" | "Text";
 
 export type ApprovalGateStatus = "PendingReview" | "Approved" | "Rejected";
 
-export const SOLUTION_TYPE_LABELS: Record<SolutionType, string> = {
-  MobilePhase: "Mobile Phase",
-  Diluent: "Diluent",
-  Reagent: "Reagent",
-  Neutralizer: "Neutralizer",
-  Titrant: "Titrant"
-};
+export function getSolutionTypeLabels(
+  t: TFunction<"solutionPreparation">
+): Record<SolutionType, string> {
+  return {
+    MobilePhase: t("solutionTypes.MobilePhase"),
+    Diluent: t("solutionTypes.Diluent"),
+    Reagent: t("solutionTypes.Reagent"),
+    Neutralizer: t("solutionTypes.Neutralizer"),
+    Titrant: t("solutionTypes.Titrant")
+  };
+}
 
-export const solutionTypeLabel = (type: SolutionType): string => SOLUTION_TYPE_LABELS[type] ?? type;
+export const SOLUTION_TYPE_LABELS: Record<SolutionType, string> = getSolutionTypeLabels(
+  i18n.getFixedT("en", "solutionPreparation")
+);
+
+export const solutionTypeLabel = (
+  type: SolutionType,
+  t: TFunction<"solutionPreparation"> = i18n.getFixedT("en", "solutionPreparation")
+): string => getSolutionTypeLabels(t)[type] ?? type;
 
 export type SolutionPreparationStatus =
   | "InProgress"

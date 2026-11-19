@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.API.Extensions;
 using MicroLIMS.API.Filters;
 using MicroLIMS.API.Json;
+using MicroLIMS.Application.Abstractions.Security;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Persistence.DbContext;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -75,19 +77,7 @@ var rawFrontendOrigins = builder.Configuration["Frontend:Origin"]
 var allowedOrigins = rawFrontendOrigins
     .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Frontend", policy =>
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              // AllowAnyHeader covers request headers only. Without this
-              // the browser hides X-Correlation-Id from JS entirely, and
-              // client-side error reports cannot be tied to the backend
-              // error from the same action. Content-Disposition carries
-              // the server's name for a downloaded file (exports, reports).
-              .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
-});
+builder.Services.AddMicroLimsCors(allowedOrigins);
 
 var app = builder.Build();
 
@@ -190,6 +180,14 @@ using (var startupScope = app.Services.CreateScope())
         // that. Never let this advisory check stop the process.
         app.Logger.LogDebug(ex, "Could not check whether an administrator account exists at startup.");
     }
+
+    var policyService = startupScope.ServiceProvider.GetRequiredService<MfaPolicyService>();
+    var secretProtector = startupScope.ServiceProvider.GetRequiredService<ISecretProtector>();
+    await MfaStartupValidator.EnsureValidAsync(startupDb, policyService, secretProtector);
+
+    var ssoModeService = startupScope.ServiceProvider.GetRequiredService<MicroLIMS.Application.Services.Sso.SsoModeService>();
+    var ssoOptions = startupScope.ServiceProvider.GetRequiredService<MicroLIMS.Application.Services.Sso.SsoOptions>();
+    await SsoStartupValidator.EnsureValidAsync(ssoModeService, ssoOptions);
 }
 
 app.UseCors("Frontend");
@@ -220,5 +218,7 @@ app.UseRateLimiter();
 app.MapMicroLimsHealthChecks();
 
 app.MapControllers();
+
+app.MapHub<MicroLIMS.API.Hubs.LiveHub>("/hubs/live");
 
 app.Run();

@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../../contexts/AuthContext";
+import { resetUiStateCache } from "../../../hooks/useUiState";
+import { uiStateService } from "../../../services/uiStateService";
 import { ItemsPage } from "./ItemsPage";
 import { ItemService, type Item } from "./services/ItemService";
 import { ItemDocumentService } from "./services/ItemDocumentService";
@@ -11,6 +13,10 @@ import { ItemPreparationConfigurationService } from "../../testPreparation/servi
 
 // Only the HTTP service layer is mocked; the real page, table, workspace and
 // tabs run inside the real AuthProvider and router (CLAUDE.md Rule 4.5).
+vi.mock("../../../services/uiStateService", () => ({
+  uiStateService: { getAll: vi.fn(), set: vi.fn(), remove: vi.fn() }
+}));
+
 vi.mock("./services/ItemService", () => ({
   ItemService: { getAll: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn(), freeze: vi.fn(), unfreeze: vi.fn() }
 }));
@@ -83,6 +89,9 @@ describe("ItemsPage selected item and tab in the URL", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    resetUiStateCache();
+    vi.mocked(uiStateService.getAll).mockResolvedValue({});
+    vi.mocked(uiStateService.set).mockResolvedValue(undefined);
     seedToken(["Items.Manage"]);
     vi.mocked(ItemService.getAll).mockResolvedValue([riboflavin, zinc]);
     vi.mocked(ItemDocumentService.getDocumentsForItem).mockResolvedValue([]);
@@ -92,6 +101,7 @@ describe("ItemsPage selected item and tab in the URL", () => {
 
   afterEach(() => {
     cleanup();
+    resetUiStateCache();
     localStorage.clear();
   });
 
@@ -115,7 +125,7 @@ describe("ItemsPage selected item and tab in the URL", () => {
     expect(search().get("item")).toBe("2");
   });
 
-  it("writes tab= when the tab changes and drops it when Overview is chosen", async () => {
+  it("writes tab= when the tab changes, including Overview so it is not replaced by the remembered tab", async () => {
     const user = userEvent.setup();
     renderAt("/laboratory-configuration/items?item=1");
     await screen.findByRole("button", { name: "Close workspace" });
@@ -125,7 +135,7 @@ describe("ItemsPage selected item and tab in the URL", () => {
     expect(tab(/^Audit History/).getAttribute("aria-selected")).toBe("true");
 
     await user.click(tab(/^Overview/));
-    expect(search().has("tab")).toBe(false);
+    expect(search().get("tab")).toBe("overview");
     expect(search().get("item")).toBe("1");
     expect(tab(/^Overview/).getAttribute("aria-selected")).toBe("true");
   });
@@ -181,5 +191,27 @@ describe("ItemsPage selected item and tab in the URL", () => {
     await user.click(screen.getByRole("button", { name: "Close workspace" }));
     expect(search().get("foo")).toBe("1");
     expect(search().has("item")).toBe(false);
+  });
+
+  it("opens the tab used last time when the address names none, and remembers a new choice", async () => {
+    const user = userEvent.setup();
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.items": "documents" });
+    renderAt("/laboratory-configuration/items?item=1");
+
+    await screen.findByRole("button", { name: "Close workspace" });
+    await waitFor(() => expect(tab(/^Documents/).getAttribute("aria-selected")).toBe("true"));
+
+    await user.click(tab(/^Audit History/));
+    await waitFor(() => expect(uiStateService.set).toHaveBeenCalledWith("nav.tab.items", "audit"), { timeout: 2000 });
+  });
+
+  it("a stored tab that no longer exists opens Overview", async () => {
+    vi.mocked(uiStateService.getAll).mockResolvedValue({ "nav.tab.items": "retired-tab" });
+    renderAt("/laboratory-configuration/items?item=1");
+
+    await screen.findByRole("button", { name: "Close workspace" });
+    await waitFor(() => expect(uiStateService.getAll).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(tab(/^Overview/).getAttribute("aria-selected")).toBe("true");
   });
 });

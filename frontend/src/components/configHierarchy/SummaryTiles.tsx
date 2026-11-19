@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Box, ButtonBase, Paper, Typography, useTheme } from "@mui/material";
 import { Link } from "react-router-dom";
+import { useTranslation } from "../../i18n";
 import { StatusTone } from "../../theme/statusTokens";
 
 export interface SummaryTile {
@@ -26,6 +27,7 @@ export interface SummaryTile {
 // with it, so a number looks the same wherever it appears.
 export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const activeTokens = theme.custom.status.purple;
   return (
     <Box
@@ -41,10 +43,10 @@ export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
       }}
     >
       {tiles.map((tile) => {
-        const t = tile.tone ? theme.custom.status[tile.tone] : null;
+        const toneTokens = tile.tone ? theme.custom.status[tile.tone] : null;
         const interactive = !!(tile.onClick || tile.to);
         const active = !!tile.active;
-        const valueColor = active ? activeTokens.text : t && !tile.icon ? t.text : "text.primary";
+        const valueColor = active ? activeTokens.text : toneTokens && !tile.icon ? toneTokens.text : "text.primary";
         const content = (
           <>
             <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 0.5, width: "100%" }}>
@@ -61,8 +63,8 @@ export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
                     height: 28,
                     flexShrink: 0,
                     borderRadius: 1.5,
-                    color: t?.text ?? "primary.main",
-                    bgcolor: t?.bg ?? "action.hover",
+                    color: toneTokens?.text ?? "primary.main",
+                    bgcolor: toneTokens?.bg ?? "action.hover",
                     "& svg": { fontSize: 18 }
                   }}
                 >
@@ -84,7 +86,7 @@ export function SummaryTiles({ tiles }: { tiles: SummaryTile[] }) {
                 {tile.value}
               </Typography>
               {tile.caption && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{tile.caption}</Typography>}
-              {active && <Typography sx={{ fontSize: 12, fontWeight: 600, color: activeTokens.text }}>Filtering</Typography>}
+              {active && <Typography sx={{ fontSize: 12, fontWeight: 600, color: activeTokens.text }}>{t("components.summaryTiles.filtering")}</Typography>}
             </Box>
           </>
         );

@@ -1,0 +1,88 @@
+{
+  "page": {
+    "title": "Out-of-Specification Tracking",
+    "subtitle": "Every out-of-specification investigation chain grouped by OOS number, tracing all retest spin-offs back to the original sample.",
+    "loadError": "Failed to load OOS tracking items.",
+    "sectionTitle": "OOS Investigation Groups",
+    "noGroups": "No active OOS investigation chains found."
+  },
+  "summary": {
+    "groupCount_one": "{{count}} OOS Group",
+    "groupCount_other": "{{count}} OOS Groups",
+    "retestCount_one": "{{count}} retest sample",
+    "retestCount_other": "{{count}} retest samples",
+    "groupsAndRetests": "{{groups}} ({{retests}})"
+  },
+  "group": {
+    "collapse": "Collapse OOS group",
+    "expand": "Expand OOS group",
+    "opened": "Opened: <ltr>{{date}}</ltr>",
+    "rootOrigin": "Root / Origin Sample",
+    "batch": "Batch: <ltr>{{batch}}</ltr>",
+    "reportAttached": "Lab Investigation Report Attached",
+    "noReport": "No Report Attached",
+    "manageInvestigation": "Manage Investigation",
+    "uploadInvestigation": "Upload Investigation"
+  },
+  "retests": {
+    "noRetests": "No retest samples have been spun off yet for this OOS chain.",
+    "record": "Record",
+    "recordTooltip": "Open the retest sample's printable report",
+    "batch": "Batch: <ltr>{{batch}}</ltr>",
+    "types": {
+      "RetestRetainedSample": "Retest Retained Sample",
+      "NewSampleRequest": "New Sample Request"
+    },
+    "columns": {
+      "retestSample": "Retest Sample",
+      "parentOrigin": "Parent / Origin",
+      "itemPoint": "Item / Point",
+      "retestType": "Retest Type",
+      "tests": "Test(s)",
+      "analysts": "Analyst(s)",
+      "retestStatus": "Retest Status",
+      "opened": "Opened",
+      "actions": "Actions"
+    }
+  },
+  "docs": {
+    "title": "Lab Investigation Documents: {{code}}",
+    "intro": "Controlled lab investigation reports attached to OOS group <strong><ltr>{{code}}</ltr></strong> (Origin Sample: <strong><ltr>{{reference}}</ltr></strong>).",
+    "close": "Close",
+    "uploadInitialTitle": "Upload Initial Investigation Report",
+    "upload": "Upload",
+    "formatsHint": "PDF or image (JPG, PNG, WEBP, TIFF), up to 25 MB",
+    "note": "Recorded in the audit trail",
+    "statuses": {
+      "current": "Current",
+      "superseded": "Superseded",
+      "voided": "Voided"
+    },
+    "supersededReason": "Superseded: {{reason}}",
+    "voidedReason": "Voided: {{reason}}",
+    "empty": "No investigation documents uploaded for this OOS group yet.",
+    "download": "Download file",
+    "supersedeTooltip": "Supersede with replacement report",
+    "columns": {
+      "status": "Status",
+      "filename": "Filename",
+      "size": "Size",
+      "uploadedBy": "Uploaded By",
+      "date": "Date",
+      "actions": "Actions"
+    }
+  },
+  "supersede": {
+    "title": "Supersede Document ({{file}})",
+    "info": "The current document will be marked <strong>Superseded</strong>. A new active version will take its place.",
+    "reasonLabel": "Reason for Supersession *",
+    "cancel": "Cancel",
+    "action": "Supersede"
+  },
+  "errors": {
+    "loadDocuments": "Failed to load investigation documents.",
+    "upload": "Failed to upload document.",
+    "download": "Failed to download document content.",
+    "supersede": "Failed to supersede document."
+  }
+}

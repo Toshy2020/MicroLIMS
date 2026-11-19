@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../i18n";
 import { PathogenObservationDetail } from "../types/sampleSummaryTypes";
 
 // Mirrors backend ReportDocumentMapper.ObservationText exactly, so the
@@ -14,5 +16,14 @@ const OBSERVATION_LABELS: Record<PathogenObservationDetail["observation"], strin
   GrowthConforming: "Growth observed - matches target organism"
 };
 
-export const pathogenObservationLabel = (observation: PathogenObservationDetail["observation"]): string =>
-  OBSERVATION_LABELS[observation] ?? observation;
+export const pathogenObservationLabel = (
+  observation: PathogenObservationDetail["observation"],
+  t?: TFunction
+): string => {
+  if (!(observation in OBSERVATION_LABELS)) return observation;
+  const translate = t ?? i18n.getFixedT("en", "testingWorkspace");
+  return translate(`pathogenObservation.${observation}`, {
+    ns: "testingWorkspace",
+    defaultValue: OBSERVATION_LABELS[observation]
+  });
+};

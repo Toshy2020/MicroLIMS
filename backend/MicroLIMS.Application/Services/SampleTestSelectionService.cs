@@ -6,6 +6,7 @@ using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -44,7 +45,10 @@ public class SampleTestSelectionService
     public async Task<IReadOnlyList<RetestEligibleTestDto>> GetEligibleAsync(int sampleId, int? userId = null, CancellationToken ct = default)
     {
         var sample = await _db.Samples.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sampleId, ct)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
         var eligible = await EligibleAsync(sample, ct);
         if (userId is not int uid || !IsHeadOrSupervisor(await RoleOfAsync(uid, ct)))
             return eligible;
@@ -58,18 +62,23 @@ public class SampleTestSelectionService
     private async Task SelectCoreAsync(int sampleId, SelectTestsRequest request, int userId, string? ipAddress, CancellationToken ct)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
 
         if (!IsHeadOrSupervisor(await RoleOfAsync(userId, ct)))
             throw new UnauthorizedAccessException("Only a Section Head or Supervisor can choose the tests for a periodic retest.");
 
         const string AlreadySelected = "Tests for this sample have already been selected.";
         if (!sample.AwaitingTestSelection)
-            throw new BusinessRuleException(AlreadySelected);
+            throw new BusinessRuleException(MessageCodes.SampleTestsAlreadySelected, AlreadySelected);
         // A second laboratory may still choose after the first has started testing (InTesting);
         // only a closed sample is refused.
         if (sample.Status is SampleStatus.Voided or SampleStatus.Cancelled or SampleStatus.Rejected or SampleStatus.Approved)
-            throw new BusinessRuleException("This sample is closed; tests can no longer be selected.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleClosedNoTestSelection,
+                "This sample is closed; tests can no longer be selected.");
 
         // The laboratories this call covers: still pending, and the signer's own.
         var userScope = await _scope.GetMemberSectionIdsAsync(userId, ct);
@@ -79,20 +88,23 @@ public class SampleTestSelectionService
         {
             // A head of a laboratory that already has its tests is told so; anyone else is simply not in scope.
             if (userScope is not null && sample.TestOrders.Any(t => userScope.Contains(t.SectionId)))
-                throw new BusinessRuleException(AlreadySelected);
+                throw new BusinessRuleException(MessageCodes.SampleTestsAlreadySelected, AlreadySelected);
             throw new UnauthorizedAccessException("This sample belongs to a laboratory section you are not assigned to.");
         }
 
         var codes = (request.TestCodes ?? Array.Empty<string>())
             .Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).Distinct(StringComparer.Ordinal).ToList();
         if (codes.Count == 0)
-            throw new BusinessRuleException("Choose at least one test.");
+            throw new BusinessRuleException(MessageCodes.SampleChooseAtLeastOneTest, "Choose at least one test.");
 
         var eligible = await EligibleAsync(sample, ct);
         var chosen = new List<RetestEligibleTestDto>();
         foreach (var code in codes)
             chosen.Add(eligible.FirstOrDefault(e => e.TestCode == code && mine.Contains(e.SectionId))
-                ?? throw new BusinessRuleException($"Test {code} is not available for this sample."));
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SampleTestNotAvailable,
+                    $"Test {code} is not available for this sample.",
+                    new Dictionary<string, string> { ["testCode"] = code }));
 
         // Signs first - a failed verification creates nothing (the signature,
         // the orders and the audit event commit in the single save below).
@@ -149,7 +161,7 @@ public class SampleTestSelectionService
             return Array.Empty<RetestEligibleTestDto>();
 
         var assigned = await _db.SampleTests.AsNoTracking().Where(t => t.ItemId == itemId).ToListAsync(ct);
-        var specs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId).ToListAsync(ct);
+        var specs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == itemId && !s.IsRetired).ToListAsync(ct);
         var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, itemId, ct);
         var testSections = await TestSectionLookup.ResolveAsync(_db, assigned.Select(t => t.TestCode), ct);
         var sectionNames = await _db.DocumentSections.AsNoTracking().Where(s => sectionIds.Contains(s.Id))

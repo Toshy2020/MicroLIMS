@@ -1,9 +1,12 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../i18n";
+
 // The job title shown beside a user's name when an administrator has not set
 // one: the role, prefixed with the laboratory when the user belongs to
 // exactly one.
 //
 // roleName is the role's own name (Role.Name), which an administrator can
-// rename or create. It is shown as it is, except for the five built-in names,
+// rename or create. It is shown as it is, except for the built-in names,
 // which keep the laboratory-prefixed wording. `role` is the base type the
 // token carries; it only decides the label when no name is known yet (a
 // session stored before role names were sent).
@@ -12,40 +15,52 @@ const BUILT_IN_ROLE_NAME_TYPES = new Map<string, string>([
   ["Section Head", "SectionHead"],
   ["Reviewer", "Reviewer"],
   ["System Administrator", "SystemAdministrator"],
-  ["QC Manager", "QcManager"]
+  ["QC Manager", "QcManager"],
+  ["QA", "Qa"]
 ]);
 
-const ROLE_LABELS: Record<string, string> = {
-  Analyst: "Analyst",
-  Reviewer: "Reviewer",
-  SectionHead: "Section Head",
-  QcManager: "QC Manager",
-  SystemAdministrator: "System Administrator"
-};
+const ROLE_LABEL_KEYS = new Map<string, string>([
+  ["Analyst", "roles.Analyst"],
+  ["Reviewer", "roles.Reviewer"],
+  ["SectionHead", "roles.SectionHead"],
+  ["QcManager", "roles.QcManager"],
+  ["Qa", "roles.Qa"],
+  ["QA", "roles.Qa"],
+  ["SystemAdministrator", "roles.SystemAdministrator"]
+]);
 
-export function formatRoleName(role: string | null | undefined, roleName?: string | null): string {
+export function formatRoleName(role: string | null | undefined, roleName?: string | null, t?: TFunction): string {
+  const translate = t ?? i18n.getFixedT("en", "common");
   const custom = roleName?.trim();
-  if (custom) return custom;
+  if (custom) {
+    const key = ROLE_LABEL_KEYS.get(custom);
+    return key ? translate(key, { ns: "common" }) : custom;
+  }
   if (!role) return "";
-  return ROLE_LABELS[role] ?? role;
+  const key = ROLE_LABEL_KEYS.get(role);
+  return key ? translate(key, { ns: "common" }) : role;
 }
 
-export function formatRoleFallback(role: string | null, labCodes: string[], roleName?: string | null): string {
+export function formatRoleFallback(role: string | null, labCodes: string[], roleName?: string | null, t?: TFunction): string {
+  const translate = t ?? i18n.getFixedT("en", "common");
   const name = roleName?.trim();
   if (name && !BUILT_IN_ROLE_NAME_TYPES.has(name)) return name;
   const baseType = name ? BUILT_IN_ROLE_NAME_TYPES.get(name)! : role;
-  if (!baseType) return "Staff";
-  let prefix = "";
-  if (labCodes.length === 1) {
-    if (labCodes[0] === "MICRO") prefix = "Microbiology";
-    else if (labCodes[0] === "FP") prefix = "Physicochemical";
-  }
+  if (!baseType) return translate("roles.Staff", { ns: "common" });
+  const lab = labCodes.length === 1 ? labCodes[0] : "";
   switch (baseType) {
-    case "Analyst": return prefix ? `${prefix} Analyst` : "Analyst";
-    case "SectionHead": return prefix ? `${prefix} Section Head` : "Section Head";
-    case "Reviewer": return "Quality Reviewer";
-    case "SystemAdministrator": return "System Administrator";
-    case "QcManager": return "QC Manager";
+    case "Analyst":
+      if (lab === "MICRO") return translate("roles.MicrobiologyAnalyst", { ns: "common" });
+      if (lab === "FP") return translate("roles.PhysicochemicalAnalyst", { ns: "common" });
+      return translate("roles.Analyst", { ns: "common" });
+    case "SectionHead":
+      if (lab === "MICRO") return translate("roles.MicrobiologySectionHead", { ns: "common" });
+      if (lab === "FP") return translate("roles.PhysicochemicalSectionHead", { ns: "common" });
+      return translate("roles.SectionHead", { ns: "common" });
+    case "Reviewer": return translate("roles.QualityReviewer", { ns: "common" });
+    case "SystemAdministrator": return translate("roles.SystemAdministrator", { ns: "common" });
+    case "QcManager": return translate("roles.QcManager", { ns: "common" });
+    case "Qa": return translate("roles.Qa", { ns: "common" });
     default: return baseType;
   }
 }

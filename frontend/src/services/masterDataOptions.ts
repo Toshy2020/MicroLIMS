@@ -1,4 +1,5 @@
-import { apiClient, ifMatch } from "./apiClient";
+import { apiClient, ifMatch, withChangeReason } from "./apiClient";
+import type { FieldError } from "./apiTypes";
 import type { TitrationDefinitionFields } from "../modules/laboratoryConfiguration/masterDataSimple/titrationConfig";
 import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterDataSimple/testMasterArea";
 
@@ -52,7 +53,7 @@ type MediaConfigurationPayload = {
 
 // Step media send only the chosen condition - the server copies its
 // temperature and hours onto the step medium when it saves.
-type TestWorkflowStepPayload = {
+export type TestWorkflowStepPayload = {
   stepName: string; incubationMinHours: number; incubationMaxHours: number;
   temperatureMin: number; temperatureMax: number; isFinalStep: boolean; stepType: string;
   targetOrganismId: number | null; phenotypicTestType: string | null; phenotypicTestTypes?: string[];
@@ -60,6 +61,12 @@ type TestWorkflowStepPayload = {
   requiresIncubationTransfer: boolean;
   incubationStages: { stageNumber: number; tempMin: number; tempMax: number; incubationMinHours: number; incubationMaxHours: number }[];
 };
+
+export interface SaveTestWithStepsPayload {
+  test: CreateTestDefinitionPayload;
+  steps: TestWorkflowStepPayload[];
+  stages: CreateTestDefinitionStageReplicateRequest[];
+}
 
 export interface EquationTypeDto {
   code: string;
@@ -295,16 +302,22 @@ export const masterDataOptions = {
       : codeOrPayload;
     return apiClient.post("/masterdata/test-definitions", payload).then((r) => r.data.data);
   },
-  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number) => {
+  createTestWithSteps: (payload: SaveTestWithStepsPayload) =>
+    apiClient.post("/masterdata/test-definitions/with-steps", payload).then((r) => r.data.data),
+  updateTestDefinition: (id: number, codeOrPayload: string | UpdateTestDefinitionPayload, displayName?: string, sectionId?: number | null, version?: number, reason?: string) => {
     const payload = typeof codeOrPayload === "string"
       ? { code: codeOrPayload, displayName: displayName ?? codeOrPayload, ...(sectionId != null ? { sectionId } : {}) }
       : codeOrPayload;
-    return apiClient.put(`/masterdata/test-definitions/${id}`, payload, ifMatch(version)).then((r) => r.data.data);
+    return apiClient.put(`/masterdata/test-definitions/${id}`, payload, withChangeReason(version, reason)).then((r) => r.data.data);
   },
-  freezeTestDefinition: (id: number, version?: number) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/freeze`, undefined, ifMatch(version)).then((r) => r.data.data),
-  unfreezeTestDefinition: (id: number, version?: number) =>
-    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`, undefined, ifMatch(version)).then((r) => r.data.data),
+  freezeTestDefinition: (id: number, version?: number, reason?: string) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/freeze`, undefined, withChangeReason(version, reason)).then((r) => r.data.data),
+  unfreezeTestDefinition: (id: number, version?: number, reason?: string) =>
+    apiClient.put(`/masterdata/test-definitions/${id}/unfreeze`, undefined, withChangeReason(version, reason)).then((r) => r.data.data),
+  validateTestDefinition: (payload: CreateTestDefinitionPayload | UpdateTestDefinitionPayload, id?: number): Promise<FieldError[]> =>
+    apiClient
+      .post(id != null ? `/masterdata/test-definitions/validate?id=${id}` : "/masterdata/test-definitions/validate", payload)
+      .then((r) => r.data.data ?? []),
   updateWorkflowType: (testDefinitionId: number, workflowType: string, version?: number) =>
     apiClient.put(`/masterdata/test-definitions/${testDefinitionId}/workflow-type`, { workflowType }, ifMatch(version)).then((r) => r.data.data),
   getTestWorkflowSteps: (testDefinitionId: number) =>

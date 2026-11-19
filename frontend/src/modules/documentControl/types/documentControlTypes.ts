@@ -202,6 +202,7 @@ export interface DocumentLibraryFilterRequest {
   isOverdue?: boolean;
   sortBy?: string;
   sortDescending?: boolean;
+  sortDir?: "asc" | "desc";
   page?: number;
   pageSize?: number;
 }
@@ -266,18 +267,21 @@ export interface DocumentTypeDto {
   name: string;
   defaultReviewCycleMonths: number;
   isActive: boolean;
+  requiresQaApprover: boolean;
 }
 
 export interface CreateDocumentTypeRequest {
   code: string;
   name: string;
   defaultReviewCycleMonths: number;
+  requiresQaApprover: boolean;
 }
 
 export interface UpdateDocumentTypeRequest {
   name: string;
   defaultReviewCycleMonths: number;
   isActive: boolean;
+  requiresQaApprover: boolean;
 }
 
 export interface DocumentSectionDto {

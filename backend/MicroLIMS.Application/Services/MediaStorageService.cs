@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -5,6 +6,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,7 +30,10 @@ public class MediaStorageService
     {
         var mediaExists = await _db.Media.AnyAsync(m => m.Id == mediaId);
         if (!mediaExists)
-            throw new NotFoundException($"Media lot {mediaId} not found.");
+            throw new NotFoundException(
+                MessageCodes.MediaLotNotFound,
+                $"Media lot {mediaId} not found.",
+                new Dictionary<string, string> { ["mediaId"] = mediaId.ToString(CultureInfo.InvariantCulture) });
 
         var entries = await _db.MediaStorageEntries
             .Include(e => e.Equipment)
@@ -45,24 +50,39 @@ public class MediaStorageService
     private async Task<MediaStorageEntryResponse> AddStorageEntryCoreAsync(int mediaId, int userId, AddMediaStorageEntryRequest request)
     {
         if (request == null)
-            throw new BusinessRuleException("Request payload is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStoragePayloadRequired,
+                "Request payload is required.");
 
         if (!Enum.TryParse<MediaStorageForm>(request.Form, true, out var form))
-            throw new BusinessRuleException($"Invalid media storage form '{request.Form}'. Valid values are Plates, AgarBottles, BrothBottles, Tubes.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageFormInvalid,
+                $"Invalid media storage form '{request.Form}'. Valid values are Plates, AgarBottles, BrothBottles, Tubes.",
+                new Dictionary<string, string> { ["form"] = request.Form ?? string.Empty });
 
         if (request.Quantity <= 0)
-            throw new BusinessRuleException("Quantity must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageQuantityInvalid,
+                "Quantity must be greater than zero.");
 
         var hasEquipment = request.EquipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(request.LocationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageTargetInvalid,
+                "Exactly one of EquipmentId or LocationText must be provided.");
 
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
-            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaLotNotFound,
+                $"Media lot {mediaId} not found.",
+                new Dictionary<string, string> { ["mediaId"] = mediaId.ToString(CultureInfo.InvariantCulture) });
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
-            throw new BusinessRuleException($"Media lot {media.LotNumber} is not currently released for use and active.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaNotReleasedAndActive,
+                $"Media lot {media.LotNumber} is not currently released for use and active.",
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
 
         EquipmentInventory? equipment = null;
         string? normalizedLocationText = null;
@@ -71,10 +91,16 @@ public class MediaStorageService
         if (hasEquipment)
         {
             equipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == request.EquipmentId!.Value)
-                ?? throw new NotFoundException($"Equipment {request.EquipmentId!.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MediaEquipmentNotFound,
+                    $"Equipment {request.EquipmentId!.Value} not found.",
+                    new Dictionary<string, string> { ["equipmentId"] = request.EquipmentId!.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (equipment.Status != EquipmentOperationalStatus.InService)
-                throw new BusinessRuleException($"Equipment {equipment.Code} is not currently in service.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaEquipmentNotInService,
+                    $"Equipment {equipment.Code} is not currently in service.",
+                    new Dictionary<string, string> { ["code"] = equipment.Code });
 
             locationDisplay = $"{equipment.InstrumentType}, {equipment.ManufacturerName} ({equipment.Code})";
         }
@@ -138,32 +164,61 @@ public class MediaStorageService
     private async Task<MediaStorageEntryResponse> MoveStorageEntryCoreAsync(int mediaId, int entryId, int userId, MoveMediaStorageEntryRequest request)
     {
         if (request == null)
-            throw new BusinessRuleException("Request payload is required.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStoragePayloadRequired,
+                "Request payload is required.");
 
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A reason is required to move media storage.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageMoveReasonRequired,
+                "A reason is required to move media storage.");
 
         if (request.Quantity <= 0)
-            throw new BusinessRuleException("Quantity must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageQuantityInvalid,
+                "Quantity must be greater than zero.");
 
         var hasEquipment = request.EquipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(request.LocationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageTargetInvalid,
+                "Exactly one of EquipmentId or LocationText must be provided.");
 
         var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == mediaId)
-            ?? throw new NotFoundException($"Media lot {mediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaLotNotFound,
+                $"Media lot {mediaId} not found.",
+                new Dictionary<string, string> { ["mediaId"] = mediaId.ToString(CultureInfo.InvariantCulture) });
 
         if (!media.IsReleasedForUse || media.Status != MediaStatus.Active)
-            throw new BusinessRuleException($"Media lot {media.LotNumber} is not currently released for use and active.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaNotReleasedAndActive,
+                $"Media lot {media.LotNumber} is not currently released for use and active.",
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
 
         var sourceEntry = await _db.MediaStorageEntries
             .Include(e => e.Equipment)
             .FirstOrDefaultAsync(e => e.Id == entryId && e.MediaId == mediaId)
-            ?? throw new NotFoundException($"Media storage entry {entryId} not found for media lot {mediaId}.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaStorageEntryNotFound,
+                $"Media storage entry {entryId} not found for media lot {mediaId}.",
+                new Dictionary<string, string>
+                {
+                    ["entryId"] = entryId.ToString(CultureInfo.InvariantCulture),
+                    ["mediaId"] = mediaId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (request.Quantity > sourceEntry.Quantity)
-            throw new BusinessRuleException($"Cannot move {request.Quantity} units; only {sourceEntry.Quantity} available in entry {entryId}.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageInsufficientQuantity,
+                $"Cannot move {request.Quantity} units; only {sourceEntry.Quantity} available in entry {entryId}.",
+                new Dictionary<string, string>
+                {
+                    ["requested"] = request.Quantity.ToString(CultureInfo.InvariantCulture),
+                    ["available"] = sourceEntry.Quantity.ToString(CultureInfo.InvariantCulture),
+                    ["entryId"] = entryId.ToString(CultureInfo.InvariantCulture)
+                });
 
         EquipmentInventory? targetEquipment = null;
         string? normalizedTargetLocationText = null;
@@ -172,10 +227,16 @@ public class MediaStorageService
         if (hasEquipment)
         {
             targetEquipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == request.EquipmentId!.Value)
-                ?? throw new NotFoundException($"Equipment {request.EquipmentId!.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MediaEquipmentNotFound,
+                    $"Equipment {request.EquipmentId!.Value} not found.",
+                    new Dictionary<string, string> { ["equipmentId"] = request.EquipmentId!.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (targetEquipment.Status != EquipmentOperationalStatus.InService)
-                throw new BusinessRuleException($"Equipment {targetEquipment.Code} is not currently in service.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaEquipmentNotInService,
+                    $"Equipment {targetEquipment.Code} is not currently in service.",
+                    new Dictionary<string, string> { ["code"] = targetEquipment.Code });
 
             toDisplay = $"{targetEquipment.InstrumentType}, {targetEquipment.ManufacturerName} ({targetEquipment.Code})";
         }
@@ -190,7 +251,9 @@ public class MediaStorageService
             : sourceEntry.LocationText ?? "Unknown";
 
         if (sourceEntry.EquipmentId == request.EquipmentId && sourceEntry.LocationText == normalizedTargetLocationText)
-            throw new BusinessRuleException("Destination storage location must be different from the source storage location.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageDestinationSameAsSource,
+                "Destination storage location must be different from the source storage location.");
 
         var now = _time.GetUtcNow().UtcDateTime;
 

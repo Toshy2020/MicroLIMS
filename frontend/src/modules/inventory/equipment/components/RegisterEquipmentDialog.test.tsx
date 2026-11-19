@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { RegisterEquipmentDialog } from "./RegisterEquipmentDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 
@@ -119,5 +121,42 @@ describe("RegisterEquipmentDialog", () => {
         )
       ).toBeTruthy();
     });
+  });
+
+  it("shows the code as locked with its reason", async () => {
+    const user = userEvent.setup();
+    const lockedEquipment = {
+      id: 9,
+      version: 4,
+      instrumentType: "Incubator",
+      manufacturerName: "Memmert",
+      serialNumber: "SN-LOCKED",
+      firmwareVersion: "1.0",
+      code: "EQ-INC-LOCKED",
+      location: "Room 101",
+      calibrationDueDate: "2026-12-31",
+      status: "InService" as const,
+      isCalibrationOverdue: false,
+      sectionId: 1,
+      codeLocked: true
+    };
+
+    render(
+      <PinnedLightTheme>
+        <RegisterEquipmentDialog
+          open={true}
+          onClose={vi.fn()}
+          onSuccess={vi.fn()}
+          editingItem={lockedEquipment}
+        />
+      </PinnedLightTheme>
+    );
+
+    const codeInput = screen.getByLabelText(/Equipment Code/i) as HTMLInputElement;
+    expect(codeInput.readOnly).toBe(true);
+    expect(screen.getByText("Locked: a label has been printed")).toBeTruthy();
+
+    await user.type(codeInput, "-NEW");
+    expect(codeInput.value).toBe("EQ-INC-LOCKED");
   });
 });

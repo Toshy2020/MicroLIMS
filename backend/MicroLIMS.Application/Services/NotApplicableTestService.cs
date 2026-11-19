@@ -56,7 +56,7 @@ public class NotApplicableTestService
         if (normalizedGrade != null)
         {
             var itemGrades = await _db.Specifications.AsNoTracking()
-                .Where(s => s.ItemId == r.ItemId && s.Grade != null)
+                .Where(s => s.ItemId == r.ItemId && s.Grade != null && !s.IsRetired)
                 .Select(s => s.Grade!)
                 .Distinct()
                 .ToListAsync();
@@ -294,7 +294,7 @@ public class NotApplicableTestService
     {
         var basis = BasisFedBy(role);
         return basis != null && await db.Specifications.AsNoTracking().AnyAsync(s =>
-            s.ItemId == itemId && s.ResultBasis == basis
+            s.ItemId == itemId && !s.IsRetired && s.ResultBasis == basis
             && (grade == null || s.Grade == null || s.Grade.ToLower() == grade.ToLower()));
     }
 

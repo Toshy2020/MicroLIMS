@@ -193,6 +193,9 @@ public record SpecificationRowDto(
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
+    public bool IsRetired { get; init; }
+    public DateTime? RetiredAt { get; init; }
+    public int? RetiredByUserId { get; init; }
 }
 public record CreateProductionStageRequest(string Name, ProductionStageRole Role);
 public record UpdateProductionStageRequest(string Name, ProductionStageRole Role);
@@ -206,7 +209,8 @@ public record CreateEquipmentRequest(
     string? Vendor = null,
     CdsSoftware? CdsSoftware = null,
     string? ConnectionSettings = null,
-    int? SectionId = null);
+    int? SectionId = null,
+    int? EquipmentInventoryId = null);
 
 public record UpdateEquipmentRequest(
     string Name,
@@ -218,7 +222,8 @@ public record UpdateEquipmentRequest(
     string? Vendor = null,
     CdsSoftware? CdsSoftware = null,
     string? ConnectionSettings = null,
-    int? SectionId = null);
+    int? SectionId = null,
+    int? EquipmentInventoryId = null);
 public record CreateRoomTestConfigRequest(int RoomId, string TestType, string TestCode, string AlertLimit, string ActionLimit, string SpecLimit, string? Unit = null);
 public record CreateMachinePartConfigRequest(
     int MachinePartId,
@@ -325,6 +330,12 @@ public record CreateTestDefinitionRequest(
     // Certificate of Analysis position inside the test's group (1-9999); null = none.
     public int? CoaDisplayOrder { get; init; }
 }
+
+public sealed record SaveTestWithStepsRequest(
+    CreateTestDefinitionRequest Test,
+    IReadOnlyList<CreateTestWorkflowStepRequest> Steps,
+    IReadOnlyList<CreateTestDefinitionStageReplicateRequest> Stages);
+
 // SectionId: move the test to another laboratory section (null = keep). Test
 // orders already created keep the section they were created with.
 public record UpdateTestDefinitionRequest(
@@ -409,6 +420,166 @@ public record UpdateTestDefinitionRequest(
     // current value, 0 clears it, 1-9999 sets it.
     public int? CoaDisplayOrder { get; init; }
 }
+public record SpecificationDeleteOutcome(string Outcome, int Id);
+
+public record ValidateSpecificationRequest
+{
+    public int? Id { get; init; }
+    public int? ItemId { get; init; }
+    public string TestCode { get; init; } = string.Empty;
+    public string? AlertLimit { get; init; }
+    public string? ActionLimit { get; init; }
+    public string? SpecLimit { get; init; }
+    public string? Unit { get; init; }
+    public decimal? DilutionFactor { get; init; }
+    public string? ParameterName { get; init; }
+    public int? DisplayOrder { get; init; }
+    public LimitType? LimitType { get; init; }
+    public string? ReferenceStandard { get; init; }
+    public decimal? LowerLimit { get; init; }
+    public decimal? UpperLimit { get; init; }
+    public bool? LowerInclusive { get; init; }
+    public bool? UpperInclusive { get; init; }
+    public decimal? Target { get; init; }
+    public decimal? Tolerance { get; init; }
+    public ToleranceMode? ToleranceMode { get; init; }
+    public string? ExpectedResultText { get; init; }
+    public ExpectedPresence? ExpectedState { get; init; }
+    public decimal? SampleQuantity { get; init; }
+    public string? SampleQuantityUnit { get; init; }
+    public List<SpecificationStageDto>? Stages { get; init; }
+    public ResultBasis? ResultBasis { get; init; }
+    public decimal? LabelClaim { get; init; }
+    public string? LabelClaimUnit { get; init; }
+    public DosageForm? DosageForm { get; init; }
+    public int? HplcMethodAnalyteId { get; init; }
+    public ProductionStageRole? ProductionStageRole { get; init; }
+    public int? IcpTestElementId { get; init; }
+    public string? Grade { get; init; }
+    public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
+    public int? HplcMethodImpurityId { get; init; }
+}
+
+public record ValidateTestDefinitionRequest
+{
+    public int? Id { get; init; }
+    public string Code { get; init; } = string.Empty;
+    public string DisplayName { get; init; } = string.Empty;
+    public int? SectionId { get; init; }
+    public WorkflowType? WorkflowType { get; init; }
+    public EquationType? EquationType { get; init; }
+    public bool? RequiresSystemSuitability { get; init; }
+    public string? MethodAbbreviation { get; init; }
+    public decimal? SstMaxRsdPercent { get; init; }
+    public decimal? SstMinResolution { get; init; }
+    public decimal? SstMaxTailingFactor { get; init; }
+    public decimal? SstMinTheoreticalPlates { get; init; }
+    public int? ReplicateCount { get; init; }
+    public MeasurementEvaluationBasis? EvaluationBasis { get; init; }
+    public string? ConditionFields { get; init; }
+    public bool? UsesTare { get; init; }
+    public decimal? DissolutionS1Offset { get; init; }
+    public decimal? DissolutionS2MinOffset { get; init; }
+    public decimal? DissolutionS3MinOffset { get; init; }
+    public decimal? DissolutionS3MaxBelowS2Min { get; init; }
+    public int? DisintegrationStage1Units { get; init; }
+    public int? DisintegrationStage2Units { get; init; }
+    public int? DisintegrationMaxStage1Failures { get; init; }
+    public int? DisintegrationMinPassTotal { get; init; }
+    public int? WvUnitCount { get; init; }
+    public decimal? WvTabletBand1MaxMg { get; init; }
+    public decimal? WvTabletBand1Percent { get; init; }
+    public decimal? WvTabletBand2MaxMg { get; init; }
+    public decimal? WvTabletBand2Percent { get; init; }
+    public decimal? WvTabletBand3Percent { get; init; }
+    public int? WvTabletMaxOutside { get; init; }
+    public decimal? WvCapsuleInnerPercent { get; init; }
+    public decimal? WvCapsuleOuterPercent { get; init; }
+    public int? WvCapsuleS1MaxOutside { get; init; }
+    public int? WvCapsuleS1MaxForRetest { get; init; }
+    public int? WvCapsuleS2ExtraUnits { get; init; }
+    public int? WvCapsuleS2MaxOutside { get; init; }
+    public int? HplcMethodId { get; init; }
+    public TitrationType? TitrationType { get; init; }
+    public bool? TitrationNonAqueous { get; init; }
+    public TitrationMode? TitrationMode { get; init; }
+    public TitrationCalculation? TitrationCalculation { get; init; }
+    public int? TitrantSolutionMasterId { get; init; }
+    public decimal? TitrationEquivalencyFactor { get; init; }
+    public bool? TitrationBlankRequired { get; init; }
+    public int? TitrationExcessSolutionMasterId { get; init; }
+    public decimal? TitrationExcessVolumeMl { get; init; }
+    public decimal? TitrationMaxRsdPercent { get; init; }
+    public TitrationEndpoint? TitrationEndpoint { get; init; }
+    public int? TitrationIndicatorEntryId { get; init; }
+    public bool? TitrationTempCorrection { get; init; }
+    public decimal? TitrationExpansionCoefficient { get; init; }
+    public int? TitrationStandardEntryId { get; init; }
+    public PhyschemArea? PhyschemArea { get; init; }
+    public bool? PerContainer { get; init; }
+    public MoistureRole? MoistureRole { get; init; }
+    public UvCalculationMode? UvCalculationMode { get; init; }
+    public decimal? UvSpecificAbsorbance { get; init; }
+    public decimal? UvTotalVolumeMl { get; init; }
+    public decimal? UvStandardVolumeMl { get; init; }
+    public int? UvStandardEntryId { get; init; }
+    public IcpTestMode? IcpMode { get; init; }
+    public IcpSampleForm? IcpSampleForm { get; init; }
+    public decimal? IcpTheoreticalAmount { get; init; }
+    public decimal? IcpSpecificGravity { get; init; }
+    public List<MicroLIMS.Application.Services.MasterData.IcpTestElementInput>? IcpElements { get; init; }
+    public int? CoaDisplayOrder { get; init; }
+
+    public CreateTestDefinitionRequest ToCreateRequest() => new(
+        Code, DisplayName, SectionId, WorkflowType ?? Domain.Enums.WorkflowType.CountTest,
+        EquationType ?? Domain.Enums.EquationType.None, RequiresSystemSuitability ?? false,
+        MethodAbbreviation, SstMaxRsdPercent, SstMinResolution, SstMaxTailingFactor, SstMinTheoreticalPlates,
+        ReplicateCount, EvaluationBasis, ConditionFields, UsesTare,
+        DissolutionS1Offset, DissolutionS2MinOffset, DissolutionS3MinOffset, DissolutionS3MaxBelowS2Min,
+        DisintegrationStage1Units, DisintegrationStage2Units, DisintegrationMaxStage1Failures, DisintegrationMinPassTotal,
+        WvUnitCount, WvTabletBand1MaxMg, WvTabletBand1Percent, WvTabletBand2MaxMg, WvTabletBand2Percent,
+        WvTabletBand3Percent, WvTabletMaxOutside, WvCapsuleInnerPercent, WvCapsuleOuterPercent,
+        WvCapsuleS1MaxOutside, WvCapsuleS1MaxForRetest, WvCapsuleS2ExtraUnits, WvCapsuleS2MaxOutside,
+        HplcMethodId, TitrationType, TitrationNonAqueous, TitrationMode, TitrationCalculation,
+        TitrantSolutionMasterId, TitrationEquivalencyFactor, TitrationBlankRequired,
+        TitrationExcessSolutionMasterId, TitrationExcessVolumeMl, TitrationMaxRsdPercent,
+        TitrationEndpoint, TitrationIndicatorEntryId, TitrationTempCorrection, TitrationExpansionCoefficient,
+        TitrationStandardEntryId, PhyschemArea, PerContainer, MoistureRole,
+        UvCalculationMode, UvSpecificAbsorbance, UvTotalVolumeMl, UvStandardVolumeMl, UvStandardEntryId)
+    {
+        IcpMode = IcpMode,
+        IcpSampleForm = IcpSampleForm,
+        IcpTheoreticalAmount = IcpTheoreticalAmount,
+        IcpSpecificGravity = IcpSpecificGravity,
+        IcpElements = IcpElements,
+        CoaDisplayOrder = CoaDisplayOrder
+    };
+
+    public UpdateTestDefinitionRequest ToUpdateRequest() => new(
+        Code, DisplayName, SectionId, WorkflowType, EquationType, RequiresSystemSuitability,
+        MethodAbbreviation, SstMaxRsdPercent, SstMinResolution, SstMaxTailingFactor, SstMinTheoreticalPlates,
+        ReplicateCount, EvaluationBasis, ConditionFields, UsesTare,
+        DissolutionS1Offset, DissolutionS2MinOffset, DissolutionS3MinOffset, DissolutionS3MaxBelowS2Min,
+        DisintegrationStage1Units, DisintegrationStage2Units, DisintegrationMaxStage1Failures, DisintegrationMinPassTotal,
+        WvUnitCount, WvTabletBand1MaxMg, WvTabletBand1Percent, WvTabletBand2MaxMg, WvTabletBand2Percent,
+        WvTabletBand3Percent, WvTabletMaxOutside, WvCapsuleInnerPercent, WvCapsuleOuterPercent,
+        WvCapsuleS1MaxOutside, WvCapsuleS1MaxForRetest, WvCapsuleS2ExtraUnits, WvCapsuleS2MaxOutside,
+        HplcMethodId, TitrationType, TitrationNonAqueous, TitrationMode, TitrationCalculation,
+        TitrantSolutionMasterId, TitrationEquivalencyFactor, TitrationBlankRequired,
+        TitrationExcessSolutionMasterId, TitrationExcessVolumeMl, TitrationMaxRsdPercent,
+        TitrationEndpoint, TitrationIndicatorEntryId, TitrationTempCorrection, TitrationExpansionCoefficient,
+        TitrationStandardEntryId, PhyschemArea, PerContainer, MoistureRole,
+        UvCalculationMode, UvSpecificAbsorbance, UvTotalVolumeMl, UvStandardVolumeMl, UvStandardEntryId)
+    {
+        IcpMode = IcpMode,
+        IcpSampleForm = IcpSampleForm,
+        IcpTheoreticalAmount = IcpTheoreticalAmount,
+        IcpSpecificGravity = IcpSpecificGravity,
+        IcpElements = IcpElements,
+        CoaDisplayOrder = CoaDisplayOrder
+    };
+}
+
 public record UpdateWorkflowTypeRequest(WorkflowType WorkflowType);
 
 public record StepMediaRequest(int MediaProductId, bool IsRequired, int DisplayOrder, int? MediaIncubationConditionId);

@@ -4,6 +4,7 @@ import type { PhyschemArea } from "../modules/laboratoryConfiguration/masterData
 import {
   masterDataOptions,
   CreateTestDefinitionPayload,
+  SaveTestWithStepsPayload,
   UpdateTestDefinitionPayload,
   MoistureRole,
   UvCalculationMode
@@ -109,23 +110,39 @@ export function useTestDefinitions() {
     return created as TestDefinitionOption;
   };
 
+  const addWithSteps = async (payload: SaveTestWithStepsPayload) => {
+    const created = await masterDataOptions.createTestWithSteps(payload);
+    await reload();
+    return created as TestDefinitionOption;
+  };
+
   const update = async (
     id: number,
     codeOrPayload: string | UpdateTestDefinitionPayload,
     displayName?: string,
-    sectionId?: number | null
+    sectionId?: number | null,
+    reason?: string,
+    versionOverride?: number
   ) => {
-    const updated = await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, options.find((o) => o.id === id)?.version);
+    const version = versionOverride ?? options.find((o) => o.id === id)?.version;
+    const updated = reason
+      ? await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version, reason)
+      : await masterDataOptions.updateTestDefinition(id, codeOrPayload, displayName, sectionId, version);
     await reload();
     return updated as TestDefinitionOption;
   };
 
-  const setActive = async (id: number, isActive: boolean) => {
+  const setActive = async (id: number, isActive: boolean, reason?: string) => {
     const version = options.find((o) => o.id === id)?.version;
-    if (isActive) await masterDataOptions.unfreezeTestDefinition(id, version);
-    else await masterDataOptions.freezeTestDefinition(id, version);
+    if (isActive) {
+      if (reason) await masterDataOptions.unfreezeTestDefinition(id, version, reason);
+      else await masterDataOptions.unfreezeTestDefinition(id, version);
+    } else {
+      if (reason) await masterDataOptions.freezeTestDefinition(id, version, reason);
+      else await masterDataOptions.freezeTestDefinition(id, version);
+    }
     await reload();
   };
 
-  return { options, activeOptions: options.filter((o) => o.isActive), loading, addNew, update, setActive, reload };
+  return { options, activeOptions: options.filter((o) => o.isActive), loading, addNew, addWithSteps, update, setActive, reload };
 }

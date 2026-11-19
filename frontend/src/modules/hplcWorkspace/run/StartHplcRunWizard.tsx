@@ -32,17 +32,20 @@ import type {
   HplcMethodOptionDto,
   HplcMobilePhaseAssignmentInput
 } from "../types";
-
-const STEPS_HPLC = ["Select Method", "Select Column", "Assign Mobile Phases", "Review & Start"];
-const STEPS_GC = ["Select Method", "Select Column", "Review & Start"];
+import { useBreadcrumb } from "../../../components/breadcrumbContext";
+import { useTranslation } from "../../../i18n";
 
 export function StartHplcRunWizard() {
+  const { t } = useTranslation("hplcWorkspace");
   const navigate = useNavigate();
   const { technique, label, routes } = useTechnique();
   const { instrumentId } = useParams<{ instrumentId: string }>();
   const equipmentId = Number(instrumentId);
-  const steps = technique === "Gc" ? STEPS_GC : STEPS_HPLC;
+  const steps = technique === "Gc"
+    ? [t("wizard.steps.selectMethod"), t("wizard.steps.selectColumn"), t("wizard.steps.reviewStart")]
+    : [t("wizard.steps.selectMethod"), t("wizard.steps.selectColumn"), t("wizard.steps.assignMobilePhases"), t("wizard.steps.reviewStart")];
 
+  useBreadcrumb(t("wizard.breadcrumb"));
   const [activeStep, setActiveStep] = useState(0);
   const [instrument, setInstrument] = useState<HplcInstrumentDto | null>(null);
 
@@ -88,7 +91,7 @@ export function StartHplcRunWizard() {
       .catch((err: unknown) => {
         if (!active) return;
         const e = err as { response?: { data?: { message?: string } }; message?: string };
-        setError(e.response?.data?.message ?? e.message ?? "Could not load run prerequisites.");
+        setError(e.response?.data?.message ?? e.message ?? t("wizard.loadError"));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -97,7 +100,7 @@ export function StartHplcRunWizard() {
     return () => {
       active = false;
     };
-  }, [equipmentId, technique]);
+  }, [equipmentId, technique, t]);
 
   // Load full method details when method is selected
   useEffect(() => {
@@ -157,7 +160,7 @@ export function StartHplcRunWizard() {
       // Check all mobile phases are assigned
       const missingChannel = selectedMethod.mobilePhases.find((mp) => !selectedMobilePhases[mp.channel]);
       if (missingChannel) {
-        setError(`Please select a prepared mobile phase for Channel ${missingChannel.channel}.`);
+        setError(t("wizard.missingChannel", { channel: missingChannel.channel }));
         return;
       }
 
@@ -179,7 +182,7 @@ export function StartHplcRunWizard() {
       navigate(routes.run(equipmentId, run.id), { replace: true });
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to start run.");
+      setError(e.response?.data?.message ?? e.message ?? t("wizard.startError"));
     } finally {
       setStarting(false);
     }
@@ -220,12 +223,12 @@ export function StartHplcRunWizard() {
         onClick={() => navigate(routes.root)}
         sx={{ mb: 2, textTransform: "none", color: "text.secondary" }}
       >
-        Back to Instruments
+        {t("wizard.backToInstruments")}
       </Button>
 
       <PageHeader
-        title={`Start ${label} Run: ${instrument?.name || `Instrument #${equipmentId}`}`}
-        subtitle={`Set up method and column${technique !== "Gc" ? ", and mobile phases" : ""} for ${instrument?.code || ""}`}
+        title={t("wizard.title", { label, name: instrument?.name || t("wizard.instrumentFallback", { id: equipmentId }) })}
+        subtitle={technique !== "Gc" ? t("wizard.subtitleHplc", { code: instrument?.code || "" }) : t("wizard.subtitleGc", { code: instrument?.code || "" })}
       />
 
       <Stepper activeStep={activeStep} sx={{ my: 3 }}>
@@ -295,7 +298,7 @@ export function StartHplcRunWizard() {
           disabled={activeStep === 0 || starting}
           onClick={() => setActiveStep((prev) => prev - 1)}
         >
-          Back
+          {t("wizard.back")}
         </Button>
 
         {activeStep < steps.length - 1 ? (
@@ -305,7 +308,7 @@ export function StartHplcRunWizard() {
             onClick={() => setActiveStep((prev) => prev + 1)}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Next
+            {t("wizard.next")}
           </Button>
         ) : (
           <Button
@@ -315,7 +318,7 @@ export function StartHplcRunWizard() {
             onClick={handleStartRun}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {starting ? "Starting Run..." : `Start ${label} Run`}
+            {starting ? t("wizard.startingRun") : t("wizard.startRun", { label })}
           </Button>
         )}
       </Box>

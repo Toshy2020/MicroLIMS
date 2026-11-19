@@ -2,22 +2,23 @@ import { Box, Paper, Typography, useTheme } from "@mui/material";
 import { brandColors } from "../../../theme";
 import { SampleCategory } from "../types/reportingTypes";
 import { clickable } from "../../../utils/clickable";
+import { useTranslation } from "../../../i18n";
 
 interface Tile {
-  label: string;
+  key: string;
   category?: SampleCategory;
   type?: "mediaGpt" | "referenceStrains" | "custom";
 }
 
 const TILES: Tile[] = [
-  { label: "Product", category: "FinishedProduct" },
-  { label: "Raw Material", category: "RawMaterial" },
-  { label: "Water", category: "Water" },
-  { label: "Environmental Monitoring", category: "EnvironmentalMonitoring" },
-  { label: "After Cleaning", category: "AfterCleaning" },
-  { label: "Media/GPT", type: "mediaGpt" },
-  { label: "Reference Strains", type: "referenceStrains" },
-  { label: "Custom Report", type: "custom" }
+  { key: "product", category: "FinishedProduct" },
+  { key: "rawMaterial", category: "RawMaterial" },
+  { key: "water", category: "Water" },
+  { key: "environmentalMonitoring", category: "EnvironmentalMonitoring" },
+  { key: "afterCleaning", category: "AfterCleaning" },
+  { key: "mediaGpt", type: "mediaGpt" },
+  { key: "referenceStrains", type: "referenceStrains" },
+  { key: "customReport", type: "custom" }
 ];
 
 interface QuickReportsTilesProps {
@@ -33,6 +34,7 @@ export function QuickReportsTiles({
   onMediaGptReport,
   onReferenceStrainsReport
 }: QuickReportsTilesProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
 
   const handleClick = (tile: Tile) => {
@@ -49,11 +51,11 @@ export function QuickReportsTiles({
 
   return (
     <Paper sx={{ p: 2 }}>
-      <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.25 }}>Quick Reports</Typography>
+      <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.25 }}>{t("quickReports.title")}</Typography>
       <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
         {TILES.map((tile) => (
           <Box
-            key={tile.label}
+            key={tile.key}
             onClick={() => handleClick(tile)}
             sx={{
               p: 1.25, borderRadius: 1.5, border: "1px solid", borderColor: "divider", textAlign: "center",
@@ -63,7 +65,7 @@ export function QuickReportsTiles({
             }}
             {...clickable(() => handleClick(tile))}
           >
-            {tile.label}
+            {t(`quickReports.${tile.key}`)}
           </Box>
         ))}
       </Box>

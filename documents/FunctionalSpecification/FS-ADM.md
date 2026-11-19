@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.1 |
+| Version | 0.5 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,10 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard navigation and controlled-document QA approver requirement (FS-ADM-011, FS-ADM-012). |
+| 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts dialog, form initial focus, server-paged table sorting restriction, and `entry.lastChoiceDefaults.enabled` setting (FS-ADM-013). |
+| 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and version endpoint specification (FS-ADM-014). |
+| 0.5 | 2026-11-19 | AI coding agent, draft from code | Added interface language selection, direction and English-only record rules (FS-ADM-015). |
 
 ## Scope and reading notes
 
@@ -92,3 +96,37 @@
 **Function:** Administration continuity rule (`AdministrationContinuityGuard`). Used by the role change (FS-ADM-003), the disable (FS-ADM-004) and the permission change (FS-ADM-007). It loads the active users and the roles that hold `Users.Manage` and `Roles.Manage`, applies the proposed change to that picture without touching the change tracker, and checks that for each of the two permissions at least one active user would still hold it. If not, it refuses with a message naming the permission. Locked users count as holders. The role delete (FS-ADM-006) is protected differently (a role in use cannot be deleted). Deleting a user does not exist as an endpoint in the files read.
 **Code:** `backend/MicroLIMS.Application/Services/AdministrationContinuityGuard.cs` — `EnsureAdministrableAfterAsync`, `FindMissingPermissionAfterAsync`
 **Verified by:** reading (not run)
+
+### FS-ADM-011
+**Satisfies:** URS-ADM-011
+**Function:** QA dashboard routing and permission-filtered menu (`DashboardPage`, `QaDashboardPage`, `menuConfig`). When `role === "Qa"`, `DashboardPage` renders `QaDashboardPage` ("Quality Assurance Command Center") without waiting for laboratory dashboard data. `QaDashboardPage` queries `auditTrailReviewService.list(1, 100)` and `documentApprovalService.getApprovalTasks({ approverUserId: userId, status: "Pending" })` to populate three tiles (`Audit trail reviews in progress`, `Open findings`, `Documents waiting for my approval`), showing `PartialOutageBanner` if either call fails. Sidebar items in `menuConfig` are filtered by user permissions (`visibleItems`), exposing `Audit Trail`, `Audit Trail Reviews`, `Access Review`, and `Document Control` screens according to grants.
+**Code:** `frontend/src/modules/dashboard/DashboardPage.tsx`; `frontend/src/modules/dashboard/QaDashboardPage.tsx`; `frontend/src/routes/menuConfig.ts` — `visibleItems`, `getGroupedMenu`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-187
+
+### FS-ADM-012
+**Satisfies:** URS-ADM-012
+**Function:** Controlled-document QA approver eligibility and per-type QA approval requirement (Document Control area; see `documents/DocumentControl/` for Release 1a–1d specs). `DocumentApprovalService` allows approvers whose role type is `Reviewer`, `SectionHead`, or `Qa` and who hold `Documents.Approve`, keeping author/reviewer segregation of duties intact and granting QA no Section Head override powers. `DocumentConfigurationService.UpdateDocumentTypeCoreAsync` persists `DocumentType.RequiresQaApprover` (default `false`, audited). When `RequiresQaApprover` is true, `DocumentApprovalService` and `DocumentEffectiveDateService` require at least one assigned QA approver (and approved QA decision before becoming effective), throwing if missing. `DocumentConfigurationPage` exposes the `RequiresQaApprover` toggle per document type.
+**Code:** `backend/MicroLIMS.Application/Services/DocumentControl/DocumentApprovalService.cs` — `EnsureQaApproverRequirement`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentEffectiveDateService.cs`; `backend/MicroLIMS.Application/Services/DocumentControl/DocumentConfigurationService.cs` — `UpdateDocumentTypeCoreAsync`; `frontend/src/modules/documentControl/pages/DocumentConfigurationPage.tsx`
+**Verified by:** reading (not run)
+
+### FS-ADM-013
+**Satisfies:** URS-ADM-013
+**Function:** UI keyboard shortcuts dialog (`ShortcutsDialog`, opened from Help menu **Keyboard shortcuts** in `HelpMenu` or pressing `?` when focus is not inside `INPUT`, `TEXTAREA`, `SELECT`, or `contenteditable`), `FormDialog` automatic focus on the first empty required field (`initialFocus = "firstEmptyRequired"` unless overridden or `autoFocus` is present), `RegisterTable` disabling client-side sorting whenever `serverPaged` is supplied and only showing header sort controls on allow-listed persisted columns when server sort handling is supplied (used with `TestingWorkspaceService.GetActiveSamplesAsync` in `SampleRegisterTable`/`ReceivingTestingWorkspacePage` and `DocumentMasterService.GetLibraryAsync` in `DocumentLibraryPage`), and boolean system setting `entry.lastChoiceDefaults.enabled` (default `"true"`, in `SystemSettingDefinitions.All`) controlling whether `EntryDefaultsService.GetAsync` returns last-choice defaults.
+**Code:** `frontend/src/components/entry/ShortcutsDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`; `frontend/src/components/lab/FormDialog.tsx`; `frontend/src/components/lab/RegisterTable.tsx`; `frontend/src/modules/receiving/components/SampleRegisterTable.tsx`; `frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx`; `backend/MicroLIMS.Application/Services/SystemSettings/SystemSettingDefinitions.cs`; `backend/MicroLIMS.Application/Services/EntryDefaults/EntryDefaultsService.cs`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-205
+
+### FS-ADM-014
+**Satisfies:** URS-ADM-014
+**Function:** About and version. `GET api/system/version` (signed-in users) returns the assembly's informational version and the environment name. The informational version is the `MicroLimsVersion` property in `backend/Directory.Build.props` (default 0.1.0, to be set by the release build). The browser's version comes from `frontend/package.json` through the Vite definition `__APP_VERSION__`. `AboutDialog`, opened from the Help menu, shows both.
+**Code:** `backend/MicroLIMS.API/Controllers/SystemVersionController.cs`; `backend/Directory.Build.props`; `frontend/vite.config.ts`; `frontend/src/modules/help/AboutDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`
+**Verified by:** reading (not run); no test file for the version endpoint or `AboutDialog` was found
+**Not verified:** the About dialog at run time; that the release pipeline passes `MicroLimsVersion`.
+
+### FS-ADM-015
+**Satisfies:** URS-ADM-015
+**Function:** Interface language and direction. `LanguageProvider` resolves the language: a signed-in user's language is read from the per-user interface state (key `language`, `UserUiState`, `GET api/me/ui-state` and `PUT api/me/ui-state/{key}`) and saved there when changed from the account menu (`LanguageMenuItems`, in the profile menu of `Header`); before sign-in the browser's first supported language is used (`browserLanguage`, default English), and a choice made before sign-in is held for the tab only. The direction is `rtl` for Arabic and `ltr` otherwise; `document.documentElement.lang` and `dir` follow the language. Namespace texts are in `frontend/src/locales/{en,ar}/*.json`; English is bundled, Arabic loads per namespace and falls back to English per key. `EnglishOnly` keeps print and export screens in English. `SignatureDialog` shows the English meaning statement first, left to right, and in Arabic adds the translation (`meaningStatementTranslation`) in a labelled section and the note "The English statement is recorded."; the recorded and printed meaning is always the English statement (FS-SIG). Server messages with a code are mapped by `serverMessages.ts`; configuration and administration messages that carry no code stay English. Laboratory Arabic terms follow `frontend/src/locales/glossary.json`. Identifiers, numbers and dates are kept left to right by the frontend.
+**Code:** `frontend/src/i18n/index.ts`; `frontend/src/i18n/LanguageProvider.tsx`; `frontend/src/i18n/EnglishOnly.tsx`; `frontend/src/i18n/serverMessages.ts`; `frontend/src/components/LanguageMenuItems.tsx`; `frontend/src/components/Header.tsx`; `frontend/src/components/SignatureDialog.tsx`; `frontend/src/locales/glossary.json`; `backend/MicroLIMS.API/Controllers/UserUiStateController.cs`
+**Verified by:** reading (not run); tests `frontend/src/components/SignatureDialog.english.test.tsx` and `frontend/src/components/SignatureDialog.rtl.test.tsx` were listed but not run
+**Not verified:** the rendered right-to-left layout and the completeness of the Arabic texts at run time; that every print and export path uses `EnglishOnly` (only two non-test frontend files reference it when read).

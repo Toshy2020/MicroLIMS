@@ -29,7 +29,7 @@ public class TestingWorkspaceController : ControllerBase
     [HttpGet("page")]
     public async Task<IActionResult> GetActivePaged([FromQuery] TestingWorkspaceFilterDto filter)
     {
-        var result = await _workspaceService.GetActiveSamplesAsync(filter, CurrentUserId);
+        var result = await _workspaceService.GetActiveSamplesAsync(filter, CurrentUserId, HttpContext?.RequestAborted ?? CancellationToken.None);
         return Ok(ApiResponse<PagedResult<SampleDto>>.Ok(result));
     }
 

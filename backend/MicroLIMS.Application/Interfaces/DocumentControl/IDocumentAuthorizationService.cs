@@ -11,6 +11,8 @@ public interface IDocumentAuthorizationService
     Task<bool> CanExecuteApprovalAsync(int userId);
     Task<bool> CanPerformPeriodicReviewAsync(int userId);
     Task<bool> CanViewDocumentAsync(int documentMasterId, int userId);
+    // The ids among documentMasterIds the user may view; same rule as CanViewDocumentAsync, in a fixed number of queries.
+    Task<IReadOnlySet<int>> FilterViewableDocumentIdsAsync(IReadOnlyCollection<int> documentMasterIds, int userId, CancellationToken cancellationToken = default);
     Task<bool> CanEditDraftMetadataAsync(int documentMasterId, int userId);
     Task<bool> CanUploadOrReplaceDraftFileAsync(int revisionId, int userId);
     Task<bool> CanCancelDraftRevisionAsync(int revisionId, int userId);

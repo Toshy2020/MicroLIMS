@@ -92,7 +92,7 @@ public class DocumentReassignmentPostgresTests
         var seq = _fixture.CreateSequenceHelper(db);
         var audit = new AuditEventService(db, seq);
         var auth = new DocumentAuthorizationService(db);
-        var svc = new DocumentReassignmentService(db, audit, auth, new SpyNotificationService());
+        var svc = new DocumentReassignmentService(db, audit, auth);
 
         // Queue: all five kinds, scoped per department.
         var queue = await svc.GetQueueAsync(dept.Id, head.Id);

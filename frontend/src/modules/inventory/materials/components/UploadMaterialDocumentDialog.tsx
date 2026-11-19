@@ -12,10 +12,11 @@ import {
   FormHelperText
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { useTranslation } from "../../../../i18n";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialDocumentType } from "../types/materialTypes";
-import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes";
+import { MATERIAL_DOCUMENT_TYPE_LABELS } from "../types/materialTypes"; // keys only; the labels come from the inventory texts
 import { clickable } from "../../../../utils/clickable";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("inventory");
   const fileRef = useRef<HTMLInputElement>(null);
   const [docType, setDocType] = useState<MaterialDocumentType>("COA");
   const [file, setFile] = useState<File | null>(null);
@@ -43,12 +45,12 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
 
     const ext = selected.name.substring(selected.name.lastIndexOf(".")).toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setFileError(`File type '${ext}' is not supported. Allowed: PDF, JPG, JPEG, PNG, WEBP, TIFF.`);
+      setFileError(t("materials.upload.unsupported", { ext }));
       setFile(null);
       return;
     }
     if (selected.size > MAX_SIZE_BYTES) {
-      setFileError("File exceeds the 25 MB limit.");
+      setFileError(t("materials.upload.tooBig"));
       setFile(null);
       return;
     }
@@ -56,14 +58,15 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
   };
 
   const handleSubmit = async () => {
-    if (!file) { setFileError("Please select a file."); return; }
+    if (!file) { setFileError(t("materials.upload.selectFile")); return; }
     setSubmitting(true);
     setError(null);
     try {
       await MaterialService.uploadDocument(materialId, docType, file);
       onSuccess();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Upload failed. Please try again.");
+    } catch (caught: unknown) {
+      const err = caught as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? t("materials.upload.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -81,18 +84,18 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
   return (
     <FloatingDialog
       open={open}
-      title="Upload Document"
+      title={t("materials.upload.title")}
       onClose={handleClose}
       actions={
         <>
-          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={handleClose} disabled={submitting}>{t("common.cancel")}</Button>
           <Button
             id="upload-doc-submit"
             variant="contained"
             onClick={handleSubmit}
             disabled={submitting || !file}
           >
-            {submitting ? "Uploading…" : "Upload"}
+            {submitting ? t("materials.upload.uploading") : t("materials.upload.submit")}
           </Button>
         </>
       }
@@ -102,16 +105,16 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
 
       {/* Document Type */}
       <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-        <InputLabel id="doc-type-label">Document Type *</InputLabel>
+        <InputLabel id="doc-type-label">{t("materials.upload.docType")}</InputLabel>
         <Select
           labelId="doc-type-label"
           id="doc-type-select"
           value={docType}
-          label="Document Type *"
+          label={t("materials.upload.docType")}
           onChange={(e) => setDocType(e.target.value as MaterialDocumentType)}
         >
-          {(Object.keys(MATERIAL_DOCUMENT_TYPE_LABELS) as MaterialDocumentType[]).map((t) => (
-            <MenuItem key={t} value={t}>{MATERIAL_DOCUMENT_TYPE_LABELS[t]}</MenuItem>
+          {(Object.keys(MATERIAL_DOCUMENT_TYPE_LABELS) as MaterialDocumentType[]).map((dt) => (
+            <MenuItem key={dt} value={dt}>{t(`docTypes.${dt}`)}</MenuItem>
           ))}
         </Select>
       </FormControl>
@@ -137,7 +140,7 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
-        {...clickable(() => fileRef.current?.click(), { label: "Choose a file to upload" })}
+        {...clickable(() => fileRef.current?.click(), { label: t("materials.upload.chooseAria") })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", mb: 0.5, fontSize: 32 }} />
         {file ? (
@@ -150,10 +153,10 @@ export function UploadMaterialDocumentDialog({ open, materialId, onClose, onSucc
         ) : (
           <>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Click to select a file
+              {t("materials.upload.clickToSelect")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-              PDF, JPG, JPEG, PNG, WEBP, TIFF · max 25 MB
+              {t("materials.upload.formats")}
             </Typography>
           </>
         )}

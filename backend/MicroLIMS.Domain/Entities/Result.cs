@@ -12,4 +12,12 @@ public class Result
     public ResultType Type { get; set; }
     public int EnteredByUserId { get; set; }
     public DateTime EnteredAt { get; set; } = DateTime.UtcNow;
+
+    // A result invalidated by a testing-session reset (user decision 2026-11-15):
+    // the row is kept with who, when and why instead of being deleted. Normal reads
+    // never see it (global query filter in ResultConfiguration); a history view
+    // reads it with IgnoreQueryFilters().
+    public DateTime? InvalidatedAt { get; set; }
+    public int? InvalidatedByUserId { get; set; }
+    public string? InvalidationReason { get; set; }
 }

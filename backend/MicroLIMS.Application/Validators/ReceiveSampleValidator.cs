@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Workflows;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Validators;
 
@@ -6,15 +7,18 @@ namespace MicroLIMS.Application.Validators;
 // duplicate records, unauthorized actions.
 public class ReceiveSampleValidator
 {
-    public List<string> Validate(ItemBasedReceiveRequest request)
-    {
-        var errors = new List<string>();
+    public List<string> Validate(ItemBasedReceiveRequest request) =>
+        ValidateFields(request).Select(e => e.Message).ToList();
 
-        if (request.ItemId <= 0) errors.Add("A valid Item must be selected.");
-        if (request.CauseOfTestingId <= 0) errors.Add("Cause of testing is required.");
-        if (string.IsNullOrWhiteSpace(request.BatchNumber)) errors.Add("Batch number is required.");
-        if (string.IsNullOrWhiteSpace(request.ControlNumber)) errors.Add("Control number is required.");
-        if (string.IsNullOrWhiteSpace(request.SampledBy)) errors.Add("Sampled By is required.");
+    public List<FieldError> ValidateFields(ItemBasedReceiveRequest request, int? row = null)
+    {
+        var errors = new List<FieldError>();
+
+        if (request.ItemId <= 0) errors.Add(new FieldError("itemId", "A valid Item must be selected.", row));
+        if (request.CauseOfTestingId <= 0) errors.Add(new FieldError("causeOfTestingId", "Cause of testing is required.", row));
+        if (string.IsNullOrWhiteSpace(request.BatchNumber)) errors.Add(new FieldError("batchNumber", "Batch number is required.", row));
+        if (string.IsNullOrWhiteSpace(request.ControlNumber)) errors.Add(new FieldError("controlNumber", "Control number is required.", row));
+        if (string.IsNullOrWhiteSpace(request.SampledBy)) errors.Add(new FieldError("sampledBy", "Sampled By is required.", row));
 
         return errors;
     }

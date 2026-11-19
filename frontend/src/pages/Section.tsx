@@ -5,11 +5,16 @@ import { PageHeader } from "../components/PageHeader";
 import { useMenuGroups } from "../hooks/useMenuGroups";
 import { useSectionCounters } from "../hooks/useSectionCounters";
 import { groupLabel, groupPath } from "../routes/navigation";
+import { BreadcrumbLabel } from "../components/breadcrumbContext";
+import { useTranslation } from "../i18n";
+import { useMenuText } from "../routes/menuText";
 
 // Landing page of a sidebar section or menu group: one card per page the user may open in
 // it, read from the same permission-filtered menu as the sidebar. The lab's
 // sample workspaces (featured) lead, drawn wider with a brand accent.
 export function SectionPage() {
+  const { t } = useTranslation();
+  const menu = useMenuText();
   const { pathname } = useLocation();
   const groups = useMenuGroups();
   const section = groups.flatMap((g) => g.items).find((i) => i.children && i.path === pathname);
@@ -19,10 +24,17 @@ export function SectionPage() {
   // source (or a group page) gets no figures.
   const counters = useSectionCounters(section?.counterSource);
 
-  if (!section && !group) return <PageHeader title="Section not available" subtitle="You have no pages in this section." />;
+  if (!section && !group) {
+    return (
+      <>
+        <BreadcrumbLabel label={t("nav.sectionNotAvailable")} />
+        <PageHeader title={t("nav.sectionNotAvailable")} subtitle="You have no pages in this section." />
+      </>
+    );
+  }
 
   const Icon = section?.icon;
-  const title = section ? section.label : groupLabel(group!.groupName);
+  const title = section ? menu.label(section.label) : groupLabel(menu.group(group!.groupName));
   // On a group page a section card says how much it holds.
   const pages = (section ? [...section.children!] : group!.items.map((i) =>
     i.children && !i.description ? { ...i, description: `${i.children.length} pages` } : i
@@ -30,6 +42,8 @@ export function SectionPage() {
 
   return (
     <>
+      {/* A section is itself the menu item the trail ends on; only a group page, which no menu item owns, needs its own crumb. */}
+      {!section && <BreadcrumbLabel label={title} />}
       <PageHeader
         title={
           <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 1.25 }}>

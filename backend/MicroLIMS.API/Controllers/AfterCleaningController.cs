@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Shared.Constants;
@@ -7,18 +8,6 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-public record ReceiveAfterCleaningRequest(
-    int MachineId,
-    int CauseOfTestingId,
-    string SampledBy,
-    string ControlNumber,
-    string? PreviousProductName = null,
-    string? PreviousProductBatchNumber = null,
-    DateTime? SampledAt = null,
-    int? LabSectionId = null,
-    int? PreviousProductItemId = null,
-    List<string>? Techniques = null
-);
 public record PrepareAfterCleaningRequest(int SampleId, List<int> MachinePartConfigurationIds, List<int>? MonitoringOccurrenceIds = null);
 
 [ApiController]

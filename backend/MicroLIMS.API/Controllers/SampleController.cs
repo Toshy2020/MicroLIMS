@@ -11,17 +11,6 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
-// Shared receiving endpoint for Product / Raw Material / Packaging
-// Material - identical shape, only the resolved Item's Category differs.
-public record ReceiveItemBasedSampleRequest(
-    int ItemId, int CauseOfTestingId, string SampleQuantity, string SampledBy,
-    string BatchNumber, string ControlNumber, DateTime? MfgDate, DateTime? ExpDate, string? ProductionStage,
-    // Which laboratories to receive the sample for (ReceiptLabGuard resolves
-    // and authorizes it before the engine sees it).
-    List<int>? TargetSectionIds,
-    // Grade stated on the supplier's CoA (required when the item has graded specifications).
-    string? Grade = null);
-
 // The sample's full corrected details (see SampleCorrectionRequest), plus the
 // reason and the signer's password.
 public record CorrectSampleRequest(
@@ -67,6 +56,8 @@ public class SampleController : ControllerBase
     private readonly AddLaboratoryService _addLaboratory;
     private readonly ReceiptLabService _receiptLabs;
     private readonly SampleTestSelectionService _testSelection;
+    private readonly SampleBatchReceiveService _batchReceive;
+    private readonly SampleBulkAssignmentService? _bulkAssign;
 
     public SampleController(
         IReceivingService receivingService,
@@ -75,7 +66,9 @@ public class SampleController : ControllerBase
         IUserSectionScopeService scopeService,
         AddLaboratoryService addLaboratory,
         ReceiptLabService receiptLabs,
-        SampleTestSelectionService testSelection)
+        SampleTestSelectionService testSelection,
+        SampleBatchReceiveService batchReceive,
+        SampleBulkAssignmentService? bulkAssign = null)
     {
         _testSelection = testSelection;
         _receivingService = receivingService;
@@ -84,9 +77,12 @@ public class SampleController : ControllerBase
         _scopeService = scopeService;
         _addLaboratory = addLaboratory;
         _receiptLabs = receiptLabs;
+        _batchReceive = batchReceive;
+        _bulkAssign = bulkAssign;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+    private bool CanReceiveForAnyLab => User.HasClaim("permission", PermissionConstants.SamplesReceive);
 
     [HttpPost]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
@@ -95,8 +91,7 @@ public class SampleController : ControllerBase
         // UnauthorizedAccessException (targeting a lab outside the
         // user's scope) is mapped globally by ExceptionMiddleware to
         // 403, so it is deliberately left uncaught here.
-        var targets = await _receiptLabs.ResolveTargetsAsync(CurrentUserId,
-            User.HasClaim("permission", PermissionConstants.SamplesReceive), request.TargetSectionIds);
+        var targets = await _receiptLabs.ResolveTargetsAsync(CurrentUserId, CanReceiveForAnyLab, request.TargetSectionIds);
         var sample = await _receivingService.ReceiveSampleAsync(new ItemBasedReceiveRequest(
             request.ItemId, request.CauseOfTestingId, request.SampleQuantity, request.SampledBy,
             request.BatchNumber, request.ControlNumber, request.MfgDate, request.ExpDate,
@@ -104,12 +99,21 @@ public class SampleController : ControllerBase
         return Ok(ApiResponse<object>.Ok(sample));
     }
 
+    // All four single-row receive actions (Sample, Water, EM, AfterCleaning)
+    // require SamplesReceiveOwnLab, so the same policy applies to every category.
+    [HttpPost("receive-batch")]
+    [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
+    public async Task<IActionResult> ReceiveBatch(BatchReceiveRequest request, CancellationToken ct = default)
+    {
+        var result = await _batchReceive.ReceiveAsync(request, CurrentUserId, CanReceiveForAnyLab, ct);
+        return Ok(ApiResponse<BatchReceiveResult>.Ok(result));
+    }
+
     // Lists which laboratories the given item's assigned tests belong to,
     // so the Receiving page's lab picker only ever offers real choices.
     [HttpGet("receipt-labs")]
     public async Task<IActionResult> ReceiptLabs([FromQuery] int itemId) =>
-        Ok(ApiResponse<object>.Ok(await _receiptLabs.GetForItemAsync(itemId, CurrentUserId,
-            User.HasClaim("permission", PermissionConstants.SamplesReceive))));
+        Ok(ApiResponse<object>.Ok(await _receiptLabs.GetForItemAsync(itemId, CurrentUserId, CanReceiveForAnyLab)));
 
     // Analysts record the work; correcting or voiding the sample record is
     // for a Reviewer, Section Head or System Administrator.
@@ -140,6 +144,14 @@ public class SampleController : ControllerBase
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
         var sample = await _assignmentService.AssignAnalystAsync(id, request.AnalystUserId, CurrentUserId, request.Reason);
         return Ok(ApiResponse<object>.Ok(sample));
+    }
+
+    [HttpPost("bulk-assign")]
+    [Authorize(Policy = PermissionConstants.SamplesAssignAnalyst)]
+    public async Task<IActionResult> BulkAssign(BulkAssignRequest request, CancellationToken ct = default)
+    {
+        var result = await _bulkAssign!.AssignAsync(request, CurrentUserId, ct);
+        return Ok(ApiResponse<BulkAssignResult>.Ok(result));
     }
 
     // Each test on the sample, who is on it, and who the caller may put on it.

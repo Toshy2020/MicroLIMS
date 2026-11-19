@@ -18,21 +18,13 @@ import ImageIcon from "@mui/icons-material/Image";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { IcpReviewApi, type IcpEvidenceDto } from "./icpReviewApi";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpReportsSectionProps {
   testOrderId: number;
-}
-
-function formatEvidenceKind(kind: string): string {
-  switch (kind) {
-    case "CalibrationReport":
-      return "Calibration Report";
-    case "SampleReport":
-      return "Sample Report";
-    default:
-      return kind.replace(/([a-z])([A-Z])/g, "$1 $2");
-  }
 }
 
 function getFileIcon(contentType: string) {
@@ -42,11 +34,23 @@ function getFileIcon(contentType: string) {
 }
 
 export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [evidenceList, setEvidenceList] = useState<IcpEvidenceDto[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState<string | null>(null);
   const [openingEvidenceId, setOpeningEvidenceId] = useState<number | null>(null);
+
+  const formatEvidenceKind = (kind: string): string => {
+    switch (kind) {
+      case "CalibrationReport":
+        return t("icpReports.calibrationReport");
+      case "SampleReport":
+        return t("icpReports.sampleReport");
+      default:
+        return kind.replace(/([a-z])([A-Z])/g, "$1 $2");
+    }
+  };
 
   useEffect(() => {
     let active = true;
@@ -62,7 +66,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
       })
       .catch(() => {
         if (active) {
-          setEvidenceError("Unable to load reports.");
+          setEvidenceError(t("icpReports.loadFailed"));
         }
       })
       .finally(() => {
@@ -74,7 +78,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
     return () => {
       active = false;
     };
-  }, [testOrderId]);
+  }, [testOrderId, t]);
 
   const handleOpenEvidence = async (id: number) => {
     setOpeningEvidenceId(id);
@@ -98,14 +102,14 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
           textTransform: "uppercase"
         }}
       >
-        Evidence Reports
+        {t("icpReports.heading")}
       </Typography>
 
       {evidenceLoading && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
           <CircularProgress size={14} />
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Loading reports...
+            {t("icpReports.loading")}
           </Typography>
         </Box>
       )}
@@ -118,7 +122,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
 
       {!evidenceLoading && !evidenceError && evidenceList.length === 0 && (
         <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-          No reports available for this test order.
+          {t("icpReports.empty")}
         </Typography>
       )}
 
@@ -127,11 +131,11 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Report / Context</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>File Name</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>Uploaded By</TableCell>
-                <TableCell sx={{ fontSize: 12 }}>Uploaded At</TableCell>
-                <TableCell sx={{ fontSize: 12 }} align="right">Action</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("icpReports.col.reportContext")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("icpReports.col.fileName")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("icpReports.col.uploadedBy")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("icpReports.col.uploadedAt")}</TableCell>
+                <TableCell sx={{ fontSize: 12 }} align="right">{t("icpReports.col.action")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -149,15 +153,21 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                       {getFileIcon(e.contentType)}
                       <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-                        {e.fileName}
+                        <Ltr>{e.fileName}</Ltr>
                       </Typography>
                     </Box>
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedByUserName ?? (e.uploadedByUserId ? `User #${e.uploadedByUserId}` : "—")}
+                    {e.uploadedByUserName ? (
+                      <Ltr>{e.uploadedByUserName}</Ltr>
+                    ) : e.uploadedByUserId ? (
+                      t("icpReports.userFallback", { id: e.uploadedByUserId })
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }}>
-                    {e.uploadedAt ? new Date(e.uploadedAt).toLocaleString() : "—"}
+                    {e.uploadedAt ? <Ltr>{formatDateTimeWithTimeZone(e.uploadedAt)}</Ltr> : "—"}
                   </TableCell>
                   <TableCell sx={{ fontSize: 12 }} align="right">
                     <Button
@@ -174,7 +184,7 @@ export function IcpReportsSection({ testOrderId }: IcpReportsSectionProps) {
                       disabled={openingEvidenceId === e.id}
                       sx={{ textTransform: "none", fontSize: 12, py: 0.25, px: 1, minHeight: 24, cursor: "pointer" }}
                     >
-                      View
+                      {t("icpReports.view")}
                     </Button>
                   </TableCell>
                 </TableRow>

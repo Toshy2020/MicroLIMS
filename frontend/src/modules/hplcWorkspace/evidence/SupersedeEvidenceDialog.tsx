@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { Trans } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +14,8 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { HplcEvidenceDto } from "../types";
 
 export interface SupersedeEvidenceDialogProps {
@@ -30,6 +33,7 @@ export function SupersedeEvidenceDialog({
   onClose,
   onSuccess
 }: SupersedeEvidenceDialogProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replacementFile, setReplacementFile] = useState<File | null>(null);
   const [supersedeReason, setSupersedeReason] = useState("");
@@ -41,7 +45,7 @@ export function SupersedeEvidenceDialog({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setSupersedeError("File exceeds the 25 MB limit.");
+        setSupersedeError(t("evidence.supersede.fileTooLarge"));
         setReplacementFile(null);
         return;
       }
@@ -72,7 +76,7 @@ export function SupersedeEvidenceDialog({
       onSuccess();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setSupersedeError(e.response?.data?.message ?? e.message ?? "Replacement upload failed.");
+      setSupersedeError(e.response?.data?.message ?? e.message ?? t("evidence.supersede.failed"));
     } finally {
       setSuperseding(false);
     }
@@ -86,14 +90,19 @@ export function SupersedeEvidenceDialog({
       fullWidth
     >
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-        Supersede Evidence File
+        {t("evidence.supersede.title")}
       </DialogTitle>
       <DialogContent dividers>
         <Stack spacing={2} sx={{ pt: 1 }}>
           {supersedeError && <Alert severity="error">{supersedeError}</Alert>}
 
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            Replacing: <strong>{targetEvidence?.fileName}</strong>. Old versions remain visible in the audit trail.
+            <Trans
+              i18nKey="evidence.supersede.replacing"
+              ns="hplcWorkspace"
+              values={{ fileName: targetEvidence?.fileName ?? "" }}
+              components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+            />
           </Typography>
 
           <Box>
@@ -112,19 +121,22 @@ export function SupersedeEvidenceDialog({
                 size="small"
                 startIcon={<CloudUploadIcon />}
               >
-                Select Replacement File
+                {t("evidence.supersede.selectFile")}
               </Button>
             </label>
             {replacementFile && (
               <Typography variant="body2" sx={{ mt: 1, fontWeight: 600 }}>
-                Selected: {replacementFile.name} ({(replacementFile.size / (1024 * 1024)).toFixed(2)} MB)
+                {t("evidence.supersede.selected", {
+                  fileName: replacementFile.name,
+                  size: (replacementFile.size / (1024 * 1024)).toFixed(2)
+                })}
               </Typography>
             )}
           </Box>
 
           <TextField
-            label="Supersede Reason"
-            placeholder="Explain why this report is being replaced..."
+            label={t("evidence.supersede.reasonLabel")}
+            placeholder={t("evidence.supersede.reasonPlaceholder")}
             multiline
             rows={3}
             fullWidth
@@ -132,7 +144,7 @@ export function SupersedeEvidenceDialog({
             size="small"
             value={supersedeReason}
             onChange={(e) => setSupersedeReason(e.target.value)}
-            helperText="A reason is required under GxP data integrity rules."
+            helperText={t("evidence.supersede.reasonHelper")}
           />
         </Stack>
       </DialogContent>
@@ -141,7 +153,7 @@ export function SupersedeEvidenceDialog({
           onClick={handleClose}
           disabled={superseding}
         >
-          Cancel
+          {t("evidence.supersede.cancel")}
         </Button>
         <Button
           variant="contained"
@@ -150,7 +162,7 @@ export function SupersedeEvidenceDialog({
           disabled={!replacementFile || !supersedeReason.trim() || superseding}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          {superseding ? "Superseding..." : "Confirm Replacement"}
+          {superseding ? t("evidence.supersede.superseding") : t("evidence.supersede.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

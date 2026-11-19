@@ -1,0 +1,131 @@
+{
+  "page": {
+    "title": "المناقشات وتبادل المعرفة",
+    "subtitle": "مناقشات مختبرية تعاونية، واستفسارات فنية، وتنبيهات الامتثال، وتبادل المعرفة."
+  },
+  "actions": {
+    "newDiscussion": "مناقشة جديدة",
+    "startDiscussion": "بدء مناقشة",
+    "backToDiscussions": "العودة إلى المناقشات",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "markImportant": "وضع علامة «مهم»",
+    "unmarkImportant": "إزالة علامة «مهم»",
+    "deleteDiscussion": "حذف المناقشة",
+    "viewEdit": "عرض / تعديل",
+    "editPost": "تعديل المنشور",
+    "postActions": "إجراءات المنشور: {{title}}"
+  },
+  "feed": {
+    "loadError": "تعذّر تحميل المناقشات.",
+    "searchPlaceholder": "ابحث في المناقشات بالعنوان أو المحتوى...",
+    "searchLabel": "ابحث في المناقشات بالعنوان أو المحتوى",
+    "importantOnly": "المهمة فقط",
+    "allCategories": "جميع الفئات",
+    "emptyTitle": "لم يتم العثور على مناقشات",
+    "emptyFilteredHint": "جرّب تعديل نص البحث أو مرشحات الفئات.",
+    "emptyHint": "كن أول من يبدأ حديثاً في هذه الفئة.",
+    "showing": "عرض {{shown}} من أصل {{total}} مناقشة"
+  },
+  "toast": {
+    "markedImportant": "تم وضع علامة «مهم»",
+    "unmarkedImportant": "تمت إزالة علامة «مهم»",
+    "toggleImportantError": "تعذّر تغيير حالة الأهمية.",
+    "deleted": "تم حذف منشور المناقشة.",
+    "postDeleted": "تم حذف منشور المناقشة",
+    "deleteError": "تعذّر حذف منشور المناقشة.",
+    "commentAdded": "تمت إضافة التعليق",
+    "commentError": "تعذّر نشر التعليق.",
+    "commentUpdated": "تم تحديث التعليق",
+    "commentSaveError": "تعذّر حفظ التعليق.",
+    "commentDeleted": "تم حذف التعليق",
+    "commentDeleteError": "تعذّر حذف التعليق."
+  },
+  "card": {
+    "important": "مهم",
+    "editedTooltip": "الإصدار {{version}} (مُعدَّل). انقر لعرض السجل.",
+    "editedChip": "الإصدار {{version}} مُعدَّل",
+    "comment_zero": "لا توجد تعليقات",
+    "comment_one": "تعليق واحد",
+    "comment_two": "تعليقان",
+    "comment_few": "{{count}} تعليقات",
+    "comment_many": "{{count}} تعليقاً",
+    "comment_other": "{{count}} تعليق",
+    "attachment_zero": "لا توجد مرفقات",
+    "attachment_one": "مرفق واحد",
+    "attachment_two": "مرفقان",
+    "attachment_few": "{{count}} مرفقات",
+    "attachment_many": "{{count}} مرفقاً",
+    "attachment_other": "{{count}} مرفق",
+    "open": "فتح المناقشة ←",
+    "deleteTitle": "حذف منشور المناقشة",
+    "deleteMessage": "هل أنت متأكد من حذف منشور المناقشة هذا؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteConfirm": "حذف المنشور"
+  },
+  "fields": {
+    "title": "العنوان",
+    "category": "الفئة",
+    "content": "المحتوى / التفاصيل"
+  },
+  "validation": {
+    "titleRequired": "عنوان المناقشة مطلوب.",
+    "contentRequired": "محتوى المناقشة مطلوب."
+  },
+  "newDialog": {
+    "title": "مناقشة جديدة",
+    "titlePlaceholder": "ما موضوع هذه المناقشة؟",
+    "markImportant": "وضع علامة «مهم» (تثبيت في الأعلى)",
+    "contentPlaceholder": "أضف السياق والملاحظات والأسئلة أو المراجع التنظيمية...",
+    "attachments": "المرفقات (مستندات، صور، جداول عمل)",
+    "chooseFiles": "اختيار الملفات",
+    "noFiles": "لم تُرفق أي ملفات بعد. الأنواع المدعومة: PDF وWord وExcel وPowerPoint والصور وملفات النصوص، حتى 5 ملفات بحجم 10 ميغابايت لكل ملف.",
+    "publishing": "جارٍ النشر...",
+    "publish": "نشر المناقشة",
+    "createError": "تعذّر إنشاء المناقشة."
+  },
+  "editDialog": {
+    "title": "تعديل المناقشة (الإصدار {{version}})",
+    "info": "سيؤدي التعديل إلى إنشاء نسخة تاريخية من هذا المنشور وإشعار المشاركين في المناقشة.",
+    "markImportant": "وضع علامة «مهم»",
+    "saving": "جارٍ حفظ التغييرات...",
+    "save": "حفظ التغييرات",
+    "updateError": "تعذّر تحديث المناقشة."
+  },
+  "history": {
+    "title": "سجل الإصدارات: {{title}}",
+    "loadError": "تعذّر تحميل سجل إصدارات هذا المنشور.",
+    "empty": "لم تُسجَّل أي تعديلات سابقة. هذا المنشور في إصداره الأول.",
+    "showing_one": "عرض نسخة سابقة واحدة مؤرشفة قبل التعديلات اللاحقة.",
+    "showing_two": "عرض نسختين سابقتين مؤرشفتين قبل التعديلات اللاحقة.",
+    "showing_few": "عرض {{count}} نسخ سابقة مؤرشفة قبل التعديلات اللاحقة.",
+    "showing_many": "عرض {{count}} نسخة سابقة مؤرشفة قبل التعديلات اللاحقة.",
+    "showing_other": "عرض {{count}} نسخة سابقة مؤرشفة قبل التعديلات اللاحقة.",
+    "archivedBy": "أُرشف في {{date}} بواسطة <strong>{{name}}</strong>",
+    "versionLabel": "الإصدار {{n}}"
+  },
+  "detail": {
+    "loadError": "تعذّر تحميل المناقشة.",
+    "unavailable": "المناقشة غير متاحة",
+    "notFound": "المناقشة غير موجودة.",
+    "important": "مهم",
+    "historyTooltip": "انقر لعرض سجل المراجعات الكامل",
+    "posted": "نُشر في {{date}}",
+    "attachments": "المرفقات ({{n}})",
+    "download": "تنزيل {{name}}",
+    "downloadTitle": "تنزيل الملف",
+    "comments": "التعليقات ({{n}})",
+    "commentPlaceholder": "اكتب تعليقاً أو رداً على هذه المناقشة...",
+    "commentLabel": "تعليق",
+    "posting": "جارٍ النشر...",
+    "postComment": "نشر التعليق",
+    "noComments": "لا توجد تعليقات بعد. كن أول من يشارك ملاحظاته أو مشاهداته!",
+    "edited": "(مُعدَّل)",
+    "editComment": "تعديل التعليق",
+    "deleteComment": "حذف التعليق",
+    "cancelEdit": "إلغاء التعديل",
+    "saveComment": "حفظ التعليق",
+    "deleteCommentTitle": "حذف التعليق",
+    "deleteCommentMessage": "هل أنت متأكد من حذف هذا التعليق؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteCommentConfirm": "حذف التعليق"
+  }
+}

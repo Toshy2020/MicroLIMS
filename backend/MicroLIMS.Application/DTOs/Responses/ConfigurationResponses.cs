@@ -39,6 +39,7 @@ public class EquipmentResponse
     public DateTime? CalibrationDueDate { get; init; }
     public int SectionId { get; init; }
     public DocumentSectionResponse? Section { get; init; }
+    public int? EquipmentInventoryId { get; init; }
     public string? Vendor { get; init; }
     public CdsSoftware? CdsSoftware { get; init; }
     public string? ConnectionSettings { get; init; }
@@ -56,6 +57,7 @@ public class EquipmentResponse
         CalibrationDueDate = e.CalibrationDueDate,
         SectionId = e.SectionId,
         Section = e.Section is null ? null : DocumentSectionResponse.From(e.Section),
+        EquipmentInventoryId = e.EquipmentInventoryId,
         Vendor = e.Vendor,
         CdsSoftware = e.CdsSoftware,
         ConnectionSettings = e.ConnectionSettings,
@@ -353,6 +355,9 @@ public class SpecificationResponse
     public string? Grade { get; init; }
     public RelatedSubstanceRow? RelatedSubstanceRow { get; init; }
     public int? HplcMethodImpurityId { get; init; }
+    public bool IsRetired { get; init; }
+    public DateTime? RetiredAt { get; init; }
+    public int? RetiredByUserId { get; init; }
     public List<SpecificationStageResponse> Stages { get; init; } = new();
 
     public static SpecificationResponse From(Specification e) => new()
@@ -391,6 +396,9 @@ public class SpecificationResponse
         IcpTestElementId = e.IcpTestElementId,
         RelatedSubstanceRow = e.RelatedSubstanceRow,
         HplcMethodImpurityId = e.HplcMethodImpurityId,
+        IsRetired = e.IsRetired,
+        RetiredAt = e.RetiredAt,
+        RetiredByUserId = e.RetiredByUserId,
         Stages = e.Stages.Select(SpecificationStageResponse.From).ToList(),
     };
 }

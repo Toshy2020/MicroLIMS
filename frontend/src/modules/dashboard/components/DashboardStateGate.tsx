@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../i18n";
 import { ReactNode } from "react";
 import { Alert, AlertTitle, Box, Button } from "@mui/material";
 import RefreshIcon from "@mui/icons-material/Refresh";
@@ -20,6 +21,7 @@ interface Props {
 // a spinner forever - no message, no retry - which is exactly what happened
 // when the API returned 503 on all four dashboard endpoints.
 export function DashboardStateGate({ loading, error, hasData, onRetry, children }: Props) {
+  const { t } = useTranslation("dashboard");
   if (hasData) return <>{children}</>;
 
   if (loading) return <WorkspaceSkeleton tiles={4} rows={5} />;
@@ -38,11 +40,11 @@ export function DashboardStateGate({ loading, error, hasData, onRetry, children 
             onClick={onRetry}
             sx={{ textTransform: "none", fontWeight: 600, whiteSpace: "nowrap" }}
           >
-            Retry
+            {t("common.retry")}
           </Button>
         }
       >
-        <AlertTitle sx={{ fontWeight: 700, mb: 0.25 }}>Dashboard could not be loaded</AlertTitle>
+        <AlertTitle sx={{ fontWeight: 700, mb: 0.25 }}>{t("gate.loadFailed")}</AlertTitle>
         {error}
       </Alert>
     );
@@ -62,7 +64,7 @@ export function DashboardStateGate({ loading, error, hasData, onRetry, children 
         fontSize: 14
       }}
     >
-      No dashboard data is available yet.
+      {t("gate.empty")}
     </Box>
   );
 }

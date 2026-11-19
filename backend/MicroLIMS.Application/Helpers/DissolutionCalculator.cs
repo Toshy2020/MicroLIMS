@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Domain.Entities;
@@ -27,13 +28,13 @@ public static class DissolutionCalculator
     public static decimal CalculateCs(decimal standardWeightMg, decimal standardPurityPercent, decimal standardMoisturePercent, decimal standardDilution)
     {
         if (standardWeightMg <= 0m)
-            throw new BusinessRuleException("Standard weight must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.TitrationStandardWeightPositive, "Standard weight must be greater than zero.");
         if (standardPurityPercent <= 0m)
-            throw new BusinessRuleException("Standard purity must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStandardPurityPositive, "Standard purity must be greater than zero.");
         if (standardMoisturePercent < 0m || standardMoisturePercent >= 100m)
-            throw new BusinessRuleException("Standard moisture content must be from 0 to below 100 %.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStandardMoistureRange, "Standard moisture content must be from 0 to below 100 %.");
         if (standardDilution <= 0m)
-            throw new BusinessRuleException("Standard dilution must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStandardDilutionPositive, "Standard dilution must be greater than zero.");
 
         return standardWeightMg * (standardPurityPercent / 100m) * ((100m - standardMoisturePercent) / 100m) / standardDilution;
     }
@@ -47,17 +48,17 @@ public static class DissolutionCalculator
         decimal labelClaim)
     {
         if (vesselArea <= 0m)
-            throw new BusinessRuleException("Vessel area must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionVesselAreaPositive, "Vessel area must be greater than zero.");
         if (standardMeanArea <= 0m)
-            throw new BusinessRuleException("Standard mean area must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStandardMeanAreaPositive, "Standard mean area must be greater than zero.");
         if (cs <= 0m)
-            throw new BusinessRuleException("Standard concentration (C_s) must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStandardConcentrationPositive, "Standard concentration (C_s) must be greater than zero.");
         if (mediumVolumeMl <= 0m)
-            throw new BusinessRuleException("Medium volume must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionMediumVolumePositive, "Medium volume must be greater than zero.");
         if (dilutionFactor <= 0m)
-            throw new BusinessRuleException("Dilution factor must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionDilutionFactorPositive, "Dilution factor must be greater than zero.");
         if (labelClaim <= 0m)
-            throw new BusinessRuleException("Label claim must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionLabelClaimPositive, "Label claim must be greater than zero.");
 
         // Multiply before divide: % = (A_u * C_s * V * DF * 100) / (A_s * LC)
         decimal numerator = vesselArea * cs * mediumVolumeMl * dilutionFactor * 100m;

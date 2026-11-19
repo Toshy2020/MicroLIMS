@@ -29,7 +29,12 @@ import { DashboardStateGate } from "./components/DashboardStateGate";
 import { DashboardService } from "./services/DashboardService";
 import { ReviewerDashboard } from "./types/dashboard";
 import { brandColors, tableHeadSx } from "../../theme";
-import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { useDashboardLab } from "./DashboardLabContext";
+import { useTranslation } from "../../i18n";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+
+// Kept as a key so the translated text is looked up at render, not stored in the effect.
+const SERVICE_ERROR_KEY = "reviewer.serviceError";
 
 function formatAge(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -41,6 +46,7 @@ function formatAge(minutes: number): string {
 }
 
 export function ReviewerDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
 
@@ -61,7 +67,7 @@ export function ReviewerDashboardPage() {
       })
       .catch((err) => {
         console.error("Failed to load reviewer dashboard:", err);
-        if (!cancelled) setError("The dashboard service did not respond. Your review queue has not been changed.");
+        if (!cancelled) setError(SERVICE_ERROR_KEY);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -72,7 +78,7 @@ export function ReviewerDashboardPage() {
 
   if (!data) {
     return (
-      <DashboardStateGate loading={loading} error={error} hasData={false} onRetry={reload}>
+      <DashboardStateGate loading={loading} error={error === SERVICE_ERROR_KEY ? t(SERVICE_ERROR_KEY) : error} hasData={false} onRetry={reload}>
         {null}
       </DashboardStateGate>
     );
@@ -81,10 +87,10 @@ export function ReviewerDashboardPage() {
   return (
     <>
       <PageHeader
-        title="Reviewer Command Center"
+        title={t("reviewer.title")}
         subtitle={lab.code
-          ? `Results in the ${LAB_LABELS[lab.code]} waiting for your scientific review today.`
-          : "What results are waiting for your scientific review today?"}
+          ? t("reviewer.subtitleLab", { lab: t(`labName.${lab.code}`) })
+          : t("reviewer.subtitle")}
       >
         <Button
           variant="outlined"
@@ -92,7 +98,7 @@ export function ReviewerDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
         <Button
           component={Link}
@@ -100,7 +106,7 @@ export function ReviewerDashboardPage() {
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
         >
-          Open Testing Workspace
+          {t("reviewer.workspace")}
         </Button>
       </PageHeader>
 
@@ -108,48 +114,48 @@ export function ReviewerDashboardPage() {
       <SummaryTiles
         tiles={[
           {
-            label: "Pending review",
+            label: t("reviewer.tiles.pendingReview"),
             value: data.pendingReviewCount,
             tone: "action",
             icon: <RateReviewOutlinedIcon />,
-            caption: "samples",
-            hint: "Samples awaiting scientific review",
+            caption: t("common.samples"),
+            hint: t("reviewer.tiles.pendingReviewHint"),
             to: lab.workspace("?status=UnderReview")
           },
           {
-            label: "Overdue review",
+            label: t("reviewer.tiles.overdueReview"),
             value: data.overdueReviewCount,
             tone: "detected",
             icon: <AccessTimeOutlinedIcon />,
-            caption: "in review >24 hours",
-            hint: "Samples in review for more than 24 hours",
+            caption: t("reviewer.tiles.overdueCaption"),
+            hint: t("reviewer.tiles.overdueHint"),
             to: lab.workspace("?status=UnderReview&workload=reviewOverdue")
           },
           {
-            label: "Due today",
+            label: t("reviewer.tiles.dueToday"),
             value: data.dueTodayCount,
             tone: "action",
             icon: <AccessTimeOutlinedIcon />,
-            caption: "submitted today",
-            hint: "Submitted for review today",
+            caption: t("reviewer.tiles.dueTodayCaption"),
+            hint: t("reviewer.tiles.dueTodayHint"),
             to: lab.workspace("?status=UnderReview")
           },
           {
-            label: "Retests in progress",
+            label: t("reviewer.tiles.retests"),
             value: data.retestsInProgressCount,
             tone: "info",
             icon: <UndoOutlinedIcon />,
-            caption: "samples",
-            hint: "Retest samples not yet closed",
+            caption: t("common.samples"),
+            hint: t("reviewer.tiles.retestsHint"),
             to: lab.workspace("?workload=retestInProgress")
           },
           {
-            label: "Completed today",
+            label: t("reviewer.tiles.completedToday"),
             value: data.completedTodayCount,
             tone: "notDetected",
             icon: <CheckCircleOutlineIcon />,
-            caption: "by you",
-            hint: "Reviewed by you today"
+            caption: t("reviewer.tiles.completedCaption"),
+            hint: t("reviewer.tiles.completedHint")
           }
         ]}
       />
@@ -160,7 +166,7 @@ export function ReviewerDashboardPage() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
             <WarningAmberOutlinedIcon sx={{ color: brandColors.err }} />
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: brandColors.err }}>
-              Attention Required ({data.attentionItems.length})
+              {t("reviewer.attention", { n: data.attentionItems.length })}
             </Typography>
           </Box>
           <Grid container spacing={1.5}>
@@ -205,7 +211,7 @@ export function ReviewerDashboardPage() {
                     endIcon={<ArrowForwardOutlinedIcon />}
                     sx={{ textTransform: "none", fontSize: 12, fontWeight: 600, flexShrink: 0 }}
                   >
-                    Review Now
+                    {t("reviewer.reviewNow")}
                   </Button>
                 </Paper>
               </Grid>
@@ -225,10 +231,10 @@ export function ReviewerDashboardPage() {
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Box>
                 <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-                  Central Review Queue ({data.reviewQueue.length})
+                  {t("reviewer.queue.title", { n: data.reviewQueue.length })}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  Samples whose tests are all complete, awaiting independent scientific review.
+                  {t("reviewer.queue.intro")}
                 </Typography>
               </Box>
               <Button
@@ -238,16 +244,16 @@ export function ReviewerDashboardPage() {
                 size="small"
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                View Full Workspace →
+                {t("reviewer.queue.viewAll")}
               </Button>
             </Box>
 
             {data.reviewQueue.length === 0 ? (
               <Box sx={{ py: 6, textAlign: "center" }}>
                 <CheckCircleOutlineIcon sx={{ color: brandColors.ok, fontSize: 48, mb: 1 }} />
-                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Review Queue is Clear</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{t("reviewer.queue.clear")}</Typography>
                 <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  No samples are currently waiting for scientific review.
+                  {t("reviewer.queue.clearBody")}
                 </Typography>
               </Box>
             ) : (
@@ -255,14 +261,14 @@ export function ReviewerDashboardPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={tableHeadSx}>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Sample / Ref</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Item / Location</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Tests</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst(s)</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Worst Result</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>In Review</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Priority</TableCell>
-                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Action</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.sampleRef")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.itemLocation")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.tests")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.analysts")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.worstResult")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.inReview")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("reviewer.columns.priority")}</TableCell>
+                      <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("reviewer.columns.action")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -377,7 +383,7 @@ export function ReviewerDashboardPage() {
                             startIcon={<RateReviewOutlinedIcon />}
                             sx={{ textTransform: "none", fontSize: 12, fontWeight: 700, py: 0.3 }}
                           >
-                            Review
+                            {t("reviewer.review")}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -399,16 +405,16 @@ export function ReviewerDashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
               <HistoryOutlinedIcon sx={{ color: theme.palette.primary.main }} />
               <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}>
-                Recently Reviewed
+                {t("reviewer.recent.title")}
               </Typography>
             </Box>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
-              Historical scientific review audit trail.
+              {t("reviewer.recent.intro")}
             </Typography>
 
             {data.recentlyReviewed.length === 0 ? (
               <Typography sx={{ fontSize: 12, color: "text.secondary", py: 3, textAlign: "center" }}>
-                No recent review history.
+                {t("reviewer.recent.empty")}
               </Typography>
             ) : (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -444,10 +450,10 @@ export function ReviewerDashboardPage() {
                     </Box>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
                       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                        Tests: {rec.testCode}
+                        {t("reviewer.recent.tests", { code: rec.testCode })}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                        {new Date(rec.reviewedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {formatDateTimeWithTimeZone(rec.reviewedAt)}
                       </Typography>
                     </Box>
                   </Paper>

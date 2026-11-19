@@ -7,8 +7,11 @@ import {
   useTheme
 } from "@mui/material";
 import LinkIcon from "@mui/icons-material/Link";
+import { Trans } from "react-i18next";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { HplcStatusBadge } from "../../hplcWorkspace/components/HplcStatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { ParameterResultDetail } from "../types/sampleSummaryTypes";
 import {
   formatIcpQuantity,
@@ -16,6 +19,7 @@ import {
   type IcpCalculationData
 } from "./icpReviewTypes";
 import { IcpReportsSection } from "./IcpReportsSection";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpReviewPanelProps {
   parameter: ParameterResultDetail;
@@ -35,6 +39,7 @@ function parseIcpCalc(json: string | null | undefined): IcpCalculationData | nul
 }
 
 export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const calc = parseIcpCalc(parameter.calculationJson);
 
@@ -51,26 +56,38 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-            ICP Review · {parameter.parameterName}
+            {t("icpReview.title", { name: parameter.parameterName })}
           </Typography>
           <HplcStatusBadge status={parameter.comparisonStatus} />
         </Box>
         <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-          Recorded via ICP Workspace. Parameter result: <strong>{parameter.reportedDisplay}</strong>
-          {parameter.comparisonStatus ? ` (${parameter.comparisonStatus})` : ""}.
+          <Trans
+            i18nKey="icpReview.recordedFallback"
+            ns="testingWorkspace"
+            values={{
+              display: parameter.reportedDisplay,
+              statusPart: parameter.comparisonStatus ? ` (${parameter.comparisonStatus})` : ""
+            }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
         <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
-          Detailed calculation payload was not found or is in an invalid format.
+          {t("icpReview.payloadMissingAlert")}
         </Alert>
         <IcpReportsSection testOrderId={testOrderId} />
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mt: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography sx={{ fontSize: 12 }}>
-              Reported Result: <strong>{parameter.reportedDisplay}</strong>
+              {t("icpReview.reportedResult")} <strong><Ltr>{parameter.reportedDisplay}</Ltr></strong>
             </Typography>
             {parameter.specLimit && (
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                (Spec: {parameter.specLimit})
+                <Trans
+                  i18nKey="icpReview.specParens"
+                  ns="testingWorkspace"
+                  values={{ spec: parameter.specLimit }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             )}
             <HplcStatusBadge status={parameter.comparisonStatus} />
@@ -96,13 +113,18 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-            ICP Review · {calc.element || parameter.parameterName}
+            {t("icpReview.title", { name: calc.element || parameter.parameterName })}
           </Typography>
           <StatusBadge status="Draft" label={formatIcpQuantity(calc.quantity)} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Run: <strong>{calc.runCode}</strong> · Cal: <strong>{calc.calibrationCode}</strong>
+          <Trans
+            i18nKey="icpReview.runCalHeader"
+            ns="testingWorkspace"
+            values={{ runCode: calc.runCode, calCode: calc.calibrationCode }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Typography>
       </Box>
 
@@ -118,91 +140,96 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
         }}
       >
         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
-          Calibration
+          {t("icpReview.calibrationSection")}
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Calibration Code
+              {t("icpReview.calibrationCode")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.calibrationCode}
+              <Ltr>{calc.calibrationCode}</Ltr>
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Declared ready (signed) at
+              {t("icpReview.declaredReadyAt")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.calibrationConfirmedAt ? new Date(calc.calibrationConfirmedAt).toLocaleString() : "—"}
+              {calc.calibrationConfirmedAt ? <Ltr>{formatDateTimeWithTimeZone(calc.calibrationConfirmedAt)}</Ltr> : "—"}
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Correlation (r)
+              {t("icpReview.correlationR")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {typeof calc.correlationR === "number" ? calc.correlationR.toFixed(6) : (calc.correlationR ?? "—")}
+              <Ltr>{typeof calc.correlationR === "number" ? calc.correlationR.toFixed(6) : (calc.correlationR ?? "—")}</Ltr>
             </Typography>
           </Box>
         </Stack>
 
         <Box sx={{ mt: 1, pt: 1, borderTop: `1px dashed ${theme.palette.divider}` }}>
           <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
-            Calculation
+            {t("icpReview.calculationSection")}
           </Typography>
           <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Instrument result
+                {t("icpReview.instrumentResult")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                {calc.resultPpm} ppm
+                <Ltr>{calc.resultPpm} ppm</Ltr>
               </Typography>
             </Box>
             {isAssay && calc.targetPpm != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Target
+                  {t("icpReview.target")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {calc.targetPpm} ppm
+                  <Ltr>{calc.targetPpm} ppm</Ltr>
                 </Typography>
               </Box>
             )}
             {isAssay && calc.theoreticalAmount != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  {calc.sampleForm === "Liquid" ? "Th.Vol" : "Th.Wt"}
+                  {calc.sampleForm === "Liquid" ? t("icpReview.thVol") : t("icpReview.thWt")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {calc.theoreticalAmount} {calc.sampleForm === "Liquid" ? "mL" : "g"}
+                  <Ltr>{calc.theoreticalAmount} {calc.sampleForm === "Liquid" ? "mL" : "g"}</Ltr>
                 </Typography>
               </Box>
             )}
             {isAssay && calc.sampleForm === "Liquid" && calc.specificGravity != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Sp.gr
+                  {t("icpReview.spGr")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {calc.specificGravity}
+                  <Ltr>{calc.specificGravity}</Ltr>
                 </Typography>
               </Box>
             )}
             {isAssay && calc.actualWeightG != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Act.Wt
+                  {t("icpReview.actWt")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {calc.actualWeightG} g
+                  <Ltr>{calc.actualWeightG} g</Ltr>
                 </Typography>
               </Box>
             )}
           </Stack>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", fontStyle: "italic" }}>
-            Formula: {icpFormulaText(calc)}
+            <Trans
+              i18nKey="icpReview.formula"
+              ns="testingWorkspace"
+              values={{ formula: icpFormulaText(calc) }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
       </Paper>
@@ -214,11 +241,16 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mt: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12 }}>
-            Reported Result: <strong>{parameter.reportedDisplay || calc.display || calc.reportedValue}</strong>
+            {t("icpReview.reportedResult")} <strong><Ltr>{parameter.reportedDisplay || calc.display || calc.reportedValue}</Ltr></strong>
           </Typography>
           {parameter.specLimit && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              (Spec: {parameter.specLimit})
+              <Trans
+                i18nKey="icpReview.specParens"
+                ns="testingWorkspace"
+                values={{ spec: parameter.specLimit }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           )}
           <HplcStatusBadge status={parameter.comparisonStatus} />
@@ -227,7 +259,12 @@ export function IcpReviewPanel({ parameter, testOrderId }: IcpReviewPanelProps) 
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Raw evidence stored under ICP Run <strong>{calc.runCode}</strong>
+            <Trans
+              i18nKey="icpReview.rawEvidenceRun"
+              ns="testingWorkspace"
+              values={{ runCode: calc.runCode }}
+              components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
       </Box>

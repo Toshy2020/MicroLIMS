@@ -29,7 +29,8 @@ public class RolePermissionSeedDataTests
             new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
             new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
             new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
-            new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
+            new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true },
+            new Role { Type = RoleType.Qa, Name = "QA", IsSystemRole = true, IsActive = true }
         );
         db.SaveChanges();
 
@@ -158,10 +159,13 @@ public class RolePermissionSeedDataTests
             PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
             PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
             PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
-            PermissionConstants.SamplesPrepare
+            PermissionConstants.SamplesPrepare,
+            PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure,
+            PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
+            PermissionConstants.NotificationsConfigure
         };
 
-        Assert.Equal(58, codes.Count);
+        Assert.Equal(63, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -191,10 +195,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
             PermissionConstants.SamplesPrepare,
             // Releases a prepared solution (never one they prepared).
-            PermissionConstants.SolutionsRelease
+            PermissionConstants.SolutionsRelease,
+            // Exports a table to CSV (audited).
+            PermissionConstants.DataExport
         };
 
-        Assert.Equal(20, codes.Count);
+        Assert.Equal(21, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -229,10 +235,12 @@ public class RolePermissionSeedDataTests
             PermissionConstants.MonitoringPlanView,
             // Equipment plan: record calibrations and logbook entries.
             PermissionConstants.EquipmentWorkRecord,
-            PermissionConstants.SamplesPrepare
+            PermissionConstants.SamplesPrepare,
+            // Takes an unassigned test in their own sections (My Work).
+            PermissionConstants.TestsSelfAssign
         };
 
-        Assert.Equal(18, codes.Count);
+        Assert.Equal(19, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -242,16 +250,46 @@ public class RolePermissionSeedDataTests
     }
 
     [Fact]
+    public async Task QcManager_HoldsExactlyTheCatalogSet()
+    {
+        var db = CreateSeededDbContext();
+        var codes = await CodesForRole(db, RoleType.QcManager);
+
+        var expected = new[]
+        {
+            PermissionConstants.DiscussionsView, PermissionConstants.MonitoringPlanView,
+            PermissionConstants.NotApplicableTestsFinalApprove,
+            // Shares saved table views with the section and exports tables to CSV (audited).
+            PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
+            // Configures section mandatory notification types, working hours and escalation rules.
+            PermissionConstants.NotificationsConfigure
+        };
+
+        Assert.Equal(6, codes.Count);
+        Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
+    }
+
+    [Fact]
+    public async Task Qa_HoldsExactlyTheCatalogSet()
+    {
+        var db = CreateSeededDbContext();
+        var codes = await CodesForRole(db, RoleType.Qa);
+
+        Assert.Equal(PermissionConstants.QaGrants.Count, codes.Count);
+        Assert.Equal(PermissionConstants.QaGrants.OrderBy(c => c), codes.OrderBy(c => c));
+    }
+
+    [Fact]
     public async Task TotalGrantCount_MatchesTheCatalog()
     {
         // The System Administrator holds only PermissionConstants.SystemAdministratorGrants
-        // (26 system codes, no lab/GxP codes). The total is the sum of the five per-role
+        // (26 system codes, no lab/GxP codes). The total is the sum of the six per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 26 + SectionHead 58 + Reviewer 20 + Analyst 18 + QcManager 3 = 125.
+        //   SystemAdministrator 26 + SectionHead 63 + Reviewer 21 + Analyst 19 + QcManager 6 + Qa 18 = 153.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(125, total);
+        Assert.Equal(153, total);
     }
 
     [Fact]
@@ -261,7 +299,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(125, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(153, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

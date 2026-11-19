@@ -8,6 +8,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -65,7 +66,9 @@ public class SampleDocumentService
         UnitOfWork.RunAsync(_db, async () =>
         {
             if (type == SampleDocumentType.ExternalLabReport)
-                throw new BusinessRuleException("An external lab report is uploaded from its outsourced test.");
+                throw new BusinessRuleException(
+                    MessageCodes.DocumentExternalReportMustUploadFromTest,
+                    "An external lab report is uploaded from its outsourced test.");
             await EnsureAccessAsync(sampleId, userId, ct);
             return await StoreAsync(sampleId, fileName, contentType, content, type, null, userId, ct);
         });
@@ -77,9 +80,15 @@ public class SampleDocumentService
         {
             var order = await _db.TestOrders.AsNoTracking().Where(t => t.Id == testOrderId)
                 .Select(t => new { t.SampleId, t.OutsourcedToLab }).FirstOrDefaultAsync(ct)
-                ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.TestOrderNotFound,
+                    $"Test order {testOrderId} not found.",
+                    new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString() });
             if (order.OutsourcedToLab == null)
-                throw new BusinessRuleException($"Test order {testOrderId} is not an outsourced test.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestNotOutsourced,
+                    $"Test order {testOrderId} is not an outsourced test.",
+                    new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString() });
             await _scope.EnsureTestOrderAccessAsync(userId, testOrderId, ct);
             return await StoreAsync(order.SampleId, fileName, contentType, content, SampleDocumentType.ExternalLabReport, testOrderId, userId, ct);
         });
@@ -91,7 +100,10 @@ public class SampleDocumentService
 
         var error = _validator.Validate(fileName, contentType, content.Length, content.Take(16).ToArray());
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(
+                MessageCodes.SampleDocumentValidationFailed,
+                error,
+                new Dictionary<string, string> { ["message"] = error });
 
         _db.CurrentUserId = userId;
         var ext = Path.GetExtension(fileName).ToLowerInvariant();
@@ -149,7 +161,10 @@ public class SampleDocumentService
     {
         var document = await _db.SampleDocuments.AsNoTracking().Include(d => d.UploadedByUser)
             .FirstOrDefaultAsync(d => d.Id == documentId, ct)
-            ?? throw new NotFoundException($"Document {documentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.DocumentNotFound,
+                $"Document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString() });
         await EnsureAccessAsync(document.SampleId, userId, ct);
         if (document.TestOrderId.HasValue)
             await _scope.EnsureTestOrderAccessAsync(userId, document.TestOrderId.Value, ct);
@@ -162,13 +177,17 @@ public class SampleDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for SampleDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new BusinessRuleException("The document file could not be retrieved.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentFileReadFailed,
+                "The document file could not be retrieved.");
         }
 
         if (!string.Equals(Convert.ToHexString(SHA256.HashData(content)), document.ContentSha256, StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogError("INTEGRITY FAILURE: SampleDocument {Id} (sample {SampleId}) does not match its stored hash.", document.Id, document.SampleId);
-            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentIntegrityCheckFailed,
+                "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
         return (ToDto(document), content);
     }
@@ -179,20 +198,29 @@ public class SampleDocumentService
     private async Task<SampleDocumentDto> VoidCoreAsync(int documentId, string reason, int userId, CancellationToken ct)
     {
         var document = await _db.SampleDocuments.Include(d => d.UploadedByUser).FirstOrDefaultAsync(d => d.Id == documentId, ct)
-            ?? throw new NotFoundException($"Document {documentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.DocumentNotFound,
+                $"Document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString() });
         await EnsureAccessAsync(document.SampleId, userId, ct);
         if (document.TestOrderId.HasValue)
             await _scope.EnsureTestOrderAccessAsync(userId, document.TestOrderId.Value, ct);
         await EnsureSampleOpenAsync(document.SampleId, ct);
 
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A void reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentVoidReasonRequired,
+                "A void reason is required.");
         if (document.Status == SampleDocumentStatus.Voided)
-            throw new BusinessRuleException("This document is already voided.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentAlreadyVoided,
+                "This document is already voided.");
         // a recorded result cites its external report: the test is returned first, so the evidence is never voided under a signed result
         if (document.DocumentType == SampleDocumentType.ExternalLabReport
             && await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == document.TestOrderId && a.IsActive, ct))
-            throw new BusinessRuleException("This external report supports a recorded result; return the test before voiding it.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentExternalReportHasRecordedResult,
+                "This external report supports a recorded result; return the test before voiding it.");
 
         _db.CurrentUserId = userId;
         document.Status = SampleDocumentStatus.Voided;
@@ -213,7 +241,10 @@ public class SampleDocumentService
     private async Task EnsureAccessAsync(int sampleId, int userId, CancellationToken ct)
     {
         if (!await _db.Samples.AsNoTracking().AnyAsync(s => s.Id == sampleId, ct))
-            throw new NotFoundException($"Sample {sampleId} not found.");
+            throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString() });
         await _scope.EnsureSampleAccessAsync(userId, sampleId, ct);
     }
 
@@ -222,7 +253,9 @@ public class SampleDocumentService
     {
         var status = await _db.Samples.AsNoTracking().Where(s => s.Id == sampleId).Select(s => s.Status).FirstAsync(ct);
         if (status is SampleStatus.Voided or SampleStatus.Cancelled)
-            throw new BusinessRuleException("This sample is voided; its documents can no longer be changed.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleVoidedDocumentsLocked,
+                "This sample is voided; its documents can no longer be changed.");
     }
 
     // Strips the path and every control character and double quote (header / log injection).

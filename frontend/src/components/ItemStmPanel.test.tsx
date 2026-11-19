@@ -135,7 +135,7 @@ describe("ItemStmPanel", () => {
       expect(screen.getByText("STM STM-RM-102")).toBeTruthy();
     });
     expect(screen.getByText("Specification for Raw Material")).toBeTruthy();
-    expect(screen.getByText(/Revision 01 · Effective Oct 15, 2026/)).toBeTruthy();
+    expect(screen.getByText((_, el) => el?.tagName === "DIV" && el.textContent === "Revision 01 · Effective 15 Oct 2026")).toBeTruthy();
 
     const viewButton = screen.getByRole("button", { name: /View/i });
     const downloadButton = screen.getByRole("button", { name: /Download/i });

@@ -1,0 +1,201 @@
+{
+  "page": {
+    "title": "المواد القياسية العاملة",
+    "subtitle": "تشغيلات المواد القياسية العاملة والتأهيلات والتحقق من الرطوبة والتوقيع",
+    "loadError": "تعذّر تحميل بيانات المواد القياسية العاملة"
+  },
+  "actions": {
+    "refresh": "تحديث",
+    "newQualification": "تأهيل جديد",
+    "newQualificationTooltip": "إنشاء تأهيل أولي",
+    "permissionRequired": "الصلاحية المطلوبة: {{permission}}",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "saving": "جارٍ الحفظ...",
+    "close": "إغلاق",
+    "upload": "رفع",
+    "uploading": "جارٍ الرفع...",
+    "chooseFile": "اختيار ملف",
+    "requalify": "إعادة التأهيل",
+    "processing": "جارٍ المعالجة..."
+  },
+  "kpis": {
+    "activeLots": "التشغيلات النشطة",
+    "valid": "صالحة",
+    "dueSoon": "تنتهي صلاحيتها قريبًا",
+    "expiredDepleted": "منتهية الصلاحية / مستنفدة",
+    "pendingQuals": "تأهيلات معلّقة"
+  },
+  "tabs": {
+    "lots": "التشغيلات (<ltr>{{count}}</ltr>)",
+    "qualifications": "التأهيلات (<ltr>{{count}}</ltr>)"
+  },
+  "units": {
+    "percent": "{{value}} %",
+    "grams": "{{value}} g"
+  },
+  "lotStatuses": {
+    "Valid": "صالح",
+    "DueSoon": "ينتهي قريبًا",
+    "Expired": "منتهي الصلاحية",
+    "Depleted": "مستنفد"
+  },
+  "qualificationStatuses": {
+    "Draft": "مسودة",
+    "Assayed": "تمت المقايسة",
+    "Reviewed": "تمت المراجعة",
+    "Approved": "معتمد",
+    "Rejected": "مرفوض"
+  },
+  "qualificationKinds": {
+    "Initial": "أولي",
+    "Requalification": "إعادة التأهيل"
+  },
+  "documentKinds": {
+    "SourceReport": "تقرير المصدر",
+    "MoistureReport": "تقرير الرطوبة"
+  },
+  "lotsTable": {
+    "empty": "لم يتم العثور على تشغيلات مواد قياسية عاملة.",
+    "columns": {
+      "code": "الرمز",
+      "material": "المادة",
+      "batch": "دفعة",
+      "potency": "الفاعلية %",
+      "moisture": "نسبة الرطوبة %",
+      "remaining": "المتبقي (g)",
+      "expiry": "انتهاء الصلاحية",
+      "status": "الحالة",
+      "actions": "الإجراءات"
+    },
+    "requalifyInProgress": "التأهيل قيد التنفيذ بالفعل (#{{id}})",
+    "initiateRequalification": "بدء إعادة التأهيل"
+  },
+  "qualificationsTable": {
+    "empty": "لم يتم العثور على تأهيلات.",
+    "columns": {
+      "code": "الرمز",
+      "kind": "النوع",
+      "material": "المادة",
+      "batch": "دفعة",
+      "status": "الحالة",
+      "run": "التشغيل",
+      "created": "تاريخ الإنشاء"
+    },
+    "lotCode": "التشغيلة: <ltr>{{code}}</ltr>",
+    "byUser": "بواسطة {{user}}"
+  },
+  "newDialog": {
+    "titleRequalify": "إعادة تأهيل مادة قياسية عاملة",
+    "titleNew": "تأهيل مادة قياسية عاملة جديد",
+    "requalifyingLot": "إعادة تأهيل التشغيلة: <ltr>{{code}}</ltr>",
+    "materialLine": "المادة: {{name}} (<ltr>{{code}}</ltr>)",
+    "batchLine": "دفعة: <ltr>{{batch}}</ltr>",
+    "sourceOption": "خيار المصدر",
+    "sourceModeManual": "يدوي",
+    "sourceModeReceived": "عينة مستلمة",
+    "sourceSampleLabel": "عينة المصدر",
+    "sourceSamplePlaceholder": "ابحث في العينات المستلمة...",
+    "noBatch": "بدون دفعة",
+    "nameLabel": "الاسم",
+    "batchLabel": "دفعة",
+    "masterEntryLabel": "البند الرئيسي",
+    "quantityLabel": "الكمية (g)",
+    "locationLabel": "الموقع",
+    "moistureLabel": "نسبة الرطوبة %",
+    "moistureHelperRequalify": "أدخل نسبة محتوى الرطوبة % لإعادة التأهيل",
+    "moistureHelperInitial": "نسبة محتوى الرطوبة الأولية % (اختياري)",
+    "toastRequalified": "تم بدء إعادة التأهيل",
+    "toastCreated": "تم إنشاء التأهيل",
+    "createFailed": "تعذّر إنشاء التأهيل"
+  },
+  "drawer": {
+    "loadError": "تعذّر تحميل تفاصيل التأهيل",
+    "empty": "لم يتم تحديد تأهيل.",
+    "needsSourceReport": "ارفع أول تقرير اختبار لمادة خام قبل إمكانية إسناد هذا التأهيل إلى تشغيل HPLC.",
+    "createdOn": "تم الإنشاء في <ltr>{{date}}</ltr>",
+    "createdOnBy": "تم الإنشاء في <ltr>{{date}}</ltr> بواسطة {{user}}"
+  },
+  "source": {
+    "heading": "المصدر والمواصفات",
+    "masterEntry": "البند الرئيسي",
+    "sourceMaterialBatch": "المادة المصدر والدفعة",
+    "batchLine": "دفعة: <ltr>{{batch}}</ltr>",
+    "sourceSampleReference": "مرجع العينة المصدر",
+    "workingStandardLot": "تشغيلة المادة القياسية العاملة",
+    "quantity": "الكمية",
+    "location": "الموقع",
+    "moistureContent": "محتوى الرطوبة",
+    "returnReason": "سبب الإرجاع:",
+    "rejectionReason": "سبب الرفض:"
+  },
+  "results": {
+    "heading": "تشغيل HPLC ونتائج المقايسة",
+    "runButton": "تشغيل <ltr>{{runCode}}</ltr> (عينة <ltr>#{{sampleId}}</ltr>)",
+    "awaitingRun": "بانتظار إسناد تشغيل مساحة عمل HPLC وتنفيذه.",
+    "passed": "اجتاز معايير القبول التحليلية.",
+    "failed": "فشل في معايير القبول: {{reasons}}",
+    "criteriaNotMet": "لم يتم استيفاء المعايير.",
+    "meanAssay": "متوسط المقايسة %",
+    "rsd": "RSD %",
+    "potency": "الفاعلية %",
+    "replicateAssays": "المقايسات المتكررة (<ltr>{{count}}</ltr>)",
+    "replicateChip": "R{{index}}: {{value}} %",
+    "evidenceHeading": "أدلة تشغيل HPLC",
+    "evidenceButton": "دليل <ltr>#{{id}}</ltr>",
+    "noEvidence": "لا توجد ملفات أدلة متاحة لتشغيل HPLC.",
+    "openEvidenceError": "تعذّر فتح الدليل #{{id}}"
+  },
+  "documents": {
+    "heading": "المستندات والأدلة",
+    "empty": "لم يتم رفع أي مستندات بعد.",
+    "viewDocument": "عرض مستند",
+    "uploadedOn": "تم الرفع في <ltr>{{date}}</ltr>",
+    "uploadedOnBy": "تم الرفع في <ltr>{{date}}</ltr> بواسطة {{user}}",
+    "uploadSectionTitle": "رفع تقرير داعم (المسودة فقط)",
+    "typeLabel": "النوع",
+    "uploadSuccess": "تم رفع مستند {{fileName}}",
+    "uploadError": "تعذّر رفع مستند",
+    "openError": "تعذّر فتح مستند"
+  },
+  "signOffSection": {
+    "heading": "سير العمل والتوقيع",
+    "preparedBy": "أعدّه:",
+    "reviewedBy": "راجعه:",
+    "approvedBy": "اعتمده:",
+    "rejectedBy": "رفضه:",
+    "userAt": "{{user}}",
+    "userAtDate": "{{user}} في <ltr>{{date}}</ltr>",
+    "reviewActionsTitle": "إجراءات المراجعة (يتطلب صلاحية {{permission}})",
+    "approvalActionsTitle": "إجراءات الاعتماد (يتطلب صلاحية {{permission}})",
+    "review": "مراجعة",
+    "returnToDraft": "إرجاع إلى مسودة",
+    "reject": "رفض",
+    "approve": "اعتماد"
+  },
+  "signOffDialog": {
+    "defaultTitle": "التوقيع الإلكتروني",
+    "defaultConfirm": "توقيع",
+    "reviewTitle": "مراجعة التأهيل {{code}}",
+    "reviewMeaning": "أؤكد أنني قمت بمراجعة سجل تأهيل المادة القياسية العاملة هذا والتحقق من النتائج التحليلية.",
+    "reviewConfirm": "توقيع ومراجعة",
+    "approveTitle": "اعتماد التأهيل {{code}}",
+    "approveMeaning": "أعتمد تأهيل المادة القياسية العاملة هذا وأفرج عن المادة القياسية للاستخدام في الاختبارات التحليلية.",
+    "approveConfirm": "توقيع واعتماد",
+    "rejectTitle": "رفض التأهيل {{code}}",
+    "rejectMeaning": "أرفض تأهيل المادة القياسية العاملة هذا. يلزم تقديم مبرر مفصل.",
+    "rejectConfirm": "توقيع ورفض",
+    "returnTitle": "إرجاع التأهيل {{code}}",
+    "returnMeaning": "إرجاع التأهيل إلى حالة مسودة للتصحيح. يرجى تقديم سبب.",
+    "returnConfirm": "إرجاع إلى مسودة",
+    "reasonLabel": "السبب / المبرر",
+    "reasonPlaceholder": "أدخل السبب...",
+    "commentLabel": "تعليق (اختياري)",
+    "passwordLabel": "كلمة المرور",
+    "toastReviewed": "تمت مراجعة التأهيل {{code}} بنجاح",
+    "toastApproved": "تم اعتماد التأهيل {{code}} بنجاح",
+    "toastRejected": "تم رفض التأهيل {{code}}",
+    "toastReturned": "تم إرجاع التأهيل {{code}} إلى مسودة",
+    "actionFailed": "فشل الإجراء. يرجى التحقق من بيانات الاعتماد والمحاولة مرة أخرى."
+  }
+}

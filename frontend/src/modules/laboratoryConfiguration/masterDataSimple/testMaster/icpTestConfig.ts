@@ -1,6 +1,9 @@
 // Test Master settings of an ICP method assay test: what it reports, the sample basis for the assay formula,
 // and the elements with their target concentration (ppm). The server validates and stores them.
 
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
+
 export type IcpTestMode = "Assay" | "Impurity";
 export type IcpSampleForm = "Solid" | "Liquid";
 
@@ -100,15 +103,22 @@ export function icpPayloadFields(form: IcpTestForm): IcpTestPayloadFields {
 }
 
 // Completeness only; the limits and rules (target > 0, symbols, duplicates) are checked by the server.
-export function validateIcpForm(form: IcpTestForm): string | null {
-  if (!form.elements.some((e) => e.symbol.trim() !== "")) return "Add at least one element.";
+export function validateIcpForm(
+  form: IcpTestForm,
+  t: TFunction = i18n.getFixedT("en", "masterData")
+): string | null {
+  if (!form.elements.some((e) => e.symbol.trim() !== "")) return t("testMaster.icp.validation.addElement");
   if (form.mode === "Assay") {
     if (num(form.theoreticalAmount) === null) {
-      return form.sampleForm === "Solid" ? "Enter the theoretical weight (g)." : "Enter the theoretical volume (mL).";
+      return form.sampleForm === "Solid"
+        ? t("testMaster.icp.validation.theoreticalWeight")
+        : t("testMaster.icp.validation.theoreticalVolume");
     }
-    if (form.sampleForm === "Liquid" && num(form.specificGravity) === null) return "Enter the specific gravity.";
+    if (form.sampleForm === "Liquid" && num(form.specificGravity) === null) {
+      return t("testMaster.icp.validation.specificGravity");
+    }
     const missing = form.elements.find((e) => e.symbol.trim() !== "" && num(e.targetPpm) === null);
-    if (missing) return `Enter the target concentration (ppm) for ${missing.symbol.trim()}.`;
+    if (missing) return t("testMaster.icp.validation.targetPpm", { symbol: missing.symbol.trim() });
   }
   return null;
 }

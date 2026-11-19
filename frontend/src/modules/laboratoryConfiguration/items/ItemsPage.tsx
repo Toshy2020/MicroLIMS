@@ -2,14 +2,20 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Box, Button, Alert, Grid, Typography, Stack } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { useTranslation } from "../../../i18n";
 import { PageHeader } from "../../../components/PageHeader";
 import { ItemTable, ITEM_ROWS_PER_PAGE_OPTIONS } from "./ItemTable";
-import { ItemService, Item } from "./services/ItemService";
+import { CopyItemOptions, ItemService, Item, ItemSaveRequest } from "./services/ItemService";
+import { isReasonRequiredError } from "../../../services/apiClient";
+import { ChangeReasonDialog } from "../../../components/config/ChangeReasonDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
 import { ItemFilterBar } from "./components/ItemFilterBar";
+import { noteOwnSave } from "../../../hooks/useRecordChanged";
 import { AddItemDialog } from "./components/AddItemDialog";
-import { ItemWorkspace, parseItemWorkspaceTab, type ItemWorkspaceTab } from "./components/ItemWorkspace";
+import { ItemWorkspace, ITEM_WORKSPACE_TABS } from "./components/ItemWorkspace";
+import { usePersistedTab } from "../../../hooks/usePersistedTab";
 import { UnmappedPreparationConfigurations } from "./components/UnmappedPreparationConfigurations";
 
 type ApiErrorShape = { response?: { data?: { message?: string } } };
@@ -19,6 +25,7 @@ function apiErrorMessage(e: unknown, fallback: string): string {
 }
 
 export function ItemsPage() {
+  const { t } = useTranslation("labConfig");
   // The QC Manager reaches this page to approve not-applicable tests; creating and changing items needs Items.Manage.
   const canManage = useHasPermission(PERMISSIONS.ITEMS_MANAGE);
   const [items, setItems] = useState<Item[]>([]);
@@ -29,7 +36,8 @@ export function ItemsPage() {
     const id = itemParam === null ? NaN : Number(itemParam);
     return Number.isInteger(id) && id > 0 ? id : null;
   }, [itemParam]);
-  const activeTab = parseItemWorkspaceTab(searchParams.get("tab"));
+  // ?tab= wins; without it the tab used last time opens (an unknown or retired value falls back to Overview).
+  const [activeTab, handleTabChange] = usePersistedTab("items", ITEM_WORKSPACE_TABS, "tab");
 
   const setSelectedItemId = useCallback(
     (id: number | null) => {
@@ -47,22 +55,9 @@ export function ItemsPage() {
     [setSearchParams]
   );
 
-  const handleTabChange = useCallback(
-    (tab: ItemWorkspaceTab) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          if (tab === "overview") next.delete("tab");
-          else next.set("tab", tab);
-          return next;
-        },
-        { replace: true }
-      );
-    },
-    [setSearchParams]
-  );
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addFromExisting, setAddFromExisting] = useState(false);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,6 +72,15 @@ export function ItemsPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
+  type PendingItemReasonAction =
+    | { kind: "delete"; item: Item }
+    | { kind: "freeze"; item: Item }
+    | { kind: "unfreeze"; item: Item }
+    | { kind: "edit"; id: number; name: string; payload: ItemSaveRequest; version?: number };
+  const [pendingReasonAction, setPendingReasonAction] = useState<PendingItemReasonAction | null>(null);
+  const [reasonSubmitting, setReasonSubmitting] = useState(false);
+  const [reasonError, setReasonError] = useState<string | null>(null);
+
   const loadItems = () => {
     setLoading(true);
     ItemService.getAll()
@@ -85,7 +89,7 @@ export function ItemsPage() {
         setLoadError(null);
       })
       .catch((e: unknown) => {
-        setLoadError(apiErrorMessage(e, "Could not load items."));
+        setLoadError(apiErrorMessage(e, t("items.page.loadError")));
       })
       .finally(() => setLoading(false));
   };
@@ -177,11 +181,19 @@ export function ItemsPage() {
 
   const handleOpenAdd = () => {
     setEditingItem(null);
+    setAddFromExisting(false);
+    setAddDialogOpen(true);
+  };
+
+  const handleOpenAddFromExisting = () => {
+    setEditingItem(null);
+    setAddFromExisting(true);
     setAddDialogOpen(true);
   };
 
   const handleOpenEdit = (item: Item) => {
     setEditingItem(item);
+    setAddFromExisting(false);
     setAddDialogOpen(true);
   };
 
@@ -194,9 +206,10 @@ export function ItemsPage() {
     minSampleQuantity?: number | null;
     minRetestSampleQuantity?: number | null;
     minSampleQuantityUnit?: string | null;
+    copyFrom?: CopyItemOptions | null;
   }) => {
     setMessage(null);
-    const payload = {
+    const basePayload: ItemSaveRequest = {
       name: itemData.name,
       code: itemData.code,
       category: itemData.category,
@@ -208,43 +221,80 @@ export function ItemsPage() {
     };
 
     if (editingItem) {
-      await ItemService.update(editingItem.id, payload, editingItem.version);
-      setMessage({ text: `Item "${itemData.name}" updated successfully.`, ok: true });
+      try {
+        await ItemService.update(editingItem.id, basePayload, editingItem.version);
+        noteOwnSave("item", editingItem.id);
+        setMessage({ text: t("items.page.messages.updated", { name: itemData.name }), ok: true });
+      } catch (e: unknown) {
+        if (isReasonRequiredError(e)) {
+          setReasonError(null);
+          setPendingReasonAction({
+            kind: "edit",
+            id: editingItem.id,
+            name: itemData.name,
+            payload: basePayload,
+            version: editingItem.version,
+          });
+          return;
+        }
+        throw e;
+      }
     } else {
-      const created = await ItemService.create(payload);
-      setMessage({ text: `Item "${itemData.name}" created successfully.`, ok: true });
+      const createPayload: ItemSaveRequest = itemData.copyFrom
+        ? { ...basePayload, copyFrom: itemData.copyFrom }
+        : basePayload;
+      const created = await ItemService.create(createPayload);
+      setMessage({ text: t("items.page.messages.created", { name: itemData.name }), ok: true });
       setSelectedItemId(created.id);
     }
     loadItems();
   };
 
-  const handleDeleteItem = async (item: Item) => {
+  const handleDeleteItem = (item: Item) => {
     setMessage(null);
-    try {
-      await ItemService.remove(item.id);
-      setMessage({ text: `Item "${item.name}" deleted.`, ok: true });
-      if (selectedItemId === item.id) {
-        setSelectedItemId(null);
-      }
-      loadItems();
-    } catch (e: unknown) {
-      setMessage({ text: apiErrorMessage(e, "Could not delete item."), ok: false });
-    }
+    setReasonError(null);
+    setPendingReasonAction({ kind: "delete", item });
   };
 
-  const handleToggleFreezeItem = async (item: Item) => {
+  const handleToggleFreezeItem = (item: Item) => {
     setMessage(null);
+    setReasonError(null);
+    setPendingReasonAction({ kind: item.isActive ? "freeze" : "unfreeze", item });
+  };
+
+  const handleConfirmReasonAction = async (reason: string) => {
+    if (!pendingReasonAction) return;
+    setReasonSubmitting(true);
+    setReasonError(null);
     try {
-      if (item.isActive) {
-        await ItemService.freeze(item.id);
-        setMessage({ text: `Item "${item.name}" frozen.`, ok: true });
+      if (pendingReasonAction.kind === "delete") {
+        await ItemService.remove(pendingReasonAction.item.id, reason);
+        setMessage({ text: t("items.page.messages.deleted", { name: pendingReasonAction.item.name }), ok: true });
+        if (selectedItemId === pendingReasonAction.item.id) {
+          setSelectedItemId(null);
+        }
+      } else if (pendingReasonAction.kind === "freeze") {
+        await ItemService.freeze(pendingReasonAction.item.id, reason);
+        setMessage({ text: t("items.page.messages.frozen", { name: pendingReasonAction.item.name }), ok: true });
+      } else if (pendingReasonAction.kind === "unfreeze") {
+        await ItemService.unfreeze(pendingReasonAction.item.id, reason);
+        setMessage({ text: t("items.page.messages.unfrozen", { name: pendingReasonAction.item.name }), ok: true });
       } else {
-        await ItemService.unfreeze(item.id);
-        setMessage({ text: `Item "${item.name}" unfrozen.`, ok: true });
+        await ItemService.update(
+          pendingReasonAction.id,
+          pendingReasonAction.payload,
+          pendingReasonAction.version,
+          reason
+        );
+        noteOwnSave("item", pendingReasonAction.id);
+        setMessage({ text: t("items.page.messages.updated", { name: pendingReasonAction.name }), ok: true });
       }
+      setPendingReasonAction(null);
       loadItems();
     } catch (e: unknown) {
-      setMessage({ text: apiErrorMessage(e, "Could not update item status."), ok: false });
+      setReasonError(apiErrorMessage(e, t("items.page.actionError")));
+    } finally {
+      setReasonSubmitting(false);
     }
   };
 
@@ -261,17 +311,27 @@ export function ItemsPage() {
           mb: 2
         }}
       >
-        <PageHeader title="Items" subtitle="Configure which tests are auto-assigned when a sample is received." />
+        <PageHeader title={t("items.page.title")} subtitle={t("items.page.subtitle")} />
         {canManage && (
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={handleOpenAdd}
-          sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
-        >
-          Add Item
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<ContentCopyIcon />}
+            onClick={handleOpenAddFromExisting}
+            sx={{ textTransform: "none", fontWeight: 700 }}
+          >
+            {t("items.page.newFromExisting")}
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleOpenAdd}
+            sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
+          >
+            {t("items.page.addItem")}
+          </Button>
+        </Stack>
         )}
       </Box>
 
@@ -289,7 +349,7 @@ export function ItemsPage() {
           sx={{ mb: 2 }}
           action={
             <Button color="inherit" size="small" onClick={loadItems} disabled={loading}>
-              Retry
+              {t("items.page.retry")}
             </Button>
           }
         >
@@ -326,8 +386,9 @@ export function ItemsPage() {
                 mb: 1
               }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                Configured Items ({filteredItems.length}
-                {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
+                {isFiltered && items.length !== filteredItems.length
+                  ? t("items.page.configuredCountFiltered", { count: filteredItems.length, total: items.length })
+                  : t("items.page.configuredCount", { count: filteredItems.length })}
               </Typography>
             </Stack>
             <ItemTable
@@ -371,8 +432,9 @@ export function ItemsPage() {
         /* Full width register when no item is selected */
         <Box sx={{ mt: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-            Configured Items ({filteredItems.length}
-            {isFiltered && items.length !== filteredItems.length ? ` of ${items.length}` : ""})
+            {isFiltered && items.length !== filteredItems.length
+              ? t("items.page.configuredCountFiltered", { count: filteredItems.length, total: items.length })
+              : t("items.page.configuredCount", { count: filteredItems.length })}
           </Typography>
           <ItemTable
             items={filteredItems}
@@ -399,8 +461,51 @@ export function ItemsPage() {
       <AddItemDialog
         open={addDialogOpen}
         itemToEdit={editingItem}
-        onClose={() => setAddDialogOpen(false)}
+        onItemReloaded={setEditingItem}
+        existingItems={items}
+        startFromExisting={addFromExisting}
+        onClose={() => {
+          setAddDialogOpen(false);
+          setAddFromExisting(false);
+        }}
         onSave={handleSaveItem}
+      />
+
+      <ChangeReasonDialog
+        open={pendingReasonAction !== null}
+        title={
+          pendingReasonAction?.kind === "delete"
+            ? t("items.page.reasonDialog.deleteTitle", { name: pendingReasonAction.item.name })
+            : pendingReasonAction?.kind === "freeze"
+            ? t("items.page.reasonDialog.freezeTitle", { name: pendingReasonAction.item.name })
+            : pendingReasonAction?.kind === "unfreeze"
+            ? t("items.page.reasonDialog.unfreezeTitle", { name: pendingReasonAction.item.name })
+            : pendingReasonAction
+            ? t("items.page.reasonDialog.editTitle", { name: pendingReasonAction.name })
+            : t("items.page.reasonDialog.defaultTitle")
+        }
+        message={
+          pendingReasonAction?.kind === "delete"
+            ? t("items.page.reasonDialog.deleteMessage")
+            : pendingReasonAction?.kind === "freeze"
+            ? t("items.page.reasonDialog.freezeMessage")
+            : pendingReasonAction?.kind === "unfreeze"
+            ? t("items.page.reasonDialog.unfreezeMessage")
+            : t("items.page.reasonDialog.editMessage")
+        }
+        confirmText={
+          pendingReasonAction?.kind === "delete"
+            ? t("items.page.reasonDialog.confirmDelete")
+            : pendingReasonAction?.kind === "freeze"
+            ? t("items.page.reasonDialog.confirmFreeze")
+            : pendingReasonAction?.kind === "unfreeze"
+            ? t("items.page.reasonDialog.confirmUnfreeze")
+            : t("items.page.reasonDialog.confirmEdit")
+        }
+        loading={reasonSubmitting}
+        error={reasonError}
+        onCancel={() => { setPendingReasonAction(null); setReasonError(null); }}
+        onConfirm={handleConfirmReasonAction}
       />
     </Box>
   );

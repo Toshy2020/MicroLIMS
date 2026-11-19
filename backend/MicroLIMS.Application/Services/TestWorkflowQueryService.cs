@@ -1,9 +1,11 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -32,7 +34,10 @@ public class TestWorkflowQueryService
     {
         var incubators = await _incubatorEligibility.GetEligibleIncubatorsAsync(stepMediaId);
         var stepMedia = await _db.TestWorkflowStepMedias.FirstOrDefaultAsync(m => m.Id == stepMediaId)
-            ?? throw new NotFoundException($"Step media {stepMediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleStepMediaNotFound,
+                $"Step media {stepMediaId} not found.",
+                new Dictionary<string, string> { ["stepMediaId"] = stepMediaId.ToString(CultureInfo.InvariantCulture) });
 
         return new
         {
@@ -49,13 +54,19 @@ public class TestWorkflowQueryService
     public async Task<object> GetPermittedConfirmatoryMediaAsync(int testOrderId, string stepName)
     {
         var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         var step = await _db.TestWorkflowSteps
             .Include(s => s.StepMedia).ThenInclude(m => m.MediaProduct)
             .Include(s => s.TargetOrganism)
             .Include(s => s.TestDefinition)
             .FirstOrDefaultAsync(s => s.TestDefinition!.Code == order.TestCode && s.StepName == stepName)
-            ?? throw new BusinessRuleException($"Step '{stepName}' is not part of {order.TestCode}.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleStepNotPartOfTest,
+                $"Step '{stepName}' is not part of {order.TestCode}.",
+                new Dictionary<string, string> { ["stepName"] = stepName, ["testCode"] = order.TestCode });
 
         // The run still awaiting its plate readings - the same row
         // SubmitConfirmatoryObservationsAsync reads; null before plating starts.

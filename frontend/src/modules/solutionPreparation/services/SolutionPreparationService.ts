@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from "axios";
 import { apiClient } from "../../../services/apiClient";
 import type {
   SolutionType,
@@ -110,11 +111,13 @@ export const SolutionPreparationService = {
 
   save: async (
     id: number,
-    req: SavePreparationRequest
+    req: SavePreparationRequest,
+    config?: AxiosRequestConfig
   ): Promise<SolutionPreparationResponse> => {
     const res = await apiClient.put<ApiResponse<SolutionPreparationResponse>>(
       `/solution-preparations/${id}`,
-      req
+      req,
+      config
     );
     return res.data?.data;
   },

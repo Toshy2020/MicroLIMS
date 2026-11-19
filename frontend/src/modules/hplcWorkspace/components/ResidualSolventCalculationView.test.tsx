@@ -53,7 +53,9 @@ describe("ResidualSolventCalculationView", () => {
     );
 
     // Title and metadata
-    expect(screen.getByText(/Residual Solvent Review · Methanol/i)).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && /Residual Solvent Review · Methanol/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
     expect(screen.getAllByText(/GC-2026-001/).length).toBeGreaterThan(0);
     expect(screen.getByText(/SST-001/)).toBeTruthy();
 
@@ -62,7 +64,7 @@ describe("ResidualSolventCalculationView", () => {
     expect(screen.getByText("10 mL")).toBeTruthy();
     expect(screen.getByText("24500")).toBeTruthy();
     expect(
-      screen.getByText(/Formula: ppm = \(C_std × V \/ W\) × \(r_u \/ r̄_std\)/i)
+      screen.getByText((_, el) => el?.tagName === "SPAN" && /Formula: ppm = \(C_std × V \/ W\) × \(r_u \/ r̄_std\)/i.test(el.textContent ?? ""))
     ).toBeTruthy();
 
     // Replicate rows
@@ -78,7 +80,9 @@ describe("ResidualSolventCalculationView", () => {
 
     // Reported result, spec limit, and reports slot
     expect(screen.getByText(/2496 ppm/)).toBeTruthy();
-    expect(screen.getByText(/\(Spec: NMT 3000 ppm\)/i)).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && /\(Spec: NMT 3000 ppm\)/i.test(el.textContent ?? ""))
+    ).toBeTruthy();
     expect(screen.getByTestId("test-reports")).toBeTruthy();
   });
 

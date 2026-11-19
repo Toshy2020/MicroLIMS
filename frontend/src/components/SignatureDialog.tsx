@@ -3,6 +3,8 @@ import { Box, Typography, TextField, Button, Alert, Stack, Divider } from "@mui/
 import { FloatingDialog } from "./FloatingDialog";
 import { useAuth } from "../contexts/AuthContext";
 import { formatRoleName } from "../utils/userDisplay";
+import { serverMessage } from "../utils/errorMessage";
+import { useTranslation } from "../i18n";
 
 // A second person's credentials, for changes two people must sign.
 export interface SecondSignature {
@@ -13,6 +15,9 @@ export interface SecondSignature {
 interface SignatureDialogProps {
   open: boolean;
   meaningStatement: string; // plain-language statement, e.g. "I am approving this result."
+  // The same statement in Arabic, shown below the English one when the interface is Arabic.
+  // Only the English statement is recorded and printed; the translation helps the signer read it.
+  meaningStatementTranslation?: string;
   showComment?: boolean;
   commentLabel?: string;
   comment?: string;
@@ -39,10 +44,13 @@ interface SignatureDialogProps {
  * @a11y Focuses password input on open, announces validation errors via `<Alert>`, and supports `Escape` dismissal.
  */
 export function SignatureDialog({
-  open, meaningStatement, showComment = false, commentLabel = "Comment (optional)", comment, onCommentChange, commentRequired = false,
+  open, meaningStatement, meaningStatementTranslation, showComment = false, commentLabel, comment, onCommentChange, commentRequired = false,
   requireSecondSigner = false, secondSignerHint, onCancel, onConfirm
 }: SignatureDialogProps) {
-  const { fullName, username, role, roleName } = useAuth();
+  const { t, i18n } = useTranslation();
+  const isArabic = i18n.language === "ar";
+  const { fullName, username, role, roleName, signInMethod } = useAuth();
+  const isDirectoryUser = signInMethod === "Directory";
   const [password, setPassword] = useState("");
   const [secondUsername, setSecondUsername] = useState("");
   const [secondPassword, setSecondPassword] = useState("");
@@ -58,8 +66,8 @@ export function SignatureDialog({
       await onConfirm(password, requireSecondSigner ? { username: secondUsername.trim(), password: secondPassword } : undefined);
       setPassword("");
       setSecondPassword("");
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Signature failed.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? t("signature.failed"));
       setPassword("");
       setSecondPassword("");
     } finally {
@@ -78,13 +86,13 @@ export function SignatureDialog({
   return (
     <FloatingDialog
       open={open}
-      title="Electronic Signature"
+      title={t("signature.title")}
       onClose={handleCancel}
       actions={
         <>
-          <Button onClick={handleCancel}>Cancel</Button>
+          <Button onClick={handleCancel}>{t("actions.cancel")}</Button>
           <Button variant="contained" onClick={handleConfirm} disabled={!complete || submitting}>
-            {submitting ? "Signing..." : "Sign"}
+            {submitting ? t("signature.signing") : t("actions.sign")}
           </Button>
         </>
       }
@@ -93,33 +101,52 @@ export function SignatureDialog({
         {error && <Alert severity="error">{error}</Alert>}
         <Box>
           <Typography sx={{ fontWeight: 700 }}>{fullName ?? username}</Typography>
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{formatRoleName(role, roleName)}</Typography>
+          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{formatRoleName(role, roleName, t)}</Typography>
         </Box>
-        <Alert severity="info">{meaningStatement}</Alert>
+        {/* The recorded statement is English: it stays first and left-to-right in both languages. */}
+        <Alert severity="info">
+          {isArabic ? <Box component="span" lang="en" dir="ltr" sx={{ display: "block" }}>{meaningStatement}</Box> : meaningStatement}
+        </Alert>
+        {isArabic && meaningStatementTranslation && (
+          <Box component="section" aria-label={t("signature.arabicTranslation")} sx={{ px: 2, py: 1, border: 1, borderColor: "divider", borderRadius: 1 }}>
+            <Typography variant="body2">{meaningStatementTranslation}</Typography>
+          </Box>
+        )}
+        {isArabic && (
+          <Typography variant="caption" role="note" sx={{ color: "text.secondary" }}>
+            {t("signature.englishRecorded")}
+          </Typography>
+        )}
         {showComment && (
-          <TextField label={commentLabel} multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
+          <TextField label={commentLabel ?? t("signature.commentOptional")} multiline rows={2} value={comment ?? ""} onChange={(e) => onCommentChange?.(e.target.value)} />
         )}
         <TextField
-          label="Password" type="password" value={password}
+          label={isDirectoryUser ? t("signature.signingPassword") : t("signature.password")}
+          type="password"
+          value={password}
           onChange={(e) => setPassword(e.target.value)}
-          autoFocus required
+          helperText={
+            isDirectoryUser ? t("signature.signingPasswordHelp") : undefined
+          }
+          autoFocus
+          required
           onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
         />
         {requireSecondSigner && (
           <>
             <Divider />
             <Box>
-              <Typography sx={{ fontWeight: 700 }}>Second signature</Typography>
+              <Typography sx={{ fontWeight: 700 }}>{t("signature.second")}</Typography>
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {secondSignerHint ?? "A different person who is allowed to approve this signs as well."}
+                {secondSignerHint ?? t("signature.secondHint")}
               </Typography>
             </Box>
             <TextField
-              label="Second signer username" value={secondUsername} autoComplete="off" required
+              label={t("signature.secondUsername")} value={secondUsername} autoComplete="off" required
               onChange={(e) => setSecondUsername(e.target.value)}
             />
             <TextField
-              label="Second signer password" type="password" value={secondPassword} autoComplete="off" required
+              label={t("signature.secondPassword")} type="password" value={secondPassword} autoComplete="off" required
               onChange={(e) => setSecondPassword(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && complete && !submitting) handleConfirm(); }}
             />

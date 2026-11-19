@@ -16,10 +16,13 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Ltr } from "../../components/Ltr";
 import { PageHeader } from "../../components/PageHeader";
 import { useHasPermission } from "../../contexts/AuthContext";
+import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
 import { laboratorySectionService } from "../../services/laboratorySectionService";
+import { serverMessage } from "../../utils/errorMessage";
 import { AddEventDialog } from "./components/AddEventDialog";
 import { CoverageTable } from "./components/CoverageTable";
 import { DeviationsPanel } from "./components/DeviationsPanel";
@@ -35,7 +38,7 @@ import { SpacingTable } from "./components/SpacingTable";
 import { YearGrid } from "./components/YearGrid";
 import { EquipmentPlanService } from "./services/EquipmentPlanService";
 import { MonitoringPlanService } from "./services/MonitoringPlanService";
-import { MONTH_NAMES, isoDate } from "./statusDisplay";
+import { CALENDAR_AREA_KEY, isoDate } from "./statusDisplay";
 import type {
   CalendarArea,
   CalendarEventResponse,
@@ -53,6 +56,7 @@ import type {
 // tiles, a month shows its days. Includes equipment calibration, maintenance
 // and ad-hoc calendar events. Everything shown comes from the backend.
 export function MonitoringPlanPage() {
+  const { t } = useTranslation("monitoring");
   const canManage = useHasPermission(PERMISSIONS.MONITORING_PLAN_MANAGE);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -164,9 +168,9 @@ export function MonitoringPlanPage() {
           EquipmentPlanService.getYear(year).then((res) => { eqYear = res; }),
           EquipmentPlanService.getCalendar(yearStart, yearEnd).then((res) => {
             if (category === "Calibration") {
-              eqDueTasks = res.tasks.filter((t) => t.type === "Calibration");
+              eqDueTasks = res.tasks.filter((task) => task.type === "Calibration");
             } else if (category === "PreventiveMaintenance") {
-              eqDueTasks = res.tasks.filter((t) => t.type === "PreventiveMaintenance");
+              eqDueTasks = res.tasks.filter((task) => task.type === "PreventiveMaintenance");
             } else if (category === "Events") {
               eqDueTasks = [];
             } else {
@@ -190,10 +194,10 @@ export function MonitoringPlanPage() {
             promises.push(
               EquipmentPlanService.getCalendar(from, to).then((res) => {
                 if (category === "Calibration") {
-                  eqMonthTasks = res.tasks.filter((t) => t.type === "Calibration");
+                  eqMonthTasks = res.tasks.filter((task) => task.type === "Calibration");
                   evList = [];
                 } else if (category === "PreventiveMaintenance") {
-                  eqMonthTasks = res.tasks.filter((t) => t.type === "PreventiveMaintenance");
+                  eqMonthTasks = res.tasks.filter((task) => task.type === "PreventiveMaintenance");
                   evList = [];
                 } else {
                   eqMonthTasks = res.tasks;
@@ -216,9 +220,9 @@ export function MonitoringPlanPage() {
       setEquipmentTasks(eqMonthTasks);
       setDueEquipmentTasks(eqDueTasks);
       setCalendarEvents(evList);
-    } catch (e: any) {
+    } catch (e: unknown) {
       if (!latest()) return;
-      setError(e?.response?.data?.message ?? "Could not load the monitoring plan.");
+      setError(serverMessage(e) ?? t("errors.loadPlan"));
       if (tab === "coverage") setCoverage(null);
       else if (tab === "spacing") setSpacing(null);
       else {
@@ -233,7 +237,7 @@ export function MonitoringPlanPage() {
     } finally {
       if (latest()) setLoading(false);
     }
-  }, [year, month, category, tab, flaggedOnly, monitoringCategory, labSectionId]);
+  }, [year, month, category, tab, flaggedOnly, monitoringCategory, labSectionId, t]);
 
   useEffect(() => {
     void load();
@@ -281,12 +285,12 @@ export function MonitoringPlanPage() {
   return (
     <Box>
       <PageHeader
-        title="Monitoring Plan"
-        subtitle="Water, environmental monitoring and after-cleaning occurrences, plus equipment calibration, maintenance and calendar events."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
       >
         {canManage && (
           <Button variant="outlined" onClick={() => setManualOpen(true)}>
-            Add After Cleaning
+            {t("actions.addAfterCleaning")}
           </Button>
         )}
       </PageHeader>
@@ -294,12 +298,12 @@ export function MonitoringPlanPage() {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab value="calendar" label="Calendar" />
-        <Tab value="coverage" label="Coverage" />
-        <Tab value="spacing" label="Spacing" />
-        <Tab value="deviations" label="Deviations" />
-        <Tab value="plan" label="Plan" />
-        <Tab value="settings" label="Settings" />
+        <Tab value="calendar" label={t("tabs.calendar")} />
+        <Tab value="coverage" label={t("tabs.coverage")} />
+        <Tab value="spacing" label={t("tabs.spacing")} />
+        <Tab value="deviations" label={t("tabs.deviations")} />
+        <Tab value="plan" label={t("tabs.plan")} />
+        <Tab value="settings" label={t("tabs.settings")} />
       </Tabs>
 
       {tab === "calendar" && (
@@ -312,56 +316,56 @@ export function MonitoringPlanPage() {
 
       {tab !== "deviations" && (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2, flexWrap: "wrap" }}>
-          <IconButton onClick={() => step(-1)} aria-label="Previous">
+          <IconButton onClick={() => step(-1)} aria-label={t("nav.previous")}>
             <ChevronLeftIcon />
           </IconButton>
           <Typography sx={{ fontWeight: 600, minWidth: 160, textAlign: "center" }}>
-            {tab !== "calendar" || month === null ? year : `${MONTH_NAMES[month]} ${year}`}
+            {tab !== "calendar" || month === null ? <Ltr>{year}</Ltr> : <>{t(`months.${month}`)} <Ltr>{year}</Ltr></>}
           </Typography>
-          <IconButton onClick={() => step(1)} aria-label="Next">
+          <IconButton onClick={() => step(1)} aria-label={t("nav.next")}>
             <ChevronRightIcon />
           </IconButton>
-          {showsData && <Button variant="outlined" onClick={goToday}>Today</Button>}
+          {showsData && <Button variant="outlined" onClick={goToday}>{t("nav.today")}</Button>}
           {tab === "calendar" && month !== null && (
-            <Button onClick={() => setMonth(null)}>Back to year</Button>
+            <Button onClick={() => setMonth(null)}>{t("nav.backToYear")}</Button>
           )}
           {tab === "spacing" && (
             <FormControlLabel
               control={<Switch checked={flaggedOnly} onChange={(e) => setFlaggedOnly(e.target.checked)} />}
-              label="Only flagged gaps"
+              label={t("filters.onlyFlaggedGaps")}
             />
           )}
           {showsData && (
             <TextField
               select
               size="small"
-              label="Area"
+              label={t("filters.area")}
               value={category}
               sx={{ minWidth: 220, ml: "auto" }}
               onChange={(e) => setCategory(e.target.value as CalendarArea | "")}
             >
-              <MenuItem value="">All areas</MenuItem>
-              <MenuItem value="Water">Water</MenuItem>
-              <MenuItem value="EnvironmentalMonitoring">Environmental Monitoring</MenuItem>
-              <MenuItem value="AfterCleaning">After Cleaning</MenuItem>
-              <MenuItem value="Calibration">Calibration</MenuItem>
-              <MenuItem value="PreventiveMaintenance">Preventive maintenance</MenuItem>
-              <MenuItem value="Events">Events</MenuItem>
+              <MenuItem value="">{t("filters.allAreas")}</MenuItem>
+              <MenuItem value="Water">{t(CALENDAR_AREA_KEY.Water)}</MenuItem>
+              <MenuItem value="EnvironmentalMonitoring">{t(CALENDAR_AREA_KEY.EnvironmentalMonitoring)}</MenuItem>
+              <MenuItem value="AfterCleaning">{t(CALENDAR_AREA_KEY.AfterCleaning)}</MenuItem>
+              <MenuItem value="Calibration">{t(CALENDAR_AREA_KEY.Calibration)}</MenuItem>
+              <MenuItem value="PreventiveMaintenance">{t(CALENDAR_AREA_KEY.PreventiveMaintenance)}</MenuItem>
+              <MenuItem value="Events">{t(CALENDAR_AREA_KEY.Events)}</MenuItem>
             </TextField>
           )}
           {showsData && (
             <TextField
               select
               size="small"
-              label="Lab"
+              label={t("filters.lab")}
               value={labSectionId}
               sx={{ minWidth: 150 }}
               onChange={(e) => setLabSectionId(e.target.value === "" ? "" : Number(e.target.value))}
             >
-              <MenuItem value="">All labs</MenuItem>
+              <MenuItem value="">{t("filters.allLabs")}</MenuItem>
               {availableSections.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
-                  {s.code || s.name}
+                  {s.code ? <Ltr>{s.code}</Ltr> : s.name}
                 </MenuItem>
               ))}
             </TextField>
@@ -369,7 +373,7 @@ export function MonitoringPlanPage() {
         </Box>
       )}
 
-      {loading && showsData && <LinearProgress aria-label="Loading" sx={{ mb: 1 }} />}
+      {loading && showsData && <LinearProgress aria-label={t("nav.loading")} sx={{ mb: 1 }} />}
 
       <Box
         aria-busy={loading && showsData}

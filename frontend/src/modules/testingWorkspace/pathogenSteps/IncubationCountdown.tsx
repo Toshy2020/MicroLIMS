@@ -1,5 +1,9 @@
 import { memo, useEffect, useState } from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { BENCH_COUNTDOWN_RING_SIZE, BENCH_COUNTDOWN_STATE_FONT_SIZE, BENCH_COUNTDOWN_TIME_FONT_SIZE } from "../../../theme/benchTheme";
 
 interface Props {
   // Client timestamp (ms) at which the minimum incubation ends. Built from
@@ -28,6 +32,8 @@ function formatRemaining(ms: number) {
 // not the rest of the dialog. The timer stops at zero and calls onReached
 // once; the server still enforces the window when the step is submitted.
 export const IncubationCountdown = memo(function IncubationCountdown({ deadlineMs, totalHours, nextLabel, onReached }: Props) {
+  const { t } = useTranslation("testingWorkspace");
+  const bench = Boolean(useTheme().custom?.bench);
   const [now, setNow] = useState(() => Date.now());
   const remaining = deadlineMs - now;
   const reached = remaining <= 0;
@@ -43,7 +49,7 @@ export const IncubationCountdown = memo(function IncubationCountdown({ deadlineM
 
   const totalMs = totalHours * 3600 * 1000;
   const elapsedFraction = totalMs > 0 ? Math.min(1, Math.max(0, 1 - remaining / totalMs)) : 1;
-  const size = 168;
+  const size = bench ? BENCH_COUNTDOWN_RING_SIZE : 168;
   const stroke = 12;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
@@ -52,34 +58,47 @@ export const IncubationCountdown = memo(function IncubationCountdown({ deadlineM
     <Box sx={{ display: "grid", justifyItems: "center", gap: 0.5, py: 1 }}>
       <Box sx={{ position: "relative", width: size, height: size }}>
         <Box component="svg" viewBox={`0 0 ${size} ${size}`} sx={{ width: size, height: size, transform: "rotate(-90deg)" }} aria-hidden="true">
-          <Box component="circle" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} sx={{ stroke: (t) => t.palette.action.hover }} />
+          <Box component="circle" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} sx={{ stroke: (th) => th.palette.action.hover }} />
           <Box
             component="circle" cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={stroke} strokeLinecap="round"
             strokeDasharray={circumference} strokeDashoffset={circumference * (1 - elapsedFraction)}
-            sx={{ stroke: (t) => (reached ? t.custom.status.notDetected.text : t.palette.primary.main) }}
+            sx={{ stroke: (th) => (reached ? th.custom.status.notDetected.text : th.palette.primary.main) }}
           />
         </Box>
         <Box
           role="timer"
           aria-live="off"
-          aria-label={reached ? `${nextLabel} is available` : `${formatRemaining(remaining)} until ${nextLabel} is available`}
+          aria-label={reached ? t("pathogenSteps.countdown.ariaAvailable", { nextLabel }) : t("pathogenSteps.countdown.ariaRemaining", { remaining: formatRemaining(remaining), nextLabel })}
           sx={{ position: "absolute", inset: 0, display: "grid", placeContent: "center", textAlign: "center", lineHeight: 1.15 }}
         >
           {reached ? (
             <>
-              <Typography sx={{ fontSize: 22, fontWeight: 700, color: (t) => t.custom.status.notDetected.text }}>Ready</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>00:00:00</Typography>
+              <Typography sx={{ fontSize: bench ? BENCH_COUNTDOWN_STATE_FONT_SIZE : 22, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: (th) => th.custom.status.notDetected.text }}>
+                {t("pathogenSteps.countdown.ready")}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}><Ltr>00:00:00</Ltr></Typography>
             </>
           ) : (
             <>
-              <Typography sx={{ fontSize: 26, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{formatRemaining(remaining)}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>hh:mm:ss</Typography>
+              <Typography sx={{ fontSize: bench ? BENCH_COUNTDOWN_TIME_FONT_SIZE : 26, fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>
+                <Ltr>{formatRemaining(remaining)}</Ltr>
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("pathogenSteps.countdown.hhmmss")}</Typography>
             </>
           )}
         </Box>
       </Box>
-      <Typography variant="body2" sx={{ color: reached ? (t) => t.custom.status.notDetected.text : "text.secondary", fontWeight: reached ? 600 : 400, textAlign: "center" }}>
-        {reached ? `${capitalize(nextLabel)} is available now` : `until ${nextLabel} is available (${totalHours} h minimum incubation)`}
+      <Typography variant="body2" sx={{ color: reached ? (th) => th.custom.status.notDetected.text : "text.secondary", fontWeight: reached ? 600 : 400, textAlign: "center" }}>
+        {reached ? (
+          t("pathogenSteps.countdown.availableNow", { nextLabel: capitalize(nextLabel) })
+        ) : (
+          <Trans
+            i18nKey="pathogenSteps.countdown.untilAvailable"
+            ns="testingWorkspace"
+            values={{ nextLabel, hours: totalHours }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
+        )}
       </Typography>
     </Box>
   );

@@ -23,6 +23,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { useTranslation } from "../../../../i18n";
 import {
   SupplierAttributeService,
   SupplierStatedAttributeDto,
@@ -36,6 +37,7 @@ export interface SupplierAttributesSectionProps {
 }
 
 export function SupplierAttributesSection({ itemId, grades }: SupplierAttributesSectionProps) {
+  const { t } = useTranslation("labConfig");
   const [attributes, setAttributes] = useState<SupplierStatedAttributeDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,11 +61,11 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
       const data = await SupplierAttributeService.listForItem(itemId);
       setAttributes(data);
     } catch {
-      setError("Failed to load supplier-stated attributes.");
+      setError(t("items.supplierAttributes.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [itemId]);
+  }, [itemId, t]);
 
   useEffect(() => {
     loadAttributes();
@@ -96,11 +98,11 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setFormError("Name is required.");
+      setFormError(t("items.supplierAttributes.errors.nameRequired"));
       return;
     }
     if (!statedValue.trim()) {
-      setFormError("Stated value is required.");
+      setFormError(t("items.supplierAttributes.errors.statedValueRequired"));
       return;
     }
 
@@ -126,19 +128,19 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
       setEditingAttr(null);
       await loadAttributes();
     } catch (err: any) {
-      setFormError(err?.response?.data?.message ?? "Failed to save supplier-stated attribute.");
+      setFormError(err?.response?.data?.message ?? t("items.supplierAttributes.errors.saveFailed"));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Are you sure you want to delete this supplier-stated attribute?")) return;
+    if (!window.confirm(t("items.supplierAttributes.deleteConfirm"))) return;
     try {
       await SupplierAttributeService.delete(id);
       await loadAttributes();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Failed to delete supplier-stated attribute.");
+      setError(err?.response?.data?.message ?? t("items.supplierAttributes.deleteError"));
     }
   };
 
@@ -147,10 +149,10 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Supplier-Stated Attributes
+            {t("items.supplierAttributes.title")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 13 }}>
-            Certificate of Analysis attributes and values stated directly by the supplier.
+            {t("items.supplierAttributes.subtitle")}
           </Typography>
         </Box>
         {canManage && (
@@ -161,7 +163,7 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
             onClick={handleOpenAdd}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Add Supplier Attribute
+            {t("items.supplierAttributes.addButton")}
           </Button>
         )}
       </Stack>
@@ -181,19 +183,19 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
           variant="outlined"
           sx={{ p: 3, textAlign: "center", color: "text.secondary", bgcolor: "action.hover" }}
         >
-          <Typography variant="body2">No supplier-stated attributes configured for this item.</Typography>
+          <Typography variant="body2">{t("items.supplierAttributes.empty")}</Typography>
         </Paper>
       ) : (
         <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead sx={{ bgcolor: "action.hover" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>Name</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Stated Value</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Grade</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.supplierAttributes.columns.name")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.supplierAttributes.columns.statedValue")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("items.supplierAttributes.columns.grade")}</TableCell>
                 {canManage && (
                   <TableCell align="right" sx={{ fontWeight: 700 }}>
-                    Actions
+                    {t("items.supplierAttributes.columns.actions")}
                   </TableCell>
                 )}
               </TableRow>
@@ -203,24 +205,24 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
                 <TableRow key={a.id}>
                   <TableCell sx={{ fontWeight: 600 }}>{a.name}</TableCell>
                   <TableCell>{a.statedValue}</TableCell>
-                  <TableCell>{a.grade || "All grades"}</TableCell>
+                  <TableCell>{a.grade || t("items.supplierAttributes.allGrades")}</TableCell>
                   {canManage && (
                     <TableCell align="right">
                       <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
                         <IconButton
                           size="small"
-                          aria-label="Edit"
+                          aria-label={t("items.supplierAttributes.actions.edit")}
                           onClick={() => handleOpenEdit(a)}
-                          title="Edit"
+                          title={t("items.supplierAttributes.actions.edit")}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>
                         <IconButton
                           size="small"
                           color="error"
-                          aria-label="Delete"
+                          aria-label={t("items.supplierAttributes.actions.delete")}
                           onClick={() => handleDelete(a.id)}
-                          title="Delete"
+                          title={t("items.supplierAttributes.actions.delete")}
                         >
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -238,14 +240,14 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
       <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
         <form onSubmit={handleSave}>
           <DialogTitle sx={{ fontWeight: 700 }}>
-            {editingAttr ? "Edit Supplier Attribute" : "Add Supplier Attribute"}
+            {editingAttr ? t("items.supplierAttributes.dialog.editTitle") : t("items.supplierAttributes.dialog.addTitle")}
           </DialogTitle>
           <DialogContent dividers>
             <Stack spacing={2} sx={{ mt: 0.5 }}>
               {formError && <Alert severity="error">{formError}</Alert>}
 
               <TextField
-                label="Name"
+                label={t("items.supplierAttributes.dialog.nameLabel")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
@@ -256,7 +258,7 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
               />
 
               <TextField
-                label="Stated Value"
+                label={t("items.supplierAttributes.dialog.statedValueLabel")}
                 value={statedValue}
                 onChange={(e) => setStatedValue(e.target.value)}
                 required
@@ -268,13 +270,13 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
               <TextField
                 select
                 slotProps={{ select: { native: true } }}
-                label="Grade"
+                label={t("items.supplierAttributes.dialog.gradeLabel")}
                 value={grade}
                 onChange={(e) => setGrade(e.target.value)}
                 fullWidth
                 size="small"
               >
-                <option value="">All grades</option>
+                <option value="">{t("items.supplierAttributes.allGrades")}</option>
                 {grades.map((g) => (
                   <option key={g} value={g}>
                     {g}
@@ -285,10 +287,10 @@ export function SupplierAttributesSection({ itemId, grades }: SupplierAttributes
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog} disabled={submitting}>
-              Cancel
+              {t("items.supplierAttributes.dialog.cancel")}
             </Button>
             <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Saving..." : "Save"}
+              {submitting ? t("items.supplierAttributes.dialog.saving") : t("items.supplierAttributes.dialog.save")}
             </Button>
           </DialogActions>
         </form>

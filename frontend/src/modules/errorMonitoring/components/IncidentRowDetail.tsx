@@ -3,7 +3,10 @@ import {
   Alert, Box, Button, Chip, MenuItem, Paper, Stack, TextField, Typography
 } from "@mui/material";
 import { DialogBodySkeleton } from "../../../components/DialogBodySkeleton";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
+import { serverMessage } from "../../../utils/errorMessage";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { ErrorMonitoringService } from "../services/ErrorMonitoringService";
 import type { ErrorSeverity, IncidentDetail, IncidentListItem } from "../types/errorMonitoringTypes";
 import { SEVERITIES, SEVERITY_COLORS } from "../types/errorMonitoringTypes";
@@ -17,6 +20,7 @@ interface Props {
 // the two triage actions. Deliberately not a dialog - the admin is
 // comparing entries within one incident, and a modal would hide the list.
 export function IncidentRowDetail({ incident, onChanged }: Props) {
+  const { t } = useTranslation("errorMonitoring");
   const [detail, setDetail] = useState<IncidentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,8 +32,8 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
     setError(null);
     try {
       setDetail(await ErrorMonitoringService.get(incident.id));
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not load incident detail.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? i18n.t("errors.detail", { ns: "errorMonitoring" }));
     } finally {
       setLoading(false);
     }
@@ -47,8 +51,8 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
       await action();
       await load();
       onChanged();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "The action could not be completed.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("errors.action"));
     } finally {
       setBusy(false);
     }
@@ -74,20 +78,20 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
         <Typography variant="body2" sx={{
           color: "text.secondary"
         }}>
-          Correlation id: <code>{detail.correlationId}</code>
+          {t("row.correlationId")} <Ltr><code>{detail.correlationId}</code></Ltr>
         </Typography>
 
         {detail.status === "Open" ? (
           <>
             <TextField
-              size="small" label="Resolution notes" sx={{ minWidth: 280 }}
+              size="small" label={t("row.resolutionNotes")} sx={{ minWidth: 280 }}
               value={notes} onChange={(e) => setNotes(e.target.value)} disabled={busy}
             />
             <Button
               size="small" variant="contained" disabled={busy}
               onClick={() => act(() => ErrorMonitoringService.resolve(detail.id, notes.trim() || null))}
             >
-              Mark resolved
+              {t("row.markResolved")}
             </Button>
           </>
         ) : (
@@ -95,15 +99,15 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
             <Typography variant="body2" sx={{
               color: "text.secondary"
             }}>
-              Resolved {detail.resolvedAtUtc ? formatLabDateTime(detail.resolvedAtUtc) : ""}
-              {detail.resolvedByUserName ? ` by ${detail.resolvedByUserName}` : ""}
-              {detail.resolutionNotes ? ` - ${detail.resolutionNotes}` : ""}
+              {t("row.resolved", { date: detail.resolvedAtUtc ? formatDateTimeWithTimeZone(detail.resolvedAtUtc) : "" })}
+              {detail.resolvedByUserName ? t("row.resolvedBy", { user: detail.resolvedByUserName }) : ""}
+              {detail.resolutionNotes ? t("row.resolvedNotes", { notes: detail.resolutionNotes }) : ""}
             </Typography>
             <Button
               size="small" variant="outlined" disabled={busy}
               onClick={() => act(() => ErrorMonitoringService.reopen(detail.id))}
             >
-              Reopen
+              {t("row.reopen")}
             </Button>
           </>
         )}
@@ -124,35 +128,35 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
               <Chip size="small" label={log.source} />
               <Chip size="small" color={SEVERITY_COLORS[log.effectiveSeverity]} label={log.effectiveSeverity} />
               {log.severityOverride && (
-                <Chip size="small" variant="outlined" label={`overridden from ${log.severity}`} />
+                <Chip size="small" variant="outlined" label={t("row.overridden", { severity: log.severity })} />
               )}
               <Typography variant="body2" sx={{
                 color: "text.secondary"
               }}>
-                {formatLabDateTime(log.occurredAtUtc)}
+                {formatDateTimeWithTimeZone(log.occurredAtUtc)}
               </Typography>
               {log.httpMethod && log.requestPath && (
                 <Typography variant="body2" sx={{
                   color: "text.secondary"
                 }}>
-                  {log.httpMethod} {log.requestPath}{log.statusCode ? ` -> ${log.statusCode}` : ""}
+                  <Ltr>{log.httpMethod} {log.requestPath}{log.statusCode ? ` -> ${log.statusCode}` : ""}</Ltr>
                 </Typography>
               )}
               {!log.httpMethod && log.requestPath && (
                 <Typography variant="body2" sx={{
                   color: "text.secondary"
-                }}>{log.requestPath}</Typography>
+                }}><Ltr>{log.requestPath}</Ltr></Typography>
               )}
               {log.userName && (
                 <Typography variant="body2" sx={{
                   color: "text.secondary"
-                }}>by {log.userName}</Typography>
+                }}>{t("row.by", { user: log.userName })}</Typography>
               )}
 
               <Box sx={{ flexGrow: 1 }} />
 
               <TextField
-                select size="small" label="Override" sx={{ minWidth: 150 }}
+                select size="small" label={t("row.override")} sx={{ minWidth: 150 }}
                 value={log.severityOverride ?? ""}
                 disabled={busy}
                 onChange={(e) =>
@@ -164,7 +168,7 @@ export function IncidentRowDetail({ incident, onChanged }: Props) {
                   )
                 }
               >
-                <MenuItem value="">Auto ({log.severity})</MenuItem>
+                <MenuItem value="">{t("row.auto", { severity: log.severity })}</MenuItem>
                 {SEVERITIES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </TextField>
             </Stack>

@@ -44,27 +44,55 @@ public class PdfCanvas
     public const double MarginBottom = 62.4;   // 22mm
     public static double ContentWidth => PageWidth - 2 * MarginX;
 
-    private readonly List<StringBuilder> _pages = new();
-    private StringBuilder _current = null!;
+    private sealed record PageBuffer(StringBuilder Content, double WidthPt, double HeightPt);
+
+    private readonly List<PageBuffer> _pages = new();
+    private readonly double _defaultWidthPt;
+    private readonly double _defaultHeightPt;
+    private PageBuffer _currentPage;
     private readonly List<(int Width, int Height, byte[] Deflated)> _images = new();
 
-    public PdfCanvas() => NewPage();
+    public PdfCanvas() : this(PageWidth, PageHeight)
+    {
+    }
 
+    public PdfCanvas(double pageWidthPt, double pageHeightPt)
+    {
+        ValidatePageDimensions(pageWidthPt, pageHeightPt);
+        _defaultWidthPt = pageWidthPt;
+        _defaultHeightPt = pageHeightPt;
+        _currentPage = new PageBuffer(new StringBuilder(), pageWidthPt, pageHeightPt);
+        _pages.Add(_currentPage);
+    }
+
+    public double PageWidthPt => _currentPage.WidthPt;
+    public double PageHeightPt => _currentPage.HeightPt;
     public int PageCount => _pages.Count;
 
-    public void NewPage()
+    public void NewPage() => NewPage(_defaultWidthPt, _defaultHeightPt);
+
+    public void NewPage(double widthPt, double heightPt)
     {
-        _current = new StringBuilder();
-        _pages.Add(_current);
+        ValidatePageDimensions(widthPt, heightPt);
+        _currentPage = new PageBuffer(new StringBuilder(), widthPt, heightPt);
+        _pages.Add(_currentPage);
+    }
+
+    private static void ValidatePageDimensions(double widthPt, double heightPt)
+    {
+        if (!double.IsFinite(widthPt) || widthPt <= 0)
+            throw new ArgumentOutOfRangeException(nameof(widthPt), widthPt, "Page width must be a positive finite number.");
+        if (!double.IsFinite(heightPt) || heightPt <= 0)
+            throw new ArgumentOutOfRangeException(nameof(heightPt), heightPt, "Page height must be a positive finite number.");
     }
 
     // Lets the renderer go back and stamp each page once the total page
     // count is known - a controlled document should say "Page 1 of 3",
     // which cannot be written while the pages are still being filled.
-    public void SelectPage(int index) => _current = _pages[index];
+    public void SelectPage(int index) => _currentPage = _pages[index];
 
     private static string N(double v) => v.ToString("0.###", CultureInfo.InvariantCulture);
-    private static double ToPdfY(double top) => PageHeight - top;
+    private double ToPdfY(double top) => _currentPage.HeightPt - top;
 
     // Registers an 8-bit RGB raster (3 bytes per pixel, row-major) as an
     // image XObject and returns its handle for DrawImage. Stored deflated
@@ -82,27 +110,27 @@ public class PdfCanvas
 
     public void DrawImage(int image, double x, double top, double w, double h)
     {
-        _current.AppendLine("q");
-        _current.AppendLine($"{N(w)} 0 0 {N(h)} {N(x)} {N(ToPdfY(top + h))} cm");
-        _current.AppendLine($"/Im{image} Do");
-        _current.AppendLine("Q");
+        _currentPage.Content.AppendLine("q");
+        _currentPage.Content.AppendLine($"{N(w)} 0 0 {N(h)} {N(x)} {N(ToPdfY(top + h))} cm");
+        _currentPage.Content.AppendLine($"/Im{image} Do");
+        _currentPage.Content.AppendLine("Q");
     }
 
     public void FillRect(double x, double top, double w, double h, PdfColor fill)
     {
-        _current.AppendLine("q");
-        _current.AppendLine(fill.Fill);
-        _current.AppendLine($"{N(x)} {N(ToPdfY(top + h))} {N(w)} {N(h)} re f");
-        _current.AppendLine("Q");
+        _currentPage.Content.AppendLine("q");
+        _currentPage.Content.AppendLine(fill.Fill);
+        _currentPage.Content.AppendLine($"{N(x)} {N(ToPdfY(top + h))} {N(w)} {N(h)} re f");
+        _currentPage.Content.AppendLine("Q");
     }
 
     public void StrokeRect(double x, double top, double w, double h, PdfColor stroke, double lineWidth = 0.75)
     {
-        _current.AppendLine("q");
-        _current.AppendLine(stroke.Stroke);
-        _current.AppendLine($"{N(lineWidth)} w");
-        _current.AppendLine($"{N(x)} {N(ToPdfY(top + h))} {N(w)} {N(h)} re S");
-        _current.AppendLine("Q");
+        _currentPage.Content.AppendLine("q");
+        _currentPage.Content.AppendLine(stroke.Stroke);
+        _currentPage.Content.AppendLine($"{N(lineWidth)} w");
+        _currentPage.Content.AppendLine($"{N(x)} {N(ToPdfY(top + h))} {N(w)} {N(h)} re S");
+        _currentPage.Content.AppendLine("Q");
     }
 
     public void FillAndStrokeRect(double x, double top, double w, double h, PdfColor fill, PdfColor stroke, double lineWidth = 0.75)
@@ -113,11 +141,11 @@ public class PdfCanvas
 
     public void Line(double x1, double top1, double x2, double top2, PdfColor stroke, double lineWidth = 0.75)
     {
-        _current.AppendLine("q");
-        _current.AppendLine(stroke.Stroke);
-        _current.AppendLine($"{N(lineWidth)} w");
-        _current.AppendLine($"{N(x1)} {N(ToPdfY(top1))} m {N(x2)} {N(ToPdfY(top2))} l S");
-        _current.AppendLine("Q");
+        _currentPage.Content.AppendLine("q");
+        _currentPage.Content.AppendLine(stroke.Stroke);
+        _currentPage.Content.AppendLine($"{N(lineWidth)} w");
+        _currentPage.Content.AppendLine($"{N(x1)} {N(ToPdfY(top1))} m {N(x2)} {N(ToPdfY(top2))} l S");
+        _currentPage.Content.AppendLine("Q");
     }
 
     // `top` is the top of the line box; the text baseline is placed at
@@ -135,14 +163,14 @@ public class PdfCanvas
             _ => x
         };
 
-        _current.AppendLine("q");
-        _current.AppendLine(color.Fill);
-        _current.AppendLine("BT");
-        _current.AppendLine($"/{(font == PdfFont.Bold ? "F2" : "F1")} {N(size)} Tf");
-        _current.AppendLine($"{N(drawX)} {N(ToPdfY(top + size))} Td");
-        _current.AppendLine($"({EscapeWinAnsi(text)}) Tj");
-        _current.AppendLine("ET");
-        _current.AppendLine("Q");
+        _currentPage.Content.AppendLine("q");
+        _currentPage.Content.AppendLine(color.Fill);
+        _currentPage.Content.AppendLine("BT");
+        _currentPage.Content.AppendLine($"/{(font == PdfFont.Bold ? "F2" : "F1")} {N(size)} Tf");
+        _currentPage.Content.AppendLine($"{N(drawX)} {N(ToPdfY(top + size))} Td");
+        _currentPage.Content.AppendLine($"({EscapeWinAnsi(text)}) Tj");
+        _currentPage.Content.AppendLine("ET");
+        _currentPage.Content.AppendLine("Q");
     }
 
     // Draws text wrapped to boxWidth and returns the height consumed, so
@@ -270,13 +298,13 @@ public class PdfCanvas
         var pageIds = new List<int>();
         foreach (var page in _pages)
         {
-            var bytes = Encoding.ASCII.GetBytes(page.ToString());
+            var bytes = Encoding.ASCII.GetBytes(page.Content.ToString());
             var pageIdx = objects.Count; objects.Add("");
             var contentIdx = objects.Count; objects.Add($"<< /Length {bytes.Length} >>");
             streams[contentIdx] = bytes;
 
             objects[pageIdx] =
-                $"<< /Type /Page /Parent {pagesIdx + 1} 0 R /MediaBox [0 0 {N(PageWidth)} {N(PageHeight)}] " +
+                $"<< /Type /Page /Parent {pagesIdx + 1} 0 R /MediaBox [0 0 {N(page.WidthPt)} {N(page.HeightPt)}] " +
                 $"/Resources << /Font << /F1 {fontRegularIdx + 1} 0 R /F2 {fontBoldIdx + 1} 0 R >>{xObjectResource} >> " +
                 $"/Contents {contentIdx + 1} 0 R >>";
             pageIds.Add(pageIdx + 1);

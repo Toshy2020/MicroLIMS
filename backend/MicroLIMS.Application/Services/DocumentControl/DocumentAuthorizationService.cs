@@ -121,12 +121,34 @@ public class DocumentAuthorizationService : IDocumentAuthorizationService
         var doc = await _db.DocumentMasters.AsNoTracking().FirstOrDefaultAsync(d => d.Id == documentMasterId);
         if (doc == null) return false;
 
-        // Cancelled/Voided records require privileged view (Document Controller, or read-only audit oversight)
-        if (doc.RecordStatus == DocumentRecordStatus.Void)
-        {
-            return role == RoleType.SectionHead || await HoldsAuditViewAsync(roleId);
-        }
+        return await CanViewGivenStatusAsync(doc.RecordStatus, role.Value, roleId);
+    }
 
+    // The same rule as CanViewDocumentAsync for a list of ids at a fixed cost (user + documents + at most one
+    // permission lookup), so a list can drop what the user may no longer open without a query per row.
+    public async Task<IReadOnlySet<int>> FilterViewableDocumentIdsAsync(IReadOnlyCollection<int> documentMasterIds, int userId, CancellationToken cancellationToken = default)
+    {
+        var result = new HashSet<int>();
+        if (documentMasterIds.Count == 0) return result;
+
+        var user = await _db.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        if (user is null || !user.IsActive || user.Role is null) return result;
+
+        var docs = await _db.DocumentMasters.AsNoTracking()
+            .Where(d => documentMasterIds.Contains(d.Id))
+            .Select(d => new { d.Id, d.RecordStatus })
+            .ToListAsync(cancellationToken);
+
+        foreach (var d in docs)
+            if (await CanViewGivenStatusAsync(d.RecordStatus, user.Role.Type, user.RoleId)) result.Add(d.Id);
+        return result;
+    }
+
+    // Cancelled/Voided records require privileged view (Document Controller, or read-only audit oversight)
+    private async Task<bool> CanViewGivenStatusAsync(DocumentRecordStatus status, RoleType role, int roleId)
+    {
+        if (status == DocumentRecordStatus.Void)
+            return role == RoleType.SectionHead || await HoldsAuditViewAsync(roleId);
         return true;
     }
 

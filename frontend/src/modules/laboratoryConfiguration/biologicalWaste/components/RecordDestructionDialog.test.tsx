@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { RecordDestructionDialog } from "./RecordDestructionDialog";
 import { BiologicalWasteService } from "../services/BiologicalWasteService";
+import { i18n } from "../../../../i18n";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 
 vi.mock("../../../../contexts/AuthContext", () => ({
@@ -79,5 +80,17 @@ describe("RecordDestructionDialog", () => {
 
     expect(await screen.findByText("Select the autoclave.")).toBeTruthy();
     expect(screen.queryByLabelText(/password/i)).toBeNull();
+  });
+
+  it("shows the heading and submit button in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    try {
+      render(<PinnedLightTheme><RecordDestructionDialog open onClose={vi.fn()} onRecorded={vi.fn()} /></PinnedLightTheme>);
+      expect(await screen.findByText("تسجيل إتلاف النفايات البيولوجية")).toBeTruthy();
+      expect(screen.getByRole("button", { name: /^توقيع وتسجيل/ })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

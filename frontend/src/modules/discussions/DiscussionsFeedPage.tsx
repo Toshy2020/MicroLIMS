@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { i18n, useTranslation } from "../../i18n";
 import {
   Box,
   Typography,
@@ -28,6 +29,7 @@ import { NewDiscussionDialog } from "./components/NewDiscussionDialog";
 import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 
 export function DiscussionsFeedPage() {
+  const { t } = useTranslation("discussions");
   const { userId, permissions } = useAuth();
   const currentUserId = userId ?? undefined;
   const canEditAny = permissions.includes(PERMISSIONS.DISCUSSIONS_EDIT_ANY);
@@ -57,7 +59,7 @@ export function DiscussionsFeedPage() {
       setTotalCount(res.totalCount);
       setTotalPages(res.totalPages || 1);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load discussions.");
+      setError(err.response?.data?.message || err.message || i18n.t("feed.loadError", { ns: "discussions" }));
     } finally {
       setLoading(false);
     }
@@ -73,9 +75,9 @@ export function DiscussionsFeedPage() {
       setPosts((prev) =>
         prev.map((p) => (p.id === id ? { ...p, isImportant } : p))
       );
-      toast.success(isImportant ? "Marked as important" : "Unmarked as important");
+      toast.success(isImportant ? t("toast.markedImportant") : t("toast.unmarkedImportant"));
     } catch {
-      toast.error("Failed to toggle important status.");
+      toast.error(t("toast.toggleImportantError"));
     }
   };
 
@@ -84,9 +86,9 @@ export function DiscussionsFeedPage() {
       await discussionService.deletePost(id);
       setPosts((prev) => prev.filter((p) => p.id !== id));
       setTotalCount((c) => Math.max(0, c - 1));
-      toast.success("Discussion post deleted.");
+      toast.success(t("toast.deleted"));
     } catch {
-      toast.error("Failed to delete discussion post.");
+      toast.error(t("toast.deleteError"));
     }
   };
 
@@ -94,8 +96,8 @@ export function DiscussionsFeedPage() {
     <Box sx={{ maxWidth: 1000, mx: "auto", pb: 6 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2, flexWrap: "wrap", gap: 2 }}>
         <PageHeader
-          title="Discussions & Knowledge Sharing"
-          subtitle="Collaborative laboratory discussions, technical queries, compliance alerts, and knowledge exchange."
+          title={t("page.title")}
+          subtitle={t("page.subtitle")}
         />
         <Button
           variant="contained"
@@ -104,7 +106,7 @@ export function DiscussionsFeedPage() {
           onClick={() => setNewDialogOpen(true)}
           sx={{ fontWeight: 600, mt: 0.5 }}
         >
-          New Discussion
+          {t("actions.newDiscussion")}
         </Button>
       </Box>
 
@@ -118,7 +120,7 @@ export function DiscussionsFeedPage() {
       <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2.5 }}>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap", mb: 2 }}>
           <TextField
-            placeholder="Search discussions by title or content..."
+            placeholder={t("feed.searchPlaceholder")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -126,7 +128,7 @@ export function DiscussionsFeedPage() {
             }}
             size="small"
             sx={{ flex: 1, minWidth: 260 }}
-            slotProps={{ htmlInput: { "aria-label": "Search discussions by title or content" },
+            slotProps={{ htmlInput: { "aria-label": t("feed.searchLabel") },
               input: {
                 startAdornment: (
                   <InputAdornment position="start">
@@ -150,14 +152,14 @@ export function DiscussionsFeedPage() {
                 checkedIcon={<StarIcon sx={{ color: "warning.main", fontSize: 20 }} />}
               />
             }
-            label={<Typography sx={{ fontSize: 13, fontWeight: 600 }}>Important Only</Typography>}
+            label={<Typography sx={{ fontSize: 13, fontWeight: 600 }}>{t("feed.importantOnly")}</Typography>}
           />
         </Box>
 
         {/* 11 Frozen Categories Filter Chips */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
           <Chip
-            label="All Categories"
+            label={t("feed.allCategories")}
             onClick={() => {
               setSelectedCategory(undefined);
               setPage(1);
@@ -199,12 +201,12 @@ export function DiscussionsFeedPage() {
         >
           <ForumOutlinedIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-            No discussions found
+            {t("feed.emptyTitle")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
             {search || selectedCategory || importantOnly
-              ? "Try adjusting your search query or category filters."
-              : "Be the first to start a conversation in this category."}
+              ? t("feed.emptyFilteredHint")
+              : t("feed.emptyHint")}
           </Typography>
           <Button
             variant="outlined"
@@ -212,13 +214,13 @@ export function DiscussionsFeedPage() {
             startIcon={<AddCommentIcon />}
             onClick={() => setNewDialogOpen(true)}
           >
-            Start a Discussion
+            {t("actions.startDiscussion")}
           </Button>
         </Paper>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Typography variant="body2" sx={{ color: "text.secondary", px: 0.5 }}>
-            Showing {posts.length} of {totalCount} discussions
+            {t("feed.showing", { shown: posts.length, total: totalCount })}
           </Typography>
 
           {posts.map((post) => (

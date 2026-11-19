@@ -2,6 +2,11 @@ import { useMemo } from "react";
 import { Box, Typography, Stack, TextField, Button, Alert, Radio, RadioGroup, FormControlLabel, Paper, Chip, useTheme, Checkbox, FormGroup, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import VerifiedUserOutlinedIcon from "@mui/icons-material/VerifiedUserOutlined";
+import { Trans } from "react-i18next";
+import { GatedAction } from "../../../components/GatedAction";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import type { ActionAvailability } from "../../../hooks/useActionAvailability";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { SampleApprovalDecision } from "../services/SampleSummaryService";
 import { sectionScope } from "../coaAggregation";
@@ -15,6 +20,8 @@ export function ApprovalSignaturesCard({
   summary,
   canReview,
   canApprove,
+  reviewAvailability,
+  approvalAvailability,
   comment,
   setComment,
   decision,
@@ -49,8 +56,12 @@ export function ApprovalSignaturesCard({
   onCloseTestingClick
 }: {
   summary: SampleSummary;
+  // Whether one of the viewer's sections is waiting for a review / a decision. Whether the viewer may act is
+  // the server's answer, in the two availabilities.
   canReview: boolean;
   canApprove: boolean;
+  reviewAvailability: ActionAvailability;
+  approvalAvailability: ActionAvailability;
   comment: string;
   setComment: (c: string) => void;
   decision: SampleApprovalDecision;
@@ -86,6 +97,7 @@ export function ApprovalSignaturesCard({
   onClosingSectionChange: (id: number | "") => void;
   onCloseTestingClick: () => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const hasSignatures = summary.signatures.length > 0;
   const isApproved = summary.status === "Approved";
@@ -101,7 +113,7 @@ export function ApprovalSignaturesCard({
           (newSampleAnalystOneId !== "" && newSampleAnalystTwoId !== "" && newSampleAnalystOneId !== newSampleAnalystTwoId))));
 
   const eligibleRetestOrders = summary.testOrders.filter(
-    (t) => !t.isSuperseded && (effectiveApprovalSectionId == null || t.sectionId === effectiveApprovalSectionId)
+    (tOrder) => !tOrder.isSuperseded && (effectiveApprovalSectionId == null || tOrder.sectionId === effectiveApprovalSectionId)
   );
 
   const activeReviewSectionId = reviewableSections.length === 1 ? reviewableSections[0].sectionId : reviewSectionId;
@@ -152,7 +164,7 @@ export function ApprovalSignaturesCard({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <VerifiedUserOutlinedIcon sx={{ color: theme.palette.primary.main, fontSize: 20 }} />
           <Typography sx={{ fontWeight: 700, fontSize: 14, color: theme.palette.primary.main }}>
-            Approval & Electronic Signatures
+            {t("sampleSummary.approval.title")}
           </Typography>
         </Box>
         <StatusBadge status={summary.status} />
@@ -174,12 +186,12 @@ export function ApprovalSignaturesCard({
             >
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                  {sig.role}: {sig.printedName} ({sig.username})
+                  {sig.role}: <Ltr>{`${sig.printedName} (${sig.username})`}</Ltr>
                 </Typography>
                 <Chip
                   size="small"
                   icon={<CheckCircleOutlineIcon sx={{ fontSize: "14px !important" }} />}
-                  label="Verified"
+                  label={t("sampleSummary.approval.verified")}
                   sx={{
                     bgcolor: theme.custom.status.notDetected.bg,
                     color: theme.custom.status.notDetected.text,
@@ -190,14 +202,14 @@ export function ApprovalSignaturesCard({
                 />
               </Box>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>
-                {formatExactTime(sig.signedAt)}
+                <Ltr>{formatExactTime(sig.signedAt)}</Ltr>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
                 "{sig.meaningText}"
               </Typography>
               {sig.comment && (
                 <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-                  Comment: {sig.comment}
+                  {t("sampleSummary.approval.commentLabel")}: {sig.comment}
                 </Typography>
               )}
 
@@ -209,10 +221,15 @@ export function ApprovalSignaturesCard({
           {summary.reviewedByName && (
             <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                Reviewer: {summary.reviewedByName}
+                <Trans
+                  i18nKey="sampleSummary.approval.reviewer"
+                  ns="testingWorkspace"
+                  values={{ name: summary.reviewedByName }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {formatExactTime(summary.reviewedAt)} · Verified
+                <Ltr>{formatExactTime(summary.reviewedAt)}</Ltr> · {t("sampleSummary.approval.verified")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{SIGNATURE_STATEMENTS.Reviewed}"
@@ -223,10 +240,15 @@ export function ApprovalSignaturesCard({
           {summary.approvedByName && (
             <Box sx={{ p: 1.5, bgcolor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.primary" }}>
-                Section Head: {summary.approvedByName}
+                <Trans
+                  i18nKey="sampleSummary.approval.sectionHead"
+                  ns="testingWorkspace"
+                  values={{ name: summary.approvedByName }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {formatExactTime(summary.approvedAt)} · Verified
+                <Ltr>{formatExactTime(summary.approvedAt)}</Ltr> · {t("sampleSummary.approval.verified")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic", mt: 0.5 }}>
                 "{isRejected ? SIGNATURE_STATEMENTS.Rejected : SIGNATURE_STATEMENTS.Approved}"
@@ -237,10 +259,10 @@ export function ApprovalSignaturesCard({
       ) : (
         <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 2 }}>
           {summary.status === "UnderReview"
-            ? "Awaiting technical review by authorized reviewer."
+            ? t("sampleSummary.approval.awaitingReview")
             : summary.status === "UnderApproval"
-            ? "Reviewed. Awaiting release approval decision by Section Head."
-            : "No formal signatures recorded."}
+            ? t("sampleSummary.approval.awaitingApproval")
+            : t("sampleSummary.approval.noSignatures")}
         </Typography>
       )}
 
@@ -248,14 +270,14 @@ export function ApprovalSignaturesCard({
       {canReview && (
         <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
-            Submit Technical Review
+            {t("sampleSummary.approval.submitTechnicalReview")}
           </Typography>
           {reviewableSections.length > 1 && (
             <TextField
               select
               fullWidth
               size="small"
-              label="Laboratory Section"
+              label={t("sampleSummary.approval.laboratorySection")}
               required
               value={reviewSectionId}
               onChange={(e) => onReviewSectionChange(Number(e.target.value))}
@@ -270,8 +292,8 @@ export function ApprovalSignaturesCard({
           )}
           <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
             {activeReviewSection
-              ? `By submitting, I confirm I have reviewed all test results for ${activeReviewSection.sectionName}.`
-              : "By submitting, I confirm I have reviewed all test results for this sample."}
+              ? t("sampleSummary.approval.confirmReviewSection", { section: activeReviewSection.sectionName })
+              : t("sampleSummary.approval.confirmReviewSample")}
           </Alert>
           {showRetention && (
             <Box sx={{ display: "flex", gap: 1.5, mb: 1.5 }}>
@@ -279,16 +301,16 @@ export function ApprovalSignaturesCard({
                 fullWidth
                 size="small"
                 type="number"
-                label="Retention quantity"
+                label={t("sampleSummary.approval.retentionQuantity")}
                 required
                 value={retentionQuantity}
                 onChange={(e) => setRetentionQuantity?.(e.target.value)}
-                slotProps={{ htmlInput: { step: "any", min: 0 } }}
+                slotProps={{ htmlInput: { step: "any", min: 0, dir: "ltr" } }}
               />
               <TextField
                 select
                 size="small"
-                label="Unit"
+                label={t("sampleSummary.approval.unit")}
                 required
                 value={retentionQuantityUnit}
                 onChange={(e) => setRetentionQuantityUnit?.(e.target.value)}
@@ -296,7 +318,7 @@ export function ApprovalSignaturesCard({
               >
                 {RETENTION_UNITS.map((u) => (
                   <MenuItem key={u} value={u}>
-                    {u}
+                    <Ltr>{u}</Ltr>
                   </MenuItem>
                 ))}
               </TextField>
@@ -305,22 +327,24 @@ export function ApprovalSignaturesCard({
           <TextField
             fullWidth
             size="small"
-            label="Comment (optional)"
+            label={t("sampleSummary.approval.commentOptional")}
             multiline
             rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             sx={{ mb: 1.5 }}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={Boolean((reviewableSections.length > 1 && !reviewSectionId) || !retentionValid)}
-            onClick={onReviewClick}
-          >
-            Submit Review
-          </Button>
+          <GatedAction action="review.complete" availability={reviewAvailability}>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={Boolean((reviewableSections.length > 1 && !reviewSectionId) || !retentionValid)}
+              onClick={onReviewClick}
+            >
+              {t("sampleSummary.approval.submitReview")}
+            </Button>
+          </GatedAction>
         </Box>
       )}
 
@@ -328,14 +352,14 @@ export function ApprovalSignaturesCard({
       {canApprove && (
         <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.primary.main }}>
-            Submit Release Decision
+            {t("sampleSummary.approval.submitReleaseDecision")}
           </Typography>
           {approvableSections.length > 1 && (
             <TextField
               select
               fullWidth
               size="small"
-              label="Laboratory Section"
+              label={t("sampleSummary.approval.laboratorySection")}
               required
               value={approvalSectionId}
               onChange={(e) => onApprovalSectionChange(Number(e.target.value))}
@@ -351,7 +375,7 @@ export function ApprovalSignaturesCard({
           <TextField
             fullWidth
             size="small"
-            label="Comment (optional)"
+            label={t("sampleSummary.approval.commentOptional")}
             multiline
             rows={2}
             value={comment}
@@ -368,7 +392,7 @@ export function ApprovalSignaturesCard({
                 key={opt.value}
                 value={opt.value}
                 control={<Radio size="small" />}
-                label={<Typography sx={{ fontSize: 12 }}>{opt.label}</Typography>}
+                label={<Typography sx={{ fontSize: 12 }}>{t(`sampleSummary.decisions.${opt.value}`)}</Typography>}
               />
             ))}
           </RadioGroup>
@@ -376,8 +400,8 @@ export function ApprovalSignaturesCard({
             <TextField
               fullWidth
               size="small"
-              label="Certificate Remarks (optional)"
-              helperText="Printed on the Certificate of Analysis exactly as typed. Leave blank to show &quot;No remarks.&quot; Separate from the internal comment above, which never appears on the certificate."
+              label={t("sampleSummary.approval.certificateRemarksLabel")}
+              helperText={t("sampleSummary.approval.certificateRemarksHelper")}
               multiline
               rows={2}
               value={certificateRemarks}
@@ -389,48 +413,50 @@ export function ApprovalSignaturesCard({
           {(decision === "RetestRetainedSample" || decision === "NewSampleRequest") && (
             <Box sx={{ mb: 1.5 }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
-                Tests to Retest
+                {t("sampleSummary.approval.testsToRetest")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-                Non-conforming tests are pre-checked. Adjust as needed - only the checked test(s) move to the new sample{decision === "NewSampleRequest" ? "s" : ""}; everything else on this sample is left untouched.
+                {decision === "NewSampleRequest"
+                  ? t("sampleSummary.approval.testsToRetestHelpNewSample")
+                  : t("sampleSummary.approval.testsToRetestHelpRetained")}
               </Typography>
               {approvableSections.length > 1 && !approvalSectionId ? (
                 <Alert severity="info" sx={{ fontSize: 12, py: 0.5, mb: 1 }}>
-                  Please select a laboratory section above to view tests to retest.
+                  {t("sampleSummary.approval.selectSectionForRetest")}
                 </Alert>
               ) : (
                 <FormGroup>
-                  {eligibleRetestOrders.map((t) => (
+                  {eligibleRetestOrders.map((tOrder) => (
                     <FormControlLabel
-                      key={t.testOrderId}
+                      key={tOrder.testOrderId}
                       control={
                         <Checkbox
                           size="small"
-                          checked={selectedTestOrderIds.includes(t.testOrderId)}
+                          checked={selectedTestOrderIds.includes(tOrder.testOrderId)}
                           onChange={(e) =>
                             setSelectedTestOrderIds(
                               e.target.checked
-                                ? [...selectedTestOrderIds, t.testOrderId]
-                                : selectedTestOrderIds.filter((id) => id !== t.testOrderId)
+                                ? [...selectedTestOrderIds, tOrder.testOrderId]
+                                : selectedTestOrderIds.filter((id) => id !== tOrder.testOrderId)
                             )
                           }
                         />
                       }
                       label={
                         <Typography sx={{ fontSize: 12 }}>
-                          {t.testDisplayName}
-                          {t.sectionName && (
+                          {tOrder.testDisplayName}
+                          {tOrder.sectionName && (
                             <Chip
                               size="small"
-                              label={t.sectionName}
+                              label={tOrder.sectionName}
                               variant="outlined"
                               sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
                           )}
-                          {isTestOrderNonPassing(t) && (
+                          {isTestOrderNonPassing(tOrder) && (
                             <Chip
                               size="small"
-                              label="Non-conforming"
+                              label={t("sampleSummary.approval.nonConforming")}
                               color="error"
                               sx={{ ml: 0.5, height: 20, fontSize: 12 }}
                             />
@@ -443,7 +469,7 @@ export function ApprovalSignaturesCard({
               )}
               {selectedTestOrderIds.length === 0 && (approvableSections.length <= 1 || approvalSectionId !== "") && (
                 <Alert severity="warning" sx={{ fontSize: 12, py: 0, mt: 0.5 }}>
-                  Select at least one test to retest.
+                  {t("sampleSummary.approval.selectAtLeastOneRetest")}
                 </Alert>
               )}
             </Box>
@@ -452,47 +478,47 @@ export function ApprovalSignaturesCard({
           {decision === "NewSampleRequest" && (
             <Box sx={{ mb: 1.5 }}>
               <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5 }}>
-                Analysts for the Two New Samples
+                {t("sampleSummary.approval.analystsForNewSamples")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-                Two different analysts are required, and neither may be whoever tested the original sample.
+                {t("sampleSummary.approval.analystsDifferentHint")}
               </Typography>
               {analystsLoadFailed && (
                 <Alert severity="error" sx={{ mb: 1 }}>
-                  The list of eligible analysts could not be loaded. Close and reopen this sample to try again.
+                  {t("sampleSummary.approval.analystsLoadFailed")}
                 </Alert>
               )}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <FormControl fullWidth size="small">
-                  <InputLabel>New Sample 1 - Analyst</InputLabel>
+                  <InputLabel>{t("sampleSummary.approval.newSample1Analyst")}</InputLabel>
                   <Select<number | "">
-                    label="New Sample 1 - Analyst"
+                    label={t("sampleSummary.approval.newSample1Analyst")}
                     value={newSampleAnalystOneId}
                     onChange={(e) => setNewSampleAnalystOneId(e.target.value === "" ? "" : Number(e.target.value))}
-                    inputProps={{ "aria-label": "New Sample 1 - Analyst" }}
+                    inputProps={{ "aria-label": t("sampleSummary.approval.newSample1Analyst") }}
                   >
                     {analysts.map((a) => (
-                      <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>
+                      <MenuItem key={a.id} value={a.id}><Ltr>{`${a.fullName} (${a.username})`}</Ltr></MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <FormControl fullWidth size="small">
-                  <InputLabel>New Sample 2 - Analyst</InputLabel>
+                  <InputLabel>{t("sampleSummary.approval.newSample2Analyst")}</InputLabel>
                   <Select<number | "">
-                    label="New Sample 2 - Analyst"
+                    label={t("sampleSummary.approval.newSample2Analyst")}
                     value={newSampleAnalystTwoId}
                     onChange={(e) => setNewSampleAnalystTwoId(e.target.value === "" ? "" : Number(e.target.value))}
-                    inputProps={{ "aria-label": "New Sample 2 - Analyst" }}
+                    inputProps={{ "aria-label": t("sampleSummary.approval.newSample2Analyst") }}
                   >
                     {analysts.map((a) => (
-                      <MenuItem key={a.id} value={a.id}>{a.fullName} ({a.username})</MenuItem>
+                      <MenuItem key={a.id} value={a.id}><Ltr>{`${a.fullName} (${a.username})`}</Ltr></MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Stack>
               {newSampleAnalystOneId !== "" && newSampleAnalystOneId === newSampleAnalystTwoId && (
                 <Alert severity="warning" sx={{ fontSize: 12, py: 0, mt: 0.5 }}>
-                  The two new samples must be assigned to two different analysts.
+                  {t("sampleSummary.approval.analystsMustDiffer")}
                 </Alert>
               )}
             </Box>
@@ -500,19 +526,25 @@ export function ApprovalSignaturesCard({
 
           {oosWarning && (
             <Alert severity="warning" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
-              Out-of-specification results in {oosWarning.sectionName}: {oosWarning.failingList}. Approving will certify them as conforming - consider Not Conform or a retest.
+              {t("sampleSummary.approval.oosWarning", { section: oosWarning.sectionName, failingList: oosWarning.failingList })}
             </Alert>
           )}
 
-          <Button
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={!decisionValid}
-            onClick={onApproveClick}
+          {/* Approve and Not Conform are gated by the server; the retest decisions have no gated action. */}
+          <GatedAction
+            action={decision === "Approve" ? "approval.approve" : decision === "Reject" ? "approval.reject" : "none"}
+            availability={approvalAvailability}
           >
-            Submit Decision
-          </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={!decisionValid}
+              onClick={onApproveClick}
+            >
+              {t("sampleSummary.approval.submitDecision")}
+            </Button>
+          </GatedAction>
         </Box>
       )}
 
@@ -523,18 +555,17 @@ export function ApprovalSignaturesCard({
       {canCloseTesting && (
         <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1, color: theme.palette.error.main }}>
-            Close Testing
+            {t("sampleSummary.approval.closeTesting")}
           </Typography>
           <Alert severity="warning" sx={{ fontSize: 12, py: 0.5, mb: 1.5 }}>
-            Another laboratory has rejected this sample. You may close your own laboratory's remaining
-            tests instead of continuing them.
+            {t("sampleSummary.approval.closeTestingAlert")}
           </Alert>
           {closableSections.length > 1 && (
             <TextField
               select
               fullWidth
               size="small"
-              label="Laboratory Section"
+              label={t("sampleSummary.approval.laboratorySection")}
               required
               value={closingSectionId}
               onChange={(e) => onClosingSectionChange(Number(e.target.value))}
@@ -554,7 +585,7 @@ export function ApprovalSignaturesCard({
             disabled={closableSections.length > 1 && !closingSectionId}
             onClick={onCloseTestingClick}
           >
-            Close Testing
+            {t("sampleSummary.approval.closeTesting")}
           </Button>
         </Box>
       )}

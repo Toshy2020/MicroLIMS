@@ -11,6 +11,8 @@ import type { HplcMethodOptionDto, HplcTechnique } from "../types";
 import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
 import { MethodReadOnlyPanel } from "./MethodReadOnlyPanel";
 import { useTechnique } from "../useTechnique";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 export interface WizardMethodStepProps {
   methodOptions: HplcMethodOptionDto[];
@@ -27,6 +29,7 @@ export function WizardMethodStep({
   technique,
   onSelectMethod
 }: WizardMethodStepProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const { technique: routeTechnique } = useTechnique();
   const activeTechnique = technique ?? routeTechnique;
@@ -35,7 +38,7 @@ export function WizardMethodStep({
   return (
     <Stack spacing={2.5}>
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-        Select an Active {label} Method:
+        {t("wizard.methodStep.title", { label })}
       </Typography>
       <Grid container spacing={2}>
         {methodOptions.map((opt) => (
@@ -70,7 +73,7 @@ export function WizardMethodStep({
                     {opt.columnDesignation && (
                       <Chip
                         size="small"
-                        label={`USP ${opt.columnDesignation}`}
+                        label={<Ltr>USP {opt.columnDesignation}</Ltr>}
                         variant="outlined"
                         sx={{ fontSize: 12, height: 20, fontWeight: 600 }}
                       />
@@ -79,7 +82,7 @@ export function WizardMethodStep({
                 </Box>
                 <Chip
                   size="small"
-                  label={`${opt.eligibleTestOrderCount} eligible tests`}
+                  label={t("wizard.methodStep.eligibleTests", { count: opt.eligibleTestOrderCount })}
                   variant="outlined"
                   sx={{ fontWeight: 600 }}
                 />
@@ -92,7 +95,7 @@ export function WizardMethodStep({
       {selectedMethod && (
         <Box sx={{ mt: 2 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-            Method Details Preview:
+            {t("wizard.methodStep.previewTitle")}
           </Typography>
           <MethodReadOnlyPanel method={selectedMethod} />
         </Box>

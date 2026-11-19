@@ -1,0 +1,120 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
+import { sectionSelfAssignmentService } from "../../services/sectionSelfAssignmentService";
+import { DashboardService } from "./services/DashboardService";
+import { DashboardLabProvider, makeDashboardLab } from "./DashboardLabContext";
+import { SectionHeadDashboardPage } from "./SectionHeadDashboardPage";
+import type { SectionHeadDashboard } from "./types/dashboard";
+
+vi.mock("./services/DashboardService", () => ({
+  DashboardService: {
+    getSectionHeadDashboard: vi.fn(),
+    getStatusDistribution: vi.fn(),
+    getMonthlyTrend: vi.fn()
+  }
+}));
+
+vi.mock("../../services/sectionSelfAssignmentService", () => ({
+  sectionSelfAssignmentService: {
+    getAll: vi.fn(),
+    update: vi.fn()
+  }
+}));
+
+function seedAuth(permissions: string[]) {
+  const b64 = (obj: object) => btoa(JSON.stringify(obj)).replace(/=+$/, "");
+  const token = `${b64({ alg: "none" })}.${b64({ role: "SectionHead", permission: permissions })}.x`;
+  localStorage.setItem("microlims_token", token);
+  localStorage.setItem("microlims_full_name", "Sam Head");
+  localStorage.setItem("microlims_username", "shead");
+  localStorage.setItem("microlims_user_id", "7");
+}
+
+function makeDashboard(): SectionHeadDashboard {
+  return {
+    activeTests: 4,
+    incubating: 1,
+    readyToRead: 2,
+    pendingReview: 1,
+    pendingApproval: 0,
+    overdue: 0,
+    attentionCount: 0,
+    testingBottleneck: 1,
+    incubationBottleneck: 1,
+    readyToReadBottleneck: 2,
+    reviewBottleneck: 1,
+    approvalBottleneck: 0,
+    attentionItems: [],
+    reviewQueueCount: 0,
+    reviewQueueOverdueCount: 0,
+    reviewQueueOldestHours: 0,
+    reviewQueueItems: [],
+    approvalQueueCount: 0,
+    approvalQueueOverdueCount: 0,
+    approvalQueueOldestHours: 0,
+    approvalQueueItems: [],
+    incubationSummary: [],
+    analystWorkloads: []
+  };
+}
+
+function renderSectionHeadDashboard() {
+  return render(
+    <PinnedLightTheme>
+      <AuthProvider>
+        <MemoryRouter>
+          <DashboardLabProvider value={makeDashboardLab("MICRO")}>
+            <SectionHeadDashboardPage />
+          </DashboardLabProvider>
+        </MemoryRouter>
+      </AuthProvider>
+    </PinnedLightTheme>
+  );
+}
+
+describe("SectionHeadDashboardPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    vi.mocked(DashboardService.getSectionHeadDashboard).mockResolvedValue(makeDashboard());
+    vi.mocked(DashboardService.getStatusDistribution).mockResolvedValue([]);
+    vi.mocked(DashboardService.getMonthlyTrend).mockResolvedValue([]);
+    vi.mocked(sectionSelfAssignmentService.getAll).mockResolvedValue([
+      {
+        sectionId: 1,
+        sectionName: "Microbiology",
+        enabled: true,
+        changedAt: null,
+        changedByName: null,
+        version: 0
+      }
+    ]);
+  });
+
+  afterEach(() => {
+    cleanup();
+    localStorage.clear();
+  });
+
+  it("shows the Taking tests from My Work card for users holding Samples.AssignAnalyst", async () => {
+    seedAuth([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW, PERMISSIONS.SAMPLES_ASSIGN_ANALYST]);
+    renderSectionHeadDashboard();
+
+    expect(await screen.findByText("Laboratory Analyst Workload Allocation")).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Taking tests from My Work" })).toBeTruthy();
+    expect(await screen.findByText("Microbiology")).toBeTruthy();
+  });
+
+  it("hides the Taking tests from My Work card when the user lacks Samples.AssignAnalyst", async () => {
+    seedAuth([PERMISSIONS.DASHBOARDS_LAB_OVERVIEW]);
+    renderSectionHeadDashboard();
+
+    expect(await screen.findByText("Laboratory Analyst Workload Allocation")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Taking tests from My Work" })).toBeNull();
+    expect(sectionSelfAssignmentService.getAll).not.toHaveBeenCalled();
+  });
+});

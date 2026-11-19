@@ -17,7 +17,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import HistoryIcon from "@mui/icons-material/History";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { brandColors } from "../../../../theme";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type {
@@ -36,6 +36,11 @@ import { RecordCalibrationDialog } from "./RecordCalibrationDialog";
 import { MaintenanceLogSection } from "./MaintenanceLogSection";
 import { EquipmentHistoryPrint } from "./EquipmentHistoryPrint";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { PrintLabelButton } from "../../../../components/labels/PrintLabelButton";
+import { Ltr } from "../../../../components/Ltr";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
+import { useTrackRecent } from "../../../navigation/useTrackRecent";
 
 interface Props {
   open: boolean;
@@ -66,6 +71,8 @@ export function EquipmentDetailsDialog({
   onEquipmentUpdated
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("inventory");
+  useTrackRecent("equipment", open ? equipment?.id : null);
   const [activeTab, setActiveTab] = useState<number>(0);
   const [statusHistory, setStatusHistory] = useState<EquipmentStatusHistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -123,18 +130,30 @@ export function EquipmentDetailsDialog({
         title={
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-              {equipment.code}
+              <Ltr>{equipment.code}</Ltr>
             </Typography>
             <Typography sx={{ fontSize: 14, color: "text.secondary" }}>
               · {equipment.instrumentType}
             </Typography>
-            <StatusBadge status={equipment.status} />
+            <StatusBadge status={equipment.status} label={t(`equipment.status.${equipment.status}`)} />
           </Box>
         }
         actions={
-          <Button onClick={onClose} color="inherit">
-            Close
-          </Button>
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+            <PrintLabelButton
+              target={{
+                entityType: "EquipmentAsset",
+                entityId: equipment.id,
+                code: equipment.code,
+                displayName: equipment.instrumentType
+                  ? `${equipment.code} — ${equipment.instrumentType}`
+                  : equipment.code
+              }}
+            />
+            <Button onClick={onClose} color="inherit">
+              {t("equipment.details.close")}
+            </Button>
+          </Stack>
         }
       >
         {message && (
@@ -152,10 +171,10 @@ export function EquipmentDetailsDialog({
           onChange={(_, val) => setActiveTab(val)}
           sx={{ borderBottom: 1, borderColor: "divider", mb: 2.5 }}
         >
-          <Tab label="Details" />
-          <Tab label="Schedule" />
-          <Tab label="Logbook" />
-          <Tab label="History" />
+          <Tab label={t("equipment.details.tabs.details")} />
+          <Tab label={t("equipment.details.tabs.schedule")} />
+          <Tab label={t("equipment.details.tabs.logbook")} />
+          <Tab label={t("equipment.details.tabs.history")} />
         </Tabs>
 
         <Box sx={{ minHeight: { xs: "auto", sm: 420 } }}>
@@ -164,9 +183,9 @@ export function EquipmentDetailsDialog({
               {/* SECTION 1 — Equipment Specifications & Status */}
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                Instrument Information
+                {t("equipment.details.instrumentInfo")}
               </Typography>
-              <Tooltip title="Edit Equipment Specifications & Status">
+              <Tooltip title={t("equipment.details.editTooltip")}>
                 <Button
                   id="equip-details-edit-btn"
                   size="small"
@@ -178,7 +197,7 @@ export function EquipmentDetailsDialog({
                   }}
                   sx={{ textTransform: "none", fontSize: 12 }}
                 >
-                  Edit / Change Status
+                  {t("equipment.details.editButton")}
                 </Button>
               </Tooltip>
             </Box>
@@ -197,16 +216,16 @@ export function EquipmentDetailsDialog({
               }}
             >
               <Box>
-                <MetaRow label="Instrument Type" value={equipment.instrumentType} />
-                <MetaRow label="Manufacturer" value={equipment.manufacturerName || "—"} />
-                <MetaRow label="Serial Number" value={equipment.serialNumber || "—"} />
-                <MetaRow label="Firmware Version" value={equipment.firmwareVersion || "—"} />
+                <MetaRow label={t("equipment.details.instrumentType")} value={equipment.instrumentType} />
+                <MetaRow label={t("equipment.details.manufacturer")} value={equipment.manufacturerName || "—"} />
+                <MetaRow label={t("equipment.details.serialNumber")} value={equipment.serialNumber ? <Ltr>{equipment.serialNumber}</Ltr> : "—"} />
+                <MetaRow label={t("equipment.details.firmwareVersion")} value={equipment.firmwareVersion ? <Ltr>{equipment.firmwareVersion}</Ltr> : "—"} />
               </Box>
               <Box>
-                <MetaRow label="Equipment Code" value={equipment.code} />
-                <MetaRow label="Location" value={equipment.location} />
+                <MetaRow label={t("equipment.details.equipmentCode")} value={<Ltr>{equipment.code}</Ltr>} />
+                <MetaRow label={t("equipment.details.location")} value={equipment.location} />
                 <MetaRow
-                  label="Calibration Due"
+                  label={t("equipment.details.calibrationDue")}
                   value={
                     <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
                       <span
@@ -219,16 +238,16 @@ export function EquipmentDetailsDialog({
                             : "inherit"
                         }}
                       >
-                        {equipment.calibrationDueDate ? formatLabDate(equipment.calibrationDueDate) : "—"}
+                        {equipment.calibrationDueDate ? formatLabCalendarDate(equipment.calibrationDueDate) : "—"}
                       </span>
-                      {isOverdue && <StatusBadge status="Overdue" />}
-                      {isDueSoon && <StatusBadge status="Due Soon" />}
+                      {isOverdue && <StatusBadge status="Overdue" label={t("equipment.status.overdue")} />}
+                      {isDueSoon && <StatusBadge status="Due Soon" label={t("equipment.status.dueSoon")} />}
                     </Box>
                   }
                 />
                 <MetaRow
-                  label="Operational Status"
-                  value={<StatusBadge status={equipment.status} />}
+                  label={t("equipment.details.operationalStatus")}
+                  value={<StatusBadge status={equipment.status} label={t(`equipment.status.${equipment.status}`)} />}
                 />
               </Box>
             </Box>
@@ -240,7 +259,7 @@ export function EquipmentDetailsDialog({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <HistoryIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                 <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                  Operational Status History
+                  {t("equipment.details.statusHistoryTitle")}
                 </Typography>
               </Box>
             </Box>
@@ -252,7 +271,7 @@ export function EquipmentDetailsDialog({
                 </Box>
               ) : statusHistory.length === 0 ? (
                 <Typography sx={{ fontSize: 12, color: "text.secondary", fontStyle: "italic" }}>
-                  No operational status changes have been recorded for this equipment.
+                  {t("equipment.details.noStatusHistory")}
                 </Typography>
               ) : (
                 <Stack divider={<Divider sx={{ my: 1 }} />} spacing={1}>
@@ -260,21 +279,30 @@ export function EquipmentDetailsDialog({
                     <Box key={h.id} sx={{ fontSize: 12 }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <StatusBadge status={h.previousStatus} />
+                          <StatusBadge status={h.previousStatus} label={t(`equipment.status.${h.previousStatus}`)} />
                           <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
                             →
                           </Typography>
-                          <StatusBadge status={h.newStatus} />
+                          <StatusBadge status={h.newStatus} label={t(`equipment.status.${h.newStatus}`)} />
                         </Box>
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          {formatLabDateTime(h.changedAt)}
+                          {formatDateTimeWithTimeZone(h.changedAt)}
                         </Typography>
                       </Box>
                       <Typography sx={{ fontSize: 12, fontWeight: 500, color: "text.primary", mt: 0.5 }}>
                         {h.comment}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                        Changed by: <strong>{h.changedByName || (h.changedByUserId == null ? "System (automatic)" : "Unknown")}</strong>
+                        <Trans
+                          i18nKey="equipment.details.changedBy"
+                          ns="inventory"
+                          values={{
+                            name:
+                              h.changedByName ||
+                              (h.changedByUserId == null ? t("equipment.details.systemAutomatic") : t("equipment.details.unknownUser"))
+                          }}
+                          components={{ bold: <strong /> }}
+                        />
                       </Typography>
                     </Box>
                   ))}
@@ -289,7 +317,7 @@ export function EquipmentDetailsDialog({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <UploadFileIcon sx={{ fontSize: 18, color: "text.secondary" }} />
                 <Typography sx={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-                  Calibration Certificates
+                  {t("equipment.details.certificatesTitle")}
                 </Typography>
               </Box>
               <Button
@@ -305,7 +333,7 @@ export function EquipmentDetailsDialog({
                   "&:hover": { bgcolor: brandColors.pageTitle }
                 }}
               >
-                Upload Certificate
+                {t("equipment.details.uploadCertificate")}
               </Button>
             </Box>
 
@@ -326,7 +354,7 @@ export function EquipmentDetailsDialog({
           <EquipmentScheduleSection
             equipment={equipment}
             onSaved={() => {
-              setNotification({ text: "Schedule saved successfully.", severity: "success" });
+              setNotification({ text: t("equipment.details.scheduleSaved"), severity: "success" });
               onEquipmentUpdated();
             }}
             onRecordCalibrationClick={() => setIsRecordCalibrationOpen(true)}
@@ -370,7 +398,7 @@ export function EquipmentDetailsDialog({
         onSuccess={() => {
           setIsUploadOpen(false);
           setDocRefreshKey((k) => k + 1);
-          setMessage({ text: "Calibration certificate uploaded successfully.", ok: true });
+          setMessage({ text: t("equipment.details.certificateUploaded"), ok: true });
           onEquipmentUpdated();
         }}
       />
@@ -384,7 +412,7 @@ export function EquipmentDetailsDialog({
         onSuccess={() => {
           setIsRecordCalibrationOpen(false);
           setDocRefreshKey((k) => k + 1);
-          setMessage({ text: "Calibration recorded successfully.", ok: true });
+          setMessage({ text: t("equipment.details.calibrationRecorded"), ok: true });
           onEquipmentUpdated();
         }}
       />

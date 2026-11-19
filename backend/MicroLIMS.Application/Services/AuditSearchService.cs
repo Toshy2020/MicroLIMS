@@ -29,7 +29,8 @@ public record AuditSearchRequest(
     // Case-insensitive "contains" on the recorded reason.
     string? Reason = null,
     // True: only rows whose EntityId is negative (a temporary key captured before the save, decision D8).
-    bool? NegativeEntityId = null);
+    bool? NegativeEntityId = null,
+    string? EntityId = null);
 
 public record AuditSearchPage(List<AuditLogDto> Items, int? NextCursor, bool HasMore);
 
@@ -120,9 +121,9 @@ public class AuditSearchService
         return await ToDtosAsync(rows);
     }
 
-    private IQueryable<AuditLog> ApplyFilters(AuditSearchRequest r)
+    internal IQueryable<AuditLog> ApplyFilters(AuditSearchRequest r)
     {
-        var query = _db.AuditLogs.AsQueryable();
+        var query = _db.AuditLogs.AsNoTracking();
 
         if (r.BeforeId.HasValue) query = query.Where(a => a.Id < r.BeforeId.Value);
         if (r.FromDate.HasValue) query = query.Where(a => a.Timestamp >= r.FromDate.Value);
@@ -137,6 +138,7 @@ public class AuditSearchService
         if (r.TestOrderId.HasValue) query = query.Where(a => a.TestOrderId == r.TestOrderId);
         if (r.UserId.HasValue) query = query.Where(a => a.UserId == r.UserId);
         if (!string.IsNullOrWhiteSpace(r.EntityName)) query = query.Where(a => a.EntityName == r.EntityName);
+        if (!string.IsNullOrWhiteSpace(r.EntityId)) query = query.Where(a => a.EntityId == r.EntityId);
         if (!string.IsNullOrWhiteSpace(r.Action)) query = query.Where(a => a.Action == r.Action);
         if (r.ActionCategory.HasValue) query = query.Where(a => a.ActionCategory == r.ActionCategory);
         if (r.ActorType.HasValue) query = query.Where(a => a.ActorType == r.ActorType);
@@ -196,21 +198,23 @@ public class AuditSearchService
         return new SecurityEventPage(items, hasMore ? rows[^1].Id : null, hasMore);
     }
 
-    private async Task<List<AuditLogDto>> ToDtosAsync(List<AuditLog> logs)
+    internal async Task<List<AuditLogDto>> ToDtosAsync(List<AuditLog> logs, CancellationToken ct = default)
     {
         var userIds = logs.Select(l => l.UserId).Where(id => id.HasValue && id.Value > 0).Select(id => id!.Value).Distinct().ToList();
         var userMap = await _db.Users
+            .AsNoTracking()
             .Include(u => u.Role)
             .Where(u => userIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id);
+            .ToDictionaryAsync(u => u.Id, ct);
 
         var negativeIds = logs.Where(l => l.EntityId.StartsWith("-")).Select(l => l.Id.ToString()).ToList();
         var corrections = negativeIds.Count == 0
             ? new Dictionary<string, int>()
             : (await _db.AuditLogs
+                .AsNoTracking()
                 .Where(c => c.ActionCode == CorrectionActionCode && c.EntityName == "AuditLog" && negativeIds.Contains(c.EntityId))
                 .Select(c => new { c.EntityId, c.Id })
-                .ToListAsync())
+                .ToListAsync(ct))
                 .GroupBy(c => c.EntityId)
                 .ToDictionary(g => g.Key, g => g.Min(c => c.Id));
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { FormControlLabel, Checkbox } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { PageArea, PhyschemArea, toggleBoth, isBoth } from "./testMasterArea";
 
 export interface TestAreaFieldProps {
@@ -20,7 +21,8 @@ export const TestAreaField: React.FC<TestAreaFieldProps> = ({
   onChange,
   disabled = false
 }) => {
-  const label = pageArea === "fp" ? "Also used for RM & PM" : "Also used for FP";
+  const { t } = useTranslation("masterData");
+  const label = pageArea === "fp" ? t("testAreaField.alsoRmPm") : t("testAreaField.alsoFp");
   const checked = isBoth(value);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

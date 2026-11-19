@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { ClipboardEvent } from "react";
 import {
   Box,
   Typography,
@@ -24,41 +25,80 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { ReceiveRowItem, SampleCategoryKey, ReceiptLabOption } from "../types/receivingTypes";
+import {
+  BatchReceivedSample,
+  ReceiveRowItem,
+  ReceivingMasterData,
+  SampleCategoryKey,
+  ReceiptLabOption
+} from "../types/receivingTypes";
 import { ReceiveService } from "../services/ReceiveService";
 import { tableHeadSx } from "../../../theme";
 import { DateField } from "../../../components/DateField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
+import { useGridNavigation } from "../../../components/entry/useGridNavigation";
+import { parseClipboardTable } from "../../../components/entry/parseClipboardTable";
+import { PastePreviewDialog } from "../../../components/entry/PastePreviewDialog";
+import type { PasteAcceptedRow, PasteColumn, PastePlan } from "../../../components/entry/PastePreviewDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getChoiceColumnLabels, getPasteableColumns, isPasteableKey } from "./receivingPaste";
+
+export const MAX_RECEIVE_ROWS = 100;
 
 // The two laboratories always shown in the Laboratories column, even when
 // the item has no tests for one of them - so the receiver sees a disabled
 // "(0)" entry rather than a lab silently missing. Mirrors env.md's fixed
 // section codes (Code is never renamed).
-const ALL_LABS: { code: string; label: string }[] = [
-  { code: "MICRO", label: "Microbiology Laboratory" },
-  { code: "FP", label: "Physicochemical Laboratory" }
-];
+const ALL_LAB_CODES: Array<"MICRO" | "FP"> = ["MICRO", "FP"];
 
 export type LabMode = { kind: "choose" } | { kind: "fixed"; sectionId: number; code?: string };
 
-interface MasterData {
-  items: any[];
-  waterPoints: any[];
-  waterDepartments: any[];
-  departments: any[];
-  machines: any[];
-  causes: any[];
-  samplers: any[];
-  productionStages: any[];
+export interface FocusErrorTarget {
+  row: number;
+  field: string;
+  nonce: number;
+}
+
+interface GridColumnDef {
+  key: string;
+  isEditable?: (row: ReceiveRowItem) => boolean;
+  copyDown?: (above: ReceiveRowItem, rowIndex: number) => void;
+}
+
+const cellErrorId = (rowIdx: number, field: string) => `receive-cell-err-${rowIdx}-${field}`;
+
+function CellError({ rowIdx, field, message }: { rowIdx: number; field: string; message?: string }) {
+  const theme = useTheme();
+  if (!message) return null;
+  return (
+    <Typography
+      id={cellErrorId(rowIdx, field)}
+      sx={{ fontSize: 11, color: theme.custom.status.detected.text, mt: 0.25 }}
+    >
+      {message}
+    </Typography>
+  );
 }
 
 interface Props {
   category: SampleCategoryKey;
   rows: ReceiveRowItem[];
-  masterData: MasterData;
+  masterData: ReceivingMasterData;
   labMode: LabMode;
-  onChangeRow: (index: number, field: string, value: any) => void;
+  onChangeRow: <K extends keyof ReceiveRowItem>(index: number, field: K, value: ReceiveRowItem[K]) => void;
   onAddRow: () => void;
   onDeleteRow: (index: number) => void;
+  onSave?: () => void;
+  focusErrorTarget?: FocusErrorTarget | null;
+  coaErrorByRow?: Record<number, string>;
+  retryingCoaRow?: number | null;
+  onRetryCoa?: (rowIndex: number) => void;
+  receivedByRow?: Record<number, BatchReceivedSample>;
+  firstRowDefaults?: {
+    causeOfTestingId?: boolean;
+    sampledBy?: boolean;
+  };
 }
 
 export function MultiSampleEntryGrid({
@@ -68,9 +108,17 @@ export function MultiSampleEntryGrid({
   labMode,
   onChangeRow,
   onAddRow,
-  onDeleteRow
+  onDeleteRow,
+  onSave,
+  focusErrorTarget,
+  coaErrorByRow,
+  retryingCoaRow,
+  onRetryCoa,
+  receivedByRow,
+  firstRowDefaults
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const isItemBased = category === "product" || category === "rm" || category === "pm";
   const isWater = category === "water";
   const isEM = category === "em";
@@ -151,6 +199,247 @@ export function MultiSampleEntryGrid({
   const showCoaColumn = category === "rm";
   const showGradeColumn = isItemBased && rows.some((r) => r.gradeOptions && r.gradeOptions.length > 0);
 
+  const columns = useMemo<GridColumnDef[]>(() => {
+    const cols: GridColumnDef[] = [];
+    if (isItemBased) {
+      cols.push({
+        key: "itemId",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "itemId", above.itemId ?? "");
+          onChangeRow(rowIndex, "targetSectionIds", above.targetSectionIds ? [...above.targetSectionIds] : undefined);
+          onChangeRow(rowIndex, "gradeOptions", above.gradeOptions ? [...above.gradeOptions] : undefined);
+          onChangeRow(rowIndex, "grade", above.grade ?? "");
+        }
+      });
+    }
+    if (showLabColumn) {
+      cols.push({
+        key: "targetSectionIds",
+        isEditable: (row) => Boolean(row.itemId),
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "targetSectionIds", above.targetSectionIds ? [...above.targetSectionIds] : []);
+        }
+      });
+    }
+    if (showGradeColumn) {
+      cols.push({
+        key: "grade",
+        isEditable: (row) => Boolean(row.gradeOptions && row.gradeOptions.length > 0),
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "grade", above.grade ?? "");
+        }
+      });
+    }
+    if (showCoaColumn) {
+      cols.push({ key: "coaFile" });
+    }
+    if (isAC) {
+      cols.push({
+        key: "previousProduct",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "previousProductItemId", above.previousProductItemId ?? null);
+          onChangeRow(rowIndex, "previousProductName", above.previousProductName ?? "");
+        }
+      });
+      if (isPhyschem) {
+        cols.push({
+          key: "techniques",
+          copyDown: (above, rowIndex) => {
+            onChangeRow(rowIndex, "techniques", above.techniques ? [...above.techniques] : []);
+          }
+        });
+      }
+      cols.push({
+        key: "previousProductBatchNumber",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "previousProductBatchNumber", above.previousProductBatchNumber ?? "");
+        }
+      });
+    }
+    if (category === "product") {
+      cols.push({
+        key: "productionStage",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "productionStage", above.productionStage ?? "");
+        }
+      });
+    }
+    if (isWater || isEM) {
+      cols.push({
+        key: "departmentId",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "departmentId", above.departmentId ?? "");
+        }
+      });
+    }
+    if (isAC) {
+      cols.push({
+        key: "machineId",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "machineId", above.machineId ?? "");
+        }
+      });
+    }
+    cols.push({
+      key: "causeOfTestingId",
+      copyDown: (above, rowIndex) => {
+        onChangeRow(rowIndex, "causeOfTestingId", above.causeOfTestingId ?? "");
+      }
+    });
+    if (!isEM && !isAC) {
+      cols.push({
+        key: "sampleQuantity",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "sampleQuantity", above.sampleQuantity ?? "");
+        }
+      });
+    }
+    cols.push({
+      key: "sampledBy",
+      copyDown: (above, rowIndex) => {
+        onChangeRow(rowIndex, "sampledBy", above.sampledBy ?? "");
+      }
+    });
+    if (isItemBased) {
+      cols.push({
+        key: "batchNumber",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "batchNumber", above.batchNumber ?? "");
+        }
+      });
+    }
+    if (!isItemBased) {
+      cols.push({
+        key: "sampledAt",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "sampledAt", above.sampledAt ?? "");
+        }
+      });
+    }
+    cols.push({
+      key: "controlNumber",
+      copyDown: (above, rowIndex) => {
+        onChangeRow(rowIndex, "controlNumber", above.controlNumber ?? "");
+      }
+    });
+    if (isItemBased) {
+      cols.push({
+        key: "mfgDate",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "mfgDate", above.mfgDate ?? "");
+        }
+      });
+      cols.push({
+        key: "expDate",
+        copyDown: (above, rowIndex) => {
+          onChangeRow(rowIndex, "expDate", above.expDate ?? "");
+        }
+      });
+    }
+    return cols;
+  }, [category, isAC, isEM, isItemBased, isPhyschem, isWater, onChangeRow, showCoaColumn, showGradeColumn, showLabColumn]);
+
+  const colIndexByKey = useMemo(() => {
+    const map: Record<string, number> = {};
+    columns.forEach((col, i) => {
+      map[col.key] = i;
+    });
+    return map;
+  }, [columns]);
+
+  const { cellProps, focusCell } = useGridNavigation({
+    rows: rows.length,
+    cols: columns.length,
+    isEditable: (r, c) => {
+      const col = columns[c];
+      const row = rows[r];
+      if (!col || !row) return false;
+      return col.isEditable ? col.isEditable(row) : true;
+    },
+    onCopyDown: (r, c) => {
+      if (r <= 0) return;
+      const col = columns[c];
+      const above = rows[r - 1];
+      if (!col || !above || !col.copyDown) return;
+      col.copyDown(above, r);
+    },
+    onSave
+  });
+
+  // Paste: positional, from the focused cell's column, onto the text and date
+  // columns only. The preview must be accepted before anything reaches the grid.
+  const [pasteRequest, setPasteRequest] = useState<{ cells: string[][]; row: number; col: number } | null>(null);
+
+  const handlePaste = (e: ClipboardEvent<HTMLElement>) => {
+    if (receivedByRow) return;
+    const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-grid-cell]");
+    const position = cell?.dataset.gridCell?.split(":").map(Number);
+    if (!position || position.length !== 2) return;
+    const cells = parseClipboardTable(e.clipboardData.getData("text/plain"));
+    // A single value is an ordinary paste into the focused field.
+    if (cells.length === 0) return;
+    e.preventDefault();
+    setPasteRequest({ cells, row: position[0], col: position[1] });
+  };
+
+  const pastePlan = useMemo<PastePlan | null>(() => {
+    if (!pasteRequest) return null;
+    const pasteableColumns = getPasteableColumns(t);
+    const choiceLabels = getChoiceColumnLabels(t);
+    const fromFocus = columns.map((col, index) => ({ col, index })).filter(({ index }) => index >= pasteRequest.col);
+    const fillable = fromFocus.filter(({ col }) => isPasteableKey(col.key));
+    const width = pasteRequest.cells.reduce((max, r) => Math.max(max, r.length), 0);
+    const used = fillable.slice(0, width);
+    const lastUsedIndex = used.length > 0 ? used[used.length - 1].index : -1;
+    const notPasted = fromFocus
+      .filter(({ col, index }) => index < lastUsedIndex && !isPasteableKey(col.key))
+      .map(({ col }) => choiceLabels[col.key] ?? col.key);
+    const pasteColumns: PasteColumn[] = [];
+    for (const { col } of fillable) {
+      if (isPasteableKey(col.key)) pasteColumns.push(pasteableColumns[col.key]);
+    }
+    return {
+      title: t("paste.title"),
+      maxRows: MAX_RECEIVE_ROWS - pasteRequest.row,
+      columns: pasteColumns,
+      notPasted
+    };
+  }, [pasteRequest, columns, t]);
+
+  const acceptPaste = (accepted: PasteAcceptedRow[]) => {
+    if (!pasteRequest) return;
+    const missing = pasteRequest.row + accepted.length - rows.length;
+    for (let i = 0; i < missing; i++) onAddRow();
+    accepted.forEach((r, i) => {
+      for (const [key, value] of Object.entries(r.values)) {
+        if (isPasteableKey(key)) onChangeRow(pasteRequest.row + i, key, value);
+      }
+    });
+    setPasteRequest(null);
+  };
+
+  const lastFocusedNonce = useRef<number>(-1);
+  useEffect(() => {
+    if (!focusErrorTarget || focusErrorTarget.nonce === lastFocusedNonce.current) return;
+    lastFocusedNonce.current = focusErrorTarget.nonce;
+    const key =
+      focusErrorTarget.field === "previousProductItemId" || focusErrorTarget.field === "previousProductName"
+        ? "previousProduct"
+        : focusErrorTarget.field === "waterDepartmentId"
+        ? "departmentId"
+        : focusErrorTarget.field;
+    const colIdx = colIndexByKey[key];
+    if (colIdx !== undefined) {
+      focusCell(focusErrorTarget.row, colIdx);
+    }
+  }, [focusErrorTarget, colIndexByKey, focusCell]);
+
+  const labDisplayName = (code: "MICRO" | "FP", sectionName?: string) =>
+    sectionName ? sectionName.replace(" Laboratory", "") : t(`grid.labShort.${code}`);
+
+  const atRowLimit = rows.length >= MAX_RECEIVE_ROWS;
+  const addRowLimitId = "receive-add-row-limit-reason";
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {(isEM || isAC || isWater) && (
@@ -169,10 +458,10 @@ export function MultiSampleEntryGrid({
           <InfoOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.inconclusive.text }} />
           <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text, fontWeight: 500 }}>
             {isEM
-              ? "Rooms, test locations, and test types are configured in the Preparation step after receiving."
+              ? t("grid.prepNoticeEm")
               : isAC
-              ? "Machine parts, test locations, and test types are configured in the Preparation step after receiving."
-              : "Sampling points and test types are configured in the Preparation step after receiving."}
+              ? t("grid.prepNoticeAc")
+              : t("grid.prepNoticeWater")}
           </Typography>
         </Box>
       )}
@@ -187,106 +476,106 @@ export function MultiSampleEntryGrid({
           bgcolor: "background.paper"
         }}
       >
-        <Box sx={{ overflowX: "auto", maxHeight: "55vh" }}>
-          <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1560 : 1400) : isItemBased || isAC ? (showGradeColumn ? 1360 : 1200) : 780) + (showCoaColumn ? 200 : 0) }}>
+        <Box sx={{ overflowX: "auto", maxHeight: "55vh" }} onPaste={handlePaste}>
+          <Table size="small" stickyHeader sx={{ minWidth: (showLabColumn ? (showGradeColumn ? 1360 : 1180) : isItemBased || isAC ? (showGradeColumn ? 1200 : 1040) : 780) + (showCoaColumn ? 200 : 0), "& th, & td": { px: 1 } }}>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1.25 } }]}>
-                <TableCell sx={{ width: 40 }}>#</TableCell>
+                <TableCell sx={{ width: 40 }}>{t("grid.headers.rowNumber")}</TableCell>
 
                 {isItemBased && (
-                  <TableCell sx={{ minWidth: 200 }}>
-                    Item <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 180 }}>
+                    {t("grid.headers.item")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {showLabColumn && (
-                  <TableCell sx={{ minWidth: 200 }}>
-                    Laboratories <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 170 }}>
+                    {t("grid.headers.laboratories")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {showGradeColumn && (
-                  <TableCell sx={{ minWidth: 160 }}>
-                    Grade <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 150 }}>
+                    {t("grid.headers.grade")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                {showCoaColumn && <TableCell sx={{ minWidth: 200 }}>Supplier CoA</TableCell>}
+                {showCoaColumn && <TableCell sx={{ minWidth: 190 }}>{t("grid.headers.supplierCoa")}</TableCell>}
 
                 {isAC && (
                   <>
-                    <TableCell sx={{ minWidth: 200 }}>
-                      Previous Product <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                    <TableCell sx={{ minWidth: 190 }}>
+                      {t("grid.headers.previousProduct")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
                     {isPhyschem && (
-                      <TableCell sx={{ minWidth: 220 }}>
-                        Techniques <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                      <TableCell sx={{ minWidth: 200 }}>
+                        {t("grid.headers.techniques")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                       </TableCell>
                     )}
-                    <TableCell sx={{ minWidth: 150 }}>
-                      Previous Batch No. <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                    <TableCell sx={{ minWidth: 140 }}>
+                      {t("grid.headers.previousBatch")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                     </TableCell>
                   </>
                 )}
 
                 {category === "product" && (
-                  <TableCell sx={{ minWidth: 140 }}>
-                    Production Stage <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 120 }}>
+                    {t("grid.headers.productionStage")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isWater && (
-                  <TableCell sx={{ minWidth: 180 }}>
-                    Department <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 170 }}>
+                    {t("grid.headers.department")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isEM && (
-                  <TableCell sx={{ minWidth: 180 }}>
-                    Department <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 170 }}>
+                    {t("grid.headers.department")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
                 {isAC && (
-                  <TableCell sx={{ minWidth: 180 }}>
-                    Machine <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 170 }}>
+                    {t("grid.headers.machine")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                <TableCell sx={{ minWidth: 170 }}>
-                  Cause of Testing <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                <TableCell sx={{ minWidth: 150 }}>
+                  {t("grid.headers.causeOfTesting")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {!isEM && !isAC && (
-                  <TableCell sx={{ minWidth: 120 }}>Quantity</TableCell>
+                  <TableCell sx={{ minWidth: 110 }}>{t("grid.headers.quantity")}</TableCell>
                 )}
 
-                <TableCell sx={{ minWidth: 160 }}>
-                  Sampled By <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                <TableCell sx={{ minWidth: 145 }}>
+                  {t("grid.headers.sampledBy")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                 </TableCell>
 
                 {isItemBased && (
-                  <TableCell sx={{ minWidth: 130 }}>
-                    Batch No. <span style={{ color: theme.custom.status.detected.text }}>*</span>
+                  <TableCell sx={{ minWidth: 120 }}>
+                    {t("grid.headers.batchNo")} <span style={{ color: theme.custom.status.detected.text }}>*</span>
                   </TableCell>
                 )}
 
-                {!isItemBased && <TableCell sx={{ minWidth: 190 }}>Sampled At</TableCell>}
+                {!isItemBased && <TableCell sx={{ minWidth: 180 }}>{t("grid.headers.sampledAt")}</TableCell>}
 
                 {/* The server requires both for item-based samples (ReceiveSampleValidator). */}
-                <TableCell sx={{ minWidth: 130 }}>
-                  Control No.{isItemBased && <> <span style={{ color: theme.custom.status.detected.text }}>*</span></>}
+                <TableCell sx={{ minWidth: 120 }}>
+                  {t("grid.headers.controlNo")}{isItemBased && <> <span style={{ color: theme.custom.status.detected.text }}>*</span></>}
                 </TableCell>
 
                 {isItemBased && (
                   <>
-                    <TableCell sx={{ minWidth: 135 }}>Mfg Date</TableCell>
-                    <TableCell sx={{ minWidth: 135 }}>Exp Date</TableCell>
+                    <TableCell sx={{ minWidth: 135 }}>{t("grid.headers.mfgDate")}</TableCell>
+                    <TableCell sx={{ minWidth: 135 }}>{t("grid.headers.expDate")}</TableCell>
                   </>
                 )}
 
                 <TableCell align="center" sx={{ width: 50 }}>
-                  Action
+                  {t("grid.headers.action")}
                 </TableCell>
               </TableRow>
             </TableHead>
@@ -306,11 +595,16 @@ export function MultiSampleEntryGrid({
                     {/* Row Index */}
                     <TableCell sx={{ fontWeight: 600, fontSize: 12, color: "text.secondary" }}>
                       {idx + 1}
+                      {receivedByRow?.[idx] && (
+                        <Typography sx={{ fontSize: 11, color: theme.custom.status.notDetected.text, fontWeight: 600 }}>
+                          <Ltr>{receivedByRow[idx].referenceNumber}</Ltr>
+                        </Typography>
+                      )}
                     </TableCell>
 
                     {/* Item (for Product, RM, PM) */}
                     {isItemBased && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.itemId)}>
                         <Select
                           size="small"
                           fullWidth
@@ -318,7 +612,7 @@ export function MultiSampleEntryGrid({
                           value={row.itemId ?? ""}
                           error={Boolean(errors.itemId)}
                           onChange={(e) => {
-                            onChangeRow(idx, "itemId", e.target.value);
+                            onChangeRow(idx, "itemId", e.target.value as number | "");
                             // A different item can have a different set of
                             // labs - clear the stale choice so it re-defaults.
                             onChangeRow(idx, "targetSectionIds", undefined);
@@ -326,10 +620,13 @@ export function MultiSampleEntryGrid({
                             onChangeRow(idx, "grade", "");
                           }}
                           sx={{ fontSize: 12 }}
-                          inputProps={{ "aria-label": `Sample ${idx + 1} item` }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.itemId ? cellErrorId(idx, "itemId") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.item", { number: idx + 1 }) }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Select Item</em>
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.selectItem")}</em>
                           </MenuItem>
                           {masterData.items.map((i) => (
                             <MenuItem key={i.id} value={i.id}>
@@ -337,27 +634,29 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                        <CellError rowIdx={idx} field="itemId" message={errors.itemId} />
                       </TableCell>
                     )}
 
                     {/* Laboratories (choose mode only) */}
                     {showLabColumn && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.targetSectionIds)}>
                         {!row.itemId ? (
                           <Typography sx={{ fontSize: 12, color: "text.disabled" }}>
-                            Select an item first
+                            {t("grid.selectItemFirst")}
                           </Typography>
                         ) : loadingItemIds.has(String(row.itemId)) ? (
                           <CircularProgress size={16} />
                         ) : (
-                          <FormGroup row>
-                            {ALL_LABS.map((lab) => {
+                          <FormGroup row aria-describedby={errors.targetSectionIds ? cellErrorId(idx, "targetSectionIds") : undefined}>
+                            {ALL_LAB_CODES.map((code) => {
                               const options = labOptionsByItem[String(row.itemId)] || [];
-                              const option = options.find((o) => o.sectionCode === lab.code);
+                              const option = options.find((o) => o.sectionCode === code);
                               const checked = Boolean(option && row.targetSectionIds?.includes(option.sectionId));
+                              const label = labDisplayName(code, option?.sectionName);
                               return (
                                 <FormControlLabel
-                                  key={lab.code}
+                                  key={code}
                                   sx={{ mr: 1.5 }}
                                   control={
                                     <Checkbox
@@ -376,7 +675,7 @@ export function MultiSampleEntryGrid({
                                   }
                                   label={
                                     <Typography sx={{ fontSize: 12, color: option ? "text.primary" : "text.disabled" }}>
-                                      {(option?.sectionName || lab.label).replace(" Laboratory", "")} ({option?.testCount ?? 0})
+                                      {label} (<Ltr>{option?.testCount ?? 0}</Ltr>)
                                     </Typography>
                                   }
                                 />
@@ -384,17 +683,13 @@ export function MultiSampleEntryGrid({
                             })}
                           </FormGroup>
                         )}
-                        {errors.targetSectionIds && (
-                          <Typography sx={{ fontSize: 12, color: theme.custom.status.detected.text, mt: 0.25 }}>
-                            {errors.targetSectionIds}
-                          </Typography>
-                        )}
+                        <CellError rowIdx={idx} field="targetSectionIds" message={errors.targetSectionIds} />
                       </TableCell>
                     )}
 
                     {/* Grade stated on the supplier's CoA (only for items with graded specifications) */}
                     {showGradeColumn && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.grade)}>
                         {row.gradeOptions && row.gradeOptions.length > 0 ? (
                           <>
                             <Select
@@ -405,10 +700,13 @@ export function MultiSampleEntryGrid({
                               error={Boolean(errors.grade)}
                               onChange={(e) => onChangeRow(idx, "grade", e.target.value)}
                               sx={{ fontSize: 12 }}
-                              inputProps={{ "aria-label": `Sample ${idx + 1} grade` }}
+                              SelectDisplayProps={{
+                                "aria-describedby": errors.grade ? cellErrorId(idx, "grade") : undefined
+                              }}
+                              inputProps={{ "aria-label": t("grid.aria.grade", { number: idx + 1 }) }}
                             >
                               <MenuItem value="">
-                                <em style={{ color: theme.palette.text.secondary }}>Select grade</em>
+                                <em style={{ color: theme.palette.text.secondary }}>{t("grid.selectGrade")}</em>
                               </MenuItem>
                               {row.gradeOptions.map((g) => (
                                 <MenuItem key={g} value={g}>
@@ -416,9 +714,13 @@ export function MultiSampleEntryGrid({
                                 </MenuItem>
                               ))}
                             </Select>
-                            <Typography sx={{ fontSize: 11, color: errors.grade ? theme.custom.status.detected.text : "text.secondary", mt: 0.25 }}>
-                              {errors.grade || "Choose the grade stated on the supplier's CoA"}
-                            </Typography>
+                            {errors.grade ? (
+                              <CellError rowIdx={idx} field="grade" message={errors.grade} />
+                            ) : (
+                              <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
+                                {t("grid.gradeHint")}
+                              </Typography>
+                            )}
                           </>
                         ) : (
                           <Typography sx={{ fontSize: 12, color: "text.disabled" }}>-</Typography>
@@ -428,26 +730,44 @@ export function MultiSampleEntryGrid({
 
                     {/* Supplier CoA (optional; uploaded once the sample exists) */}
                     {showCoaColumn && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.coaFile)}>
                         <Button component="label" size="small" variant="outlined" sx={{ textTransform: "none", fontSize: 12, maxWidth: 190 }}>
                           <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {row.coaFile ? row.coaFile.name : "Attach CoA"}
+                            {row.coaFile ? row.coaFile.name : t("grid.attachCoa")}
                           </span>
                           <input
                             type="file"
                             hidden
                             accept=".pdf,.jpg,.jpeg,.png,.webp,.tiff"
-                            aria-label={`Sample ${idx + 1} supplier CoA`}
+                            aria-label={t("grid.aria.coa", { number: idx + 1 })}
                             onChange={(e) => onChangeRow(idx, "coaFile", e.target.files?.[0] ?? null)}
                           />
                         </Button>
+                        {coaErrorByRow?.[idx] && (
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+                            <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text }}>
+                              {t("grid.coaFailed")}
+                            </Typography>
+                            {onRetryCoa && (
+                              <Button
+                                size="small"
+                                variant="text"
+                                disabled={retryingCoaRow === idx}
+                                onClick={() => onRetryCoa(idx)}
+                                sx={{ fontSize: 11, minWidth: 0, p: 0.25, textTransform: "none" }}
+                              >
+                                {t("grid.retry")}
+                              </Button>
+                            )}
+                          </Box>
+                        )}
                       </TableCell>
                     )}
 
                     {/* Previous Product & Previous Batch No (for After Cleaning) */}
                     {isAC && (
                       <>
-                        <TableCell>
+                        <TableCell {...cellProps(idx, colIndexByKey.previousProduct)}>
                           {isPhyschem ? (
                             <Autocomplete
                               size="small"
@@ -463,13 +783,18 @@ export function MultiSampleEntryGrid({
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  placeholder="Select Finished Product"
+                                  placeholder={t("grid.selectFinishedProduct")}
                                   error={Boolean(errors.previousProductItemId || errors.previousProductName)}
                                   slotProps={{
                                     ...params.slotProps,
                                     htmlInput: {
                                       ...params.slotProps.htmlInput,
-                                      "aria-label": `Sample ${idx + 1} previous product`,
+                                      "aria-label": t("grid.aria.previousProduct", { number: idx + 1 }),
+                                      "aria-describedby": errors.previousProductItemId
+                                        ? cellErrorId(idx, "previousProductItemId")
+                                        : errors.previousProductName
+                                        ? cellErrorId(idx, "previousProductName")
+                                        : undefined,
                                       style: { fontSize: 12 }
                                     }
                                   }}
@@ -509,13 +834,16 @@ export function MultiSampleEntryGrid({
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
-                                  placeholder="Previous Product Name"
+                                  placeholder={t("grid.previousProductPlaceholder")}
                                   error={Boolean(errors.previousProductName)}
                                   slotProps={{
                                     ...params.slotProps,
                                     htmlInput: {
                                       ...params.slotProps.htmlInput,
-                                      "aria-label": `Sample ${idx + 1} previous product name`,
+                                      "aria-label": t("grid.aria.previousProductName", { number: idx + 1 }),
+                                      "aria-describedby": errors.previousProductName
+                                        ? cellErrorId(idx, "previousProductName")
+                                        : undefined,
                                       style: { fontSize: 12 }
                                     }
                                   }}
@@ -523,10 +851,19 @@ export function MultiSampleEntryGrid({
                               )}
                             />
                           )}
+                          <CellError
+                            rowIdx={idx}
+                            field={errors.previousProductItemId ? "previousProductItemId" : "previousProductName"}
+                            message={errors.previousProductItemId || errors.previousProductName}
+                          />
                         </TableCell>
                         {isPhyschem && (
-                          <TableCell>
-                            <FormGroup row sx={{ flexWrap: "nowrap" }}>
+                          <TableCell {...cellProps(idx, colIndexByKey.techniques)}>
+                            <FormGroup
+                              row
+                              sx={{ flexWrap: "nowrap" }}
+                              aria-describedby={errors.techniques ? cellErrorId(idx, "techniques") : undefined}
+                            >
                               {(["UV", "HPLC", "ICP"] as const).map((tech) => (
                                 <FormControlLabel
                                   key={tech}
@@ -538,12 +875,12 @@ export function MultiSampleEntryGrid({
                                         const current = row.techniques ?? [];
                                         const next = e.target.checked
                                           ? [...current, tech]
-                                          : current.filter((t) => t !== tech);
+                                          : current.filter((item) => item !== tech);
                                         onChangeRow(idx, "techniques", next);
                                       }}
                                       slotProps={{
                                         input: {
-                                          "aria-label": `Sample ${idx + 1} technique ${tech}`
+                                          "aria-label": t("grid.aria.technique", { number: idx + 1, tech })
                                         }
                                       }}
                                     />
@@ -553,32 +890,35 @@ export function MultiSampleEntryGrid({
                                 />
                               ))}
                             </FormGroup>
-                            {errors.techniques && (
-                              <Typography sx={{ fontSize: 11, color: theme.custom.status.detected.text }}>
-                                {errors.techniques}
-                              </Typography>
-                            )}
+                            <CellError rowIdx={idx} field="techniques" message={errors.techniques} />
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell {...cellProps(idx, colIndexByKey.previousProductBatchNumber)}>
                           <TextField
                             size="small"
                             fullWidth
-                            placeholder="Prev. Batch No."
+                            placeholder={t("grid.prevBatchPlaceholder")}
                             value={row.previousProductBatchNumber ?? ""}
                             error={Boolean(errors.previousProductBatchNumber)}
                             onChange={(e) => onChangeRow(idx, "previousProductBatchNumber", e.target.value)}
                             slotProps={{
-                              htmlInput: { "aria-label": `Sample ${idx + 1} previous batch number`, style: { fontSize: 12 } }
+                              htmlInput: {
+                                "aria-label": t("grid.aria.previousBatch", { number: idx + 1 }),
+                                "aria-describedby": errors.previousProductBatchNumber
+                                  ? cellErrorId(idx, "previousProductBatchNumber")
+                                  : undefined,
+                                style: { fontSize: 12 }
+                              }
                             }}
                           />
+                          <CellError rowIdx={idx} field="previousProductBatchNumber" message={errors.previousProductBatchNumber} />
                         </TableCell>
                       </>
                     )}
 
                     {/* Production Stage (for Product only) */}
                     {category === "product" && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.productionStage)}>
                         <Select
                           size="small"
                           fullWidth
@@ -587,10 +927,13 @@ export function MultiSampleEntryGrid({
                           error={Boolean(errors.productionStage)}
                           onChange={(e) => onChangeRow(idx, "productionStage", e.target.value)}
                           sx={{ fontSize: 12 }}
-                          inputProps={{ "aria-label": `Sample ${idx + 1} production stage` }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.productionStage ? cellErrorId(idx, "productionStage") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.stage", { number: idx + 1 }) }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Stage</em>
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.stagePlaceholder")}</em>
                           </MenuItem>
                           {masterData.productionStages.map((s) => (
                             <MenuItem key={s.id} value={s.name}>
@@ -598,24 +941,28 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                        <CellError rowIdx={idx} field="productionStage" message={errors.productionStage} />
                       </TableCell>
                     )}
 
                     {/* Department (for Water) */}
                     {isWater && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.departmentId)}>
                         <Select
                           size="small"
                           fullWidth
                           displayEmpty
                           value={row.departmentId ?? ""}
                           error={Boolean(errors.departmentId)}
-                          onChange={(e) => onChangeRow(idx, "departmentId", e.target.value)}
+                          onChange={(e) => onChangeRow(idx, "departmentId", e.target.value as number | "")}
                           sx={{ fontSize: 12 }}
-                          inputProps={{ "aria-label": `Sample ${idx + 1} department` }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.departmentId ? cellErrorId(idx, "departmentId") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.department", { number: idx + 1 }) }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.selectDepartment")}</em>
                           </MenuItem>
                           {masterData.waterDepartments.map((d) => (
                             <MenuItem key={d.id} value={d.id}>
@@ -623,24 +970,28 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                        <CellError rowIdx={idx} field="departmentId" message={errors.departmentId} />
                       </TableCell>
                     )}
 
                     {/* Department (for EM) */}
                     {isEM && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.departmentId)}>
                         <Select
                           size="small"
                           fullWidth
                           displayEmpty
                           value={row.departmentId ?? ""}
                           error={Boolean(errors.departmentId)}
-                          onChange={(e) => onChangeRow(idx, "departmentId", e.target.value)}
+                          onChange={(e) => onChangeRow(idx, "departmentId", e.target.value as number | "")}
                           sx={{ fontSize: 12 }}
-                          inputProps={{ "aria-label": `Sample ${idx + 1} department` }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.departmentId ? cellErrorId(idx, "departmentId") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.department", { number: idx + 1 }) }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Select Department</em>
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.selectDepartment")}</em>
                           </MenuItem>
                           {masterData.departments.map((d) => (
                             <MenuItem key={d.id} value={d.id}>
@@ -648,24 +999,28 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                        <CellError rowIdx={idx} field="departmentId" message={errors.departmentId} />
                       </TableCell>
                     )}
 
                     {/* Machine (for After Cleaning) */}
                     {isAC && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.machineId)}>
                         <Select
                           size="small"
                           fullWidth
                           displayEmpty
                           value={row.machineId ?? ""}
                           error={Boolean(errors.machineId)}
-                          onChange={(e) => onChangeRow(idx, "machineId", e.target.value)}
+                          onChange={(e) => onChangeRow(idx, "machineId", e.target.value as number | "")}
                           sx={{ fontSize: 12 }}
-                          inputProps={{ "aria-label": `Sample ${idx + 1} machine` }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.machineId ? cellErrorId(idx, "machineId") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.machine", { number: idx + 1 }) }}
                         >
                           <MenuItem value="">
-                            <em style={{ color: theme.palette.text.secondary }}>Select Machine</em>
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.selectMachine")}</em>
                           </MenuItem>
                           {masterData.machines.map((m) => (
                             <MenuItem key={m.id} value={m.id}>
@@ -673,143 +1028,197 @@ export function MultiSampleEntryGrid({
                             </MenuItem>
                           ))}
                         </Select>
+                        <CellError rowIdx={idx} field="machineId" message={errors.machineId} />
                       </TableCell>
                     )}
 
                     {/* Cause of Testing */}
-                    <TableCell>
-                      <Select
-                        size="small"
-                        fullWidth
-                        displayEmpty
-                        value={row.causeOfTestingId ?? ""}
-                        error={Boolean(errors.causeOfTestingId)}
-                        onChange={(e) => onChangeRow(idx, "causeOfTestingId", e.target.value)}
-                        sx={{ fontSize: 12 }}
-                        inputProps={{ "aria-label": `Sample ${idx + 1} cause of testing` }}
+                    <TableCell {...cellProps(idx, colIndexByKey.causeOfTestingId)}>
+                      <LastChoiceField
+                        kind="field"
+                        isDefault={Boolean(idx === 0 && firstRowDefaults?.causeOfTestingId)}
                       >
-                        <MenuItem value="">
-                          <em style={{ color: theme.palette.text.secondary }}>Cause of Testing</em>
-                        </MenuItem>
-                        {masterData.causes.map((c) => (
-                          <MenuItem key={c.id} value={c.id}>
-                            {c.name}
+                        <Select
+                          size="small"
+                          fullWidth
+                          displayEmpty
+                          value={row.causeOfTestingId ?? ""}
+                          error={Boolean(errors.causeOfTestingId)}
+                          onChange={(e) => onChangeRow(idx, "causeOfTestingId", e.target.value as number | "")}
+                          sx={{ fontSize: 12 }}
+                          SelectDisplayProps={{
+                            "aria-describedby": errors.causeOfTestingId ? cellErrorId(idx, "causeOfTestingId") : undefined
+                          }}
+                          inputProps={{ "aria-label": t("grid.aria.cause", { number: idx + 1 }) }}
+                        >
+                          <MenuItem value="">
+                            <em style={{ color: theme.palette.text.secondary }}>{t("grid.causePlaceholder")}</em>
                           </MenuItem>
-                        ))}
-                      </Select>
+                          {masterData.causes.map((c) => (
+                            <MenuItem key={c.id} value={c.id}>
+                              {c.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </LastChoiceField>
+                      <CellError rowIdx={idx} field="causeOfTestingId" message={errors.causeOfTestingId} />
                     </TableCell>
 
                     {/* Sample Quantity */}
                     {!isEM && !isAC && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.sampleQuantity)}>
                         <TextField
                           size="small"
                           fullWidth
-                          placeholder="e.g. 50g / 100ml"
+                          placeholder={t("grid.quantityPlaceholder")}
                           value={row.sampleQuantity ?? ""}
+                          error={Boolean(errors.sampleQuantity)}
                           onChange={(e) => onChangeRow(idx, "sampleQuantity", e.target.value)}
                           slotProps={{
-                            htmlInput: { "aria-label": `Sample ${idx + 1} quantity`, style: { fontSize: 12 } }
+                            htmlInput: {
+                              "aria-label": t("grid.aria.quantity", { number: idx + 1 }),
+                              "aria-describedby": errors.sampleQuantity ? cellErrorId(idx, "sampleQuantity") : undefined,
+                              style: { fontSize: 12 }
+                            }
                           }}
                         />
+                        <CellError rowIdx={idx} field="sampleQuantity" message={errors.sampleQuantity} />
                       </TableCell>
                     )}
 
                     {/* Sampled By */}
-                    <TableCell>
-                      <Autocomplete
-                        freeSolo
-                        size="small"
-                        options={masterData.samplers.map((s) => s.name)}
-                        inputValue={row.sampledBy ?? ""}
-                        onInputChange={(_, v) => onChangeRow(idx, "sampledBy", v)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Sampled By"
-                            error={Boolean(errors.sampledBy)}
-                            slotProps={{
-                              ...params.slotProps,
-                              htmlInput: { ...params.slotProps.htmlInput, style: { fontSize: 12 } }
-                            }}
-                          />
-                        )}
-                      />
+                    <TableCell {...cellProps(idx, colIndexByKey.sampledBy)}>
+                      <LastChoiceField
+                        kind="field"
+                        isDefault={Boolean(idx === 0 && firstRowDefaults?.sampledBy)}
+                      >
+                        <Autocomplete
+                          freeSolo
+                          size="small"
+                          options={masterData.samplers.map((s) => s.name)}
+                          inputValue={row.sampledBy ?? ""}
+                          onInputChange={(_, v) => {
+                            if (v !== (row.sampledBy ?? "")) {
+                              onChangeRow(idx, "sampledBy", v);
+                            }
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder={t("grid.sampledByPlaceholder")}
+                              error={Boolean(errors.sampledBy)}
+                              slotProps={{
+                                ...params.slotProps,
+                                htmlInput: {
+                                  ...params.slotProps.htmlInput,
+                                  "aria-label": t("grid.aria.sampledBy", { number: idx + 1 }),
+                                  "aria-describedby": errors.sampledBy ? cellErrorId(idx, "sampledBy") : undefined,
+                                  style: { fontSize: 12 }
+                                }
+                              }}
+                            />
+                          )}
+                        />
+                      </LastChoiceField>
+                      <CellError rowIdx={idx} field="sampledBy" message={errors.sampledBy} />
                     </TableCell>
 
                     {/* Batch Number */}
                     {isItemBased && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.batchNumber)}>
                         <TextField
                           size="small"
                           fullWidth
-                          placeholder="Batch No."
+                          placeholder={t("grid.batchPlaceholder")}
                           value={row.batchNumber ?? ""}
+                          error={Boolean(errors.batchNumber)}
                           onChange={(e) => onChangeRow(idx, "batchNumber", e.target.value)}
                           slotProps={{
-                            htmlInput: { "aria-label": `Sample ${idx + 1} batch number`, style: { fontSize: 12 } }
+                            htmlInput: {
+                              "aria-label": t("grid.aria.batch", { number: idx + 1 }),
+                              "aria-describedby": errors.batchNumber ? cellErrorId(idx, "batchNumber") : undefined,
+                              style: { fontSize: 12 }
+                            }
                           }}
                         />
+                        <CellError rowIdx={idx} field="batchNumber" message={errors.batchNumber} />
                       </TableCell>
                     )}
 
                     {!isItemBased && (
-                      <TableCell>
+                      <TableCell {...cellProps(idx, colIndexByKey.sampledAt)}>
                         <TextField
                           type="datetime-local"
                           size="small"
                           fullWidth
                           value={row.sampledAt ?? ""}
+                          error={Boolean(errors.sampledAt)}
                           onChange={(e) => onChangeRow(idx, "sampledAt", e.target.value)}
                           slotProps={{
-                            htmlInput: { "aria-label": `Sample ${idx + 1} sampled at`, style: { fontSize: 12 } }
+                            htmlInput: {
+                              "aria-label": t("grid.aria.sampledAt", { number: idx + 1 }),
+                              "aria-describedby": errors.sampledAt ? cellErrorId(idx, "sampledAt") : undefined,
+                              style: { fontSize: 12 }
+                            }
                           }}
                         />
+                        <CellError rowIdx={idx} field="sampledAt" message={errors.sampledAt} />
                       </TableCell>
                     )}
 
                     {/* Control Number */}
-                    <TableCell>
+                    <TableCell {...cellProps(idx, colIndexByKey.controlNumber)}>
                       <TextField
                         size="small"
                         fullWidth
-                        placeholder="Control No."
+                        placeholder={t("grid.controlPlaceholder")}
                         value={row.controlNumber ?? ""}
+                        error={Boolean(errors.controlNumber)}
                         onChange={(e) => onChangeRow(idx, "controlNumber", e.target.value)}
                         slotProps={{
-                          htmlInput: { "aria-label": `Sample ${idx + 1} control number`, style: { fontSize: 12 } }
+                          htmlInput: {
+                            "aria-label": t("grid.aria.control", { number: idx + 1 }),
+                            "aria-describedby": errors.controlNumber ? cellErrorId(idx, "controlNumber") : undefined,
+                            style: { fontSize: 12 }
+                          }
                         }}
                       />
+                      <CellError rowIdx={idx} field="controlNumber" message={errors.controlNumber} />
                     </TableCell>
 
                     {/* Mfg Date & Exp Date */}
                     {isItemBased && (
                       <>
-                        <TableCell>
+                        <TableCell {...cellProps(idx, colIndexByKey.mfgDate)}>
                           <DateField
                             fullWidth
                             value={row.mfgDate ?? ""}
+                            error={Boolean(errors.mfgDate)}
                             onChange={(v) => onChangeRow(idx, "mfgDate", v)}
-                            ariaLabel={`Sample ${idx + 1} manufacturing date`}
+                            ariaLabel={t("grid.aria.mfgDate", { number: idx + 1 })}
+                            ariaDescribedBy={errors.mfgDate ? cellErrorId(idx, "mfgDate") : undefined}
                           />
+                          <CellError rowIdx={idx} field="mfgDate" message={errors.mfgDate} />
                         </TableCell>
-                        <TableCell>
+                        <TableCell {...cellProps(idx, colIndexByKey.expDate)}>
                           <DateField
                             fullWidth
                             value={row.expDate ?? ""}
                             error={Boolean(errors.expDate)}
                             onChange={(v) => onChangeRow(idx, "expDate", v)}
-                            ariaLabel={`Sample ${idx + 1} expiry date`}
+                            ariaLabel={t("grid.aria.expDate", { number: idx + 1 })}
+                            ariaDescribedBy={errors.expDate ? cellErrorId(idx, "expDate") : undefined}
                           />
+                          <CellError rowIdx={idx} field="expDate" message={errors.expDate} />
                         </TableCell>
                       </>
                     )}
 
                     {/* Action: Delete Row */}
                     <TableCell align="center">
-                      <Tooltip title={rows.length === 1 ? "At least one row is required" : "Delete sample row"}>
+                      <Tooltip title={rows.length === 1 ? t("grid.minOneRow") : t("grid.deleteRow")}>
                         <span>
-                          <IconButton aria-label={rows.length === 1 ? "At least one row is required" : "Delete sample row"}
+                          <IconButton aria-label={rows.length === 1 ? t("grid.minOneRow") : t("grid.deleteRow")}
                             size="small"
                             disabled={rows.length === 1}
                             onClick={() => onDeleteRow(idx)}
@@ -832,10 +1241,12 @@ export function MultiSampleEntryGrid({
       </Paper>
 
       {/* Add Another Sample Button */}
-      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <Button
           variant="outlined"
           size="small"
+          disabled={atRowLimit || Boolean(receivedByRow)}
+          aria-describedby={atRowLimit ? addRowLimitId : undefined}
           onClick={onAddRow}
           startIcon={<AddIcon sx={{ fontSize: 18 }} />}
           sx={{
@@ -851,9 +1262,26 @@ export function MultiSampleEntryGrid({
             }
           }}
         >
-          Add Another Sample
+          {t("grid.addAnother")}
         </Button>
+        <Typography variant="caption" color="text.secondary">
+          {t("grid.pasteTip")}
+        </Typography>
+        {atRowLimit && (
+          <Typography id={addRowLimitId} sx={{ fontSize: 12, color: "text.secondary" }}>
+            {t("grid.maxRows", { max: MAX_RECEIVE_ROWS })}
+          </Typography>
+        )}
       </Box>
+      {pasteRequest && pastePlan && (
+        <PastePreviewDialog
+          open
+          plan={pastePlan}
+          cells={pasteRequest.cells}
+          onAccept={acceptPaste}
+          onCancel={() => setPasteRequest(null)}
+        />
+      )}
     </Box>
   );
 }

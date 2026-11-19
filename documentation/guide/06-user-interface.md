@@ -7,10 +7,10 @@ The header contains:
 - **Skip to main content**: a link, intended for keyboard and screen-reader users, that jumps past the menus.
 - **Toggle navigation menu**: the menu button. On a desktop it switches the sidebar between its full and compact forms. On a small screen it opens or closes the menu drawer.
 - **Theme switch** (**Switch to dark mode** / **Switch to light mode**): changes between the light and dark appearance.
-- **Notifications** bell (shown as **Notifications, {n} unread** when there are unread items): opens the list of your notifications (see Section 9).
-- **Account menu** (**Account menu for {name}**), which contains:
+- **Notifications** bell: opens the list of your notifications (see Section 9). When you have unread items, the bell also shows a number badge with how many are unread.
+- **Account menu** (its screen-reader name includes your name), which contains:
   - **My Profile**: your account details (see 5.5).
-  - **Messages** (or **Messages ({n} unread)**): direct and group messages (see Section 9).
+  - **Messages**: direct and group messages (see Section 9). When messages are unread, the label also shows how many.
   - **Discussions**: the discussion board (see Section 9).
   - **Change Password**: see 5.4.
   - **Sign Out**: ends your session and opens the sign-in screen, with no confirmation question.
@@ -29,9 +29,9 @@ The header contains:
 ### 6.3 Breadcrumbs, Section Pages, and Errors
 - **Breadcrumbs** above each page show where you are in the menu.
 - **Section pages**: opening a group in the sidebar shows a page of cards, one for each page in that group that you are allowed to open.
-  - The subtitle reads "{n} page(s) you can open here".
+  - The subtitle gives the number of pages you can open in that section, followed by the words "page(s) you can open here".
   - If a section has no page you may open, the screen shows "You have no pages in this section." If the section cannot be found, the title reads "Section not available".
-- **Page not found**: if you follow an outdated or wrong address, the screen shows the heading **Page not found**, the text "There is no page at this address", and the explanation: `"{address}" does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard.` The button **Go to Dashboard** returns you to your dashboard.
+- **Page not found**: if you follow an outdated or wrong address, the screen shows the heading **Page not found**, the text "There is no page at this address", and the explanation: the address you typed, in quotation marks, followed by "does not match any MicroLIMS page. The link may be outdated, or the page may have moved. Use the navigation menu or return to your dashboard." The button **Go to Dashboard** returns you to your dashboard.
 - **Pages you are not allowed to open**: if you open an address for a page you have no permission for, the system takes you to your dashboard without showing a message.
 - **Page problems**: each page is protected separately, so a problem on one page is contained to that page and the header and sidebar keep working.
 
@@ -77,5 +77,40 @@ The dialog titled **Electronic Signature**. It always appears in a light appeara
 
 #### What happens next
 After a successful signature the dialog closes and the action is completed on the page behind it.
+
+---
+
+### 6.5 Keyboard Shortcuts, Grid Entry, Pre-Filled Defaults, and Paste Preview
+#### Purpose
+Move through multi-row grids with the keyboard, copy values down only where safe, review spreadsheet pastes before filling a screen, and confirm pre-filled choices before saving.
+
+#### Keyboard shortcuts
+Open the **Keyboard shortcuts** dialog from **Help** > **Keyboard shortcuts** in the header, or by pressing **?** when your cursor is not inside a text field.
+
+Global shortcuts:
+- **Ctrl+K**: open global search (**Search MicroLIMS**).
+- **?**: open **Keyboard shortcuts** (when not typing in a field).
+
+Data entry grid shortcuts:
+- **Enter** or **Arrow Down**: move to the next row in the same column (ignored while a dropdown list is open; **Shift+Enter** does not move).
+- **Arrow Up**: move to the previous row in the same column (ignored while a dropdown list is open).
+- **Arrow Left** / **Arrow Right**: move to the previous or next column (inside text fields, only when the cursor is at the start or end of the text).
+- **Tab** / **Shift+Tab**: move forward or backward across cells in reading order.
+- **Ctrl+D** (**Cmd+D** on Mac): copy the value from the cell above into the current cell. This works **only** on sample receiving grids and count unit grids. It is deliberately disabled on pathogen location grids, the primary observation matrix, and chromatography replicate tables so each observation or instrument reading is entered deliberately.
+- **Ctrl+Enter** (**Cmd+Enter** on Mac): save the form or dialog.
+- **Escape**: close the dialog or popup.
+
+#### Initial focus and table sorting
+- Standard entry dialogs place the cursor automatically in the first empty required field when opened.
+- Register tables that load one page at a time from the server (such as the Sample Register and Controlled Document Library) do not offer column sorting in their column headers.
+
+#### Pre-filled last choices and spreadsheet paste rules
+- Where last-choice defaults are enabled by your administrator, supported forms pre-fill **From your last entry** using only your own latest valid choice. A pre-filled media lot must be confirmed explicitly before saving.
+- Multi-row paste opens **Paste preview** with any blocking row problems marked. Accepting the preview only fills the screen and does not save anything until you save as usual.
+
+> **SOP notes for laboratory users:**
+> - Pasted data must be checked in the preview before accepting.
+> - A pre-filled lot must be checked against the plate or container before confirming.
+> - In-app preview values are not records.
 
 <!-- Review log (Sonnet): 14 corrections; invented items removed: page addresses and browser storage key names, component and screen ids, example breadcrumb path, "recent attention alerts / sample review requests" list for the bell, "hover restores labels", "recovery prompt" text for page errors, "legal meaning", "tamper-evident", "immutable" log wording, "atomic transaction" wording; callouts added: GAP-027, GAP-010 -->

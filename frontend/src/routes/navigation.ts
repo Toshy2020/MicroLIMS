@@ -58,8 +58,10 @@ export function findNavTrail(groups: MenuGroup[], pathname: string, searchString
 const ACCOUNT_PAGES: Record<string, string> = {
   "/profile": "My Profile",
   "/change-password": "Change Password",
+  "/set-signing-password": "Choose Signing Password",
   "/messages": "Messages",
   "/discussions": "Discussions",
+  "/notifications": "Notifications",
   "/receiving-testing": "Receiving & Testing Workspace"
 };
 

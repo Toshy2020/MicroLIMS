@@ -8,6 +8,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -18,12 +19,24 @@ public class SpecificationMasterDataService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
     private readonly SpecificationService _specificationService;
+    private readonly MasterDataBatchService _batch;
+    private readonly ChangeReasonGuard _reasonGuard;
+    private readonly TimeProvider _time;
 
-    public SpecificationMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, SpecificationService? specificationService = null)
+    public SpecificationMasterDataService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        SpecificationService? specificationService = null,
+        MasterDataBatchService? batchService = null,
+        ChangeReasonGuard? reasonGuard = null,
+        TimeProvider? timeProvider = null)
     {
         _db = db;
         _scope = scope;
         _specificationService = specificationService ?? new SpecificationService(db);
+        _batch = batchService ?? new MasterDataBatchService(db);
+        _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<object> GetSpecificationsAsync(int currentUserId, int itemId) =>
@@ -64,7 +77,13 @@ public class SpecificationMasterDataService
                 s.LowerInclusive, s.UpperInclusive, s.Target, s.Tolerance, s.ToleranceMode, s.ExpectedResultText,
                 s.ExpectedState, s.SampleQuantity, s.SampleQuantityUnit, s.ResultBasis,
                 s.LabelClaim, s.LabelClaimUnit, s.DosageForm, s.Stages.Select(SpecificationStageResponse.From).ToList(),
-                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpTestElementId, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId) { Version = s.Version };
+                canEdit, def?.Section?.Name ?? string.Empty, s.HplcMethodAnalyteId, s.ProductionStageRole, s.IcpTestElementId, s.Grade, s.RelatedSubstanceRow, s.HplcMethodImpurityId)
+            {
+                Version = s.Version,
+                IsRetired = s.IsRetired,
+                RetiredAt = s.RetiredAt,
+                RetiredByUserId = s.RetiredByUserId
+            };
         }).ToList();
 
         return rows;
@@ -139,17 +158,68 @@ public class SpecificationMasterDataService
         return SpecificationResponse.From(spec);
     }
 
-    public async Task<SpecificationResponse> UpdateSpecificationAsync(int currentUserId, int id, UpdateSpecificationRequest request)
+    public Task<IReadOnlyList<SpecificationResponse>> CreateSpecificationsBatchAsync(
+        int currentUserId,
+        IReadOnlyList<CreateSpecificationRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateSpecificationRowAsync(currentUserId, row, index, token),
+            row => CreateSpecificationAsync(currentUserId, row),
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateSpecificationRowAsync(
+        int currentUserId,
+        CreateSpecificationRequest request,
+        int row,
+        CancellationToken ct)
     {
-        var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id)
+        var errors = new List<FieldError>();
+
+        if (request.ItemId <= 0 || !await _db.Items.AsNoTracking().AnyAsync(i => i.Id == request.ItemId, ct))
+        {
+            errors.Add(new FieldError("itemId", $"Item {request.ItemId} not found.", row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TestCode))
+        {
+            errors.Add(new FieldError("testCode", "Test code is required.", row));
+        }
+        else
+        {
+            try
+            {
+                await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
+            }
+            catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+            {
+                errors.Add(new FieldError("testCode", ex.Message, row));
+            }
+        }
+
+        return errors;
+    }
+
+    public async Task<SpecificationResponse> UpdateSpecificationAsync(
+        int currentUserId,
+        int id,
+        UpdateSpecificationRequest request,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default)
+    {
+        var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Specification {id} not found.");
         RecordVersion.EnsureCurrent(_db, spec);
+
+        if (spec.IsRetired)
+            throw new BusinessRuleException("Retired specifications cannot be edited; reinstate the specification first.");
 
         // Check both the row's current lab and the lab it would move to -
         // a Section Head may not reassign a row into or out of their lab
         // by changing TestCode either.
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
+        await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
 
         spec.TestCode = request.TestCode;
         if (request.ParameterName != null)
@@ -202,22 +272,217 @@ public class SpecificationMasterDataService
         }).ToList() ?? new List<SpecificationStage>();
 
         SpecificationService.ApplyCanonicalSpecLimit(spec);
-        await _specificationService.ValidateAsync(spec);
+        await _specificationService.ValidateAsync(spec, cancellationToken);
 
-        await _db.SaveChangesAsync();
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        await _db.SaveChangesAsync(cancellationToken);
         return SpecificationResponse.From(spec);
     }
 
-    // No downstream dependents to guard - Results/CountTestReadings copy
-    // the Alert/Action/Spec values as plain strings at calculation time
-    // rather than referencing the Specification row itself.
-    public async Task<object> DeleteSpecificationAsync(int currentUserId, int id)
+    // A specification referred to by any recorded result (ParameterResult.SpecificationId
+    // or a projected ResultRecord for that item and test) is retired rather than
+    // deleted so historical traceability survives intact; unused rows are deleted.
+    public async Task<SpecificationDeleteOutcome> DeleteSpecificationAsync(
+        int currentUserId,
+        int id,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default)
     {
-        var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id)
+        var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Specification {id} not found.");
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
+
+        if (spec.IsRetired)
+            throw new BusinessRuleException("This specification is already retired.");
+
+        var hasResults = await _db.ParameterResults.AsNoTracking()
+                .AnyAsync(pr => pr.SpecificationId == id, cancellationToken)
+            || await _db.ResultRecords.AsNoTracking()
+                .AnyAsync(r => r.TestCode == spec.TestCode && r.Sample != null && r.Sample.ItemId == spec.ItemId, cancellationToken);
+
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+
+        if (hasResults)
+        {
+            await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Retire, changeReason, currentUserId, cancellationToken);
+            spec.IsRetired = true;
+            spec.RetiredAt = _time.GetUtcNow().UtcDateTime;
+            spec.RetiredByUserId = currentUserId;
+            await _db.SaveChangesAsync(cancellationToken);
+            return new SpecificationDeleteOutcome("retired", id);
+        }
+
+        await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
         _db.Specifications.Remove(spec);
-        await _db.SaveChangesAsync();
-        return new { };
+        await _db.SaveChangesAsync(cancellationToken);
+        return new SpecificationDeleteOutcome("deleted", id);
+    }
+
+    public async Task<SpecificationResponse> ReinstateSpecificationAsync(
+        int currentUserId,
+        int id,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default)
+    {
+        var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
+            ?? throw new NotFoundException($"Specification {id} not found.");
+        await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
+
+        if (!spec.IsRetired)
+            throw new BusinessRuleException("Specification is not retired.");
+
+        await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Retire, changeReason, currentUserId, cancellationToken);
+
+        spec.IsRetired = false;
+        spec.RetiredAt = null;
+        spec.RetiredByUserId = null;
+
+        await _specificationService.ValidateAsync(spec, cancellationToken);
+
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        await _db.SaveChangesAsync(cancellationToken);
+        return SpecificationResponse.From(spec);
+    }
+
+    public async Task<IReadOnlyList<FieldError>> ValidateSpecificationAsync(
+        int currentUserId,
+        ValidateSpecificationRequest request,
+        int? id = null,
+        CancellationToken cancellationToken = default)
+    {
+        var errors = new List<FieldError>();
+        var effectiveId = id ?? request.Id ?? 0;
+
+        int itemId = request.ItemId ?? 0;
+        if (effectiveId > 0)
+        {
+            var existing = await _db.Specifications.AsNoTracking()
+                .Where(s => s.Id == effectiveId)
+                .Select(s => new { s.ItemId, s.TestCode })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (existing is null)
+            {
+                errors.Add(new FieldError("id", $"Specification {effectiveId} not found."));
+                return errors;
+            }
+            if (itemId <= 0)
+                itemId = existing.ItemId;
+        }
+        else if (itemId <= 0 || !await _db.Items.AsNoTracking().AnyAsync(i => i.Id == itemId, cancellationToken))
+        {
+            errors.Add(new FieldError("itemId", $"Item {itemId} not found."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TestCode))
+        {
+            errors.Add(new FieldError("testCode", "Test code is required."));
+            return errors;
+        }
+
+        try
+        {
+            await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+        {
+            errors.Add(new FieldError("testCode", ex.Message));
+            return errors;
+        }
+
+        var paramName = request.ParameterName;
+        if (string.IsNullOrWhiteSpace(paramName) && request.RelatedSubstanceRow is RelatedSubstanceRow kind && Enum.IsDefined(kind))
+        {
+            var impurityName = request.HplcMethodImpurityId is int impurityId
+                ? await _db.HplcMethodImpurities.AsNoTracking().Where(i => i.Id == impurityId).Select(i => i.Name).FirstOrDefaultAsync(cancellationToken)
+                : null;
+            paramName = SpecificationService.RelatedSubstanceParameterName(kind, impurityName);
+        }
+        if (string.IsNullOrWhiteSpace(paramName))
+        {
+            var testDef = await _db.TestDefinitions.AsNoTracking().FirstOrDefaultAsync(t => t.Code == request.TestCode, cancellationToken);
+            paramName = !string.IsNullOrWhiteSpace(testDef?.DisplayName) ? testDef.DisplayName : request.TestCode;
+        }
+
+        var spec = new Specification
+        {
+            Id = effectiveId,
+            ItemId = itemId,
+            TestCode = request.TestCode,
+            ParameterName = paramName,
+            DisplayOrder = request.DisplayOrder ?? 0,
+            LimitType = request.LimitType ?? LimitType.CountTiered,
+            ReferenceStandard = request.ReferenceStandard,
+            LowerLimit = request.LowerLimit,
+            UpperLimit = request.UpperLimit,
+            LowerInclusive = request.LowerInclusive ?? true,
+            UpperInclusive = request.UpperInclusive ?? true,
+            Target = request.Target,
+            Tolerance = request.Tolerance,
+            ToleranceMode = request.ToleranceMode,
+            ExpectedResultText = request.ExpectedResultText,
+            ExpectedState = request.ExpectedState,
+            SampleQuantity = request.SampleQuantity,
+            SampleQuantityUnit = request.SampleQuantityUnit,
+            AlertLimit = request.AlertLimit ?? string.Empty,
+            ActionLimit = request.ActionLimit ?? string.Empty,
+            SpecLimit = request.SpecLimit ?? string.Empty,
+            Unit = request.Unit ?? string.Empty,
+            DilutionFactor = request.DilutionFactor,
+            ResultBasis = request.ResultBasis,
+            LabelClaim = request.LabelClaim,
+            LabelClaimUnit = request.LabelClaimUnit,
+            DosageForm = request.DosageForm,
+            HplcMethodAnalyteId = request.HplcMethodAnalyteId,
+            RelatedSubstanceRow = request.RelatedSubstanceRow,
+            HplcMethodImpurityId = request.HplcMethodImpurityId,
+            IcpTestElementId = request.IcpTestElementId,
+            ProductionStageRole = request.ProductionStageRole,
+            Grade = request.Grade,
+            Stages = request.Stages?.Select(s => new SpecificationStage
+            {
+                StageNumber = s.StageNumber,
+                StageLabel = s.StageLabel,
+                AcceptanceCriteriaText = s.AcceptanceCriteriaText
+            }).ToList() ?? new List<SpecificationStage>()
+        };
+
+        try
+        {
+            SpecificationService.ApplyCanonicalSpecLimit(spec);
+            await _specificationService.ValidateAsync(spec, cancellationToken);
+        }
+        catch (FieldValidationException ex)
+        {
+            errors.AddRange(ex.FieldErrors);
+        }
+        catch (BusinessRuleException ex)
+        {
+            errors.Add(new FieldError(MapSpecValidationField(ex.Message), ex.Message));
+        }
+
+        return errors;
+    }
+
+    private static string MapSpecValidationField(string message)
+    {
+        if (message.Contains("Test", StringComparison.OrdinalIgnoreCase)) return "testCode";
+        if (message.Contains("Parameter", StringComparison.OrdinalIgnoreCase)) return "parameterName";
+        if (message.Contains("Grade", StringComparison.OrdinalIgnoreCase)) return "grade";
+        if (message.Contains("stage", StringComparison.OrdinalIgnoreCase)) return "productionStageRole";
+        if (message.Contains("analyte", StringComparison.OrdinalIgnoreCase)) return "hplcMethodAnalyteId";
+        if (message.Contains("element", StringComparison.OrdinalIgnoreCase)) return "icpTestElementId";
+        if (message.Contains("basis", StringComparison.OrdinalIgnoreCase)) return "resultBasis";
+        if (message.Contains("label claim", StringComparison.OrdinalIgnoreCase)) return "labelClaim";
+        if (message.Contains("dilution", StringComparison.OrdinalIgnoreCase)) return "dilutionFactor";
+        if (message.Contains("Limit type", StringComparison.OrdinalIgnoreCase)) return "limitType";
+        if (message.Contains("Lower", StringComparison.OrdinalIgnoreCase)) return "lowerLimit";
+        if (message.Contains("Upper", StringComparison.OrdinalIgnoreCase)) return "upperLimit";
+        if (message.Contains("Target", StringComparison.OrdinalIgnoreCase)) return "target";
+        if (message.Contains("Tolerance", StringComparison.OrdinalIgnoreCase)) return "tolerance";
+        if (message.Contains("Expected", StringComparison.OrdinalIgnoreCase)) return "expectedResultText";
+        return "specLimit";
     }
 }

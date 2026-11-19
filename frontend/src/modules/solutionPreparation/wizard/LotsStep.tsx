@@ -1,21 +1,31 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Box,
   Paper,
   Typography,
-  TextField,
-  InputAdornment,
   Button,
   Alert,
   CircularProgress,
   Stack,
-  Divider
+  Divider,
+  Stepper,
+  Step,
+  StepButton
 } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { ComponentLotPicker } from "../components/ComponentLotPicker";
 import { SourcePreparationPicker } from "../components/SourcePreparationPicker";
 import { AutoclaveSection, type AutoclaveFormState } from "../components/AutoclaveSection";
+import { useLastChoiceDefault } from "../../../components/entry/LastChoiceField";
+import { entryDefaultsService } from "../../../services/entryDefaultsService";
+import { NumericEntryField } from "../../../components/bench/NumericEntryField";
+import { useBenchMode } from "../../../theme/BenchModeContext";
+import { classifySaveFailure } from "../../testingWorkspace/benchSave";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
 import type {
   SolutionPreparationResponse,
@@ -25,6 +35,20 @@ import type {
   PreparationComponentInput,
   AutoclaveRecordInput
 } from "../types";
+
+export interface LotsStepDraftState {
+  components: Record<number, { materialId: number | null; sourcePreparationId: number | null; quantityUsed: number | null }>;
+  finalVolumeText: string;
+  measuredPhText: string;
+  autoclave: AutoclaveFormState;
+}
+
+export type SolutionFieldKey =
+  | "finalVolumeMl"
+  | "measuredPh"
+  | "autoclaveEquipmentId"
+  | "autoclaveProgram"
+  | "autoclaveCycleNumber";
 
 interface Props {
   preparation: SolutionPreparationResponse;
@@ -36,14 +60,26 @@ interface Props {
   ) => Promise<void>;
   onNext: () => void;
   saving?: boolean;
+  restoredDraft?: Partial<LotsStepDraftState> | null;
+  onDraftChange?: (state: LotsStepDraftState) => void;
+  fieldErrors?: Partial<Record<SolutionFieldKey, string>>;
+  onClearFieldError?: (key: SolutionFieldKey) => void;
 }
 
 export function LotsStep({
   preparation,
   onSave,
   onNext,
-  saving = false
+  saving = false,
+  restoredDraft,
+  onDraftChange,
+  fieldErrors,
+  onClearFieldError
 }: Props) {
+  const { benchMode } = useBenchMode();
+  const { t } = useTranslation("solutionPreparation");
+  const [activeSection, setActiveSection] = useState(0);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const recipe = useMemo<RecipeSnapshot | null>(() => {
     try {
       return JSON.parse(preparation.recipeSnapshotJson) as RecipeSnapshot;
@@ -56,6 +92,7 @@ export function LotsStep({
   const [componentInputs, setComponentInputs] = useState<
     Record<number, { materialId: number | null; sourcePreparationId: number | null; quantityUsed: number | null }>
   >(() => {
+    if (restoredDraft?.components) return restoredDraft.components;
     const map: Record<number, { materialId: number | null; sourcePreparationId: number | null; quantityUsed: number | null }> = {};
     for (const c of preparation.components) {
       map[c.id] = {
@@ -68,21 +105,69 @@ export function LotsStep({
   });
 
   const needsAutoclave = recipe?.sterilizationRequired === true;
-  const [autoclave, setAutoclave] = useState<AutoclaveFormState>(() => ({
-    equipmentId: preparation.autoclaveEquipmentId ?? "",
-    program: preparation.autoclaveProgram ?? "",
-    loadType: preparation.loadType ?? "",
-    temperature: preparation.autoclaveTemperature ?? "",
-    cycleTime: preparation.autoclaveCycleTime ?? "",
-    cycleNumber: preparation.autoclaveCycleNumber ?? ""
-  }));
+  const autoclaveLastChoice = useLastChoiceDefault<number>("equipment");
+  const [autoclave, setAutoclave] = useState<AutoclaveFormState>(() =>
+    restoredDraft?.autoclave ?? {
+      equipmentId: preparation.autoclaveEquipmentId ?? "",
+      program: preparation.autoclaveProgram ?? "",
+      loadType: preparation.loadType ?? "",
+      temperature: preparation.autoclaveTemperature ?? "",
+      cycleTime: preparation.autoclaveCycleTime ?? "",
+      cycleNumber: preparation.autoclaveCycleNumber ?? ""
+    }
+  );
 
-  const [finalVolume, setFinalVolume] = useState<number | "">(
-    preparation.finalVolumeMl ?? recipe?.finalVolumeMl ?? ""
-  );
-  const [measuredPh, setMeasuredPh] = useState<number | "">(
-    preparation.measuredPh ?? ""
-  );
+  const { applyDefault: applyAutoclaveDefault } = autoclaveLastChoice;
+  const autoclaveRef = useRef(autoclave);
+  autoclaveRef.current = autoclave;
+  const hasSavedAutoclave = preparation.autoclaveEquipmentId != null;
+  const solutionMasterId = preparation.solutionMasterId;
+
+  useEffect(() => {
+    if (!needsAutoclave || hasSavedAutoclave) return;
+    const controller = new AbortController();
+    entryDefaultsService
+      .get({ context: "solutionPreparation", solutionMasterId }, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        const def = res.defaults.find((d) => d.field === "autoclaveEquipmentId");
+        // Never overwrite something the analyst already chose or a restored draft.
+        if (def?.id == null || autoclaveRef.current.equipmentId !== "") return;
+        setAutoclave({ ...autoclaveRef.current, equipmentId: def.id });
+        applyAutoclaveDefault(def.id);
+      })
+      .catch(() => {
+        // A missing default is not an error: the field simply stays empty.
+      });
+    return () => controller.abort();
+  }, [needsAutoclave, hasSavedAutoclave, solutionMasterId, applyAutoclaveDefault]);
+
+  const [finalVolumeText, setFinalVolumeText] = useState<string>(() => {
+    if (restoredDraft?.finalVolumeText !== undefined) return restoredDraft.finalVolumeText;
+    const v = preparation.finalVolumeMl ?? recipe?.finalVolumeMl;
+    return v != null ? String(v) : "";
+  });
+  const [measuredPhText, setMeasuredPhText] = useState<string>(() => {
+    if (restoredDraft?.measuredPhText !== undefined) return restoredDraft.measuredPhText;
+    return preparation.measuredPh != null ? String(preparation.measuredPh) : "";
+  });
+
+  useEffect(() => {
+    if (!restoredDraft) return;
+    if (restoredDraft.components) setComponentInputs(restoredDraft.components);
+    if (restoredDraft.autoclave) setAutoclave(restoredDraft.autoclave);
+    if (restoredDraft.finalVolumeText !== undefined) setFinalVolumeText(restoredDraft.finalVolumeText);
+    if (restoredDraft.measuredPhText !== undefined) setMeasuredPhText(restoredDraft.measuredPhText);
+  }, [restoredDraft]);
+
+  useEffect(() => {
+    onDraftChange?.({
+      components: componentInputs,
+      finalVolumeText,
+      measuredPhText,
+      autoclave
+    });
+  }, [componentInputs, finalVolumeText, measuredPhText, autoclave, onDraftChange]);
 
   // Lots per component
   const [lotsMap, setLotsMap] = useState<Record<number, LotOption[]>>({});
@@ -116,12 +201,11 @@ export function LotsStep({
       setLotsMap(newMap);
       setSourcesMap(newSources);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to load lot options.");
+      setError(getErrorMessage(err, t("wizard.lotsStep.loadLotsError")));
     } finally {
       setLoadingLots(false);
     }
-  }, [preparation.id, preparation.components]);
+  }, [preparation.id, preparation.components, t]);
 
   useEffect(() => {
     loadLots();
@@ -195,36 +279,58 @@ export function LotsStep({
   const handleSaveDraft = async () => {
     setError(null);
     try {
-      const vol = finalVolume === "" ? null : Number(finalVolume);
-      const ph = measuredPh === "" ? null : Number(measuredPh);
+      const vol = finalVolumeText === "" ? null : Number(finalVolumeText);
+      const ph = measuredPhText === "" ? null : Number(measuredPhText);
       await onSave(getInputsList(), vol, ph, getAutoclaveRecord());
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to save draft.");
+      const failure = classifySaveFailure(err);
+      if (benchMode && (failure.kind === "network" || failure.kind === "conflict")) return;
+      setError(getErrorMessage(err, t("wizard.lotsStep.saveDraftFailed")));
     }
   };
 
   const handleContinue = async () => {
     setError(null);
     try {
-      const vol = finalVolume === "" ? null : Number(finalVolume);
-      const ph = measuredPh === "" ? null : Number(measuredPh);
+      const vol = finalVolumeText === "" ? null : Number(finalVolumeText);
+      const ph = measuredPhText === "" ? null : Number(measuredPhText);
       await onSave(getInputsList(), vol, ph, getAutoclaveRecord());
       onNext();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Failed to save draft.");
+      const failure = classifySaveFailure(err);
+      if (benchMode && (failure.kind === "network" || failure.kind === "conflict")) return;
+      setError(getErrorMessage(err, t("wizard.lotsStep.saveDraftFailed")));
     }
   };
 
   // pH Tolerance Check
   const phOutOfTolerance = useMemo(() => {
-    if (recipe?.phTarget == null || recipe?.phTolerance == null || measuredPh === "") {
+    if (recipe?.phTarget == null || recipe?.phTolerance == null || measuredPhText === "") {
       return false;
     }
-    const val = Number(measuredPh);
-    return Math.abs(val - recipe.phTarget) > recipe.phTolerance;
-  }, [recipe, measuredPh]);
+    const val = Number(measuredPhText);
+    return !Number.isNaN(val) && Math.abs(val - recipe.phTarget) > recipe.phTolerance;
+  }, [recipe, measuredPhText]);
+
+  const benchSections = useMemo(
+    () => {
+      const components = t("wizard.lotsStep.benchSections.components");
+      const finalDetails = t("wizard.lotsStep.benchSections.finalDetails");
+      return needsAutoclave
+        ? [components, t("wizard.lotsStep.benchSections.autoclave"), finalDetails]
+        : [components, finalDetails];
+    },
+    [needsAutoclave, t]
+  );
+
+  const goToSection = (index: number) => {
+    setActiveSection(index);
+    sectionRefs.current[index]?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  };
+
+  const sectionWrapperSx = benchMode
+    ? { minHeight: "calc(100vh - 220px)", display: "flex", flexDirection: "column" as const, justifyContent: "flex-start" as const }
+    : undefined;
 
   return (
     <Stack spacing={3}>
@@ -232,11 +338,11 @@ export function LotsStep({
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Step 2: Stock Lots & Quantities
+              {t("wizard.lotsStep.heading")}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {preparation.solutionMasterName}
-              {preparation.hplcMethodAbbreviation && ` · Method: ${preparation.hplcMethodAbbreviation}`}
+              {preparation.hplcMethodAbbreviation && t("wizard.lotsStep.methodSub", { method: preparation.hplcMethodAbbreviation })}
             </Typography>
           </Box>
           <Button
@@ -246,7 +352,7 @@ export function LotsStep({
             disabled={saving}
             startIcon={saving ? <CircularProgress size={14} /> : <SaveOutlinedIcon />}
           >
-            Save Draft
+            {t("wizard.lotsStep.saveDraft")}
           </Button>
         </Box>
 
@@ -256,141 +362,176 @@ export function LotsStep({
           </Alert>
         )}
 
-        {/* Components List */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Components ({preparation.components.length})
-        </Typography>
+        {benchMode && (
+          <Stepper
+            nonLinear
+            activeStep={activeSection}
+            aria-label={t("wizard.lotsStep.stepperAria")}
+            data-testid="lots-step-indicator"
+            sx={{ mb: 2 }}
+          >
+            {benchSections.map((label, index) => (
+              <Step key={label}>
+                <StepButton onClick={() => goToSection(index)}>{label}</StepButton>
+              </Step>
+            ))}
+          </Stepper>
+        )}
 
-        {preparation.components.map((c) => {
-          if (c.kind === "Text") {
+        {/* Components List */}
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[0] = el; }}
+          data-bench-section="0"
+          sx={sectionWrapperSx}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+            <Trans
+              i18nKey="wizard.lotsStep.componentsCount"
+              ns="solutionPreparation"
+              values={{ count: preparation.components.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          </Typography>
+
+          {preparation.components.map((c) => {
+            if (c.kind === "Text") {
+              return (
+                <Typography
+                  key={c.id}
+                  variant="body2"
+                  sx={{ mb: 2, px: 2, py: 1, bgcolor: "action.hover", borderRadius: 1, fontStyle: "italic" }}
+                >
+                  {c.order}. {c.text}
+                </Typography>
+              );
+            }
+            if (c.kind === "PreparedSolution") {
+              return (
+                <SourcePreparationPicker
+                  key={c.id}
+                  component={c}
+                  options={sourcesMap[c.id] ?? []}
+                  loading={loadingLots}
+                  selectedPreparationId={componentInputs[c.id]?.sourcePreparationId ?? null}
+                  quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
+                  onSelect={(prepId) => handleSelectSource(c.id, prepId)}
+                  onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
+                  disabled={saving}
+                />
+              );
+            }
             return (
-              <Typography
-                key={c.id}
-                variant="body2"
-                sx={{ mb: 2, px: 2, py: 1, bgcolor: "action.hover", borderRadius: 1, fontStyle: "italic" }}
-              >
-                {c.order}. {c.text}
-              </Typography>
-            );
-          }
-          if (c.kind === "PreparedSolution") {
-            return (
-              <SourcePreparationPicker
+              <ComponentLotPicker
                 key={c.id}
                 component={c}
-                options={sourcesMap[c.id] ?? []}
-                loading={loadingLots}
-                selectedPreparationId={componentInputs[c.id]?.sourcePreparationId ?? null}
+                lotOptions={lotsMap[c.id] ?? []}
+                loadingLots={loadingLots}
+                selectedMaterialId={componentInputs[c.id]?.materialId ?? null}
                 quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
-                onSelect={(prepId) => handleSelectSource(c.id, prepId)}
+                onSelectLot={(matId) => handleSelectLot(c.id, matId)}
                 onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
                 disabled={saving}
               />
             );
-          }
-          return (
-            <ComponentLotPicker
-              key={c.id}
-              component={c}
-              lotOptions={lotsMap[c.id] ?? []}
-              loadingLots={loadingLots}
-              selectedMaterialId={componentInputs[c.id]?.materialId ?? null}
-              quantityUsed={componentInputs[c.id]?.quantityUsed ?? null}
-              onSelectLot={(matId) => handleSelectLot(c.id, matId)}
-              onChangeQuantity={(qty) => handleChangeQuantity(c.id, qty)}
-              disabled={saving}
-            />
-          );
-        })}
+          })}
+        </Box>
 
         {needsAutoclave && (
-          <>
+          <Box
+            ref={(el: HTMLDivElement | null) => { sectionRefs.current[1] = el; }}
+            data-bench-section="1"
+            sx={sectionWrapperSx}
+          >
             <Divider sx={{ my: 2.5 }} />
-            <AutoclaveSection value={autoclave} onChange={setAutoclave} disabled={saving} />
-          </>
+            <AutoclaveSection
+              value={autoclave}
+              equipmentIsDefault={autoclaveLastChoice.isDefault}
+              onEquipmentChangedByUser={autoclaveLastChoice.notifyValueChanged}
+              onChange={(next) => {
+                setAutoclave(next);
+                onClearFieldError?.("autoclaveEquipmentId");
+                onClearFieldError?.("autoclaveProgram");
+                onClearFieldError?.("autoclaveCycleNumber");
+              }}
+              disabled={saving}
+              fieldErrors={fieldErrors}
+            />
+          </Box>
         )}
 
         <Divider sx={{ my: 2.5 }} />
 
         {/* Volume & pH */}
-        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Final Preparation Details
-        </Typography>
+        <Box
+          ref={(el: HTMLDivElement | null) => { sectionRefs.current[needsAutoclave ? 2 : 1] = el; }}
+          data-bench-section={needsAutoclave ? "2" : "1"}
+          sx={sectionWrapperSx}
+        >
+          <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5 }}>
+            {t("wizard.lotsStep.finalDetailsHeading")}
+          </Typography>
 
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mb: 2 }}>
-          <TextField
-            size="small"
-            label="Final Volume *"
-            type="number"
-            value={finalVolume}
-            onChange={(e) => {
-              const v = e.target.value;
-              setFinalVolume(v === "" ? "" : parseFloat(v));
-            }}
-            slotProps={{
-              input: {
-                endAdornment: <InputAdornment position="end">mL</InputAdornment>,
-                inputProps: { min: 0.1, step: "any" }
-              }
-            }}
-            helperText={`Recipe target: ${recipe?.finalVolumeMl ?? "—"} mL`}
-          />
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mb: 2, alignItems: "start" }}>
+            <NumericEntryField
+              label={t("wizard.lotsStep.finalVolumeLabel")}
+              kind="decimal"
+              value={finalVolumeText}
+              onChange={(v) => {
+                setFinalVolumeText(v);
+                onClearFieldError?.("finalVolumeMl");
+              }}
+              unit="mL"
+              error={fieldErrors?.finalVolumeMl}
+              helperText={t("wizard.lotsStep.recipeTargetHelper", { value: recipe?.finalVolumeMl ?? "—" })}
+            />
 
-          {recipe?.phTarget != null ? (
-            <Box>
-              <TextField
-                fullWidth
-                size="small"
-                label="Measured pH *"
-                type="number"
-                value={measuredPh}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setMeasuredPh(v === "" ? "" : parseFloat(v));
+            {recipe?.phTarget != null ? (
+              <NumericEntryField
+                label={t("wizard.lotsStep.measuredPhRequired")}
+                kind="decimal"
+                value={measuredPhText}
+                onChange={(v) => {
+                  setMeasuredPhText(v);
+                  onClearFieldError?.("measuredPh");
                 }}
-                error={phOutOfTolerance}
-                slotProps={{
-                  input: {
-                    inputProps: { min: 0, max: 14, step: "0.01" }
-                  }
-                }}
+                error={
+                  fieldErrors?.measuredPh ??
+                  (phOutOfTolerance
+                    ? t("wizard.lotsStep.phOutOfTolerance", { value: measuredPhText, target: recipe.phTarget, tolerance: recipe.phTolerance ?? 0 })
+                    : undefined)
+                }
                 helperText={
-                  phOutOfTolerance
-                    ? `pH ${measuredPh} is outside target ${recipe.phTarget} ± ${recipe.phTolerance ?? 0}`
-                    : `Target: ${recipe.phTarget}${recipe.phTolerance ? ` ± ${recipe.phTolerance}` : ""}`
+                  recipe.phTolerance
+                    ? t("wizard.lotsStep.phTargetHelperTolerance", { target: recipe.phTarget, tolerance: recipe.phTolerance })
+                    : t("wizard.lotsStep.phTargetHelper", { target: recipe.phTarget })
                 }
               />
+            ) : (
+              <NumericEntryField
+                label={t("wizard.lotsStep.measuredPhOptional")}
+                kind="decimal"
+                value={measuredPhText}
+                onChange={(v) => {
+                  setMeasuredPhText(v);
+                  onClearFieldError?.("measuredPh");
+                }}
+                error={fieldErrors?.measuredPh}
+                helperText={t("wizard.lotsStep.phNotSpecifiedHelper")}
+              />
+            )}
+          </Box>
+
+          {recipe?.instructions && (
+            <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1, mb: 3 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
+                {t("wizard.lotsStep.instructions")}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}>
+                {recipe.instructions}
+              </Typography>
             </Box>
-          ) : (
-            <TextField
-              size="small"
-              label="Measured pH (Optional)"
-              type="number"
-              value={measuredPh}
-              onChange={(e) => {
-                const v = e.target.value;
-                setMeasuredPh(v === "" ? "" : parseFloat(v));
-              }}
-              slotProps={{
-                input: {
-                  inputProps: { min: 0, max: 14, step: "0.01" }
-                }
-              }}
-              helperText="Recipe does not specify a target pH"
-            />
           )}
         </Box>
-
-        {recipe?.instructions && (
-          <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1, mb: 3 }}>
-            <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-              Instructions:
-            </Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}>
-              {recipe.instructions}
-            </Typography>
-          </Box>
-        )}
 
         <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 1 }}>
           <Button
@@ -400,7 +541,7 @@ export function LotsStep({
             endIcon={saving ? <CircularProgress size={16} /> : <ArrowForwardIcon />}
             sx={{ textTransform: "none", fontWeight: 700, px: 3 }}
           >
-            {saving ? "Saving..." : "Continue to Review"}
+            {saving ? t("wizard.lotsStep.saving") : t("wizard.lotsStep.continueToReview")}
           </Button>
         </Box>
       </Paper>

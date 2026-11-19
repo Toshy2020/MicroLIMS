@@ -6,6 +6,9 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Responses;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
@@ -224,6 +227,12 @@ public record PathogenTestingSessionDto(
 
 public class PathogenSessionService
 {
+    public const int ResetReasonMinLength = 10;
+    public const int ResetReasonMaxLength = 500;
+    public const string ResetReasonRequiredMessage =
+        "Enter a reason of at least 10 characters. Resetting the session invalidates the recorded results.";
+    public const string ResetReasonTooLongMessage = "The reason can be at most 500 characters.";
+
     private readonly IMicroLimsDbContext _db;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
@@ -577,14 +586,20 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsurePreparedAsync(sample, userId);
 
         var media = await _db.Media
             .Include(m => m.Material)
             .FirstOrDefaultAsync(m => m.Id == request.MediaLotId)
-            ?? throw new BusinessRuleException($"Media #{request.MediaLotId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenMediaNotFound,
+                $"Media #{request.MediaLotId} not found.",
+                new Dictionary<string, string> { ["mediaLotId"] = request.MediaLotId.ToString(CultureInfo.InvariantCulture) });
 
         if (media.ExpiryDate.Date < _time.GetUtcNow().UtcDateTime.Date)
             throw new WorkflowStepException("MediaExpired", $"Media lot #{media.LotNumber} expired on {media.ExpiryDate:yyyy-MM-dd}.");
@@ -592,7 +607,10 @@ public class PathogenSessionService
         // The incubator is Laboratory Configuration equipment, which carries
         // the set point - never the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator)
-            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenIncubatorNotFound,
+                $"Incubator #{request.IncubatorEquipmentId} not found.",
+                new Dictionary<string, string> { ["incubatorId"] = request.IncubatorEquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var joining = await ResolveJoiningTestsAsync(sample, media, incubator);
 
@@ -735,13 +753,19 @@ public class PathogenSessionService
         CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -868,10 +892,16 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrder = sample.TestOrders.FirstOrDefault(t => t.Id == request.TestOrderId)
-            ?? throw new BusinessRuleException($"TestOrder #{request.TestOrderId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenTestOrderNotFound,
+                $"TestOrder #{request.TestOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = request.TestOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -915,7 +945,10 @@ public class PathogenSessionService
         // Laboratory Configuration equipment (carries the set point), never
         // the EquipmentInventories asset register.
         var incubator = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == request.IncubatorEquipmentId && e.Type == EquipmentType.Incubator, cancellationToken)
-            ?? throw new BusinessRuleException($"Incubator #{request.IncubatorEquipmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.PathogenIncubatorNotFound,
+                $"Incubator #{request.IncubatorEquipmentId} not found.",
+                new Dictionary<string, string> { ["incubatorId"] = request.IncubatorEquipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var chosen = await ResolveChosenConfirmatoryMediaAsync(request, testOrder, confirmatoryStep, incubator, cancellationToken);
 
@@ -1129,13 +1162,19 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         var testOrdersByCode = sample.TestOrders.ToDictionary(t => t.TestCode);
         var locationsById = sample.Locations.ToDictionary(l => l.Id);
@@ -1220,7 +1259,10 @@ public class PathogenSessionService
     public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
     {
         var session = await GetSessionAsync(sampleId)
-            ?? throw new NotFoundException($"Session for sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSessionNotFound,
+                $"Session for sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 1. Completeness Validation
         if (session.MissingResults.Count > 0)
@@ -1244,7 +1286,10 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 3. Mark TestOrders as completed / ready for review
         foreach (var order in sample.TestOrders)
@@ -1281,7 +1326,10 @@ public class PathogenSessionService
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample #{sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // Rejecting a sample takes SectionHead or SystemAdministrator
         // (SampleApprovalController). This endpoint takes Analyst. Resetting used to
@@ -1311,7 +1359,20 @@ public class PathogenSessionService
 
         var testOrderIds = sample.TestOrders.Select(t => t.Id).ToList();
         var locationIds = sample.Locations.Select(l => l.Id).ToList();
-        var resetReason = string.IsNullOrWhiteSpace(reason) ? "Analyst requested session workflow reset" : reason.Trim();
+        // A reset invalidates recorded results, so it needs a real reason; no default text.
+        var resetReason = reason?.Trim() ?? string.Empty;
+        if (resetReason.Length < ResetReasonMinLength)
+        {
+            throw new FieldValidationException(
+                ResetReasonRequiredMessage,
+                new[] { new FieldError("reason", ResetReasonRequiredMessage) });
+        }
+        if (resetReason.Length > ResetReasonMaxLength)
+        {
+            throw new FieldValidationException(
+                ResetReasonTooLongMessage,
+                new[] { new FieldError("reason", ResetReasonTooLongMessage) });
+        }
 
         // 1. Delete Location Pathogen Observations & Confirmatory Plate Observations
         var locObs = await _db.LocationPathogenObservations
@@ -1353,11 +1414,20 @@ public class PathogenSessionService
             .ToListAsync();
         if (countReadings.Count > 0) _db.CountTestReadings.RemoveRange(countReadings);
 
-        // 4. Delete Results
+        // 4. Invalidate Results (user decision 2026-11-15): the recorded results stay,
+        // marked with who invalidated them, when and why. The query filter returns
+        // only valid results, so one invalidated by an earlier reset keeps its first
+        // invalidation.
         var results = await _db.Results
             .Where(r => testOrderIds.Contains(r.TestOrderId))
             .ToListAsync();
-        if (results.Count > 0) _db.Results.RemoveRange(results);
+        var invalidatedAt = _time.GetUtcNow().UtcDateTime;
+        foreach (var result in results)
+        {
+            result.InvalidatedAt = invalidatedAt;
+            result.InvalidatedByUserId = userId;
+            result.InvalidationReason = resetReason;
+        }
 
         // 5. Delete Incubations
         var incubations = await _db.Incubations
@@ -1395,6 +1465,9 @@ public class PathogenSessionService
         {
             sample.Status = SampleStatus.Received;
         }
+
+        // The reason lands on the audit rows of this save (result invalidation, deletions).
+        _db.CurrentReason = resetReason;
 
         // 9. Audit Log
         _db.AuditLogs.Add(new AuditLog

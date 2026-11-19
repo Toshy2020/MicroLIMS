@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -84,8 +85,15 @@ public class MonitoringOccurrenceService
     public async Task<List<OccurrenceSummaryResponse>> GetCalendarAsync(
         int userId, DateOnly from, DateOnly to, MonitoringCategory? category, bool includeRetired, int? labSectionId = null)
     {
-        if (to < from) throw new BusinessRuleException("The end of the range is before its start.");
-        if (to.DayNumber - from.DayNumber > MaxCalendarDays) throw new BusinessRuleException($"Choose a range of at most {MaxCalendarDays} days.");
+        if (to < from)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRangeEndBeforeStart,
+                "The end of the range is before its start.");
+        if (to.DayNumber - from.DayNumber > MaxCalendarDays)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringRangeTooLong,
+                $"Choose a range of at most {MaxCalendarDays} days.",
+                new Dictionary<string, string> { ["maxDays"] = MaxCalendarDays.ToString() });
 
         var readable = await _scope.GetReadableSectionIdsAsync(userId);
         var query = LiveQuery().Where(o => o.WindowEnd >= from && o.WindowStart <= to);
@@ -110,7 +118,10 @@ public class MonitoringOccurrenceService
     // its target date, or of the end of its window when it has none.
     public async Task<YearSummaryResponse> GetYearSummaryAsync(int userId, int year, MonitoringCategory? category, int? labSectionId = null)
     {
-        if (year is < 2000 or > 2100) throw new BusinessRuleException("Choose a plan year between 2000 and 2100.");
+        if (year is < 2000 or > 2100)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringInvalidPlanYear,
+                "Choose a plan year between 2000 and 2100.");
         var first = new DateOnly(year, 1, 1);
         var last = new DateOnly(year, 12, 31);
 
@@ -199,13 +210,19 @@ public class MonitoringOccurrenceService
     {
         var occurrence = await _db.MonitoringOccurrences.AsNoTracking().Include(o => o.Items).Include(o => o.LabSection)
             .FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException($"Monitoring occurrence {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringOccurrenceNotFound,
+                $"Monitoring occurrence {id} not found.",
+                new Dictionary<string, string> { ["occurrenceId"] = id.ToString() });
 
         if (occurrence.Category == MonitoringCategory.Water)
         {
             var readable = await _scope.GetReadableSectionIdsAsync(userId);
             if (readable is not null && (!occurrence.LabSectionId.HasValue || !readable.Contains(occurrence.LabSectionId.Value)))
-                throw new NotFoundException($"Monitoring occurrence {id} not found.");
+                throw new NotFoundException(
+                    MessageCodes.MonitoringOccurrenceNotFound,
+                    $"Monitoring occurrence {id} not found.",
+                    new Dictionary<string, string> { ["occurrenceId"] = id.ToString() });
         }
 
         var details = await _status.ComputeAsync(new[] { occurrence });
@@ -247,14 +264,26 @@ public class MonitoringOccurrenceService
         if (request.WaterSamplingPointId.HasValue)
         {
             if (request.LabSectionId is null)
-                throw new BusinessRuleException("Lab section is required for water occurrences.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringWaterLabSectionRequired,
+                    "Lab section is required for water occurrences.");
 
             var point = await _db.WaterSamplingPoints.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.WaterSamplingPointId.Value)
-                ?? throw new NotFoundException($"Water sampling point {request.WaterSamplingPointId.Value} not found.");
-            if (!point.IsActive) throw new BusinessRuleException($"Water sampling point '{point.Code}' is inactive.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MonitoringWaterPointNotFound,
+                    $"Water sampling point {request.WaterSamplingPointId.Value} not found.",
+                    new Dictionary<string, string> { ["pointId"] = request.WaterSamplingPointId.Value.ToString() });
+            if (!point.IsActive)
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringWaterPointInactive,
+                    $"Water sampling point '{point.Code}' is inactive.",
+                    new Dictionary<string, string> { ["point"] = point.Code });
 
             var section = await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == request.LabSectionId.Value)
-                ?? throw new NotFoundException($"Section {request.LabSectionId.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MonitoringLabSectionNotFound,
+                    $"Section {request.LabSectionId.Value} not found.",
+                    new Dictionary<string, string> { ["sectionId"] = request.LabSectionId.Value.ToString() });
 
             var testCodes = await _db.TestDefinitions.AsNoTracking()
                 .Where(t => point.AssignedTestCodes.Contains(t.Code) && t.SectionId == request.LabSectionId.Value)
@@ -291,7 +320,10 @@ public class MonitoringOccurrenceService
                     break;
                 default:
                     if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
-                        throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MonitoringNotAWorkingDay,
+                            $"{date:yyyy-MM-dd} is not a working day. Choose a working day.",
+                            new Dictionary<string, string> { ["date"] = date.ToString("yyyy-MM-dd") });
                     windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.WaterEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
                     windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.WaterLateToleranceDays, settings.WorkingWeekdays, nonWorking);
                     targetDate = date;
@@ -300,13 +332,23 @@ public class MonitoringOccurrenceService
                     described = date.ToString("yyyy-MM-dd");
                     break;
             }
-            if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
-                request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+            if ((targetDate ?? windowEnd) < today)
+            {
+                var code = request.Kind == ManualWindowKind.Day
+                    ? MessageCodes.MonitoringTargetDateInPast
+                    : MessageCodes.MonitoringPeriodAlreadyEnded;
+                throw new BusinessRuleException(
+                    code,
+                    request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+            }
 
             var planYear = (targetDate ?? windowEnd).Year;
             var revision = await _db.MonitoringPlanRevisions
                 .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
-                ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.MonitoringNoApprovedPlanForYear,
+                    $"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.",
+                    new Dictionary<string, string> { ["year"] = planYear.ToString() });
 
             var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.WaterSamplingPoint
                     && o.WaterSamplingPointId == point.Id && o.LabSectionId == request.LabSectionId && o.PeriodKey == period)
@@ -348,8 +390,15 @@ public class MonitoringOccurrenceService
         if (request.MachineId.HasValue)
         {
             var machine = await _db.Machines.AsNoTracking().FirstOrDefaultAsync(m => m.Id == request.MachineId.Value)
-                ?? throw new NotFoundException($"Machine {request.MachineId.Value} not found.");
-            if (!machine.IsActive) throw new BusinessRuleException($"Machine '{machine.Name}' is inactive.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MonitoringMachineNotFound,
+                    $"Machine {request.MachineId.Value} not found.",
+                    new Dictionary<string, string> { ["machineId"] = request.MachineId.Value.ToString() });
+            if (!machine.IsActive)
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringMachineInactive,
+                    $"Machine '{machine.Name}' is inactive.",
+                    new Dictionary<string, string> { ["machine"] = machine.Name });
 
             // The occurrence is for the machine itself: whichever parts are cleaned and sampled at the
             // session fulfil it. Naming parts is optional and only for entries that must cover exactly those.
@@ -360,11 +409,32 @@ public class MonitoringOccurrenceService
                 configs = await _db.MachinePartConfigurations.AsNoTracking().Include(c => c.MachinePart)
                     .Where(c => partIds.Contains(c.Id)).ToListAsync();
                 var missing = partIds.Except(configs.Select(c => c.Id)).ToList();
-                if (missing.Count > 0) throw new NotFoundException($"Machine part configuration(s) not found: {string.Join(", ", missing)}.");
+                if (missing.Count > 0)
+                {
+                    var missingText = string.Join(", ", missing);
+                    throw new NotFoundException(
+                        MessageCodes.MonitoringMachinePartConfigsNotFound,
+                        $"Machine part configuration(s) not found: {missingText}.",
+                        new Dictionary<string, string> { ["ids"] = missingText });
+                }
                 var wrong = configs.Where(c => c.MachinePart?.MachineId != machine.Id).ToList();
-                if (wrong.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", wrong.Select(c => c.MachinePart?.Name))} do not belong to machine '{machine.Name}'.");
+                if (wrong.Count > 0)
+                {
+                    var partsText = string.Join(", ", wrong.Select(c => c.MachinePart?.Name));
+                    throw new BusinessRuleException(
+                        MessageCodes.MonitoringMachinePartsWrongMachine,
+                        $"Part(s) {partsText} do not belong to machine '{machine.Name}'.",
+                        new Dictionary<string, string> { ["parts"] = partsText, ["machine"] = machine.Name });
+                }
                 var inactive = configs.Where(c => !c.IsActive || c.MachinePart?.IsActive == false).ToList();
-                if (inactive.Count > 0) throw new BusinessRuleException($"Part(s) {string.Join(", ", inactive.Select(c => c.MachinePart?.Name))} are inactive.");
+                if (inactive.Count > 0)
+                {
+                    var partsText = string.Join(", ", inactive.Select(c => c.MachinePart?.Name));
+                    throw new BusinessRuleException(
+                        MessageCodes.MonitoringMachinePartsInactive,
+                        $"Part(s) {partsText} are inactive.",
+                        new Dictionary<string, string> { ["parts"] = partsText });
+                }
             }
 
             var today = _clock.LabToday;
@@ -396,7 +466,10 @@ public class MonitoringOccurrenceService
                     break;
                 default:
                     if (!PlanWindowCalculator.IsWorkingDay(date, settings.WorkingWeekdays, nonWorking))
-                        throw new BusinessRuleException($"{date:yyyy-MM-dd} is not a working day. Choose a working day.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MonitoringNotAWorkingDay,
+                            $"{date:yyyy-MM-dd} is not a working day. Choose a working day.",
+                            new Dictionary<string, string> { ["date"] = date.ToString("yyyy-MM-dd") });
                     windowStart = PlanWindowCalculator.AddWorkingDays(date, -settings.AcEarlyToleranceDays, settings.WorkingWeekdays, nonWorking);
                     windowEnd = PlanWindowCalculator.AddWorkingDays(date, settings.AcLateToleranceDays, settings.WorkingWeekdays, nonWorking);
                     targetDate = date;
@@ -405,13 +478,23 @@ public class MonitoringOccurrenceService
                     described = date.ToString("yyyy-MM-dd");
                     break;
             }
-            if ((targetDate ?? windowEnd) < today) throw new BusinessRuleException(
-                request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+            if ((targetDate ?? windowEnd) < today)
+            {
+                var code = request.Kind == ManualWindowKind.Day
+                    ? MessageCodes.MonitoringTargetDateInPast
+                    : MessageCodes.MonitoringPeriodAlreadyEnded;
+                throw new BusinessRuleException(
+                    code,
+                    request.Kind == ManualWindowKind.Day ? "The target date cannot be in the past." : "The week or month has already ended.");
+            }
 
             var planYear = (targetDate ?? windowEnd).Year;
             var revision = await _db.MonitoringPlanRevisions
                 .FirstOrDefaultAsync(r => r.Year == planYear && r.Status == PlanRevisionStatus.Approved)
-                ?? throw new BusinessRuleException($"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.MonitoringNoApprovedPlanForYear,
+                    $"There is no approved monitoring plan for {planYear}. Approve the plan before adding entries.",
+                    new Dictionary<string, string> { ["year"] = planYear.ToString() });
 
             var sequence = (await _db.MonitoringOccurrences.Where(o => o.TargetType == MonitoringTargetType.Machine
                     && o.MachineId == machine.Id && o.PeriodKey == period)
@@ -452,7 +535,9 @@ public class MonitoringOccurrenceService
             return (await SummariesAsync(new List<MonitoringOccurrence> { created })).Single();
         }
 
-        throw new BusinessRuleException("Either MachineId or WaterSamplingPointId must be provided.");
+        throw new BusinessRuleException(
+            MessageCodes.MonitoringTargetRequiredForManualEntry,
+            "Either MachineId or WaterSamplingPointId must be provided.");
     }
 
     // ---- skip and window change ----
@@ -462,11 +547,15 @@ public class MonitoringOccurrenceService
         var reason = RequireReason(request.Reason);
         var occurrence = await LoadChangeableAsync(id);
         if (await HasActiveLinksAsync(id))
-            throw new BusinessRuleException("A test has already been started for this occurrence, so it cannot be skipped.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringOccurrenceTestStartedCannotSkip,
+                "A test has already been started for this occurrence, so it cannot be skipped.");
 
         var role = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => (RoleType?)u.Role!.Type).FirstOrDefaultAsync();
         if (role != RoleType.SectionHead)
-            throw new BusinessRuleException("Only a Section Head can skip an occurrence of the monitoring plan.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringOnlySectionHeadCanSkip,
+                "Only a Section Head can skip an occurrence of the monitoring plan.");
 
         await UnitOfWork.RunAsync(_db, async () =>
         {
@@ -489,11 +578,17 @@ public class MonitoringOccurrenceService
 
         var newTarget = request.NewTargetDate ?? occurrence.TargetDate;
         if (request.NewWindowEnd < occurrence.WindowStart)
-            throw new BusinessRuleException("The new end of the window cannot be before its start.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWindowEndBeforeStart,
+                "The new end of the window cannot be before its start.");
         if (newTarget.HasValue && (newTarget < occurrence.WindowStart || newTarget > request.NewWindowEnd))
-            throw new BusinessRuleException("The target date must fall inside the window.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringTargetDateOutsideWindow,
+                "The target date must fall inside the window.");
         if (newTarget == occurrence.TargetDate && request.NewWindowEnd == occurrence.WindowEnd)
-            throw new BusinessRuleException("Nothing is changing: the target date and the end of the window are the same.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWindowUnchanged,
+                "Nothing is changing: the target date and the end of the window are the same.");
 
         // Work is never planned on a day the lab does not work.
         var settings = await _db.MonitoringSettings.AsNoTracking().FirstOrDefaultAsync() ?? new MonitoringSettings();
@@ -501,10 +596,16 @@ public class MonitoringOccurrenceService
         var nonWorking = await NonWorkingDatesAsync(lowest.AddDays(-45), request.NewWindowEnd.AddDays(45));
         if (request.NewWindowEnd != occurrence.WindowEnd
             && !PlanWindowCalculator.IsWorkingDay(request.NewWindowEnd, settings.WorkingWeekdays, nonWorking))
-            throw new BusinessRuleException($"{request.NewWindowEnd:yyyy-MM-dd} is not a working day. Choose a working day for the end of the window.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWindowEndNotWorkingDay,
+                $"{request.NewWindowEnd:yyyy-MM-dd} is not a working day. Choose a working day for the end of the window.",
+                new Dictionary<string, string> { ["date"] = request.NewWindowEnd.ToString("yyyy-MM-dd") });
         if (newTarget.HasValue && newTarget != occurrence.TargetDate
             && !PlanWindowCalculator.IsWorkingDay(newTarget.Value, settings.WorkingWeekdays, nonWorking))
-            throw new BusinessRuleException($"{newTarget:yyyy-MM-dd} is not a working day. Choose a working day for the target date.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringTargetDateNotWorkingDay,
+                $"{newTarget:yyyy-MM-dd} is not a working day. Choose a working day for the target date.",
+                new Dictionary<string, string> { ["date"] = newTarget.Value.ToString("yyyy-MM-dd") });
 
         await UnitOfWork.RunAsync(_db, async () =>
         {
@@ -544,21 +645,32 @@ public class MonitoringOccurrenceService
     {
         var trimmed = reason?.Trim();
         if (string.IsNullOrEmpty(trimmed) || trimmed.Length < 5)
-            throw new BusinessRuleException("Give a reason of at least five characters.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringReasonTooShort,
+                "Give a reason of at least five characters.");
         return trimmed;
     }
 
     private async Task<MonitoringOccurrence> LoadChangeableAsync(int id)
     {
         var occurrence = await _db.MonitoringOccurrences.Include(o => o.CreatedByRevision).FirstOrDefaultAsync(o => o.Id == id)
-            ?? throw new NotFoundException($"Monitoring occurrence {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringOccurrenceNotFound,
+                $"Monitoring occurrence {id} not found.",
+                new Dictionary<string, string> { ["occurrenceId"] = id.ToString() });
         RecordVersion.EnsureCurrent(_db, occurrence);
         if (occurrence.CreatedByRevision!.Status == PlanRevisionStatus.Draft)
-            throw new BusinessRuleException("This occurrence belongs to a plan revision that is not approved yet.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringOccurrenceBelongsToDraftRevision,
+                "This occurrence belongs to a plan revision that is not approved yet.");
         if (occurrence.RetiredByRevisionId != null)
-            throw new BusinessRuleException("This occurrence is no longer in the plan.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringOccurrenceNoLongerInPlan,
+                "This occurrence is no longer in the plan.");
         if (occurrence.ExceptionState != OccurrenceExceptionState.None)
-            throw new BusinessRuleException("This occurrence has already been skipped.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringOccurrenceAlreadySkipped,
+                "This occurrence has already been skipped.");
         return occurrence;
     }
 

@@ -1,7 +1,9 @@
+using System.Globalization;
 using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -123,13 +125,15 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
         if (run.Sst?.Status != HplcSstStatus.Passed)
-            throw new BusinessRuleException("Sample assignment is locked until system suitability passes.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcSampleAssignmentLockedUntilSst,
+                "Sample assignment is locked until system suitability passes.");
 
         var ids = (testOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new BusinessRuleException("Select at least one test.");
+            throw new BusinessRuleException(MessageCodes.HplcSelectAtLeastOneTest, "Select at least one test.");
 
         var eligible = await EligibleOrdersQuery(run).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
         foreach (var id in ids.Where(id => !eligible.Contains(id)))
@@ -137,9 +141,21 @@ public partial class HplcRunService
             var busyRun = await _db.HplcRunSamples
                 .Where(s => s.TestOrderId == id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
                 .Select(s => s.HplcRun!.Code).FirstOrDefaultAsync(ct);
-            throw new BusinessRuleException(busyRun != null
-                ? $"Test order {id} is already assigned to run {busyRun}."
-                : $"Test order {id} is not eligible for this run.");
+            if (busyRun != null)
+            {
+                throw new BusinessRuleException(
+                    MessageCodes.HplcTestOrderAlreadyAssignedToRun,
+                    $"Test order {id} is already assigned to run {busyRun}.",
+                    new Dictionary<string, string>
+                    {
+                        ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture),
+                        ["runCode"] = busyRun
+                    });
+            }
+            throw new BusinessRuleException(
+                MessageCodes.HplcTestOrderNotEligibleForRun,
+                $"Test order {id} is not eligible for this run.",
+                new Dictionary<string, string> { ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture) });
         }
 
         var dissolutionCodes = await _db.TestDefinitions
@@ -149,13 +165,22 @@ public partial class HplcRunService
         {
             var snapshot = JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)!;
             if (snapshot.ResultMode != HplcResultMode.Assay)
-                throw new BusinessRuleException("Dissolution needs an HPLC assay method.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDissolutionNeedsAssayMethod,
+                    "Dissolution needs an HPLC assay method.");
             if (!string.IsNullOrWhiteSpace(snapshot.InternalStandardName))
-                throw new BusinessRuleException("Dissolution does not support internal-standard methods.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDissolutionNoInternalStandard,
+                    "Dissolution does not support internal-standard methods.");
             if (snapshot.Analytes.Count != 1)
-                throw new BusinessRuleException("Dissolution needs an HPLC method with exactly one analyte.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDissolutionNeedsSingleAnalyte,
+                    "Dissolution needs an HPLC method with exactly one analyte.");
             if (snapshot.Analytes[0].StandardDilution is not > 0m)
-                throw new BusinessRuleException($"Method {snapshot.Abbreviation} needs a standard dilution before dissolution samples can be assigned.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcDissolutionNeedsStandardDilution,
+                    $"Method {snapshot.Abbreviation} needs a standard dilution before dissolution samples can be assigned.",
+                    new Dictionary<string, string> { ["method"] = snapshot.Abbreviation });
         }
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -172,20 +197,23 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
 
         var sample = run.Samples.FirstOrDefault(s => s.Id == runSampleId)
-            ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcRunSampleNotFound,
+                $"Sample {runSampleId} not found on this run.",
+                new Dictionary<string, string> { ["runSampleId"] = runSampleId.ToString(CultureInfo.InvariantCulture) });
         if (sample.Status != HplcRunSampleStatus.Assigned)
-            throw new BusinessRuleException("This sample was already removed from the run.");
+            throw new BusinessRuleException(MessageCodes.HplcRunSampleAlreadyRemoved, "This sample was already removed from the run.");
         if (sample.WorkingStandardQualificationId != null)
         {
             if (!await _db.WorkingStandardQualifications.AnyAsync(
                     q => q.Id == sample.WorkingStandardQualificationId && q.Status == WorkingStandardQualificationStatus.Draft, ct))
-                throw new BusinessRuleException("The qualification has already been submitted.");
+                throw new BusinessRuleException(MessageCodes.HplcQualificationAlreadySubmitted, "The qualification has already been submitted.");
         }
         else if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
-            throw new BusinessRuleException("A result has already been sent for review for this sample.");
+            throw new BusinessRuleException(MessageCodes.HplcRunSampleResultAlreadySubmitted, "A result has already been sent for review for this sample.");
 
         var trimmedReason = ValidateReason(reason);
         sample.Status = HplcRunSampleStatus.Removed;
@@ -211,62 +239,103 @@ public partial class HplcRunService
         var context = await HplcSampleEntryContext.LoadAsync(_db, runSampleId, ct);
         await EnsureAccessAsync(context.Run, userId, ct);
 
-        var problem = context.EditableProblem();
+        var problem = context.EditableProblemWithCode();
         if (problem != null)
-            throw new BusinessRuleException(problem);
+        {
+            var (code, message) = problem.Value;
+            throw new BusinessRuleException(code, message);
+        }
         if (await IsDissolutionOrderAsync(context.Order.Id, ct))
-            throw new BusinessRuleException("Dissolution results are entered on the Testing page, not as replicates.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDissolutionResultsNotReplicates,
+                "Dissolution results are entered on the Testing page, not as replicates.");
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
         var hasIs = !string.IsNullOrWhiteSpace(context.Snapshot.InternalStandardName);
         if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
-            throw new BusinessRuleException("This method has no internal standard.");
+            throw new BusinessRuleException(MessageCodes.HplcMethodHasNoInternalStandard, "This method has no internal standard.");
         var analyteIds = context.Snapshot.Analytes.Select(a => a.Id).ToList();
         for (var i = 0; i < inputs.Count; i++)
         {
             var input = inputs[i];
             if (hasIs && input.InternalStandardResponse is null or <= 0)
-                throw new BusinessRuleException($"Replicate {i + 1}: the internal standard response is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateInternalStandardRequired,
+                    $"Replicate {i + 1}: the internal standard response is required.",
+                    new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             // A related-substances sample is not weighed: its calculation uses no sample weight.
             // Cleaning-residue swabs are also not weighed.
             if (!context.IsRelatedSubstances && !context.IsCleaningResidue)
             {
                 if (input.ActualWeightMg <= 0)
-                    throw new BusinessRuleException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcReplicateSampleWeightMustBePositive,
+                        $"Replicate {i + 1}: the sample weight must be greater than zero.",
+                        new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             }
             else if (input.ActualWeightMg < 0)
             {
-                throw new BusinessRuleException("The sample weight cannot be negative.");
+                throw new BusinessRuleException(MessageCodes.HplcSampleWeightCannotBeNegative, "The sample weight cannot be negative.");
             }
             ValidatePeaks(context, input.Peaks);
 
             var responses = input.Responses ?? new List<HplcReplicateResponseInput>();
             if (responses.Any(x => !analyteIds.Contains(x.HplcMethodAnalyteId)))
-                throw new BusinessRuleException($"Replicate {i + 1}: a response belongs to an analyte that is not in the method.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateResponseAnalyteNotInMethod,
+                    $"Replicate {i + 1}: a response belongs to an analyte that is not in the method.",
+                    new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             foreach (var analyte in context.Snapshot.Analytes)
             {
                 var matches = responses.Where(x => x.HplcMethodAnalyteId == analyte.Id).ToList();
                 if (matches.Count != 1)
-                    throw new BusinessRuleException($"Replicate {i + 1}: exactly one response for {analyte.Name} is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcReplicateSingleResponseRequired,
+                        $"Replicate {i + 1}: exactly one response for {analyte.Name} is required.",
+                        new Dictionary<string, string>
+                        {
+                            ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture),
+                            ["analyte"] = analyte.Name
+                        });
                 switch (context.Snapshot.ResultMode)
                 {
                     case HplcResultMode.Assay:
                         if (matches[0].Response <= 0)
-                            throw new BusinessRuleException($"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.");
+                            throw new BusinessRuleException(
+                                MessageCodes.HplcReplicateResponseMustBePositive,
+                                $"Replicate {i + 1}: the response for {analyte.Name} must be greater than zero.",
+                                new Dictionary<string, string>
+                                {
+                                    ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture),
+                                    ["analyte"] = analyte.Name
+                                });
                         break;
                     case HplcResultMode.ResidualSolvents:
                     case HplcResultMode.CleaningResidue:
                         // A solvent or cleaning residue that is not detected gives a zero response.
                         if (matches[0].Response < 0)
-                            throw new BusinessRuleException($"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.");
+                            throw new BusinessRuleException(
+                                MessageCodes.HplcReplicateResponseCannotBeNegative,
+                                $"Replicate {i + 1}: the response for {analyte.Name} must be zero or more.",
+                                new Dictionary<string, string>
+                                {
+                                    ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture),
+                                    ["analyte"] = analyte.Name
+                                });
                         break;
                     case HplcResultMode.RelatedSubstances:
                         // The response is the reference solution's principal-peak area; a missing (zero) one is reported by the entry problem.
                         if (matches[0].Response < 0)
-                            throw new BusinessRuleException($"Replicate {i + 1}: the reference solution area must be zero or more.");
+                            throw new BusinessRuleException(
+                                MessageCodes.HplcReplicateReferenceAreaCannotBeNegative,
+                                $"Replicate {i + 1}: the reference solution area must be zero or more.",
+                                new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
                         break;
                     default:
-                        throw new BusinessRuleException($"Unsupported result mode {context.Snapshot.ResultMode}.");
+                        throw new BusinessRuleException(
+                            MessageCodes.HplcUnsupportedResultMode,
+                            $"Unsupported result mode {context.Snapshot.ResultMode}.",
+                            new Dictionary<string, string> { ["mode"] = context.Snapshot.ResultMode.ToString() });
                 }
             }
         }
@@ -281,20 +350,20 @@ public partial class HplcRunService
     {
         if (peaks == null || peaks.Count == 0) return;
         if (!context.IsRelatedSubstances)
-            throw new BusinessRuleException("Peaks are entered for related-substances methods only.");
+            throw new BusinessRuleException(MessageCodes.HplcPeaksOnlyForRelatedSubstances, "Peaks are entered for related-substances methods only.");
         if (peaks.Count > 50)
-            throw new BusinessRuleException("At most 50 peaks per replicate.");
+            throw new BusinessRuleException(MessageCodes.HplcTooManyPeaksPerReplicate, "At most 50 peaks per replicate.");
         var impurityIds = context.Snapshot.Impurities.Select(i => i.Id).ToHashSet();
         foreach (var peak in peaks)
         {
             if (peak.Area < 0m)
-                throw new BusinessRuleException("Peak areas cannot be negative.");
+                throw new BusinessRuleException(MessageCodes.HplcPeakAreaCannotBeNegative, "Peak areas cannot be negative.");
             if (peak.Area > 1_000_000_000_000m)
-                throw new BusinessRuleException("Peak area is too large.");
+                throw new BusinessRuleException(MessageCodes.HplcPeakAreaTooLarge, "Peak area is too large.");
             if (peak.HplcMethodImpurityId is int impurityId && !impurityIds.Contains(impurityId))
-                throw new BusinessRuleException("The impurity does not belong to this method.");
+                throw new BusinessRuleException(MessageCodes.HplcImpurityNotInMethod, "The impurity does not belong to this method.");
             if (peak.RelativeRetention is <= 0m or > 100m)
-                throw new BusinessRuleException("The relative retention must be greater than zero and at most 100.");
+                throw new BusinessRuleException(MessageCodes.HplcRelativeRetentionOutOfRange, "The relative retention must be greater than zero and at most 100.");
         }
     }
 
@@ -342,7 +411,7 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
 
         var assigned = run.Samples.Where(s => s.Status == HplcRunSampleStatus.Assigned).ToList();
         var orderIds = assigned.Where(s => s.TestOrderId != null).Select(s => s.TestOrderId!.Value).ToList();
@@ -352,7 +421,10 @@ public partial class HplcRunService
             + await _db.WorkingStandardQualifications.CountAsync(
                 q => draftQualificationIds.Contains(q.Id) && q.Status == WorkingStandardQualificationStatus.Draft, ct);
         if (pending > 0)
-            throw new BusinessRuleException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcPendingSamplesBlockCompletion,
+                $"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.",
+                new Dictionary<string, string> { ["count"] = pending.ToString(CultureInfo.InvariantCulture) });
 
         run.Status = HplcRunStatus.Completed;
         run.ClosedAt = _clock.UtcNow.UtcDateTime;

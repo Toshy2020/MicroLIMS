@@ -37,7 +37,15 @@ public sealed class MasterDataControllers
         Water = new(new WaterMasterDataService(db, scope));
         EnvironmentalMonitoring = new(new EnvironmentalMonitoringMasterDataService(db));
         AfterCleaning = new(new AfterCleaningMasterDataService(db, scope));
-        Specification = new(new SpecificationMasterDataService(db, scope, specificationService));
+        var effectiveSpecService = specificationService ?? new SpecificationService(db);
+        var specMasterDataService = new SpecificationMasterDataService(db, scope, effectiveSpecService);
+        var copyService = new MasterDataCopyService(
+            db,
+            scope,
+            effectiveSpecService,
+            specMasterDataService,
+            new ItemService(db));
+        Specification = new(specMasterDataService, copyService);
         ReferenceList = new(new ReferenceListMasterDataService(db));
         Equipment = new(new EquipmentMasterDataService(db, scope), configService, scope, columnService);
         Media = new(new MediaMasterDataService(db), mediaProductService, mediaIncubationConditionService);

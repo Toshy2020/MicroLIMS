@@ -1,6 +1,7 @@
 import { Box, Typography, Tooltip } from "@mui/material";
 import { statusTone } from "../../../theme/statusTokens";
 import type { DocumentRevisionStatus } from "../types/documentControlTypes";
+import { useTranslation } from "../../../i18n";
 
 /**
  * Where the current revision sits in the controlled lifecycle.
@@ -25,20 +26,12 @@ import type { DocumentRevisionStatus } from "../types/documentControlTypes";
  * position-in-a-process rather than irreversible progress.
  */
 
-const SPINE: { status: DocumentRevisionStatus; label: string }[] = [
-  { status: "Draft", label: "Draft" },
-  { status: "InReview", label: "In Review" },
-  { status: "AwaitingApproval", label: "Awaiting Approval" },
-  { status: "Effective", label: "Effective" }
+const SPINE_STATUSES: DocumentRevisionStatus[] = [
+  "Draft",
+  "InReview",
+  "AwaitingApproval",
+  "Effective"
 ];
-
-// Off-spine states, with the plain-language reason each one is where it is.
-const OFF_SPINE: Partial<Record<DocumentRevisionStatus, string>> = {
-  FutureEffective: "Approved. Becomes effective automatically on its effective date.",
-  Superseded: "Replaced by a later effective revision. Retained as a record.",
-  Obsolete: "Withdrawn from use. No successor revision.",
-  Cancelled: "Abandoned before approval. Retained as a record."
-};
 
 export function RevisionLifecycleStrip({
   status,
@@ -47,21 +40,22 @@ export function RevisionLifecycleStrip({
   status: DocumentRevisionStatus | null;
   revisionNumber?: string | null;
 }) {
+  const { t } = useTranslation("documentControl");
   if (!status) return null;
 
-  const spineIndex = SPINE.findIndex((s) => s.status === status);
+  const spineIndex = SPINE_STATUSES.indexOf(status);
   const isOffSpine = spineIndex === -1;
   // A revision that reached Superseded or Obsolete did pass through the whole
   // approval path, so the spine reads as complete behind the off-spine marker.
   const completedThrough =
     status === "Superseded" || status === "Obsolete" || status === "FutureEffective"
-      ? SPINE.length
+      ? SPINE_STATUSES.length
       : spineIndex;
 
   return (
     <Box
       component="ol"
-      aria-label="Revision lifecycle"
+      aria-label={t("lifecycleStrip.ariaLabel")}
       sx={{
         listStyle: "none",
         display: "flex",
@@ -72,15 +66,15 @@ export function RevisionLifecycleStrip({
         p: 0
       }}
     >
-      {SPINE.map((step, i) => {
+      {SPINE_STATUSES.map((stepStatus, i) => {
         const isCurrent = i === spineIndex;
         const isDone = i < completedThrough;
-        const tone = isCurrent ? statusTone(step.status) : null;
+        const tone = isCurrent ? statusTone(stepStatus) : null;
 
         return (
           <Box
             component="li"
-            key={step.status}
+            key={stepStatus}
             aria-current={isCurrent ? "step" : undefined}
             sx={{
               flex: "1 1 8rem",
@@ -109,23 +103,23 @@ export function RevisionLifecycleStrip({
               variant="caption"
               sx={{ display: "block", fontWeight: isCurrent ? 700 : 600 }}
             >
-              {step.label}
+              {t(`lifecycleStrip.spine.${stepStatus}`)}
             </Typography>
             <Typography variant="caption" sx={{ display: "block", opacity: 0.85 }}>
               {isCurrent
                 ? revisionNumber
-                  ? `Revision ${revisionNumber} is here`
-                  : "Current"
+                  ? t("lifecycleStrip.revisionHere", { rev: revisionNumber })
+                  : t("lifecycleStrip.current")
                 : isDone
-                  ? "Complete"
-                  : "Not yet"}
+                  ? t("lifecycleStrip.complete")
+                  : t("lifecycleStrip.notYet")}
             </Typography>
           </Box>
         );
       })}
 
       {isOffSpine && (
-        <Tooltip title={OFF_SPINE[status] ?? ""}>
+        <Tooltip title={t(`lifecycleStrip.offSpine.${status}`, { defaultValue: "" })}>
           <Box
             component="li"
             aria-current="step"
@@ -143,10 +137,10 @@ export function RevisionLifecycleStrip({
             }}
           >
             <Typography variant="caption" sx={{ display: "block", fontWeight: 700 }}>
-              {status === "FutureEffective" ? "Future Effective" : status}
+              {t(`lifecycleStrip.offSpineTitle.${status}`, { defaultValue: status })}
             </Typography>
             <Typography variant="caption" sx={{ display: "block", opacity: 0.85 }}>
-              {OFF_SPINE[status] ?? ""}
+              {t(`lifecycleStrip.offSpine.${status}`, { defaultValue: "" })}
             </Typography>
           </Box>
         </Tooltip>

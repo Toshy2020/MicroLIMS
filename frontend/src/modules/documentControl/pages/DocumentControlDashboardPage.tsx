@@ -1,6 +1,9 @@
 import { compactChipSx } from "../documentControlStyles";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import {
   Box,
   Typography,
@@ -44,8 +47,10 @@ import type {
   DocumentMasterSummaryDto,
   DocumentAuditItemDto
 } from "../types/documentControlTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export function DocumentControlDashboardPage() {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const navigate = useNavigate();
   const { permissions } = useAuth();
@@ -102,21 +107,21 @@ export function DocumentControlDashboardPage() {
         setFilesPendingCount(items.filter((d) => !d.hasControlledPdf && d.recordStatus === "Active").length);
         setOverdueCount(items.filter((d) => d.currentEffectiveRevisionId != null && d.recordStatus === "Active" && d.nextReviewDate != null && new Date(d.nextReviewDate) < now).length);
       })
-      .catch((err) => {
-        setError(err.response?.data?.message || err.message || "Failed to load dashboard metrics.");
+      .catch((err: unknown) => {
+        setError(serverMessage(err) ?? getErrorMessage(err, t("dashboard.loadError")));
       })
       .finally(() => {
         setLoading(false);
       });
-  }, []);
+  }, [t]);
 
   return (
     <Box sx={{ pb: 4 }}>
       {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 3 }}>
         <PageHeader
-          title="Document Control Dashboard"
-          subtitle="Document governance overview, lifecycle metrics, and quality records status"
+          title={t("dashboard.title")}
+          subtitle={t("dashboard.subtitle")}
         />
         <Box sx={{ display: "flex", gap: 1.5 }}>
           <ReassignmentsButton />
@@ -126,14 +131,14 @@ export function DocumentControlDashboardPage() {
             startIcon={<MenuBookOutlinedIcon />}
             onClick={() => navigate("/document-control/my-reading-list")}
           >
-            My Reading List
+            {t("dashboard.myReadingList")}
           </Button>
           <Button
             variant="outlined"
             startIcon={<LibraryBooksOutlinedIcon />}
             onClick={() => navigate("/document-control/library")}
           >
-            Document Library
+            {t("dashboard.documentLibrary")}
           </Button>
           {canRegister && (
             <Button
@@ -141,7 +146,7 @@ export function DocumentControlDashboardPage() {
               startIcon={<AddIcon />}
               onClick={() => setRegisterOpen(true)}
             >
-              Register Document
+              {t("dashboard.registerDocument")}
             </Button>
           )}
         </Box>
@@ -163,7 +168,7 @@ export function DocumentControlDashboardPage() {
                     fontWeight: 700,
                     textTransform: "uppercase"
                   }}>
-                  Total Documents
+                  {t("dashboard.kpis.totalDocuments")}
                 </Typography>
                 <LibraryBooksOutlinedIcon color="primary" fontSize="small" />
               </Box>
@@ -173,7 +178,7 @@ export function DocumentControlDashboardPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                In system catalog
+                {t("dashboard.kpis.inSystemCatalog")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -191,7 +196,7 @@ export function DocumentControlDashboardPage() {
                     fontWeight: 700,
                     textTransform: "uppercase"
                   }}>
-                  Effective Records
+                  {t("dashboard.kpis.effectiveRecords")}
                 </Typography>
                 <CheckCircleOutlineOutlinedIcon color="success" fontSize="small" />
               </Box>
@@ -201,7 +206,7 @@ export function DocumentControlDashboardPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                Active & released
+                {t("dashboard.kpis.activeAndReleased")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -213,7 +218,7 @@ export function DocumentControlDashboardPage() {
             <CardContent sx={{ p: 2 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                 <Typography variant="caption" color={overdueCount > 0 ? "error.main" : "text.secondary"} sx={{ fontWeight: 700, textTransform: "uppercase" }}>
-                  Review Overdue
+                  {t("dashboard.kpis.reviewOverdue")}
                 </Typography>
                 <WarningAmberOutlinedIcon color="error" fontSize="small" />
               </Box>
@@ -221,7 +226,7 @@ export function DocumentControlDashboardPage() {
                 {loading ? <CircularProgress size={24} /> : overdueCount}
               </Typography>
               <Typography variant="caption" color={overdueCount > 0 ? "error.main" : "text.secondary"}>
-                {overdueCount > 0 ? "Action Required" : "All current"}
+                {overdueCount > 0 ? t("dashboard.kpis.actionRequired") : t("dashboard.kpis.allCurrent")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -239,7 +244,7 @@ export function DocumentControlDashboardPage() {
                     fontWeight: 700,
                     textTransform: "uppercase"
                   }}>
-                  Draft Revisions
+                  {t("dashboard.kpis.draftRevisions")}
                 </Typography>
                 <EditNoteOutlinedIcon color="info" fontSize="small" />
               </Box>
@@ -249,7 +254,7 @@ export function DocumentControlDashboardPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                Pending publication
+                {t("dashboard.kpis.pendingPublication")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -267,7 +272,7 @@ export function DocumentControlDashboardPage() {
                     fontWeight: 700,
                     textTransform: "uppercase"
                   }}>
-                  File Pending
+                  {t("dashboard.kpis.filePending")}
                 </Typography>
                 <PendingActionsOutlinedIcon color="warning" fontSize="small" />
               </Box>
@@ -277,7 +282,7 @@ export function DocumentControlDashboardPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                No PDF attached
+                {t("dashboard.kpis.noPdfAttached")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -295,7 +300,7 @@ export function DocumentControlDashboardPage() {
                     fontWeight: 700,
                     textTransform: "uppercase"
                   }}>
-                  Voided Masters
+                  {t("dashboard.kpis.voidedMasters")}
                 </Typography>
                 <BlockOutlinedIcon color="error" fontSize="small" />
               </Box>
@@ -305,7 +310,7 @@ export function DocumentControlDashboardPage() {
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                Retired records
+                {t("dashboard.kpis.retiredRecords")}
               </Typography>
             </CardContent>
           </CardActionArea>
@@ -318,14 +323,14 @@ export function DocumentControlDashboardPage() {
         <Paper sx={{ p: 2.5 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Recently Registered Documents
+              {t("dashboard.recentDocs.title")}
             </Typography>
             <Button
               size="small"
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate("/document-control/library")}
             >
-              View Full Library
+              {t("dashboard.recentDocs.viewFullLibrary")}
             </Button>
           </Box>
 
@@ -333,12 +338,12 @@ export function DocumentControlDashboardPage() {
             <Table stickyHeader size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700 }}>Company Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Title</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Type</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Files</TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.companyCode")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.title")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.type")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.status")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.files")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700 }}>{t("dashboard.recentDocs.columns.date")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -363,11 +368,11 @@ export function DocumentControlDashboardPage() {
                     </TableCell>
                     <TableCell>
                       {doc.hasControlledPdf ? (
-                        <Chip label="PDF" size="small" color="primary" sx={compactChipSx} />
+                        <Chip label={t("dashboard.recentDocs.pdfChip")} size="small" color="primary" sx={compactChipSx} />
                       ) : (
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>None</Typography>
+                        }}>{t("common.none")}</Typography>
                       )}
                     </TableCell>
                     <TableCell>
@@ -382,7 +387,7 @@ export function DocumentControlDashboardPage() {
                 {recentDocs.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      No documents registered yet.
+                      {t("dashboard.recentDocs.empty")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -397,7 +402,7 @@ export function DocumentControlDashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <HistoryOutlinedIcon color="primary" fontSize="small" />
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                Recent Audit Trail Events
+                {t("dashboard.recentAudit.title")}
               </Typography>
             </Box>
             <Button
@@ -405,7 +410,7 @@ export function DocumentControlDashboardPage() {
               endIcon={<ArrowForwardIcon />}
               onClick={() => navigate("/document-control/audit")}
             >
-              All Events
+              {t("dashboard.recentAudit.allEvents")}
             </Button>
           </Box>
 
@@ -431,14 +436,19 @@ export function DocumentControlDashboardPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {formatDateTimeWithTimeZone(log.timestamp)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    By: <strong>{log.userName || "System"}</strong>
+                    <Trans
+                      i18nKey="dashboard.recentAudit.byUser"
+                      ns="documentControl"
+                      values={{ user: log.userName || t("common.system") }}
+                      components={{ strong: <strong /> }}
+                    />
                   </Typography>
                   <Chip label={log.actionCategory} size="small" variant="outlined" sx={compactChipSx} />
                 </Box>
@@ -457,7 +467,7 @@ export function DocumentControlDashboardPage() {
                   py: 3,
                   textAlign: "center"
                 }}>
-                No recent audit events.
+                {t("dashboard.recentAudit.empty")}
               </Typography>
             )}
           </Box>

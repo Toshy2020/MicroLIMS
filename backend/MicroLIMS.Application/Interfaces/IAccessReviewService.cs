@@ -9,12 +9,15 @@ namespace MicroLIMS.Application.Interfaces;
 // else holding the permission, including the person who generated it, may sign.
 public interface IAccessReviewService
 {
-    Task<AccessReviewDetailDto> GenerateAsync(string? periodLabel, string? reason, int actingUserId);
+    Task<AccessReviewDetailDto> GenerateAsync(string? periodLabel, string? reason, int actingUserId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AccessReviewSummaryDto>> ListAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<AccessReviewSummaryDto>> ListAsync(int actingUserId, CancellationToken cancellationToken = default);
     Task<AccessReviewDetailDto> GetAsync(int id, CancellationToken cancellationToken = default);
-    Task<AccessReviewFindingDto> AddFindingAsync(int reviewId, SaveAccessReviewFindingRequest request, int actingUserId);
-    Task<AccessReviewFindingDto> UpdateFindingAsync(int reviewId, int findingId, SaveAccessReviewFindingRequest request, int actingUserId);
-    Task<AccessReviewDetailDto> SignAsync(int reviewId, string? password, string? conclusion, int actingUserId, string? ipAddress);
+    Task<AccessReviewDetailDto> GetAsync(int id, int actingUserId, CancellationToken cancellationToken = default);
+    Task<bool> MayDecideAsync(int actingUserId, CancellationToken ct = default);
+    Task<AccessReviewFindingDto> AddFindingAsync(int reviewId, SaveAccessReviewFindingRequest request, int actingUserId, CancellationToken cancellationToken = default);
+    Task<AccessReviewFindingDto> UpdateFindingAsync(int reviewId, int findingId, SaveAccessReviewFindingRequest request, int actingUserId, CancellationToken cancellationToken = default);
+    Task<AccessReviewDetailDto> SignAsync(int reviewId, string? password, string? conclusion, int actingUserId, string? ipAddress, CancellationToken cancellationToken = default);
     // Records an ACCESS_REVIEW_EXPORTED audit event.
-    Task<AccessReviewExportResult> ExportCsvAsync(int reviewId, int actingUserId);
+    Task<AccessReviewExportResult> ExportCsvAsync(int reviewId, int actingUserId, CancellationToken cancellationToken = default);
 }

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
+import { useTranslation } from "../../../../i18n";
 import { Alert, Box, Button, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import {
   StructuredFrequencyField,
@@ -17,6 +19,9 @@ import {
 } from "../../../../components/configHierarchy";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { isTestCodeInLab } from "../WaterPreparationForm";
 import { WaterConfigService } from "../services/WaterConfigService";
 import { SamplingConfig, SamplingPoint, WaterDept, WaterPointLabFrequency } from "../waterConfigTypes";
@@ -108,26 +113,26 @@ const formatSpecLimit = (v: LimitValues): string => {
   return v.specLimit ?? "";
 };
 
-const validateChemistry = (testCode: string, v: LimitValues): string | null => {
+const validateChemistry = (testCode: string, v: LimitValues, t: TFunction<"labConfig">): string | null => {
   const type = v.limitType ?? "Range";
   if (type === "Range") {
     if (v.lowerLimit == null && v.upperLimit == null) {
-      return `${testCode}: Range limit requires a lower limit, an upper limit, or both.`;
+      return t("water.panel.rangeNeedsOne", { code: testCode });
     }
     if (v.lowerLimit != null && v.upperLimit != null && v.lowerLimit > v.upperLimit) {
-      return `${testCode}: Lower limit cannot be greater than upper limit.`;
+      return t("water.panel.lowerGtUpper", { code: testCode });
     }
   } else if (type === "NotMoreThan") {
     if (v.upperLimit == null) {
-      return `${testCode}: Upper limit is required for Not More Than.`;
+      return t("water.panel.upperRequired", { code: testCode });
     }
   } else if (type === "NotLessThan") {
     if (v.lowerLimit == null) {
-      return `${testCode}: Lower limit is required for Not Less Than.`;
+      return t("water.panel.lowerRequired", { code: testCode });
     }
   } else if (type === "Qualitative") {
     if (!v.expectedResultText || v.expectedResultText.trim() === "") {
-      return `${testCode}: Expected result text is required for Qualitative.`;
+      return t("water.panel.expectedRequired", { code: testCode });
     }
   }
   return null;
@@ -136,7 +141,13 @@ const validateChemistry = (testCode: string, v: LimitValues): string | null => {
 // One panel for a sample location: its details, its assigned tests, and
 // limits for assigned count tests or chemistry tests (one row per test, created on
 // save) - so a location can be fully configured in one place.
-export function WaterLocationPanel({ open, point, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved, editableCodes }: Props) {
+export function WaterLocationPanel({ open, point: openedPoint, defaultDepartmentId, departments, configs, isCountTest, onClose, onSaved, editableCodes }: Props) {
+  const { t } = useTranslation("labConfig");
+  const { current: point, reload } = useReloadedRecord<SamplingPoint>(openedPoint, async (p) =>
+    ((await WaterConfigService.getSamplingPoints()) as SamplingPoint[]).find((x) => x.id === p.id)
+  );
+  // Set when the user changes a field, cleared whenever the form is (re)loaded from the record.
+  const [touched, setTouched] = useState(false);
   const { options } = useTestDefinitions();
   const [code, setCode] = useState("");
   const [location, setLocation] = useState("");
@@ -184,6 +195,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
     setEditingLabId(null);
     setLabSavingId(null);
     setLabError(null);
+    setTouched(false);
     setError(null);
   }, [open, point, defaultDepartmentId, configs, options, isCountTest]);
 
@@ -243,11 +255,11 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
   const saveLabFrequency = async (secId: number) => {
     const currentPointId = savedPointId ?? point?.id;
     if (!currentPointId) {
-      setLabError("Save the location details first to configure frequencies per lab.");
+      setLabError(t("water.panel.saveLocationFirst"));
       return;
     }
     if (editingFrequency.type === "Weekly" && !editingFrequency.weekday) {
-      setLabError("A weekly frequency needs a sampling weekday.");
+      setLabError(t("water.panel.weeklyNeedsDay"));
       return;
     }
     setLabSavingId(secId);
@@ -260,7 +272,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       });
       setEditingLabId(null);
     } catch (e: any) {
-      setLabError(e?.response?.data?.message ?? "Could not save lab frequency override.");
+      setLabError(e?.response?.data?.message ?? t("water.panel.labSaveError"));
     } finally {
       setLabSavingId(null);
     }
@@ -276,21 +288,21 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       setLabFrequencies((prev) => prev.filter((f) => f.sectionId !== secId));
       if (editingLabId === secId) setEditingLabId(null);
     } catch (e: any) {
-      setLabError(e?.response?.data?.message ?? "Could not reset lab frequency.");
+      setLabError(e?.response?.data?.message ?? t("water.panel.labResetError"));
     } finally {
       setLabSavingId(null);
     }
   };
 
-  const labName = (testCode: string) => options.find((o) => o.code === testCode)?.section?.name || "Other laboratory";
+  const labName = (testCode: string) => options.find((o) => o.code === testCode)?.section?.name || t("water.panel.otherLab");
 
   const save = async () => {
     if (!code.trim() || departmentId === "") {
-      setError("Point code and water system are required.");
+      setError(t("water.panel.codeAndSystemRequired"));
       return;
     }
     if (frequency.type === "Weekly" && !frequency.weekday) {
-      setError("A weekly frequency needs a sampling weekday.");
+      setError(t("water.panel.weeklyNeedsDay"));
       return;
     }
 
@@ -302,7 +314,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
         const existing = configs.find((c) => c.testCode === testCode);
         const value = limits[testCode] ?? getInitialLimits(testCode, existing, false);
         if (existing || hasAny(value, false)) {
-          const err = validateChemistry(testCode, value);
+          const err = validateChemistry(testCode, value, t);
           if (err) {
             setError(err);
             return;
@@ -318,6 +330,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
       if (pointId != null) {
         const updated = await WaterConfigService.updateSamplingPoint(pointId, code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), pointVersion, frequencyRule(frequency));
         setPointVersion(updated?.version);
+        noteOwnSave("waterSamplingPoint", pointId);
       } else {
         const created = await WaterConfigService.createSamplingPoint(code.trim(), location, frequencyLabel(frequency), testCodes, Number(departmentId), frequencyRule(frequency));
         pointId = created.id;
@@ -325,7 +338,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
         setPointVersion(created?.version);
       }
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not save this sample location.");
+      setError(e?.response?.data?.message ?? t("water.panel.saveError"));
       setSaving(false);
       return;
     }
@@ -400,16 +413,16 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
           }
         }
       } catch (e: any) {
-        failed.push(`${testCode}: ${e?.response?.data?.message ?? "could not be saved"}`);
+        failed.push(`${testCode}: ${e?.response?.data?.message ?? t("water.panel.couldNotBeSaved")}`);
       }
     }
     setSaving(false);
 
     if (failed.length > 0) {
-      setError(`The location was saved, but some limits were not. ${failed.join(" ")}`);
+      setError(t("water.panel.limitsNotSaved", { failures: failed.join(" ") }));
       return;
     }
-    onSaved(point ? `Sample location ${code.trim()} updated.` : `Sample location ${code.trim()} added.`);
+    onSaved(point ? t("water.panel.updated", { code: code.trim() }) : t("water.panel.added", { code: code.trim() }));
   };
 
   const deptName = departments.find((d) => d.id === departmentId)?.name;
@@ -418,24 +431,25 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
     <SidePanel
       open={open}
       overline={deptName}
-      title={point ? `Edit sample location ${point.code}` : "Add sample location"}
+      title={point ? t("water.panel.editTitle", { code: point.code }) : t("water.panel.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={point ? "Save changes" : "Add sample location"}
+      saveLabel={point ? t("water.panel.saveChanges") : t("water.panel.addTitle")}
       error={error}
     >
-      <PanelSection title="1 · Location details">
+      {open && point && <RecordChangedBanner type="waterSamplingPoint" id={point.id} dirty={touched} onReload={() => void reload()} />}
+      <PanelSection title={t("water.panel.section1")}>
         <Stack spacing={1.5}>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-            <TextField size="small" label="Point code" required value={code} onChange={(e) => setCode(e.target.value)} sx={{ flex: 1 }} />
+            <TextField size="small" label={t("water.panel.pointCode")} required value={code} onChange={(e) => { setTouched(true); setCode(e.target.value); }} sx={{ flex: 1 }} />
             <TextField
               select
               size="small"
-              label="Water system"
+              label={t("water.panel.waterSystem")}
               required
               value={departmentId}
-              onChange={(e) => setDepartmentId(Number(e.target.value))}
+              onChange={(e) => { setTouched(true); setDepartmentId(Number(e.target.value)); }}
               sx={{ flex: 1 }}
             >
               {departments.map((d) => (
@@ -445,35 +459,35 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
               ))}
             </TextField>
           </Stack>
-          <TextField size="small" label="Point name" placeholder="e.g. Manufacturing hall tap" value={location} onChange={(e) => setLocation(e.target.value)} />
-          <StructuredFrequencyField idPrefix="water-point-frequency" value={frequency} onChange={setFrequency} weekdayRequired />
+          <TextField size="small" label={t("water.panel.pointName")} placeholder={t("water.panel.pointNamePlaceholder")} value={location} onChange={(e) => { setTouched(true); setLocation(e.target.value); }} />
+          <StructuredFrequencyField idPrefix="water-point-frequency" value={frequency} onChange={(v) => { setTouched(true); setFrequency(v); }} weekdayRequired />
         </Stack>
       </PanelSection>
 
-      <PanelSection title="2 · Assigned tests" hint="Every test here is ordered when a sample from this location is received.">
+      <PanelSection title={t("water.panel.section2")} hint={t("water.panel.section2Hint")}>
         <TestCodePickerMulti
           value={testCodes}
-          onChange={setTestCodes}
-          label="Assigned tests"
+          onChange={(codes) => { setTouched(true); setTestCodes(codes); }}
+          label={t("water.panel.assignedTests")}
           editableCodes={editableCodes ?? new Set<string>()}
         />
       </PanelSection>
 
-      <PanelSection title="3 · Frequency per lab" hint="Sampling frequency overrides per laboratory section.">
+      <PanelSection title={t("water.panel.section3")} hint={t("water.panel.section3Hint")}>
         {labError && <Alert severity="error" sx={{ mb: 1.5 }}>{labError}</Alert>}
         {!(point || savedPointId) ? (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            Save the sample location first to configure frequencies per lab.
+            {t("water.panel.saveFirstNote")}
           </Typography>
         ) : labSections.length === 0 ? (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            Assign tests to configure frequencies per lab.
+            {t("water.panel.assignFirstNote")}
           </Typography>
         ) : (
           <Stack spacing={1.5}>
             {labSections.map((sec) => {
               const override = labFrequencies.find((f) => f.sectionId === sec.id && f.frequencyType);
-              const desc = override ? (override.description || frequencyLabel(override)) : "Point default";
+              const desc = override ? (override.description || frequencyLabel(override)) : t("water.panel.pointDefault");
               const editable = canConfigureLab(sec);
               const isEditing = editingLabId === sec.id;
               const isBusy = labSavingId === sec.id;
@@ -501,7 +515,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                       !isEditing && (
                         <Stack direction="row" spacing={1}>
                           <Button size="small" onClick={() => startEditLab(sec.id)} disabled={isBusy}>
-                            Edit
+                            {t("water.panel.edit")}
                           </Button>
                           {override && (
                             <Button
@@ -510,14 +524,14 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                               onClick={() => resetLabFrequency(sec.id)}
                               disabled={isBusy}
                             >
-                              Reset to default
+                              {t("water.panel.resetDefault")}
                             </Button>
                           )}
                         </Stack>
                       )
                     ) : (
                       <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                        Read-only
+                        {t("water.panel.readOnly")}
                       </Typography>
                     )}
                   </Stack>
@@ -529,7 +543,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                         value={editingFrequency}
                         onChange={setEditingFrequency}
                         weekdayRequired
-                        inheritedHint={`Point default: ${frequencyLabel(frequency) || "No frequency"}`}
+                        inheritedHint={t("water.panel.inheritedHint", { value: frequencyLabel(frequency) || t("water.panel.noFrequency") })}
                       />
                       <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
                         <Button
@@ -538,14 +552,14 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                           onClick={() => saveLabFrequency(sec.id)}
                           disabled={isBusy}
                         >
-                          Save
+                          {t("water.panel.save")}
                         </Button>
                         <Button
                           size="small"
                           onClick={() => setEditingLabId(null)}
                           disabled={isBusy}
                         >
-                          Cancel
+                          {t("water.panel.cancel")}
                         </Button>
                       </Stack>
                     </Box>
@@ -557,9 +571,9 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
         )}
       </PanelSection>
 
-      <PanelSection title="4 · Limits for assigned tests" hint="Configure limits for count tests and chemistry tests.">
+      <PanelSection title={t("water.panel.section4")} hint={t("water.panel.section4Hint")}>
         {testCodes.length === 0 ? (
-          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Assign tests to set limits.</Typography>
+          <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{t("water.panel.assignToSetLimits")}</Typography>
         ) : (
           <Stack spacing={2}>
             {testCodes.map((testCode) => {
@@ -576,15 +590,15 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                     <LimitFields
                       idPrefix={`water-limit-${testCode}`}
                       value={val}
-                      onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
-                      unitPlaceholder="e.g. CFU/mL"
+                      onChange={(v) => { setTouched(true); setLimits((prev) => ({ ...prev, [testCode]: v })); }}
+                      unitPlaceholder={t("water.panel.unitCount")}
                     />
                   ) : (
                     <ChemistryLimitFields
                       idPrefix={`water-limit-${testCode}`}
                       value={val}
-                      onChange={(v) => setLimits((prev) => ({ ...prev, [testCode]: v }))}
-                      unitPlaceholder="e.g. pH, µS/cm"
+                      onChange={(v) => { setTouched(true); setLimits((prev) => ({ ...prev, [testCode]: v })); }}
+                      unitPlaceholder={t("water.panel.unitChem")}
                     />
                   )}
                 </Stack>
@@ -593,7 +607,7 @@ export function WaterLocationPanel({ open, point, defaultDepartmentId, departmen
                   <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
                     <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{testCode}</Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {labName(testCode)} · Read-only
+                      {t("water.panel.labReadOnly", { lab: labName(testCode) })}
                     </Typography>
                   </Stack>
                   <LimitPills {...val} />

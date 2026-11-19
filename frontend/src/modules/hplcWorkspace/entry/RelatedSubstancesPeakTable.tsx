@@ -24,6 +24,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import ScienceIcon from "@mui/icons-material/Science";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type {
   HplcMethodImpuritySnapshot,
   HplcMethodWeightDto,
@@ -95,6 +97,7 @@ export function RelatedSubstancesPeakTable({
   disabled = false,
   footer
 }: RelatedSubstancesPeakTableProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const tableRef = useRef<HTMLDivElement>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -128,7 +131,7 @@ export function RelatedSubstancesPeakTable({
     return (
       <Box ref={tableRef}>
         <Alert severity="error" sx={{ mb: 2 }}>
-          This related-substances method must have exactly one analyte.
+          {t("entry.rsPeakTable.oneAnalyteError")}
         </Alert>
         {footer}
       </Box>
@@ -329,8 +332,8 @@ export function RelatedSubstancesPeakTable({
 
   const areaHelper = (val: number, isRef = false): string | undefined => {
     if (disabled) return undefined;
-    if (val < 0) return "Peak areas cannot be negative.";
-    if (isRef && val === 0) return "Required";
+    if (val < 0) return t("entry.rsPeakTable.negAreaError");
+    if (isRef && val === 0) return t("entry.rsPeakTable.required");
     return undefined;
   };
 
@@ -343,19 +346,19 @@ export function RelatedSubstancesPeakTable({
             {requiredReplicates != null && (
               <StatusBadge
                 status={replicates.length >= requiredReplicates ? "Completed" : "Pending"}
-                label={`Required: ${requiredReplicates}`}
+                label={t("entry.rsPeakTable.requiredBadge", { count: requiredReplicates })}
               />
             )}
-            <StatusBadge status="Pending" label={`${replicates.length} replicate(s)`} />
+            <StatusBadge status="Pending" label={t("entry.rsPeakTable.enteredBadge", { count: replicates.length })} />
             {method?.referenceSolutionPercent != null && (
-              <StatusBadge status="Assigned" label={`Reference: ${method.referenceSolutionPercent}%`} />
+              <StatusBadge status="Assigned" label={t("entry.rsPeakTable.referenceBadge", { percent: method.referenceSolutionPercent })} />
             )}
             {method?.disregardLimitPercent != null && (
-              <StatusBadge status="Assigned" label={`Disregard: ${method.disregardLimitPercent}%`} />
+              <StatusBadge status="Assigned" label={t("entry.rsPeakTable.disregardBadge", { percent: method.disregardLimitPercent })} />
             )}
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-            Record the reference solution principal peak area, named impurity peak areas, and any unspecified peaks for each replicate.
+            {t("entry.rsPeakTable.instructions")}
           </Typography>
         </Box>
 
@@ -367,14 +370,14 @@ export function RelatedSubstancesPeakTable({
           onClick={handleAddReplicate}
           disabled={disabled}
         >
-          Add Replicate
+          {t("entry.rsPeakTable.addReplicate")}
         </Button>
       </Box>
 
       {replicates.length === 0 ? (
         <Paper elevation={0} sx={{ p: 4, textAlign: "center", border: `1px solid ${theme.palette.divider}`, borderRadius: 2 }}>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            No replicates added. Click &ldquo;Add Replicate&rdquo; to start entering peak area test data.
+            {t("entry.rsPeakTable.empty")}
           </Typography>
         </Paper>
       ) : (
@@ -400,17 +403,17 @@ export function RelatedSubstancesPeakTable({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <ScienceIcon color="primary" />
                     <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-                      Replicate #{rep.replicateNo}
+                      {t("entry.rsPeakTable.replicateTitle", { repNo: rep.replicateNo })}
                     </Typography>
                   </Box>
-                  <Tooltip title={replicates.length <= 1 ? "At least one replicate is required" : "Remove replicate"}>
+                  <Tooltip title={replicates.length <= 1 ? t("entry.rsPeakTable.minOneTooltip") : t("entry.rsPeakTable.removeTooltip")}>
                     <span>
                       <IconButton
                         size="small"
                         color="error"
                         disabled={disabled || replicates.length <= 1}
                         onClick={() => handleRemoveReplicate(repIdx)}
-                        aria-label={`Remove replicate ${rep.replicateNo}`}
+                        aria-label={t("entry.rsPeakTable.removeAria", { repNo: rep.replicateNo })}
                       >
                         <DeleteOutlineIcon fontSize="small" />
                       </IconButton>
@@ -423,14 +426,14 @@ export function RelatedSubstancesPeakTable({
                 {/* Section 1: Reference solution area */}
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                    Reference solution area (principal response) *
+                    {t("entry.rsPeakTable.refAreaSection")}
                   </Typography>
                   <Grid container spacing={2}>
                     <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                       <TextField
                         fullWidth
                         size="small"
-                        label="Reference solution area"
+                        label={t("entry.rsPeakTable.refAreaLabel")}
                         type="number"
                         disabled={disabled}
                         value={cellText(refKey(rep.replicateNo), refResp)}
@@ -442,7 +445,7 @@ export function RelatedSubstancesPeakTable({
                           htmlInput: {
                             min: 0,
                             step: "any",
-                            "aria-label": `Replicate ${rep.replicateNo} reference solution area`
+                            "aria-label": t("entry.rsPeakTable.refAreaAria", { repNo: rep.replicateNo })
                           }
                         }}
                       />
@@ -454,13 +457,13 @@ export function RelatedSubstancesPeakTable({
                 {impurities.length > 0 && (
                   <Box sx={{ mb: 3 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                      Named Impurities:
+                      {t("entry.rsPeakTable.namedImpurities")}
                     </Typography>
                     <Grid container spacing={2}>
                       {impurities.map((imp) => {
                         const peak = rep.peaks?.find((p) => p.hplcMethodImpurityId === imp.id);
                         const area = peak?.area ?? 0;
-                        const labelText = `${imp.name}${imp.relativeRetention != null ? ` (RRT ${imp.relativeRetention})` : ""}`;
+                        const labelText = `${imp.name}${imp.relativeRetention != null ? t("entry.rsPeakTable.rrtSuffix", { rrt: imp.relativeRetention }) : ""}`;
 
                         return (
                           <Grid size={{ xs: 12, sm: 6, md: 4 }} key={imp.id}>
@@ -481,7 +484,7 @@ export function RelatedSubstancesPeakTable({
                                 htmlInput: {
                                   min: 0,
                                   step: "any",
-                                  "aria-label": `${labelText} area`
+                                  "aria-label": t("entry.rsPeakTable.areaAria", { label: labelText })
                                 }
                               }}
                             />
@@ -496,7 +499,7 @@ export function RelatedSubstancesPeakTable({
                 <Box>
                   <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                      Unspecified peaks:
+                      {t("entry.rsPeakTable.unspecifiedPeaks")}
                     </Typography>
                     <Button
                       size="small"
@@ -505,23 +508,23 @@ export function RelatedSubstancesPeakTable({
                       disabled={disabled}
                       sx={{ textTransform: "none", fontWeight: 600 }}
                     >
-                      Add unspecified peak
+                      {t("entry.rsPeakTable.addUnspecifiedPeak")}
                     </Button>
                   </Box>
 
                   {unspecifiedPeaks.length === 0 ? (
                     <Typography variant="body2" sx={{ color: "text.secondary", py: 1 }}>
-                      No unspecified peaks added for this replicate.
+                      {t("entry.rsPeakTable.noUnspecifiedPeaks")}
                     </Typography>
                   ) : (
                     <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
                       <Table size="small">
                         <TableHead sx={tableHeadSx(theme)}>
                           <TableRow>
-                            <TableCell sx={{ width: 80 }}>Peak #</TableCell>
-                            <TableCell sx={{ minWidth: 160 }}>Relative Retention (RRT)</TableCell>
-                            <TableCell sx={{ minWidth: 180 }}>Area</TableCell>
-                            <TableCell align="right" sx={{ width: 60 }}>Action</TableCell>
+                            <TableCell sx={{ width: 80 }}>{t("entry.rsPeakTable.columns.peak")}</TableCell>
+                            <TableCell sx={{ minWidth: 160 }}>{t("entry.rsPeakTable.columns.rrt")}</TableCell>
+                            <TableCell sx={{ minWidth: 180 }}>{t("entry.rsPeakTable.columns.area")}</TableCell>
+                            <TableCell align="right" sx={{ width: 60 }}>{t("entry.rsPeakTable.columns.action")}</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
@@ -534,22 +537,22 @@ export function RelatedSubstancesPeakTable({
 
                             return (
                               <TableRow key={clientKey} hover>
-                                <TableCell sx={{ fontWeight: 600 }}>#{unspIdx + 1}</TableCell>
+                                <TableCell sx={{ fontWeight: 600 }}><Ltr>#{unspIdx + 1}</Ltr></TableCell>
                                 <TableCell>
                                   <TextField
                                     size="small"
                                     type="number"
                                     disabled={disabled}
-                                    placeholder="Optional RRT"
+                                    placeholder={t("entry.rsPeakTable.optionalRrt")}
                                     value={cellText(unspRrtKey(rep.replicateNo, clientKey), p.relativeRetention)}
                                     onChange={(e) => handleUnspecifiedRrtChange(repIdx, clientKey, e.target.value)}
                                     error={!disabled && hasInvalidRrt}
-                                    helperText={!disabled && hasInvalidRrt ? "Must be > 0" : undefined}
+                                    helperText={!disabled && hasInvalidRrt ? t("entry.rsPeakTable.mustBePositive") : undefined}
                                     slotProps={{
                                       htmlInput: {
                                         min: 0,
                                         step: "any",
-                                        "aria-label": `Unspecified peak ${unspIdx + 1} RRT`
+                                        "aria-label": t("entry.rsPeakTable.unspRrtAria", { num: unspIdx + 1 })
                                       }
                                     }}
                                     sx={{ maxWidth: 180 }}
@@ -569,7 +572,7 @@ export function RelatedSubstancesPeakTable({
                                       htmlInput: {
                                         min: 0,
                                         step: "any",
-                                        "aria-label": `Unspecified peak ${unspIdx + 1} area`
+                                        "aria-label": t("entry.rsPeakTable.unspAreaAria", { num: unspIdx + 1 })
                                       }
                                     }}
                                     sx={{ maxWidth: 220 }}
@@ -581,7 +584,7 @@ export function RelatedSubstancesPeakTable({
                                     color="error"
                                     disabled={disabled}
                                     onClick={() => handleRemoveUnspecifiedPeak(repIdx, clientKey, unspIdx)}
-                                    aria-label={`Remove unspecified peak ${unspIdx + 1}`}
+                                    aria-label={t("entry.rsPeakTable.removeUnspAria", { num: unspIdx + 1 })}
                                   >
                                     <DeleteOutlineIcon fontSize="small" />
                                   </IconButton>

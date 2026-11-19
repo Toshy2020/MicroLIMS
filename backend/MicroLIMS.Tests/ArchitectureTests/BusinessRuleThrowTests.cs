@@ -18,6 +18,14 @@ public class BusinessRuleThrowTests
     private static readonly Regex WrapsInnerException = new(
         @"new\s+InvalidOperationException\s*\(.*,\s*[A-Za-z_][A-Za-z0-9_]*\s*\)\s*;", RegexOptions.Compiled);
 
+    // Programming-error guards, not rules a user can break: a missing
+    // transaction is a bug in the calling code and must surface as a 500, not
+    // as a 4xx business message. Each entry needs this justification.
+    private static readonly string[] ProgrammingErrorGuards =
+    [
+        Path.Combine("MicroLIMS.Application", "Services", "ReferenceNumberGenerator.cs"),
+    ];
+
     private static string BackendDirectory([System.Runtime.CompilerServices.CallerFilePath] string thisFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(thisFile)!, "..", ".."));
 
@@ -30,6 +38,7 @@ public class BusinessRuleThrowTests
 
         var offenders = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{sep}obj{sep}") && !f.Contains($"{sep}bin{sep}"))
+            .Where(f => !ProgrammingErrorGuards.Any(g => f.EndsWith(g, StringComparison.Ordinal)))
             .SelectMany(f => File.ReadLines(f).Select((line, i) => (File: f, Line: i + 1, Text: StripComment(line))))
             .Where(l => PlainThrow.IsMatch(l.Text) && !WrapsInnerException.IsMatch(l.Text))
             .Select(l => $"{Path.GetRelativePath(backend, l.File)}:{l.Line}")

@@ -1,9 +1,24 @@
 import { useEffect, useState } from "react";
 import { Box, Table, TableHead, TableRow, TableCell, TableBody, Button, Stack, Alert, Typography, RadioGroup, FormControlLabel, Radio } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import { useTheme } from "@mui/material/styles";
+import { toast } from "sonner";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { Ltr } from "../../components/Ltr";
 import { StatusBadge } from "../../components/StatusBadge";
 import { TableSkeleton } from "../../components/TableSkeleton";
+import { BenchDialog } from "../../components/bench/BenchDialog";
+import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
+import { useGridNavigation } from "../../components/entry/useGridNavigation";
+import { useTranslation } from "../../i18n";
+import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { useBenchMode } from "../../theme/BenchModeContext";
+import { BENCH_MIN_TARGET } from "../../theme/benchTheme";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 interface LocationRow {
   id: number;
@@ -25,26 +40,73 @@ interface Props {
   onSubmitted: () => void;
 }
 
+interface PathogenGridDraftValues {
+  growth: Record<number, "yes" | "no" | "">;
+}
+
+function pickPathogenGridDraft(values: PathogenGridDraftValues): Partial<PathogenGridDraftValues> {
+  return { growth: values.growth };
+}
+
 // EM/After Cleaning batch pathogen result entry - the final step's per-
 // location Detected/Absent call. Sibling to LocationResultGridDialog,
 // which handles the CFU/Count case instead.
 export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, displayName, minReadyAt, minimumDurationOverridden, onClose, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
+  const theme = useTheme();
+  const { benchMode } = useBenchMode();
   const isTimeReady = !minReadyAt || new Date() >= minReadyAt || !!minimumDurationOverridden;
+  const dialogTitle = t("locationGrid.title", { testCode, displayName });
 
   const [rows, setRows] = useState<LocationRow[] | null>(null);
   const [growth, setGrowth] = useState<Record<number, "yes" | "no" | "">>({});
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [keptOffline, setKeptOffline] = useKeptOffline();
+
+  const draft = useBenchDraft<PathogenGridDraftValues>({
+    formKey: "pathogen-grid",
+    recordKey: String(testOrderId),
+    recordVersion: null,
+    title: dialogTitle,
+    values: { growth },
+    pick: pickPathogenGridDraft,
+    enabled: benchMode && open && rows !== null
+  });
 
   useEffect(() => {
     if (!open) return;
+    let cancelled = false;
     setRows(null);
     setError(null);
     setGrowth({});
-    TestWorkflowService.getLocations(testOrderId).then(setRows);
-  }, [open, testOrderId]);
+    setKeptOffline(false);
+    TestWorkflowService.getLocations(testOrderId).then((data) => {
+      if (!cancelled) setRows(data);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, testOrderId, setKeptOffline]);
 
-  const allEntered = rows !== null && rows.length > 0 && rows.every((r) => growth[r.id]);
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved?.growth) return;
+    setGrowth((prev) => {
+      const next = { ...prev };
+      for (const [idStr, val] of Object.entries(saved.growth ?? {})) {
+        const id = Number(idStr);
+        if (!Number.isNaN(id) && (val === "yes" || val === "no" || val === "")) {
+          next[id] = val;
+        }
+      }
+      return next;
+    });
+  };
+
+  const enteredCount = rows === null ? 0 : rows.filter((r) => Boolean(growth[r.id])).length;
+  const allEntered = rows !== null && rows.length > 0 && enteredCount === rows.length;
+  const dirty = rows !== null && Object.values(growth).some((v) => v === "yes" || v === "no");
 
   const liveStatus = (r: LocationRow): string | null => {
     if (!growth[r.id]) return null;
@@ -59,62 +121,228 @@ export function PathogenLocationResultGridDialog({ open, testOrderId, testCode, 
     setSubmitting(true);
     try {
       const locations = rows.map((r) => ({ sampleLocationId: r.id, growthObserved: growth[r.id] === "yes" }));
-      await TestWorkflowService.recordBatchPathogenResults(testOrderId, locations);
+      await TestWorkflowService.recordBatchPathogenResults(
+        testOrderId,
+        locations,
+        ...(benchMode ? draftHeaderArgs(draft.submitHeaders()) : [])
+      );
+      if (benchMode) await draft.onSubmitted();
+      setKeptOffline(false);
       onSubmitted();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not record batch pathogen results.");
+    } catch (e) {
+      if (!benchMode) {
+        setError(serverMessage(e) ?? t("locationGrid.recordBatchPathogenFailed"));
+        return;
+      }
+      const failure = classifySaveFailure(e);
+      if (failure.kind === "network") {
+        setKeptOffline(true);
+      } else if (failure.kind === "conflict") {
+        await draft.onRejected(failure.message);
+        setError(failure.message);
+      } else {
+        setError(failure.message ?? t("locationGrid.recordBatchPathogenFailed"));
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <FloatingDialog open={open} title={`${testCode} Results: ${displayName}`} onClose={onClose}>
+  const closeGrid = async () => {
+    if (benchMode && dirty && !draft.restored) await draft.discard();
+    setKeptOffline(false);
+    setError(null);
+    onClose();
+  };
+
+  const keepDraft = () => {
+    toast.info(t("locationGrid.draftKeptOffline"));
+    onClose();
+  };
+
+  const { cellProps } = useGridNavigation({
+    rows: rows?.length ?? 0,
+    cols: 2,
+    onSave: () => {
+      if (benchMode && keptOffline) {
+        keepDraft();
+        return;
+      }
+      if (allEntered && isTimeReady && !submitting) {
+        void submit();
+      }
+    }
+  });
+
+  const submitDisabledReason = !rows
+    ? t("locationGrid.loadingLocations")
+    : !allEntered
+      ? t("locationGrid.selectForEvery")
+      : !isTimeReady && minReadyAt
+        ? t("locationGrid.cannotSubmitBefore", { time: formatDateTimeWithTimeZone(minReadyAt) })
+        : undefined;
+
+  const content = (
+    <>
       {!rows && !error && <TableSkeleton rows={5} cols={5} hasContainer={false} />}
       {error && !rows && <Alert severity="error">{error}</Alert>}
       {rows && (
         <Stack spacing={2}>
+          {benchMode && <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />}
+          {benchMode && keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
           {error && <Alert severity="error">{error}</Alert>}
+          <Typography variant="body2" aria-live="polite" role="status" sx={{ fontVariantNumeric: "tabular-nums" }}>
+            <Trans
+              i18nKey="locationGrid.enteredProgress"
+              ns="testingWorkspace"
+              values={{ entered: enteredCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          </Typography>
           <Box sx={{ overflowX: "auto" }}>
-            <Table size="small">
+            <Table size={benchMode ? "medium" : "small"}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Growth Observed?</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 2, bgcolor: "background.paper" }}>{t("locationGrid.locationCol")}</TableCell>
+                  <TableCell>{t("locationGrid.growthObservedCol")}</TableCell>
+                  <TableCell>{t("locationGrid.statusCol")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell>{r.locationName}{r.gradeClassification ? ` (${r.gradeClassification})` : ""}</TableCell>
-                    <TableCell>
-                      <RadioGroup row value={growth[r.id] ?? ""} onChange={(e) => setGrowth((g) => ({ ...g, [r.id]: e.target.value as "yes" | "no" }))}>
-                        <FormControlLabel value="yes" control={<Radio size="small" />} label="Yes" />
-                        <FormControlLabel value="no" control={<Radio size="small" />} label="No" />
-                      </RadioGroup>
-                    </TableCell>
-                    <TableCell>{liveStatus(r) ? <StatusBadge status={liveStatus(r)!} /> : "—"}</TableCell>
-                  </TableRow>
-                ))}
+                {rows.map((r, rIdx) => {
+                  const status = liveStatus(r);
+                  const yesNav = cellProps(rIdx, 0);
+                  const noNav = cellProps(rIdx, 1);
+                  return (
+                    <TableRow
+                      key={r.id}
+                      onFocus={(e) => e.currentTarget.scrollIntoView?.({ block: "nearest" })}
+                    >
+                      <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 1, bgcolor: "background.paper" }}>
+                        {r.locationName}{r.gradeClassification ? ` (${r.gradeClassification})` : ""}
+                      </TableCell>
+                      <TableCell>
+                        {benchMode ? (
+                          <Stack direction="row" spacing={1} role="group" aria-label={t("locationGrid.growthObservedGroupAria", { location: r.locationName })}>
+                            <Button
+                              {...yesNav}
+                              variant={growth[r.id] === "yes" ? "contained" : "outlined"}
+                              aria-pressed={growth[r.id] === "yes"}
+                              startIcon={<WarningAmberIcon aria-hidden />}
+                              onClick={() => setGrowth((g) => ({ ...g, [r.id]: "yes" }))}
+                              sx={{
+                                minHeight: BENCH_MIN_TARGET,
+                                minWidth: 136,
+                                fontWeight: growth[r.id] === "yes" ? 700 : 500,
+                                ...(growth[r.id] === "yes"
+                                  ? {
+                                      bgcolor: theme.custom.status.detected.bg,
+                                      color: theme.custom.status.detected.text,
+                                      borderColor: theme.custom.status.detected.border,
+                                      "&:hover": { bgcolor: theme.custom.status.detected.bg }
+                                    }
+                                  : {})
+                              }}
+                            >
+                              {t("locationGrid.yesDetected")}
+                            </Button>
+                            <Button
+                              {...noNav}
+                              variant={growth[r.id] === "no" ? "contained" : "outlined"}
+                              aria-pressed={growth[r.id] === "no"}
+                              startIcon={<CheckCircleOutlineIcon aria-hidden />}
+                              onClick={() => setGrowth((g) => ({ ...g, [r.id]: "no" }))}
+                              sx={{
+                                minHeight: BENCH_MIN_TARGET,
+                                minWidth: 136,
+                                fontWeight: growth[r.id] === "no" ? 700 : 500,
+                                ...(growth[r.id] === "no"
+                                  ? {
+                                      bgcolor: theme.custom.status.notDetected.bg,
+                                      color: theme.custom.status.notDetected.text,
+                                      borderColor: theme.custom.status.notDetected.border,
+                                      "&:hover": { bgcolor: theme.custom.status.notDetected.bg }
+                                    }
+                                  : {})
+                              }}
+                            >
+                              {t("locationGrid.noAbsent")}
+                            </Button>
+                          </Stack>
+                        ) : (
+                          <RadioGroup row value={growth[r.id] ?? ""} onChange={(e) => setGrowth((g) => ({ ...g, [r.id]: e.target.value as "yes" | "no" }))}>
+                            <FormControlLabel
+                              value="yes"
+                              control={<Radio size="small" slotProps={{ input: yesNav }} />}
+                              label={t("locationGrid.yes")}
+                            />
+                            <FormControlLabel
+                              value="no"
+                              control={<Radio size="small" slotProps={{ input: noNav }} />}
+                              label={t("locationGrid.no")}
+                            />
+                          </RadioGroup>
+                        )}
+                      </TableCell>
+                      <TableCell>{status ? <StatusBadge status={status} /> : "—"}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </Box>
           <Typography sx={{ fontSize: 13 }}>
-            {detectedCount}/{rows.length} locations detected; overall: <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
+            <Trans
+              i18nKey="locationGrid.detectedSummary"
+              ns="testingWorkspace"
+              values={{ detected: detectedCount, total: rows.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />{" "}
+            <StatusBadge status={detectedCount > 0 ? "Detected" : "Absent"} />
           </Typography>
           {!isTimeReady && minReadyAt && (
-            <Alert severity="warning">Results cannot be submitted before {minReadyAt.toLocaleString()}.</Alert>
+            <Alert severity="warning">
+              <Trans
+                i18nKey="locationGrid.cannotSubmitBeforeTrans"
+                ns="testingWorkspace"
+                values={{ time: formatDateTimeWithTimeZone(minReadyAt) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </Alert>
           )}
-          <Stack direction="row" sx={{
-            justifyContent: "flex-end"
-          }}>
-            <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
-              {submitting ? "Submitting…" : "Submit Results"}
-            </Button>
-          </Stack>
+          {!benchMode && (
+            <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
+              <Button variant="contained" disabled={!allEntered || !isTimeReady || submitting} onClick={submit}>
+                {submitting ? t("locationGrid.submitting") : t("locationGrid.submitResults")}
+              </Button>
+            </Stack>
+          )}
         </Stack>
       )}
+    </>
+  );
+
+  if (benchMode) {
+    return (
+      <BenchDialog
+        open={open}
+        title={dialogTitle}
+        onClose={() => void closeGrid()}
+        onSave={keptOffline ? keepDraft : () => void submit()}
+        saving={submitting}
+        saveLabel={keptOffline ? t("locationGrid.keepDraft") : t("locationGrid.submitResults")}
+        saveDisabledReason={keptOffline ? undefined : submitDisabledReason}
+        dirty={dirty}
+        maxWidth="lg"
+      >
+        {content}
+      </BenchDialog>
+    );
+  }
+
+  return (
+    <FloatingDialog open={open} title={dialogTitle} onClose={onClose}>
+      {content}
     </FloatingDialog>
   );
 }

@@ -23,6 +23,10 @@ import {
   HplcMethodService,
   HplcMethodResponse
 } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage } from "../../../utils/errorMessage";
 import type { SolutionType } from "../types";
 
 interface Props {
@@ -40,6 +44,7 @@ export function SelectStep({
   onStart,
   loading = false
 }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const [type, setType] = useState<SolutionType>(initialType);
   const [solutions, setSolutions] = useState<SolutionMaster[]>([]);
   const [selectedSolutionId, setSelectedSolutionId] = useState<number | "">(initialSolutionId ?? "");
@@ -65,8 +70,7 @@ export function SelectStep({
       })
       .catch((err: unknown) => {
         if (!active) return;
-        const e = err as { response?: { data?: { message?: string } }; message?: string };
-        setError(e.response?.data?.message ?? e.message ?? "Failed to load solutions.");
+        setError(getErrorMessage(err, t("wizard.selectStep.loadSolutionsError")));
       })
       .finally(() => {
         if (active) setSolutionsLoading(false);
@@ -75,7 +79,7 @@ export function SelectStep({
     return () => {
       active = false;
     };
-  }, [type, initialSolutionId, initialMethodId]);
+  }, [type, initialSolutionId, initialMethodId, t]);
 
   // When a mobile phase solution is selected, load methods that use it
   useEffect(() => {
@@ -115,8 +119,7 @@ export function SelectStep({
       })
       .catch((err: unknown) => {
         if (!active) return;
-        const e = err as { response?: { data?: { message?: string } }; message?: string };
-        setError(e.response?.data?.message ?? e.message ?? "Failed to load methods.");
+        setError(getErrorMessage(err, t("wizard.selectStep.loadMethodsError")));
       })
       .finally(() => {
         if (active) setMethodsLoading(false);
@@ -125,7 +128,7 @@ export function SelectStep({
     return () => {
       active = false;
     };
-  }, [type, selectedSolutionId, initialMethodId]);
+  }, [type, selectedSolutionId, initialMethodId, t]);
 
   const selectedSolution = solutions.find((s) => s.id === selectedSolutionId);
 
@@ -147,7 +150,7 @@ export function SelectStep({
     <Stack spacing={3}>
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-          Step 1: Select Solution & Method
+          {t("wizard.selectStep.heading")}
         </Typography>
 
         {error && (
@@ -158,31 +161,31 @@ export function SelectStep({
 
         <Stack spacing={2.5}>
           <FormControl fullWidth size="small">
-            <InputLabel id="solution-type-label">Solution Type</InputLabel>
+            <InputLabel id="solution-type-label">{t("wizard.selectStep.solutionType")}</InputLabel>
             <Select
               labelId="solution-type-label"
               value={type}
-              label="Solution Type"
+              label={t("wizard.selectStep.solutionType")}
               onChange={(e) => setType(e.target.value as SolutionType)}
             >
-              <MenuItem value="MobilePhase">Mobile Phase</MenuItem>
-              <MenuItem value="Diluent">Diluent</MenuItem>
-              <MenuItem value="Reagent">Reagent</MenuItem>
-              <MenuItem value="Neutralizer">Neutralizer</MenuItem>
-              <MenuItem value="Titrant">Titrant</MenuItem>
+              <MenuItem value="MobilePhase">{t("solutionTypes.MobilePhase")}</MenuItem>
+              <MenuItem value="Diluent">{t("solutionTypes.Diluent")}</MenuItem>
+              <MenuItem value="Reagent">{t("solutionTypes.Reagent")}</MenuItem>
+              <MenuItem value="Neutralizer">{t("solutionTypes.Neutralizer")}</MenuItem>
+              <MenuItem value="Titrant">{t("solutionTypes.Titrant")}</MenuItem>
             </Select>
           </FormControl>
 
           <FormControl fullWidth size="small" disabled={solutionsLoading}>
-            <InputLabel id="solution-select-label">Solution Recipe *</InputLabel>
+            <InputLabel id="solution-select-label">{t("wizard.selectStep.solutionRecipe")}</InputLabel>
             <Select
               labelId="solution-select-label"
               value={selectedSolutionId}
-              label="Solution Recipe *"
+              label={t("wizard.selectStep.solutionRecipe")}
               onChange={(e) => setSelectedSolutionId(e.target.value as number)}
             >
               <MenuItem value="">
-                <em>(Choose solution recipe)</em>
+                <em>{t("wizard.selectStep.chooseRecipe")}</em>
               </MenuItem>
               {solutions.map((sol) => (
                 <MenuItem key={sol.id} value={sol.id}>
@@ -194,15 +197,15 @@ export function SelectStep({
 
           {type === "MobilePhase" && selectedSolutionId && (
             <FormControl fullWidth size="small" disabled={methodsLoading}>
-              <InputLabel id="method-select-label">HPLC Method *</InputLabel>
+              <InputLabel id="method-select-label">{t("wizard.selectStep.hplcMethod")}</InputLabel>
               <Select
                 labelId="method-select-label"
                 value={selectedMethodId}
-                label="HPLC Method *"
+                label={t("wizard.selectStep.hplcMethod")}
                 onChange={(e) => setSelectedMethodId(e.target.value as number)}
               >
                 <MenuItem value="">
-                  <em>(Choose HPLC method)</em>
+                  <em>{t("wizard.selectStep.chooseMethod")}</em>
                 </MenuItem>
                 {methods.map((method) => (
                   <MenuItem key={method.id} value={method.id}>
@@ -214,12 +217,12 @@ export function SelectStep({
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
                   <CircularProgress size={14} />
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Checking HPLC methods using this mobile phase...
+                    {t("wizard.selectStep.checkingMethods")}
                   </Typography>
                 </Box>
               ) : methods.length === 0 ? (
                 <Typography variant="caption" sx={{ color: "error.main", mt: 0.5 }}>
-                  No active HPLC methods use this mobile phase.
+                  {t("wizard.selectStep.noMethods")}
                 </Typography>
               ) : null}
             </FormControl>
@@ -228,24 +231,37 @@ export function SelectStep({
           {selectedSolution && (
             <Box sx={{ mt: 1, p: 2, bgcolor: "action.hover", borderRadius: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-                Recipe Overview: {selectedSolution.name}
+                {t("wizard.selectStep.recipeOverview", { name: selectedSolution.name })}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-                <Chip size="small" label={`Target Volume: ${selectedSolution.finalVolumeMl} mL`} />
-                <Chip size="small" label={`Shelf Life: ${selectedSolution.shelfLifeValue} ${selectedSolution.shelfLifeUnit}`} />
-                <Chip size="small" label={`Storage: ${selectedSolution.storageCondition}`} />
+                <Chip
+                  size="small"
+                  label={<Trans i18nKey="wizard.selectStep.targetVolume" ns="solutionPreparation" values={{ value: selectedSolution.finalVolumeMl }} components={{ ltr: <Ltr>{null}</Ltr> }} />}
+                />
+                <Chip
+                  size="small"
+                  label={<Trans i18nKey="wizard.selectStep.shelfLife" ns="solutionPreparation" values={{ value: selectedSolution.shelfLifeValue, unit: selectedSolution.shelfLifeUnit }} components={{ ltr: <Ltr>{null}</Ltr> }} />}
+                />
+                <Chip size="small" label={t("wizard.selectStep.storage", { condition: selectedSolution.storageCondition })} />
                 {selectedSolution.sterilizationRequired && (
-                  <Chip size="small" variant="outlined" label="Autoclave required" />
+                  <Chip size="small" variant="outlined" label={t("wizard.selectStep.autoclaveRequired")} />
                 )}
                 {selectedSolution.releaseRequired && (
-                  <Chip size="small" variant="outlined" label="Release required" />
+                  <Chip size="small" variant="outlined" label={t("wizard.selectStep.releaseRequired")} />
                 )}
                 {selectedSolution.phTarget != null && (
                   <Chip
                     size="small"
                     color="primary"
                     variant="outlined"
-                    label={`pH: ${selectedSolution.phTarget}${selectedSolution.phTolerance ? ` ± ${selectedSolution.phTolerance}` : ""}`}
+                    label={
+                      <Trans
+                        i18nKey={selectedSolution.phTolerance ? "wizard.selectStep.phChipTolerance" : "wizard.selectStep.phChip"}
+                        ns="solutionPreparation"
+                        values={{ target: selectedSolution.phTarget, tolerance: selectedSolution.phTolerance }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
+                    }
                   />
                 )}
               </Box>
@@ -253,7 +269,12 @@ export function SelectStep({
               <Divider sx={{ my: 1.5 }} />
 
               <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-                Components ({selectedSolution.components?.length ?? 0}):
+                <Trans
+                  i18nKey="wizard.selectStep.componentsCount"
+                  ns="solutionPreparation"
+                  values={{ count: selectedSolution.components?.length ?? 0 }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Stack spacing={0.5}>
                 {selectedSolution.components?.map((c) => (
@@ -261,8 +282,8 @@ export function SelectStep({
                     {c.kind === "Text"
                       ? `• ${c.text}`
                       : c.kind === "PreparedSolution"
-                        ? `• Prepared ${c.sourceSolutionName}: ${c.quantity} ${c.unit}`
-                        : `• ${c.entryName} (${c.entryCode}): ${c.quantity} ${c.unit}`}
+                        ? t("wizard.selectStep.preparedComponentLine", { name: c.sourceSolutionName, qty: c.quantity, unit: c.unit })
+                        : t("wizard.selectStep.materialComponentLine", { name: c.entryName, code: c.entryCode, qty: c.quantity, unit: c.unit })}
                   </Typography>
                 ))}
               </Stack>
@@ -271,7 +292,7 @@ export function SelectStep({
                 <>
                   <Divider sx={{ my: 1.5 }} />
                   <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-                    Preparation Instructions:
+                    {t("wizard.selectStep.instructionsHeading")}
                   </Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}>
                     {selectedSolution.instructions}
@@ -289,7 +310,7 @@ export function SelectStep({
               endIcon={loading ? <CircularProgress size={16} /> : <ArrowForwardIcon />}
               sx={{ textTransform: "none", fontWeight: 700, px: 3 }}
             >
-              {loading ? "Starting..." : "Start Preparation"}
+              {loading ? t("wizard.selectStep.starting") : t("wizard.selectStep.startPreparation")}
             </Button>
           </Box>
         </Stack>

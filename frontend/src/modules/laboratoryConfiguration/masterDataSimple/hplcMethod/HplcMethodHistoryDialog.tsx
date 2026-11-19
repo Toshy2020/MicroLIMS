@@ -25,6 +25,8 @@ import {
   HplcMethodListItem,
   HplcMethodHistoryEntry
 } from "../services/HplcMethodService";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
+import { useTranslation } from "../../../../i18n";
 
 export interface HplcMethodHistoryDialogProps {
   open: boolean;
@@ -37,6 +39,7 @@ export function HplcMethodHistoryDialog({
   method,
   onClose
 }: HplcMethodHistoryDialogProps) {
+  const { t } = useTranslation("masterData");
   const [history, setHistory] = useState<HplcMethodHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +56,13 @@ export function HplcMethodHistoryDialog({
         })
         .catch((err: unknown) => {
           const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-          setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load audit history.");
+          setError(errObj.response?.data?.message ?? errObj.message ?? t("hplcMethod.history.loadError"));
         })
         .finally(() => {
           setLoading(false);
         });
     }
-  }, [open, method]);
+  }, [open, method, t]);
 
   const toggleRow = (idx: number) => {
     setExpandedRow((prev) => (prev === idx ? null : idx));
@@ -78,12 +81,12 @@ export function HplcMethodHistoryDialog({
   return (
     <FloatingDialog
       open={open}
-      title={method ? `Audit History: ${method.name} (${method.abbreviation})` : "Audit History"}
+      title={method ? t("hplcMethod.history.titleWithMethod", { name: method.name, abbr: method.abbreviation }) : t("hplcMethod.history.title")}
       onClose={onClose}
       maxWidth="md"
       actions={
         <Button onClick={onClose}>
-          Close
+          {t("hplcMethod.history.close")}
         </Button>
       }
     >
@@ -94,14 +97,14 @@ export function HplcMethodHistoryDialog({
           <Box sx={{ py: 6, display: "flex", flexDirection: "column", alignItems: "center" }}>
             <CircularProgress size={32} />
             <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-              Loading method history...
+              {t("hplcMethod.history.loading")}
             </Typography>
           </Box>
         ) : history.length === 0 ? (
           <Box sx={{ py: 6, textAlign: "center" }}>
             <HistoryIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
             <Typography variant="body1" sx={{ color: "text.secondary" }}>
-              No audit history recorded for this method.
+              {t("hplcMethod.history.empty")}
             </Typography>
           </Box>
         ) : (
@@ -110,10 +113,10 @@ export function HplcMethodHistoryDialog({
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ width: 40 }} />
-                  <TableCell sx={{ fontWeight: 600 }}>Timestamp</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>User</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("hplcMethod.history.columns.timestamp")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("hplcMethod.history.columns.user")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("hplcMethod.history.columns.action")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("hplcMethod.history.columns.reason")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -125,13 +128,13 @@ export function HplcMethodHistoryDialog({
                     <TableRow key={idx} sx={{ "& > *": { borderBottom: "unset" } }}>
                       <TableCell>
                         {hasDetails ? (
-                          <IconButton aria-label={isExpanded ? "Collapse version details" : "Expand version details"} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(idx)}>
+                          <IconButton aria-label={isExpanded ? t("hplcMethod.history.collapseAria") : t("hplcMethod.history.expandAria")} aria-expanded={Boolean(isExpanded)} size="small" onClick={() => toggleRow(idx)}>
                             {isExpanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
                           </IconButton>
                         ) : null}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap", fontSize: 13 }}>
-                        {new Date(entry.at).toLocaleString()}
+                        {formatDateTimeWithTimeZone(entry.at)}
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500, fontSize: 13 }}>{entry.userName}</TableCell>
                       <TableCell>
@@ -158,13 +161,13 @@ export function HplcMethodHistoryDialog({
           <Collapse in={expandedRow !== null}>
             <Box sx={{ mt: 2, p: 2, bgcolor: "action.hover", borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
-                Snapshot Change Detail
+                {t("hplcMethod.history.snapshotTitle")}
               </Typography>
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 {history[expandedRow].beforeJson && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: "error.main", display: "block", mb: 0.5 }}>
-                      Before Change:
+                      {t("hplcMethod.history.beforeChange")}
                     </Typography>
                     <Box
                       component="pre"
@@ -186,7 +189,7 @@ export function HplcMethodHistoryDialog({
                 {history[expandedRow].afterJson && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: "success.main", display: "block", mb: 0.5 }}>
-                      After Change:
+                      {t("hplcMethod.history.afterChange")}
                     </Typography>
                     <Box
                       component="pre"

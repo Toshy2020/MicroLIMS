@@ -18,6 +18,8 @@ import ThermostatIcon from "@mui/icons-material/Thermostat";
 import ScienceIcon from "@mui/icons-material/Science";
 import WaterDropIcon from "@mui/icons-material/WaterDrop";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { HplcMethodSnapshot } from "../types";
 
 const GC_DETECTOR_LABELS: Record<string, string> = {
@@ -37,6 +39,7 @@ export interface GcMethodDetailsProps {
 }
 
 export function GcMethodDetails({ method }: GcMethodDetailsProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const isResidualSolvents = method.resultMode === "ResidualSolvents";
 
@@ -50,7 +53,7 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
   const splitDisplay =
     method.splitRatio != null && method.splitRatio > 0
       ? `${method.splitRatio}:1`
-      : "Splitless";
+      : t("method.splitless");
 
   const detectorDisplay =
     GC_DETECTOR_LABELS[method.detectorType] ?? method.detectorType;
@@ -60,7 +63,7 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
       {/* Title & Chips */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>
-          Method: {method.name} ({method.abbreviation})
+          {t("method.title", { name: method.name, abbreviation: method.abbreviation })}
         </Typography>
         <Chip
           label="GC"
@@ -71,7 +74,7 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
         />
         {method.resultMode && (
           <Chip
-            label={isResidualSolvents ? "Residual Solvents" : "Assay"}
+            label={isResidualSolvents ? t("method.residualSolventsChip") : t("method.assayChip")}
             color={isResidualSolvents ? "secondary" : "default"}
             size="small"
             variant="outlined"
@@ -89,33 +92,33 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <ViewColumnIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              GC Column (Capillary)
+              {t("method.gcColumn")}
             </Typography>
           </Box>
           <TableContainer>
             <Table size="small">
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Designation</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.columnDesignation || "—"}</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.designation")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{method.columnDesignation || "—"}</Ltr></TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Dimensions</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.dimensions")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {lengthM != null ? `${lengthM} m` : "—"} × {method.columnInternalDiameterMm != null ? `${method.columnInternalDiameterMm} mm` : "—"}
+                    <Ltr>{lengthM != null ? `${lengthM} m` : "—"} × {method.columnInternalDiameterMm != null ? `${method.columnInternalDiameterMm} mm` : "—"}</Ltr>
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Film Thickness</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.filmThickness")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.filmThicknessUm != null ? `${method.filmThicknessUm} µm` : "—"}
+                    {method.filmThicknessUm != null ? <Ltr>{`${method.filmThicknessUm} µm`}</Ltr> : "—"}
                   </TableCell>
                 </TableRow>
                 {(method.columnBrand || method.columnPartNumber) && (
                   <TableRow>
-                    <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Brand / Part No.</TableCell>
+                    <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.brandPartNo")}</TableCell>
                     <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                      {[method.columnBrand, method.columnPartNumber].filter(Boolean).join(" / ")}
+                      <Ltr>{[method.columnBrand, method.columnPartNumber].filter(Boolean).join(" / ")}</Ltr>
                     </TableCell>
                   </TableRow>
                 )}
@@ -129,46 +132,48 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <TuneIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Inlet & Detector Conditions
+              {t("method.inletDetectorConditions")}
             </Typography>
           </Box>
           <TableContainer>
             <Table size="small">
               <TableBody>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Carrier Gas</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.carrierGas")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{method.carrierGas || "—"}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Split Ratio</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{splitDisplay}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Inlet Temp</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.splitRatio")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.inletTemperatureC != null ? `${method.inletTemperatureC} °C` : "—"}
+                    {method.splitRatio != null && method.splitRatio > 0 ? <Ltr>{splitDisplay}</Ltr> : splitDisplay}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Detector Temp</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.inletTemp")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.detectorTemperatureC != null ? `${method.detectorTemperatureC} °C` : "—"}
+                    {method.inletTemperatureC != null ? <Ltr>{`${method.inletTemperatureC} °C`}</Ltr> : "—"}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Detector</TableCell>
-                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>{detectorDisplay}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Injection Volume</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.detectorTemp")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.injectionVolumeUl != null ? `${method.injectionVolumeUl} µL` : "—"}
+                    {method.detectorTemperatureC != null ? <Ltr>{`${method.detectorTemperatureC} °C`}</Ltr> : "—"}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>Run Time / Equil.</TableCell>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.detector")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}><Ltr>{detectorDisplay}</Ltr></TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.injectionVolume")}</TableCell>
                   <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
-                    {method.runTimeMin ?? "—"} min {method.equilibrationMin ? `(${method.equilibrationMin} min eq.)` : ""}
+                    {method.injectionVolumeUl != null ? <Ltr>{`${method.injectionVolumeUl} µL`}</Ltr> : "—"}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell sx={{ color: "text.secondary", py: 0.5, border: "none" }}>{t("method.runTimeEquil")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, py: 0.5, border: "none" }}>
+                    <Ltr>{method.runTimeMin ?? "—"} min</Ltr> {method.equilibrationMin ? t("method.eqSuffix", { min: method.equilibrationMin }) : ""}
                   </TableCell>
                 </TableRow>
               </TableBody>
@@ -183,17 +188,17 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <ThermostatIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Oven Temperature Program
+              {t("method.ovenProgram")}
             </Typography>
           </Box>
           <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
             <Table size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
-                  <TableCell>Step</TableCell>
-                  <TableCell>Ramp Rate (°C/min)</TableCell>
-                  <TableCell align="right">Temperature (°C)</TableCell>
-                  <TableCell align="right">Hold Time (min)</TableCell>
+                  <TableCell>{t("method.ovenColumns.step")}</TableCell>
+                  <TableCell>{t("method.ovenColumns.rampRate")}</TableCell>
+                  <TableCell align="right">{t("method.ovenColumns.temperature")}</TableCell>
+                  <TableCell align="right">{t("method.ovenColumns.holdTime")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -202,15 +207,15 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
                   const isInitial = idx === 0 || step.rateCPerMin == null;
                   return (
                     <TableRow key={step.id ?? idx}>
-                      <TableCell sx={{ py: 0.75, fontWeight: 600 }}>Step {stepNumber}</TableCell>
+                      <TableCell sx={{ py: 0.75, fontWeight: 600 }}>{t("method.stepNumber", { number: stepNumber })}</TableCell>
                       <TableCell sx={{ py: 0.75 }}>
-                        {isInitial ? "Initial (—)" : `${step.rateCPerMin} °C/min`}
+                        {isInitial ? t("method.initialStep") : <Ltr>{`${step.rateCPerMin} °C/min`}</Ltr>}
                       </TableCell>
                       <TableCell align="right" sx={{ py: 0.75, fontWeight: 600 }}>
-                        {step.temperatureC} °C
+                        <Ltr>{`${step.temperatureC} °C`}</Ltr>
                       </TableCell>
                       <TableCell align="right" sx={{ py: 0.75 }}>
-                        {step.holdMin} min
+                        <Ltr>{`${step.holdMin} min`}</Ltr>
                       </TableCell>
                     </TableRow>
                   );
@@ -227,32 +232,32 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <ScienceIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Headspace Sampler Parameters
+              {t("method.headspaceTitle")}
             </Typography>
           </Box>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Equilibration Temperature:
+                {t("method.equilibrationTemp")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {method.headspaceEquilibrationTemperatureC != null ? `${method.headspaceEquilibrationTemperatureC} °C` : "—"}
+                {method.headspaceEquilibrationTemperatureC != null ? <Ltr>{`${method.headspaceEquilibrationTemperatureC} °C`}</Ltr> : "—"}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Equilibration Time:
+                {t("method.equilibrationTime")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {method.headspaceEquilibrationMin != null ? `${method.headspaceEquilibrationMin} min` : "—"}
+                {method.headspaceEquilibrationMin != null ? <Ltr>{`${method.headspaceEquilibrationMin} min`}</Ltr> : "—"}
               </Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Transfer Line Temperature:
+                {t("method.transferLineTemp")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {method.headspaceTransferLineTemperatureC != null ? `${method.headspaceTransferLineTemperatureC} °C` : "—"}
+                {method.headspaceTransferLineTemperatureC != null ? <Ltr>{`${method.headspaceTransferLineTemperatureC} °C`}</Ltr> : "—"}
               </Typography>
             </Grid>
           </Grid>
@@ -265,27 +270,27 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
             <WaterDropIcon fontSize="small" sx={{ color: "text.secondary" }} />
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Solutions & Preparation
+              {t("method.solutionsPreparation")}
             </Typography>
           </Box>
           <Grid container spacing={2}>
             {(method.diluentSolutionName || method.diluentSolutionId) && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Diluent Solution:
+                  {t("method.diluentSolution")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {method.diluentSolutionName || `Solution #${method.diluentSolutionId}`}
+                  {method.diluentSolutionName || t("method.solutionFallback", { id: method.diluentSolutionId })}
                 </Typography>
               </Grid>
             )}
             {isResidualSolvents && method.sampleSolutionVolumeMl != null && (
               <Grid size={{ xs: 12, sm: 6 }}>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Sample Solution Volume:
+                  {t("method.sampleSolutionVolume")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {method.sampleSolutionVolumeMl} mL
+                  <Ltr>{`${method.sampleSolutionVolumeMl} mL`}</Ltr>
                 </Typography>
               </Grid>
             )}
@@ -296,67 +301,67 @@ export function GcMethodDetails({ method }: GcMethodDetailsProps) {
       {/* Analytes Table */}
       <Box>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-          {isResidualSolvents ? "Residual Solvents & System Suitability Criteria" : "Method Analytes & System Suitability Criteria"}
+          {isResidualSolvents ? t("method.residualSolventsTitle") : t("method.analytesTitle")}
         </Typography>
         <TableContainer sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell>{isResidualSolvents ? "Solvent" : "Analyte"}</TableCell>
-                <TableCell>Standard</TableCell>
+                <TableCell>{isResidualSolvents ? t("method.analytesColumns.solvent") : t("method.analytesColumns.analyte")}</TableCell>
+                <TableCell>{t("method.analytesColumns.standard")}</TableCell>
                 {isResidualSolvents ? (
-                  <TableCell align="right">Std Conc (µg/mL)</TableCell>
+                  <TableCell align="right">{t("method.analytesColumns.stdConc")}</TableCell>
                 ) : (
                   <>
-                    <TableCell align="right">Th. Wt. Std (mg)</TableCell>
-                    <TableCell align="right">Th. Wt. Test (mg)</TableCell>
+                    <TableCell align="right">{t("method.analytesColumns.thWtStd")}</TableCell>
+                    <TableCell align="right">{t("method.analytesColumns.thWtTest")}</TableCell>
                   </>
                 )}
-                <TableCell align="center">Injections (n)</TableCell>
-                <TableCell>SST Criteria</TableCell>
+                <TableCell align="center">{t("method.analytesColumns.injections")}</TableCell>
+                <TableCell>{t("method.analytesColumns.sstCriteria")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {method.analytes.map((a) => {
                 const criteria = [
-                  a.sstMaxRsdPercent != null ? `%RSD ≤ ${a.sstMaxRsdPercent}%` : null,
-                  a.sstMinResolution != null ? `Res ≥ ${a.sstMinResolution}` : null,
-                  a.sstMaxTailingFactor != null ? `Tailing ≤ ${a.sstMaxTailingFactor}` : null,
-                  a.sstMinTheoreticalPlates != null ? `Plates ≥ ${a.sstMinTheoreticalPlates}` : null,
-                  a.sstMinRetentionFactor != null ? `k' ≥ ${a.sstMinRetentionFactor}` : null,
-                  a.sstMinSignalToNoise != null ? `S/N ≥ ${a.sstMinSignalToNoise}` : null,
-                  a.sstMinPeakToValley != null ? `P/V ≥ ${a.sstMinPeakToValley}` : null
+                  a.sstMaxRsdPercent != null ? t("method.criteria.rsd", { val: a.sstMaxRsdPercent }) : null,
+                  a.sstMinResolution != null ? t("method.criteria.res", { val: a.sstMinResolution }) : null,
+                  a.sstMaxTailingFactor != null ? t("method.criteria.tailing", { val: a.sstMaxTailingFactor }) : null,
+                  a.sstMinTheoreticalPlates != null ? t("method.criteria.plates", { val: a.sstMinTheoreticalPlates }) : null,
+                  a.sstMinRetentionFactor != null ? t("method.criteria.kPrime", { val: a.sstMinRetentionFactor }) : null,
+                  a.sstMinSignalToNoise != null ? t("method.criteria.sn", { val: a.sstMinSignalToNoise }) : null,
+                  a.sstMinPeakToValley != null ? t("method.criteria.pv", { val: a.sstMinPeakToValley }) : null
                 ].filter(Boolean);
 
                 const analyteTitle = a.name;
 
                 return (
                   <TableRow key={a.id}>
-                    <TableCell sx={{ fontWeight: 600, py: 1 }}>{analyteTitle}</TableCell>
-                    <TableCell sx={{ py: 1 }}>{a.standardEntryCode ?? "—"}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, py: 1 }}><Ltr>{analyteTitle}</Ltr></TableCell>
+                    <TableCell sx={{ py: 1 }}><Ltr>{a.standardEntryCode ?? "—"}</Ltr></TableCell>
                     {isResidualSolvents ? (
                       <TableCell align="right" sx={{ py: 1, fontWeight: 600, color: "text.primary" }}>
-                        {a.standardConcentrationUgPerMl != null ? `${a.standardConcentrationUgPerMl} µg/mL` : "—"}
+                        {a.standardConcentrationUgPerMl != null ? <Ltr>{`${a.standardConcentrationUgPerMl} µg/mL`}</Ltr> : "—"}
                       </TableCell>
                     ) : (
                       <>
                         <TableCell align="right" sx={{ py: 1, fontWeight: 600, color: "text.primary" }}>
-                          {a.theoreticalWeightStdMg ?? "—"}
+                          <Ltr>{a.theoreticalWeightStdMg ?? "—"}</Ltr>
                         </TableCell>
                         <TableCell align="right" sx={{ py: 1, fontWeight: 600, color: "text.primary" }}>
-                          {a.theoreticalWeightTestMg ?? "—"}
+                          <Ltr>{a.theoreticalWeightTestMg ?? "—"}</Ltr>
                         </TableCell>
                       </>
                     )}
-                    <TableCell align="center" sx={{ py: 1 }}>{a.standardInjections}</TableCell>
+                    <TableCell align="center" sx={{ py: 1 }}><Ltr>{a.standardInjections}</Ltr></TableCell>
                     <TableCell sx={{ py: 1 }}>
                       {criteria.length > 0 ? (
                         <Typography variant="body2" sx={{ fontSize: 12 }}>
-                          {criteria.join(" · ")}
+                          <Ltr>{criteria.join(" · ")}</Ltr>
                         </Typography>
                       ) : (
                         <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                          None configured
+                          {t("method.noneConfigured")}
                         </Typography>
                       )}
                     </TableCell>

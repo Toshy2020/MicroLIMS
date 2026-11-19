@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { clickable } from "../../utils/clickable";
+import { useTranslation } from "../../i18n";
 
 const ChevronIcon = ({ className }: { className: string }) => (
   <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
@@ -32,6 +33,7 @@ export interface CollapsibleTestCardProps {
 export function CollapsibleTestCard({
   icon, iconTone, title, subtitle, locationCount, badgeText, badgeTone, defaultOpen, isSuperseded, children
 }: CollapsibleTestCardProps) {
+  const { t } = useTranslation("testingWorkspace");
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -44,7 +46,7 @@ export function CollapsibleTestCard({
           <div className="test-subtitle">{subtitle}</div>
         </div>
         {locationCount != null && (
-          <span className="test-card-loc-count">{locationCount} location{locationCount === 1 ? "" : "s"}</span>
+          <span className="test-card-loc-count">{t("collapsibleCard.locationsCount", { count: locationCount })}</span>
         )}
         <span className={`status-badge ${badgeTone}`}>{badgeText}</span>
       </div>

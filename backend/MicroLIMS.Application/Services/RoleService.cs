@@ -97,6 +97,10 @@ public class RoleService
         var baseConflicts = SegregationOfDutiesRules.FindConflicts(baseCodes);
         if (baseConflicts.Count > 0)
             throw new SegregationOfDutiesViolationException(baseConflicts);
+        // A role based on QA inherits its limits; refuse if the base grants already break them.
+        var baseQaConflicts = SegregationOfDutiesRules.FindQaConflicts(baseType == RoleType.Qa, baseCodes);
+        if (baseQaConflicts.Count > 0)
+            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(baseQaConflicts));
 
         _db.CurrentReason = reason;
         var role = new Role { Name = name, Description = description, Type = baseType, IsSystemRole = false, IsActive = true };
@@ -205,6 +209,13 @@ public class RoleService
         var preservedHidden = allCurrentCodes.Where(PermissionConstants.Hidden.Contains).ToList();
         var currentCodes = Visible(allCurrentCodes);
 
+        // Quality Assurance independence: a QA-type role, or any role given a QA-only code, may
+        // hold no laboratory, administration or configuration code. Hidden grants count, since
+        // they stay on the role. Refused before the signature and before any grant is saved.
+        var qaConflicts = SegregationOfDutiesRules.FindQaConflicts(role.Type == RoleType.Qa, permissionCodes.Concat(preservedHidden));
+        if (qaConflicts.Count > 0)
+            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(qaConflicts));
+
         await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes.Concat(preservedHidden).ToList()));
 
         // Signs before the first grant/revoke (each of which saves): a wrong
@@ -266,6 +277,9 @@ public class RoleService
     public static SodRulesDto GetSodRules() => new(
         SegregationOfDutiesRules.AdministrationCodes.OrderBy(c => c, StringComparer.Ordinal).ToList(),
         SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.OrderBy(c => c, StringComparer.Ordinal).ToList());
+
+    public static List<string> GetQaForbiddenCodes() =>
+        SegregationOfDutiesRules.QaForbiddenCodes.OrderBy(c => c, StringComparer.Ordinal).ToList();
 
     public async Task<List<RoleResponse>> GetAllAsync()
     {

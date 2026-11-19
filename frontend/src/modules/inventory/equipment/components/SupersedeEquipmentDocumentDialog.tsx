@@ -12,8 +12,9 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type { EquipmentDocument } from "../types/equipmentTypes";
-import { EQUIPMENT_DOCUMENT_TYPE_LABELS } from "../types/equipmentTypes";
 import { clickable } from "../../../../utils/clickable";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 
 const ALLOWED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".webp", ".tiff"];
 const MAX_SIZE_BYTES = 25 * 1024 * 1024;
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("inventory");
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -45,12 +47,12 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
 
     const ext = selected.name.substring(selected.name.lastIndexOf(".")).toLowerCase();
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      setFileError(`File type '${ext}' is not supported. Allowed: PDF, JPG, JPEG, PNG, WEBP, TIFF.`);
+      setFileError(t("equipment.docDialogs.unsupportedType", { ext }));
       setFile(null);
       return;
     }
     if (selected.size > MAX_SIZE_BYTES) {
-      setFileError("File exceeds the 25 MB limit.");
+      setFileError(t("equipment.docDialogs.maxSizeError"));
       setFile(null);
       return;
     }
@@ -64,7 +66,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
       return;
     }
     if (!file) {
-      setFileError("Please select a replacement file.");
+      setFileError(t("equipment.docDialogs.selectReplacementError"));
       return;
     }
 
@@ -73,8 +75,9 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
     try {
       await EquipmentInventoryService.supersedeDocument(document.id, equipmentId, file, reason.trim());
       onSuccess();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Supersession failed. Please try again.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      setError(apiErr?.response?.data?.message ?? t("equipment.docDialogs.supersede.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -93,12 +96,12 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
   return (
     <FloatingDialog
       open={open}
-      title="Supersede Calibration Certificate"
+      title={t("equipment.docDialogs.supersede.title")}
       onClose={handleClose}
       actions={
         <>
           <Button onClick={handleClose} disabled={submitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             id="supersede-equip-doc-submit"
@@ -107,7 +110,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
             onClick={handleSubmit}
             disabled={submitting || !file || !reason.trim()}
           >
-            {submitting ? "Superseding…" : "Supersede"}
+            {submitting ? t("equipment.docDialogs.supersede.submitting") : t("equipment.docDialogs.supersede.submit")}
           </Button>
         </>
       }
@@ -116,18 +119,27 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Alert severity="info" sx={{ mb: 2, fontSize: 12 }}>
-        The existing certificate ({document.originalFileName}) will be marked <strong>Superseded</strong> and remain historically accessible.
-        A new Current certificate will be created from the replacement file.
+        <Trans
+          i18nKey="equipment.docDialogs.supersede.notice"
+          ns="inventory"
+          values={{ fileName: document.originalFileName }}
+          components={{ bold: <strong /> }}
+        />
       </Alert>
 
       <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>
-        Document Type: <strong>{EQUIPMENT_DOCUMENT_TYPE_LABELS[document.documentType]}</strong>
+        <Trans
+          i18nKey="equipment.docDialogs.supersede.docType"
+          ns="inventory"
+          values={{ type: t(`equipment.documents.types.${document.documentType}`) }}
+          components={{ bold: <strong /> }}
+        />
       </Typography>
 
       {/* Reason */}
       <TextField
         id="supersede-equip-reason"
-        label="Reason for Supersession *"
+        label={t("equipment.docDialogs.supersede.reasonLabel")}
         fullWidth
         size="small"
         multiline
@@ -138,7 +150,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
           setReasonError(false);
         }}
         error={reasonError}
-        helperText={reasonError ? "A reason is required." : undefined}
+        helperText={reasonError ? t("equipment.docDialogs.reasonRequired") : undefined}
         sx={{ mb: 2 }}
       />
 
@@ -162,7 +174,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
           "&:hover": { borderColor: "primary.main", bgcolor: "action.hover" }
         }}
         onClick={() => fileRef.current?.click()}
-        {...clickable(() => fileRef.current?.click(), { label: "Choose a replacement file" })}
+        {...clickable(() => fileRef.current?.click(), { label: t("equipment.docDialogs.supersede.chooseAria") })}
       >
         <UploadFileIcon sx={{ color: "text.secondary", fontSize: 28 }} />
         {file ? (
@@ -174,7 +186,7 @@ export function SupersedeEquipmentDocumentDialog({ open, document, equipmentId, 
           </>
         ) : (
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Click to select the replacement certificate (PDF, JPG, PNG, WEBP, TIFF · max 25 MB)
+            {t("equipment.docDialogs.supersede.clickToSelect")}
           </Typography>
         )}
       </Box>

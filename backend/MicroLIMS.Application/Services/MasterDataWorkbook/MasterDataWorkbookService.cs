@@ -229,9 +229,12 @@ public class MasterDataWorkbookService
             import.VerificationComment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
             await _db.SaveChangesAsync();
 
+            var activateReason = !string.IsNullOrWhiteSpace(comment) && comment.Trim().Length >= 10
+                ? comment.Trim()
+                : "Master data workbook verified and activated";
             foreach (var record in import.Records.Where(r => r.EntityType == "Item"))
                 if (await _db.Items.AnyAsync(i => i.Id == record.EntityId))
-                    await _items.SetActiveAsync(record.EntityId, true);
+                    await _items.SetActiveAsync(record.EntityId, true, activateReason, userId);
             foreach (var record in import.Records.Where(r => r.EntityType == "MaterialMasterEntry"))
                 if (await _db.MaterialMasterEntries.AnyAsync(e => e.Id == record.EntityId))
                     await _materialMaster.SetActiveAsync(record.EntityId, true, userId);

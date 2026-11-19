@@ -24,6 +24,7 @@ import { formatLabDate } from "../../../utils/formatDate";
 import { ReassignDialog } from "../components/ReassignDialog";
 import { reassignmentService } from "../services/reassignmentService";
 import type { ReassignmentItem, ReassignmentQueue } from "../types/reassignmentTypes";
+import { useTranslation } from "../../../i18n";
 
 const ALL = "all";
 
@@ -36,6 +37,7 @@ function daysSince(iso: string | null): number | null {
 // the moment someone is reactivated or the item is handed over it drops off. Nothing is reassigned automatically;
 // items waiting longer than the escalation period are flagged and the department's Section Heads are notified.
 export function ReassignmentsPage() {
+  const { t } = useTranslation("documentControl");
   const [queue, setQueue] = useState<ReassignmentQueue | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,11 +50,11 @@ export function ReassignmentsPage() {
     try {
       setQueue(await reassignmentService.getQueue());
     } catch (e) {
-      setError(getErrorMessage(e, "Could not load the reassignment queue."));
+      setError(getErrorMessage(e, t("reassignments.loadError")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -70,8 +72,8 @@ export function ReassignmentsPage() {
   return (
     <Box>
       <PageHeader
-        title="Needs reassignment"
-        subtitle="Document responsibilities held by deactivated users. Each one is handed to an active member of the document's department by an explicit, audited act."
+        title={t("reassignments.title")}
+        subtitle={t("reassignments.subtitle")}
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -79,9 +81,9 @@ export function ReassignmentsPage() {
       {queue && (
         <Alert severity={queue.overdue > 0 ? "warning" : "info"} sx={{ mb: 2 }}>
           {queue.total === 0
-            ? "Nothing is waiting for reassignment."
-            : `${queue.total} item(s) waiting, ${queue.overdue} overdue. `}
-          {queue.total > 0 && `Items waiting more than ${queue.escalationDays} days since the user was deactivated are flagged overdue and the department's Section Heads are notified. Nothing is reassigned automatically.`}
+            ? t("reassignments.emptyQueue")
+            : t("reassignments.queueSummary", { total: queue.total, overdue: queue.overdue })}
+          {queue.total > 0 && t("reassignments.escalationNotice", { days: queue.escalationDays })}
         </Alert>
       )}
 
@@ -89,31 +91,31 @@ export function ReassignmentsPage() {
         <TextField
           select
           size="small"
-          label="Department"
+          label={t("reassignments.departmentLabel")}
           value={department}
           onChange={(e) => setDepartment(e.target.value)}
           sx={{ minWidth: 240, mb: 2 }}
         >
-          <MenuItem value={ALL}>All departments</MenuItem>
+          <MenuItem value={ALL}>{t("reassignments.allDepartments")}</MenuItem>
           {departments.map(([id, name]) => <MenuItem key={id} value={String(id)}>{name}</MenuItem>)}
         </TextField>
       )}
 
       {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress aria-label="Loading" /></Box>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}><CircularProgress aria-label={t("reassignments.loadingAria")} /></Box>
       ) : (
         <Paper variant="outlined">
           <TableContainer>
-            <Table size="small" aria-label="Responsibilities needing reassignment">
+            <Table size="small" aria-label={t("reassignments.tableAria")}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell>Document</TableCell>
-                  <TableCell>Revision</TableCell>
-                  <TableCell>Role needed</TableCell>
-                  <TableCell>Held by</TableCell>
-                  <TableCell>Inactive since</TableCell>
-                  <TableCell>Department</TableCell>
-                  <TableCell align="right">Action</TableCell>
+                  <TableCell>{t("reassignments.columns.document")}</TableCell>
+                  <TableCell>{t("reassignments.columns.revision")}</TableCell>
+                  <TableCell>{t("reassignments.columns.roleNeeded")}</TableCell>
+                  <TableCell>{t("reassignments.columns.heldBy")}</TableCell>
+                  <TableCell>{t("reassignments.columns.inactiveSince")}</TableCell>
+                  <TableCell>{t("reassignments.columns.department")}</TableCell>
+                  <TableCell align="right">{t("reassignments.columns.action")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -132,13 +134,13 @@ export function ReassignmentsPage() {
                         {i.holderName && <Typography variant="caption" sx={{ display: "block" }} color="text.secondary">{i.holderName}</Typography>}
                       </TableCell>
                       <TableCell>
-                        {i.inactiveSince ? formatLabDate(i.inactiveSince) : "Unknown"}
-                        {days !== null && <Typography variant="caption" sx={{ display: "block" }} color="text.secondary">{days} day(s)</Typography>}
-                        {i.isOverdue && <Chip size="small" color="error" label="Overdue" sx={{ mt: 0.5 }} />}
+                        {i.inactiveSince ? formatLabDate(i.inactiveSince) : t("reassignments.unknown")}
+                        {days !== null && <Typography variant="caption" sx={{ display: "block" }} color="text.secondary">{t("reassignments.daysCount", { count: days })}</Typography>}
+                        {i.isOverdue && <Chip size="small" color="error" label={t("reassignments.overdue")} sx={{ mt: 0.5 }} />}
                       </TableCell>
                       <TableCell>{i.departmentName}</TableCell>
                       <TableCell align="right">
-                        <Button size="small" variant="contained" onClick={() => setTarget(i)}>Reassign</Button>
+                        <Button size="small" variant="contained" onClick={() => setTarget(i)}>{t("reassignments.reassign")}</Button>
                       </TableCell>
                     </TableRow>
                   );
@@ -146,7 +148,7 @@ export function ReassignmentsPage() {
                 {items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 3, color: "text.secondary" }}>
-                      No responsibilities need reassignment.
+                      {t("reassignments.emptyTable")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -161,7 +163,7 @@ export function ReassignmentsPage() {
         onClose={() => setTarget(null)}
         onReassigned={(item, user) => {
           setTarget(null);
-          toast.success(`${item.documentCode}: ${item.roleNeeded} reassigned to ${user.fullName}.`);
+          toast.success(t("reassignments.reassignedToast", { code: item.documentCode, role: item.roleNeeded, user: user.fullName }));
           load();
         }}
       />

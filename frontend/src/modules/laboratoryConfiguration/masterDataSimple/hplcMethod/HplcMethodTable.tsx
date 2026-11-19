@@ -3,6 +3,8 @@ import { Chip, Typography, Stack } from "@mui/material";
 import { RegisterTable, RegisterColumn } from "../../../../components/lab";
 import { StatusBadge } from "../../../../components/StatusBadge";
 import { HplcMethodListItem } from "../services/HplcMethodService";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
+import { useTranslation } from "../../../../i18n";
 
 export interface HplcMethodTableProps {
   methods: HplcMethodListItem[];
@@ -32,16 +34,17 @@ export function HplcMethodTable({
   onToggleActive,
   emptyAction
 }: HplcMethodTableProps) {
+  const { t } = useTranslation("masterData");
   const columns: RegisterColumn<HplcMethodListItem>[] = [
     {
       key: "name",
-      label: "Name",
+      label: t("hplcMethod.table.columns.name"),
       sortable: true,
       render: (m) => <Typography component="span" sx={{ fontWeight: 600, fontSize: "0.875rem" }}>{m.name}</Typography>
     },
     {
       key: "abbreviation",
-      label: "Abbreviation",
+      label: t("hplcMethod.table.columns.abbreviation"),
       sortable: true,
       render: (m) => (
         <Chip label={m.abbreviation} size="small" color="primary" variant="outlined" sx={{ fontSize: 12, fontWeight: 700 }} />
@@ -49,7 +52,7 @@ export function HplcMethodTable({
     },
     {
       key: "technique",
-      label: "Technique",
+      label: t("hplcMethod.table.columns.technique"),
       sortable: true,
       sortValue: (m) => m.technique ?? "Hplc",
       render: (m) => {
@@ -68,7 +71,7 @@ export function HplcMethodTable({
             />
             {isResidual && (
               <Chip
-                label="Residual solvents"
+                label={t("hplcMethod.table.chips.residualSolvents")}
                 size="small"
                 color="warning"
                 variant="outlined"
@@ -77,7 +80,7 @@ export function HplcMethodTable({
             )}
             {isRelatedSubstances && (
               <Chip
-                label="Related substances"
+                label={t("hplcMethod.table.chips.relatedSubstances")}
                 size="small"
                 color="info"
                 variant="outlined"
@@ -86,7 +89,7 @@ export function HplcMethodTable({
             )}
             {isCleaningResidue && (
               <Chip
-                label="Cleaning residue"
+                label={t("hplcMethod.table.chips.cleaningResidue")}
                 size="small"
                 color="info"
                 variant="outlined"
@@ -99,11 +102,11 @@ export function HplcMethodTable({
     },
     {
       key: "analyteCount",
-      label: "Analytes",
+      label: t("hplcMethod.table.columns.analytes"),
       sortable: true,
       render: (m) => (
         <Chip
-          label={`${m.analyteCount} ${m.analyteCount === 1 ? "analyte" : "analytes"}`}
+          label={t("hplcMethod.table.chips.analyteCount", { count: m.analyteCount })}
           size="small"
           variant="outlined"
           sx={{ fontSize: 12 }}
@@ -112,25 +115,25 @@ export function HplcMethodTable({
     },
     {
       key: "sectionName",
-      label: "Section",
+      label: t("hplcMethod.table.columns.section"),
       sortable: true,
       render: (m) => <Chip label={resolveSectionDisplay(m.sectionName)} size="small" variant="outlined" sx={{ fontSize: 12 }} />
     },
     {
       key: "isActive",
-      label: "Status",
+      label: t("hplcMethod.table.columns.status"),
       sortable: true,
       sortValue: (m) => (m.isActive ? 0 : 1),
       render: (m) => <StatusBadge status={m.isActive ? "Active" : "Inactive"} />
     },
     {
       key: "lastModifiedAt",
-      label: "Last Modified",
+      label: t("hplcMethod.table.columns.lastModified"),
       sortable: true,
       sortValue: (m) => new Date(m.lastModifiedAt).getTime(),
       render: (m) => (
         <Typography component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
-          {new Date(m.lastModifiedAt).toLocaleDateString()}
+          {formatDateTimeWithTimeZone(m.lastModifiedAt)}
         </Typography>
       )
     }
@@ -150,18 +153,18 @@ export function HplcMethodTable({
       loading={loading}
       onRowClick={onEdit}
       rowActions={(m) => [
-        { label: "Edit", onClick: () => onEdit(m) },
-        { label: "View audit history", onClick: () => onViewHistory(m) },
+        { label: t("hplcMethod.table.actions.edit"), onClick: () => onEdit(m) },
+        { label: t("hplcMethod.table.actions.viewHistory"), onClick: () => onViewHistory(m) },
         m.isActive
-          ? { label: "Deactivate", onClick: () => onToggleActive(m), danger: true }
-          : { label: "Activate", onClick: () => onToggleActive(m) }
+          ? { label: t("hplcMethod.table.actions.deactivate"), onClick: () => onToggleActive(m), danger: true }
+          : { label: t("hplcMethod.table.actions.activate"), onClick: () => onToggleActive(m) }
       ]}
       empty={
         filtersActive
-          ? { title: "No chromatography methods found", description: "Try adjusting your search or filters." }
+          ? { title: t("hplcMethod.table.emptyTitle"), description: t("hplcMethod.table.emptyFiltered") }
           : {
-              title: "No chromatography methods found",
-              description: "Register your first chromatography analytical method master.",
+              title: t("hplcMethod.table.emptyTitle"),
+              description: t("hplcMethod.table.emptyUnfiltered"),
               action: emptyAction
             }
       }

@@ -3,15 +3,20 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { ThemeModeProvider } from "./theme/ThemeModeContext";
+import { BenchModeProvider } from "./theme/BenchModeContext";
 import { SystemStatusProvider } from "./contexts/SystemStatusContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./i18n/LanguageProvider";
+import { LiveProvider } from "./contexts/LiveContext";
 import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { installGlobalErrorHandlers } from "./services/errorReporter";
+import { registerServiceWorker } from "./pwa/registerServiceWorker";
 
 // Catches what React never sees: async callbacks, event handlers and
 // rejected promises. Installed before render so a crash during the very
 // first mount is still reported.
 installGlobalErrorHandlers();
+registerServiceWorker();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -19,15 +24,21 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         AuthProvider is exactly the kind that used to white-screen the app,
         and a boundary nested inside them could not catch it. */}
     <AppErrorBoundary>
+      <BenchModeProvider>
       <ThemeModeProvider>
         <BrowserRouter>
           <SystemStatusProvider>
             <AuthProvider>
-              <App />
+              <LanguageProvider>
+                <LiveProvider>
+                  <App />
+                </LiveProvider>
+              </LanguageProvider>
             </AuthProvider>
           </SystemStatusProvider>
         </BrowserRouter>
       </ThemeModeProvider>
+      </BenchModeProvider>
     </AppErrorBoundary>
   </React.StrictMode>
 );

@@ -3,6 +3,7 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
+import { useTranslation } from "../i18n";
 
 // The wire format every caller already speaks - the same string a native
 // <input type="date"> produced, so swapping one for this is mechanical.
@@ -30,6 +31,7 @@ interface DateFieldProps {
   size?: "small" | "medium";
   /** Accessible name for a field with no visible label (a table cell). */
   ariaLabel?: string;
+  ariaDescribedBy?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -43,10 +45,35 @@ function parse(value: string | undefined): Dayjs | null {
 // same height as the TextFields and Selects beside it, replacing the
 // browser's own "dd----yyyy" placeholder rendering.
 export function DateField({
-  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, sx
+  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
 }: DateFieldProps) {
+  const { t, i18n } = useTranslation("common");
+  const isRtl = i18n.language === "ar";
+  const inputAriaProps =
+    ariaLabel || ariaDescribedBy
+      ? {
+          input: {
+            ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
+            ...(ariaDescribedBy ? { "aria-describedby": ariaDescribedBy } : {})
+          }
+        }
+      : undefined;
+
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider
+      dateAdapter={AdapterDayjs}
+      localeText={
+        isRtl
+          ? {
+              clearButtonLabel: t("datePicker.clear"),
+              openDatePickerDialogue: (formattedDate) =>
+                formattedDate
+                  ? t("datePicker.chooseDateSelected", { date: formattedDate })
+                  : t("datePicker.chooseDate")
+            }
+          : undefined
+      }
+    >
       <DatePicker
         label={label}
         value={parse(value)}
@@ -64,7 +91,7 @@ export function DateField({
             required,
             error,
             helperText,
-            slotProps: ariaLabel ? { input: { "aria-label": ariaLabel } } : undefined
+            slotProps: inputAriaProps
           }
         }}
       />

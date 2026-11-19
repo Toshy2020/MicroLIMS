@@ -29,33 +29,33 @@ public class AdminAccessReviewsController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> List(CancellationToken ct) =>
-        Ok(ApiResponse<object>.Ok(await _service.ListAsync(ct)));
+        Ok(ApiResponse<object>.Ok(await _service.ListAsync(CurrentUserId, ct)));
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> Get(int id, CancellationToken ct) =>
-        Ok(ApiResponse<object>.Ok(await _service.GetAsync(id, ct)));
+        Ok(ApiResponse<object>.Ok(await _service.GetAsync(id, CurrentUserId, ct)));
 
     [HttpPost]
-    public async Task<IActionResult> Generate(GenerateAccessReviewRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.GenerateAsync(request.PeriodLabel, request.Reason, CurrentUserId)));
+    public async Task<IActionResult> Generate(GenerateAccessReviewRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<object>.Ok(await _service.GenerateAsync(request.PeriodLabel, request.Reason, CurrentUserId, ct)));
 
     [HttpPost("{id:int}/findings")]
-    public async Task<IActionResult> AddFinding(int id, SaveAccessReviewFindingRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.AddFindingAsync(id, request, CurrentUserId)));
+    public async Task<IActionResult> AddFinding(int id, SaveAccessReviewFindingRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<object>.Ok(await _service.AddFindingAsync(id, request, CurrentUserId, ct)));
 
     [HttpPut("{id:int}/findings/{findingId:int}")]
-    public async Task<IActionResult> UpdateFinding(int id, int findingId, SaveAccessReviewFindingRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateFindingAsync(id, findingId, request, CurrentUserId)));
+    public async Task<IActionResult> UpdateFinding(int id, int findingId, SaveAccessReviewFindingRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<object>.Ok(await _service.UpdateFindingAsync(id, findingId, request, CurrentUserId, ct)));
 
     [HttpPost("{id:int}/sign")]
-    public async Task<IActionResult> Sign(int id, SignAccessReviewRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.SignAsync(id, request.Password, request.Conclusion, CurrentUserId, ClientIp)));
+    public async Task<IActionResult> Sign(int id, SignAccessReviewRequest request, CancellationToken ct) =>
+        Ok(ApiResponse<object>.Ok(await _service.SignAsync(id, request.Password, request.Conclusion, CurrentUserId, ClientIp, ct)));
 
     // CSV only; recorded as an ACCESS_REVIEW_EXPORTED audit event.
     [HttpGet("{id:int}/export")]
-    public async Task<IActionResult> Export(int id)
+    public async Task<IActionResult> Export(int id, CancellationToken ct)
     {
-        var file = await _service.ExportCsvAsync(id, CurrentUserId);
+        var file = await _service.ExportCsvAsync(id, CurrentUserId, ct);
         return File(file.Content, file.ContentType, file.FileName);
     }
 }

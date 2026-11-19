@@ -1,6 +1,7 @@
 import { Button, Stack, Tab, Tabs } from "@mui/material";
 import { Link as RouterLink, useSearchParams } from "react-router-dom";
 import { PageHeader } from "../../../components/PageHeader";
+import { useTranslation } from "../../../i18n";
 import { useOrganisms } from "../../../hooks/useOrganisms";
 import { MaterialMasterPage } from "./MaterialMasterPage";
 import { MediaConfigurationPage } from "../media/MediaConfigurationPage";
@@ -25,12 +26,13 @@ const STANDARD_CATEGORIES: MaterialMasterCategory[] = ["ReferenceStandard", "Pri
 const OTHER_CATEGORIES: MaterialMasterCategory[] = ["Other"];
 
 function ReferenceOrganismsTab() {
+  const { t } = useTranslation("masterData");
   const { options } = useOrganisms();
   return (
     <Stack spacing={2}>
       <Stack direction="row" sx={{ justifyContent: "flex-end" }}>
         <Button component={RouterLink} to="/laboratory-configuration/organisms" variant="outlined" sx={{ fontWeight: 600, textTransform: "none" }}>
-          Species list
+          {t("masterTestingMaterials.speciesListButton")}
         </Button>
       </Stack>
       <ReferenceOrganismsSection species={options} />
@@ -41,15 +43,16 @@ function ReferenceOrganismsTab() {
 // Every material the labs receive into stock, defined in one place: the five groups are the existing
 // master screens hosted as tabs. The selected tab lives in the URL (?tab=) so the old pages can redirect to it.
 export function MasterTestingMaterialsPage() {
+  const { t } = useTranslation("masterData");
   const [searchParams, setSearchParams] = useSearchParams();
   const requested = searchParams.get("tab");
-  const tab: MasterTestingMaterialsTab = MASTER_TESTING_MATERIALS_TABS.find((t) => t === requested) ?? "reagents";
+  const tab: MasterTestingMaterialsTab = MASTER_TESTING_MATERIALS_TABS.find((tKey) => tKey === requested) ?? "reagents";
 
   return (
     <Stack spacing={2}>
       <PageHeader
-        title="Master Testing Materials"
-        subtitle="Every material the labs receive into stock. Every lab can see and use every entry; only the owner lab can edit it."
+        title={t("masterTestingMaterials.title")}
+        subtitle={t("masterTestingMaterials.subtitle")}
       />
       <Tabs
         value={tab}
@@ -57,8 +60,8 @@ export function MasterTestingMaterialsPage() {
         variant="scrollable"
         scrollButtons="auto"
       >
-        {MASTER_TESTING_MATERIALS_TABS.map((t) => (
-          <Tab key={t} value={t} label={TAB_LABELS[t]} />
+        {MASTER_TESTING_MATERIALS_TABS.map((tKey) => (
+          <Tab key={tKey} value={tKey} label={t(`masterTestingMaterials.tabs.${tKey}`, { defaultValue: TAB_LABELS[tKey] })} />
         ))}
       </Tabs>
 

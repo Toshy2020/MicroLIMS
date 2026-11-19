@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Services.Mfa;
+using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
@@ -13,7 +15,7 @@ using MicroLIMS.Shared.Validation;
 namespace MicroLIMS.Application.Services;
 
 // Never carries the token hash.
-public record UserSessionDto(int Id, DateTime CreatedAt, string? CreatedIp, string? UserAgent, DateTime? LastUsedAt, DateTime ExpiresAt);
+public record UserSessionDto(int Id, DateTime CreatedAt, string? CreatedIp, string? UserAgent, DateTime? LastUsedAt, DateTime ExpiresAt, bool MfaVerified = false);
 
 public record RoleDto(int Id, string Name, string Type);
 
@@ -39,11 +41,20 @@ public record UserDto(
     bool MustChangePassword,
     DateTime CreatedAt,
     DateTime? LastLoginAt,
-    DateTime? PasswordChangedAt)
+    DateTime? PasswordChangedAt,
+    string MfaState = nameof(MfaUserState.NotRequired),
+    string SignInMethod = nameof(Domain.Enums.SignInMethod.Local),
+    string? DirectoryUsername = null,
+    bool IsEmergencyAccount = false,
+    string LinkState = nameof(DirectoryLinkState.NotLinked))
 {
     // The record's row version, sent back as If-Match with an edit.
     public uint Version { get; init; }
 }
+
+// The sign-in fields of a user edit. A null field means "leave as it is";
+// an empty DirectoryUsername clears the company username.
+public record UserSignInChange(SignInMethod? SignInMethod, string? DirectoryUsername, bool? IsEmergencyAccount);
 
 public class UserService
 {
@@ -55,10 +66,12 @@ public class UserService
     private readonly TimeProvider _time;
 
     private readonly ISystemSettingsReader? _settings;
+    private readonly MfaPolicyService _mfaPolicy;
 
-    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null)
+    public UserService(IMicroLimsDbContext db, IAuthenticationService authService, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, AdministrationContinuityGuard? continuityGuard = null, IElectronicSignatureService? signatureService = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null)
     {
         _settings = settings;
+        _mfaPolicy = mfaPolicy ?? new MfaPolicyService(_settings);
         _time = timeProvider ?? TimeProvider.System;
         _signatureService = signatureService ?? new ElectronicSignatureService(db, _time);
         _continuityGuard = continuityGuard ?? new AdministrationContinuityGuard(db);
@@ -80,10 +93,10 @@ public class UserService
             "all" => null,
             _ => throw new BusinessRuleException("Status must be 'active', 'inactive' or 'all'.")
         };
-        var query = _db.Users.Include(u => u.Role).AsQueryable();
+        var query = _db.Users.AsNoTracking().Include(u => u.Role).AsQueryable();
         if (wantActive.HasValue) query = query.Where(u => u.IsActive == wantActive.Value);
         var users = await query.OrderBy(u => u.Id).ToListAsync();
-        return users.Select(ToDto).ToList();
+        return await ToDtosAsync(users);
     }
 
     // Document Control assignment pickers ask for only the users whose role
@@ -126,17 +139,23 @@ public class UserService
             .OrderBy(u => u.FullName)
             .ToListAsync();
 
-        return users.Select(ToDto).ToList();
+        return await ToDtosAsync(users);
     }
 
     public async Task<UserDto> GetByIdAsync(int id)
     {
-        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
+        var user = await _db.Users.AsNoTracking().Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == id)
             ?? throw new NotFoundException($"User {id} not found.");
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
-    public async Task<UserDto> CreateAsync(User user, string plainPassword, string? reason)
+    // requestEmergencyAccount goes through the same rules as SetEmergencyAccountAsync.
+    // A brand-new account has no second factor yet, so the request is refused with
+    // that rule's message rather than dropped: mark the account once it has enrolled.
+    public Task<UserDto> CreateAsync(User user, string? plainPassword, string? reason, bool requestEmergencyAccount = false, int actingUserId = 0, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CreateCoreAsync(user, plainPassword, reason, requestEmergencyAccount, actingUserId, ct));
+
+    private async Task<UserDto> CreateCoreAsync(User user, string? plainPassword, string? reason, bool requestEmergencyAccount, int actingUserId, CancellationToken ct)
     {
         var trimmedReason = AdminActionReason.Require(reason, "create a user");
         if (string.IsNullOrWhiteSpace(user.Username))
@@ -144,29 +163,73 @@ public class UserService
         if (string.IsNullOrWhiteSpace(user.FullName))
             throw new BusinessRuleException("Full Name is required.");
 
-        var passwordFailures = PasswordPolicy.Validate(plainPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
-        if (passwordFailures.Count > 0)
-            throw new BusinessRuleException(string.Join(" ", passwordFailures));
+        if (user.SignInMethod != SignInMethod.Directory)
+        {
+            var passwordFailures = PasswordPolicy.Validate(plainPassword ?? string.Empty, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
+            if (passwordFailures.Count > 0)
+                throw new BusinessRuleException(string.Join(" ", passwordFailures));
+        }
 
-        if (await _db.Users.AnyAsync(u => u.Username == user.Username))
+        if (await _db.Users.AnyAsync(u => u.Username == user.Username, ct))
             throw new BusinessRuleException($"Username '{user.Username}' is already taken.");
-        if (!await _db.Roles.AnyAsync(r => r.Id == user.RoleId))
-            throw new BusinessRuleException("Selected role does not exist.");
+        var role = await _db.Roles.AsNoTracking().FirstOrDefaultAsync(r => r.Id == user.RoleId, ct)
+            ?? throw new BusinessRuleException("Selected role does not exist.");
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
-        user.MustChangePassword = true;
+        string? directoryUsername = null;
+        if (user.SignInMethod == SignInMethod.Directory || !string.IsNullOrWhiteSpace(user.DirectoryUsername))
+        {
+            if (user.SignInMethod == SignInMethod.Directory && string.IsNullOrWhiteSpace(user.DirectoryUsername))
+                throw new BusinessRuleException("A company username is required for company sign-in.");
+            directoryUsername = DirectoryUsernameRules.NormalizeOrThrow(user.DirectoryUsername);
+            await EnsureDirectoryUsernameFreeAsync(directoryUsername, exceptUserId: null, ct);
+        }
+        user.DirectoryUsername = directoryUsername;
+
+        user.IsEmergencyAccount = false;
+        if (requestEmergencyAccount)
+            await EnsureEmergencyEligibleAsync(user.Id, role.Type, user.SignInMethod, ct);
+
+        if (user.SignInMethod == SignInMethod.Directory)
+        {
+            var unusableSecret = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(unusableSecret);
+            user.MustChangePassword = false;
+            user.SigningPasswordSetAt = null;
+        }
+        else
+        {
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(plainPassword!);
+            user.MustChangePassword = true;
+        }
+
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : _db.CurrentUserId;
         _db.CurrentReason = trimmedReason;
         _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
-        var reloaded = await _db.Users.Include(u => u.Role).FirstAsync(u => u.Id == user.Id);
-        return ToDto(reloaded);
+        if (directoryUsername is not null)
+        {
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.UserDirectoryLinked,
+                SecurityEventOutcome.Success,
+                ActorUserId: actingUserId > 0 ? actingUserId : null,
+                TargetUserId: user.Id,
+                TargetUsername: user.Username,
+                Reason: trimmedReason));
+            await _db.SaveChangesAsync(ct);
+        }
+
+        var reloaded = await _db.Users.Include(u => u.Role).FirstAsync(u => u.Id == user.Id, ct);
+        return await ToDtoAsync(reloaded);
     }
 
-    public async Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0, string? reason = null)
+    public Task<UserDto> UpdateProfileAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle = null, int actingUserId = 0, string? reason = null, UserSignInChange? signIn = null, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => UpdateProfileCoreAsync(targetUserId, fullName, username, email, jobTitle, actingUserId, reason, signIn, ct));
+
+    private async Task<UserDto> UpdateProfileCoreAsync(int targetUserId, string fullName, string username, string? email, string? jobTitle, int actingUserId, string? reason, UserSignInChange? signIn, CancellationToken ct)
     {
         var trimmedReason = AdminActionReason.Require(reason, "change a user's profile");
-        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
             ?? throw new NotFoundException($"User {targetUserId} not found.");
         RecordVersion.EnsureCurrent(_db, user);
 
@@ -178,6 +241,7 @@ public class UserService
         if (user.Username != username && await _db.Users.AnyAsync(u => u.Username == username && u.Id != targetUserId))
             throw new BusinessRuleException($"Username '{username}' is already taken.");
 
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : _db.CurrentUserId;
         _db.CurrentReason = trimmedReason;
         var prevData = new { user.FullName, user.Username, user.Email, user.JobTitle };
         user.FullName = fullName;
@@ -197,8 +261,47 @@ public class UserService
             Timestamp = _time.GetUtcNow().UtcDateTime
         });
 
-        await _db.SaveChangesAsync();
-        return ToDto(user);
+        if (signIn is not null)
+            await ApplySignInChangeAsync(user, signIn, trimmedReason, actingUserId, ct);
+
+        await _db.SaveChangesAsync(ct);
+        return await ToDtoAsync(user);
+    }
+
+    // The form sends every sign-in field on every edit; only what differs is
+    // changed and audited. Order matters for combined edits: emergency status
+    // is removed before the method changes, and granted after it changes.
+    private async Task ApplySignInChangeAsync(User user, UserSignInChange signIn, string reason, int actingUserId, CancellationToken ct)
+    {
+        var targetMethod = signIn.SignInMethod ?? user.SignInMethod;
+        var targetDirectoryUsername = signIn.DirectoryUsername is null
+            ? user.DirectoryUsername
+            : string.IsNullOrWhiteSpace(signIn.DirectoryUsername)
+                ? null
+                : DirectoryUsernameRules.NormalizeOrThrow(signIn.DirectoryUsername);
+        var targetEmergency = signIn.IsEmergencyAccount ?? user.IsEmergencyAccount;
+
+        if (targetMethod == SignInMethod.Directory && targetDirectoryUsername is null)
+            throw new BusinessRuleException("A company username is required for company sign-in.");
+
+        if (user.IsEmergencyAccount && !targetEmergency)
+            ApplyEmergencyChange(user, false, reason, actingUserId);
+
+        if (targetMethod != user.SignInMethod
+            || !string.Equals(targetDirectoryUsername, user.DirectoryUsername, StringComparison.Ordinal))
+        {
+            if (user.IsEmergencyAccount && targetMethod != SignInMethod.Local)
+                throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+            if (targetDirectoryUsername is not null)
+                await EnsureDirectoryUsernameFreeAsync(targetDirectoryUsername, user.Id, ct);
+            ApplySsoLinkChange(user, targetMethod, targetDirectoryUsername, reason, actingUserId);
+        }
+
+        if (!user.IsEmergencyAccount && targetEmergency)
+        {
+            await EnsureEmergencyEligibleAsync(user.Id, user.Role?.Type, user.SignInMethod, ct);
+            ApplyEmergencyChange(user, true, reason, actingUserId);
+        }
     }
 
     // Signed (D7): the administrator re-enters their password and the signature
@@ -259,7 +362,7 @@ public class UserService
 
         await _db.SaveChangesAsync();
         var updatedUser = await _db.Users.Include(u => u.Role).FirstAsync(u => u.Id == targetUserId);
-        return ToDto(updatedUser);
+        return await ToDtoAsync(updatedUser);
     }
 
     public async Task<UserDto> SetStatusAsync(int targetUserId, bool isActive, string? reason, int actingUserId)
@@ -313,7 +416,7 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     public async Task DeactivateAsync(int userId)
@@ -341,7 +444,7 @@ public class UserService
             .AsNoTracking()
             .Where(r => r.UserId == targetUserId && r.RevokedAt == null && r.ExpiresAt > now)
             .OrderByDescending(r => r.LastUsedAt ?? r.CreatedAt)
-            .Select(r => new UserSessionDto(r.Id, r.CreatedAt, r.CreatedIp, r.UserAgent, r.LastUsedAt, r.ExpiresAt))
+            .Select(r => new UserSessionDto(r.Id, r.CreatedAt, r.CreatedIp, r.UserAgent, r.LastUsedAt, r.ExpiresAt, r.MfaVerified))
             .ToListAsync();
     }
 
@@ -410,7 +513,7 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
     public Task InitiatePasswordResetAsync(int targetUserId, string? reason, int actingUserId) =>
@@ -463,10 +566,245 @@ public class UserService
         });
 
         await _db.SaveChangesAsync();
-        return ToDto(user);
+        return await ToDtoAsync(user);
     }
 
-    private UserDto ToDto(User u) => new(
+    public Task<UserDto> SetEmergencyAccountAsync(int targetUserId, bool isEmergencyAccount, string? reason, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => SetEmergencyAccountCoreAsync(targetUserId, isEmergencyAccount, reason, actingUserId));
+
+    private async Task<UserDto> SetEmergencyAccountCoreAsync(int targetUserId, bool isEmergencyAccount, string? reason, int actingUserId)
+    {
+        var trimmedReason = AdminActionReason.Require(
+            reason,
+            isEmergencyAccount ? "mark an account as an emergency administrator" : "remove emergency administrator status");
+
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        if (isEmergencyAccount)
+            await EnsureEmergencyEligibleAsync(targetUserId, user.Role?.Type, user.SignInMethod, CancellationToken.None);
+
+        ApplyEmergencyChange(user, isEmergencyAccount, trimmedReason, actingUserId);
+
+        await _db.SaveChangesAsync();
+        return await ToDtoAsync(user);
+    }
+
+    // The emergency-account rules, in the order their messages are given.
+    // A user not yet saved (id 0) has no second factor and is refused.
+    private async Task EnsureEmergencyEligibleAsync(int userId, RoleType? roleType, SignInMethod signInMethod, CancellationToken ct)
+    {
+        if (roleType != RoleType.SystemAdministrator)
+            throw new BusinessRuleException("Only a System Administrator account can be marked as an emergency account.");
+
+        if (signInMethod != SignInMethod.Local)
+            throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+
+        var hasActiveMfa = userId > 0 && await _db.UserMfaCredentials
+            .AsNoTracking()
+            .AnyAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct);
+        if (!hasActiveMfa)
+            throw new BusinessRuleException("An emergency account must have an active second factor.");
+
+        var otherEmergencyCount = await _db.Users
+            .AsNoTracking()
+            .CountAsync(u => u.Id != userId && u.IsEmergencyAccount, ct);
+        if (otherEmergencyCount >= 3)
+            throw new BusinessRuleException("At most 3 emergency administrator accounts may be configured.");
+    }
+
+    private void ApplyEmergencyChange(User user, bool isEmergencyAccount, string reason, int actingUserId)
+    {
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
+        _db.CurrentReason = reason;
+        var prevEmergency = user.IsEmergencyAccount;
+        user.IsEmergencyAccount = isEmergencyAccount;
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = user.Id.ToString(),
+            Action = "USER_EMERGENCY_ACCOUNT_CHANGED",
+            PreviousValue = JsonSerializer.Serialize(new { IsEmergencyAccount = prevEmergency }),
+            NewValue = JsonSerializer.Serialize(new { IsEmergencyAccount = isEmergencyAccount, Reason = reason }),
+            Reason = reason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+    }
+
+    public Task<UserDto> UpdateSsoLinkAsync(int targetUserId, SignInMethod signInMethod, string? directoryUsername, string? reason, int actingUserId) =>
+        UnitOfWork.RunAsync(_db, () => UpdateSsoLinkCoreAsync(targetUserId, signInMethod, directoryUsername, reason, actingUserId));
+
+    private async Task<UserDto> UpdateSsoLinkCoreAsync(int targetUserId, SignInMethod signInMethod, string? directoryUsername, string? reason, int actingUserId)
+    {
+        var trimmedReason = AdminActionReason.Require(reason, "update a user's sign-in method");
+
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == targetUserId)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        var normalizedDirectoryUsername = User.NormalizeDirectoryUsername(directoryUsername);
+        if (user.IsEmergencyAccount && signInMethod != SignInMethod.Local)
+            throw new BusinessRuleException("Emergency accounts must use Local sign-in.");
+
+        if (normalizedDirectoryUsername is not null)
+            await EnsureDirectoryUsernameFreeAsync(normalizedDirectoryUsername, targetUserId, CancellationToken.None);
+
+        ApplySsoLinkChange(user, signInMethod, normalizedDirectoryUsername, trimmedReason, actingUserId);
+
+        await _db.SaveChangesAsync();
+        return await ToDtoAsync(user);
+    }
+
+    private async Task EnsureDirectoryUsernameFreeAsync(string normalizedDirectoryUsername, int? exceptUserId, CancellationToken ct)
+    {
+        if (await _db.Users.AsNoTracking().AnyAsync(
+                u => u.DirectoryUsername == normalizedDirectoryUsername && (exceptUserId == null || u.Id != exceptUserId),
+                ct))
+        {
+            throw new BusinessRuleException($"Directory username '{normalizedDirectoryUsername}' is already linked to another user.");
+        }
+    }
+
+    // Changes the method and/or company username of a tracked user and writes
+    // the audit row and security event. Saving is the caller's. Used by the
+    // user form, the link endpoint and the link import (which passes the
+    // user's current method, so only the company username changes).
+    internal void ApplySsoLinkChange(User user, SignInMethod signInMethod, string? normalizedDirectoryUsername, string reason, int actingUserId)
+    {
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
+        _db.CurrentReason = reason;
+
+        var prevMethod = user.SignInMethod;
+        var prevDirectoryUsername = user.DirectoryUsername;
+        var prevSubjectId = user.DirectorySubjectId;
+        user.SignInMethod = signInMethod;
+        user.DirectoryUsername = normalizedDirectoryUsername;
+
+        // The permanent company id belongs to the company account the previous
+        // username named. The sign-in matcher lets a stored id win over the
+        // username, so keeping it would let that previous account go on signing
+        // in as this user. A first-time link (no previous username) has nothing
+        // to forget.
+        var usernameChanged = prevDirectoryUsername is not null
+            && !string.Equals(prevDirectoryUsername, normalizedDirectoryUsername, StringComparison.Ordinal);
+        if (usernameChanged)
+        {
+            user.DirectorySubjectId = null;
+            user.DirectorySignInRefusedAt = null;
+        }
+
+        if (prevMethod == SignInMethod.Local
+            && signInMethod == SignInMethod.Directory
+            && user.SigningPasswordSetAt is null
+            && !string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            user.SigningPasswordSetAt = _time.GetUtcNow().UtcDateTime;
+        }
+
+        if (normalizedDirectoryUsername is not null
+            && !string.Equals(prevDirectoryUsername, normalizedDirectoryUsername, StringComparison.Ordinal))
+        {
+            var eventCode = prevDirectoryUsername is null
+                ? SecurityEventCodes.UserDirectoryLinked
+                : SecurityEventCodes.UserDirectoryRelinked;
+            _securityAudit.Record(new SecurityEventRequest(
+                eventCode,
+                SecurityEventOutcome.Success,
+                ActorUserId: actingUserId > 0 ? actingUserId : null,
+                TargetUserId: user.Id,
+                TargetUsername: user.Username,
+                Reason: reason));
+        }
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = user.Id.ToString(),
+            Action = "USER_SSO_LINK_UPDATED",
+            PreviousValue = JsonSerializer.Serialize(new { SignInMethod = prevMethod.ToString(), DirectoryUsername = prevDirectoryUsername, DirectorySubjectId = prevSubjectId }),
+            NewValue = JsonSerializer.Serialize(new { SignInMethod = signInMethod.ToString(), DirectoryUsername = normalizedDirectoryUsername, DirectorySubjectId = user.DirectorySubjectId, Reason = reason }),
+            Reason = reason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+    }
+
+    // Forgets the permanent company id bound at the user's first company
+    // sign-in, so the next sign-in binds again (e.g. the company re-created
+    // the account). The company username stays. An administrator cannot do
+    // this to their own account.
+    public Task RelinkDirectoryAsync(int targetUserId, string? reason, int actingUserId, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => RelinkDirectoryCoreAsync(targetUserId, reason, actingUserId, ct));
+
+    private async Task RelinkDirectoryCoreAsync(int targetUserId, string? reason, int actingUserId, CancellationToken ct)
+    {
+        var trimmedReason = AdminActionReason.Require(reason, "re-link a user's company account");
+
+        if (actingUserId == targetUserId)
+            throw new BusinessRuleException("You cannot re-link your own company account. Ask another administrator.");
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == targetUserId, ct)
+            ?? throw new NotFoundException($"User {targetUserId} not found.");
+
+        if (user.DirectoryUsername is null)
+            throw new BusinessRuleException("This user has no company username to re-link.");
+
+        _db.CurrentUserId = actingUserId > 0 ? actingUserId : null;
+        _db.CurrentReason = trimmedReason;
+
+        var prevSubject = user.DirectorySubjectId;
+        var prevRefusedAt = user.DirectorySignInRefusedAt;
+        user.DirectorySubjectId = null;
+        user.DirectorySignInRefusedAt = null;
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.UserDirectoryRelinked,
+            SecurityEventOutcome.Success,
+            ActorUserId: actingUserId > 0 ? actingUserId : null,
+            TargetUserId: targetUserId,
+            TargetUsername: user.Username,
+            Reason: trimmedReason,
+            Metadata: "{\"action\":\"subjectCleared\"}"));
+
+        _db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = nameof(User),
+            EntityId = targetUserId.ToString(),
+            Action = "USER_DIRECTORY_RELINKED",
+            PreviousValue = JsonSerializer.Serialize(new { DirectorySubjectId = prevSubject, DirectorySignInRefusedAt = prevRefusedAt }),
+            NewValue = JsonSerializer.Serialize(new { DirectorySubjectId = (string?)null, DirectorySignInRefusedAt = (DateTime?)null, Reason = trimmedReason }),
+            Reason = trimmedReason,
+            UserId = actingUserId,
+            Timestamp = _time.GetUtcNow().UtcDateTime
+        });
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    private async Task<List<UserDto>> ToDtosAsync(IReadOnlyList<User> users)
+    {
+        if (users.Count == 0)
+            return new List<UserDto>();
+
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var states = await _mfaPolicy.GetUserStatesAsync(
+            _db,
+            users.Select(u => (u.Id, u.Role?.Type.ToString() ?? string.Empty, u.MfaRequiredSince)),
+            nowUtc);
+
+        return users
+            .Select(u => ToDto(u, states.GetValueOrDefault(u.Id, MfaUserState.NotRequired), nowUtc))
+            .ToList();
+    }
+
+    private async Task<UserDto> ToDtoAsync(User user)
+    {
+        var dtos = await ToDtosAsync(new[] { user });
+        return dtos[0];
+    }
+
+    private static UserDto ToDto(User u, MfaUserState mfaState, DateTime nowUtc) => new(
         u.Id,
         u.FullName,
         u.Username,
@@ -475,12 +813,17 @@ public class UserService
         u.RoleId,
         u.Role is null ? null : new RoleDto(u.Role.Id, u.Role.Name, u.Role.Type.ToString()),
         u.IsActive,
-        u.IsLockedAt(_time.GetUtcNow().UtcDateTime),
+        u.IsLockedAt(nowUtc),
         u.LockedUntil,
         u.MustChangePassword,
         u.CreatedAt,
         u.LastLoginAt,
-        u.PasswordChangedAt)
+        u.PasswordChangedAt,
+        mfaState.ToString(),
+        u.SignInMethod.ToString(),
+        u.DirectoryUsername,
+        u.IsEmergencyAccount,
+        DirectoryLinkStates.Of(u).ToString())
     {
         Version = u.Version
     };

@@ -9,6 +9,8 @@ import type { HplcMethodResponse } from "../../laboratoryConfiguration/masterDat
 import type { SolutionPreparationListItem } from "../../solutionPreparation/types";
 import type { HplcTechnique } from "../types";
 import { useTechnique } from "../useTechnique";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 export interface WizardReviewStepProps {
   instrumentName?: string;
@@ -31,6 +33,7 @@ export function WizardReviewStep({
   selectedMobilePhases,
   technique
 }: WizardReviewStepProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
   const { technique: routeTechnique } = useTechnique();
   const activeTechnique = technique ?? routeTechnique;
@@ -38,7 +41,7 @@ export function WizardReviewStep({
   return (
     <Stack spacing={2.5}>
       <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-        Run Setup Summary:
+        {t("wizard.reviewStep.title")}
       </Typography>
 
       <Paper
@@ -51,39 +54,39 @@ export function WizardReviewStep({
       >
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Instrument</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>{instrumentName} ({instrumentCode})</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("wizard.reviewStep.instrument")}</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>{instrumentName} (<Ltr>{instrumentCode}</Ltr>)</Typography>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Method</Typography>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>{method.name} ({method.abbreviation})</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("wizard.reviewStep.method")}</Typography>
+            <Typography variant="body1" sx={{ fontWeight: 600 }}>{method.name} (<Ltr>{method.abbreviation}</Ltr>)</Typography>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6 }}>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Column</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("wizard.reviewStep.column")}</Typography>
             <Typography variant="body1" sx={{ fontWeight: 600 }}>
-              {columnName} ({columnCode})
+              {columnName} (<Ltr>{columnCode}</Ltr>)
             </Typography>
           </Grid>
 
           {activeTechnique === "Gc" ? (
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>Carrier Gas & Inlet</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("wizard.reviewStep.carrierGasInlet")}</Typography>
               <Typography variant="body2">
-                <strong>Gas:</strong> {method.carrierGas ?? "—"} ·{" "}
-                <strong>Split:</strong> {method.splitRatio != null ? `${method.splitRatio}:1` : "Splitless"}
+                <strong>{t("wizard.reviewStep.gas")}</strong> {method.carrierGas ?? "—"} ·{" "}
+                <strong>{t("wizard.reviewStep.split")}</strong> {method.splitRatio != null ? <Ltr>{`${method.splitRatio}:1`}</Ltr> : t("method.splitless")}
               </Typography>
             </Grid>
           ) : (
             <Grid size={{ xs: 12, sm: 6 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>Mobile Phases</Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("wizard.reviewStep.mobilePhases")}</Typography>
               {method.mobilePhases?.map((mp) => {
                 const prepId = selectedMobilePhases[mp.channel];
                 const prep = availablePreparations[mp.channel]?.find((p) => p.id === prepId);
                 return (
                   <Typography key={mp.channel} variant="body2">
-                    <strong>Channel {mp.channel}:</strong> {prep?.code ?? "—"} ({mp.solutionMasterName})
+                    <strong>{t("wizard.reviewStep.channel", { channel: mp.channel })}</strong> <Ltr>{prep?.code ?? "—"}</Ltr> ({mp.solutionMasterName})
                   </Typography>
                 );
               })}

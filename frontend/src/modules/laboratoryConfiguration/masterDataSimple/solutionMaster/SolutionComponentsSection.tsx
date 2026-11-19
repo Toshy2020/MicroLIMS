@@ -16,6 +16,7 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
+import { useTranslation } from "../../../../i18n";
 import {
   SolutionComponentKind,
   SolutionComponentUnit,
@@ -55,16 +56,18 @@ export function SolutionComponentsSection({
   onMoveComponent,
   onComponentChange
 }: SolutionComponentsSectionProps) {
+  const { t } = useTranslation("masterData");
   return (
     <Paper variant="outlined" sx={{ p: 2, borderRadius: 1.5, bgcolor: "background.default" }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
         <div>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-            Recipe Components *
+            {t("solutionMaster.components.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Ordered list of material master entries{allowPreparedSolution ? ", prepared solutions" : ""} and text lines
-            (for example "Purified water to 1000 mL").
+            {t("solutionMaster.components.subtitle", {
+              prepared: allowPreparedSolution ? t("solutionMaster.components.subtitlePrepared") : ""
+            })}
           </Typography>
         </div>
         <Button
@@ -74,7 +77,7 @@ export function SolutionComponentsSection({
           variant="outlined"
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          Add Component
+          {t("solutionMaster.components.addButton")}
         </Button>
       </Stack>
 
@@ -102,14 +105,14 @@ export function SolutionComponentsSection({
                 textAlign: "center"
               }}
             >
-              #{idx + 1}
+              {t("solutionMaster.components.rowIndex", { index: idx + 1 })}
             </Typography>
 
             <FormControl size="small" sx={{ width: { xs: "100%", sm: 160 } }}>
-              <InputLabel id={`comp-kind-label-${idx}`}>Line type</InputLabel>
+              <InputLabel id={`comp-kind-label-${idx}`}>{t("solutionMaster.components.lineTypeLabel")}</InputLabel>
               <Select
                 labelId={`comp-kind-label-${idx}`}
-                label="Line type"
+                label={t("solutionMaster.components.lineTypeLabel")}
                 value={comp.kind}
                 onChange={(e) =>
                   onComponentChange(idx, "kind", e.target.value as SolutionComponentKind)
@@ -119,7 +122,7 @@ export function SolutionComponentsSection({
                   (o) => allowPreparedSolution || o.value !== "PreparedSolution" || comp.kind === "PreparedSolution"
                 ).map((o) => (
                   <MenuItem key={o.value} value={o.value}>
-                    {o.label}
+                    {t(`solutionMaster.components.kinds.${o.value}`, { defaultValue: o.label })}
                   </MenuItem>
                 ))}
               </Select>
@@ -127,40 +130,40 @@ export function SolutionComponentsSection({
 
             {comp.kind === "Text" ? (
               <TextField
-                label="Text"
+                label={t("solutionMaster.components.textLabel")}
                 size="small"
                 required
                 value={comp.text}
                 onChange={(e) => onComponentChange(idx, "text", e.target.value)}
-                placeholder="e.g. Purified water to 1000 mL"
+                placeholder={t("solutionMaster.components.textPlaceholder")}
                 sx={{ flex: 3, minWidth: 200 }}
                 slotProps={{ htmlInput: { maxLength: MAX_TEXT_LINE_LENGTH } }}
-                helperText="Printed on the record; no stock lot is picked."
+                helperText={t("solutionMaster.components.textHelper")}
               />
             ) : (
               <>
                 {comp.kind === "PreparedSolution" ? (
                   <FormControl size="small" sx={{ flex: 2, minWidth: 200 }} required>
-                    <InputLabel id={`comp-source-label-${idx}`}>Prepared solution recipe</InputLabel>
+                    <InputLabel id={`comp-source-label-${idx}`}>{t("solutionMaster.components.preparedSolutionLabel")}</InputLabel>
                     <Select
                       labelId={`comp-source-label-${idx}`}
-                      label="Prepared solution recipe"
+                      label={t("solutionMaster.components.preparedSolutionLabel")}
                       value={comp.sourceSolutionMasterId}
                       onChange={(e) => onComponentChange(idx, "sourceSolutionMasterId", e.target.value)}
                     >
                       {availableSourceSolutions.map((sol) => (
                         <MenuItem key={sol.id} value={sol.id}>
-                          {sol.name} {!sol.isActive ? "(Inactive)" : ""}
+                          {sol.name} {!sol.isActive ? t("solutionMaster.ph.inactiveTag") : ""}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 ) : (
                   <FormControl size="small" sx={{ flex: 2, minWidth: 200 }} required>
-                    <InputLabel id={`comp-entry-label-${idx}`}>Material Master Entry</InputLabel>
+                    <InputLabel id={`comp-entry-label-${idx}`}>{t("solutionMaster.components.materialEntryLabel")}</InputLabel>
                     <Select
                       labelId={`comp-entry-label-${idx}`}
-                      label="Material Master Entry"
+                      label={t("solutionMaster.components.materialEntryLabel")}
                       value={comp.materialMasterEntryId}
                       onChange={(e) =>
                         onComponentChange(idx, "materialMasterEntryId", e.target.value)
@@ -168,7 +171,7 @@ export function SolutionComponentsSection({
                     >
                       {availableMaterialEntries.map((m) => (
                         <MenuItem key={m.id} value={m.id}>
-                          {m.code} - {m.name} {!m.isActive ? "(Inactive)" : ""}
+                          {m.code} - {m.name} {!m.isActive ? t("solutionMaster.ph.inactiveTag") : ""}
                         </MenuItem>
                       ))}
                     </Select>
@@ -176,7 +179,7 @@ export function SolutionComponentsSection({
                 )}
 
                 <TextField
-                  label="Quantity"
+                  label={t("solutionMaster.components.quantityLabel")}
                   type="number"
                   size="small"
                   required
@@ -187,10 +190,10 @@ export function SolutionComponentsSection({
                 />
 
                 <FormControl size="small" sx={{ width: { xs: "100%", sm: 160 } }} required>
-                  <InputLabel id={`comp-unit-label-${idx}`}>Unit</InputLabel>
+                  <InputLabel id={`comp-unit-label-${idx}`}>{t("solutionMaster.components.unitLabel")}</InputLabel>
                   <Select
                     labelId={`comp-unit-label-${idx}`}
-                    label="Unit"
+                    label={t("solutionMaster.components.unitLabel")}
                     value={comp.unit}
                     onChange={(e) =>
                       onComponentChange(idx, "unit", e.target.value as SolutionComponentUnit)
@@ -198,7 +201,7 @@ export function SolutionComponentsSection({
                   >
                     {COMPONENT_UNIT_OPTIONS.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>
-                        {opt.label}
+                        {t(`solutionMaster.components.units.${opt.value}`, { defaultValue: opt.label })}
                       </MenuItem>
                     ))}
                   </Select>
@@ -207,9 +210,9 @@ export function SolutionComponentsSection({
             )}
 
             <Stack direction="row" spacing={0.5} sx={{ ml: "auto" }}>
-              <Tooltip title="Move Up">
+              <Tooltip title={t("solutionMaster.components.moveUp")}>
                 <span>
-                  <IconButton aria-label="Move Up"
+                  <IconButton aria-label={t("solutionMaster.components.moveUp")}
                     size="small"
                     disabled={idx === 0}
                     onClick={() => onMoveComponent(idx, "up")}
@@ -218,9 +221,9 @@ export function SolutionComponentsSection({
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title="Move Down">
+              <Tooltip title={t("solutionMaster.components.moveDown")}>
                 <span>
-                  <IconButton aria-label="Move Down"
+                  <IconButton aria-label={t("solutionMaster.components.moveDown")}
                     size="small"
                     disabled={idx === components.length - 1}
                     onClick={() => onMoveComponent(idx, "down")}
@@ -229,9 +232,9 @@ export function SolutionComponentsSection({
                   </IconButton>
                 </span>
               </Tooltip>
-              <Tooltip title="Remove Component">
+              <Tooltip title={t("solutionMaster.components.remove")}>
                 <span>
-                  <IconButton aria-label="Remove Component"
+                  <IconButton aria-label={t("solutionMaster.components.remove")}
                     size="small"
                     color="error"
                     disabled={components.length <= 1}

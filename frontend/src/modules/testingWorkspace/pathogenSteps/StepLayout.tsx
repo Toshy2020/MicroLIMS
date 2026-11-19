@@ -1,6 +1,13 @@
 import { ReactNode, useState } from "react";
-import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, TextField, Typography, useTheme } from "@mui/material";
+import { Alert, Box, Collapse, FormControlLabel, Link, MenuItem, Radio, RadioGroup, Stack, TextField, Typography, useTheme } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { Trans } from "react-i18next";
+import { ScanField } from "../../../components/labels/ScanField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { BENCH_MIN_TARGET } from "../../../theme/benchTheme";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
 
 // Shared building blocks for the pathogen step panels, so every step reads
 // the same way: label/value rows for recorded details and an action bar
@@ -20,11 +27,11 @@ export function StepActionBar({ children, note }: { children: ReactNode; note?: 
         display: "grid", gap: 0.75
       }}
     >
-      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", "& > .MuiButton-contained": { flex: { xs: "1 1 100%", sm: "0 0 auto" }, minHeight: 44 } }}>
+      <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", flexWrap: "wrap", "& > .MuiButton-contained": { flex: { xs: "1 1 100%", sm: "0 0 auto" }, minHeight: (t) => (t.custom?.bench ? BENCH_MIN_TARGET : 44) } }}>
         {children}
       </Box>
       {note && (
-        <Typography variant="caption" sx={{ color: "text.secondary", textAlign: { xs: "center", sm: "right" } }}>
+        <Typography variant="caption" sx={{ color: "text.secondary", textAlign: { xs: "center", sm: "end" } }}>
           {note}
         </Typography>
       )}
@@ -42,7 +49,7 @@ export function StepDetailList({ rows }: { rows: { label: string; value: ReactNo
       {rows.map((r) => (
         <Box key={r.label} sx={{ display: "contents" }}>
           <Box component="dt" sx={{ color: "text.secondary" }}>{r.label}</Box>
-          <Box component="dd" sx={{ m: 0, fontWeight: 500, textAlign: "right", fontVariantNumeric: "tabular-nums", overflowWrap: "anywhere" }}>
+          <Box component="dd" sx={{ m: 0, fontWeight: 500, textAlign: "end", fontVariantNumeric: "tabular-nums", overflowWrap: "anywhere" }}>
             {r.value}
           </Box>
         </Box>
@@ -55,21 +62,22 @@ export function StepDetailList({ rows }: { rows: { label: string; value: ReactNo
 // Every value is passed in exactly as the server resolved it - this never
 // computes hours or readiness itself.
 export function IncubationTimeline({ points }: { points: { label: string; value: ReactNode; active?: boolean }[] }) {
+  const { t } = useTranslation("testingWorkspace");
   return (
     <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 1.5 }}>
       <Typography variant="caption" sx={{ color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>
-        Incubation window
+        {t("pathogenSteps.layout.incubationWindow")}
       </Typography>
       <Box component="ol" sx={{ listStyle: "none", m: 0, mt: 1, p: 0, display: "grid", gridTemplateColumns: `repeat(${points.length}, minmax(0, 1fr))` }}>
         {points.map((p, i) => (
-          <Box component="li" key={p.label} sx={{ minWidth: 0, textAlign: i === 0 ? "left" : i === points.length - 1 ? "right" : "center" }}>
+          <Box component="li" key={p.label} sx={{ minWidth: 0, textAlign: i === 0 ? "start" : i === points.length - 1 ? "end" : "center" }}>
             <Box sx={{ position: "relative", height: 12, mb: 0.75 }}>
-              <Box sx={{ position: "absolute", top: 5, height: 2, left: i === 0 ? 6 : 0, right: i === points.length - 1 ? 6 : 0, bgcolor: "divider" }} />
+              <Box sx={{ position: "absolute", top: 5, height: 2, insetInlineStart: i === 0 ? 6 : 0, insetInlineEnd: i === points.length - 1 ? 6 : 0, bgcolor: "divider" }} />
               <Box
                 sx={{
                   position: "absolute", top: 0, width: 12, height: 12, borderRadius: "50%",
-                  left: i === 0 ? 0 : i === points.length - 1 ? "auto" : "calc(50% - 6px)",
-                  right: i === points.length - 1 ? 0 : "auto",
+                  insetInlineStart: i === 0 ? 0 : i === points.length - 1 ? "auto" : "calc(50% - 6px)",
+                  insetInlineEnd: i === points.length - 1 ? 0 : "auto",
                   bgcolor: p.active ? "primary.main" : "background.paper",
                   border: "2px solid", borderColor: p.active ? "primary.main" : "text.disabled"
                 }}
@@ -86,15 +94,18 @@ export function IncubationTimeline({ points }: { points: { label: string; value:
 
 // A medium fixed by the step template, with a lock showing it comes from
 // Test Master and can't be changed here.
-export function FixedMediumRow({ mediaName, label = "Medium" }: { mediaName: string; label?: string }) {
+export function FixedMediumRow({ mediaName, label }: { mediaName: string; label?: string }) {
+  const { t } = useTranslation("testingWorkspace");
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, bgcolor: "action.hover", border: "1px solid", borderColor: "divider", borderRadius: 2, px: 1.5, py: 1 }}>
       <Box sx={{ minWidth: 0 }}>
-        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</Typography>
+        <Typography variant="caption" sx={{ display: "block", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+          {label ?? t("pathogenSteps.layout.medium")}
+        </Typography>
         <Typography variant="body2" sx={{ fontWeight: 500 }}>{mediaName}</Typography>
       </Box>
-      <Typography variant="caption" title="Assigned in Test Master" sx={{ ml: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
-        <LockOutlinedIcon sx={{ fontSize: 14 }} /> Test Master
+      <Typography variant="caption" title={t("pathogenSteps.layout.assignedInTestMaster")} sx={{ ml: "auto", color: "text.secondary", display: "flex", alignItems: "center", gap: 0.5, whiteSpace: "nowrap" }}>
+        <LockOutlinedIcon sx={{ fontSize: 14 }} /> {t("pathogenSteps.layout.testMaster")}
       </Typography>
     </Box>
   );
@@ -106,7 +117,8 @@ interface IncubatorOption { id: number; name: string; code: string; setTemperatu
 // Labelled media lot + incubator pickers with helper text, shared by every
 // step that starts an incubation.
 export function MediaLotIncubatorFields({
-  idPrefix, lots, incubators, tempMin, tempMax, mediaLotId, equipmentId, onLotChange, onIncubatorChange, disabled = false
+  idPrefix, lots, incubators, tempMin, tempMax, mediaLotId, equipmentId, onLotChange, onIncubatorChange, disabled = false,
+  lotIsDefault = false, lotConfirmed = true, onConfirmLot, incubatorIsDefault = false
 }: {
   idPrefix: string;
   lots: LotOption[];
@@ -118,25 +130,54 @@ export function MediaLotIncubatorFields({
   onLotChange: (id: number) => void;
   onIncubatorChange: (id: number) => void;
   disabled?: boolean;
+  lotIsDefault?: boolean;
+  lotConfirmed?: boolean;
+  onConfirmLot?: () => void;
+  incubatorIsDefault?: boolean;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const lotCount = lots.length;
   return (
     <>
-      <TextField
-        select fullWidth required disabled={disabled}
-        id={`${idPrefix}-media-lot`}
-        label="Media lot"
-        value={mediaLotId}
-        onChange={(e) => onLotChange(Number(e.target.value))}
-        helperText={mediaLotId ? "Released and within expiry" : lotCount === 0 ? "No released lots of this medium are available" : `${lotCount} released lot${lotCount === 1 ? "" : "s"} available`}
-        error={!disabled && lotCount === 0}
-        slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-      >
-        <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select a released lot</Box></MenuItem>
-        {lots.map((l) => (
-          <MenuItem key={l.id} value={l.id}>{l.lotNumber} · expires {new Date(l.expiryDate).toLocaleDateString()}</MenuItem>
-        ))}
-      </TextField>
+      <Stack spacing={1}>
+        <ScanField
+          label={t("pathogenSteps.layout.scanMediaLot")}
+          expectedType="MediaLot"
+          offeredIds={lots.map((l) => l.id)}
+          onSelect={onLotChange}
+          disabled={disabled}
+        />
+        <LastChoiceField
+          kind="lot"
+          isDefault={lotIsDefault}
+          confirmed={lotConfirmed}
+          onConfirm={onConfirmLot}
+        >
+          <TextField
+            select fullWidth required disabled={disabled}
+            id={`${idPrefix}-media-lot`}
+            label={t("pathogenSteps.layout.mediaLot")}
+            value={mediaLotId}
+            onChange={(e) => onLotChange(Number(e.target.value))}
+            helperText={
+              mediaLotId
+                ? t("pathogenSteps.layout.lotReleasedWithinExpiry")
+                : lotCount === 0
+                ? t("pathogenSteps.layout.noLotsAvailable")
+                : t("pathogenSteps.layout.lotsAvailable", { count: lotCount })
+            }
+            error={!disabled && lotCount === 0}
+            slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+          >
+            <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>{t("pathogenSteps.layout.selectLot")}</Box></MenuItem>
+            {lots.map((l) => (
+              <MenuItem key={l.id} value={l.id}>
+                <Ltr>{l.lotNumber}</Ltr> · {t("pathogenSteps.layout.expires")} <Ltr>{formatLabCalendarDate(l.expiryDate)}</Ltr>
+              </MenuItem>
+            ))}
+          </TextField>
+        </LastChoiceField>
+      </Stack>
       <IncubatorField
         id={`${idPrefix}-incubator`}
         incubators={incubators}
@@ -145,6 +186,7 @@ export function MediaLotIncubatorFields({
         value={equipmentId}
         onChange={onIncubatorChange}
         disabled={disabled}
+        isDefault={incubatorIsDefault}
       />
     </>
   );
@@ -152,7 +194,7 @@ export function MediaLotIncubatorFields({
 
 // Labelled incubator picker listing only incubators set within the range.
 export function IncubatorField({
-  id, incubators, tempMin, tempMax, value, onChange, disabled = false, label = "Incubator"
+  id, incubators, tempMin, tempMax, value, onChange, disabled = false, label, isDefault = false
 }: {
   id: string;
   incubators: IncubatorOption[];
@@ -162,21 +204,53 @@ export function IncubatorField({
   onChange: (id: number) => void;
   disabled?: boolean;
   label?: string;
+  isDefault?: boolean;
 }) {
+  const { t } = useTranslation("testingWorkspace");
+  const resolvedLabel = label ?? t("pathogenSteps.layout.incubator");
+  const scanLabel = label ? t("pathogenSteps.layout.scanField", { field: label.toLowerCase() }) : t("pathogenSteps.layout.scanIncubator");
   return (
-    <TextField
-      select fullWidth required disabled={disabled}
-      id={id}
-      label={label}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
-      helperText={incubators.length === 0 ? `No incubators are set within ${tempMin}–${tempMax} °C` : `Only incubators set within ${tempMin}–${tempMax} °C are listed`}
-      error={!disabled && incubators.length === 0}
-      slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
-    >
-      <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>Select an incubator</Box></MenuItem>
-      {incubators.map((i) => <MenuItem key={i.id} value={i.id}>{i.code} · {i.name} · set {i.setTemperature} °C</MenuItem>)}
-    </TextField>
+    <Stack spacing={1}>
+      <ScanField
+        label={scanLabel}
+        expectedType="EquipmentAsset"
+        offeredIds={incubators.map((i) => i.id)}
+        onSelect={onChange}
+        disabled={disabled}
+      />
+      <LastChoiceField kind="equipment" isDefault={isDefault}>
+        <TextField
+          select fullWidth required disabled={disabled}
+          id={id}
+          label={resolvedLabel}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          helperText={
+            <Trans
+              i18nKey={incubators.length === 0 ? "pathogenSteps.layout.noIncubatorsInRange" : "pathogenSteps.layout.onlyIncubatorsInRange"}
+              ns="testingWorkspace"
+              values={{ min: tempMin, max: tempMax }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          }
+          error={!disabled && incubators.length === 0}
+          slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}
+        >
+          <MenuItem value="" disabled><Box component="span" sx={{ color: "text.secondary" }}>{t("pathogenSteps.layout.selectIncubator")}</Box></MenuItem>
+          {incubators.map((i) => (
+            <MenuItem key={i.id} value={i.id}>
+              <Ltr>{i.code}</Ltr> · {i.name} ·{" "}
+              <Trans
+                i18nKey="pathogenSteps.layout.setTemp"
+                ns="testingWorkspace"
+                values={{ temp: i.setTemperature }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            </MenuItem>
+          ))}
+        </TextField>
+      </LastChoiceField>
+    </Stack>
   );
 }
 
@@ -190,6 +264,7 @@ export function StepHeading({ title, chip, caption, help }: {
   caption?: ReactNode;
   help?: string;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [showHelp, setShowHelp] = useState(false);
   const tone = chip ? theme.custom.status[chip.tone] : null;
@@ -210,7 +285,7 @@ export function StepHeading({ title, chip, caption, help }: {
       {help && (
         <Box sx={{ mt: 0.5 }}>
           <Link component="button" type="button" variant="caption" underline="hover" aria-expanded={showHelp} onClick={() => setShowHelp((v) => !v)}>
-            {showHelp ? "Hide step details" : "What happens in this step?"}
+            {showHelp ? t("pathogenSteps.layout.hideStepDetails") : t("pathogenSteps.layout.whatHappensInStep")}
           </Link>
           <Collapse in={showHelp} unmountOnExit>
             <Typography variant="caption" component="p" sx={{ color: "text.secondary", mt: 0.5, mb: 0 }}>{help}</Typography>
@@ -224,14 +299,16 @@ export function StepHeading({ title, chip, caption, help }: {
 // What a target-positive colony looks like on this medium, or a warning
 // when Test Master has no expected appearance configured.
 export function ExpectedAppearanceNote({ mediaName, expectedAppearance }: { mediaName: string; expectedAppearance: string | null }) {
+  const { t } = useTranslation("testingWorkspace");
   return expectedAppearance === null ? (
     <Alert severity="warning">
-      Expected appearance not configured in Test Master for {mediaName}. Growth vs. no-growth can still be recorded,
-      but a conforming/non-conforming judgment is unreliable until Test Master is fixed.
+      {t("pathogenSteps.layout.expectedAppearanceNotConfigured", { mediaName })}
     </Alert>
   ) : (
     <Alert severity="info" icon={false} sx={{ py: 0.25 }}>
-      <Typography variant="caption" sx={{ display: "block", textTransform: "uppercase", letterSpacing: "0.06em" }}>Expected target-positive colony</Typography>
+      <Typography variant="caption" sx={{ display: "block", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        {t("pathogenSteps.layout.expectedTargetColony")}
+      </Typography>
       <strong>{expectedAppearance}</strong>
     </Alert>
   );

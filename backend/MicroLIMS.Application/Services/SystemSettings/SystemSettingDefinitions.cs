@@ -16,6 +16,12 @@ public static class SystemSettingKeys
     public const string PasswordResetLifetimeMinutes = "security.passwordReset.lifetimeMinutes";
     public const string SignatureMaxFailedAttempts = "security.signature.maxFailedAttempts";
     public const string SignatureWindowMinutes = "security.signature.windowMinutes";
+    public const string MfaPolicy = "security.mfa.policy";
+    public const string MfaRequiredRoles = "security.mfa.requiredRoles";
+    public const string MfaTrustedDeviceHours = "security.mfa.trustedDeviceHours";
+    public const string MfaEnrolmentGraceDays = "security.mfa.enrolmentGraceDays";
+    public const string SsoMode = "security.sso.mode";
+    public const string SsoSessionMaxHours = "security.sso.sessionMaxHours";
 
     public const string ErrorLogLowSeverityDays = "retention.errorLog.lowSeverityDays";
     public const string ErrorLogHighSeverityDays = "retention.errorLog.highSeverityDays";
@@ -36,6 +42,19 @@ public static class SystemSettingKeys
     public const string AnnouncementBanner = "System.AnnouncementBanner";
     public const string AnnouncementSeverity = "System.AnnouncementSeverity";
     public const string AccessReviewDormantDays = "AccessReview.DormantDays";
+
+    // My Work (landing page of waiting tasks).
+    public const string MyWorkLookAheadDays = "myWork.lookAheadDays";
+    public const string MyWorkReadOverdueHours = "myWork.readOverdueHours";
+    // Bench and tablet mode (C2): how long a tablet keeps an analyst's unsaved local drafts.
+    public const string BenchDraftRetentionHours = "bench.draftRetentionHours";
+    // Faster data entry (C4): whether entry forms offer the analyst's last valid choice as a default.
+    public const string LastChoiceDefaultsEnabled = "entry.lastChoiceDefaults.enabled";
+
+    // Notification centre and daily digest (C5).
+    public const string NotificationsRetentionDays = "notifications.retentionDays";
+    public const string NotificationsDigestHourLocal = "notifications.digestHourLocal";
+    public const string NotificationsLookAheadDays = "notifications.lookAheadDays";
 }
 
 // One setting as defined in code: type, default, bounds, GxP relevance.
@@ -127,6 +146,10 @@ public static class SystemSettingDefinitions
 
     public const string AlertsCategory = "Alerts";
     public const string AccessReviewCategory = "Access Review";
+    public const string MyWorkCategory = "My Work";
+    public const string WorkflowCategory = "Workflow";
+    public const string BenchCategory = "Bench";
+    public const string NotificationsCategory = "Notifications";
 
     // The defaults below are the values that were hard-coded or configured
     // before the registry existed; AuthenticationService and
@@ -157,6 +180,24 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.SignatureWindowMinutes, SecurityCategory, SystemSettingValueType.Integer, "15",
             "Window in which failed electronic signatures are counted; also how long a throttled signer must wait.",
             "minutes", 1, 1440, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaPolicy, SecurityCategory, SystemSettingValueType.String, "RequiredForRoles",
+            "Who must sign in with a second factor: Off, Optional, RequiredForRoles, or RequiredForAll.",
+            AllowedValues: new[] { "Off", "Optional", "RequiredForRoles", "RequiredForAll" }, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaRequiredRoles, SecurityCategory, SystemSettingValueType.String, "SystemAdministrator,SectionHead,QcManager,Qa",
+            "Comma-separated role types that require a second factor when the policy is RequiredForRoles.",
+            IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaTrustedDeviceHours, SecurityCategory, SystemSettingValueType.Integer, "12",
+            "How long a trusted computer skips the second-factor prompt; 0 asks at every sign-in.",
+            "hours", 0, 24, IsGxpRelevant: true),
+        new(SystemSettingKeys.MfaEnrolmentGraceDays, SecurityCategory, SystemSettingValueType.Integer, "7",
+            "Days a newly required user may still sign in before second-factor enrolment becomes mandatory; 0 requires enrolment immediately.",
+            "days", 0, 30, IsGxpRelevant: true),
+        new(SystemSettingKeys.SsoMode, SecurityCategory, SystemSettingValueType.String, "Off",
+            "Single sign-on mode: Off, OpenIdConnect, or ActiveDirectory.",
+            AllowedValues: new[] { "Off", "OpenIdConnect", "ActiveDirectory" }, IsGxpRelevant: true),
+        new(SystemSettingKeys.SsoSessionMaxHours, SecurityCategory, SystemSettingValueType.Integer, "12",
+            "Maximum hours a directory sign-in session may stay active before requiring a fresh sign-in with the company provider.",
+            "hours", 1, 24, IsGxpRelevant: true),
 
         new(SystemSettingKeys.ErrorLogLowSeverityDays, RetentionCategory, SystemSettingValueType.Integer, "180",
             "How long Info and Warning incidents are kept in the technical error log before they are pruned.",
@@ -203,6 +244,29 @@ public static class SystemSettingDefinitions
         new(SystemSettingKeys.AccessReviewDormantDays, AccessReviewCategory, SystemSettingValueType.Integer, "90",
             "An active account whose last successful sign-in is older than this (or that has never signed in and is older than this) is flagged dormant in the access-review report. A review already generated keeps the value it was generated with.",
             "days", 1, 3650),
+        new(SystemSettingKeys.MyWorkLookAheadDays, MyWorkCategory, SystemSettingValueType.Integer, "7",
+            "How many days ahead My Work lists upcoming work such as expiring documents, due equipment tasks and expiring materials.",
+            "days", 1, 30),
+        new(SystemSettingKeys.MyWorkReadOverdueHours, MyWorkCategory, SystemSettingValueType.Integer, "0",
+            "Hours an incubation may wait after it is ready to read before My Work marks it overdue; 0 switches the overdue marking off.",
+            "hours", 0, 168),
+
+        new(SystemSettingKeys.BenchDraftRetentionHours, BenchCategory, SystemSettingValueType.Integer, "24",
+            "How long a bench tablet keeps an analyst's unsaved entries (local drafts, never records) before they are removed from the tablet. Read by the browser through the client-settings endpoint.",
+            "hours", 1, 72),
+        new(SystemSettingKeys.LastChoiceDefaultsEnabled, WorkflowCategory, SystemSettingValueType.Boolean, "true",
+            "Whether entry forms pre-fill the analyst's last valid equipment, media lot, sampled-by or cause of testing choice. A pre-filled media lot still requires confirmation before saving.",
+            IsGxpRelevant: true),
+
+        new(SystemSettingKeys.NotificationsRetentionDays, NotificationsCategory, SystemSettingValueType.Integer, "90",
+            "How many days of notifications are kept before the background job removes old rows. Audit logs are untouched.",
+            "days", 30, 365),
+        new(SystemSettingKeys.NotificationsDigestHourLocal, NotificationsCategory, SystemSettingValueType.Integer, "7",
+            "Hour of the day (0-23, laboratory local time) at or after which the daily notification digest email is sent.",
+            "hour", 0, 23),
+        new(SystemSettingKeys.NotificationsLookAheadDays, NotificationsCategory, SystemSettingValueType.Integer, "7",
+            "How many days ahead expiring media, solutions and reference strains generate notifications.",
+            "days", 1, 30),
     };
 
     private static readonly Dictionary<string, SystemSettingDefinition> ByKey =

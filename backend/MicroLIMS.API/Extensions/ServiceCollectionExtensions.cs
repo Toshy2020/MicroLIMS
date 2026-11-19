@@ -6,6 +6,7 @@ using Amazon.S3;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Application.Services.Kpi;
 using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Application.Validators;
@@ -14,11 +15,13 @@ using MicroLIMS.Infrastructure.Authentication;
 using MicroLIMS.Infrastructure.Email;
 using MicroLIMS.Application.Services.InstrumentImport;
 using MicroLIMS.Infrastructure.InstrumentImport;
+using MicroLIMS.API.Hubs;
 using MicroLIMS.Application.Abstractions.Email;
-using MicroLIMS.Infrastructure.Notifications;
-using MicroLIMS.Application.Abstractions.Notifications;
+using MicroLIMS.Application.Abstractions.Live;
+using MicroLIMS.Application.Abstractions.Security;
 using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Infrastructure.Security;
 using MicroLIMS.Infrastructure.Storage;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Infrastructure.Word;
@@ -37,6 +40,29 @@ public static class ServiceCollectionExtensions
     // The DbContext, and the interface the Application layer asks for. Both
     // resolve to the same request-scoped instance, which AuditMiddleware
     // stamps with the current user.
+    // The "Frontend" CORS policy. Extracted from Program.cs so a test can
+    // exercise the real policy (e.g. that a preflight allows X-Draft-Started-At).
+    public static IServiceCollection AddMicroLimsCors(this IServiceCollection services, string[] allowedOrigins)
+    {
+        services.AddCors(options =>
+        {
+            options.AddPolicy("Frontend", policy =>
+                policy.WithOrigins(allowedOrigins)
+                      // AllowAnyHeader already covers request headers including
+                      // X-Draft-Started-At (bench tablets) and X-Change-Reason
+                      // (master-data changes); integration tests pin both.
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      // AllowAnyHeader covers request headers only. Without this
+                      // the browser hides X-Correlation-Id from JS entirely, and
+                      // client-side error reports cannot be tied to the backend
+                      // error from the same action. Content-Disposition carries
+                      // the server's name for a downloaded file (exports, reports).
+                      .WithExposedHeaders(MicroLIMS.API.Middleware.CorrelationIdMiddleware.HeaderName, "Content-Disposition", MicroLIMS.API.Middleware.MaintenanceModeMiddleware.HeaderName));
+        });
+        return services;
+    }
+
     public static IServiceCollection AddMicroLimsDbContext(this IServiceCollection services, Action<DbContextOptionsBuilder> configure)
     {
         services.AddDbContext<MicroLimsDbContext>(configure);
@@ -68,7 +94,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecurityRequestContext, HttpSecurityRequestContext>();
         services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<AuthenticationService>();
+        services.AddScoped<IAuthenticationService>(sp => sp.GetRequiredService<AuthenticationService>());
         services.AddScoped<ElectronicSignatureService>();
         services.AddScoped<IElectronicSignatureService>(sp => sp.GetRequiredService<ElectronicSignatureService>());
         services.AddScoped<SegregationOfDutiesGuard>();
@@ -88,8 +115,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SampleTrackingService>();
         services.AddScoped<OosTrackingService>();
         services.AddScoped<DashboardService>();
-        services.AddSingleton(new NotificationRecomputeThrottle(TimeSpan.FromMinutes(5)));
         services.AddScoped<DashboardNotificationService>();
+        services.AddScoped<NotificationQueryService>();
+        services.AddScoped<NotificationPreferencesService>();
+        services.AddScoped<WorkingHoursService>();
+        services.AddScoped<EscalationService>();
+        services.AddScoped<INotificationPublisher, NotificationPublisher>();
+        services.AddScoped<NotificationRecipients>();
+        services.AddScoped<NotificationScheduler>();
+        services.AddScoped<EmailOutboxSender>();
         services.AddScoped<RecentActivityService>();
         services.AddScoped<MyTasksService>();
         services.AddScoped<DashboardLabScopeService>();
@@ -98,6 +132,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CurrentStepViewService>();
         services.AddScoped<TestWorkflowQueryService>();
         services.AddScoped<ReceiptLabService>();
+        services.AddScoped<SampleBatchReceiveService>();
         services.AddScoped<MediaExpiryService>();
         services.AddScoped<KpiService>();
         services.AddScoped<WorkflowProfileService>();
@@ -124,6 +159,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PreparationMaterialService>();
         services.AddScoped<ItemPreparationConfigurationService>();
         services.AddScoped<SampleAssignmentService>();
+        services.AddScoped<SampleBulkAssignmentService>();
         services.AddScoped<SampleCorrectionService>();
         services.AddScoped<MediaPreparationService>();
         services.AddScoped<WaterService>();
@@ -171,6 +207,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobWork>(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.SessionTokenCleanupWorker>());
+        services.AddHostedService<MicroLIMS.API.BackgroundServices.DirectoryLeaverWorker>();
         services.AddSingleton<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.CriticalAlertWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.SolutionPreparationExpiryWorker>();
@@ -179,6 +216,8 @@ public static class ServiceCollectionExtensions
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.MonitoringDeviationWorker>());
         services.AddSingleton<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>();
         services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.EquipmentOverdueWorker>());
+        services.AddSingleton<MicroLIMS.API.BackgroundServices.NotificationWorker>();
+        services.AddHostedService(sp => sp.GetRequiredService<MicroLIMS.API.BackgroundServices.NotificationWorker>());
         // Background job run log and the admin Jobs screen. Singleton recorder: it owns the per-job run gate.
         services.AddSingleton<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobRunRecorder, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobRunRecorder>();
         services.AddScoped<MicroLIMS.Application.Services.BackgroundJobs.IBackgroundJobAdminService, MicroLIMS.Application.Services.BackgroundJobs.BackgroundJobAdminService>();
@@ -204,6 +243,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<EquipmentInventoryService>();
         services.AddScoped<EquipmentConfigurationService>();
         services.AddScoped<ChromatographyColumnService>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelDataSource, MicroLIMS.Application.Labels.LabelDataSource>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelFormatService, MicroLIMS.Application.Labels.LabelFormatService>();
+        services.AddScoped<MicroLIMS.Application.Labels.ILabelPrintService, MicroLIMS.Application.Labels.LabelPrintService>();
+        services.AddScoped<MicroLIMS.Application.Labels.IScanResolveService, MicroLIMS.Application.Labels.ScanResolveService>();
+        services.AddSingleton<IBarcodeEncoder, MicroLIMS.Infrastructure.Labels.ZXingBarcodeEncoder>();
+        services.AddSingleton<ILabelRenderer, MicroLIMS.Infrastructure.Labels.LabelPdfRenderer>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ILabClock>(sp => new LabClock(
             sp.GetRequiredService<TimeProvider>(),
@@ -233,6 +278,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DataExportAuditService>();
 
         // Master data (api/masterdata/...)
+        services.AddScoped<MasterDataBatchService>();
         services.AddScoped<WaterMasterDataService>();
         services.AddScoped<EnvironmentalMonitoringMasterDataService>();
         services.AddScoped<MicroLIMS.Application.Services.Monitoring.MonitoringSettingsService>();
@@ -250,6 +296,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.EquipmentPlan.EquipmentCalendarService>();
         services.AddScoped<AfterCleaningMasterDataService>();
         services.AddScoped<SpecificationMasterDataService>();
+        services.AddScoped<MasterDataCopyService>();
+        services.AddScoped<MasterDataUsageService>();
+        services.AddScoped<ChangeReasonGuard>();
         services.AddScoped<SupplierStatedAttributeService>();
         services.AddScoped<ReferenceListMasterDataService>();
         services.AddScoped<EquipmentMasterDataService>();
@@ -281,6 +330,9 @@ public static class ServiceCollectionExtensions
         var smtpOptions = SmtpConfiguration.Resolve(config);
         services.AddSingleton(smtpOptions);
         services.Configure<SmtpOptions>(config.GetSection(SmtpOptions.SectionName));
+        services.Configure<MfaOptions>(config.GetSection(MfaOptions.SectionName));
+        services.AddSingleton<ISecretProtector, AesGcmSecretProtector>();
+        services.AddSingleton<IQrCodeRenderer, ZXingQrCodeRenderer>();
         services.AddSingleton<MicroLIMS.Application.Abstractions.Email.ISmtpStatusProvider>(sp => new SmtpStatusProvider(sp.GetRequiredService<SmtpOptions>()));
         services.AddSingleton<MicroLIMS.Application.Services.Integrations.EmailDeliveryTracker>();
         services.AddScoped<IEmailSender>(sp => new MicroLIMS.Application.Services.Integrations.TrackingEmailSender(
@@ -308,8 +360,48 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
             sp.GetRequiredService<TimeProvider>(),
             sp.GetRequiredService<JwtSettings>().AccessTokenLifetime,
-            sp.GetRequiredService<ISecurityAuditService>()));
+            sp.GetRequiredService<ISecurityAuditService>(),
+            sp.GetService<MicroLIMS.Application.Services.Sso.SsoModeService>()));
         services.AddScoped<IAccessReviewService, MicroLIMS.Application.Services.AccessReviewService>();
+        services.AddScoped<MicroLIMS.Application.Services.Mfa.MfaPolicyService>();
+        var ssoOptions = new MicroLIMS.Application.Services.Sso.SsoOptions();
+        config.GetSection(MicroLIMS.Application.Services.Sso.SsoOptions.SectionName).Bind(ssoOptions);
+        services.AddSingleton(ssoOptions);
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Sso.ISsoConfigurationFingerprint, MicroLIMS.Application.Services.Sso.SsoConfigurationFingerprint>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.SsoModeService>();
+        services.AddHttpClient<MicroLIMS.Application.Abstractions.Sso.IOidcProviderClient, MicroLIMS.Infrastructure.Sso.OidcProviderClient>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.OidcSignInService>();
+        services.AddSingleton<MicroLIMS.Application.Abstractions.Sso.ILdapDirectory, MicroLIMS.Infrastructure.Sso.LdapDirectory>();
+        // The login form (AuthenticationService) hands Active Directory sign-ins to LdapSignInService, which
+        // finishes through AuthenticationService again; the factory breaks the construction cycle.
+        services.AddScoped<System.Func<MicroLIMS.Application.Services.AuthenticationService>>(sp =>
+            () => sp.GetRequiredService<MicroLIMS.Application.Services.AuthenticationService>());
+        services.AddScoped<MicroLIMS.Application.Abstractions.Sso.IDirectoryPasswordSignIn, MicroLIMS.Application.Services.Sso.LdapSignInService>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.SsoAdminService>();
+        services.AddScoped<MicroLIMS.Application.Services.Sso.DirectoryLeaverService>();
+        services.AddScoped<IMfaService, MicroLIMS.Application.Services.Mfa.MfaService>();
+        services.AddScoped<IUserUiStateService, MicroLIMS.Application.Services.UserUiStateService>();
+        services.AddScoped<IRecordLabelResolver, MicroLIMS.Application.Services.RecordLabelResolver>();
+        services.AddScoped<IRecentRecordService, MicroLIMS.Application.Services.RecentRecordService>();
+        services.AddScoped<MicroLIMS.Application.Services.TableViews.TableViewService>();
+        // My Work: the aggregator runs every registered IMyWorkSource (sources are added task by task).
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkService, MicroLIMS.Application.Services.MyWork.MyWorkService>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.IncubationSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.ReturnedTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.AssignedTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.MaterialsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.ReviewSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.ApprovalSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.AvailableTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.UnassignedTestsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.DocumentsSource>();
+        services.AddScoped<MicroLIMS.Application.Services.MyWork.IMyWorkSource, MicroLIMS.Application.Services.MyWork.Sources.EquipmentSource>();
+        services.AddScoped<MicroLIMS.Application.Services.SectionSelfAssignmentService>();
+        services.AddScoped<MicroLIMS.Application.Services.TestSelfAssignmentService>();
+        services.AddScoped<MicroLIMS.Application.Services.ActionAvailabilityService>();
+        services.AddScoped<MicroLIMS.Application.Services.EntryDefaults.EntryDefaultsService>();
+        services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
+        services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();
 
@@ -322,8 +414,10 @@ public static class ServiceCollectionExtensions
             EnvironmentName: Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown"));
         services.AddScoped<ICriticalAlertService, CriticalAlertService>();
 
-        services.AddSingleton<NotificationService>();
-        services.AddSingleton<INotificationService>(sp => sp.GetRequiredService<NotificationService>());
+        services.AddSignalR();
+        services.AddSingleton<LiveHubConnectionTracker>();
+        services.AddScoped<LiveRecordReadAuthorizer>();
+        services.AddSingleton<ILiveSignalPublisher, SignalRLiveSignalPublisher>();
         // Where uploaded files physically live. "Local" writes under
         // Storage:BasePath and is for development only - on Render that
         // directory is wiped on every restart and redeploy. "S3" writes to an

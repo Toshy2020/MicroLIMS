@@ -280,6 +280,25 @@ Load checked master data workbooks using an electronic signature, enforce mandat
 #### Status
 - Workbook load: **Waiting for verification** (after the signed load) and **Verified by {name}** (after the second person signs). There is no way back from verified and no rejected status.
 
+---
+
+### 32.5 Master Testing Materials Paste and Choosing Between Paste and Workbook
+#### Purpose
+Paste Master Testing Materials rows from a spreadsheet (up to 200 rows) and clarify when to use configuration screen paste instead of the Master Data Workbook.
+
+#### Pasting Master Testing Materials
+1. Open **General Laboratory Configuration** > **Master Testing Materials** and select **Reagents & Indicators**, **Reference & Primary Standards**, or **Other Materials**.
+2. Click **Paste entries** and paste up to **200** rows copied from a spreadsheet (Code, Category, Material category when applicable, Name, Base Unit, Grade, Source / Pharmacopoeia, Owner Lab when needed, plus Indicator fields when applicable).
+3. Review every row and resolved category in **Paste preview**; fix any flagged issues if **Accept** is disabled, then click **Accept** to move the rows into **Pending material master entries** (nothing is saved yet).
+4. Click **Save** to create the entire batch together in one all-or-nothing save.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting.
+
+#### Screen Paste vs. Master Data Workbook
+- **Use configuration screen paste** (Water locations, EM rooms and room test configurations, plain Item specifications, Master Testing Materials, and Microbiology Equipment) when adding a handful up to **200** rows directly on one screen that should take effect as soon as you click **Save**.
+- **Use the Master Data Workbook** (§32.3–§32.4) for initial site setup or large bulk loads (up to 5,000 rows across sheets) that require dry-run checking, an electronic signature, and password-confirmed second-person verification.
+- **Solutions Master** has no spreadsheet paste screen because solution recipes require components; create solutions through the **Solutions Master** form (§28.4) or the **Master Data Workbook**.
+
 <!-- Review log (Sonnet): 24 corrections; invented items removed: real person name in placeholder, component/table/database/transaction wording, signature meaning codes, "Password *" label, internal transaction message, raw status names; callouts added: GAP-705 on workbook verification, second-round specification sheets -->
 <!-- Phase 13 (agy): applied F-C03 -->
 

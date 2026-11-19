@@ -37,6 +37,8 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ClearIcon from "@mui/icons-material/Clear";
 
 import { PageHeader } from "../../../components/PageHeader";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import { tableHeadSx } from "../../../theme";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -51,6 +53,7 @@ import type {
 } from "../types/trainingAssignmentTypes";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
 import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 
 /**
  * The views ML-DC-FRS-1C-001 §2:87 requires of My Reading List: Pending ("active
@@ -75,15 +78,16 @@ function categoryOf(a: DocumentTrainingAssignmentDto): ReadingCategory {
   return "OTHER";
 }
 
-const READING_TABS: { value: ReadingCategory | "ALL"; label: string }[] = [
-  { value: "PENDING", label: "To read" },
-  { value: "OVERDUE", label: "Overdue" },
-  { value: "COMPLETED", label: "Completed" },
-  { value: "SUPERSEDED", label: "Superseded" },
-  { value: "ALL", label: "All" }
+const READING_TABS: { value: ReadingCategory | "ALL"; labelKey: string }[] = [
+  { value: "PENDING", labelKey: "readingList.tabs.pending" },
+  { value: "OVERDUE", labelKey: "readingList.tabs.overdue" },
+  { value: "COMPLETED", labelKey: "readingList.tabs.completed" },
+  { value: "SUPERSEDED", labelKey: "readingList.tabs.superseded" },
+  { value: "ALL", labelKey: "readingList.tabs.all" }
 ];
 
 export function MyReadingListPage() {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const { fullName, username } = useAuth();
 
@@ -119,12 +123,12 @@ export function MyReadingListPage() {
       setError(null);
       const data = await trainingAssignmentService.getMyAssignments();
       setAssignments(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to load your reading assignments.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("readingList.loadError")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadAssignments();
@@ -190,12 +194,8 @@ export function MyReadingListPage() {
       }
 
       setViewerOpen(true);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to locate controlled document file for this revision."
-      );
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("readingList.locateFileError")));
     } finally {
       setViewerLoading(false);
     }
@@ -233,12 +233,8 @@ export function MyReadingListPage() {
       setAckContext(context);
       setActiveAssignment(assignment);
       setAckDialogOpen(true);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to retrieve legal acknowledgement statement."
-      );
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("readingList.ackContextError")));
     } finally {
       setAckLoading(false);
     }
@@ -262,8 +258,8 @@ export function MyReadingListPage() {
   return (
     <Box sx={{ pb: 4 }}>
       <PageHeader
-        title="My Reading List"
-        subtitle={`Active document training and standard operating procedures assigned to ${fullName || username || "you"}.`}
+        title={t("readingList.title")}
+        subtitle={t("readingList.subtitle", { user: fullName || username || t("readingList.youFallback") })}
       />
 
       {error && (
@@ -288,7 +284,7 @@ export function MyReadingListPage() {
                   color: "text.secondary",
                   fontWeight: "bold"
                 }}>
-                TOTAL ASSIGNMENTS
+                {t("readingList.kpis.totalAssignments")}
               </Typography>
               <Typography
                 variant="h5"
@@ -316,7 +312,7 @@ export function MyReadingListPage() {
                   color: "info.main",
                   fontWeight: "bold"
                 }}>
-                PENDING READING / ACKNOWLEDGEMENT
+                {t("readingList.kpis.pendingReading")}
               </Typography>
               <Typography
                 variant="h5"
@@ -344,7 +340,7 @@ export function MyReadingListPage() {
                   color: "error.main",
                   fontWeight: "bold"
                 }}>
-                OVERDUE ASSIGNMENTS
+                {t("readingList.kpis.overdueAssignments")}
               </Typography>
               <Typography
                 variant="h5"
@@ -372,7 +368,7 @@ export function MyReadingListPage() {
                   color: "success.main",
                   fontWeight: "bold"
                 }}>
-                COMPLETED & ACKNOWLEDGED
+                {t("readingList.kpis.completedAcknowledged")}
               </Typography>
               <Typography
                 variant="h5"
@@ -406,7 +402,7 @@ export function MyReadingListPage() {
             }}>
             <TextField
               size="small"
-              placeholder="Search document title, code, MicroLIMS ID..."
+              placeholder={t("readingList.filters.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{ minWidth: 320 }}
@@ -419,7 +415,7 @@ export function MyReadingListPage() {
                   ),
                   endAdornment: searchQuery ? (
                     <InputAdornment position="end">
-                      <IconButton aria-label="Clear search" size="small" onClick={() => setSearchQuery("")}>
+                      <IconButton aria-label={t("readingList.filters.clearSearchAria")} size="small" onClick={() => setSearchQuery("")}>
                         <ClearIcon fontSize="small" />
                       </IconButton>
                     </InputAdornment>
@@ -437,40 +433,32 @@ export function MyReadingListPage() {
             onClick={() => loadAssignments()}
             disabled={loading}
           >
-            Refresh List
+            {t("readingList.filters.refreshList")}
           </Button>
         </Stack>
       </Paper>
 
-      {/* Assignments Table */}
-      {/* The three views ML-DC-FRS-1C-001 §2:87 requires, plus the superseded
-          archive from §2:174. These replaced an eleven-option status dropdown that
-          mixed grouped semantics ("Action Required") with raw enum values
-          ("Assigned", "Reading") and offered two near-duplicate ways to see
-          overdue work. Tabs also put the counts on screen: whether anything is
-          overdue is the question this page exists to answer, and a dropdown hid
-          it behind a click. */}
       <Paper variant="outlined" sx={{ mb: 2 }}>
         <Tabs
           value={statusFilter}
           onChange={(_e, v: ReadingCategory | "ALL") => setStatusFilter(v)}
           variant="scrollable"
           scrollButtons="auto"
-          aria-label="Reading list views"
+          aria-label={t("readingList.filters.tabsAria")}
           sx={{ px: 1 }}
         >
-          {READING_TABS.map((t) => {
+          {READING_TABS.map((tab) => {
             const n =
-              t.value === "ALL"
+              tab.value === "ALL"
                 ? metrics.total
-                : t.value === "PENDING"
+                : tab.value === "PENDING"
                   ? metrics.pending
-                  : t.value === "OVERDUE"
+                  : tab.value === "OVERDUE"
                     ? metrics.overdue
-                    : t.value === "COMPLETED"
+                    : tab.value === "COMPLETED"
                       ? metrics.completed
                       : metrics.superseded;
-            return <Tab key={t.value} value={t.value} label={`${t.label} (${n})`} />;
+            return <Tab key={tab.value} value={tab.value} label={t("readingList.tabs.labelWithCount", { label: t(tab.labelKey), count: n })} />;
           })}
         </Tabs>
       </Paper>
@@ -479,13 +467,13 @@ export function MyReadingListPage() {
         <Table size="medium">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Company Document Code & Title</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Revision</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Assignment Type</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Due Date (UTC)</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Reading Progress</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.codeAndTitle")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.revision")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.assignmentType")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.status")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.dueDate")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("readingList.table.columns.readingProgress")}</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700 }}>{t("readingList.table.columns.actions")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -496,7 +484,7 @@ export function MyReadingListPage() {
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
-                    Loading your document training assignments...
+                    {t("readingList.table.loading")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -507,14 +495,14 @@ export function MyReadingListPage() {
                   <Typography variant="subtitle1" sx={{
                     fontWeight: "bold"
                   }}>
-                    No Training Assignments Found
+                    {t("readingList.table.emptyTitle")}
                   </Typography>
                   <Typography variant="body2" sx={{
                     color: "text.secondary"
                   }}>
                     {searchQuery || statusFilter !== "ALL"
-                      ? "No assignments matched your selected filter criteria."
-                      : "You have no active or completed document reading assignments."}
+                      ? t("readingList.table.emptyFiltered")
+                      : t("readingList.table.emptyAll")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -556,7 +544,7 @@ export function MyReadingListPage() {
                             {assignment.companyDocumentCode}
                           </Typography>
                           <Chip
-                            label={`MicroLIMS: ${assignment.microLimsDocumentId}`}
+                            label={t("readingList.table.microLimsChip", { id: assignment.microLimsDocumentId })}
                             size="small"
                             variant="outlined"
                             sx={compactChipSx}
@@ -575,7 +563,7 @@ export function MyReadingListPage() {
 
                     <TableCell>
                       <Chip
-                        label={`Rev ${assignment.revisionNumber}`}
+                        label={t("common.rev", { number: assignment.revisionNumber })}
                         size="small"
                         color="default"
                         sx={{ fontWeight: 600 }}
@@ -597,7 +585,7 @@ export function MyReadingListPage() {
                         {isOverdue && (
                           <Chip
                             icon={<ErrorOutlineIcon />}
-                            label={`Overdue by ${Math.abs(assignment.daysRemainingOrOverdue)}d`}
+                            label={t("readingList.table.overdueByDays", { days: Math.abs(assignment.daysRemainingOrOverdue) })}
                             size="small"
                             color="error"
                             sx={compactChipStrongSx}
@@ -607,7 +595,7 @@ export function MyReadingListPage() {
                         {isSuperseded && (
                           <Chip
                             icon={<WarningAmberIcon />}
-                            label="Superseded Revision"
+                            label={t("readingList.table.supersededRevision")}
                             size="small"
                             color="warning"
                             sx={compactChipSx}
@@ -619,15 +607,15 @@ export function MyReadingListPage() {
                     <TableCell>
                       <Box sx={{ display: "flex", flexDirection: "column" }}>
                         <Typography variant="body2">
-                          {new Date(assignment.dueDateUtc).toLocaleDateString()}
+                          {formatLabCalendarDate(assignment.dueDateUtc)}
                         </Typography>
                         {!isAcknowledged && !isOverdue && (
                           <Typography variant="caption" sx={{
                             color: "text.secondary"
                           }}>
                             {assignment.daysRemainingOrOverdue > 0
-                              ? `${assignment.daysRemainingOrOverdue} days remaining`
-                              : "Due today"}
+                              ? t("readingList.table.daysRemaining", { count: assignment.daysRemainingOrOverdue })
+                              : t("readingList.table.dueToday")}
                           </Typography>
                         )}
                         {isAcknowledged && assignment.acknowledgedAtUtc && (
@@ -640,7 +628,7 @@ export function MyReadingListPage() {
                               gap: 0.5
                             }}>
                             <CheckCircleOutlineIcon fontSize="inherit" />
-                            Ack: {new Date(assignment.acknowledgedAtUtc).toLocaleDateString()}
+                            {t("readingList.table.ackAt", { date: formatDateTimeWithTimeZone(assignment.acknowledgedAtUtc) })}
                           </Typography>
                         )}
                       </Box>
@@ -652,7 +640,7 @@ export function MyReadingListPage() {
                           <Typography variant="caption" sx={{
                             color: "text.secondary"
                           }}>
-                            {isAcknowledged ? "Completed" : `${currentProgress}% Read`}
+                            {isAcknowledged ? t("readingList.table.completed") : t("readingList.table.percentRead", { percent: currentProgress })}
                           </Typography>
                         </Box>
                         <LinearProgress
@@ -668,7 +656,7 @@ export function MyReadingListPage() {
                       <Stack direction="row" spacing={1} sx={{
                         justifyContent: "flex-end"
                       }}>
-                        <Tooltip title="Open Controlled Revision in PDF Viewer">
+                        <Tooltip title={t("readingList.table.readTooltip")}>
                           <Button
                             variant="outlined"
                             size="small"
@@ -676,12 +664,12 @@ export function MyReadingListPage() {
                             onClick={() => handleOpenViewer(assignment)}
                             disabled={viewerLoading}
                           >
-                            Read
+                            {t("readingList.table.read")}
                           </Button>
                         </Tooltip>
 
                         {canAcknowledge && (
-                          <Tooltip title="Record Legal Read-and-Understand Acknowledgement">
+                          <Tooltip title={t("readingList.table.acknowledgeTooltip")}>
                             <Button
                               variant="contained"
                               color="primary"
@@ -690,7 +678,7 @@ export function MyReadingListPage() {
                               onClick={() => handleOpenAcknowledgement(assignment)}
                               disabled={ackLoading}
                             >
-                              Acknowledge
+                              {t("readingList.table.acknowledge")}
                             </Button>
                           </Tooltip>
                         )}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button, Stack, Alert, CircularProgress } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { TestWorkflowStepDto, CurrentStepResponse } from "../types/testWorkflowTypes";
 import { parseWorkflowError, workflowErrorDisplayMessage } from "../utils/workflowErrors";
@@ -16,6 +17,7 @@ interface Props {
 // down from the minimum incubation time (e.g. 18 h of an 18-72 h window) to
 // zero; at zero the next step becomes available.
 export function BrothWaitingPanel({ testOrderId, step, current, onSubmitted }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -42,7 +44,7 @@ export function BrothWaitingPanel({ testOrderId, step, current, onSubmitted }: P
         step={step}
         current={current}
         onSubmitted={onSubmitted}
-        nextLabel={nextStep ? nextStep.stepName : "the reading"}
+        nextLabel={nextStep ? nextStep.stepName : t("pathogenSteps.waiting.theReading")}
         renderAction={(ready) => (
           <Button
             variant="contained"
@@ -50,7 +52,11 @@ export function BrothWaitingPanel({ testOrderId, step, current, onSubmitted }: P
             disabled={!ready || submitting}
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {submitting ? "Submitting..." : nextStep ? `Proceed to ${nextStep.stepName}` : "Proceed to Reading"}
+            {submitting
+              ? t("pathogenSteps.waiting.submitting")
+              : nextStep
+              ? t("pathogenSteps.waiting.proceedToStep", { stepName: nextStep.stepName })
+              : t("pathogenSteps.waiting.proceedToReading")}
           </Button>
         )}
       />

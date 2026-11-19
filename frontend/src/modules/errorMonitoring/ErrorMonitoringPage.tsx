@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Box } from "@mui/material";
 import { PageHeader } from "../../components/PageHeader";
 import { TableSkeleton } from "../../components/TableSkeleton";
+import { i18n, useTranslation } from "../../i18n";
+import { serverMessage } from "../../utils/errorMessage";
 import { IncidentFilterBar } from "./components/IncidentFilterBar";
 import { IncidentTable } from "./components/IncidentTable";
 import { ErrorMonitoringService } from "./services/ErrorMonitoringService";
@@ -9,6 +11,7 @@ import type { IncidentFilterState, IncidentListResult } from "./types/errorMonit
 import { INITIAL_INCIDENT_FILTERS } from "./types/errorMonitoringTypes";
 
 export function ErrorMonitoringPage() {
+  const { t } = useTranslation("errorMonitoring");
   const [filters, setFilters] = useState<IncidentFilterState>(INITIAL_INCIDENT_FILTERS);
   const [result, setResult] = useState<IncidentListResult | null>(null);
   const [page, setPage] = useState(0);
@@ -23,8 +26,8 @@ export function ErrorMonitoringPage() {
     setError(null);
     try {
       setResult(await ErrorMonitoringService.search(filters, page, rowsPerPage));
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not load incidents.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? i18n.t("errors.load", { ns: "errorMonitoring" }));
     } finally {
       setLoading(false);
     }
@@ -47,8 +50,8 @@ export function ErrorMonitoringPage() {
     setError(null);
     try {
       await ErrorMonitoringService.exportCsv(filters);
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "The export could not be generated.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("errors.export"));
     } finally {
       setExporting(false);
     }
@@ -57,8 +60,8 @@ export function ErrorMonitoringPage() {
   return (
     <Box>
       <PageHeader
-        title="Error Monitoring"
-        subtitle="Technical incidents captured from the application, the API and the database. Operational data only - this is not part of the GxP record."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
       />
 
       <IncidentFilterBar

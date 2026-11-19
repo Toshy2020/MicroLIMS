@@ -843,3 +843,237 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Are these statistical constants and the capability thresholds approved site rules, and which of them, if any, should be configurable?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-183
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** `GET api/scan/resolve` requires an authenticated user (`[Authorize]`) and has no per-user `[EnableRateLimiting]` attribute or rate limiter. A comment in the controller notes that the only existing per-user policy (`PasswordChange`, 5 requests per 15 minutes) would block normal scanning and a dedicated limit needs an approved threshold first. Location: `backend/MicroLIMS.API/Controllers/ScanController.cs` — `Resolve`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.6 ("Scan lookup"): "The endpoint is partitioned by authenticated user, like the other limits."
+- **Question:** What per-user request rate limit and window should be approved and configured for `GET api/scan/resolve`?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-184
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** For `MaterialStockLot`, scan usability (`LabelUsability.StockLot`) refuses a lot not only when expired or depleted, but also when `IsAwaitingRelease` is true or `IsRejected` is true. Location: `backend/MicroLIMS.Application/Labels/LabelDataSource.cs` — `FindMaterialByIdAsync`; `backend/MicroLIMS.Application/Labels/LabelUsability.cs` — `StockLot`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.6 usability table for `MaterialStockLot` lists only "Not expired and not depleted".
+- **Question:** Is blocking unreleased (`IsAwaitingRelease`) and rejected (`IsRejected`) stock lots during barcode scan resolution the intended GMP rule, or should any workflow permit scanning unreleased lots?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-185
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** `LabelFormatService.UpdateAsync` and the `LabelFormats` table check constraints allow saving any width and height between 10 and 150 mm without testing whether a barcode and mandatory text fit. At print time, `LabelPdfRenderer.Prepare` throws `LabelDoesNotFitException` if the encoded barcode, quiet zones, 1.5 mm margins, 0.8 mm gap, bold code line, and print-date footer do not fit inside the configured page size. Seeded defaults (50 x 25 mm for most types, 40 x 20 mm for media lots, 25 x 10 mm Small for cryovials) are placeholder values not yet verified against site printer DPI and physical label stock. Location: `backend/MicroLIMS.Application/Labels/LabelFormatService.cs` — `UpdateAsync`; `backend/MicroLIMS.Infrastructure/Labels/LabelPdfRenderer.cs` — `Prepare`; `backend/MicroLIMS.Persistence/Migrations/20261112212330_AddLabelPrinting.cs`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md` Section 5.8 sets dimensions to 10–150 mm and Section 10 leaves final per-type stock dimensions open pending site printer and label-stock confirmation.
+- **Question:** What exact width, height, and layout values match the site's physical label stock and printer DPI for each of the six record types, and should `LabelFormatService` also reject dimensions that cannot render any valid barcode?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-186
+- **Area:** AUD
+- **Status:** Open
+- **What the code does:** `AuditReviewScopeKind` supports only `All` (`0`), `EntityName` (`2`), and `Record` (`3`). Value `1` (`Section`) is unused and reserved because `AuditLog` carries no section column. Location: `backend/MicroLIMS.Domain/Enums/AuditTrailReviewEnums.cs` — `AuditReviewScopeKind`; `backend/MicroLIMS.Application/Services/AuditTrailReviewService.cs` — `BuildScopeQuery`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-11-qa-role-design.md` Section 5.5 lists a section scope option ("all, a section, a record type, or one sample or batch").
+- **Question:** Is omitting per-section audit trail review scope accepted (because `AuditLog` has no section column), or should section attribution be added to `AuditLog` in a future release?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-187
+- **Area:** AUD
+- **Status:** Open
+- **What the code does:** `QaDashboardPage` displays three summary tiles (`Audit trail reviews in progress`, `Open findings`, `Documents waiting for my approval`), with no "next review due" calculation and no configurable "review every N days" frequency per scope. Location: `frontend/src/modules/dashboard/QaDashboardPage.tsx`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-11-qa-role-design.md` Section 5.5 ("The dashboard shows QA when the next review is due, from a 'review every N days' setting per scope (blank until the site sets it)") and Section 9 item 1.
+- **Question:** Should a configurable review-frequency setting and overdue indicator be added to the QA dashboard, or is manual periodic review scheduling by SOP sufficient for Release 1?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-188
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SystemSettingDefinitions` sets the default value of `security.mfa.policy` to `"RequiredForRoles"` (`SystemAdministrator,SectionHead,QcManager`), not `"Off"`. `MfaStartupValidator.EnsureValidAsync` throws `InvalidOperationException` and prevents the API from starting when `!protector.IsConfigured` (`Mfa:ActiveKeyId` and `Mfa:EncryptionKeys` missing) and `security.mfa.policy != MfaPolicy.Off`. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs`; `backend/MicroLIMS.API/Extensions/MfaStartupValidator.cs` — `EnsureValidAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.2 requires startup refusal when an encryption key is missing and MFA is enabled, and an upgraded installation without `Mfa:ActiveKeyId` / `Mfa:EncryptionKeys` configured will therefore fail to start immediately upon upgrade.
+- **Question:** Should `security.mfa.policy` default to `"Off"` until keys are configured and administrators enrol, or is failing startup on upgrade without `Mfa:EncryptionKeys` the intended fail-safe deployment gate?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-189
+- **Area:** SEC
+- **Status:** Decided
+- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`). Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.3 lists `SystemAdministrator`, `SectionHead`, and `QcManager` as the default required roles (authored before B4 added `Qa` with `Audit.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`).
+- **Question:** Should `Qa` be added to the default value of `security.mfa.requiredRoles` (or configured per site in System Settings)?
+- **Decision:** Decided by the user 2026-11-13: add `Qa` to the default required roles.
+- **Date:** 2026-11-13
+
+### CONF-190
+- **Area:** SEC
+- **Status:** Decided
+- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695). Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.7 describes administrator hardware token assignment followed by user confirmation on first sign-in.
+- **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
+- **Decision:** Decided by the user 2026-11-13: block self-enrolment while an administrator-assigned hardware token is pending.
+- **Date:** 2026-11-13
+
+### CONF-191
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `OidcSignInService.HandleCallbackAsync` refuses any user whose `SignInMethod` is `Local`, and any emergency account, with `AUTH_SSO_LOGIN_FAILED_NOT_LINKED`. A `Local` user that carries a company username therefore cannot sign in with the company account. The bulk link import (`SsoAdminService.ImportLinksAsync`) sets the company username and does not change `SignInMethod`, so an imported user whose method is still `Local` is refused until its method is changed to company sign-in. Location: `backend/MicroLIMS.Application/Services/Sso/OidcSignInService.cs` (sign-in method check in `HandleCallbackAsync`); `backend/MicroLIMS.Application/Services/Sso/SsoAdminService.cs` (`ImportLinksAsync`).
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-single-sign-on-design.md` Section 5.2 defines `SignInMethod` and `DirectoryUsername` but does not say whether a `Local` account with a company username may use company sign-in. Section 5.5 treats "directory user" as an account moved to company sign-in.
+- **Question:** Should only accounts with sign-in method company sign-in be allowed to use the company account (as built), or should a `Local` account that carries a company username also be allowed? Should the bulk import set the sign-in method to company sign-in for the rows it links?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-192
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SsoModeService.RecordConnectionTestPassedAsync` and `RecordConnectionTestFailedAsync` store each connection-test result as a security event with the code `SSO_CONNECTION_TEST_PASSED` or `SSO_CONNECTION_TEST_FAILED` (`backend/MicroLIMS.Shared/Constants/SecurityEventCodes.cs`). The switch-on guard uses the most recent of these for the mode, if its configuration fingerprint (`SsoConfigurationFingerprint.cs`) still matches the current settings. Location: `backend/MicroLIMS.Application/Services/Sso/SsoModeService.cs`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-single-sign-on-design.md` Section 5.9 lists the company sign-in event codes and does not include these two codes. Section 5.8 requires only a Test connection action on the administration page.
+- **Question:** Should these two codes be accepted as security events, with Section 5.9 updated to list them, or should connection-test results be recorded in another way?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-193
+- **Area:** SEC
+- **Status:** Decided
+- **What the code does:** As first recorded: `MicroLimsDbContext.AuditCaptureExcludedTypes` does not contain `SsoPendingRequest` or `SsoExchangeCode`. Every insert and update of these rows therefore writes an `AuditLogs` row, with their sensitive fields masked by `[AuditRedacted]`. Location: `backend/MicroLIMS.Persistence/DbContext/MicroLimsDbContext.cs` (`AuditCaptureExcludedTypes`); `backend/MicroLIMS.Domain/Entities/SsoPendingRequest.cs`; `backend/MicroLIMS.Domain/Entities/SsoExchangeCode.cs`. Changed 2026-11-13 (commit `0be29e45`): both types are now in `AuditCaptureExcludedTypes` with the comment "short-lived sign-in state; outcomes are recorded as explicit security events"; sign-in outcomes are still written as security events.
+- **What the other source says:** Design specification Section 9 records "Audit-capture decision (user, 2026-11-11): approved", which keeps both types out of automatic audit capture, each with a justification comment. Plan `docs/superpowers/plans/2026-11-10-single-sign-on.md`, cross-plan correction 2, repeats the approval. The approval has not been applied in code.
+- **Question:** Should the 2026-11-11 approval be applied (add both types to `AuditCaptureExcludedTypes` with the justification comment, leaving sign-in outcomes in the security audit), or should both types stay in the audit trail as built?
+- **Decision:** Approved by the user 2026-11-11 and confirmed 2026-11-13: exclude both types from automatic audit capture.
+- **Date:** 2026-11-13
+
+### CONF-194
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** `SsoAdminService.ImportLinksAsync` calls `AdminActionReason.Require` and refuses a bulk link import without a reason. The import dialog (`frontend/src/modules/admin/ImportDirectoryLinksDialog.tsx`) does not enable Import until the reason is entered. One reason applies to every row of the import. Each linked user is also audited individually (`USER_SSO_LINK_UPDATED` audit row and `USER_DIRECTORY_LINKED` security event).
+- **What the other source says:** Design specification Section 5.8 requires a CSV import of `username, companyUsername` with a preview and per-row errors. It does not require a reason for the import.
+- **Question:** Should each bulk import keep one reason for all of its rows (as built), or should each row carry its own reason?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-195
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** When the mode is `Off` and the Company sign-in page does not request a provider, `SsoAdminService.ResolveTargetMode` treats `OpenIdConnect` as the target. The switch-on blockers, the last passed test time and Test connection therefore refer to OpenID Connect. Location: `backend/MicroLIMS.Application/Services/Sso/SsoAdminService.cs` (`ResolveTargetMode`); `frontend/src/modules/admin/CompanySignInPage.tsx`.
+- **What the other source says:** Design specification Section 5.1 defines the three modes and Section 5.8 the administration page. Neither says which provider the page tests or configures while the mode is `Off`. Section 9, item 1, leaves open which mode the first site uses.
+- **Question:** While the mode is `Off`, should the page ask the administrator which provider to test and prepare, or should OpenID Connect stay the default until Active Directory sign-in is built?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-196
+- **Area:** SEC
+- **Status:** Open
+- **What the code does:** When a user is created with emergency status requested, `UserService` calls `EnsureEmergencyEligibleAsync` before the user exists (identifier `0`). That check requires an active second factor, which a new user cannot have, so creation with emergency status is refused with "An emergency account must have an active second factor." An emergency flag can be set only on an existing user who already has an active second factor. Location: `backend/MicroLIMS.Application/Services/UserService.cs` (`EnsureEmergencyEligibleAsync`).
+- **What the other source says:** Design specification Section 5.6 requires that emergency accounts hold the System Administrator role and a second factor and that at most three exist. It does not say how the first emergency account is created.
+- **Question:** Is the order required by the code intended (create the account, enrol its second factor, then mark it as an emergency account), or should the create form allow emergency status once a second factor exists?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-197
+- **Area:** SEC
+- **Status:** Decided
+- **What the code does:** As first recorded: changing a user's company username through the user form (`UserService.ApplySsoLinkChange`) changes `DirectoryUsername` and leaves `DirectorySubjectId` unchanged. Only the re-link method (`UserService.RelinkDirectoryAsync`) clears `DirectorySubjectId`. Sign-in first matches on the stored subject id (`DirectoryUserMatcher.Match`), so after a company username change the same company account still signs in as the same MicroLIMS user. Changed 2026-11-13 (commit `d0a799da`): `UserService.ApplySsoLinkChange` now clears `DirectorySubjectId` and `DirectorySignInRefusedAt` when an existing company username is changed or removed, and records the cleared value in the `USER_SSO_LINK_UPDATED` audit row; a first-time link clears nothing. Location: `backend/MicroLIMS.Application/Services/UserService.cs`; `backend/MicroLIMS.Application/Services/Sso/DirectoryUserMatcher.cs`.
+- **What the other source says:** Design specification Section 5.2 says the stored subject id can be cleared only by an administrator with the reason "Re-link", and that renaming a directory account does not break the link. The specification does not say what a change of the MicroLIMS company username does.
+- **Question:** Should changing a user's company username clear the stored subject id, so that the next company sign-in binds again to the account with the new username, or should the stored link be kept as built?
+- **Decision:** Decided by the user 2026-11-13: changing the company username clears the stored subject id; the next company sign-in binds again.
+- **Date:** 2026-11-13
+
+### CONF-198
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `SystemSettingDefinitions` sets the default value of `myWork.readOverdueHours` (`SystemSettingKeys.MyWorkReadOverdueHours`, range `0` to `168` hours) to `"0"`. In `MyWorkUrgency.ForReading` and `IncubationSource.ReadyAndOverdue`, a value of `0` disables overdue marking for ready-to-read incubations, so open incubations that are ready to read remain at urgency `Now` indefinitely regardless of how long they have waited past their expected reading or end time. Location: `backend/MicroLIMS.Application/Services/SystemSettings/SystemSettingDefinitions.cs` — `All` (`MyWorkReadOverdueHours`); `backend/MicroLIMS.Application/Services/MyWork/MyWorkUrgency.cs` — `ForReading`; `backend/MicroLIMS.Application/Services/MyWork/Sources/IncubationSource.cs` — `ReadyAndOverdue`, `CountsAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.4 and Section 9 item 1, and implementation plan `docs/superpowers/plans/2026-11-10-my-work.md` ("Open after the plan"), note that the laboratory rule for how long a ready plate may wait before it counts as overdue to read was not found in `documents/`, so `myWork.readOverdueHours` ships as `0` (off) until the laboratory states the rule.
+- **Question:** How many hours after an incubation becomes ready to read should it be marked `Overdue` in My Work, and what default value should `myWork.readOverdueHours` carry once the laboratory confirms the rule?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-199
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `EquipmentSource` applies to every user whose role holds `EquipmentWork.Record` (`PermissionConstants.EquipmentWorkRecord`) and returns all open, non-retired `EquipmentTask` rows (`CompletedOn == null && RetiredByRevisionId == null`) with `DueDate` on or before `labToday.AddDays(ctx.LookAheadDays)`. It does not filter by an assigned owner or by the caller's laboratory sections (`ReadableSectionIds` or `MemberSectionIds`), because `EquipmentTask` and `EquipmentInventory` have no owner user column and `EquipmentInventory.SectionId` references a `DocumentSection` rather than a laboratory section. Location: `backend/MicroLIMS.Application/Services/MyWork/Sources/EquipmentSource.cs` — `AppliesTo`, `Rows`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.2 (group 10, "Equipment tasks and calibrations due within 7 days or overdue, in my sections") and Section 9 item 2, and implementation plan `docs/superpowers/plans/2026-11-10-my-work.md` ("Open after the plan"), record that equipment tasks have no owner in the data and are linked to a document section rather than a laboratory section, so they are shown to every holder of `EquipmentWork.Record` until an owner field or section rule is defined.
+- **Question:** Should `EquipmentTask` or `EquipmentInventory` gain an assigned owner or laboratory-section filter so My Work lists only the user's own equipment tasks, or should every holder of `EquipmentWork.Record` continue to see all due equipment tasks?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-200
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `IncubationSource.Ending` selects open, non-ready incubations on the caller's active tests only when `(i.ExpectedReadingAt ?? i.IncubationEndUtc) <= ctx.EndOfLabDayUtc` (the end of the current local day in the laboratory time zone, with urgency `Today`). Open incubations whose expected reading or end time falls after the end of the current laboratory day are not returned in `endingToday` or any other My Work group, and `IncubationSource` applies no look-ahead window (`ctx.LookAheadDays` is not used). By contrast, `MyTasksService.GetMyTasksAsync` includes open incubations expected within a 2-day horizon. Location: `backend/MicroLIMS.Application/Services/MyWork/Sources/IncubationSource.cs` — `Ending`; `backend/MicroLIMS.Application/Services/MyTasksService.cs` — `GetMyTasksAsync`.
+- **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-my-work-design.md` Section 5.2 defines group 3 as "Incubation ending today" (expected reading before local midnight with no look-ahead), while `MyWorkUrgency.ForReading` also defines a `Later` branch for non-ready incubations expected after `endOfLabDayUtc` that `IncubationSource.Ending` never queries.
+- **Question:** Should My Work list only non-ready incubations ending before the end of the current laboratory day (with no look-ahead), or should it also list upcoming incubations within a look-ahead window?
+- **Decision:** Not decided.
+- **Date:** Not applicable
+
+### CONF-201
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** `CountResultCalculator.IsParsable`, `CountResultCalculator.Validate`, and `CountResultCalculator.Calculate` (`backend/MicroLIMS.Application/Workflows/TestWorkflow/CountResultCalculator.cs`) now accept ASCII digits only (`'0'`-`'9'`, non-empty, `NumberStyles.None`) or `TNTC`/`Uncountable`, refusing thousands separators and any other non-digit characters (`"1,000"`, `"1.000"`, `"1 000"`, `"+5"`, `"-3"`, `"1e3"`, `" 12 "`, `"12.5"`, etc.) with `FieldValidationException` on `"rawPlateReadings"`. Both save and preview paths validate through `CountResultCalculator.Validate`, and `TestWorkflowDialog` enforces the same check before sending. Pinned by `CountResultCharacterisationPostgresTests.ThousandsSeparatorReading_IsRefused`, `CountPreviewPostgresTests.Preview_ThousandsSeparatorAndNonDigits_AreRefused`, and `CountResultCalculatorTests.Calculate_NonDigitsReading_IsRefused` (plus `FractionalPlateReading_IsRefused`, `NegativePlateReading_IsRefused`, and `UnrecognisedWord_IsRefused_WithFieldValidationError_NothingPersisted`).
+- **What the other source says:** No specification document defines whether thousands separators are permitted in manual plate count inputs or whether `"1,000"` should be rejected to prevent comma/decimal ambiguity and comma-joined storage ambiguity.
+- **Question:** Should count entry continue accepting a thousands separator such as `"1,000"` as `1000`, or should commas in plate count readings be rejected?
+- **Decision:** Decided by the user 2026-11-15: reject. Plate counts accept digits only; a reading such as `1,000` is refused with a message. Implemented 2026-11-15.
+- **Date:** 2026-11-15
+
+### CONF-202
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** `CountResultCalculator.Validate` and `CountResultCalculator.Calculate` (`backend/MicroLIMS.Application/Workflows/TestWorkflow/CountResultCalculator.cs`) refuse any reading set containing both `TNTC` and `Uncountable` (any letter case) with `FieldValidationException` on `"rawPlateReadings"`, applied to both save (`LoadAndCalculateCountAsync` / `RecordCountTestAsync`) and preview (`PreviewCountResultAsync`) as well as client-side in `TestWorkflowDialog`. Pinned by `CountResultCharacterisationPostgresTests.TntcAndUncountableTogether_IsRefused`, `CountPreviewPostgresTests.Preview_TntcAndUncountableTogether_IsRefused`, and `CountResultCalculatorTests.Calculate_TntcAndUncountableTogether_IsRefused`.
+- **What the other source says:** No specification document defines precedence between `TNTC` and `Uncountable` when both are flagged for one reading set, or whether entering both simultaneously should be disallowed.
+- **Question:** When both `TNTC` and `Uncountable` are entered on different plates of the same reading set, should the first entered flag continue to win, should one always take precedence over the other, or should mixed flags be rejected?
+- **Decision:** Decided by the user 2026-11-15: the server refuses a reading set that carries both `TNTC` and `Uncountable` and asks the analyst to choose one. Implemented 2026-11-15.
+- **Date:** 2026-11-15
+
+### CONF-203
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** In `IncubationStepRecorder.LoadCountContextAsync` (`backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs`, line 800), when `!isDirectCount && sample.ItemId is null` (an item-less non-direct sample such as GPT), the configured dilution factor and item specification limit/unit lookup block is bypassed. As a result, the `DilutionFactor` supplied by the client is used as entered with no override note, no limits are checked, and the unit defaults to `"CFU/unit"`. Pinned by `CountResultCharacterisationPostgresTests.ItemlessNonDirectSample_ClientDfUsedAsTyped_NoLimits_DefaultUnit` (`backend/MicroLIMS.Tests/IntegrationTests/CountResultCharacterisationPostgresTests.cs`, line 735) and `CountResultCalculatorTests.Calculate_MatchesSavedValues_ForEachCharacterisedCase` (`"itemless GPT"`, line 31).
+- **What the other source says:** Characterisation tests record this existing behavior; no requirement defines whether item-less non-direct count tests should accept an unvalidated client dilution factor or enforce a configured dilution factor.
+- **Question:** For item-less non-direct samples (such as GPT), should the dilution factor sent by the client continue to be accepted as entered with default `"CFU/unit"` and no limit check, or should a configured dilution factor or validation rule apply?
+- **Decision:** Decided by the user 2026-11-15: keep the current behaviour. Accepted as is; no code change.
+- **Date:** 2026-11-15
+
+### CONF-204
+- **Area:** ENV
+- **Status:** Decided
+- **What the code does:** In `EnvironmentalMonitoringMasterDataService` (`backend/MicroLIMS.Application/Services/MasterData/EnvironmentalMonitoringMasterDataService.cs`), batch paste runs `ValidateRoomsBatchUniquenessAsync` (rejecting duplicate room `Name` within the same `DepartmentId`, case-insensitively, both within the batch and against existing database rooms) and `ValidateRoomTestConfigsBatchUniquenessAsync` (rejecting duplicate `(RoomId, TestType, TestCode)` among active configurations, both within the batch and against active database records). Single-record creation (`CreateRoomAsync` and `CreateRoomTestConfigurationAsync`) does not enforce those checks.
+- **What the other source says:** `MasterDataBatchPostgresTests` (`Rooms_Existing_Reported`, `RoomTestConfigs_Existing_Reported`, `RoomTestConfigs_InactiveExisting_DoesNotBlockANewActiveRow`) verify batch uniqueness rules; single-create forms remain unconstrained.
+- **Question:** Should room name uniqueness per department and single-active-configuration uniqueness per `(Room, TestType, TestCode)` also be enforced on the single-add forms, kept on batch paste only, or relaxed?
+- **Decision:** Decided by the user 2026-11-15: keep both checks on paste and add the same two checks to the single add forms. Existing data is not changed. Implemented 2026-11-15 (`MasterDataBatchPostgresTests`: `SingleRoom_DuplicateNameInDepartment_Refused`, `SingleRoom_SameNameOtherDepartment_Allowed`, `SingleConfig_DuplicateActive_Refused`, `SingleConfig_InactiveExisting_Allowed`, `UpdateRoom_DuplicateNameInDepartment_Refused_AndSelfUpdateAllowed`, `UpdateRoomTestConfig_DuplicateActive_Refused_AndSelfUpdateAllowed`).
+- **Date:** 2026-11-15
+
+### CONF-205
+- **Area:** ADM
+- **Status:** Decided
+- **What the code does:** `RegisterTable` (`frontend/src/components/lab/RegisterTable.tsx`) disables column sorting whenever `serverPaged` is true (`sortableColumns` is forced to `[]`, no `TableSortLabel` is rendered, and client-side sort is skipped), affecting `SampleRegisterTable` (`frontend/src/modules/receiving/components/SampleRegisterTable.tsx`) and `DocumentLibraryPage` (`frontend/src/modules/documentControl/pages/DocumentLibraryPage.tsx`), because only one page is held on the client and server list endpoints have no sort parameter. Pinned by `frontend/src/components/lab/RegisterTable.test.tsx` (`"serverPaged: offers no column sort, since only one server page is held"`).
+- **What the other source says:** No specification document records that column header sorting is disabled on server-paged workspace tables while client-paged tables remain sortable.
+- **Question:** Should server-paged workspace tables (`SampleRegisterTable` and `DocumentLibraryPage`) keep column sorting disabled, or should server-side sorting be added to their list endpoints?
+- **Decision:** Decided by the user 2026-11-15: add server-side sorting (allow-listed column and direction) to the list endpoints and re-enable column sorting on these tables. Implemented 2026-11-15 (`ServerSideSortingPostgresTests`: `Samples_SortsAscendingAndDescending_AcrossPages_WithNoOverlap`, `Samples_BreaksTiesById_PreservesDefaultAndScope`, `Samples_RejectsUnknownSortBy_AndInvalidSortDir`, `DocumentLibrary_SortsAscendingAndDescending_AcrossPages_WithNoOverlap`, `DocumentLibrary_BreaksTiesById_PreservesDefaultAndSectionScope`, `DocumentLibrary_RejectsUnknownSortBy_AndInvalidSortDir`; frontend: `RegisterTable.test.tsx`, `ReceivingTestingWorkspacePage.tableState.test.tsx`, `DocumentLibraryPage.tableState.test.tsx`).
+- **Date:** 2026-11-15
+
+### CONF-206
+- **Area:** NTF
+- **Status:** Open
+- **What the code does:** `DashboardNotificationService.GetNotificationsAsync` (`backend/MicroLIMS.Application/Services/DashboardNotificationService.cs`) now only reads the caller's 30 newest stored `NotificationLog` rows (and filters them by laboratory when a laboratory is chosen); `MarkAsReadAsync` and `MarkAllAsReadAsync` delegate to `NotificationQueryService`. Notifications are created by `NotificationPublisher` inside the transaction of the change that causes them and by `NotificationScheduler` in the background worker every 5 minutes; e-mails are written to `EmailOutbox` and sent after commit to the address stored on the user, for the six e-mailable types only (`NotificationCatalog`). A read request writes nothing.
+- **What the other source says:** `documents/FunctionalSpecification/FS-NTF.md` FS-NTF-002 (written 2026-11-12) says `GetNotificationsAsync` computes the current notifications on each call, stores new ones, pushes them and "writes rows" on a read request; skips a message equal to one stored in the last 12 hours; uses a 7-day expiry window and a 12-hour return window written in the code; and sends an e-mail for every notification of severity "error" to `{username}@microlims.local`. It also says that approval and review waiting are counts per role or permission holder. FS-NTF-002 and CONF-161 and CONF-165 refer to those rules.
+- **Question:** FS-NTF-002 no longer describes the code. Should FS-NTF-002 be rewritten to point to FS-NTF-012 to FS-NTF-014, and are CONF-002, CONF-161 and CONF-165 (written against the old compute-on-read rules) still open as stated?
+- **Decision:** Not decided. FS-NTF-012 to FS-NTF-021 describe the code as it stands; FS-NTF-002 was not changed.
+- **Date:** Not applicable
+
+### CONF-207
+- **Area:** MDM
+- **Status:** Open
+- **What the code does:** A specification, Test Master test, item or equipment edit requires a reason of at least 10 characters when open work exists, and delete, retire, reinstate, freeze and unfreeze always require one (`ChangeReasonGuard`). A specification that a recorded result refers to is retired instead of deleted (`DeleteSpecificationAsync`, outcome "retired"); a retired specification can be reinstated and cannot be edited. A new combined endpoint creates a test with its stages and steps in one transaction. Equipment edits also ask for a reason when open work exists.
+- **What the other source says:** `documents/FunctionalSpecification/FS-MDM.md` FS-MDM-006 says "No reason for change is asked for" on a specification update; FS-MDM-007 says a specification delete is a hard delete with no used-check and no reason; the item entries (FS-MDM-002 and FS-MDM-003) say that update, freeze, unfreeze and delete capture no reason; the Test Master freeze and unfreeze entry (FS-MDM-011) says no reason is asked for. The equipment entry (FS-MDM-024) does not mention a reason. These entries were written on 2026-11-12 from the code as it then stood.
+- **Question:** Those FS-MDM entries no longer match the code. Should they be rewritten to match FS-MDM-039 and FS-MDM-040? CONF-150 (open) asked whether a reason must be required and whether a specification must be versioned: the reason and the retirement are now in the code, but a specification is still changed in place with no version number or effective date, and recorded results are not rebound to a snapshot of the specification (user decision 2026-11-11: limits stay "in force when the result is entered"). Does that satisfy `CLAUDE.md` Rule 3.1, or must CONF-150 stay open for the versioning part?
+- **Decision:** Not decided. FS-MDM-038 to FS-MDM-045 describe the code as it stands; FS-MDM-006, FS-MDM-007 and the other older entries were not changed.
+- **Date:** Not applicable
+
+### CONF-208
+- **Area:** MIC
+- **Status:** Decided
+- **What the code does:** Result entry for a non-count test whose test and item have no specification refuses with "No specifications configured for this test and item." Location: `backend/MicroLIMS.Application/Workflows/TestWorkflow/TestWorkflowSupport.cs` (line 647) and `OutsourcedRecorder.cs` (line 63). A count test reached through the non-direct path refuses with `DilutionFactorNotConfigured`. The status `LimitsNotConfigured` exists for limit comparisons (CALC-012, CALC-013) but no result-entry path records a no-specification result as a pass.
+- **What the other source says:** `docs/superpowers/plans/2026-11-11-simpler-configuration.md` and its design spec recorded a user decision of 2026-11-11: a result with no applicable specification is treated as a pass with status "Limits not configured" and a visible "No specification — accepted as pass" flag on the review and approval screens.
+- **Question:** Should a result with no specification be accepted as a pass (2026-11-11), or stay refused (current code)?
+- **Decision:** Keep it refused (user, 2026-11-16). The 2026-11-11 decision is superseded; the flag is not built. The plan and design spec carry a dated note.
+- **Date:** 2026-11-16

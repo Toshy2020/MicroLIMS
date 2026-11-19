@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Services.InstrumentImport;
@@ -25,7 +26,7 @@ public partial class IcpRunService
     public async Task<IcpReportValuesDto> GetReportValuesAsync(int runSampleId, int? solutionIndex, int userId, CancellationToken ct = default)
     {
         if (_reportReader == null)
-            throw new BusinessRuleException("Reading instrument reports is not available.");
+            throw new BusinessRuleException(MessageCodes.IcpReportReaderUnavailable, "Reading instrument reports is not available.");
 
         var context = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, ct, _clock);
         await EnsureAccessAsync(context.Run, userId, ct, SectionAccess.Read);
@@ -33,7 +34,7 @@ public partial class IcpRunService
         var evidence = context.Run.Evidence
             .Where(e => e.IcpRunSampleId == runSampleId && e.Kind == IcpEvidenceKind.SampleReport && e.SupersededByEvidenceId == null)
             .OrderByDescending(e => e.UploadedAt).FirstOrDefault()
-            ?? throw new BusinessRuleException("Upload the sample result report first.");
+            ?? throw new BusinessRuleException(MessageCodes.IcpSampleResultReportRequired, "Upload the sample result report first.");
 
         var bytes = await _storage.ReadAsync(evidence.FilePath);
         var text = await _reportReader.ReadAsync(bytes, evidence.FileName, ct);
@@ -66,7 +67,9 @@ public partial class IcpRunService
 
         int? selected = solutionIndex ?? matched;
         if (selected is int chosen && candidates.All(c => c.Index != chosen))
-            throw new BusinessRuleException("That solution is not a sample reading in the report.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpReportSolutionNotSampleReading,
+                "That solution is not a sample reading in the report.");
 
         var elements = new List<IcpReportElementValueDto>();
         if (selected is int sel)

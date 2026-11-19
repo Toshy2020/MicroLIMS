@@ -46,4 +46,15 @@ describe("AuthProvider role name", () => {
 
     expect(result.current.roleName).toBe("Lead Microbiologist");
   });
+
+  it("preserves the trusted device token across logout", () => {
+    localStorage.setItem("microlims_device_token", "trusted-device-abc");
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    act(() => result.current.login(loginData));
+    act(() => result.current.logout());
+
+    expect(localStorage.getItem("microlims_token")).toBeNull();
+    expect(localStorage.getItem("microlims_device_token")).toBe("trusted-device-abc");
+  });
 });

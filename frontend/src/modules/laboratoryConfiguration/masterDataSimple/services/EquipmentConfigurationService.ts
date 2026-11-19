@@ -1,4 +1,4 @@
-import { apiClient, ifMatch } from "../../../../services/apiClient";
+import { apiClient, ifMatch, withChangeReason } from "../../../../services/apiClient";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -42,30 +42,51 @@ export type CdsSoftware =
   | "PerkinElmerSyngistix";
 
 
+// Mirrors CreateEquipmentRequest in MasterDataRequests.cs (enums travel as names).
 export interface CreateEquipmentRequest {
   name: string;
   code: string;
-  type: string;
+  type: EquipmentType;
   location?: string | null;
   setPointTemperature?: number | null;
   calibrationDueDate?: string | null;
   vendor?: string | null;
-  cdsSoftware?: string | null;
+  cdsSoftware?: CdsSoftware | null;
   connectionSettings?: string | null;
   sectionId?: number | null;
+  equipmentInventoryId?: number | null;
 }
 
+// Mirrors UpdateEquipmentRequest in MasterDataRequests.cs (enums travel as names).
 export interface UpdateEquipmentRequest {
   name: string;
   code: string;
-  type: string;
+  type: EquipmentType;
   location?: string | null;
   setPointTemperature?: number | null;
   calibrationDueDate?: string | null;
   vendor?: string | null;
-  cdsSoftware?: string | null;
+  cdsSoftware?: CdsSoftware | null;
   connectionSettings?: string | null;
   sectionId?: number | null;
+  equipmentInventoryId?: number | null;
+}
+
+export interface EquipmentResponse {
+  id: number;
+  version?: number;
+  name: string;
+  code: string;
+  type: string;
+  location: string | null;
+  setPointTemperature: number | null;
+  calibrationDueDate: string | null;
+  vendor: string | null;
+  cdsSoftware: string | null;
+  connectionSettings: string | null;
+  sectionId: number | null;
+  section?: ConfiguredEquipmentSummary["section"];
+  equipmentInventoryId?: number | null;
 }
 
 export interface ConfiguredEquipmentSummary {
@@ -173,14 +194,12 @@ export const EquipmentConfigurationService = {
     return Array.isArray(data) ? data : [];
   },
 
-  linkInventory: async (inventoryId: number): Promise<any> => {
-    const res = await apiClient.post<ApiResponse<any>>(`/masterdata/equipment/link-inventory/${inventoryId}`);
-    return res.data?.data;
+  linkInventory: async (inventoryId: number): Promise<void> => {
+    await apiClient.post(`/masterdata/equipment/link-inventory/${inventoryId}`);
   },
 
-  updateSetPoint: async (id: number, req: UpdateIncubatorSetPointRequest): Promise<any> => {
-    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}/set-point`, req);
-    return res.data?.data;
+  updateSetPoint: async (id: number, req: UpdateIncubatorSetPointRequest): Promise<void> => {
+    await apiClient.put(`/masterdata/equipment/${id}/set-point`, req);
   },
 
   getSetPointHistory: async (id: number): Promise<IncubatorSetPointHistory[]> => {
@@ -190,7 +209,7 @@ export const EquipmentConfigurationService = {
   },
 
   getAutoclavePrograms: async (id?: number, activeOnly?: boolean): Promise<AutoclaveProgram[]> => {
-    const params: Record<string, any> = {};
+    const params: Record<string, boolean> = {};
     if (activeOnly !== undefined) params.activeOnly = activeOnly;
     const url = id ? `/masterdata/equipment/${id}/autoclave-programs` : "/masterdata/equipment/autoclave-programs/all";
     const res = await apiClient.get<ApiResponse<AutoclaveProgram[]>>(url, { params });
@@ -217,24 +236,30 @@ export const EquipmentConfigurationService = {
     return Array.isArray(data) ? data : [];
   },
 
-  getEquipmentList: async (type?: string): Promise<any[]> => {
-    const res = await apiClient.get<ApiResponse<any[]>>("/masterdata/equipment", { params: type ? { type } : {} });
+  getEquipmentList: async (type?: string): Promise<EquipmentResponse[]> => {
+    const res = await apiClient.get<ApiResponse<EquipmentResponse[]>>("/masterdata/equipment", { params: type ? { type } : {} });
     const data = res.data?.data;
     return Array.isArray(data) ? data : [];
   },
 
-  getEquipmentById: async (id: number): Promise<any> => {
-    const res = await apiClient.get<ApiResponse<any>>(`/masterdata/equipment/${id}`);
+  getEquipmentById: async (id: number): Promise<EquipmentResponse> => {
+    const res = await apiClient.get<ApiResponse<EquipmentResponse>>(`/masterdata/equipment/${id}`);
     return res.data?.data;
   },
 
-  createEquipment: async (req: CreateEquipmentRequest): Promise<any> => {
-    const res = await apiClient.post<ApiResponse<any>>("/masterdata/equipment", req);
+  createEquipment: async (req: CreateEquipmentRequest): Promise<EquipmentResponse> => {
+    const res = await apiClient.post<ApiResponse<EquipmentResponse>>("/masterdata/equipment", req);
     return res.data?.data;
   },
 
-  updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number): Promise<any> => {
-    const res = await apiClient.put<ApiResponse<any>>(`/masterdata/equipment/${id}`, req, ifMatch(version));
+  createEquipmentBatch: async (req: CreateEquipmentRequest[]): Promise<EquipmentResponse[]> => {
+    const res = await apiClient.post<ApiResponse<EquipmentResponse[]>>("/masterdata/equipment/batch", req);
+    const data = res.data?.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  updateEquipment: async (id: number, req: UpdateEquipmentRequest, version?: number, reason?: string): Promise<EquipmentResponse> => {
+    const res = await apiClient.put<ApiResponse<EquipmentResponse>>(`/masterdata/equipment/${id}`, req, withChangeReason(version, reason));
     return res.data?.data;
   }
 };

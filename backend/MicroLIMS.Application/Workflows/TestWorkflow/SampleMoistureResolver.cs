@@ -4,6 +4,8 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
+using System.Globalization;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -51,7 +53,10 @@ public sealed class SampleMoistureResolver
     {
         var list = bases.ToList();
         bool dried = list.Contains(ResultBasis.PercentDriedBasis), anhydrous = list.Contains(ResultBasis.PercentAnhydrousBasis);
-        if (dried && anhydrous) throw new BusinessRuleException($"One {test} cannot report on both dried and anhydrous basis.");
+        if (dried && anhydrous) throw new BusinessRuleException(
+            MessageCodes.TestMoistureBasisConflict,
+            $"One {test} cannot report on both dried and anhydrous basis.",
+            new Dictionary<string, string> { ["test"] = test });
         return dried ? MoistureRole.LossOnDrying : anhydrous ? MoistureRole.Water : MoistureRole.None;
     }
 
@@ -71,11 +76,12 @@ public sealed class SampleMoistureResolver
             .ToListAsync();
         if (results.Count == 0) return null;
 
+        string refusalCode = role == MoistureRole.LossOnDrying ? MessageCodes.TestLossOnDryingNotNumeric : MessageCodes.TestWaterNotNumeric;
         string refusal = role == MoistureRole.LossOnDrying
             ? "The loss on drying test must report one numeric result."
             : "The water test must report one numeric result.";
         if (results.Count != 1 || results[0].ReportedValue is not decimal percent || percent < 0m || percent >= 100m)
-            throw new BusinessRuleException(refusal);
+            throw new BusinessRuleException(refusalCode, refusal);
         return new SampleMoisture(percent, results[0].TestOrderId, results[0].Id, results[0].TestCode, role);
     }
 
@@ -88,7 +94,10 @@ public sealed class SampleMoistureResolver
     {
         var order = await _db.TestOrders.AsNoTracking().Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         if (order.Sample?.ItemId is not int itemId) return null;
 
         var specs = await SpecificationLookup.ForSampleAsync(_db, order.SampleId, itemId, order.TestCode, ct);
@@ -97,7 +106,9 @@ public sealed class SampleMoistureResolver
         var m = await ResolveAsync(order.SampleId, role);
         if (m == null) return null;
         // the value comes from another test order, possibly in another laboratory section
-        await (_scope ?? throw new BusinessRuleException("Section scope is not available.")).EnsureTestOrderAccessAsync(userId, m.TestOrderId, ct);
+        await (_scope ?? throw new BusinessRuleException(
+            MessageCodes.TestSectionScopeUnavailable,
+            "Section scope is not available.")).EnsureTestOrderAccessAsync(userId, m.TestOrderId, ct);
         return new SampleMoistureView(role, m.Percent, m.TestCode);
     }
 }

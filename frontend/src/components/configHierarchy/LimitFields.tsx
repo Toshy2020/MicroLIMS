@@ -1,4 +1,8 @@
 import { Alert, Box, MenuItem, TextField } from "@mui/material";
+import type { TFunction } from "i18next";
+import { i18n, useTranslation } from "../../i18n";
+
+type LimitType = "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative";
 
 export interface LimitValues {
   alertLimit: string;
@@ -29,13 +33,16 @@ export const emptyLimits: LimitValues = {
 // Advisory only: limits are free text (e.g. "<1"), and the ordering rule
 // belongs to the backend, so this never blocks a save - it just points
 // out an order that is probably a typo when all three are plain numbers.
-export function limitOrderWarning({ alertLimit, actionLimit, specLimit }: LimitValues): string | null {
+export function limitOrderWarning(
+  { alertLimit, actionLimit, specLimit }: LimitValues,
+  t: TFunction = i18n.getFixedT("en", "common")
+): string | null {
   const nums = [alertLimit, actionLimit, specLimit].map((s) => (s.trim() === "" ? null : Number(s.trim())));
   if (nums.some((n) => n !== null && Number.isNaN(n))) return null;
   const [alert, action, spec] = nums;
-  if (alert != null && action != null && alert > action) return "Alert limit is higher than the action limit.";
-  if (action != null && spec != null && action > spec) return "Action limit is higher than the specification.";
-  if (alert != null && spec != null && alert > spec) return "Alert limit is higher than the specification.";
+  if (alert != null && action != null && alert > action) return t("components.limitFields.alertGtAction");
+  if (action != null && spec != null && action > spec) return t("components.limitFields.actionGtSpec");
+  if (alert != null && spec != null && alert > spec) return t("components.limitFields.alertGtSpec");
   return null;
 }
 
@@ -58,9 +65,10 @@ export interface ChemistryLimitFieldsProps {
 // Limit type select (Range / Not more than / Not less than / Qualitative),
 // Lower, Upper, Expected result text, Unit for chemistry and other non-count tests.
 export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholder }: ChemistryLimitFieldsProps) {
+  const { t } = useTranslation();
   const limitType = value.limitType ?? "Range";
 
-  const setLimitType = (type: "Range" | "NotMoreThan" | "NotLessThan" | "Qualitative") => {
+  const setLimitType = (type: LimitType) => {
     onChange({ ...value, limitType: type });
   };
 
@@ -78,7 +86,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
     value.lowerLimit != null &&
     value.upperLimit != null &&
     value.lowerLimit > value.upperLimit
-      ? "Lower limit cannot be greater than upper limit."
+      ? t("components.limitFields.lowerGtUpper")
       : null;
 
   return (
@@ -87,14 +95,14 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
         id={`${idPrefix}-limit-type`}
         select
         size="small"
-        label="Limit type"
+        label={t("components.limitFields.limitType")}
         value={limitType}
-        onChange={(e) => setLimitType(e.target.value as any)}
+        onChange={(e) => setLimitType(e.target.value as LimitType)}
       >
-        <MenuItem value="Range">Range</MenuItem>
-        <MenuItem value="NotMoreThan">Not more than</MenuItem>
-        <MenuItem value="NotLessThan">Not less than</MenuItem>
-        <MenuItem value="Qualitative">Qualitative</MenuItem>
+        <MenuItem value="Range">{t("components.limitFields.range")}</MenuItem>
+        <MenuItem value="NotMoreThan">{t("components.limitFields.notMoreThan")}</MenuItem>
+        <MenuItem value="NotLessThan">{t("components.limitFields.notLessThan")}</MenuItem>
+        <MenuItem value="Qualitative">{t("components.limitFields.qualitative")}</MenuItem>
       </TextField>
 
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 1.25 }}>
@@ -104,7 +112,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
               id={`${idPrefix}-lower`}
               size="small"
               type="number"
-              label="Lower"
+              label={t("components.limitFields.lower")}
               value={value.lowerLimit ?? ""}
               onChange={setNum("lowerLimit")}
               slotProps={{ htmlInput: { step: "any" } }}
@@ -113,7 +121,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
               id={`${idPrefix}-upper`}
               size="small"
               type="number"
-              label="Upper"
+              label={t("components.limitFields.upper")}
               value={value.upperLimit ?? ""}
               onChange={setNum("upperLimit")}
               slotProps={{ htmlInput: { step: "any" } }}
@@ -126,7 +134,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
             id={`${idPrefix}-upper`}
             size="small"
             type="number"
-            label="Upper"
+            label={t("components.limitFields.upper")}
             value={value.upperLimit ?? ""}
             onChange={setNum("upperLimit")}
             slotProps={{ htmlInput: { step: "any" } }}
@@ -138,7 +146,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
             id={`${idPrefix}-lower`}
             size="small"
             type="number"
-            label="Lower"
+            label={t("components.limitFields.lower")}
             value={value.lowerLimit ?? ""}
             onChange={setNum("lowerLimit")}
             slotProps={{ htmlInput: { step: "any" } }}
@@ -149,7 +157,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
           <TextField
             id={`${idPrefix}-expected-result-text`}
             size="small"
-            label="Expected result text"
+            label={t("components.limitFields.expectedResultText")}
             value={value.expectedResultText ?? ""}
             onChange={setText("expectedResultText")}
             sx={{ gridColumn: "span 2" }}
@@ -159,8 +167,8 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
         <TextField
           id={`${idPrefix}-unit`}
           size="small"
-          label="Unit"
-          placeholder={unitPlaceholder ?? "e.g. pH, µS/cm"}
+          label={t("components.limitFields.unit")}
+          placeholder={unitPlaceholder ?? t("components.limitFields.unitPlaceholder")}
           value={value.unit ?? ""}
           onChange={setText("unit")}
         />
@@ -179,6 +187,7 @@ export function ChemistryLimitFields({ idPrefix, value, onChange, unitPlaceholde
 // or switches to ChemistryLimitFields when workflowType is not CountTest.
 export function LimitFields(props: Props) {
   const { idPrefix, value, onChange, unitRequired, unitPlaceholder, workflowType } = props;
+  const { t } = useTranslation();
 
   if (workflowType && workflowType !== "CountTest") {
     return (
@@ -192,18 +201,18 @@ export function LimitFields(props: Props) {
   }
 
   const set = (k: keyof LimitValues) => (e: React.ChangeEvent<HTMLInputElement>) => onChange({ ...value, [k]: e.target.value });
-  const warning = limitOrderWarning(value);
+  const warning = limitOrderWarning(value, t);
 
   return (
     <Box>
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 1.25 }}>
-        <TextField id={`${idPrefix}-alert`} size="small" label="Alert" value={value.alertLimit} onChange={set("alertLimit")} />
-        <TextField id={`${idPrefix}-action`} size="small" label="Action" value={value.actionLimit} onChange={set("actionLimit")} />
-        <TextField id={`${idPrefix}-spec`} size="small" label="Specification" value={value.specLimit} onChange={set("specLimit")} />
+        <TextField id={`${idPrefix}-alert`} size="small" label={t("components.limitFields.alert")} value={value.alertLimit} onChange={set("alertLimit")} />
+        <TextField id={`${idPrefix}-action`} size="small" label={t("components.limitFields.action")} value={value.actionLimit} onChange={set("actionLimit")} />
+        <TextField id={`${idPrefix}-spec`} size="small" label={t("components.limitFields.specification")} value={value.specLimit} onChange={set("specLimit")} />
         <TextField
           id={`${idPrefix}-unit`}
           size="small"
-          label="Unit"
+          label={t("components.limitFields.unit")}
           required={unitRequired}
           placeholder={unitPlaceholder}
           value={value.unit}
@@ -212,7 +221,7 @@ export function LimitFields(props: Props) {
       </Box>
       {warning && (
         <Alert severity="warning" sx={{ mt: 1, py: 0 }}>
-          {warning} Check the values before saving.
+          {warning} {t("components.limitFields.checkValues")}
         </Alert>
       )}
     </Box>

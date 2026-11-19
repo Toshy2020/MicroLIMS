@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -83,37 +85,60 @@ public class SolutionPreparationService
     public async Task<SolutionPreparationResponse> StartAsync(StartPreparationRequest r, int userId, CancellationToken ct = default)
     {
         var solution = await LoadSolutionForSnapshotAsync(r.SolutionMasterId, ct)
-            ?? throw new NotFoundException($"Solution master {r.SolutionMasterId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionMasterNotFound,
+                $"Solution master {r.SolutionMasterId} not found.",
+                new Dictionary<string, string> { ["solutionMasterId"] = r.SolutionMasterId.ToString(CultureInfo.InvariantCulture) });
 
         var scope = await _scope.GetMemberSectionIdsAsync(userId, ct);
         if (scope != null && !scope.Contains(solution.SectionId))
-            throw new NotFoundException($"Solution master {r.SolutionMasterId} not found.");
+            throw new NotFoundException(
+                MessageCodes.SolutionMasterNotFound,
+                $"Solution master {r.SolutionMasterId} not found.",
+                new Dictionary<string, string> { ["solutionMasterId"] = r.SolutionMasterId.ToString(CultureInfo.InvariantCulture) });
 
         if (!solution.IsActive)
-            throw new BusinessRuleException($"Solution \"{solution.Name}\" is inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionMasterInactive,
+                $"Solution \"{solution.Name}\" is inactive.",
+                new Dictionary<string, string> { ["name"] = solution.Name });
 
         HplcMethod? method = null;
         if (solution.Type == SolutionType.MobilePhase)
         {
             if (!r.HplcMethodId.HasValue)
-                throw new BusinessRuleException("An HPLC method is required to start a mobile phase preparation.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionHplcMethodRequired,
+                    "An HPLC method is required to start a mobile phase preparation.");
 
             method = await _db.HplcMethods.Include(m => m.MobilePhases)
                 .FirstOrDefaultAsync(m => m.Id == r.HplcMethodId.Value, ct)
-                ?? throw new NotFoundException($"HPLC method {r.HplcMethodId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.SolutionHplcMethodNotFound,
+                    $"HPLC method {r.HplcMethodId} not found.",
+                    new Dictionary<string, string> { ["hplcMethodId"] = r.HplcMethodId.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (method.SectionId != solution.SectionId)
-                throw new BusinessRuleException("The HPLC method belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionHplcMethodWrongLab,
+                    "The HPLC method belongs to another laboratory.");
 
             if (!method.IsActive)
-                throw new BusinessRuleException($"HPLC method \"{method.Name}\" is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionHplcMethodInactive,
+                    $"HPLC method \"{method.Name}\" is inactive.",
+                    new Dictionary<string, string> { ["name"] = method.Name });
 
             if (!method.MobilePhases.Any(mp => mp.SolutionMasterId == solution.Id))
-                throw new BusinessRuleException("That method does not use this mobile phase.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionHplcMethodDoesNotUseMobilePhase,
+                    "That method does not use this mobile phase.");
         }
         else if (r.HplcMethodId.HasValue)
         {
-            throw new BusinessRuleException("An HPLC method only applies to mobile phase preparations.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionHplcMethodOnlyForMobilePhase,
+                "An HPLC method only applies to mobile phase preparations.");
         }
 
         var snapshotJson = JsonSerializer.Serialize(SolutionMasterResponse.From(solution), JsonOptions);
@@ -171,7 +196,9 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new BusinessRuleException("This preparation is closed.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionPreparationClosed,
+                "This preparation is closed.");
 
         var today = _clock.LabToday;
         var now = _clock.UtcNow.UtcDateTime;
@@ -180,19 +207,27 @@ public class SolutionPreparationService
         foreach (var input in r.Components)
         {
             var component = prep.Components.FirstOrDefault(c => c.Id == input.ComponentId)
-                ?? throw new BusinessRuleException($"Component {input.ComponentId} does not belong to this preparation.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentNotInPreparation,
+                    $"Component {input.ComponentId} does not belong to this preparation.",
+                    new Dictionary<string, string> { ["componentId"] = input.ComponentId.ToString(CultureInfo.InvariantCulture) });
 
             if (component.Kind == SolutionComponentKind.Text)
             {
                 if (input.MaterialId.HasValue || input.SourcePreparationId.HasValue || input.QuantityUsed.HasValue)
-                    throw new BusinessRuleException("A text line has nothing to pick.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionTextLineNothingToPick,
+                        "A text line has nothing to pick.");
                 continue;
             }
 
             if (component.Kind == SolutionComponentKind.PreparedSolution)
             {
                 if (input.MaterialId.HasValue)
-                    throw new BusinessRuleException($"{component.EntryName} is a prepared solution: pick a prepared bottle, not a stock lot.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionComponentRequiresPreparedBottle,
+                        $"{component.EntryName} is a prepared solution: pick a prepared bottle, not a stock lot.",
+                        new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
                 if (!input.SourcePreparationId.HasValue)
                 {
@@ -202,14 +237,28 @@ public class SolutionPreparationService
                 }
 
                 if (input.QuantityUsed.HasValue && input.QuantityUsed.Value <= 0)
-                    throw new BusinessRuleException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionComponentQuantityInvalid,
+                        $"Quantity used for \"{component.EntryName}\" must be greater than zero.",
+                        new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
                 var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == input.SourcePreparationId.Value, ct)
-                    ?? throw new NotFoundException($"Solution preparation {input.SourcePreparationId} not found.");
+                    ?? throw new NotFoundException(
+                        MessageCodes.SolutionPreparationNotFound,
+                        $"Solution preparation {input.SourcePreparationId} not found.",
+                        new Dictionary<string, string> { ["preparationId"] = input.SourcePreparationId.Value.ToString(CultureInfo.InvariantCulture) });
 
                 var sourceCheck = CheckSource(source, component, prep.SectionId, now);
                 if (!sourceCheck.Usable)
-                    throw new BusinessRuleException($"{component.EntryName} (preparation {source.Code}): {sourceCheck.Reason}");
+                    throw new BusinessRuleException(
+                        MessageCodes.SolutionComponentPreparationUnusable,
+                        $"{component.EntryName} (preparation {source.Code}): {sourceCheck.Reason}",
+                        new Dictionary<string, string>
+                        {
+                            ["entryName"] = component.EntryName,
+                            ["code"] = source.Code ?? string.Empty,
+                            ["reason"] = sourceCheck.Reason ?? string.Empty
+                        });
 
                 component.SourcePreparationId = source.Id;
                 component.QuantityUsed = input.QuantityUsed;
@@ -217,7 +266,10 @@ public class SolutionPreparationService
             }
 
             if (input.SourcePreparationId.HasValue)
-                throw new BusinessRuleException($"{component.EntryName} is a stock material: pick a lot, not a prepared bottle.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentRequiresStockLot,
+                    $"{component.EntryName} is a stock material: pick a lot, not a prepared bottle.",
+                    new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
             if (!input.MaterialId.HasValue)
             {
@@ -227,27 +279,48 @@ public class SolutionPreparationService
             }
 
             if (input.QuantityUsed.HasValue && input.QuantityUsed.Value <= 0)
-                throw new BusinessRuleException($"Quantity used for \"{component.EntryName}\" must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentQuantityInvalid,
+                    $"Quantity used for \"{component.EntryName}\" must be greater than zero.",
+                    new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.MaterialId.Value, ct)
-                ?? throw new NotFoundException($"Material {input.MaterialId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MediaAdditiveMaterialNotFound,
+                    $"Material {input.MaterialId} not found.",
+                    new Dictionary<string, string> { ["materialId"] = input.MaterialId.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (lot.SectionId != prep.SectionId)
-                throw new BusinessRuleException($"Lot \"{lot.LotLabel}\" belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionLotWrongLab,
+                    $"Lot \"{lot.LotLabel}\" belongs to another laboratory.",
+                    new Dictionary<string, string> { ["lotLabel"] = lot.LotLabel });
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, input.QuantityUsed, today);
             if (!check.Usable)
-                throw new BusinessRuleException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentLotUnusable,
+                    $"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}",
+                    new Dictionary<string, string>
+                    {
+                        ["entryName"] = component.EntryName,
+                        ["lotLabel"] = lot.LotLabel,
+                        ["reason"] = check.Reason ?? string.Empty
+                    });
 
             component.MaterialId = lot.Id;
             component.QuantityUsed = input.QuantityUsed;
         }
 
         if (r.FinalVolumeMl.HasValue && r.FinalVolumeMl.Value <= 0)
-            throw new BusinessRuleException("Final volume must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionFinalVolumeInvalid,
+                "Final volume must be greater than zero.");
 
         if (r.MeasuredPh.HasValue && (r.MeasuredPh.Value < 0 || r.MeasuredPh.Value > 14))
-            throw new BusinessRuleException("Measured pH must be between 0 and 14.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionMeasuredPhOutOfRange,
+                "Measured pH must be between 0 and 14.");
 
         prep.FinalVolumeMl = r.FinalVolumeMl;
         prep.MeasuredPh = r.MeasuredPh;
@@ -266,10 +339,16 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var component = prep.Components.FirstOrDefault(c => c.Id == componentId)
-            ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionComponentNotFoundOnPreparation,
+                $"Component {componentId} not found on this preparation.",
+                new Dictionary<string, string> { ["componentId"] = componentId.ToString(CultureInfo.InvariantCulture) });
 
         if (component.Kind != SolutionComponentKind.Material)
-            throw new BusinessRuleException($"{component.EntryName} is not a stock material.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionComponentNotStockMaterial,
+                $"{component.EntryName} is not a stock material.",
+                new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
         var today = _clock.LabToday;
         var lots = await _db.Materials.AsNoTracking()
@@ -293,10 +372,16 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var component = prep.Components.FirstOrDefault(c => c.Id == componentId)
-            ?? throw new NotFoundException($"Component {componentId} not found on this preparation.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionComponentNotFoundOnPreparation,
+                $"Component {componentId} not found on this preparation.",
+                new Dictionary<string, string> { ["componentId"] = componentId.ToString(CultureInfo.InvariantCulture) });
 
         if (component.Kind != SolutionComponentKind.PreparedSolution)
-            throw new BusinessRuleException($"{component.EntryName} is not a prepared solution.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionComponentNotPreparedSolution,
+                $"{component.EntryName} is not a prepared solution.",
+                new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
         var now = _clock.UtcNow.UtcDateTime;
         var candidates = await _db.SolutionPreparations.AsNoTracking()
@@ -325,30 +410,47 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new BusinessRuleException("This preparation is closed.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionPreparationClosed,
+                "This preparation is closed.");
 
         if (prep.Components.Any(c => c.Kind == SolutionComponentKind.Material && (!c.MaterialId.HasValue || !c.QuantityUsed.HasValue)))
-            throw new BusinessRuleException("Every component needs a lot and a quantity before completion.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionComponentLotAndQuantityRequired,
+                "Every component needs a lot and a quantity before completion.");
 
         if (prep.Components.Any(c => c.Kind == SolutionComponentKind.PreparedSolution && !c.SourcePreparationId.HasValue))
-            throw new BusinessRuleException("Every prepared solution component needs a prepared bottle before completion.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionComponentPreparedBottleRequired,
+                "Every prepared solution component needs a prepared bottle before completion.");
 
         if (!prep.FinalVolumeMl.HasValue)
-            throw new BusinessRuleException("Final volume is required before completion.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionFinalVolumeRequired,
+                "Final volume is required before completion.");
 
         var snapshot = ReadSnapshot(prep);
 
         if (snapshot.PhTarget.HasValue)
         {
             if (!prep.MeasuredPh.HasValue)
-                throw new BusinessRuleException("Measured pH is required before completion.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionMeasuredPhRequired,
+                    "Measured pH is required before completion.");
 
             if (snapshot.PhTolerance.HasValue)
             {
                 var diff = Math.Abs(prep.MeasuredPh.Value - snapshot.PhTarget.Value);
                 if (diff > snapshot.PhTolerance.Value)
                     throw new BusinessRuleException(
-                        $"Measured pH {prep.MeasuredPh.Value} is outside {snapshot.PhTarget.Value} ± {snapshot.PhTolerance.Value}.");
+                        MessageCodes.SolutionMeasuredPhOutOfTolerance,
+                        $"Measured pH {prep.MeasuredPh.Value} is outside {snapshot.PhTarget.Value} ± {snapshot.PhTolerance.Value}.",
+                        new Dictionary<string, string>
+                        {
+                            ["measured"] = prep.MeasuredPh.Value.ToString(CultureInfo.InvariantCulture),
+                            ["target"] = snapshot.PhTarget.Value.ToString(CultureInfo.InvariantCulture),
+                            ["tolerance"] = snapshot.PhTolerance.Value.ToString(CultureInfo.InvariantCulture)
+                        });
             }
         }
 
@@ -359,11 +461,22 @@ public class SolutionPreparationService
         foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.Material))
         {
             var lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == component.MaterialId!.Value, ct)
-                ?? throw new BusinessRuleException($"{component.EntryName}: the selected lot no longer exists.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SolutionSelectedLotMissing,
+                    $"{component.EntryName}: the selected lot no longer exists.",
+                    new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
             var check = LotUsability.Check(lot, component.MaterialMasterEntryId!.Value, component.QuantityUsed, today);
             if (!check.Usable)
-                throw new BusinessRuleException($"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentLotUnusable,
+                    $"{component.EntryName} (lot {lot.LotLabel}): {check.Reason}",
+                    new Dictionary<string, string>
+                    {
+                        ["entryName"] = component.EntryName,
+                        ["lotLabel"] = lot.LotLabel,
+                        ["reason"] = check.Reason ?? string.Empty
+                    });
 
             picks.Add((component, lot));
         }
@@ -374,11 +487,22 @@ public class SolutionPreparationService
         foreach (var component in prep.Components.Where(c => c.Kind == SolutionComponentKind.PreparedSolution))
         {
             var source = await _db.SolutionPreparations.AsNoTracking().FirstOrDefaultAsync(p => p.Id == component.SourcePreparationId!.Value, ct)
-                ?? throw new BusinessRuleException($"{component.EntryName}: the selected preparation no longer exists.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SolutionSelectedPreparationMissing,
+                    $"{component.EntryName}: the selected preparation no longer exists.",
+                    new Dictionary<string, string> { ["entryName"] = component.EntryName });
 
             var check = CheckSource(source, component, prep.SectionId, nowCheck);
             if (!check.Usable)
-                throw new BusinessRuleException($"{component.EntryName} (preparation {source.Code}): {check.Reason}");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionComponentPreparationUnusable,
+                    $"{component.EntryName} (preparation {source.Code}): {check.Reason}",
+                    new Dictionary<string, string>
+                    {
+                        ["entryName"] = component.EntryName,
+                        ["code"] = source.Code ?? string.Empty,
+                        ["reason"] = check.Reason ?? string.Empty
+                    });
         }
 
         // Signs first - see the method comment. Only after this succeeds
@@ -416,7 +540,9 @@ public class SolutionPreparationService
 
         _db.CurrentUserId = userId;
         if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SolutionPreparationCode))
-            throw new BusinessRuleException("Another preparation took that code at the same moment - sign again.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionCodeClash,
+                "Another preparation took that code at the same moment - sign again.");
 
         return await GetByIdAsync(id, userId, ct);
     }
@@ -427,7 +553,9 @@ public class SolutionPreparationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Status != SolutionPreparationStatus.InProgress)
-            throw new BusinessRuleException("This preparation is closed.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionPreparationClosed,
+                "This preparation is closed.");
 
         var trimmedReason = ValidateReason(reason);
         var now = _clock.UtcNow.UtcDateTime;
@@ -455,7 +583,9 @@ public class SolutionPreparationService
 
         var now = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, now) != SolutionPreparationStatus.Prepared)
-            throw new BusinessRuleException("This preparation is closed.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionPreparationClosed,
+                "This preparation is closed.");
 
         var trimmedReason = ValidateReason(reason);
 
@@ -562,9 +692,31 @@ public class SolutionPreparationService
         return due.Count;
     }
 
+    public readonly record struct SolutionUsabilityCheck(
+        SolutionPreparationStatus EffectiveStatus,
+        ApprovalGateStatus? ApprovalStatus)
+    {
+        public bool IsUsable =>
+            EffectiveStatus == SolutionPreparationStatus.Prepared
+            && ApprovalStatus is null or ApprovalGateStatus.Approved;
+    }
+
+    public static SolutionUsabilityCheck EvaluateUsability(SolutionPreparation source, DateTime nowUtc) =>
+        new(SolutionPreparationResponse.EffectiveStatusOf(source, nowUtc), source.ApprovalStatus);
+
+    public static SolutionMasterResponse? TryReadSnapshot(string? recipeSnapshotJson)
+    {
+        if (string.IsNullOrWhiteSpace(recipeSnapshotJson))
+            return null;
+
+        return JsonSerializer.Deserialize<SolutionMasterResponse>(recipeSnapshotJson, JsonOptions);
+    }
+
     private static SolutionMasterResponse ReadSnapshot(SolutionPreparation prep) =>
-        JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
+        TryReadSnapshot(prep.RecipeSnapshotJson)
+            ?? throw new BusinessRuleException(
+                MessageCodes.SolutionSnapshotUnreadable,
+                "The preparation's recipe snapshot could not be read.");
 
     // A prepared bottle may stand in for a PreparedSolution line when it is a Prepared,
     // unexpired preparation of the line's source recipe in the same laboratory, and is
@@ -576,15 +728,15 @@ public class SolutionPreparationService
         if (source.SolutionMasterId != component.SourceSolutionMasterId)
             return new(false, $"Preparation is not a preparation of {component.EntryName}.");
 
-        var status = SolutionPreparationResponse.EffectiveStatusOf(source, nowUtc);
-        if (status == SolutionPreparationStatus.Expired)
+        var usability = EvaluateUsability(source, nowUtc);
+        if (usability.EffectiveStatus == SolutionPreparationStatus.Expired)
             return new(false, $"Expired on {source.ExpiresAt:yyyy-MM-dd}.");
-        if (status != SolutionPreparationStatus.Prepared)
-            return new(false, $"Preparation is {status}.");
+        if (usability.EffectiveStatus != SolutionPreparationStatus.Prepared)
+            return new(false, $"Preparation is {usability.EffectiveStatus}.");
 
-        if (source.ApprovalStatus == ApprovalGateStatus.PendingReview)
+        if (usability.ApprovalStatus == ApprovalGateStatus.PendingReview)
             return new(false, "Preparation is awaiting release.");
-        if (source.ApprovalStatus == ApprovalGateStatus.Rejected)
+        if (usability.ApprovalStatus == ApprovalGateStatus.Rejected)
             return new(false, "Preparation was rejected.");
 
         return new(true, null);
@@ -601,7 +753,9 @@ public class SolutionPreparationService
         if (!snapshot.SterilizationRequired)
         {
             if (HasSterilizationFields(r))
-                throw new BusinessRuleException("This solution does not require sterilization; the autoclave record must be empty.");
+                throw new BusinessRuleException(
+                    MessageCodes.SolutionSterilizationNotRequired,
+                    "This solution does not require sterilization; the autoclave record must be empty.");
 
             prep.AutoclaveEquipmentId = null;
             prep.AutoclaveProgram = null;
@@ -614,15 +768,32 @@ public class SolutionPreparationService
 
         var program = string.IsNullOrWhiteSpace(r.AutoclaveProgram) ? null : r.AutoclaveProgram.Trim();
         var loadType = string.IsNullOrWhiteSpace(r.LoadType) ? null : r.LoadType.Trim();
-        if (program is { Length: > 100 }) throw new BusinessRuleException("Autoclave program cannot exceed 100 characters.");
-        if (loadType is { Length: > 100 }) throw new BusinessRuleException("Load type cannot exceed 100 characters.");
-        if (r.AutoclaveTemperature is <= 0) throw new BusinessRuleException("Autoclave temperature must be greater than zero.");
-        if (r.AutoclaveCycleTime is <= 0) throw new BusinessRuleException("Autoclave cycle time must be greater than zero.");
-        if (r.AutoclaveCycleNumber is <= 0) throw new BusinessRuleException("Autoclave cycle number must be greater than zero.");
+        if (program is { Length: > 100 })
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveProgramTooLong,
+                "Autoclave program cannot exceed 100 characters.");
+        if (loadType is { Length: > 100 })
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveLoadTypeTooLong,
+                "Load type cannot exceed 100 characters.");
+        if (r.AutoclaveTemperature is <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveTemperatureInvalid,
+                "Autoclave temperature must be greater than zero.");
+        if (r.AutoclaveCycleTime is <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveCycleTimeInvalid,
+                "Autoclave cycle time must be greater than zero.");
+        if (r.AutoclaveCycleNumber is <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveCycleNumberInvalid,
+                "Autoclave cycle number must be greater than zero.");
 
         if (r.AutoclaveEquipmentId.HasValue
             && !await _db.Equipment.AnyAsync(e => e.Id == r.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
-            throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaInvalidAutoclave,
+                "Selected equipment is not a valid autoclave.");
 
         prep.AutoclaveEquipmentId = r.AutoclaveEquipmentId;
         prep.AutoclaveProgram = program;
@@ -639,14 +810,27 @@ public class SolutionPreparationService
 
         if (!prep.AutoclaveEquipmentId.HasValue || string.IsNullOrWhiteSpace(prep.AutoclaveProgram) || string.IsNullOrWhiteSpace(prep.LoadType)
             || !prep.AutoclaveTemperature.HasValue || !prep.AutoclaveCycleTime.HasValue || !prep.AutoclaveCycleNumber.HasValue)
-            throw new BusinessRuleException("The autoclave record (equipment, program, load type, temperature, cycle time and cycle number) is required before completion.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveRecordRequired,
+                "The autoclave record (equipment, program, load type, temperature, cycle time and cycle number) is required before completion.");
 
         if (!await _db.Equipment.AnyAsync(e => e.Id == prep.AutoclaveEquipmentId.Value && e.Type == EquipmentType.Autoclave, ct))
-            throw new BusinessRuleException("Selected equipment is not a valid autoclave.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaInvalidAutoclave,
+                "Selected equipment is not a valid autoclave.");
 
-        if (prep.AutoclaveTemperature.Value <= 0) throw new BusinessRuleException("Autoclave temperature must be greater than zero.");
-        if (prep.AutoclaveCycleTime.Value <= 0) throw new BusinessRuleException("Autoclave cycle time must be greater than zero.");
-        if (prep.AutoclaveCycleNumber.Value <= 0) throw new BusinessRuleException("Autoclave cycle number must be greater than zero.");
+        if (prep.AutoclaveTemperature.Value <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveTemperatureInvalid,
+                "Autoclave temperature must be greater than zero.");
+        if (prep.AutoclaveCycleTime.Value <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveCycleTimeInvalid,
+                "Autoclave cycle time must be greater than zero.");
+        if (prep.AutoclaveCycleNumber.Value <= 0)
+            throw new BusinessRuleException(
+                MessageCodes.SolutionAutoclaveCycleNumberInvalid,
+                "Autoclave cycle number must be greater than zero.");
     }
 
     private static DateTime ShelfLifeExpiry(DateTime preparedAtUtc, int shelfLifeValue, ShelfLifeUnit unit) =>
@@ -655,10 +839,14 @@ public class SolutionPreparationService
     private static string ValidateReason(string? reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionReasonRequired,
+                "A reason is required.");
         var trimmed = reason.Trim();
         if (trimmed.Length > 500)
-            throw new BusinessRuleException("Reason cannot exceed 500 characters.");
+            throw new BusinessRuleException(
+                MessageCodes.SolutionReasonTooLong,
+                "Reason cannot exceed 500 characters.");
         return trimmed;
     }
 
@@ -666,7 +854,10 @@ public class SolutionPreparationService
     {
         var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(prep.SectionId))
-            throw new NotFoundException($"Solution preparation {prep.Id} not found.");
+            throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {prep.Id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = prep.Id.ToString(CultureInfo.InvariantCulture) });
     }
 
     private async Task<SolutionPreparation> LoadPrepAsync(int id, CancellationToken ct) =>
@@ -679,7 +870,10 @@ public class SolutionPreparationService
             .Include(p => p.Components).ThenInclude(c => c.SourcePreparation)
             .Include(p => p.StatusHistory)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
-            ?? throw new NotFoundException($"Solution preparation {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = id.ToString(CultureInfo.InvariantCulture) });
 
     private async Task<SolutionMaster?> LoadSolutionForSnapshotAsync(int id, CancellationToken ct) =>
         await _db.SolutionMasters

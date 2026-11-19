@@ -210,13 +210,13 @@ describe("menuConfig Administration group", () => {
     expect(adminPaths([PERMISSIONS.USERS_MANAGE])).toEqual(["/admin/users"]);
     expect(adminPaths([PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS])).toEqual(["/admin/settings"]);
     expect(adminPaths([PERMISSIONS.ROLES_MANAGE])).toEqual(["/admin/roles"]);
-    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit"]);
+    expect(adminPaths([PERMISSIONS.AUDIT_VIEW])).toEqual(["/admin/audit", "/audit-trail-reviews"]);
     expect(adminPaths([PERMISSIONS.SYSTEM_VIEW_ERROR_LOG])).toEqual(["/admin/error-log"]);
   });
 
   it("lists all five pages, in tab order, for a full administrator", () => {
     expect(adminPaths([PERMISSIONS.USERS_MANAGE, PERMISSIONS.ROLES_MANAGE, PERMISSIONS.AUDIT_VIEW, PERMISSIONS.SYSTEM_VIEW_ERROR_LOG, PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS]))
-      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/admin/error-log", "/admin/settings"]);
+      .toEqual(["/admin/users", "/admin/roles", "/admin/audit", "/audit-trail-reviews", "/admin/error-log", "/admin/settings"]);
   });
 
   it("no longer scatters admin entries under the old groups or paths", () => {
@@ -299,5 +299,74 @@ describe("Microbiology solutions menu entries", () => {
       "Monitoring Plan",
       "OOS Tracking"
     ]);
+  });
+});
+
+describe("Label Formats menu entry", () => {
+  const labItemsFor = (permissions: string[]) =>
+    getGroupedMenu({
+      role: "Analyst",
+      permissions,
+      labCodes: ["MICRO", "FP"],
+      physchemAreas: ["fp", "rmpm"]
+    }).find((g) => g.groupName === "LABORATORIES")?.items ?? [];
+
+  it("is offered under both Microbiology and Physicochemical Configuration only with Labels.Configure", () => {
+    const withLabelPerm = labItemsFor([PERMISSIONS.LABELS_CONFIGURE]);
+    const microConfig = withLabelPerm.find((i) => i.path === "/sections/microbiology-configuration");
+    const physchemConfig = withLabelPerm.find((i) => i.path === "/sections/physicochemical-configuration");
+
+    expect(microConfig?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")?.label).toBe("Label Formats");
+    expect(physchemConfig?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")?.label).toBe("Label Formats");
+
+    const masterDataOnly = labItemsFor([PERMISSIONS.MASTER_DATA_MANAGE]);
+    const microMasterOnly = masterDataOnly.find((i) => i.path === "/sections/microbiology-configuration");
+    const physchemMasterOnly = masterDataOnly.find((i) => i.path === "/sections/physicochemical-configuration");
+    expect(microMasterOnly?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")).toBeUndefined();
+    expect(physchemMasterOnly?.children?.find((c) => c.path === "/laboratory-configuration/label-formats")).toBeUndefined();
+  });
+});
+
+describe("Working Hours menu entry", () => {
+  it("is offered under General Laboratory Configuration only with Notifications.Configure", () => {
+    const withPerm = getGroupedMenu({
+      role: "SectionHead",
+      permissions: [PERMISSIONS.NOTIFICATIONS_CONFIGURE],
+      labCodes: []
+    });
+    const configGroup = withPerm.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    const item = configGroup?.items.find((i) => i.path === "/laboratory-configuration/working-hours");
+    expect(item?.label).toBe("Working Hours");
+    expect(item?.permission).toBe(PERMISSIONS.NOTIFICATIONS_CONFIGURE);
+    expect(findNavTrail(withPerm, "/laboratory-configuration/working-hours", "")?.item.label).toBe("Working Hours");
+
+    const withoutPerm = getGroupedMenu({
+      role: "Analyst",
+      permissions: [PERMISSIONS.MASTER_DATA_MANAGE],
+      labCodes: ["MICRO"]
+    });
+    expect(findItemByPath(withoutPerm.flatMap((g) => g.items), "/laboratory-configuration/working-hours")).toBeUndefined();
+  });
+});
+
+describe("Escalation Rules menu entry", () => {
+  it("is offered under General Laboratory Configuration only with Notifications.Configure", () => {
+    const withPerm = getGroupedMenu({
+      role: "SectionHead",
+      permissions: [PERMISSIONS.NOTIFICATIONS_CONFIGURE],
+      labCodes: []
+    });
+    const configGroup = withPerm.find((g) => g.groupName === "GENERAL LABORATORY CONFIGURATION");
+    const item = configGroup?.items.find((i) => i.path === "/laboratory-configuration/escalation-rules");
+    expect(item?.label).toBe("Escalation Rules");
+    expect(item?.permission).toBe(PERMISSIONS.NOTIFICATIONS_CONFIGURE);
+    expect(findNavTrail(withPerm, "/laboratory-configuration/escalation-rules", "")?.item.label).toBe("Escalation Rules");
+
+    const withoutPerm = getGroupedMenu({
+      role: "Analyst",
+      permissions: [PERMISSIONS.MASTER_DATA_MANAGE],
+      labCodes: ["MICRO"]
+    });
+    expect(findItemByPath(withoutPerm.flatMap((g) => g.items), "/laboratory-configuration/escalation-rules")).toBeUndefined();
   });
 });

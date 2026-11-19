@@ -10,6 +10,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { MediaGptDetail } from "../types/mediaGptTypes";
 import { brandColors } from "../../../theme";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 interface MediaGptDetailDialogProps {
   open: boolean;
@@ -28,15 +30,11 @@ function formatDate(iso?: string | null): string {
 
 function formatDateTime(iso?: string | null): string {
   if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })}`;
-  } catch {
-    return iso;
-  }
+  return formatDateTimeWithTimeZone(iso);
 }
 
 export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDialogProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
 
   if (!detail) return null;
@@ -53,10 +51,10 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
             <ScienceIcon sx={{ color: theme.palette.primary.main }} />
             <Box>
               <Typography sx={{ fontSize: 17, fontWeight: 800, color: theme.palette.primary.main }}>
-                Media Lot Traceability & GPT Details
+                {t("mediaGpt.detail.title")}
               </Typography>
               <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12 }}>
-                Lot Number: <strong>{detail.lotNumber}</strong> • {detail.mediaType}
+                {t("mediaGpt.detail.lotNumber")} <strong>{detail.lotNumber}</strong> • {detail.mediaType}
               </Typography>
             </Box>
           </Box>
@@ -75,14 +73,14 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
       }
       actions={
         <Button onClick={onClose} variant="outlined" startIcon={<CloseIcon />}>
-          Close
+          {t("mediaGpt.detail.close")}
         </Button>
       }
     >
       {/* Lot Identity & Preparation Metadata */}
       <Paper sx={{ p: 2, mb: 2.5, bgcolor: "background.default", border: "1px solid", borderColor: "divider" }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-          1. Lot Identity & Autoclave Preparation
+          {t("mediaGpt.detail.section1")}
         </Typography>
         <Grid container spacing={2}>
           <Grid
@@ -90,7 +88,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Media Type / Name</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.mediaTypeName")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{detail.mediaType}</Typography>
           </Grid>
           <Grid
@@ -98,9 +96,9 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Source Dehydrated Material</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.sourceMaterial")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {detail.manufacturerName} (Lot: {detail.manufacturerLot || "—"})
+              {detail.manufacturerName} {t("mediaGpt.detail.lotLabel", { lot: detail.manufacturerLot || "—" })}
             </Typography>
           </Grid>
           <Grid
@@ -108,9 +106,9 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Preparation / Expiry Date</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.prepExpiryDate")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {formatDate(detail.preparedAt)} • Exp: {formatDate(detail.expiryDate)}
+              {formatDate(detail.preparedAt)} • {t("mediaGpt.detail.expPrefix", { date: formatDate(detail.expiryDate) })}
             </Typography>
           </Grid>
           <Grid
@@ -118,7 +116,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total Weight / Volume</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.totalWeightVolume")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.totalWeight} g / {detail.totalVolume}
             </Typography>
@@ -128,7 +126,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Autoclave / Program / Load</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.autoclaveProgramLoad")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.autoclaveName || "—"} ({detail.autoclaveProgram}) • {detail.loadType || "—"}
             </Typography>
@@ -138,9 +136,9 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 4
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Temp / Cycle / pH</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.tempCyclePh")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-              {detail.temperature}°C ({detail.cycleTime} min, #{detail.cycleNumber}) • pH {detail.ph}
+              {detail.temperature}°C ({detail.cycleTime} {t("mediaGpt.detail.cycleUnit")}, #{detail.cycleNumber}) • pH {detail.ph}
             </Typography>
           </Grid>
           <Grid
@@ -148,7 +146,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 6
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Prepared By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.preparedBy")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               {detail.preparedByName}, {formatDateTime(detail.preparedAt)}
             </Typography>
@@ -158,12 +156,12 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               xs: 12,
               sm: 6
             }}>
-            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Release Status / Decided By</Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("mediaGpt.detail.releaseStatusDecidedBy")}</Typography>
             <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
               <span style={{ color: detail.isReleasedForUse ? brandColors.ok : "inherit" }}>
-                {detail.approvalStatus} {detail.isReleasedForUse && "(Released for Routine Testing)"}
+                {detail.approvalStatus} {detail.isReleasedForUse && t("mediaGpt.detail.releasedForRoutine")}
               </span>
-              {detail.approvedByName && ` by ${detail.approvedByName} on ${formatDateTime(detail.approvedAt)}`}
+              {detail.approvedByName && ` ${t("mediaGpt.detail.decidedByOn", { name: detail.approvedByName, date: formatDateTime(detail.approvedAt) })}`}
             </Typography>
           </Grid>
         </Grid>
@@ -173,11 +171,11 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
       <Box sx={{ mb: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-            2. Growth Promotion & Challenge Results ({detail.challenges.length} Strains)
+            {t("mediaGpt.detail.section2", { count: detail.challenges.length })}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Evaluation Type: <strong>{detail.evaluationType}</strong>
-            {detail.evaluationCompletedByName && ` • Completed by ${detail.evaluationCompletedByName} on ${formatDate(detail.evaluationCompletedAt)}`}
+            {t("mediaGpt.detail.evaluationTypeLabel")} <strong>{detail.evaluationType}</strong>
+            {detail.evaluationCompletedByName && ` ${t("mediaGpt.detail.completedByOn", { name: detail.evaluationCompletedByName, date: formatDateTime(detail.evaluationCompletedAt) })}`}
           </Typography>
         </Box>
 
@@ -185,13 +183,13 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
           <Table size="small" sx={{ border: "1px solid", borderColor: "divider" }}>
             <TableHead sx={{ bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.100" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Organism / ATCC</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Strain Source</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Inoculum</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Actual Results</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Acceptance Criteria</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Outcome</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Analyst / Read Date</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.organismAtcc")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.strainSource")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.inoculum")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.actualResults")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.acceptanceCriteria")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.outcome")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("mediaGpt.detail.columns.analystReadDate")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -219,28 +217,28 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                       {/* GPT: Recovery % */}
                       {c.recoveryPercent !== null && (
                         <Box>
-                          <strong>{c.recoveryPercent}%</strong> Recovery
+                          <strong>{c.recoveryPercent}%</strong> {t("mediaGpt.detail.recovery")}
                           <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
-                            New: {c.newMediaCount} / Old: {c.oldMediaCount} (Ref: {c.referenceMediaLot || "—"})
+                            {t("mediaGpt.detail.newOldRef", { newCount: c.newMediaCount, oldCount: c.oldMediaCount, refLot: c.referenceMediaLot || "—" })}
                           </Typography>
                         </Box>
                       )}
                       {/* Inhibition: Growth observed */}
                       {c.growthObserved !== null && (
                         <Box>
-                          Growth: <strong>{c.growthObserved ? "Observed" : "No Growth"}</strong>
+                          {t("mediaGpt.detail.growthLabel")} <strong>{c.growthObserved ? t("mediaGpt.detail.observed") : t("mediaGpt.detail.noGrowth")}</strong>
                         </Box>
                       )}
                       {/* Indication: Observed Description */}
                       {c.observedDescription && (
                         <Box>
-                          Observed: <em>{c.observedDescription}</em>
+                          {t("mediaGpt.detail.observedLabel")} <em>{c.observedDescription}</em>
                         </Box>
                       )}
                       {/* Enrichment: Turbid */}
                       {c.isTurbid !== null && (
                         <Box>
-                          Appearance: <strong>{c.isTurbid ? "Turbid" : "Clear"}</strong>
+                          {t("mediaGpt.detail.appearanceLabel")} <strong>{c.isTurbid ? t("mediaGpt.detail.turbid") : t("mediaGpt.detail.clear")}</strong>
                         </Box>
                       )}
                     </TableCell>
@@ -248,15 +246,15 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                       {c.expectedMinRecoveryPercent !== null && c.expectedMaxRecoveryPercent !== null && (
                         <span>{c.expectedMinRecoveryPercent}% – {c.expectedMaxRecoveryPercent}%</span>
                       )}
-                      {c.growthObserved !== null && <span>No growth expected</span>}
-                      {c.expectedDescription && <span>Expected: {c.expectedDescription}</span>}
-                      {c.isTurbid !== null && <span>Turbid growth expected</span>}
+                      {c.growthObserved !== null && <span>{t("mediaGpt.detail.noGrowthExpected")}</span>}
+                      {c.expectedDescription && <span>{t("mediaGpt.detail.expectedLabel", { expected: c.expectedDescription })}</span>}
+                      {c.isTurbid !== null && <span>{t("mediaGpt.detail.turbidGrowthExpected")}</span>}
                     </TableCell>
                     <TableCell>
                       <Chip
                         size="small"
                         icon={isConform ? <CheckCircleIcon sx={{ "&&": { fontSize: 14 } }} /> : isNonConform ? <CancelIcon sx={{ "&&": { fontSize: 14 } }} /> : undefined}
-                        label={c.outcome || "Pending"}
+                        label={c.outcome || t("mediaGpt.detail.pending")}
                         color={isConform ? "success" : isNonConform ? "error" : "default"}
                         sx={{ fontWeight: 700, fontSize: 12, height: 22 }}
                       />
@@ -270,7 +268,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
                           </Typography>
                         </>
                       ) : (
-                        <Typography component="span" sx={{ color: "text.secondary" }}>Pending</Typography>
+                        <Typography component="span" sx={{ color: "text.secondary" }}>{t("mediaGpt.detail.pending")}</Typography>
                       )}
                     </TableCell>
                   </TableRow>
@@ -279,7 +277,7 @@ export function MediaGptDetailDialog({ open, onClose, detail }: MediaGptDetailDi
               {detail.challenges.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} sx={{ textAlign: "center", py: 3, color: "text.secondary" }}>
-                    No challenge organism entries recorded for this lot.
+                    {t("mediaGpt.detail.noChallenges")}
                   </TableCell>
                 </TableRow>
               )}

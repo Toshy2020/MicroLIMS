@@ -1,11 +1,15 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services;
 
@@ -28,11 +32,13 @@ public class SampleApprovalService
     private readonly IUserSectionScopeService _scope;
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null)
+        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _scope = scope;
@@ -43,6 +49,7 @@ public class SampleApprovalService
         _archive = archive;
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     // Copies the physical/identity attributes of a sample onto a fresh OOS
@@ -135,6 +142,110 @@ public class SampleApprovalService
         return true;
     }
 
+    // The pre-signing checks of an approval decision, in the order the action applies them: the section (state and
+    // membership), the decider did not review it and did none of its tests and, for an approval only, every test
+    // that needs system suitability has a passed run and every analysis test has a finished active entry. The
+    // tests chosen for a retest and the two analysts of a new sample are the decider's input and stay with the action.
+    // Section is meaningful only when the check is allowed. The sample carries its TestOrders and SectionSignoffs
+    // and is not changed.
+    internal async Task<(ActionCheck Check, int Section)> CheckDecideAsync(
+        Sample sample, int sectionHeadUserId, ApprovalDecision decision, int? sectionId, CancellationToken ct = default)
+    {
+        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId, ct);
+        var (sectionCheck, section) = SampleSectionRollup.CheckSection(
+            sample, sectionId, SectionSignoffStatus.UnderApproval, userScope,
+            "Sample must be under approval before a decision can be made.");
+        if (!sectionCheck.Allowed) return (sectionCheck, section);
+
+        if (sectionHeadUserId == SampleSectionRollup.ReviewedByOf(sample, section))
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveReviewed, SignoffRefusalSentences.CannotApproveReviewed), section);
+
+        // Only this section's tests are decided here.
+        var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
+        var orderIds = currentOrders.Select(o => o.Id).ToList();
+        var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(sectionHeadUserId, orderIds, ct);
+        if (performed.Count > 0)
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveTested, SignoffRefusalSentences.CannotApproveTested), section);
+
+        // REQ-FP-033: server-side reject approval of a section if any test in it
+        // that requires system suitability lacks a linked PASSED run.
+        if (decision == ApprovalDecision.Approve)
+        {
+            var testCodes = currentOrders.Select(o => o.TestCode).Distinct().ToList();
+            var definitions = await _db.TestDefinitions.AsNoTracking()
+                .Where(t => testCodes.Contains(t.Code))
+                .Select(t => new { t.Code, t.WorkflowType, t.RequiresSystemSuitability })
+                .ToListAsync(ct);
+            var sstDefinitions = definitions.Where(t => t.RequiresSystemSuitability).ToList();
+            var sstCodes = sstDefinitions.Select(t => t.Code).ToList();
+            var hplcWorkspaceCodes = sstDefinitions
+                .Where(t => t.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution)
+                .Select(t => t.Code).ToList();
+
+            // HPLC Workspace tests take their system suitability from the
+            // run they were assigned to. One query for the section's tests.
+            var sstOrders = currentOrders.Where(o => sstCodes.Contains(o.TestCode)).ToList();
+            var hplcOrderIds = sstOrders.Where(o => hplcWorkspaceCodes.Contains(o.TestCode)).Select(o => (int?)o.Id).ToList();
+            var ordersWithPassedRun = hplcOrderIds.Count == 0
+                ? new List<int?>()
+                : await _db.HplcRunSamples.AsNoTracking()
+                    .Where(s => hplcOrderIds.Contains(s.TestOrderId) && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned
+                        && s.HplcRun!.Sst != null && s.HplcRun.Sst.Status == HplcSstStatus.Passed)
+                    .Select(s => s.TestOrderId)
+                    .Distinct()
+                    .ToListAsync(ct);
+
+            foreach (var sstOrder in sstOrders)
+            {
+                if (!hplcWorkspaceCodes.Contains(sstOrder.TestCode))
+                    return (ActionCheck.No(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master."), section);
+
+                if (!ordersWithPassedRun.Contains(sstOrder.Id))
+                    return (ActionCheck.No(
+                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks an HPLC run with a passed system suitability."), section);
+            }
+
+            var testAnalysisCodes = definitions
+                .Where(t => AnalysisWorkflows.UsesTestAnalysis(t.WorkflowType))
+                .ToDictionary(t => t.Code, t => t.WorkflowType);
+
+            if (testAnalysisCodes.Count > 0)
+            {
+                var analysisOrders = currentOrders.Where(o => testAnalysisCodes.ContainsKey(o.TestCode)).ToList();
+                var analysisOrderIds = analysisOrders.Select(o => o.Id).ToList();
+                var activeAnalyses = await _db.TestAnalyses.AsNoTracking()
+                    .Where(e => analysisOrderIds.Contains(e.TestOrderId) && e.IsActive)
+                    .Select(e => new
+                    {
+                        e.TestOrderId,
+                        PendingStage = e.ParameterResults.Any(pr => pr.ComparisonStatus == ResultStatus.NextStageRequired)
+                    })
+                    .ToListAsync(ct);
+
+                foreach (var analysisOrder in analysisOrders)
+                {
+                    var ofOrder = activeAnalyses.Where(e => e.TestOrderId == analysisOrder.Id).ToList();
+                    if (ofOrder.Count == 0)
+                    {
+                        var wfType = testAnalysisCodes[analysisOrder.TestCode];
+                        var displayName = AnalysisWorkflows.GetDisplayName(wfType);
+                        return (ActionCheck.No(
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry."), section);
+                    }
+
+                    if (ofOrder.Any(e => e.PendingStage))
+                    {
+                        return (ActionCheck.No(
+                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage."), section);
+                    }
+                }
+            }
+        }
+
+        return (ActionCheck.Ok, section);
+    }
+
     public Task DecideAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
         string? comment, string? ipAddress, string? certificateRemarks = null,
@@ -149,99 +260,21 @@ public class SampleApprovalService
         int? sectionId = null)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var userScope = await _scope.GetMemberSectionIdsAsync(sectionHeadUserId);
-        var section = SampleSectionRollup.ResolveSection(
-            sample, sectionId, SectionSignoffStatus.UnderApproval, userScope,
-            "Sample must be under approval before a decision can be made.");
+        var (check, section) = await CheckDecideAsync(sample, sectionHeadUserId, decision, sectionId);
+        check.ThrowIfRefused();
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
         // Every section without its own sign-off row shares the sample's
         // state; freeze them now so a lab still in testing/review doesn't
         // later read as sharing this decision's own outcome.
         SampleSectionRollup.FreezeOpenSections(sample);
 
-        if (sectionHeadUserId == signoff.ReviewedByUserId)
-            throw new BusinessRuleException("You cannot approve a sample you reviewed.");
-
         // Only this section's tests are decided here.
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
-        foreach (var order in currentOrders)
-        {
-            if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, sectionHeadUserId))
-                throw new BusinessRuleException("You cannot approve a sample you tested.");
-        }
-
-        // REQ-FP-033: server-side reject approval of a section if any test in it
-        // that requires system suitability lacks a linked PASSED run.
-        if (decision == ApprovalDecision.Approve)
-        {
-            var testCodes = currentOrders.Select(o => o.TestCode).Distinct().ToList();
-            var sstDefinitions = await _db.TestDefinitions
-                .Where(t => testCodes.Contains(t.Code) && t.RequiresSystemSuitability)
-                .Select(t => new { t.Code, t.WorkflowType })
-                .ToListAsync();
-            var sstCodes = sstDefinitions.Select(t => t.Code).ToList();
-            var hplcWorkspaceCodes = sstDefinitions
-                .Where(t => t.WorkflowType is WorkflowType.HplcMethodAssay or WorkflowType.Dissolution)
-                .Select(t => t.Code).ToList();
-
-            foreach (var sstOrder in currentOrders.Where(o => sstCodes.Contains(o.TestCode)))
-            {
-                if (!hplcWorkspaceCodes.Contains(sstOrder.TestCode))
-                    throw new BusinessRuleException(
-                        $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") requires system suitability, but only HPLC workspace tests (assay, dissolution) can supply one. Clear \"Requires system suitability\" for this test in Test Master.");
-
-                // HPLC Workspace tests take their system suitability from the
-                // run they were assigned to.
-                if (hplcWorkspaceCodes.Contains(sstOrder.TestCode))
-                {
-                    var runPassed = await _db.HplcRunSamples.AnyAsync(s =>
-                        s.TestOrderId == sstOrder.Id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned
-                        && s.HplcRun!.Sst != null && s.HplcRun.Sst.Status == HplcSstStatus.Passed);
-                    if (!runPassed)
-                    {
-                        throw new BusinessRuleException(
-                            $"Cannot approve section: test order {sstOrder.Id} (\"{sstOrder.TestCode}\") lacks an HPLC run with a passed system suitability.");
-                    }
-                }
-            }
-
-            var analysisDefinitions = await _db.TestDefinitions
-                .Where(t => testCodes.Contains(t.Code))
-                .Select(t => new { t.Code, t.WorkflowType })
-                .ToListAsync();
-
-            var testAnalysisCodes = analysisDefinitions
-                .Where(t => AnalysisWorkflows.UsesTestAnalysis(t.WorkflowType))
-                .ToDictionary(t => t.Code, t => t.WorkflowType);
-
-            if (testAnalysisCodes.Count > 0)
-            {
-                var analysisOrders = currentOrders.Where(o => testAnalysisCodes.ContainsKey(o.TestCode)).ToList();
-                foreach (var analysisOrder in analysisOrders)
-                {
-                    var activeAnalyses = await _db.TestAnalyses
-                        .Include(e => e.ParameterResults)
-                        .Where(e => e.TestOrderId == analysisOrder.Id && e.IsActive)
-                        .ToListAsync();
-
-                    if (activeAnalyses.Count == 0)
-                    {
-                        var wfType = testAnalysisCodes[analysisOrder.TestCode];
-                        var displayName = AnalysisWorkflows.GetDisplayName(wfType);
-                        throw new BusinessRuleException(
-                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") lacks an active {displayName} entry.");
-                    }
-
-                    if (activeAnalyses.Any(e => e.ParameterResults.Any(pr => pr.ComparisonStatus == ResultStatus.NextStageRequired)))
-                    {
-                        throw new BusinessRuleException(
-                            $"Cannot approve section: test order {analysisOrder.Id} (\"{analysisOrder.TestCode}\") has a pending stage.");
-                    }
-                }
-            }
-        }
 
         // Retest paths need the Section Head's chosen subset of tests -
         // validated against this sample's own current TestOrders so a
@@ -250,12 +283,16 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             if (selectedTestOrderIds is null || selectedTestOrderIds.Count == 0)
-                throw new BusinessRuleException("At least one test must be selected for retest.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetestRequiresSelectedTest,
+                    "At least one test must be selected for retest.");
 
             var distinctIds = selectedTestOrderIds.Distinct().ToList();
             selectedOrders = currentOrders.Where(o => distinctIds.Contains(o.Id)).ToList();
             if (selectedOrders.Count != distinctIds.Count)
-                throw new BusinessRuleException("One or more selected tests do not belong to this sample's current test orders.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetestTestsNotOnSample,
+                    "One or more selected tests do not belong to this sample's current test orders.");
         }
 
         // NewSampleRequest spins up two independent samples that must go
@@ -266,9 +303,13 @@ public class SampleApprovalService
         if (decision == ApprovalDecision.NewSampleRequest)
         {
             if (newSampleAnalystOneId is null || newSampleAnalystTwoId is null)
-                throw new BusinessRuleException("Two analysts must be assigned - one per new sample - when requesting a new sample.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleNewSampleRequiresTwoAnalysts,
+                    "Two analysts must be assigned - one per new sample - when requesting a new sample.");
             if (newSampleAnalystOneId == newSampleAnalystTwoId)
-                throw new BusinessRuleException("The two new samples must be assigned to two different analysts.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleNewSampleAnalystsMustDiffer,
+                    "The two new samples must be assigned to two different analysts.");
 
             // Each new sample carries the selected tests, so each analyst must
             // be assignable in every one of their sections.
@@ -280,7 +321,9 @@ public class SampleApprovalService
             foreach (var order in selectedOrders)
             {
                 if (order.AssignedAnalystId == newSampleAnalystOneId || order.AssignedAnalystId == newSampleAnalystTwoId)
-                    throw new BusinessRuleException("Neither new sample's analyst may be the analyst who tested the original sample.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SampleNewSampleAnalystCannotBeOriginal,
+                        "Neither new sample's analyst may be the analyst who tested the original sample.");
             }
         }
 
@@ -288,7 +331,9 @@ public class SampleApprovalService
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
             retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest")
-                ?? throw new BusinessRuleException("The 'Retest' cause of testing is not configured.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.SampleRetestCauseNotConfigured,
+                    "The 'Retest' cause of testing is not configured.");
         }
 
         var meaning = decision switch
@@ -297,7 +342,10 @@ public class SampleApprovalService
             ApprovalDecision.Reject => SignatureMeaning.Rejected,
             ApprovalDecision.NewSampleRequest => SignatureMeaning.Rejected,
             ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
-            _ => throw new BusinessRuleException($"'{decision}' is not a valid sample-level decision.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.SampleInvalidApprovalDecision,
+                $"'{decision}' is not a valid sample-level decision.",
+                new Dictionary<string, string> { ["decision"] = decision.ToString() })
         };
 
         // Signs first - if password verification fails, nothing below is
@@ -509,6 +557,12 @@ public class SampleApprovalService
         if (sample.Status == SampleStatus.RetestRequested)
             sample.ApprovalDecision = sample.SectionSignoffs
                 .First(s => s.Status == SectionSignoffStatus.RetestRequested).ApprovalDecision;
+
+        await _publisher.ResolveAsync($"ApprovalWaiting:sample:{sampleId}:section:{section}");
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{section}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{sectionHeadUserId}");
 
         await _db.SaveChangesAsync();
 

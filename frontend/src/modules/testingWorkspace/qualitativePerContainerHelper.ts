@@ -1,6 +1,6 @@
 export interface QualitativeContainerEntry {
   index: number;
-  conforms: boolean;
+  conforms: boolean | null;
   observation?: string | null;
 }
 
@@ -14,10 +14,12 @@ export interface QualitativeContainerEntry {
  */
 export function getConclusionLine(
   containerCount: number,
-  containers?: { index: number; conforms: boolean }[] | null
+  containers?: { index: number; conforms: boolean | null }[] | null
 ): string {
+  // A container with no choice yet (null) is neither failed nor passed; the panel does not
+  // show a conclusion until every container has one.
   const failedIndexes = (containers || [])
-    .filter((c) => !c.conforms)
+    .filter((c) => c.conforms === false)
     .map((c) => c.index)
     .sort((a, b) => a - b);
 
@@ -55,14 +57,14 @@ export function isValidContainerCount(count: number | null | undefined): boolean
  * Builds or adjusts the container rows (1..count), preserving any existing conforms
  * and observation values for previously existing container indexes (or retrieved from cache).
  */
-export function buildContainerRows<T extends { index: number; conforms: boolean; observation: string }>(
+export function buildContainerRows<T extends { index: number; conforms: boolean | null; observation: string }>(
   existingContainers: T[],
   newCount: number,
-  containerMemory?: Map<number, { conforms: boolean; observation: string }>
-): { index: number; conforms: boolean; observation: string }[] {
+  containerMemory?: Map<number, { conforms: boolean | null; observation: string }>
+): { index: number; conforms: boolean | null; observation: string }[] {
   if (newCount < 1) return [];
 
-  const existingMap = new Map<number, { conforms: boolean; observation: string }>();
+  const existingMap = new Map<number, { conforms: boolean | null; observation: string }>();
   if (containerMemory) {
     for (const [idx, val] of containerMemory.entries()) {
       existingMap.set(idx, val);
@@ -72,19 +74,19 @@ export function buildContainerRows<T extends { index: number; conforms: boolean;
     existingMap.set(c.index, c);
   }
 
-  const result: { index: number; conforms: boolean; observation: string }[] = [];
+  const result: { index: number; conforms: boolean | null; observation: string }[] = [];
   for (let i = 1; i <= newCount; i++) {
     const existing = existingMap.get(i);
     if (existing) {
       result.push({
         index: i,
         conforms: existing.conforms,
-        observation: existing.conforms ? "" : existing.observation
+        observation: existing.conforms === true ? "" : existing.observation
       });
     } else {
       result.push({
         index: i,
-        conforms: true,
+        conforms: null,
         observation: ""
       });
     }
@@ -102,10 +104,17 @@ export interface BuildQualitativePayloadArgs {
   containerCount?: number | null;
   parameters: {
     specificationId: number;
-    conforms: boolean;
+    conforms: boolean | null;
     observation?: string | null;
-    containers?: { index: number; conforms: boolean; observation?: string | null }[];
+    containers?: { index: number; conforms: boolean | null; observation?: string | null }[];
   }[];
+}
+
+// A result is an explicit choice. The panel does not let a row without one reach this
+// point; if one does, refuse to build a payload rather than turn "not chosen" into a value.
+function chosen(conforms: boolean | null, where: string): boolean {
+  if (conforms === null) throw new Error(`No result was chosen for ${where}.`);
+  return conforms;
 }
 
 export interface QualitativeStandardPayload {
@@ -161,11 +170,14 @@ export function buildQualitativePayload(args: BuildQualitativePayloadArgs): Qual
       equipmentId: baseEquipmentId,
       containerCount: Number(containerCount),
       parameters: parameters.map((p) => {
-        const containers = (p.containers || []).map((c) => ({
-          index: c.index,
-          conforms: c.conforms,
-          observation: c.conforms ? null : (c.observation?.trim() || null)
-        }));
+        const containers = (p.containers || []).map((c) => {
+          const conforms = chosen(c.conforms, `container ${c.index}`);
+          return {
+            index: c.index,
+            conforms,
+            observation: conforms ? null : (c.observation?.trim() || null)
+          };
+        });
         const parameterConforms = containers.every((c) => c.conforms);
 
         return {
@@ -185,7 +197,7 @@ export function buildQualitativePayload(args: BuildQualitativePayloadArgs): Qual
     equipmentId: baseEquipmentId,
     parameters: parameters.map((p) => ({
       specificationId: p.specificationId,
-      conforms: p.conforms,
+      conforms: chosen(p.conforms, `parameter ${p.specificationId}`),
       observation: p.observation?.trim() || null
     })),
     password,

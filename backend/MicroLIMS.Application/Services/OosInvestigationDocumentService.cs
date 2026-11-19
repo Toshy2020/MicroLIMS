@@ -1,5 +1,7 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -78,7 +80,10 @@ public class OosInvestigationDocumentService
     {
         var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
-            throw new NotFoundException($"OOS group \"{oosGroupCode}\" not found.");
+            throw new NotFoundException(
+                MessageCodes.OosGroupNotFound,
+                $"OOS group \"{oosGroupCode}\" not found.",
+                new Dictionary<string, string> { ["oosGroupCode"] = oosGroupCode });
 
         var docs = await _db.OosInvestigationDocuments
             .Where(d => d.OosGroupCode == oosGroupCode)
@@ -101,12 +106,18 @@ public class OosInvestigationDocumentService
     {
         var groupExists = await _db.Samples.AnyAsync(s => s.OosGroupCode == oosGroupCode);
         if (!groupExists)
-            throw new NotFoundException($"OOS group \"{oosGroupCode}\" not found.");
+            throw new NotFoundException(
+                MessageCodes.OosGroupNotFound,
+                $"OOS group \"{oosGroupCode}\" not found.",
+                new Dictionary<string, string> { ["oosGroupCode"] = oosGroupCode });
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(
+                MessageCodes.OosDocumentValidationFailed,
+                error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -152,7 +163,10 @@ public class OosInvestigationDocumentService
     {
         var document = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException(
+                MessageCodes.OosDocumentNotFoundForGroup,
+                $"Document {documentId} not found for OOS group {oosGroupCode}.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture), ["oosGroupCode"] = oosGroupCode });
 
         byte[] content;
         try
@@ -162,7 +176,9 @@ public class OosInvestigationDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for OosInvestigationDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new BusinessRuleException("The document file could not be retrieved.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentFileReadFailed,
+                "The document file could not be retrieved.");
         }
 
         var computedHash = Convert.ToHexString(SHA256.HashData(content));
@@ -171,7 +187,9 @@ public class OosInvestigationDocumentService
             _logger.LogError(
                 "INTEGRITY FAILURE: OosInvestigationDocument {Id} (group {GroupCode}) stored hash {Stored} does not match computed hash {Computed}.",
                 document.Id, document.OosGroupCode, document.ContentSha256, computedHash);
-            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentIntegrityCheckFailed,
+                "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         var userName = await _db.Users
@@ -188,19 +206,29 @@ public class OosInvestigationDocumentService
     private async Task<OosInvestigationDocumentDto> SupersedeCoreAsync(int documentId, string oosGroupCode, SupersedeOosInvestigationDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A supersession reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.OosSupersessionReasonRequired,
+                "A supersession reason is required.");
 
         var old = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException(
+                MessageCodes.OosDocumentNotFoundForGroup,
+                $"Document {documentId} not found for OOS group {oosGroupCode}.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture), ["oosGroupCode"] = oosGroupCode });
 
         if (old.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("A voided document cannot be superseded. Upload a new document instead.");
+            throw new BusinessRuleException(
+                MessageCodes.OosVoidedDocumentCannotBeSuperseded,
+                "A voided document cannot be superseded. Upload a new document instead.");
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(
+                MessageCodes.OosDocumentValidationFailed,
+                error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -258,14 +286,21 @@ public class OosInvestigationDocumentService
     public async Task<OosInvestigationDocumentDto> VoidAsync(int documentId, string oosGroupCode, VoidOosInvestigationDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request?.Reason))
-            throw new BusinessRuleException("A void reason is required.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentVoidReasonRequired,
+                "A void reason is required.");
 
         var document = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.OosGroupCode == oosGroupCode)
-            ?? throw new NotFoundException($"Document {documentId} not found for OOS group {oosGroupCode}.");
+            ?? throw new NotFoundException(
+                MessageCodes.OosDocumentNotFoundForGroup,
+                $"Document {documentId} not found for OOS group {oosGroupCode}.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture), ["oosGroupCode"] = oosGroupCode });
 
         if (document.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("This document is already voided.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentAlreadyVoided,
+                "This document is already voided.");
 
         document.Status = MaterialDocumentStatus.Voided;
         document.VoidedAt = _time.GetUtcNow().UtcDateTime;
@@ -288,7 +323,10 @@ public class OosInvestigationDocumentService
     {
         var doc = await _db.OosInvestigationDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new NotFoundException($"OOS investigation document {documentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.OosDocumentNotFound,
+                $"OOS investigation document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture) });
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

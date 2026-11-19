@@ -1,5 +1,8 @@
 import { apiClient, ifMatch } from "../../../services/apiClient";
 import {
+  CreatedSampleRef,
+  BatchReceiveRequest,
+  BatchReceiveResult,
   ItemBasedReceiveRequest,
   WaterReceiveRequest,
   EMReceiveRequest,
@@ -9,9 +12,13 @@ import {
   ReceiptLabOption,
   SampleAssignmentOptions,
   TestAnalystAssignment,
+  BulkAssignRequest,
+  BulkAssignResult,
   RetestEligibleTest,
   SampleDocument
 } from "../types/receivingTypes";
+
+export type { CreatedSampleRef };
 
 export interface TestingWorkspaceFilter {
   search?: string;
@@ -31,6 +38,8 @@ export interface TestingWorkspaceFilter {
   // 403s a caller who isn't a member of that section.
   labSectionId?: number | null;
   area?: "fp" | "rmpm" | null;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 }
 
 export interface PagedResult<T> {
@@ -52,6 +61,9 @@ export interface WorkspaceTileCounts {
 
 // One receiving endpoint per category, matching the distinct backend receive shapes.
 export const ReceiveService = {
+  receiveBatch: (r: BatchReceiveRequest): Promise<BatchReceiveResult> =>
+    apiClient.post("/samples/receive-batch", r).then((res) => res.data.data),
+
   receiveItemBased: (r: ItemBasedReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/samples", r).then((res) => res.data.data),
 
@@ -92,13 +104,13 @@ export const ReceiveService = {
     await apiClient.post(`/samples/${sampleId}/laboratories`, { sectionId, reason, password });
   },
 
-  receiveWater: (r: WaterReceiveRequest) =>
+  receiveWater: (r: WaterReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/water/receive", r).then((res) => res.data.data),
 
-  receiveEM: (r: EMReceiveRequest) =>
+  receiveEM: (r: EMReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/em/receive", r).then((res) => res.data.data),
 
-  receiveAfterCleaning: (r: AfterCleaningReceiveRequest) =>
+  receiveAfterCleaning: (r: AfterCleaningReceiveRequest): Promise<SampleRecord> =>
     apiClient.post("/aftercleaning/receive", r).then((res) => res.data.data),
 
   async getRecordsPaged(filter: TestingWorkspaceFilter = {}): Promise<PagedResult<SampleRecord>> {
@@ -117,6 +129,8 @@ export const ReceiveService = {
     if (filter.pageSize != null) params.pageSize = filter.pageSize;
     if (filter.labSectionId != null) params.labSectionId = filter.labSectionId;
     if (filter.area) params.area = filter.area;
+    if (filter.sortBy) params.sortBy = filter.sortBy;
+    if (filter.sortDir) params.sortDir = filter.sortDir;
 
     const res = await apiClient.get("/testorders/page", { params });
     return res.data.data;
@@ -166,6 +180,11 @@ export const ReceiveService = {
   // A different analyst per test, saved together in one request.
   async assignTestAnalysts(sampleId: number, assignments: TestAnalystAssignment[], reason?: string): Promise<SampleRecord> {
     const res = await apiClient.put(`/samples/${sampleId}/test-assignments`, { assignments, reason });
+    return res.data.data;
+  },
+
+  async bulkAssign(request: BulkAssignRequest): Promise<BulkAssignResult> {
+    const res = await apiClient.post("/samples/bulk-assign", request);
     return res.data.data;
   },
 

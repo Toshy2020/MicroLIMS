@@ -20,6 +20,8 @@ import {
 } from "@mui/material";
 import { documentRevisionService } from "../services/documentRevisionService";
 import type { RevisionType, DocumentRevisionDto } from "../types/documentControlTypes";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface CreateRevisionDialogProps {
   open: boolean;
@@ -40,6 +42,7 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
   currentEffectiveRevisionNumber,
   isController
 }) => {
+  const { t } = useTranslation("documentControl");
   const [revisionType, setRevisionType] = useState<RevisionType>("Major");
   const [proposedNumber, setProposedNumber] = useState<string>("");
   const [reasonForRevision, setReasonForRevision] = useState<string>("");
@@ -71,8 +74,8 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
     try {
       const res = await documentRevisionService.proposeNextRevision(masterId, type);
       setProposedNumber(res.proposedRevisionNumber);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to calculate next revision number.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("createRevision.proposeError")));
     } finally {
       setLoadingProposed(false);
     }
@@ -86,7 +89,7 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
 
   const isReasonValid = reasonForRevision.trim().length >= 10;
   const isSummaryValid = !changeSummary.trim() || changeSummary.trim().length >= 10;
-  const isCustomNumberValid = !allowOverride || (customRevisionNumber.trim().length > 0 && /^[a-zA-Z0-9\.\-_]{1,20}$/.test(customRevisionNumber.trim()));
+  const isCustomNumberValid = !allowOverride || (customRevisionNumber.trim().length > 0 && /^[a-zA-Z0-9.-_]{1,20}$/.test(customRevisionNumber.trim()));
 
   const canSubmit = isReasonValid && isSummaryValid && isCustomNumberValid && !submitting && !loadingProposed;
 
@@ -105,8 +108,8 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
       });
       onCreated(result);
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to create document revision.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("createRevision.createError")));
     } finally {
       setSubmitting(false);
     }
@@ -115,12 +118,12 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 600 }}>
-        Create New Revision: {companyDocumentCode}
+        {t("createRevision.title", { code: companyDocumentCode })}
       </DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
           <Alert severity="info" sx={{ fontSize: "0.85rem" }}>
-            The current effective revision (Rev {currentEffectiveRevisionNumber}) will remain active and fully accessible to laboratory personnel while this new draft is prepared and reviewed.
+            {t("createRevision.info", { rev: currentEffectiveRevisionNumber })}
           </Alert>
 
           {error && <Alert severity="error">{error}</Alert>}
@@ -128,11 +131,11 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
           {/* Revision Type */}
           <FormControl component="fieldset">
             <FormLabel component="legend" sx={{ fontWeight: 600, fontSize: "0.9rem" }}>
-              Revision Classification
+              {t("createRevision.classificationLabel")}
             </FormLabel>
             <RadioGroup row value={revisionType} onChange={handleTypeChange}>
-              <FormControlLabel value="Major" control={<Radio />} label="Major Revision (e.g. 02, 03)" />
-              <FormControlLabel value="Minor" control={<Radio />} label="Minor Revision (e.g. 01.1, 01.2)" />
+              <FormControlLabel value="Major" control={<Radio />} label={t("createRevision.majorLabel")} />
+              <FormControlLabel value="Minor" control={<Radio />} label={t("createRevision.minorLabel")} />
             </RadioGroup>
           </FormControl>
 
@@ -142,16 +145,16 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                Proposed Revision Number:
+                {t("createRevision.proposedNumberLabel")}
               </Typography>
               <Typography variant="h6" sx={{ fontWeight: 700, color: "primary.main" }}>
-                {loadingProposed ? <CircularProgress size={20} /> : `Rev ${proposedNumber || "—"}`}
+                {loadingProposed ? <CircularProgress size={20} /> : t("common.rev", { number: proposedNumber || "—" })}
               </Typography>
             </Box>
             <Typography variant="caption" sx={{
               color: "text.secondary"
             }}>
-              Current: Rev {currentEffectiveRevisionNumber}
+              {t("createRevision.currentLabel", { rev: currentEffectiveRevisionNumber })}
             </Typography>
           </Box>
 
@@ -166,17 +169,17 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
                     size="small"
                   />
                 }
-                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>Override Revision Number (Document Controller Only)</Typography>}
+                label={<Typography variant="body2" sx={{ fontWeight: 500 }}>{t("createRevision.overrideLabel")}</Typography>}
               />
               {allowOverride && (
                 <TextField
-                  label="Custom Revision Number"
+                  label={t("createRevision.customNumberLabel")}
                   size="small"
                   fullWidth
                   value={customRevisionNumber}
                   onChange={(e) => setCustomRevisionNumber(e.target.value)}
-                  placeholder="e.g. 02.A or 02-REV"
-                  helperText="Must be unique alphanumeric format (1-20 characters). Override is strictly audited."
+                  placeholder={t("createRevision.customNumberPlaceholder")}
+                  helperText={t("createRevision.customNumberHelper")}
                   sx={{ mt: 1 }}
                 />
               )}
@@ -187,53 +190,53 @@ export const CreateRevisionDialog: React.FC<CreateRevisionDialogProps> = ({
 
           {/* Mandatory Reason for Revision */}
           <TextField
-            label="Reason for Revision *"
+            label={t("createRevision.reasonLabel")}
             multiline
             rows={3}
             required
             value={reasonForRevision}
             onChange={(e) => setReasonForRevision(e.target.value)}
-            placeholder="Document the regulatory, compendial, or operational justification for this new revision..."
-            helperText={`${reasonForRevision.trim().length} / 10 characters minimum`}
+            placeholder={t("createRevision.reasonPlaceholder")}
+            helperText={t("createRevision.reasonHelper", { count: reasonForRevision.trim().length })}
             error={reasonForRevision.length > 0 && !isReasonValid}
             fullWidth
           />
 
           {/* Change Summary */}
           <TextField
-            label="Summary of Changes"
+            label={t("createRevision.summaryLabel")}
             multiline
             rows={3}
             value={changeSummary}
             onChange={(e) => setChangeSummary(e.target.value)}
-            placeholder="Briefly describe what sections or instructions have been modified..."
-            helperText={changeSummary.length > 0 && !isSummaryValid ? "Must be at least 10 characters if provided." : "Optional overview of modifications"}
+            placeholder={t("createRevision.summaryPlaceholder")}
+            helperText={changeSummary.length > 0 && !isSummaryValid ? t("createRevision.summaryTooShort") : t("createRevision.summaryOptional")}
             error={changeSummary.length > 0 && !isSummaryValid}
             fullWidth
           />
 
           {/* Change Reference */}
           <TextField
-            label="Change Reference / Ticket #"
+            label={t("createRevision.referenceLabel")}
             size="small"
             value={changeReference}
             onChange={(e) => setChangeReference(e.target.value)}
-            placeholder="e.g. CC-2026-0042, CAPA-2026-19"
-            helperText="Optional reference to Change Control or Quality Event ticket"
+            placeholder={t("createRevision.referencePlaceholder")}
+            helperText={t("createRevision.referenceHelper")}
             fullWidth
           />
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={submitting}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={!canSubmit}
         >
-          {submitting ? <CircularProgress size={24} /> : "Create Draft Revision"}
+          {submitting ? <CircularProgress size={24} /> : t("createRevision.submit")}
         </Button>
       </DialogActions>
     </Dialog>

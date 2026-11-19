@@ -104,8 +104,12 @@ export interface FilterOptionsResponse {
 // Overview Dashboard Types
 // ---------------------------------------------------------------------------
 
+// Which caption a KPI card shows, so the page can translate it (comparisonLabel stays the English text).
+export type OverviewKpiCaptionKey = "liveRecords" | "approved" | "reviewQueue" | "awaitingRelease" | "qualitySignal" | "exceeded" | "noData";
+
 export interface OverviewKpiCardData {
   title: string;
+  caption?: { key: OverviewKpiCaptionKey; approved?: number; total?: number };
   value: number | string;
   deltaPercent: number;
   deltaDirection: "up" | "down" | "neutral";

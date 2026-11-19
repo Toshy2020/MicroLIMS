@@ -1,6 +1,10 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.Services.TableViews;
+using MicroLIMS.Domain.Entities;
+using MicroLIMS.Shared.Exceptions;
 
 namespace MicroLIMS.Application.Services;
 
@@ -10,6 +14,8 @@ namespace MicroLIMS.Application.Services;
 // contract stays true.
 public class DataExportAuditService
 {
+    public const int MaxListExportRows = 5000;
+
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
 
@@ -34,5 +40,83 @@ public class DataExportAuditService
         });
 
         await _db.SaveChangesAsync();
+    }
+
+    public async Task<DataExportLog> LogListExportAsync(
+        int userId,
+        string tableKey,
+        string filterJson,
+        int rowCount,
+        CancellationToken ct = default)
+    {
+        if (!TableKeyRegistry.IsKnown(tableKey))
+            throw new BusinessRuleException($"Unknown table key '{tableKey}'.");
+
+        if (rowCount < 0 || rowCount > MaxListExportRows)
+            throw new BusinessRuleException(
+                $"Export is limited to {MaxListExportRows:N0} rows. Narrow your filters or use the Reports module.");
+
+        ValidateFilterJsonRecordIds(filterJson, rowCount);
+
+        var user = await _db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null)
+            throw new BusinessRuleException("Exporting user could not be found.");
+
+        var entry = new DataExportLog
+        {
+            UserId = userId,
+            UserName = user.FullName,
+            ExportedAt = _time.GetUtcNow().UtcDateTime,
+            FilterJson = filterJson,
+            RowCount = rowCount,
+            ExportType = $"ListCsv:{tableKey}"
+        };
+
+        _db.DataExportLogs.Add(entry);
+        await _db.SaveChangesAsync(ct);
+        return entry;
+    }
+
+    public async Task<ListExportLogDto> LogListExportDtoAsync(
+        int userId,
+        string tableKey,
+        string filterJson,
+        int rowCount,
+        CancellationToken ct = default)
+    {
+        var log = await LogListExportAsync(userId, tableKey, filterJson, rowCount, ct);
+        return new ListExportLogDto(log.Id, log.ExportedAt, log.UserName);
+    }
+
+    private static void ValidateFilterJsonRecordIds(string filterJson, int rowCount)
+    {
+        if (string.IsNullOrWhiteSpace(filterJson))
+            throw new BusinessRuleException("Export metadata is required.");
+
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(filterJson);
+        }
+        catch (JsonException)
+        {
+            throw new BusinessRuleException("Export metadata must be valid JSON.");
+        }
+
+        using (doc)
+        {
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                throw new BusinessRuleException("Export metadata must be a JSON object.");
+
+            if (!doc.RootElement.TryGetProperty("recordIds", out var recordIdsProp)
+                || recordIdsProp.ValueKind != JsonValueKind.Array)
+            {
+                throw new BusinessRuleException("Export metadata must include recordIds.");
+            }
+
+            if (recordIdsProp.GetArrayLength() != rowCount)
+                throw new BusinessRuleException(
+                    $"Export row count ({rowCount}) does not match the number of record identifiers ({recordIdsProp.GetArrayLength()}).");
+        }
     }
 }

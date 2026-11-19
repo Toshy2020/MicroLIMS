@@ -30,6 +30,7 @@ export interface EquipmentItem {
   pmIntervalValue?: number | null;
   pmIntervalUnit?: IntervalUnit | null;
   lastPmOn?: string | null;
+  codeLocked?: boolean;
 }
 
 export interface EquipmentStatusHistoryItem {

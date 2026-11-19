@@ -8,16 +8,18 @@ import { PageHeader } from "../../components/PageHeader";
 import { LoadingSpinner } from "../../components/LoadingSpinner";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
-import { formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { TestActionDialog } from "./TestActionDialog";
 import { TestSendOutcome } from "./TestSendOutcome";
+import { EmailDeliveryCard } from "./EmailDeliveryCard";
+import { i18n, useTranslation } from "../../i18n";
 import { IntegrationAgent, IntegrationsService, SmtpStatus, StorageProbeResult, StorageStatus } from "./services/IntegrationsService";
 
-const when = (v: string | null) => (v ? formatLabDateTime(v) : "Never");
+const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
-const formatBytes = (bytes: number | null) => {
-  if (bytes === null) return "Not reported";
+const formatBytes = (bytes: number | null, notReported: string) => {
+  if (bytes === null) return notReported;
   const units = ["B", "KB", "MB", "GB", "TB"];
   let value = bytes, i = 0;
   while (value >= 1024 && i < units.length - 1) { value /= 1024; i++; }
@@ -29,8 +31,12 @@ const agentColor = (status: string) => (status === "Active" ? "success" : status
 // What the system talks to: instrument agents, SMTP and file storage. Status is read-only;
 // the checks (test email, storage probe) need a reason and are audited and rate limited on the server.
 export function IntegrationsPage() {
+  const { t } = useTranslation("admin");
+  const { t: tc } = useTranslation("common");
+  const when = (v: string | null) => (v ? formatDateTimeWithTimeZone(v) : t("common.never"));
   const { permissions } = useAuth();
   const canManageAgents = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
+  const canManageUsers = permissions.includes(PERMISSIONS.USERS_MANAGE);
 
   const [agents, setAgents] = useState<IntegrationAgent[] | null>(null);
   const [smtp, setSmtp] = useState<SmtpStatus | null>(null);
@@ -47,7 +53,7 @@ export function IntegrationsPage() {
   const load = useCallback(() => {
     Promise.all([IntegrationsService.agents(), IntegrationsService.smtp(), IntegrationsService.storage()])
       .then(([a, m, s]) => { setAgents(a); setSmtp(m); setStorage(s); })
-      .catch(() => setError("Could not load the integrations. Reload the page to try again."));
+      .catch(() => setError(tl("integrations.loadError")));
   }, []);
   useEffect(load, [load]);
 
@@ -57,7 +63,7 @@ export function IntegrationsPage() {
       setNewKey({ code: agent.code, key: result.plainKey });
       load();
     } catch (e) {
-      toast.error(getErrorMessage(e, "Could not rotate the key."));
+      toast.error(getErrorMessage(e, t("integrations.rotateError")));
     }
   };
 
@@ -65,22 +71,22 @@ export function IntegrationsPage() {
     if (!revokeTarget || !revokeReason.trim()) return;
     try {
       await IntegrationsService.revokeAgent(revokeTarget.id, revokeReason.trim());
-      toast.success(`${revokeTarget.code} revoked.`);
+      toast.success(t("integrations.revoked", { code: revokeTarget.code }));
       setRevokeTarget(null); setRevokeReason("");
       load();
     } catch (e) {
-      toast.error(getErrorMessage(e, "Could not revoke the agent."));
+      toast.error(getErrorMessage(e, t("integrations.revokeError")));
     }
   };
 
   const probeOutcome = (r: StorageProbeResult) => (
-    <Stack spacing={0.5} aria-label="Probe result">
+    <Stack spacing={0.5} aria-label={t("integrations.probeRegion")}>
       <Alert severity={r.succeeded ? "success" : "error"}>
-        {r.succeeded ? "Write, read and delete all succeeded." : "The storage probe failed."}
+        {r.succeeded ? t("integrations.probeOk") : t("integrations.probeFailed")}
       </Alert>
       {r.steps.map((s) => (
         <Typography key={s.step} variant="body2">
-          {s.step}: {s.succeeded ? "ok" : `failed - ${s.error}`} ({s.elapsedMs} ms)
+          {s.step}: {s.succeeded ? t("integrations.stepOk") : t("integrations.stepFailed", { error: s.error })} ({s.elapsedMs} ms)
         </Typography>
       ))}
       {r.warning && <Alert severity="warning">{r.warning}</Alert>}
@@ -89,26 +95,26 @@ export function IntegrationsPage() {
 
   return (
     <>
-      <PageHeader title="Integrations" subtitle="Instrument agents, email and file storage. Secrets are never shown." />
+      <PageHeader title={t("integrations.title")} subtitle={t("integrations.subtitle")} />
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {!error && (!agents || !smtp || !storage) && <LoadingSpinner />}
 
       {agents && (
         <Paper sx={{ mb: 2, p: 2 }}>
-          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>Instrument agents</Typography>
+          <Typography variant="h6" component="h2" sx={{ mb: 1 }}>{t("integrations.agents")}</Typography>
           {agents.length === 0 ? (
-            <Typography variant="body2">No instrument agents are registered.</Typography>
+            <Typography variant="body2">{t("integrations.noAgents")}</Typography>
           ) : (
             <TableContainer>
-              <Table size="small" aria-label="Instrument agents">
+              <Table size="small" aria-label={t("integrations.agents")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Agent</TableCell>
-                    <TableCell>Equipment</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Last seen</TableCell>
-                    <TableCell>Key</TableCell>
-                    {canManageAgents && <TableCell align="right">Actions</TableCell>}
+                    <TableCell>{t("integrations.agent")}</TableCell>
+                    <TableCell>{t("integrations.equipment")}</TableCell>
+                    <TableCell>{t("common.status")}</TableCell>
+                    <TableCell>{t("integrations.lastSeen")}</TableCell>
+                    <TableCell>{t("integrations.key")}</TableCell>
+                    {canManageAgents && <TableCell align="right">{t("common.actions")}</TableCell>}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -133,8 +139,8 @@ export function IntegrationsPage() {
                         <TableCell align="right">
                           {a.status !== "Revoked" && (
                             <>
-                              <Button size="small" onClick={() => rotate(a)} aria-label={`Rotate key of ${a.code}`}>Rotate key</Button>
-                              <Button size="small" color="error" onClick={() => { setRevokeTarget(a); setRevokeReason(""); }} aria-label={`Revoke ${a.code}`}>Revoke</Button>
+                              <Button size="small" onClick={() => rotate(a)} aria-label={t("integrations.rotateKeyOf", { code: a.code })}>{t("integrations.rotateKey")}</Button>
+                              <Button size="small" color="error" onClick={() => { setRevokeTarget(a); setRevokeReason(""); }} aria-label={t("integrations.revokeOf", { code: a.code })}>{t("integrations.revoke")}</Button>
                             </>
                           )}
                         </TableCell>
@@ -147,7 +153,7 @@ export function IntegrationsPage() {
           )}
           {!canManageAgents && (
             <Typography variant="caption" color="text.secondary">
-              Rotating or revoking a key needs the Master Data management permission.
+              {t("integrations.needsMasterData")}
             </Typography>
           )}
         </Paper>
@@ -156,24 +162,24 @@ export function IntegrationsPage() {
       {smtp && (
         <Paper sx={{ mb: 2, p: 2 }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="h6" component="h2">Email (SMTP)</Typography>
-            <Button variant="outlined" size="small" onClick={() => setEmailOpen(true)}>Send test email</Button>
+            <Typography variant="h6" component="h2">{t("integrations.smtp")}</Typography>
+            <Button variant="outlined" size="small" onClick={() => setEmailOpen(true)}>{t("integrations.sendTestEmail")}</Button>
           </Stack>
-          {!smtp.isConfigured && <Alert severity="warning" sx={{ mb: 1 }}>SMTP is not configured: no email is sent.</Alert>}
-          <Table size="small" aria-label="SMTP configuration">
+          {!smtp.isConfigured && <Alert severity="warning" sx={{ mb: 1 }}>{t("integrations.smtpNotConfigured")}</Alert>}
+          <Table size="small" aria-label={t("integrations.smtpConfig")}>
             <TableBody>
-              <TableRow><TableCell>Host</TableCell><TableCell>{smtp.host || "Not set"}</TableCell></TableRow>
-              <TableRow><TableCell>Port</TableCell><TableCell>{smtp.port}</TableCell></TableRow>
-              <TableRow><TableCell>From</TableCell><TableCell>{smtp.fromAddress}</TableCell></TableRow>
-              <TableRow><TableCell>TLS</TableCell><TableCell>{smtp.enableSsl ? "On" : "Off"}</TableCell></TableRow>
+              <TableRow><TableCell>{t("integrations.host")}</TableCell><TableCell>{smtp.host || t("integrations.notSet")}</TableCell></TableRow>
+              <TableRow><TableCell>{t("integrations.port")}</TableCell><TableCell>{smtp.port}</TableCell></TableRow>
+              <TableRow><TableCell>{t("integrations.from")}</TableCell><TableCell>{smtp.fromAddress}</TableCell></TableRow>
+              <TableRow><TableCell>TLS</TableCell><TableCell>{smtp.enableSsl ? t("integrations.on") : t("integrations.off")}</TableCell></TableRow>
               <TableRow>
-                <TableCell>Password</TableCell>
-                <TableCell>{smtp.authenticationConfigured ? smtp.password : "Not set"}</TableCell>
+                <TableCell>{t("integrations.password")}</TableCell>
+                <TableCell>{smtp.authenticationConfigured ? smtp.password : t("integrations.notSet")}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell>Last send (since the last restart)</TableCell>
+                <TableCell>{t("integrations.lastSend")}</TableCell>
                 <TableCell>
-                  {smtp.lastSendOutcome ? `${smtp.lastSendOutcome} at ${when(smtp.lastSendAtUtc)}` : "No email sent yet"}
+                  {smtp.lastSendOutcome ? t("integrations.lastSendLine", { outcome: smtp.lastSendOutcome, time: when(smtp.lastSendAtUtc) }) : t("integrations.noEmailSent")}
                   {smtp.lastSendError && (
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>{smtp.lastSendError}</Typography>
                   )}
@@ -184,20 +190,22 @@ export function IntegrationsPage() {
         </Paper>
       )}
 
+      {canManageUsers && <EmailDeliveryCard />}
+
       {storage && (
         <Paper sx={{ mb: 2, p: 2 }}>
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography variant="h6" component="h2">File storage</Typography>
-            <Button variant="outlined" size="small" onClick={() => setProbeOpen(true)}>Run storage probe</Button>
+            <Typography variant="h6" component="h2">{t("integrations.fileStorage")}</Typography>
+            <Button variant="outlined" size="small" onClick={() => setProbeOpen(true)}>{t("integrations.runProbe")}</Button>
           </Stack>
-          <Table size="small" aria-label="Storage configuration">
+          <Table size="small" aria-label={t("integrations.storageConfig")}>
             <TableBody>
-              <TableRow><TableCell>Provider</TableCell><TableCell>{storage.provider}</TableCell></TableRow>
-              <TableRow><TableCell>Location</TableCell><TableCell>{storage.location}</TableCell></TableRow>
+              <TableRow><TableCell>{t("integrations.provider")}</TableCell><TableCell>{storage.provider}</TableCell></TableRow>
+              <TableRow><TableCell>{t("integrations.location")}</TableCell><TableCell>{storage.location}</TableCell></TableRow>
               {storage.provider === "Local" && (
                 <TableRow>
-                  <TableCell>Free space</TableCell>
-                  <TableCell>{formatBytes(storage.freeBytes)} of {formatBytes(storage.totalBytes)}</TableCell>
+                  <TableCell>{t("integrations.freeSpace")}</TableCell>
+                  <TableCell>{t("integrations.freeOf", { free: formatBytes(storage.freeBytes, t("integrations.notReported")), total: formatBytes(storage.totalBytes, t("integrations.notReported")) })}</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -207,41 +215,41 @@ export function IntegrationsPage() {
 
       <TestActionDialog
         open={emailOpen}
-        title="Send test email"
-        description="Sends a clearly labelled test message through the same sender the system uses."
-        confirmLabel="Send test email"
-        addressLabel="Send to"
+        title={t("integrations.sendTestEmail")}
+        description={t("integrations.testEmailDescription")}
+        confirmLabel={t("integrations.sendTestEmail")}
+        addressLabel={t("integrations.sendTo")}
         onClose={() => { setEmailOpen(false); load(); }}
         onSubmit={async (reason, address) => <TestSendOutcome result={await IntegrationsService.sendTestEmail(address, reason)} />}
       />
       <TestActionDialog
         open={probeOpen}
-        title="Run storage probe"
-        description="Writes, reads back and deletes a small temporary object."
-        confirmLabel="Run probe"
+        title={t("integrations.runProbe")}
+        description={t("integrations.probeDescription")}
+        confirmLabel={t("integrations.runProbeConfirm")}
         onClose={() => setProbeOpen(false)}
         onSubmit={async (reason) => probeOutcome(await IntegrationsService.probeStorage(reason))}
       />
 
       <Dialog open={Boolean(revokeTarget)} onClose={() => setRevokeTarget(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Revoke {revokeTarget?.code}</DialogTitle>
+        <DialogTitle>{t("integrations.revokeTitle", { code: revokeTarget?.code ?? "" })}</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" sx={{ mb: 2 }}>The agent can no longer send data. This cannot be undone; register a new agent to replace it.</Typography>
-          <TextField label="Reason" size="small" fullWidth required multiline minRows={2} value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} />
+          <Typography variant="body2" sx={{ mb: 2 }}>{t("integrations.revokeIntro")}</Typography>
+          <TextField label={t("common.reason")} size="small" fullWidth required multiline minRows={2} value={revokeReason} onChange={(e) => setRevokeReason(e.target.value)} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRevokeTarget(null)}>Cancel</Button>
-          <Button color="error" variant="contained" disabled={!revokeReason.trim()} onClick={revoke}>Revoke</Button>
+          <Button onClick={() => setRevokeTarget(null)}>{tc("actions.cancel")}</Button>
+          <Button color="error" variant="contained" disabled={!revokeReason.trim()} onClick={revoke}>{t("integrations.revoke")}</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={Boolean(newKey)} onClose={() => setNewKey(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>New key for {newKey?.code}</DialogTitle>
+        <DialogTitle>{t("integrations.newKeyTitle", { code: newKey?.code ?? "" })}</DialogTitle>
         <DialogContent>
-          <Alert severity="warning" sx={{ mb: 2 }}>Copy this key now. It is shown once and cannot be retrieved later.</Alert>
-          <TextField fullWidth size="small" value={newKey?.key ?? ""} slotProps={{ htmlInput: { readOnly: true, "aria-label": "New agent key" } }} />
+          <Alert severity="warning" sx={{ mb: 2 }}>{t("integrations.copyNow")}</Alert>
+          <TextField fullWidth size="small" value={newKey?.key ?? ""} slotProps={{ htmlInput: { readOnly: true, "aria-label": t("integrations.newKeyAria") } }} />
         </DialogContent>
-        <DialogActions><Button onClick={() => setNewKey(null)}>Done</Button></DialogActions>
+        <DialogActions><Button onClick={() => setNewKey(null)}>{t("common.done")}</Button></DialogActions>
       </Dialog>
     </>
   );

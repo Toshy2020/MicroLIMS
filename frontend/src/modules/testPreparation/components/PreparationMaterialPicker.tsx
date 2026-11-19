@@ -1,17 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
 import { Box, MenuItem, TextField } from "@mui/material";
+import { useTranslation } from "../../../i18n";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { SolutionMasterService } from "../../laboratoryConfiguration/masterDataSimple/services/SolutionMasterService";
 import { MaterialMasterService } from "../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
 import type { PreparationMaterialSource } from "../services/ItemPreparationConfigurationService";
 import {
-  SOURCE_LABELS,
+  getSourceLabels,
   type PreparationMaterialSelection
 } from "../preparationMaterial";
 
 interface MasterOption {
   id: number;
   label: string;
+}
+
+interface MediaProductOption {
+  id: number;
+  name: string;
+  code: string;
+  isActive: boolean;
 }
 
 // Solution recipes a diluent or neutralizer can be made from.
@@ -31,7 +39,7 @@ interface Props {
 
 async function loadMasters(source: PreparationMaterialSource): Promise<MasterOption[]> {
   if (source === "MediaProduct") {
-    const rows: any[] = (await masterDataOptions.getMediaProducts()) ?? [];
+    const rows = ((await masterDataOptions.getMediaProducts()) ?? []) as MediaProductOption[];
     return rows.filter((p) => p.isActive).map((p) => ({ id: p.id, label: `${p.name} (${p.code})` }));
   }
   if (source === "SolutionRecipe") {
@@ -53,6 +61,7 @@ async function loadMasters(source: PreparationMaterialSource): Promise<MasterOpt
 export function PreparationMaterialPicker({
   label, value, onChange, allowContainedInMedium = false, disabled, currentName
 }: Props) {
+  const { t } = useTranslation("testPreparation");
   const [options, setOptions] = useState<MasterOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -83,7 +92,8 @@ export function PreparationMaterialPicker({
     return options;
   }, [options, value.masterId, currentName]);
 
-  const sources = (Object.keys(SOURCE_LABELS) as PreparationMaterialSource[])
+  const sourceLabels = getSourceLabels(t);
+  const sources = (Object.keys(sourceLabels) as PreparationMaterialSource[])
     .filter((s) => s !== "ContainedInMedium" || allowContainedInMedium);
 
   return (
@@ -92,13 +102,13 @@ export function PreparationMaterialPicker({
         select
         required
         size="small"
-        label={`${label} source`}
+        label={t("materialPicker.sourceLabel", { role: label })}
         value={source}
         disabled={disabled}
         onChange={(e) => onChange({ source: e.target.value as PreparationMaterialSource, masterId: null })}
       >
         {sources.map((s) => (
-          <MenuItem key={s} value={s}>{SOURCE_LABELS[s]}</MenuItem>
+          <MenuItem key={s} value={s}>{sourceLabels[s]}</MenuItem>
         ))}
       </TextField>
 
@@ -111,7 +121,7 @@ export function PreparationMaterialPicker({
           value={value.masterId ?? ""}
           disabled={disabled || loading}
           error={loadError}
-          helperText={loadError ? "Could not load the list." : loading ? "Loading…" : undefined}
+          helperText={loadError ? t("materialPicker.loadError") : loading ? t("materialPicker.loading") : undefined}
           onChange={(e) => onChange({ source, masterId: Number(e.target.value) })}
         >
           {shown.map((o) => (

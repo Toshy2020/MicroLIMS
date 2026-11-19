@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -34,33 +36,47 @@ public static class AnalystAssignmentRules
         IMicroLimsDbContext db, IUserSectionScopeService scope,
         int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc)
     {
-        var user = await db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == assigneeId)
-            ?? throw new NotFoundException($"User {assigneeId} not found.");
+        var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc);
+        check.ThrowIfRefused();
+        return user;
+    }
+
+    // EnsureAssignableAsync without the throw: the first reason the assignee cannot take tests in these sections,
+    // and the assignee. An assignee that does not exist still throws NotFoundException.
+    public static async Task<(ActionCheck Check, User User)> CheckAssignableAsync(
+        IMicroLimsDbContext db, IUserSectionScopeService scope,
+        int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc, CancellationToken ct = default)
+    {
+        var user = await db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == assigneeId, ct)
+            ?? throw new NotFoundException(
+                MessageCodes.SampleAssigneeNotFound,
+                $"User {assigneeId} not found.",
+                new Dictionary<string, string> { ["userId"] = assigneeId.ToString(CultureInfo.InvariantCulture) });
 
         if (!user.IsActive)
-            throw new BusinessRuleException($"User '{user.FullName}' is not active.");
+            return (ActionCheck.No($"User '{user.FullName}' is not active."), user);
         if (user.LockedUntil > nowUtc)
-            throw new BusinessRuleException($"User '{user.FullName}' is locked out.");
+            return (ActionCheck.No($"User '{user.FullName}' is locked out."), user);
 
         var role = user.Role?.Type;
         if (role is null || !AssignableRoles.Contains(role.Value))
-            throw new BusinessRuleException(
-                $"'{user.FullName}' cannot be assigned tests - only Analysts, Reviewers and Section Heads can.");
+            return (ActionCheck.No(
+                $"'{user.FullName}' cannot be assigned tests - only Analysts, Reviewers and Section Heads can."), user);
 
         if (role == RoleType.SectionHead && assigneeId != actingUserId)
-            throw new BusinessRuleException(
-                $"'{user.FullName}' is a Section Head - a Section Head can only assign themselves.");
+            return (ActionCheck.No(
+                $"'{user.FullName}' is a Section Head - a Section Head can only assign themselves."), user);
 
-        var memberOf = await scope.GetMemberSectionIdsAsync(assigneeId);
+        var memberOf = await scope.GetMemberSectionIdsAsync(assigneeId, ct);
         var missing = sectionIds.Distinct().Where(s => memberOf is not null && !memberOf.Contains(s)).ToList();
         if (missing.Count > 0)
         {
-            var names = await db.DocumentSections.Where(s => missing.Contains(s.Id)).Select(s => s.Name).ToListAsync();
+            var names = await db.DocumentSections.Where(s => missing.Contains(s.Id)).Select(s => s.Name).ToListAsync(ct);
             var sections = names.Count > 0 ? string.Join(", ", names) : "the test's";
-            throw new BusinessRuleException(
-                $"'{user.FullName}' is not a member of the {sections} laboratory section{(names.Count > 1 ? "s" : "")}.");
+            return (ActionCheck.No(
+                $"'{user.FullName}' is not a member of the {sections} laboratory section{(names.Count > 1 ? "s" : "")}."), user);
         }
 
-        return user;
+        return (ActionCheck.Ok, user);
     }
 }

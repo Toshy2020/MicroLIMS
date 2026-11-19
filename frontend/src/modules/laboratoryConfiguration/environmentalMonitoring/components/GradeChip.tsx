@@ -1,7 +1,9 @@
 import { Box } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 
 // Cleanroom grade badge - darker for the more critical grades.
 export function GradeChip({ grade }: { grade: string }) {
+  const { t } = useTranslation("labConfig");
   const strong = grade === "A" || grade === "B";
   return (
     <Box
@@ -20,7 +22,7 @@ export function GradeChip({ grade }: { grade: string }) {
         borderColor: strong ? "transparent" : "primary.light"
       }}
     >
-      Grade {grade || "?"}
+      {t("environmentalMonitoring.grade", { grade: grade || "?" })}
     </Box>
   );
 }

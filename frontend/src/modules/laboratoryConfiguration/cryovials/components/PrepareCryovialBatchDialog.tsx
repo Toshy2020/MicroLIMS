@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "../../../../i18n";
 import {
   Button,
   TextField,
@@ -37,10 +38,16 @@ import { tableHeadSx } from "../../../../theme";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { DateField } from "../../../../components/DateField";
 
+export interface CreatedCryovialRef {
+  id: number;
+  code: string;
+  organismName?: string;
+}
+
 interface PrepareCryovialBatchDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess: (message: string) => void;
+  onSuccess: (message: string, created?: CreatedCryovialRef) => void;
 }
 
 const emptyRow = (): PanelRow => ({
@@ -56,6 +63,7 @@ export function PrepareCryovialBatchDialog({
   onClose,
   onSuccess
 }: PrepareCryovialBatchDialogProps) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const [materials, setMaterials] = useState<any[]>([]);
   const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
@@ -110,21 +118,21 @@ export function PrepareCryovialBatchDialog({
     setPanel((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p));
 
   const validate = (): string | null => {
-    if (!form.materialId) return "Please select a Lyophilized Microorganism material.";
+    if (!form.materialId) return t("cryovials.prepare.errors.material");
     if (!form.numberOfVialsPrepared || Number(form.numberOfVialsPrepared) <= 0)
-      return "Please enter a valid number of vials prepared (> 0).";
+      return t("cryovials.prepare.errors.vials");
     if (form.discsUsed === undefined || form.discsUsed === "" || Number(form.discsUsed) < 0)
-      return "Please enter the number of discs used (0 or more).";
-    if (!form.expiryDate) return "Please enter an expiry date.";
-    if (!form.storageEquipmentId) return "Please select a Storage Equipment (Freezer / Deep Freezer).";
-    if (!form.physicalCheckConfirmed) return "Please confirm the physical check against the reference description.";
-    if (panel.length === 0) return "At least one Identity Confirmation row is required.";
+      return t("cryovials.prepare.errors.discs");
+    if (!form.expiryDate) return t("cryovials.prepare.errors.expiry");
+    if (!form.storageEquipmentId) return t("cryovials.prepare.errors.storage");
+    if (!form.physicalCheckConfirmed) return t("cryovials.prepare.errors.physical");
+    if (panel.length === 0) return t("cryovials.prepare.errors.panelRequired");
     for (let i = 0; i < panel.length; i++) {
       const r = panel[i];
-      if (!r.mediaId) return `Row ${i + 1}: Please select a GPT-released media.`;
-      if (!r.incubatorEquipmentId) return `Row ${i + 1}: Please select an incubator.`;
-      if (!r.incubationStart) return `Row ${i + 1}: Please specify the incubation start date.`;
-      if (!r.incubationEnd) return `Row ${i + 1}: Please specify the incubation end date.`;
+      if (!r.mediaId) return t("cryovials.prepare.errors.rowMedia", { row: i + 1 });
+      if (!r.incubatorEquipmentId) return t("cryovials.prepare.errors.rowIncubator", { row: i + 1 });
+      if (!r.incubationStart) return t("cryovials.prepare.errors.rowStart", { row: i + 1 });
+      if (!r.incubationEnd) return t("cryovials.prepare.errors.rowEnd", { row: i + 1 });
     }
     return null;
   };
@@ -162,10 +170,18 @@ export function PrepareCryovialBatchDialog({
 
       const result = await CryovialService.prepare(payload);
       const code = result?.code ? ` (${result.code})` : "";
-      onSuccess(`Cryovial batch prepared successfully${code}.`);
+      const created: CreatedCryovialRef | undefined =
+        result && typeof result.id === "number" && typeof result.code === "string" && result.code.trim().length > 0
+          ? {
+              id: result.id,
+              code: result.code,
+              organismName: result.organismNameSnapshot || result.organism?.scientificName
+            }
+          : undefined;
+      onSuccess(t("cryovials.prepare.success", { code }), created);
       onClose();
     } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not prepare cryovial batch.");
+      setError(e?.response?.data?.message ?? t("cryovials.prepare.errors.prepareFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -195,14 +211,14 @@ export function PrepareCryovialBatchDialog({
             <ScienceIcon fontSize="small" />
           </Box>
           <Typography sx={{ fontSize: 18, fontWeight: 700, color: "text.primary" }}>
-            Prepare Cryovial Batch
+            {t("cryovials.prepare.title")}
           </Typography>
         </Box>
       }
       actions={
         <>
           <Button onClick={onClose} disabled={submitting} sx={{ color: "text.secondary" }}>
-            Cancel
+            {t("cryovials.prepare.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -210,7 +226,7 @@ export function PrepareCryovialBatchDialog({
             disabled={submitting || eligibleFreezers.length === 0}
             color="primary"
           >
-            {submitting ? "Saving Batch..." : "Save Batch"}
+            {submitting ? t("cryovials.prepare.saving") : t("cryovials.prepare.save")}
           </Button>
         </>
       }
@@ -222,24 +238,24 @@ export function PrepareCryovialBatchDialog({
         {/* SECTION 1: Source / Batch Information */}
         <Box>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-            Section 1: Source &amp; Batch Information
+            {t("cryovials.prepare.section1")}
           </Typography>
 
           <Box sx={{ mb: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel id="source-material-label">Lyophilized Microorganism Stock (Inventory) *</InputLabel>
+              <InputLabel id="source-material-label">{t("cryovials.prepare.sourceLabel")}</InputLabel>
               <Select
                 labelId="source-material-label"
-                label="Lyophilized Microorganism Stock (Inventory) *"
+                label={t("cryovials.prepare.sourceLabel")}
                 value={form.materialId ?? ""}
                 onChange={(e) => setField("materialId", e.target.value)}
               >
                 <MenuItem value="">
-                  <em>Select source material</em>
+                  <em>{t("cryovials.prepare.selectSource")}</em>
                 </MenuItem>
                 {usableMaterials.map((m) => (
                   <MenuItem key={m.id} value={m.id}>
-                    {m.materialName}, batch {m.batchNumber} ({m.quantityRemaining} {m.unit} left)
+                    {t("cryovials.prepare.sourceOption", { name: m.materialName, batch: m.batchNumber, remaining: m.quantityRemaining, unit: m.unit })}
                   </MenuItem>
                 ))}
               </Select>
@@ -256,21 +272,25 @@ export function PrepareCryovialBatchDialog({
                 }}
               >
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  Organism:{" "}
+                  {t("cryovials.prepare.organismLabel")}{" "}
                   <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>
-                    {selectedMaterial.organism?.scientificName ?? "Not set (set an Organism on this Material first)"}
+                    {selectedMaterial.organism?.scientificName ?? t("cryovials.prepare.organismNotSet")}
                   </span>
                   {selectedMaterial.organism?.atccNumber ? ` (ATCC ${selectedMaterial.organism.atccNumber})` : ""}
                   {selectedMaterial.referenceOrganismCode
-                    ? ` · Strain ${selectedMaterial.referenceOrganismCode} (${selectedMaterial.cultureCollection}${selectedMaterial.strainNumber ? ` ${selectedMaterial.strainNumber}` : ""})`
+                    ? t("cryovials.prepare.strain", {
+                        code: selectedMaterial.referenceOrganismCode,
+                        collection: selectedMaterial.cultureCollection,
+                        number: selectedMaterial.strainNumber ? ` ${selectedMaterial.strainNumber}` : ""
+                      })
                     : ""}
                   {" · "}
-                  Manufacturer: {selectedMaterial.manufacturerName || "—"}
+                  {t("cryovials.prepare.manufacturer", { name: selectedMaterial.manufacturerName || "—" })}
                 </Typography>
 
                 <Box sx={{ mt: 1.25, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.3px", mb: 0.5 }}>
-                    Reference Description (Organism Master Data)
+                    {t("cryovials.prepare.referenceHeading")}
                   </Typography>
                   {selectedMaterial.organism?.description ? (
                     <Typography sx={{ fontSize: 12, color: "text.primary", whiteSpace: "pre-wrap", bgcolor: "action.hover", p: 1, borderRadius: 0.5, border: "1px solid", borderColor: "divider" }}>
@@ -278,7 +298,7 @@ export function PrepareCryovialBatchDialog({
                     </Typography>
                   ) : (
                     <Typography sx={{ fontSize: 12, color: "warning.main", fontStyle: "italic" }}>
-                      No reference description configured for this organism. Add one under Laboratory Configuration → Organisms before confirming the physical check.
+                      {t("cryovials.prepare.noReference")}
                     </Typography>
                   )}
                 </Box>
@@ -299,9 +319,9 @@ export function PrepareCryovialBatchDialog({
           >
             <TextField
               size="small"
-              label="Vials Prepared *"
+              label={t("cryovials.prepare.vialsLabel")}
               type="number"
-              placeholder="e.g. 15"
+              placeholder={t("cryovials.prepare.vialsPlaceholder")}
               value={form.numberOfVialsPrepared ?? ""}
               onChange={(e) => setField("numberOfVialsPrepared", e.target.value)}
               required
@@ -311,9 +331,9 @@ export function PrepareCryovialBatchDialog({
             />
             <TextField
               size="small"
-              label="Discs Used *"
+              label={t("cryovials.prepare.discsLabel")}
               type="number"
-              placeholder="e.g. 1"
+              placeholder={t("cryovials.prepare.discsPlaceholder")}
               value={form.discsUsed ?? ""}
               onChange={(e) => setField("discsUsed", e.target.value)}
               required
@@ -322,22 +342,22 @@ export function PrepareCryovialBatchDialog({
               }}
             />
             <DateField
-              label="Expiry Date *"
+              label={t("cryovials.prepare.expiryLabel")}
               value={form.expiryDate ?? ""}
               onChange={(v) => setField("expiryDate", v)}
               required
             />
             <FormControl size="small" required sx={{ gridColumn: { sm: "span 2", md: "span 3" } }}>
-              <InputLabel id="storage-equipment-label">Storage Equipment *</InputLabel>
+              <InputLabel id="storage-equipment-label">{t("cryovials.prepare.storageLabel")}</InputLabel>
               <Select
                 labelId="storage-equipment-label"
-                label="Storage Equipment *"
+                label={t("cryovials.prepare.storageLabel")}
                 value={form.storageEquipmentId ?? ""}
                 onChange={(e) => setField("storageEquipmentId", e.target.value)}
                 disabled={equipmentLoading || eligibleFreezers.length === 0}
               >
                 <MenuItem value="">
-                  <em>{equipmentLoading ? "Loading equipment..." : "Select freezer / deep freezer..."}</em>
+                  <em>{equipmentLoading ? t("cryovials.prepare.loadingEquipment") : t("cryovials.prepare.selectFreezer")}</em>
                 </MenuItem>
                 {eligibleFreezers.map((eq) => (
                   <MenuItem key={eq.id} value={eq.id}>
@@ -359,7 +379,7 @@ export function PrepareCryovialBatchDialog({
                 }
                 label={
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                    I confirm the physical characteristics match the reference description above. *
+                    {t("cryovials.prepare.physicalConfirm")}
                   </Typography>
                 }
               />
@@ -368,8 +388,8 @@ export function PrepareCryovialBatchDialog({
             <TextField
               fullWidth
               size="small"
-              label="Physical Check Notes / Discrepancies (optional)"
-              placeholder="e.g. Pure uniform colonies, no morphological deviations observed"
+              label={t("cryovials.prepare.physicalNotes")}
+              placeholder={t("cryovials.prepare.physicalPlaceholder")}
               value={form.physicalCheckText ?? ""}
               onChange={(e) => setField("physicalCheckText", e.target.value)}
               sx={{ gridColumn: { xs: "1fr", sm: "span 2", md: "span 3" } }}
@@ -378,7 +398,7 @@ export function PrepareCryovialBatchDialog({
 
           {eligibleFreezers.length === 0 && !equipmentLoading && !failedLists.includes("storage equipment") && (
             <Alert severity="warning" sx={{ mt: 1.5 }}>
-              No available freezer/deep freezer is currently in service.
+              {t("cryovials.prepare.noFreezer")}
             </Alert>
           )}
 
@@ -406,15 +426,15 @@ export function PrepareCryovialBatchDialog({
               >
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                    Storage Equipment
+                    {t("cryovials.prepare.storage.heading")}
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main }}>
-                    {selectedStorageEquipment.instrumentType}, {selectedStorageEquipment.manufacturerName || "Asset"}
+                    {selectedStorageEquipment.instrumentType}, {selectedStorageEquipment.manufacturerName || t("cryovials.prepare.storage.asset")}
                   </Typography>
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                    Code
+                    {t("cryovials.prepare.storage.code")}
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                     {selectedStorageEquipment.code}
@@ -422,7 +442,7 @@ export function PrepareCryovialBatchDialog({
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                    Location
+                    {t("cryovials.prepare.storage.location")}
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                     {selectedStorageEquipment.location || "—"}
@@ -430,10 +450,10 @@ export function PrepareCryovialBatchDialog({
                 </Box>
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", textTransform: "uppercase" }}>
-                    Status
+                    {t("cryovials.prepare.storage.status")}
                   </Typography>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "success.main" }}>
-                    In Service
+                    {t("cryovials.prepare.storage.inService")}
                   </Typography>
                 </Box>
               </Box>
@@ -447,10 +467,10 @@ export function PrepareCryovialBatchDialog({
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, textTransform: "uppercase", letterSpacing: "0.5px" }}>
-              Section 2: Identity Confirmation Panel
+              {t("cryovials.prepare.section2")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Mandatory qualification before GPT reference
+              {t("cryovials.prepare.mandatory")}
             </Typography>
           </Box>
 
@@ -458,11 +478,11 @@ export function PrepareCryovialBatchDialog({
             <Table size="small" sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Media (GPT-released) *</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Incubator *</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Start *</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>End *</TableCell>
-                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>Observation</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("cryovials.prepare.columns.media")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("cryovials.prepare.columns.incubator")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("cryovials.prepare.columns.start")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("cryovials.prepare.columns.end")}</TableCell>
+                  <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>{t("cryovials.prepare.columns.observation")}</TableCell>
                   <TableCell sx={{ width: 40 }}></TableCell>
                 </TableRow>
               </TableHead>
@@ -476,14 +496,14 @@ export function PrepareCryovialBatchDialog({
                         displayEmpty
                         value={row.mediaId}
                         onChange={(e) => updateRow(i, "mediaId", e.target.value)}
-                        inputProps={{ "aria-label": "Media" }}
+                        inputProps={{ "aria-label": t("cryovials.prepare.mediaAria") }}
                       >
                         <MenuItem value="">
-                          <em>Select Media</em>
+                          <em>{t("cryovials.prepare.selectMedia")}</em>
                         </MenuItem>
                         {releasedMedia.map((m) => (
                           <MenuItem key={m.id} value={m.id}>
-                            {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || "Media"})
+                            {m.lotNumber} ({m.material?.materialName || m.mediaType?.class || t("cryovials.prepare.mediaFallback")})
                           </MenuItem>
                         ))}
                       </Select>
@@ -495,10 +515,10 @@ export function PrepareCryovialBatchDialog({
                         displayEmpty
                         value={row.incubatorEquipmentId}
                         onChange={(e) => updateRow(i, "incubatorEquipmentId", e.target.value)}
-                        inputProps={{ "aria-label": "Incubator" }}
+                        inputProps={{ "aria-label": t("cryovials.prepare.incubatorAria") }}
                       >
                         <MenuItem value="">
-                          <em>Select Incubator</em>
+                          <em>{t("cryovials.prepare.selectIncubator")}</em>
                         </MenuItem>
                         {incubators.map((i2) => (
                           <MenuItem key={i2.id} value={i2.id}>
@@ -512,7 +532,7 @@ export function PrepareCryovialBatchDialog({
                         value={row.incubationStart}
                         onChange={(v) => updateRow(i, "incubationStart", v)}
                         fullWidth
-                        ariaLabel={`Row ${i + 1} incubation start`}
+                        ariaLabel={t("cryovials.prepare.startAria", { row: i + 1 })}
                       />
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
@@ -520,21 +540,21 @@ export function PrepareCryovialBatchDialog({
                         value={row.incubationEnd}
                         onChange={(v) => updateRow(i, "incubationEnd", v)}
                         fullWidth
-                        ariaLabel={`Row ${i + 1} incubation end`}
+                        ariaLabel={t("cryovials.prepare.endAria", { row: i + 1 })}
                       />
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
                       <TextField
                         size="small"
-                        placeholder="Observation notes"
+                        placeholder={t("cryovials.prepare.observationPlaceholder")}
                         value={row.observationText}
                         onChange={(e) => updateRow(i, "observationText", e.target.value)}
                         fullWidth
-                        slotProps={{ htmlInput: { "aria-label": `Row ${i + 1} observation notes` } }}
+                        slotProps={{ htmlInput: { "aria-label": t("cryovials.prepare.observationAria", { row: i + 1 }) } }}
                       />
                     </TableCell>
                     <TableCell sx={{ py: 1 }}>
-                      <IconButton aria-label={`Remove row ${i + 1}`}
+                      <IconButton aria-label={t("cryovials.prepare.removeRow", { row: i + 1 })}
                         size="small"
                         onClick={() => removeRow(i)}
                         disabled={panel.length <= 1}
@@ -555,7 +575,7 @@ export function PrepareCryovialBatchDialog({
             startIcon={<AddIcon fontSize="small" />}
             sx={{ mt: 1.5, color: theme.palette.primary.main }}
           >
-            Add Media Row
+            {t("cryovials.prepare.addRow")}
           </Button>
         </Box>
       </Stack>

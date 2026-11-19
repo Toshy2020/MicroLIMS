@@ -34,6 +34,8 @@ const list: DeviationList = {
 const renderPanel = (onPick = vi.fn()) =>
   render(<ThemeProvider theme={lightTheme}><DeviationsPanel onPick={onPick} /></ThemeProvider>);
 
+const matchP = (text: string) => (_c: string, el: Element | null) => el?.tagName === "P" && el.textContent === text;
+
 describe("DeviationsPanel", () => {
   beforeEach(() => { vi.mocked(MonitoringDeviationApi.list).mockResolvedValue(list); });
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
@@ -42,9 +44,9 @@ describe("DeviationsPanel", () => {
     const onPick = vi.fn();
     renderPanel(onPick);
 
-    expect(await screen.findByText("Missed occurrences · 2 sampling point(s)")).toBeTruthy();
+    expect(await screen.findByText(matchP("Missed occurrences · 2 sampling point(s)"))).toBeTruthy();
     expect(screen.getAllByText("SP 206")).toHaveLength(1);
-    expect(screen.getByText("Results over the action limit · 1")).toBeTruthy();
+    expect(screen.getByText(matchP("Results over the action limit · 1"))).toBeTruthy();
 
     fireEvent.click(screen.getByLabelText("SP 206, 15 Jan"));
     expect(onPick).toHaveBeenCalledWith(102);
@@ -55,10 +57,10 @@ describe("DeviationsPanel", () => {
   it("closes the selected group: the details first, then the signature dialog with both signatures", async () => {
     vi.mocked(MonitoringDeviationApi.close).mockResolvedValue(2);
     renderPanel();
-    await screen.findByText("Missed occurrences · 2 sampling point(s)");
+    await screen.findByText(matchP("Missed occurrences · 2 sampling point(s)"));
 
     fireEvent.click(screen.getByLabelText("Select SP 206"));
-    fireEvent.click(screen.getByText("Close selected (2)"));
+    fireEvent.click(screen.getByRole("button", { name: "Close selected (2)" }));
     fireEvent.click(screen.getByLabelText("Not applicable: it was before the plan went live"));
     const next = screen.getByRole("button", { name: "Continue to sign" }) as HTMLButtonElement;
     expect(next.disabled).toBe(true);
@@ -83,19 +85,19 @@ describe("DeviationsPanel", () => {
 
   it("does not let missed occurrences and excursions be closed together", async () => {
     renderPanel();
-    await screen.findByText("Missed occurrences · 2 sampling point(s)");
+    await screen.findByText(matchP("Missed occurrences · 2 sampling point(s)"));
 
     fireEvent.click(screen.getByLabelText("Select SP 303"));
     fireEvent.click(screen.getByLabelText("Select MD-2026-00009"));
 
-    expect((screen.getByText("Close selected (2)") as HTMLButtonElement).closest("button")!.disabled).toBe(true);
+    expect((screen.getByRole("button", { name: "Close selected (2)" }) as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText(/not both/)).toBeTruthy();
   });
 
   it("scans on demand and reports what it opened", async () => {
     vi.mocked(MonitoringDeviationApi.scan).mockResolvedValue({ missedOpened: 3, excursionsOpened: 1, followUpsCreated: 1 });
     renderPanel();
-    await screen.findByText("Missed occurrences · 2 sampling point(s)");
+    await screen.findByText(matchP("Missed occurrences · 2 sampling point(s)"));
 
     fireEvent.click(screen.getByText("Scan now"));
 

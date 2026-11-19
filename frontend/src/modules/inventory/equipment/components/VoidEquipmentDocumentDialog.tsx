@@ -3,6 +3,8 @@ import { Button, TextField, Alert, LinearProgress } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { EquipmentInventoryService } from "../services/EquipmentInventoryService";
 import type { EquipmentDocument } from "../types/equipmentTypes";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 
 interface Props {
   open: boolean;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("inventory");
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,8 +33,9 @@ export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClo
     try {
       await EquipmentInventoryService.voidDocument(document.id, equipmentId, reason.trim());
       onSuccess();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Void operation failed. Please try again.");
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } } };
+      setError(apiErr?.response?.data?.message ?? t("equipment.docDialogs.void.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -48,12 +52,12 @@ export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClo
   return (
     <FloatingDialog
       open={open}
-      title="Void Calibration Certificate"
+      title={t("equipment.docDialogs.void.title")}
       onClose={handleClose}
       actions={
         <>
           <Button onClick={handleClose} disabled={submitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             id="void-equip-doc-submit"
@@ -62,7 +66,7 @@ export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClo
             onClick={handleSubmit}
             disabled={submitting || !reason.trim()}
           >
-            {submitting ? "Voiding…" : "Void Certificate"}
+            {submitting ? t("equipment.docDialogs.void.submitting") : t("equipment.docDialogs.void.submit")}
           </Button>
         </>
       }
@@ -71,13 +75,17 @@ export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClo
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Alert severity="warning" sx={{ mb: 2, fontSize: 12 }}>
-        The certificate <strong>{document.originalFileName}</strong> will be marked <strong>Voided</strong>.
-        The file and metadata are retained for audit purposes.
+        <Trans
+          i18nKey="equipment.docDialogs.void.warning"
+          ns="inventory"
+          values={{ fileName: document.originalFileName }}
+          components={{ bold: <strong /> }}
+        />
       </Alert>
 
       <TextField
         id="void-equip-reason"
-        label="Reason for Voiding *"
+        label={t("equipment.docDialogs.void.reasonLabel")}
         fullWidth
         size="small"
         multiline
@@ -88,7 +96,7 @@ export function VoidEquipmentDocumentDialog({ open, document, equipmentId, onClo
           setReasonError(false);
         }}
         error={reasonError}
-        helperText={reasonError ? "A reason is required." : undefined}
+        helperText={reasonError ? t("equipment.docDialogs.reasonRequired") : undefined}
       />
     </FloatingDialog>
   );

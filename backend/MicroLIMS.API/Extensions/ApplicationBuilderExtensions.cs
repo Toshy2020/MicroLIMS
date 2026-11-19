@@ -28,6 +28,7 @@ public static class ApplicationBuilderExtensions
     public static IApplicationBuilder UseMicroLimsAuditPipeline(this IApplicationBuilder app)
     {
         app.UseMiddleware<AuditMiddleware>();
+        app.UseMiddleware<DraftContextMiddleware>();
         app.UseMiddleware<RecordVersionMiddleware>();
         return app;
     }

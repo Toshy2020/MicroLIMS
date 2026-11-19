@@ -1,5 +1,7 @@
 # Barcode / QR Labels and Scanning — Recon Report
 
+> **Superseded by:** [2026-11-10-barcode-labels-scanning-design.md](docs/superpowers/specs/2026-11-10-barcode-labels-scanning-design.md) (design specification) and [2026-11-10-barcode-labels-scanning.md](docs/superpowers/plans/2026-11-10-barcode-labels-scanning.md) (implementation plan). Kept as historical recon context.
+
 **Mode:** read-only recon. No code, packages or other files were changed.
 **Scope:** `backend/` (ASP.NET Core, EF Core/PostgreSQL) and `frontend/` (React + MUI).
 **Date:** 2026-10-28

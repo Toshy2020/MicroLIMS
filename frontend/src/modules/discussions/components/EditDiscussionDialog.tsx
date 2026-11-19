@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "../../../i18n";
 import {
   Dialog,
   DialogTitle,
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
+  const { t } = useTranslation("discussions");
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [category, setCategory] = useState<DiscussionCategory>(DiscussionCategory.Water);
@@ -48,11 +50,11 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
   const handleSubmit = async () => {
     if (!post) return;
     if (!title.trim()) {
-      setError("Discussion title is required.");
+      setError(t("validation.titleRequired"));
       return;
     }
     if (!content.trim()) {
-      setError("Discussion content is required.");
+      setError(t("validation.contentRequired"));
       return;
     }
 
@@ -68,7 +70,7 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
       }, post.version);
       onSaved(updated);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to update discussion.");
+      setError(err.response?.data?.message || err.message || t("editDialog.updateError"));
     } finally {
       setLoading(false);
     }
@@ -78,17 +80,17 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
     <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
         <EditIcon color="primary" />
-        Edit Discussion (Version {post?.currentVersion})
+        {t("editDialog.title", { version: post?.currentVersion })}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
 
         <Alert severity="info" sx={{ fontSize: 12.5 }}>
-          Editing will create a historical snapshot of this post and notify discussion participants.
+          {t("editDialog.info")}
         </Alert>
 
         <TextField
-          label="Title"
+          label={t("fields.title")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           fullWidth
@@ -99,11 +101,11 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
 
         <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
           <FormControl sx={{ minWidth: 260 }}>
-            <InputLabel id="edit-category-label">Category</InputLabel>
+            <InputLabel id="edit-category-label">{t("fields.category")}</InputLabel>
             <Select
               labelId="edit-category-label"
               value={category}
-              label="Category"
+              label={t("fields.category")}
               onChange={(e) => setCategory(Number(e.target.value) as DiscussionCategory)}
               disabled={loading}
             >
@@ -124,12 +126,12 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
                 disabled={loading}
               />
             }
-            label="Mark as Important"
+            label={t("editDialog.markImportant")}
           />
         </Box>
 
         <TextField
-          label="Content / Details"
+          label={t("fields.content")}
           value={content}
           onChange={(e) => setContent(e.target.value)}
           fullWidth
@@ -142,7 +144,7 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={loading} color="inherit">
-          Cancel
+          {t("actions.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -151,7 +153,7 @@ export function EditDiscussionDialog({ open, post, onClose, onSaved }: Props) {
           disabled={loading || !title.trim() || !content.trim()}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <EditIcon />}
         >
-          {loading ? "Saving Changes..." : "Save Changes"}
+          {loading ? t("editDialog.saving") : t("editDialog.save")}
         </Button>
       </DialogActions>
     </Dialog>

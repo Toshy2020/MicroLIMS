@@ -1,5 +1,6 @@
 import { KpiStrip } from "../../../../components/lab";
 import type { SummaryTile } from "../../../../components/configHierarchy/SummaryTiles";
+import { useTranslation } from "../../../../i18n";
 
 export type MediaKpiFilterKey =
   | "ALL"
@@ -26,6 +27,7 @@ export function lifecycleOf(lot: any, awaitingApprovalIds: Set<number>): string 
 }
 
 export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelectKpi, loading }: Props) {
+  const { t } = useTranslation("labConfig");
   const totalCount = lots.length;
 
   let pendingCount = 0;
@@ -45,19 +47,19 @@ export function MediaLotKpiCards({ lots, awaitingApprovalIds, activeKpi, onSelec
 
   // The active tile is marked "(filtered)"; clicking it again clears the shortcut.
   const tile = (key: MediaKpiFilterKey, label: string, value: number, tone: SummaryTile["tone"]): SummaryTile => ({
-    label: activeKpi === key && key !== "ALL" ? `${label} (filtered)` : label,
+    label: activeKpi === key && key !== "ALL" ? t("media.kpis.filteredSuffix", { label }) : label,
     value,
     tone,
     onClick: () => onSelectKpi(key)
   });
 
   const tiles: SummaryTile[] = [
-    tile("ALL", "Total Lots", totalCount, "purple"),
-    tile("Pending Evaluation", "Pending Evaluation", pendingCount, "pending"),
-    tile("Awaiting Approval", "Awaiting Approval", awaitingApprovalCount, "action"),
-    tile("Released", "Released", releasedCount, "notDetected"),
-    tile("Rejected", "Rejected", rejectedCount, "detected"),
-    tile("Out of Stock", "Out of Stock", outOfStockCount, "pending")
+    tile("ALL", t("media.kpis.totalLots"), totalCount, "purple"),
+    tile("Pending Evaluation", t("media.lotFilterBar.statuses.Pending Evaluation"), pendingCount, "pending"),
+    tile("Awaiting Approval", t("media.lotFilterBar.statuses.Awaiting Approval"), awaitingApprovalCount, "action"),
+    tile("Released", t("media.lotFilterBar.statuses.Released"), releasedCount, "notDetected"),
+    tile("Rejected", t("media.lotFilterBar.statuses.Rejected"), rejectedCount, "detected"),
+    tile("Out of Stock", t("media.lotFilterBar.statuses.Out of Stock"), outOfStockCount, "pending")
   ];
 
   return <KpiStrip tiles={tiles} loading={loading} />;

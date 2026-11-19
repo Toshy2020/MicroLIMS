@@ -92,8 +92,8 @@ public class RoleManagementTests
         // carries as technical reviewer / QA auditor, and the 4 codes that
         // replaced role-only gates (review dashboard, media preparation,
         // receiving for their own lab, correcting a sample), and
-        // MonitoringPlan.View, samples.prepare and Solutions.Release.
-        Assert.Equal(17, reviewer!.PermissionCodes.Count); // the three hidden Discussions.View/Create + Messages.Use grants are not listed
+        // MonitoringPlan.View, samples.prepare, Solutions.Release and Data.Export.
+        Assert.Equal(18, reviewer!.PermissionCodes.Count); // the three hidden Discussions.View/Create + Messages.Use grants are not listed
         Assert.Contains(PermissionConstants.SamplesReview, reviewer.PermissionCodes);
         Assert.Contains(PermissionConstants.DocumentsReview, reviewer.PermissionCodes);
     }
@@ -357,7 +357,8 @@ public class RoleManagementTests
     // they save the administration side of it without the GxP codes.
     private static List<string> AllCodesExcept(string code) =>
         PermissionConstants.All
-            .Where(c => c != code && !PermissionConstants.Hidden.Contains(c) && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c))
+            .Where(c => c != code && !PermissionConstants.Hidden.Contains(c) && !SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Contains(c)
+                && !SegregationOfDutiesRules.QaOnlyCodes.Contains(c)) // QA-only codes never sit beside administration codes
             .ToList();
 
     // A non-system role holding both administration permissions, with one
@@ -625,6 +626,22 @@ public class RoleManagementTests
         var body = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<SodRulesDto>>(ok.Value);
         Assert.Contains(PermissionConstants.UsersManage, body.Data!.AdministrationCodes);
         Assert.Contains(PermissionConstants.DocumentsApprove, body.Data.GxpExecutionAndApprovalCodes);
+    }
+
+    [Fact]
+    public void QaForbiddenCodes_endpoint_returns_the_rule_set_sorted()
+    {
+        var controller = CreateController(CreateDbContext(), 1);
+
+        var ok = Assert.IsType<OkObjectResult>(controller.GetQaForbiddenCodes());
+
+        var body = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<List<string>>>(ok.Value);
+        var codes = body.Data!;
+        var expected = SegregationOfDutiesRules.QaForbiddenCodes.OrderBy(c => c, StringComparer.Ordinal).ToList();
+        Assert.Equal(expected.ToHashSet(StringComparer.Ordinal), codes.ToHashSet(StringComparer.Ordinal));
+        Assert.Equal(expected, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsReview, codes);
+        Assert.DoesNotContain(PermissionConstants.DocumentsApprove, codes);
     }
 
     // Discussions.View/Create and Messages.Use are declared and granted but no

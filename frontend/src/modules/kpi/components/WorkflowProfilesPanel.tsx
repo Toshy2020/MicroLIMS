@@ -31,6 +31,7 @@ import {
 } from "../types/workflowProfileTypes";
 import { AddProfileVersionDialog } from "./AddProfileVersionDialog";
 import { ProfileHistoryDrawer } from "./ProfileHistoryDrawer";
+import { useTranslation } from "../../../i18n";
 
 interface Scope {
   workflowType: LiveWorkflowType;
@@ -38,9 +39,9 @@ interface Scope {
 }
 
 const COVERAGE_LABEL: Record<ProfileCoverage, string> = {
-  Configured: "Configured",
-  Partial: "Partial",
-  NeedsConfiguration: "Needs configuration"
+  Configured: "coverage.configured",
+  Partial: "coverage.partial",
+  NeedsConfiguration: "coverage.needsConfiguration"
 };
 const COVERAGE_COLOR: Record<ProfileCoverage, "success" | "warning" | "default"> = {
   Configured: "success",
@@ -48,12 +49,12 @@ const COVERAGE_COLOR: Record<ProfileCoverage, "success" | "warning" | "default">
   NeedsConfiguration: "default"
 };
 
-const value = (n: number | null) => (n === null ? "Not set" : String(n));
-const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 // Configuration only: effective work units and targets per workflow type, with per-test
 // overrides underneath. It never shows analyst figures (no ranking, spec D6).
 export function WorkflowProfilesPanel() {
+  const { t } = useTranslation("kpi");
+  const value = (n: number | null) => (n === null ? t("profiles.notSet") : String(n));
   const { overview, coverage, loading, error, reload } = useWorkflowProfiles();
   const canConfigure = useHasPermission(PERMISSIONS.KPI_CONFIGURE_PROFILES);
   const [onlyGaps, setOnlyGaps] = useState(false);
@@ -71,16 +72,16 @@ export function WorkflowProfilesPanel() {
 
   const needsWork = (c: ProfileCoverage) => c !== "Configured";
   const visibleTests = (row: WorkflowProfileTypeRow): WorkflowProfileTestRow[] =>
-    onlyGaps ? row.tests.filter((t) => needsWork(t.coverage)) : row.tests;
+    onlyGaps ? row.tests.filter((test) => needsWork(test.coverage)) : row.tests;
   const rows = (overview?.types ?? []).filter(
-    (t) => !onlyGaps || needsWork(t.coverage) || t.tests.some((x) => needsWork(x.coverage))
+    (test) => !onlyGaps || needsWork(test.coverage) || test.tests.some((x) => needsWork(x.coverage))
   );
 
   const gaps = coverage
     ? [
-        `${plural(coverage.typesWithoutUnits.length, "workflow type", "workflow types")} without work units`,
-        `${coverage.typesWithoutTarget.length} without a target`,
-        `${plural(coverage.testsNeedingConfiguration.length, "test needs", "tests need")} configuration`
+        t("gaps.typesWithoutUnits", { count: coverage.typesWithoutUnits.length }),
+        t("gaps.typesWithoutTarget", { count: coverage.typesWithoutTarget.length }),
+        t("gaps.testsNeedConfiguration", { count: coverage.testsNeedingConfiguration.length })
       ]
     : [];
   const hasGaps =
@@ -92,9 +93,7 @@ export function WorkflowProfilesPanel() {
   return (
     <Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Work units: 1 unit = 1 standard analyst-hour of hands-on work. Target: analyst-stage days. A version takes effect on
-        its effective date and is never edited; correct a mistake by adding a new version. Tests without a profile stay
-        unweighted - they are never counted as 1.0.
+        {t("profiles.intro")}
       </Typography>
 
       {error && (
@@ -111,7 +110,7 @@ export function WorkflowProfilesPanel() {
           action={
             <FormControlLabel
               control={<Switch size="small" checked={onlyGaps} onChange={(e) => setOnlyGaps(e.target.checked)} />}
-              label="Needs configuration only"
+              label={t("profiles.needsConfigurationOnly")}
             />
           }
         >
@@ -124,11 +123,11 @@ export function WorkflowProfilesPanel() {
           <TableHead>
             <TableRow>
               <TableCell />
-              <TableCell>Workflow type</TableCell>
-              <TableCell align="right">Work units</TableCell>
-              <TableCell align="right">Target (days)</TableCell>
-              <TableCell>Last change</TableCell>
-              <TableCell>Status</TableCell>
+              <TableCell>{t("profiles.columns.workflowType")}</TableCell>
+              <TableCell align="right">{t("profiles.columns.workUnits")}</TableCell>
+              <TableCell align="right">{t("profiles.columns.target")}</TableCell>
+              <TableCell>{t("profiles.columns.lastChange")}</TableCell>
+              <TableCell>{t("profiles.columns.status")}</TableCell>
               <TableCell />
             </TableRow>
           </TableHead>
@@ -140,7 +139,7 @@ export function WorkflowProfilesPanel() {
                 <Fragment key={row.workflowType}>
                   <TableRow hover>
                     <TableCell padding="checkbox">
-                      <IconButton size="small" aria-label={`Show tests for ${label}`} onClick={() => toggle(row.workflowType)}>
+                      <IconButton size="small" aria-label={t("profiles.showTestsFor", { name: label })} onClick={() => toggle(row.workflowType)}>
                         {open ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
                       </IconButton>
                     </TableCell>
@@ -161,19 +160,19 @@ export function WorkflowProfilesPanel() {
                     </TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={0.5}>
-                        <Chip size="small" label={COVERAGE_LABEL[row.coverage]} color={COVERAGE_COLOR[row.coverage]} />
+                        <Chip size="small" label={t(COVERAGE_LABEL[row.coverage])} color={COVERAGE_COLOR[row.coverage]} />
                         {row.draftCount > 0 && (
-                          <Chip size="small" variant="outlined" label={plural(row.draftCount, "draft", "drafts")} />
+                          <Chip size="small" variant="outlined" label={t("profiles.draftCount", { count: row.draftCount })} />
                         )}
                       </Stack>
                     </TableCell>
                     <TableCell align="right">
                       <Button size="small" onClick={() => setHistory({ workflowType: row.workflowType, testCode: null })}>
-                        History
+                        {t("profiles.history")}
                       </Button>
                       {canConfigure && (
                         <Button size="small" onClick={() => setAdding({ workflowType: row.workflowType, testCode: null })}>
-                          Add version
+                          {t("profiles.addVersion")}
                         </Button>
                       )}
                     </TableCell>
@@ -184,40 +183,40 @@ export function WorkflowProfilesPanel() {
                         <Table size="small" sx={{ my: 1 }}>
                           <TableHead>
                             <TableRow>
-                              <TableCell>Test</TableCell>
-                              <TableCell>Name</TableCell>
-                              <TableCell align="right">Work units</TableCell>
-                              <TableCell align="right">Target (days)</TableCell>
-                              <TableCell>Status</TableCell>
+                              <TableCell>{t("profiles.columns.test")}</TableCell>
+                              <TableCell>{t("profiles.columns.name")}</TableCell>
+                              <TableCell align="right">{t("profiles.columns.workUnits")}</TableCell>
+                              <TableCell align="right">{t("profiles.columns.target")}</TableCell>
+                              <TableCell>{t("profiles.columns.status")}</TableCell>
                               <TableCell />
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {visibleTests(row).map((t) => (
-                              <TableRow key={t.testCode}>
-                                <TableCell>{t.testCode}</TableCell>
-                                <TableCell>{t.testName}</TableCell>
-                                <TableCell align="right">{value(t.effectiveWorkUnits)}</TableCell>
-                                <TableCell align="right">{value(t.effectiveTargetAnalystDays)}</TableCell>
+                            {visibleTests(row).map((test) => (
+                              <TableRow key={test.testCode}>
+                                <TableCell>{test.testCode}</TableCell>
+                                <TableCell>{test.testName}</TableCell>
+                                <TableCell align="right">{value(test.effectiveWorkUnits)}</TableCell>
+                                <TableCell align="right">{value(test.effectiveTargetAnalystDays)}</TableCell>
                                 <TableCell>
                                   <Stack direction="row" spacing={0.5}>
-                                    <Chip size="small" label={COVERAGE_LABEL[t.coverage]} color={COVERAGE_COLOR[t.coverage]} />
-                                    {t.hasOverride && <Chip size="small" variant="outlined" label="Override" />}
+                                    <Chip size="small" label={t(COVERAGE_LABEL[test.coverage])} color={COVERAGE_COLOR[test.coverage]} />
+                                    {test.hasOverride && <Chip size="small" variant="outlined" label={t("profiles.override")} />}
                                   </Stack>
                                 </TableCell>
                                 <TableCell align="right">
                                   <Button
                                     size="small"
-                                    onClick={() => setHistory({ workflowType: row.workflowType, testCode: t.testCode })}
+                                    onClick={() => setHistory({ workflowType: row.workflowType, testCode: test.testCode })}
                                   >
-                                    History
+                                    {t("profiles.history")}
                                   </Button>
                                   {canConfigure && (
                                     <Button
                                       size="small"
-                                      onClick={() => setAdding({ workflowType: row.workflowType, testCode: t.testCode })}
+                                      onClick={() => setAdding({ workflowType: row.workflowType, testCode: test.testCode })}
                                     >
-                                      {t.hasOverride ? "Add version" : "Add override"}
+                                      {test.hasOverride ? t("profiles.addVersion") : t("profiles.addOverride")}
                                     </Button>
                                   )}
                                 </TableCell>
@@ -227,7 +226,7 @@ export function WorkflowProfilesPanel() {
                               <TableRow>
                                 <TableCell colSpan={6}>
                                   <Typography variant="body2" color="text.secondary">
-                                    No tests to show for this workflow type.
+                                    {t("profiles.noTests")}
                                   </Typography>
                                 </TableCell>
                               </TableRow>

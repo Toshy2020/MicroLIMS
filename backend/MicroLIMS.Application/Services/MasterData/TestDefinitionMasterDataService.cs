@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -18,14 +19,25 @@ public class TestDefinitionMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
-
     private readonly IAuditEventService _audit;
+    private readonly ChangeReasonGuard _reasonGuard;
+    private readonly TestWorkflowStepMasterDataService _stepService;
+    private readonly TestStageReplicateMasterDataService _stageReplicateService;
 
-    public TestDefinitionMasterDataService(IMicroLimsDbContext db, IUserSectionScopeService scope, IAuditEventService audit)
+    public TestDefinitionMasterDataService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService scope,
+        IAuditEventService audit,
+        ChangeReasonGuard? reasonGuard = null,
+        TestWorkflowStepMasterDataService? stepService = null,
+        TestStageReplicateMasterDataService? stageReplicateService = null)
     {
         _db = db;
         _scope = scope;
         _audit = audit;
+        _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
+        _stepService = stepService ?? new TestWorkflowStepMasterDataService(db, scope);
+        _stageReplicateService = stageReplicateService ?? new TestStageReplicateMasterDataService(db, scope);
     }
 
     // The canonical Code/DisplayName list backing every TestCode picker
@@ -40,7 +52,89 @@ public class TestDefinitionMasterDataService
 
     public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
     {
-        if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code))
+        var entity = await PrepareCreateTestDefinitionAsync(currentUserId, request, dryRun: false, CancellationToken.None);
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        _db.TestDefinitions.Add(entity);
+        await _db.SaveChangesAsync();
+        return TestDefinitionResponse.From(entity);
+    }
+
+    public async Task<TestDefinitionResponse> CreateTestWithStepsAsync(
+        int currentUserId,
+        SaveTestWithStepsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        if (request is null || request.Test is null)
+        {
+            throw new FieldValidationException(
+                "Test definition request is required.",
+                new[] { new FieldError("test", "Test definition request is required.") });
+        }
+
+        var stages = request.Stages ?? Array.Empty<CreateTestDefinitionStageReplicateRequest>();
+        var steps = request.Steps ?? Array.Empty<CreateTestWorkflowStepRequest>();
+
+        return await UnitOfWork.RunAsync(_db, async () =>
+        {
+            if (_db.CurrentUserId is null && currentUserId > 0)
+                _db.CurrentUserId = currentUserId;
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var created = await CreateTestDefinitionAsync(currentUserId, request.Test);
+
+            for (var i = 0; i < stages.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var stage = stages[i];
+                try
+                {
+                    await _stageReplicateService.CreateTestDefinitionStageReplicateAsync(currentUserId, created.Id, stage);
+                }
+                catch (BusinessRuleException ex)
+                {
+                    var label = $"Stage {i + 1} ({stage.Role})";
+                    throw new FieldValidationException(
+                        $"{label}: {ex.Message}",
+                        new[] { new FieldError("stages", $"{label}: {ex.Message}", i) });
+                }
+            }
+
+            for (var i = 0; i < steps.Count; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var step = steps[i];
+                try
+                {
+                    await _stepService.CreateTestWorkflowStepAsync(currentUserId, created.Id, step, cancellationToken);
+                }
+                catch (BusinessRuleException ex)
+                {
+                    var label = string.IsNullOrWhiteSpace(step.StepName)
+                        ? $"Step {i + 1}"
+                        : $"Step {i + 1} (\"{step.StepName}\")";
+                    throw new FieldValidationException(
+                        $"{label}: {ex.Message}",
+                        new[] { new FieldError("steps", $"{label}: {ex.Message}", i) });
+                }
+            }
+
+            return created;
+        });
+    }
+
+    private async Task<TestDefinition> PrepareCreateTestDefinitionAsync(
+        int currentUserId,
+        CreateTestDefinitionRequest request,
+        bool dryRun,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new BusinessRuleException("Code is required.");
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+            throw new BusinessRuleException("Display name is required.");
+        if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code, ct))
             throw new BusinessRuleException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
@@ -414,34 +508,111 @@ public class TestDefinitionMasterDataService
         await NormalizeUvStandardEntryAsync(entity);
         await ApplyPhyschemAreaAsync(entity, request.PhyschemArea);
         await IcpTestDefinitionRules.ApplyAsync(_db, entity, request.WorkflowType == WorkflowType.IcpMethodAssay,
-            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements);
-        _db.TestDefinitions.Add(entity);
-        await _db.SaveChangesAsync();
-        return TestDefinitionResponse.From(entity);
+            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements, dryRun: dryRun);
+        return entity;
     }
 
     // One transaction: the titration change and its audit event commit or roll back together.
-    public Task<TestDefinitionResponse> UpdateTestDefinitionAsync(int currentUserId, int id, UpdateTestDefinitionRequest request) =>
-        UnitOfWork.RunAsync(_db, () => UpdateTestDefinitionCoreAsync(currentUserId, id, request));
+    public Task<TestDefinitionResponse> UpdateTestDefinitionAsync(
+        int currentUserId,
+        int id,
+        UpdateTestDefinitionRequest request,
+        string? changeReason = null,
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => UpdateTestDefinitionCoreAsync(currentUserId, id, request, changeReason, cancellationToken));
 
-    private async Task<TestDefinitionResponse> UpdateTestDefinitionCoreAsync(int currentUserId, int id, UpdateTestDefinitionRequest request)
+    private async Task<TestDefinitionResponse> UpdateTestDefinitionCoreAsync(
+        int currentUserId,
+        int id,
+        UpdateTestDefinitionRequest request,
+        string? changeReason,
+        CancellationToken cancellationToken)
     {
-        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id)
+        var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
+
+        var effectiveReason = changeReason ?? request.ChangeReason;
+        await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Edit, effectiveReason, currentUserId, cancellationToken);
+
         var titrationBefore = entity.WorkflowType == WorkflowType.Titration
             ? JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options) : null;
         var moistureRoleBefore = entity.MoistureRole;
 
+        await PrepareUpdateTestDefinitionAsync(entity, currentUserId, id, request, dryRun: false, cancellationToken);
+
+        (string? Before, string After, string Reason)? titrationAudit = null;
+        if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)
+        {
+            var titrationAfter = JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options);
+            if (titrationAfter != titrationBefore)
+            {
+                var reason = effectiveReason?.Trim();
+                if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
+                    throw new BusinessRuleException("A reason for change is required when titration settings change.");
+                titrationAudit = (titrationBefore, titrationAfter, reason);
+            }
+        }
+
+        // A moisture role change on any other workflow (e.g. loss on drying) moves every dried-basis assay of the
+        // item, so it needs the same reason and an audit row.
+        (string Reason, MoistureRole Before)? roleAudit = null;
+        if (titrationAudit is null && entity.MoistureRole != moistureRoleBefore)
+        {
+            var reason = effectiveReason?.Trim();
+            if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
+                throw new BusinessRuleException("A reason for change is required when the moisture role changes.");
+            roleAudit = (reason, moistureRoleBefore);
+        }
+
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        await _db.SaveChangesAsync(cancellationToken);
+
+        if (titrationAudit is { } a)
+        {
+            _db.CurrentUserId = currentUserId;
+            await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,
+                "TestDefinition", entityId: entity.Id.ToString(),
+                changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
+        }
+
+        if (roleAudit is { } r)
+        {
+            _db.CurrentUserId = currentUserId;
+            await _audit.RecordUserEventAsync("TestDefinition.MoistureRoleChanged", AuditActionCategory.Configuration,
+                "TestDefinition", entityId: entity.Id.ToString(),
+                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: r.Reason);
+        }
+
+        return TestDefinitionResponse.From(entity);
+    }
+
+    private async Task PrepareUpdateTestDefinitionAsync(
+        TestDefinition entity,
+        int currentUserId,
+        int id,
+        UpdateTestDefinitionRequest request,
+        bool dryRun,
+        CancellationToken cancellationToken)
+    {
+        var moistureRoleBefore = entity.MoistureRole;
+
+        if (string.IsNullOrWhiteSpace(request.Code))
+            throw new BusinessRuleException("Code is required.");
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+            throw new BusinessRuleException("Display name is required.");
+
         if (request.EquationType == EquationType.CalibrationCurve || request.WorkflowType == WorkflowType.ElementalAssay)
             throw new BusinessRuleException("Elemental assay tests are retired; use an ICP method assay test.");
 
-        if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id))
+        if (await _db.TestDefinitions.AnyAsync(t => t.Code == request.Code && t.Id != id, cancellationToken))
             throw new BusinessRuleException($"Test code \"{request.Code}\" already exists in the Test Master.");
 
         // Only a member of the test's section may change it, and only into a
         // section they belong to.
-        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId);
+        await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         if (request.SectionId.HasValue && request.SectionId.Value != entity.SectionId)
             entity.SectionId = await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, access: SectionAccess.Configure);
 
@@ -704,7 +875,7 @@ public class TestDefinitionMasterDataService
         if (effectiveWorkflowType == WorkflowType.IcpMethodAssay && effectiveRequiresSst)
             throw new BusinessRuleException("ICP method assay tests use the run calibration, not system suitability.");
         await IcpTestDefinitionRules.ApplyAsync(_db, entity, effectiveWorkflowType == WorkflowType.IcpMethodAssay,
-            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements);
+            request.IcpMode, request.IcpSampleForm, request.IcpTheoreticalAmount, request.IcpSpecificGravity, request.IcpElements, dryRun: dryRun);
 
         if (effectiveRequiresSst && effectiveWorkflowType is not (WorkflowType.HplcMethodAssay or WorkflowType.Dissolution))
             throw new BusinessRuleException("Only HPLC method assay and dissolution tests can require system suitability.");
@@ -858,50 +1029,140 @@ public class TestDefinitionMasterDataService
         await NormalizeUvStandardEntryAsync(entity);
         if (entity.MoistureRole != moistureRoleBefore)
             await NotApplicableTestService.EnsureRoleChangeKeepsMoistureAsync(_db, entity.Code, entity.DisplayName, entity.MoistureRole);
+    }
 
-        (string? Before, string After, string Reason)? titrationAudit = null;
-        if (entity.WorkflowType == WorkflowType.Titration || titrationBefore != null)
+    public async Task<IReadOnlyList<FieldError>> ValidateTestDefinitionAsync(
+        int currentUserId,
+        ValidateTestDefinitionRequest request,
+        int? id = null,
+        CancellationToken cancellationToken = default)
+    {
+        var errors = new List<FieldError>();
+        var effectiveId = id ?? request.Id ?? 0;
+
+        try
         {
-            var titrationAfter = JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options);
-            if (titrationAfter != titrationBefore)
+            if (effectiveId > 0)
             {
-                var reason = request.ChangeReason?.Trim();
-                if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
-                    throw new BusinessRuleException("A reason for change is required when titration settings change.");
-                titrationAudit = (titrationBefore, titrationAfter, reason);
+                var existing = await _db.TestDefinitions.AsNoTracking()
+                    .Include(t => t.IcpElements)
+                    .FirstOrDefaultAsync(t => t.Id == effectiveId, cancellationToken)
+                    ?? throw new NotFoundException($"Test {effectiveId} not found.");
+
+                var clone = CloneForValidation(existing);
+                await PrepareUpdateTestDefinitionAsync(clone, currentUserId, effectiveId, request.ToUpdateRequest(), dryRun: true, cancellationToken);
+            }
+            else
+            {
+                await PrepareCreateTestDefinitionAsync(currentUserId, request.ToCreateRequest(), dryRun: true, cancellationToken);
             }
         }
-
-        // A moisture role change on any other workflow (e.g. loss on drying) moves every dried-basis assay of the
-        // item, so it needs the same reason and an audit row.
-        (string Reason, MoistureRole Before)? roleAudit = null;
-        if (titrationAudit is null && entity.MoistureRole != moistureRoleBefore)
+        catch (FieldValidationException ex)
         {
-            var reason = request.ChangeReason?.Trim();
-            if (string.IsNullOrEmpty(reason) || reason.Length < 5 || reason.Length > 500)
-                throw new BusinessRuleException("A reason for change is required when the moisture role changes.");
-            roleAudit = (reason, moistureRoleBefore);
+            errors.AddRange(ex.FieldErrors);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException or NotFoundException)
+        {
+            errors.Add(new FieldError(MapTestValidationField(ex.Message), ex.Message));
         }
 
-        await _db.SaveChangesAsync();
+        return errors;
+    }
 
-        if (titrationAudit is { } a)
+    private static TestDefinition CloneForValidation(TestDefinition src) => new()
+    {
+        Id = src.Id,
+        Code = src.Code,
+        DisplayName = src.DisplayName,
+        SectionId = src.SectionId,
+        IsActive = src.IsActive,
+        WorkflowType = src.WorkflowType,
+        PerContainer = src.PerContainer,
+        MoistureRole = src.MoistureRole,
+        CoaDisplayOrder = src.CoaDisplayOrder,
+        EquationType = src.EquationType,
+        RequiresSystemSuitability = src.RequiresSystemSuitability,
+        MethodAbbreviation = src.MethodAbbreviation,
+        SstMaxRsdPercent = src.SstMaxRsdPercent,
+        SstMinResolution = src.SstMinResolution,
+        SstMaxTailingFactor = src.SstMaxTailingFactor,
+        SstMinTheoreticalPlates = src.SstMinTheoreticalPlates,
+        ReplicateCount = src.ReplicateCount,
+        EvaluationBasis = src.EvaluationBasis,
+        ConditionFields = src.ConditionFields,
+        UsesTare = src.UsesTare,
+        DissolutionS1Offset = src.DissolutionS1Offset,
+        DissolutionS2MinOffset = src.DissolutionS2MinOffset,
+        DissolutionS3MinOffset = src.DissolutionS3MinOffset,
+        DissolutionS3MaxBelowS2Min = src.DissolutionS3MaxBelowS2Min,
+        DisintegrationStage1Units = src.DisintegrationStage1Units,
+        DisintegrationStage2Units = src.DisintegrationStage2Units,
+        DisintegrationMaxStage1Failures = src.DisintegrationMaxStage1Failures,
+        DisintegrationMinPassTotal = src.DisintegrationMinPassTotal,
+        WvUnitCount = src.WvUnitCount,
+        WvTabletBand1MaxMg = src.WvTabletBand1MaxMg,
+        WvTabletBand1Percent = src.WvTabletBand1Percent,
+        WvTabletBand2MaxMg = src.WvTabletBand2MaxMg,
+        WvTabletBand2Percent = src.WvTabletBand2Percent,
+        WvTabletBand3Percent = src.WvTabletBand3Percent,
+        WvTabletMaxOutside = src.WvTabletMaxOutside,
+        WvCapsuleInnerPercent = src.WvCapsuleInnerPercent,
+        WvCapsuleOuterPercent = src.WvCapsuleOuterPercent,
+        WvCapsuleS1MaxOutside = src.WvCapsuleS1MaxOutside,
+        WvCapsuleS1MaxForRetest = src.WvCapsuleS1MaxForRetest,
+        WvCapsuleS2ExtraUnits = src.WvCapsuleS2ExtraUnits,
+        WvCapsuleS2MaxOutside = src.WvCapsuleS2MaxOutside,
+        HplcMethodId = src.HplcMethodId,
+        TitrationType = src.TitrationType,
+        TitrationNonAqueous = src.TitrationNonAqueous,
+        TitrationMode = src.TitrationMode,
+        TitrationCalculation = src.TitrationCalculation,
+        TitrantSolutionMasterId = src.TitrantSolutionMasterId,
+        TitrationEquivalencyFactor = src.TitrationEquivalencyFactor,
+        TitrationBlankRequired = src.TitrationBlankRequired,
+        TitrationExcessSolutionMasterId = src.TitrationExcessSolutionMasterId,
+        TitrationExcessVolumeMl = src.TitrationExcessVolumeMl,
+        TitrationMaxRsdPercent = src.TitrationMaxRsdPercent,
+        TitrationEndpoint = src.TitrationEndpoint,
+        TitrationIndicatorEntryId = src.TitrationIndicatorEntryId,
+        TitrationTempCorrection = src.TitrationTempCorrection,
+        TitrationExpansionCoefficient = src.TitrationExpansionCoefficient,
+        TitrationStandardEntryId = src.TitrationStandardEntryId,
+        PhyschemArea = src.PhyschemArea,
+        UvCalculationMode = src.UvCalculationMode,
+        UvSpecificAbsorbance = src.UvSpecificAbsorbance,
+        UvTotalVolumeMl = src.UvTotalVolumeMl,
+        UvStandardVolumeMl = src.UvStandardVolumeMl,
+        UvStandardEntryId = src.UvStandardEntryId,
+        IcpMode = src.IcpMode,
+        IcpSampleForm = src.IcpSampleForm,
+        IcpTheoreticalAmount = src.IcpTheoreticalAmount,
+        IcpSpecificGravity = src.IcpSpecificGravity,
+        IcpElements = src.IcpElements.Select(e => new TestDefinitionIcpElement
         {
-            _db.CurrentUserId = currentUserId;
-            await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,
-                "TestDefinition", entityId: entity.Id.ToString(),
-                changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
-        }
+            Id = e.Id,
+            TestDefinitionId = e.TestDefinitionId,
+            Symbol = e.Symbol,
+            TargetPpm = e.TargetPpm,
+            CleaningLimitPpm = e.CleaningLimitPpm,
+            DisplayOrder = e.DisplayOrder
+        }).ToList()
+    };
 
-        if (roleAudit is { } r)
-        {
-            _db.CurrentUserId = currentUserId;
-            await _audit.RecordUserEventAsync("TestDefinition.MoistureRoleChanged", AuditActionCategory.Configuration,
-                "TestDefinition", entityId: entity.Id.ToString(),
-                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: r.Reason);
-        }
-
-        return TestDefinitionResponse.From(entity);
+    private static string MapTestValidationField(string message)
+    {
+        if (message.Contains("code", StringComparison.OrdinalIgnoreCase)) return "code";
+        if (message.Contains("Display name", StringComparison.OrdinalIgnoreCase)) return "displayName";
+        if (message.Contains("section", StringComparison.OrdinalIgnoreCase) || message.Contains("laboratory", StringComparison.OrdinalIgnoreCase)) return "sectionId";
+        if (message.Contains("Method abbreviation", StringComparison.OrdinalIgnoreCase)) return "methodAbbreviation";
+        if (message.Contains("Replicate", StringComparison.OrdinalIgnoreCase)) return "replicateCount";
+        if (message.Contains("Evaluation basis", StringComparison.OrdinalIgnoreCase)) return "evaluationBasis";
+        if (message.Contains("HPLC method", StringComparison.OrdinalIgnoreCase)) return "hplcMethodId";
+        if (message.Contains("UV", StringComparison.OrdinalIgnoreCase)) return "uvCalculationMode";
+        if (message.Contains("ICP", StringComparison.OrdinalIgnoreCase) || message.Contains("Element", StringComparison.OrdinalIgnoreCase)) return "icpElements";
+        if (message.Contains("Titration", StringComparison.OrdinalIgnoreCase) || message.Contains("Titrant", StringComparison.OrdinalIgnoreCase)) return "titrationType";
+        if (message.Contains("area", StringComparison.OrdinalIgnoreCase)) return "physchemArea";
+        return "workflowType";
     }
 
     // StandardComparison names its standard material (a master entry of the test's own section);
@@ -943,7 +1204,7 @@ public class TestDefinitionMasterDataService
         {
             var lost = requested == PhyschemArea.FinishedProduct ? WorkspaceArea.RmPm : WorkspaceArea.Fp;
             var cats = PhyschemAreas.CategoriesOf(lost);
-            var items = await _db.Specifications.Where(s => s.TestCode == entity.Code && cats.Contains(s.Item!.Category))
+            var items = await _db.Specifications.Where(s => s.TestCode == entity.Code && !s.IsRetired && cats.Contains(s.Item!.Category))
                 .Select(s => s.Item!.Code).Distinct().Take(10).ToListAsync();
             if (items.Count > 0)
                 throw new BusinessRuleException($"Items {string.Join(", ", items)} still have specifications on this test for {(lost == WorkspaceArea.RmPm ? "RM & PM" : "FP")} - remove them first.");
@@ -951,24 +1212,122 @@ public class TestDefinitionMasterDataService
         entity.PhyschemArea = requested;
     }
 
-    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(int currentUserId, int id, CancellationToken cancellationToken = default)
+    // Items that use a test: a specification or an automatic assignment on receipt
+    // for the test's code, not declared not applicable for every grade. Items carry
+    // no section of their own, so the reader's scope is the test's laboratory section
+    // (and, in the physicochemical laboratory, the workspace areas the reader may read).
+    // The SOP link is resolved in the same query as the page (ItemStmService rule:
+    // Item.SopNumber against the Active document's company code), never per item.
+    public async Task<PagedResult<TestItemRow>> GetItemsForTestAsync(
+        int testDefinitionId, string? search, int page, int pageSize, int userId, CancellationToken ct = default)
+    {
+        var (number, size) = Paging.Normalize(page, pageSize, 25);
+        var empty = new PagedResult<TestItemRow> { Page = number, PageSize = size, TotalCount = 0 };
+
+        var test = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Id == testDefinitionId)
+            .Select(t => new { t.Code, t.SectionId, SectionCode = t.Section != null ? t.Section.Code : "" })
+            .FirstOrDefaultAsync(ct)
+            ?? throw new NotFoundException($"Test {testDefinitionId} not found.");
+
+        var readable = await _scope.GetReadableSectionIdsAsync(userId, ct);
+        if (readable is not null && !readable.Contains(test.SectionId)) return empty;
+
+        var code = test.Code;
+        var items = _db.Items.AsNoTracking()
+            .Where(i => _db.Specifications.Any(s => s.ItemId == i.Id && s.TestCode == code && !s.IsRetired)
+                     || _db.SampleTests.Any(a => a.ItemId == i.Id && a.TestCode == code))
+            .Where(i => !_db.NotApplicableTests.Any(n => n.ItemId == i.Id && n.TestCode == code
+                     && n.Grade == null && n.Status == NotApplicableStatus.Approved));
+
+        if (test.SectionCode == PhyschemAreas.SectionCode)
+        {
+            var areas = await _scope.GetPhyschemAreasAsync(userId, ct, SectionAccess.Read);
+            if (areas.Count == 0) return empty;
+            var categories = areas.SelectMany(PhyschemAreas.CategoriesOf).Distinct().ToList();
+            items = items.Where(i => categories.Contains(i.Category));
+        }
+
+        var term = search?.Trim().ToLower();
+        if (!string.IsNullOrEmpty(term))
+            items = items.Where(i => i.Code.ToLower().Contains(term) || i.Name.ToLower().Contains(term));
+
+        var total = await items.CountAsync(ct);
+
+        var rows = await items
+            .OrderBy(i => i.Code).ThenBy(i => i.Id)
+            .Skip((number - 1) * size).Take(size)
+            .Select(i => new
+            {
+                i.Id, i.Code, i.Name, i.SopNumber,
+                Master = _db.DocumentMasters
+                    .Where(m => m.RecordStatus == DocumentRecordStatus.Active
+                             && i.SopNumber.Trim() != ""
+                             && m.CompanyDocumentCode.ToUpper() == i.SopNumber.Trim().ToUpper())
+                    .Select(m => new
+                    {
+                        m.Id,
+                        Revision = m.CurrentEffectiveRevision != null
+                                   && m.CurrentEffectiveRevision.RevisionStatus == DocumentRevisionStatus.Effective
+                            ? m.CurrentEffectiveRevision.RevisionNumber
+                            : null
+                    })
+                    .FirstOrDefault(),
+                Uploaded = _db.ItemDocuments.Count(d => d.ItemId == i.Id && d.Status == MaterialDocumentStatus.Current),
+                Auto = _db.SampleTests.Any(a => a.ItemId == i.Id && a.TestCode == code),
+                HasSpec = _db.Specifications.Any(s => s.ItemId == i.Id && s.TestCode == code && !s.IsRetired)
+            })
+            .ToListAsync(ct);
+
+        return new PagedResult<TestItemRow>
+        {
+            Page = number,
+            PageSize = size,
+            TotalCount = total,
+            Items = rows.Select(r =>
+            {
+                var sop = (r.SopNumber ?? string.Empty).Trim();
+                var status = sop.Length == 0 ? TestItemSopStatus.NoNumber
+                    : r.Master is null ? TestItemSopStatus.NotFound
+                    : TestItemSopStatus.Linked;
+                return new TestItemRow(r.Id, r.Code, r.Name, sop.Length == 0 ? null : sop, status,
+                    r.Master?.Id, r.Master?.Revision, r.Uploaded, r.Auto, r.HasSpec);
+            }).ToList()
+        };
+    }
+
+    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(
+        int currentUserId,
+        int id,
+        CancellationToken cancellationToken = default,
+        string? changeReason = null)
     {
         var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
+        await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Freeze, changeReason, currentUserId, cancellationToken);
         entity.IsActive = false;
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
     }
 
-    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(int currentUserId, int id, CancellationToken cancellationToken = default)
+    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(
+        int currentUserId,
+        int id,
+        CancellationToken cancellationToken = default,
+        string? changeReason = null)
     {
         var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Test {id} not found.");
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
+        await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Unfreeze, changeReason, currentUserId, cancellationToken);
         entity.IsActive = true;
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
     }

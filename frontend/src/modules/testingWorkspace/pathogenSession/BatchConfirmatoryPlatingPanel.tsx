@@ -42,6 +42,10 @@ import {
 import { PathogenSessionService } from "../services/PathogenSessionService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
 import { brandColors } from "../../../theme";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -56,7 +60,32 @@ interface PathogenSetupState {
   startDateTime: string;
 }
 
+interface ReleasedMediaOption {
+  id: number;
+  materialId?: number | null;
+  lotNumber?: string | null;
+  materialName?: string | null;
+  mediaTypeName?: string | null;
+  expiryDate?: string | null;
+}
+
+interface IncubatorOption {
+  id: number;
+  code?: string | null;
+  name?: string | null;
+  location?: string | null;
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object") {
+    const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+    return apiErr.response?.data?.message ?? apiErr.message ?? fallback;
+  }
+  return fallback;
+}
+
 export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdated }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const [phase, setPhase] = useState<"setup" | "readout">("setup");
   const [activeTab, setActiveTab] = useState(0);
@@ -66,8 +95,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   const [loadingEligible, setLoadingEligible] = useState(true);
 
   // Lookups
-  const [releasedMedia, setReleasedMedia] = useState<any[]>([]);
-  const [incubators, setIncubators] = useState<any[]>([]);
+  const [releasedMedia, setReleasedMedia] = useState<ReleasedMediaOption[]>([]);
+  const [incubators, setIncubators] = useState<IncubatorOption[]>([]);
   const [loadingLookups, setLoadingLookups] = useState(false);
 
   // Media Setup state keyed by testCode
@@ -115,9 +144,9 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
           setPhase("readout");
         }
       })
-      .catch((e) => {
+      .catch((e: unknown) => {
         if (!active) return;
-        setError(e?.response?.data?.message ?? "Failed to load eligible locations for confirmation.");
+        setError(getErrorMessage(e, t("pathogenSession.confirmatory.loadEligibleError")));
       })
       .finally(() => {
         if (active) setLoadingEligible(false);
@@ -126,14 +155,14 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
     return () => {
       active = false;
     };
-  }, [session.sampleId, session.resultMatrix]);
+  }, [session.sampleId, session.resultMatrix, t]);
 
   // Load released media lots and incubators
   useEffect(() => {
     setLoadingLookups(true);
     Promise.all([
-      masterDataOptions.getReleasedMedia().catch(() => []),
-      masterDataOptions.getEquipment("Incubator").catch(() => [])
+      masterDataOptions.getReleasedMedia().catch(() => [] as ReleasedMediaOption[]),
+      masterDataOptions.getEquipment("Incubator").catch(() => [] as IncubatorOption[])
     ])
       .then(([m, inc]) => {
         setReleasedMedia(m ?? []);
@@ -173,7 +202,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   // The confirmatory step window the server resolved from this test's own
   // media in Test Master (0 when none is configured) - never a default.
   const confirmatoryStepWindow = session.assignedTests
-    .find((t) => t.testOrderId === currentPathogen?.testOrderId)
+    .find((testItem) => testItem.testOrderId === currentPathogen?.testOrderId)
     ?.steps.find((s) => s.stepType === "ConfirmatoryPlating");
 
   // Initialize setup state for current pathogen
@@ -248,7 +277,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
     const setup = setupStateByPathogen[currentPathogen.testCode];
 
     if (!setup || setup.mediaLots.some((lot) => !lot) || !setup.incubatorId) {
-      setError(`Please select all ${currentPathogen.requiredMediaCount} required media lot(s) and an incubator.`);
+      setError(t("pathogenSession.confirmatory.selectMediaValidation", { count: currentPathogen.requiredMediaCount }));
       return;
     }
 
@@ -274,8 +303,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
       onUpdated(updated);
       setPhase("readout");
       setSaveSuccess(true);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to start confirmatory plating setup.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("pathogenSession.confirmatory.startSetupError")));
     } finally {
       setSubmitting(false);
     }
@@ -367,7 +396,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   // Submit all batch confirmatory plate readings
   const handleSaveConfirmatoryReadings = async () => {
     if (!stats.allComplete) {
-      setError(`Please complete plate readings for all ${stats.pending} pending location(s).`);
+      setError(t("pathogenSession.confirmatory.completePendingError", { count: stats.pending }));
       return;
     }
 
@@ -408,8 +437,8 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
 
       // Advance to Review & Complete (Step 5)
       onNext();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? e?.message ?? "Failed to save confirmatory plate readings.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, t("pathogenSession.confirmatory.saveReadingsError")));
     } finally {
       setSubmitting(false);
     }
@@ -419,22 +448,25 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
   if (!loadingEligible && eligibleLocations.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: (t) => t.custom.status.notDetected.text, mb: 1.5 }} />
+        <CheckCircleOutlineIcon sx={{ fontSize: 48, color: theme.custom.status.notDetected.text, mb: 1.5 }} />
         <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", mb: 1 }}>
-          Confirmatory Plating Not Required
+          {t("pathogenSession.confirmatory.notRequiredTitle")}
         </Typography>
         <Typography sx={{ fontSize: 13, color: "text.secondary", maxWidth: 600, mx: "auto", mb: 3 }}>
-          All sampling locations in this batch were recorded as <strong>No Growth (-)</strong> during primary plate observation.
-          No confirmatory plating is required for this session.
+          <Trans
+            i18nKey="pathogenSession.confirmatory.notRequiredDesc"
+            ns="testingWorkspace"
+            components={{ strong: <strong /> }}
+          />
         </Typography>
         <Stack direction="row" spacing={2} sx={{
           justifyContent: "center"
         }}>
           <Button variant="outlined" onClick={onBack}>
-            Back to Primary Matrix
+            {t("pathogenSession.confirmatory.backToPrimaryMatrix")}
           </Button>
           <Button variant="contained" color="success" endIcon={<ArrowForwardIcon />} onClick={onNext}>
-            Proceed to Review & Complete
+            {t("pathogenSession.confirmatory.proceedToReview")}
           </Button>
         </Stack>
       </Paper>
@@ -461,16 +493,23 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 mb: 0.75
               }}>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: "text.primary" }}>
-                Confirmatory Plating (Panel B)
+                {t("pathogenSession.confirmatory.title")}
               </Typography>
               <Chip
-                label={`${eligibleLocations.length} Flagged Locations`}
+                label={
+                  <Trans
+                    i18nKey="pathogenSession.confirmatory.flaggedLocationsChip"
+                    ns="testingWorkspace"
+                    values={{ count: eligibleLocations.length }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                }
                 size="small"
                 sx={{ bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text, fontWeight: 700 }}
               />
             </Stack>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Shared confirmatory media plating, batch incubation, and multi-media agreement evaluation.
+              {t("pathogenSession.confirmatory.subtitle")}
             </Typography>
           </Box>
 
@@ -483,7 +522,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               onClick={() => setPhase("setup")}
               sx={{ fontWeight: 700 }}
             >
-              1. Shared Media Setup
+              {t("pathogenSession.confirmatory.phaseSetup")}
             </Button>
             <Button
               variant={phase === "readout" ? "contained" : "outlined"}
@@ -491,7 +530,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               onClick={() => setPhase("readout")}
               sx={{ fontWeight: 700 }}
             >
-              2. Plate Observations
+              {t("pathogenSession.confirmatory.phaseReadout")}
             </Button>
           </Stack>
         </Stack>
@@ -500,7 +539,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
       {saveSuccess && (
         <Alert severity="success" onClose={() => setSaveSuccess(false)}>
-          Confirmatory records and agreement evaluation updated successfully!
+          {t("pathogenSession.confirmatory.saveSuccess")}
         </Alert>
       )}
 
@@ -522,8 +561,19 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                 <Stack direction="row" spacing={1} sx={{
                   alignItems: "center"
                 }}>
-                  <span>{p.testDisplayName} ({p.testCode})</span>
-                  <Chip label={`${p.locations.length} loc`} size="small" sx={{ fontSize: 12, height: 20 }} />
+                  <span>{p.testDisplayName} (<Ltr>{p.testCode}</Ltr>)</span>
+                  <Chip
+                    label={
+                      <Trans
+                        i18nKey="pathogenSession.confirmatory.tabLocationCount"
+                        ns="testingWorkspace"
+                        values={{ count: p.locations.length }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
+                    }
+                    size="small"
+                    sx={{ fontSize: 12, height: 20 }}
+                  />
                 </Stack>
               }
             />
@@ -557,17 +607,27 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             </Box>
             <Box>
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "text.primary" }}>
-                Shared Media & Incubation Setup: {currentPathogen.testDisplayName}
+                {t("pathogenSession.confirmatory.setupTitle", { testName: currentPathogen.testDisplayName })}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {currentPathogen.requiredMediaCount} confirmatory media required by Test Master specification for {currentPathogen.testCode}.
+                <Trans
+                  i18nKey="pathogenSession.confirmatory.setupSubtitle"
+                  ns="testingWorkspace"
+                  values={{ count: currentPathogen.requiredMediaCount, testCode: currentPathogen.testCode }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           </Stack>
 
           <Box sx={{ p: 2, mb: 3, bgcolor: "background.default", borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1 }}>
-              FLAGGED SAMPLING LOCATIONS ({currentPathogen.locations.length}):
+              <Trans
+                i18nKey="pathogenSession.confirmatory.flaggedSamplingLocationsHeading"
+                ns="testingWorkspace"
+                values={{ count: currentPathogen.locations.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Stack direction="row" spacing={1} useFlexGap sx={{
               flexWrap: "wrap"
@@ -608,16 +668,20 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   <TextField
                     key={idx}
                     select
-                    label={`Confirmatory Medium ${idx + 1} Lot (GPT Passed & Released) *`}
+                    label={t("pathogenSession.confirmatory.mediumLotLabel", { index: idx + 1 })}
                     value={selectedLotId}
                     onChange={(e) => handleMediaLotChange(currentPathogen.testCode, idx, Number(e.target.value))}
-                    helperText={`Select media lot for medium #${idx + 1}`}
+                    helperText={t("pathogenSession.confirmatory.mediumLotHelper", { index: idx + 1 })}
                     fullWidth
                     size="small"
                   >
-                    {releasedMedia.map((m: any) => (
+                    {releasedMedia.map((m) => (
                       <MenuItem key={m.id} value={m.id}>
-                        {m.lotNumber}, {m.materialName ?? m.mediaTypeName ?? "Media Lot"} (Exp: {new Date(m.expiryDate).toLocaleDateString()})
+                        {t("pathogenSession.confirmatory.mediaLotOption", {
+                          lotNumber: m.lotNumber ?? "—",
+                          material: m.materialName ?? m.mediaTypeName ?? t("pathogenSession.confirmatory.mediaLotFallback"),
+                          expiry: formatLabCalendarDate(m.expiryDate ?? "")
+                        })}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -627,46 +691,61 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               {/* Incubator Selector */}
               <TextField
                 select
-                label="Incubator Equipment (In-Service) *"
+                label={t("pathogenSession.confirmatory.incubatorLabel")}
                 value={setupStateByPathogen[currentPathogen.testCode]?.incubatorId ?? ""}
                 onChange={(e) => handleIncubatorChange(currentPathogen.testCode, Number(e.target.value))}
-                helperText="Select active, calibrated incubator"
+                helperText={t("pathogenSession.confirmatory.incubatorHelper")}
                 fullWidth
                 size="small"
               >
-                {incubators.map((inc: any) => (
+                {incubators.map((inc) => (
                   <MenuItem key={inc.id} value={inc.id}>
-                    {inc.code}: {inc.name ?? "Incubator"} ({inc.location ?? "Lab"})
+                    {t("pathogenSession.confirmatory.incubatorOption", {
+                      code: inc.code ?? "—",
+                      name: inc.name ?? t("pathogenSession.confirmatory.incubatorFallback"),
+                      location: inc.location ?? t("pathogenSession.confirmatory.labFallback")
+                    })}
                   </MenuItem>
                 ))}
               </TextField>
 
               {/* Incubation Start Time */}
               <TextField
-                label="Actual Incubation Start Time *"
+                label={t("pathogenSession.confirmatory.startTimeLabel")}
                 type="datetime-local"
                 value={setupStateByPathogen[currentPathogen.testCode]?.startDateTime ?? ""}
                 onChange={(e) => handleStartTimeChange(currentPathogen.testCode, e.target.value)}
-                helperText="Contemporaneously recorded start timestamp"
+                helperText={t("pathogenSession.confirmatory.startTimeHelper")}
                 fullWidth
                 size="small"
                 slotProps={{
-                  inputLabel: { shrink: true }
+                  inputLabel: { shrink: true },
+                  htmlInput: { dir: "ltr" }
                 }}
               />
 
               {/* Read-only Incubation Duration from Test Master */}
               <Box sx={{ p: 1.5, backgroundColor: "background.default", borderRadius: 1.5, border: "1px solid", borderColor: "divider", gridColumn: { xs: "1", sm: "span 2" } }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Incubation Duration (from Test Master)
+                  {t("pathogenSession.confirmatory.incubationDurationTitle")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 700, color: confirmatoryStepWindow && confirmatoryStepWindow.incubationMaxHours > 0 ? "text.primary" : "error.main" }}>
-                  {confirmatoryStepWindow && confirmatoryStepWindow.incubationMaxHours > 0
-                    ? `${confirmatoryStepWindow.incubationMinHours}–${confirmatoryStepWindow.incubationMaxHours} hours`
-                    : "Not configured in Test Master"}
+                  {confirmatoryStepWindow && confirmatoryStepWindow.incubationMaxHours > 0 ? (
+                    <Trans
+                      i18nKey="pathogenSession.confirmatory.incubationDurationRange"
+                      ns="testingWorkspace"
+                      values={{
+                        min: confirmatoryStepWindow.incubationMinHours,
+                        max: confirmatoryStepWindow.incubationMaxHours
+                      }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
+                  ) : (
+                    t("pathogenSession.confirmatory.notConfigured")
+                  )}
                 </Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                  Each medium keeps its own window; the shared incubation runs to the longest one selected
+                  {t("pathogenSession.confirmatory.incubationDurationHelper")}
                 </Typography>
               </Box>
             </Box>
@@ -680,7 +759,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               mt: 3
             }}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={onBack}>
-              Back to Primary Matrix
+              {t("pathogenSession.confirmatory.backToPrimaryMatrix")}
             </Button>
             <Button
               variant="contained"
@@ -690,7 +769,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               disabled={submitting || loadingLookups}
               sx={{ px: 3, fontWeight: 700 }}
             >
-              Start Confirmatory Incubation
+              {t("pathogenSession.confirmatory.startIncubationButton")}
             </Button>
           </Stack>
         </Paper>
@@ -716,29 +795,57 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   flexWrap: "wrap"
                 }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 800, color: "text.primary" }}>
-                  Multi-Media Agreement Status:
+                  {t("pathogenSession.confirmatory.agreementStatusTitle")}
                 </Typography>
                 <Chip
-                  label={`Detected (+): ${stats.detected}`}
+                  label={
+                    <Trans
+                      i18nKey="pathogenSession.confirmatory.detectedChip"
+                      ns="testingWorkspace"
+                      values={{ count: stats.detected }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
+                  }
                   size="small"
                   sx={{ bgcolor: stats.detected > 0 ? theme.custom.status.detected.bg : theme.custom.status.pending.bg, color: stats.detected > 0 ? theme.custom.status.detected.text : theme.custom.status.pending.text, fontWeight: 700 }}
                 />
                 <Chip
-                  label={`Not Detected (-): ${stats.notDetected}`}
+                  label={
+                    <Trans
+                      i18nKey="pathogenSession.confirmatory.notDetectedChip"
+                      ns="testingWorkspace"
+                      values={{ count: stats.notDetected }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
+                  }
                   size="small"
                   sx={{ bgcolor: stats.notDetected > 0 ? theme.custom.status.notDetected.bg : theme.custom.status.pending.bg, color: stats.notDetected > 0 ? theme.custom.status.notDetected.text : theme.custom.status.pending.text, fontWeight: 700 }}
                 />
                 {stats.inconclusive > 0 && (
                   <Chip
                     icon={<WarningAmberOutlinedIcon sx={{ fontSize: 13 }} />}
-                    label={`Inconclusive (Retest): ${stats.inconclusive}`}
+                    label={
+                      <Trans
+                        i18nKey="pathogenSession.confirmatory.inconclusiveChip"
+                        ns="testingWorkspace"
+                        values={{ count: stats.inconclusive }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
+                    }
                     size="small"
                     sx={{ bgcolor: theme.custom.status.action.bg, color: theme.custom.status.action.text, fontWeight: 700 }}
                   />
                 )}
                 {stats.pending > 0 && (
                   <Chip
-                    label={`Pending Reads: ${stats.pending}`}
+                    label={
+                      <Trans
+                        i18nKey="pathogenSession.confirmatory.pendingReadsChip"
+                        ns="testingWorkspace"
+                        values={{ count: stats.pending }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
+                    }
                     size="small"
                     sx={{ bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text, fontWeight: 600 }}
                   />
@@ -747,7 +854,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
 
               <Stack direction="row" spacing={1.5}>
                 <Button variant="outlined" size="small" onClick={() => setPhase("setup")}>
-                  Modify Setup
+                  {t("pathogenSession.confirmatory.modifySetup")}
                 </Button>
                 <Button
                   variant="contained"
@@ -757,7 +864,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                   disabled={submitting || !stats.allComplete}
                   sx={{ px: 2.5, fontWeight: 700 }}
                 >
-                  Save Readings & Continue
+                  {t("pathogenSession.confirmatory.saveReadingsContinue")}
                 </Button>
               </Stack>
             </Stack>
@@ -769,11 +876,16 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ position: "sticky", left: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderRight: "2px solid", borderRightColor: "divider" }}>
-                      Sampling Location ({eligibleLocations.length})
+                    <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 3, bgcolor: theme.custom.chrome.tableHeaderBg, color: theme.custom.chrome.tableHeaderText, fontWeight: 800, minWidth: 220, borderInlineEnd: "2px solid", borderInlineEndColor: "divider" }}>
+                      <Trans
+                        i18nKey="pathogenSession.confirmatory.samplingLocationHeader"
+                        ns="testingWorkspace"
+                        values={{ count: eligibleLocations.length }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
                     </TableCell>
                     <TableCell align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 140 }}>
-                      Primary Reading
+                      {t("pathogenSession.confirmatory.primaryReadingHeader")}
                     </TableCell>
 
                     {/* Medium Columns based on max required media count */}
@@ -781,19 +893,24 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                       <TableCell
                         key={medIdx}
                         align="center"
-                        sx={{ bgcolor: theme.custom.status.purple.bg, fontWeight: 800, minWidth: 260, borderRight: "1px solid", borderRightColor: "divider" }}
+                        sx={{ bgcolor: theme.custom.status.purple.bg, fontWeight: 800, minWidth: 260, borderInlineEnd: "1px solid", borderInlineEndColor: "divider" }}
                       >
                         <Typography sx={{ fontSize: 13, fontWeight: 800, color: theme.palette.primary.main }}>
-                          Confirmatory Medium #{medIdx + 1}
+                          <Trans
+                            i18nKey="pathogenSession.confirmatory.mediumColTitle"
+                            ns="testingWorkspace"
+                            values={{ index: medIdx + 1 }}
+                            components={{ ltr: <Ltr>{null}</Ltr> }}
+                          />
                         </Typography>
                         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                          Colony appearance & growth observation
+                          {t("pathogenSession.confirmatory.mediumColSubtitle")}
                         </Typography>
                       </TableCell>
                     ))}
 
                     <TableCell align="center" sx={{ bgcolor: "background.default", fontWeight: 800, minWidth: 160 }}>
-                      Agreement Evaluation
+                      {t("pathogenSession.confirmatory.agreementEvaluationHeader")}
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -806,12 +923,12 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                     return (
                       <TableRow key={loc.locationId} hover sx={{ bgcolor: idx % 2 === 0 ? "background.paper" : "background.default" }}>
                         {/* Sticky Location Name Column */}
-                        <TableCell sx={{ position: "sticky", left: 0, zIndex: 2, bgcolor: idx % 2 === 0 ? "background.paper" : "background.default", fontWeight: 700, borderRight: "2px solid", borderRightColor: "divider" }}>
+                        <TableCell sx={{ position: "sticky", insetInlineStart: 0, zIndex: 2, bgcolor: idx % 2 === 0 ? "background.paper" : "background.default", fontWeight: 700, borderInlineEnd: "2px solid", borderInlineEndColor: "divider" }}>
                           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                             {loc.locationName}
                           </Typography>
                           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                            {loc.testDisplayName} ({loc.testCode})
+                            {loc.testDisplayName} (<Ltr>{loc.testCode}</Ltr>)
                           </Typography>
                         </TableCell>
 
@@ -835,7 +952,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                           const val = plateReadings[key] ?? "";
 
                           return (
-                            <TableCell key={medIdx} align="center" sx={{ borderRight: "1px solid", borderRightColor: "divider" }}>
+                            <TableCell key={medIdx} align="center" sx={{ borderInlineEnd: "1px solid", borderInlineEndColor: "divider" }}>
                               <RadioGroup
                                 row
                                 value={val}
@@ -844,18 +961,18 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                               >
                                 <FormControlLabel
                                   value={GrowthObservation.NoGrowth}
-                                  control={<Radio size="small" sx={{ color: (t) => t.custom.status.notDetected.text, "&.Mui-checked": { color: (t) => t.custom.status.notDetected.text } }} />}
-                                  label={<Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.notDetected.text }}>No Growth</Typography>}
+                                  control={<Radio size="small" sx={{ color: theme.custom.status.notDetected.text, "&.Mui-checked": { color: theme.custom.status.notDetected.text } }} />}
+                                  label={<Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.notDetected.text }}>{t("pathogenSession.confirmatory.radioNoGrowth")}</Typography>}
                                 />
                                 <FormControlLabel
                                   value={GrowthObservation.GrowthNonConforming}
                                   control={<Radio size="small" sx={{ color: theme.custom.status.inconclusive.text, "&.Mui-checked": { color: theme.custom.status.inconclusive.text } }} />}
-                                  label={<Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.inconclusive.text }}>Non-Conf</Typography>}
+                                  label={<Typography sx={{ fontSize: 12, fontWeight: 600, color: theme.custom.status.inconclusive.text }}>{t("pathogenSession.confirmatory.radioNonConf")}</Typography>}
                                 />
                                 <FormControlLabel
                                   value={GrowthObservation.GrowthConforming}
                                   control={<Radio size="small" sx={{ color: theme.custom.status.detected.text, "&.Mui-checked": { color: theme.custom.status.detected.text } }} />}
-                                  label={<Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.custom.status.detected.text }}>Conf (+)</Typography>}
+                                  label={<Typography sx={{ fontSize: 12, fontWeight: 800, color: theme.custom.status.detected.text }}>{t("pathogenSession.confirmatory.radioConf")}</Typography>}
                                 />
                               </RadioGroup>
                             </TableCell>
@@ -866,27 +983,27 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
                         <TableCell align="center">
                           {!agr.isComplete ? (
                             <Chip
-                              label="Pending Read"
+                              label={t("pathogenSession.confirmatory.pendingReadBadge")}
                               size="small"
                               sx={{ fontSize: 12, fontWeight: 600, bgcolor: theme.custom.status.pending.bg, color: theme.custom.status.pending.text }}
                             />
                           ) : agr.result === ConfirmationResult.Detected ? (
                             <Chip
-                              label="Detected (+)"
+                              label={t("pathogenSession.confirmatory.detectedBadge")}
                               size="small"
                               sx={{ fontSize: 12, fontWeight: 800, bgcolor: theme.custom.status.detected.bg, color: theme.custom.status.detected.text }}
                             />
                           ) : agr.result === ConfirmationResult.NotDetected ? (
                             <Chip
-                              label="Not Detected (-)"
+                              label={t("pathogenSession.confirmatory.notDetectedBadge")}
                               size="small"
                               sx={{ fontSize: 12, fontWeight: 700, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                             />
                           ) : (
-                            <Tooltip title="Media observations disagree across plates. Retest is required.">
+                            <Tooltip title={t("pathogenSession.confirmatory.inconclusiveTooltip")}>
                               <Chip
                                 icon={<WarningAmberOutlinedIcon sx={{ fontSize: 12 }} />}
-                                label="Inconclusive (Retest)"
+                                label={t("pathogenSession.confirmatory.inconclusiveBadge")}
                                 size="small"
                                 sx={{ fontSize: 12, fontWeight: 800, bgcolor: theme.custom.status.action.bg, color: theme.custom.status.action.text }}
                               />
@@ -906,17 +1023,22 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             <Card sx={{ bgcolor: theme.custom.status.inconclusive.bg, border: "1px solid", borderColor: theme.custom.status.inconclusive.border, borderRadius: 2 }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Typography sx={{ fontSize: 14, fontWeight: 800, color: theme.custom.status.inconclusive.text, mb: 0.5, display: "flex", alignItems: "center", gap: 1 }}>
-                  <span aria-hidden="true">🧪</span> Biochemical Supporting Observation (Optional)
+                  <span aria-hidden="true">🧪</span> {t("pathogenSession.confirmatory.biochemicalTitle")}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: theme.custom.status.inconclusive.text, mb: 1.5, display: "block" }}>
-                  Add any biochemical confirmation, species identification, or supporting remarks for the <strong>{stats.detected} Detected (+)</strong> location(s) above. This comment will be contemporaneously recorded in the audit trail.
+                  <Trans
+                    i18nKey="pathogenSession.confirmatory.biochemicalDesc"
+                    ns="testingWorkspace"
+                    values={{ count: stats.detected }}
+                    components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
                 <TextField
                   fullWidth
                   multiline
                   rows={3}
-                  placeholder="E.g. 'Indole test positive; confirms E. coli detection' or 'Oxidase negative; gram-negative rod; consistent with Enterobacteriaceae family'"
-                  slotProps={{ htmlInput: { "aria-label": "Biochemical supporting observation" } }}
+                  placeholder={t("pathogenSession.confirmatory.biochemicalPlaceholder")}
+                  slotProps={{ htmlInput: { "aria-label": t("pathogenSession.confirmatory.biochemicalAriaLabel") } }}
                   value={biochemicalComment}
                   onChange={(e) => setBiochemicalComment(e.target.value)}
                   size="small"
@@ -931,7 +1053,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
             justifyContent: "flex-end"
           }}>
             <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => setPhase("setup")}>
-              Back to Setup
+              {t("pathogenSession.confirmatory.backToSetup")}
             </Button>
             <Button
               variant="contained"
@@ -941,7 +1063,7 @@ export function BatchConfirmatoryPlatingPanel({ session, onNext, onBack, onUpdat
               disabled={submitting || !stats.allComplete}
               sx={{ px: 3, fontWeight: 700 }}
             >
-              {submitting ? <CircularProgress size={16} color="inherit" /> : "Save Confirmatory Readings & Continue"}
+              {submitting ? <CircularProgress size={16} color="inherit" /> : t("pathogenSession.confirmatory.saveConfirmatoryContinue")}
             </Button>
           </Stack>
         </Stack>

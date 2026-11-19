@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { Alert, Box, CircularProgress } from "@mui/material";
 import { FloatingDialog } from "../../components/FloatingDialog";
 import { useAuth } from "../../contexts/AuthContext";
+import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
+import { serverMessage } from "../../utils/errorMessage";
 import { TestPreparationForm } from "./TestPreparationForm";
 import { ConfirmPreparationForm } from "./ConfirmPreparationForm";
 import { EMPreparationForm } from "../laboratoryConfiguration/environmentalMonitoring/EMPreparationForm";
@@ -42,6 +44,7 @@ function isItemCategory(category: string) {
 // Preparation" - routes to the right form by category, reusing the same
 // forms the standalone EM/After Cleaning/Water/Test Preparation pages use.
 export function PreparationDialog({ open, sample, onClose }: Props) {
+  const { t } = useTranslation("testPreparation");
   const canPrepare = useAuth().permissions.includes(PERMISSIONS.SAMPLES_PREPARE);
   const [config, setConfig] = useState<ItemPreparationConfiguration | null>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -62,18 +65,18 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
 
     ItemPreparationConfigurationService.get(itemId)
       .then((c) => { if (!cancelled) setConfig(c); })
-      .catch((e: any) => {
-        if (!cancelled) setConfigError(e?.response?.data?.message ?? "Could not load this item's preparation configuration.");
+      .catch((e: unknown) => {
+        if (!cancelled) setConfigError(serverMessage(e) ?? t("dialog.loadConfigError"));
       })
       .finally(() => { if (!cancelled) setLoadingConfig(false); });
 
     return () => { cancelled = true; };
-  }, [open, itemId]);
+  }, [open, itemId, t]);
 
   if (!sample) return null;
 
   return (
-    <FloatingDialog open={open} title="Preparation" onClose={onClose}>
+    <FloatingDialog open={open} title={t("dialog.title")} onClose={onClose}>
       {sample.category === "EnvironmentalMonitoring" && sample.departmentId != null && (
         <EMPreparationForm sampleId={sample.sampleId} departmentId={sample.departmentId} onComplete={onClose} />
       )}
@@ -96,7 +99,7 @@ export function PreparationDialog({ open, sample, onClose }: Props) {
       )}
 
       {isItemCategory(sample.category) && !canPrepare && (
-        <Alert severity="info">Preparing a sample needs the samples.prepare permission, which your role does not hold.</Alert>
+        <Alert severity="info">{t("dialog.permissionMissing", { permission: "samples.prepare" })}</Alert>
       )}
 
       {isItemCategory(sample.category) && canPrepare && (

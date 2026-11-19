@@ -3,13 +3,6 @@ import {
   Paper,
   Box,
   Grid,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-  TablePagination,
   TextField,
   Select,
   MenuItem,
@@ -20,17 +13,11 @@ import {
   Typography,
   Tooltip,
   Alert,
-  Popover,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
   useTheme
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
-import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
@@ -41,8 +28,12 @@ import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { PrintButton } from "../../../components/PrintButton";
 import { PrintableTable } from "../../../components/PrintableTable";
-import { TableSkeleton } from "../../../components/TableSkeleton";
-import { formatLabDate } from "../../../utils/formatDate";
+import { RegisterTable } from "../../../components/lab";
+import type { RegisterColumn } from "../../../components/lab";
+import { TableToolbar } from "../../../components/lab/table/TableToolbar";
+import { useTableState } from "../../../components/lab/table/useTableState";
+import { formatLabDate, formatLabCalendarDate } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 import { masterDataOptions, mediaClassLabel } from "../../../services/masterDataOptions";
 import { UserService, UserRecord } from "../../users/services/UserService";
 import type { MediaLot } from "../../laboratoryConfiguration/mediaEvaluation/types/mediaEvaluationTypes";
@@ -64,43 +55,12 @@ interface ApprovedMediaFilterState {
   expiryRange: string; // "" | "expiring_30" | "expiring_60" | "valid"
 }
 
-const INITIAL_FILTERS: ApprovedMediaFilterState = {
-  search: "",
-  mediaType: "",
-  manufacturer: "",
-  status: "",
-  expiryRange: ""
-};
+const TABLE_KEY = "inventory.approvedMedia";
 
-type ColumnKey =
-  | "mediaType"
-  | "ph"
-  | "preparedBy"
-  | "volume"
-  | "weight"
-  | "mfgLot"
-  | "mfgName"
-  | "preparedOn"
-  | "expiry"
-  | "status";
-
-interface ColumnConfig {
-  key: ColumnKey;
-  label: string;
+function textFilter(filters: Record<string, string | string[]>, name: string): string {
+  const value = filters[name];
+  return typeof value === "string" ? value : "";
 }
-
-const TOGGLEABLE_COLUMNS: ColumnConfig[] = [
-  { key: "mediaType", label: "Media Type" },
-  { key: "ph", label: "pH Result" },
-  { key: "preparedBy", label: "Prepared By" },
-  { key: "volume", label: "Total Volume" },
-  { key: "weight", label: "Total Weight" },
-  { key: "mfgLot", label: "Manufacturer Lot" },
-  { key: "mfgName", label: "Manufacturer" },
-  { key: "preparedOn", label: "Prepared On" },
-  { key: "expiry", label: "Expiry" },
-  { key: "status", label: "Status" }
-];
 
 function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30): boolean {
   if (!expiryDateStr) return false;
@@ -112,6 +72,7 @@ function isExpiringSoon(expiryDateStr: string | null, daysThreshold: number = 30
 }
 
 export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean }) {
+  const { t } = useTranslation("inventory");
   const theme = useTheme();
   const { action, purple } = theme.custom.status;
 
@@ -121,27 +82,18 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters & Pagination states
-  const [filters, setFilters] = useState<ApprovedMediaFilterState>(INITIAL_FILTERS);
-  const [page, setPage] = useState<number>(0);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(25);
-
-  // Column visibility
-  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(
-    new Set([
-      "mediaType",
-      "ph",
-      "preparedBy",
-      "volume",
-      "weight",
-      "mfgLot",
-      "mfgName",
-      "preparedOn",
-      "expiry",
-      "status"
-    ])
-  );
-  const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null);
+  // The search, dropdowns and page live in the address and in saved views; the columns in the column chooser.
+  const tableState = useTableState(TABLE_KEY);
+  const { setFilter, setSearch, applyState } = tableState;
+  const stateFilters = tableState.state.filters;
+  const stateSearch = tableState.state.search;
+  const filters = useMemo<ApprovedMediaFilterState>(() => ({
+    search: stateSearch,
+    mediaType: textFilter(stateFilters, "mediaType"),
+    manufacturer: textFilter(stateFilters, "manufacturer"),
+    status: textFilter(stateFilters, "status"),
+    expiryRange: textFilter(stateFilters, "expiryRange")
+  }), [stateFilters, stateSearch]);
 
   const loadData = async () => {
     try {
@@ -162,7 +114,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       setUserMap(map);
       setMedia(releasedMedia || []);
     } catch {
-      setError("Failed to retrieve approved media register. Please try again.");
+      setError(t("media.loadError"));
     } finally {
       setLoading(false);
     }
@@ -194,23 +146,18 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
   }, [media]);
 
   const handleFilterChange = (field: keyof ApprovedMediaFilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-    setPage(0);
+    if (field === "search") {
+      setSearch(value);
+    } else {
+      setFilter(field, value);
+    }
   };
 
   const handleReset = () => {
-    setFilters(INITIAL_FILTERS);
-    setPage(0);
-  };
-
-  const toggleColumn = (key: ColumnKey) => {
-    const next = new Set(visibleColumns);
-    if (next.has(key)) {
-      next.delete(key);
-    } else {
-      next.add(key);
-    }
-    setVisibleColumns(next);
+    applyState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   // Filtered dataset combining text search and compact dropdown filters
@@ -276,11 +223,6 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       filters.expiryRange
   );
 
-  // Pagination calculation
-  const paginatedMedia = useMemo(() => {
-    return filteredMedia.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [filteredMedia, page, rowsPerPage]);
-
   // Real KPI calculations from loaded released media dataset
   const kpiData = useMemo(() => {
     const totalCount = media.length;
@@ -292,43 +234,162 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
     return [
       {
-        label: "Total Media Lots",
-        description: "All released lots",
+        label: t("media.kpi.total"),
+        description: t("media.kpi.totalDesc"),
         count: totalCount,
         icon: <ScienceOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "purple" as StatusTone
       },
       {
-        label: "In Stock",
-        description: "Active released lots",
+        label: t("media.kpi.inStock"),
+        description: t("media.kpi.inStockDesc"),
         count: inStockCount,
         icon: <CheckCircleOutlineIcon sx={{ fontSize: 20 }} />,
         tone: "notDetected" as StatusTone
       },
       {
-        label: "Expiring Soon",
-        description: "Within 30 days",
+        label: t("media.kpi.expiring"),
+        description: t("media.kpi.expiringDesc"),
         count: expiringSoonCount,
         icon: <WarningAmberOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "action" as StatusTone
       },
       {
-        label: "Media Formulations",
-        description: "Distinct types in use",
+        label: t("media.kpi.formulations"),
+        description: t("media.kpi.formulationsDesc"),
         count: uniqueTypesCount,
         icon: <CategoryOutlinedIcon sx={{ fontSize: 20 }} />,
         tone: "info" as StatusTone
       }
     ];
-  }, [media]);
+  }, [media, t]);
 
   // User name resolution helper
-  const getPreparedByName = (m: ReleasedMediaRow) => {
+  const getPreparedByName = (m: ReleasedMediaRow, english = false) => {
     if (m.preparedByName) return m.preparedByName;
     if (m.preparedByUser?.fullName) return m.preparedByUser.fullName;
     if (m.preparedByUserId && userMap[m.preparedByUserId]) return userMap[m.preparedByUserId];
-    return m.preparedByUserId ? `User #${m.preparedByUserId}` : "—";
+    if (!m.preparedByUserId) return "—";
+    // The printed register is English whatever the interface language.
+    return english ? `User #${m.preparedByUserId}` : t("media.userFallback", { id: m.preparedByUserId });
   };
+
+  const columns: RegisterColumn<ReleasedMediaRow>[] = [
+    {
+      key: "lotNumber",
+      label: t("media.columns.lotNumber"),
+      render: (m) => (
+        <>
+          <Typography
+            sx={{ fontSize: 13, fontWeight: 700, fontFamily: "monospace", color: theme.palette.primary.main }}
+          >
+            {m.lotNumber}
+          </Typography>
+          {m.material?.batchNumber && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+              {t("media.columns.batch", { batch: m.material.batchNumber })}
+            </Typography>
+          )}
+        </>
+      )
+    },
+    {
+      key: "mediaType",
+      label: t("media.columns.mediaType"),
+      render: (m) => (
+        <>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
+            {m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"}
+          </Typography>
+          {m.material?.materialName && m.mediaType?.class && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
+              {mediaClassLabel(m.mediaType?.class)}
+            </Typography>
+          )}
+        </>
+      )
+    },
+    {
+      key: "ph",
+      label: t("media.columns.ph"),
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, fontWeight: 700, fontFamily: "monospace", color: "text.primary" }}>
+          {m.ph != null ? Number(m.ph).toFixed(2) : "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "preparedBy",
+      label: t("media.columns.preparedBy"),
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{getPreparedByName(m)}</Typography>
+    },
+    {
+      key: "volume",
+      label: t("media.columns.volume"),
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{m.totalVolume || "—"}</Typography>
+    },
+    {
+      key: "weight",
+      label: t("media.columns.weight"),
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary" }}>
+          {m.totalWeight != null ? `${m.totalWeight} g` : "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "mfgLot",
+      label: t("media.columns.mfgLot"),
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
+          {m.manufacturerLot || "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "mfgName",
+      label: t("media.columns.manufacturer"),
+      render: (m) => (
+        <Typography sx={{ fontSize: 12, color: "text.primary" }}>
+          {m.manufacturerName || m.material?.manufacturerName || "—"}
+        </Typography>
+      )
+    },
+    {
+      key: "preparedOn",
+      label: t("media.columns.preparedOn"),
+      render: (m) => <Typography sx={{ fontSize: 12, color: "text.primary" }}>{formatLabDate(m.preparedAt)}</Typography>
+    },
+    {
+      key: "expiry",
+      label: t("media.columns.expiry"),
+      render: (m) => {
+        const expiring = isExpiringSoon(m.expiryDate, 30);
+        return (
+          <>
+            <Typography
+              sx={{ fontSize: 12, fontWeight: expiring ? 700 : 500, color: expiring ? action.text : "text.primary" }}
+            >
+              {formatLabCalendarDate(m.expiryDate)}
+            </Typography>
+            {expiring && (
+              <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>{t("media.columns.expiringSoon")}</Typography>
+            )}
+          </>
+        );
+      }
+    },
+    {
+      key: "status",
+      label: t("media.columns.status"),
+      render: (m) => (
+        <StatusBadge
+          status={m.status === "OutOfStock" ? "OutOfStock" : "Released"}
+          label={m.status === "OutOfStock" ? t("media.status.outOfStock") : t("media.status.released")}
+        />
+      )
+    }
+  ];
 
   // Printable table columns
   const printColumns = [
@@ -341,13 +402,13 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       label: "pH Result",
       render: (m: ReleasedMediaRow) => (m.ph != null ? Number(m.ph).toFixed(2) : "—")
     },
-    { label: "Prepared By", render: (m: ReleasedMediaRow) => getPreparedByName(m) },
+    { label: "Prepared By", render: (m: ReleasedMediaRow) => getPreparedByName(m, true) },
     { label: "Total Volume", render: (m: ReleasedMediaRow) => m.totalVolume || "—" },
     { label: "Total Weight", render: (m: ReleasedMediaRow) => (m.totalWeight != null ? `${m.totalWeight} g` : "—") },
     { label: "Manufacturer Lot", render: (m: ReleasedMediaRow) => m.manufacturerLot || "—" },
     { label: "Manufacturer", render: (m: ReleasedMediaRow) => m.manufacturerName || m.material?.manufacturerName || "—" },
-    { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt) },
-    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabDate(m.expiryDate) },
+    { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt, { english: true }) },
+    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabCalendarDate(m.expiryDate, { english: true }) },
     {
       label: "Status",
       render: (m: ReleasedMediaRow) => (m.status === "OutOfStock" ? "Out of Stock" : "Released")
@@ -359,8 +420,8 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       <Box className="no-print">
         {!embedded && (
           <PageHeader
-            title="Approved Media List"
-            subtitle="Prepared media lots that passed GPT and are released for routine use."
+            title={t("media.title")}
+            subtitle={t("media.subtitle")}
           />
         )}
 
@@ -458,7 +519,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
             <TextField
               fullWidth
               size="small"
-              placeholder="Search by lot number, media type, manufacturer, batch..."
+              placeholder={t("media.filters.searchPlaceholder")}
               value={filters.search}
               onChange={(e) => handleFilterChange("search", e.target.value)}
               sx={{
@@ -467,7 +528,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                   bgcolor: "background.default"
                 }
               }}
-              slotProps={{ htmlInput: { "aria-label": "Search by lot number, media type, manufacturer, batch" },
+              slotProps={{ htmlInput: { "aria-label": t("media.filters.searchAria") },
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
@@ -493,15 +554,15 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
             >
               {/* Media Type Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-type-label">Media Type</InputLabel>
+                <InputLabel id="media-type-label">{t("media.filters.mediaType")}</InputLabel>
                 <Select
                   labelId="media-type-label"
-                  label="Media Type"
+                  label={t("media.filters.mediaType")}
                   value={filters.mediaType}
                   onChange={(e) => handleFilterChange("mediaType", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Media Types</em>
+                    <em>{t("media.filters.allMediaTypes")}</em>
                   </MenuItem>
                   {uniqueMediaTypes.map(([cls, label]) => (
                     <MenuItem key={cls} value={cls}>
@@ -513,15 +574,15 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
               {/* Manufacturer Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-manufacturer-label">Manufacturer</InputLabel>
+                <InputLabel id="media-manufacturer-label">{t("media.filters.manufacturer")}</InputLabel>
                 <Select
                   labelId="media-manufacturer-label"
-                  label="Manufacturer"
+                  label={t("media.filters.manufacturer")}
                   value={filters.manufacturer}
                   onChange={(e) => handleFilterChange("manufacturer", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Manufacturers</em>
+                    <em>{t("media.filters.allManufacturers")}</em>
                   </MenuItem>
                   {uniqueManufacturers.map((mfg) => (
                     <MenuItem key={mfg} value={mfg}>
@@ -533,36 +594,36 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
 
               {/* Status Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-status-label">Status</InputLabel>
+                <InputLabel id="media-status-label">{t("media.filters.status")}</InputLabel>
                 <Select
                   labelId="media-status-label"
-                  label="Status"
+                  label={t("media.filters.status")}
                   value={filters.status}
                   onChange={(e) => handleFilterChange("status", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Statuses</em>
+                    <em>{t("media.filters.allStatuses")}</em>
                   </MenuItem>
-                  <MenuItem value="Released">Released / Active</MenuItem>
-                  <MenuItem value="OutOfStock">Out of Stock</MenuItem>
+                  <MenuItem value="Released">{t("media.filters.releasedActive")}</MenuItem>
+                  <MenuItem value="OutOfStock">{t("media.filters.outOfStock")}</MenuItem>
                 </Select>
               </FormControl>
 
               {/* Expiry Range Filter */}
               <FormControl size="small" fullWidth>
-                <InputLabel id="media-expiry-label">Expiry Date</InputLabel>
+                <InputLabel id="media-expiry-label">{t("media.filters.expiryDate")}</InputLabel>
                 <Select
                   labelId="media-expiry-label"
-                  label="Expiry Date"
+                  label={t("media.filters.expiryDate")}
                   value={filters.expiryRange}
                   onChange={(e) => handleFilterChange("expiryRange", e.target.value)}
                 >
                   <MenuItem value="">
-                    <em>All Expiry</em>
+                    <em>{t("media.filters.allExpiry")}</em>
                   </MenuItem>
-                  <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-                  <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
-                  <MenuItem value="valid">Valid / Unexpired</MenuItem>
+                  <MenuItem value="expiring_30">{t("media.filters.expiring30")}</MenuItem>
+                  <MenuItem value="expiring_60">{t("media.filters.expiring60")}</MenuItem>
+                  <MenuItem value="valid">{t("media.filters.valid")}</MenuItem>
                 </Select>
               </FormControl>
 
@@ -581,7 +642,7 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
                   "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
                 }}
               >
-                Reset
+                {t("media.filters.reset")}
               </Button>
             </Box>
           </Box>
@@ -599,459 +660,71 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
           }}
         >
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 1.5 }}>
-            <SectionTitle>Released Media</SectionTitle>
+            <SectionTitle>{t("media.section")}</SectionTitle>
             {!loading && (
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {filteredMedia.length === 1
-                  ? "1 released media lot found"
-                  : `${filteredMedia.length} released media lots found`}
+                {t("media.found", { count: filteredMedia.length })}
               </Typography>
             )}
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-            {/* Columns Customizer */}
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<ViewColumnIcon fontSize="small" />}
-              onClick={(e) => setColumnsAnchor(e.currentTarget)}
-              sx={{
-                borderColor: "divider",
-                color: "text.secondary",
-                fontSize: 12,
-                "&:hover": { bgcolor: "background.default" }
-              }}
-            >
-              Columns
-            </Button>
-            <Popover
-              open={Boolean(columnsAnchor)}
-              anchorEl={columnsAnchor}
-              onClose={() => setColumnsAnchor(null)}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-              <Box sx={{ p: 2, minWidth: 200 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 1, color: "text.secondary" }}>
-                  Visible Columns
-                </Typography>
-                <FormGroup>
-                  {TOGGLEABLE_COLUMNS.map((col) => (
-                    <FormControlLabel
-                      key={col.key}
-                      label={<Typography sx={{ fontSize: 13 }}>{col.label}</Typography>}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={visibleColumns.has(col.key)}
-                          onChange={() => toggleColumn(col.key)}
-                        />
-                      }
-                    />
-                  ))}
-                </FormGroup>
-              </Box>
-            </Popover>
-
             {/* Preserved Print Button */}
             <PrintButton />
           </Box>
         </Box>
 
-        {/* Dense Register Table Card */}
-        <Paper
-          elevation={0}
-          sx={{
-            width: "100%",
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1.5,
-            bgcolor: "background.paper"
+        <RegisterTable
+          columns={columns}
+          rows={filteredMedia}
+          getRowId={(m) => m.id}
+          tableKey={TABLE_KEY}
+          tableState={tableState}
+          toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
+          loading={loading}
+          trailingCell={{
+            label: t("media.columns.actions"),
+            render: (m) => (
+              <Tooltip title={t("media.recordTooltip")}>
+                <Button
+                  component={Link}
+                  to={`/media/${m.id}/report`}
+                  target="_blank"
+                  rel="noopener"
+                  size="small"
+                  variant="outlined"
+                  startIcon={<DescriptionOutlinedIcon fontSize="small" />}
+                  sx={{
+                    px: 1,
+                    py: 0.25,
+                    fontSize: 12,
+                    borderColor: "divider",
+                    color: "text.secondary",
+                    "&:hover": { bgcolor: "background.default" }
+                  }}
+                >
+                  {t("media.record")}
+                </Button>
+              </Tooltip>
+            )
           }}
-        >
-          {loading ? (
-            <TableSkeleton rows={8} cols={8} hasContainer={false} />
-          ) : (
-            <>
-              <TableContainer sx={{ maxHeight: "calc(100vh - 360px)", minHeight: 300 }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 12,
-                          bgcolor: "background.default",
-                          color: "text.secondary"
-                        }}
-                      >
-                        Lot Number
-                      </TableCell>
-                      {visibleColumns.has("mediaType") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Media Type
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("ph") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          pH Result
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("preparedBy") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Prepared By
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("volume") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Total Volume
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("weight") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Total Weight
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("mfgLot") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Manufacturer Lot
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("mfgName") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Manufacturer
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("preparedOn") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Prepared On
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("expiry") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Expiry
-                        </TableCell>
-                      )}
-                      {visibleColumns.has("status") && (
-                        <TableCell
-                          sx={{
-                            fontWeight: 700,
-                            fontSize: 12,
-                            bgcolor: "background.default",
-                            color: "text.secondary"
-                          }}
-                        >
-                          Status
-                        </TableCell>
-                      )}
-                      <TableCell
-                        align="right"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: 12,
-                          bgcolor: "background.default",
-                          color: "text.secondary"
-                        }}
-                      >
-                        Actions
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedMedia.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={2 + visibleColumns.size}
-                          align="center"
-                          sx={{ py: 6 }}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              flexDirection: "column",
-                              alignItems: "center",
-                              gap: 1.5
-                            }}
-                          >
-                            <FilterAltOffIcon sx={{ fontSize: 36, color: "text.secondary", opacity: 0.6 }} />
-                            <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-                              {hasActiveFilters
-                                ? "No approved media lots match the selected filters."
-                                : "No approved media lots currently available in inventory."}
-                            </Typography>
-                            {hasActiveFilters && (
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={handleReset}
-                                startIcon={<RotateLeftIcon fontSize="small" />}
-                                sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
-                              >
-                                Reset Filters
-                              </Button>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      paginatedMedia.map((m) => {
-                        const expiring = isExpiringSoon(m.expiryDate, 30);
-                        const mfg = m.manufacturerName || m.material?.manufacturerName || "—";
-                        const prepBy = getPreparedByName(m);
-
-                        return (
-                          <TableRow
-                            key={m.id}
-                            hover
-                            sx={{
-                              "&:nth-of-type(even)": { bgcolor: "background.default" }
-                            }}
-                          >
-                            {/* Lot Number */}
-                            <TableCell sx={{ py: 1.25 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: 13,
-                                  fontWeight: 700,
-                                  fontFamily: "monospace",
-                                  color: theme.palette.primary.main
-                                }}
-                              >
-                                {m.lotNumber}
-                              </Typography>
-                              {m.material?.batchNumber && (
-                                <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-                                  Batch: {m.material.batchNumber}
-                                </Typography>
-                              )}
-                            </TableCell>
-
-                            {/* Media Type */}
-                            {visibleColumns.has("mediaType") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                                  {m.material?.materialName ?? mediaClassLabel(m.mediaType?.class) ?? "—"}
-                                </Typography>
-                                {m.material?.materialName && m.mediaType?.class && (
-                                  <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-                                    {mediaClassLabel(m.mediaType?.class)}
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            )}
-
-                            {/* pH Result */}
-                            {visibleColumns.has("ph") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: 12,
-                                    fontWeight: 700,
-                                    fontFamily: "monospace",
-                                    color: "text.primary"
-                                  }}
-                                >
-                                  {m.ph != null ? Number(m.ph).toFixed(2) : "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Prepared By */}
-                            {visibleColumns.has("preparedBy") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {prepBy}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Total Volume */}
-                            {visibleColumns.has("volume") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {m.totalVolume || "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Total Weight */}
-                            {visibleColumns.has("weight") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {m.totalWeight != null ? `${m.totalWeight} g` : "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Manufacturer Lot */}
-                            {visibleColumns.has("mfgLot") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary", fontFamily: "monospace" }}>
-                                  {m.manufacturerLot || "—"}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Manufacturer */}
-                            {visibleColumns.has("mfgName") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {mfg}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Prepared On */}
-                            {visibleColumns.has("preparedOn") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                                  {formatLabDate(m.preparedAt)}
-                                </Typography>
-                              </TableCell>
-                            )}
-
-                            {/* Expiry */}
-                            {visibleColumns.has("expiry") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <Typography
-                                  sx={{
-                                    fontSize: 12,
-                                    fontWeight: expiring ? 700 : 500,
-                                    color: expiring ? action.text : "text.primary"
-                                  }}
-                                >
-                                  {formatLabDate(m.expiryDate)}
-                                </Typography>
-                                {expiring && (
-                                  <Typography sx={{ fontSize: 12, color: action.text, fontWeight: 600 }}>
-                                    Expiring soon
-                                  </Typography>
-                                )}
-                              </TableCell>
-                            )}
-
-                            {/* Status */}
-                            {visibleColumns.has("status") && (
-                              <TableCell sx={{ py: 1.25 }}>
-                                <StatusBadge
-                                  status={m.status === "OutOfStock" ? "OutOfStock" : "Released"}
-                                  label={m.status === "OutOfStock" ? "Out of Stock" : "Released"}
-                                />
-                              </TableCell>
-                            )}
-
-                            {/* Actions */}
-                            <TableCell align="right" sx={{ py: 1.25 }}>
-                              <Tooltip title="View media lot report record">
-                                <Button
-                                  component={Link}
-                                  to={`/media/${m.id}/report`}
-                                  target="_blank"
-                                  rel="noopener"
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={<DescriptionOutlinedIcon fontSize="small" />}
-                                  sx={{
-                                    px: 1,
-                                    py: 0.25,
-                                    fontSize: 12,
-                                    borderColor: "divider",
-                                    color: "text.secondary",
-                                    "&:hover": { bgcolor: "background.default" }
-                                  }}
-                                >
-                                  Record
-                                </Button>
-                              </Tooltip>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50, 100]}
-                component="div"
-                count={filteredMedia.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={(_, newPage) => setPage(newPage)}
-                onRowsPerPageChange={(e) => {
-                  setRowsPerPage(parseInt(e.target.value, 10));
-                  setPage(0);
-                }}
-              />
-            </>
-          )}
-        </Paper>
+          empty={{
+            title: hasActiveFilters
+              ? t("media.emptyFiltered")
+              : t("media.empty"),
+            action: hasActiveFilters ? (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={handleReset}
+                startIcon={<RotateLeftIcon fontSize="small" />}
+                sx={{ borderColor: "divider", color: "text.secondary", mt: 0.5 }}
+              >
+                {t("media.filters.resetFilters")}
+              </Button>
+            ) : undefined
+          }}
+        />
       </Box>
 
       {/* Printable version rendered only in print dialog */}

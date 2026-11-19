@@ -6,8 +6,12 @@ import {
   Typography,
   Alert
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { serverMessage } from "../../../utils/errorMessage";
 import { MaterialMasterService, type MaterialMasterEntry } from "../../laboratoryConfiguration/masterDataSimple/services/MaterialMasterService";
 import { WorkingStandardService } from "../services/WorkingStandardService";
 import type {
@@ -36,6 +40,7 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
   onClose,
   onSuccess
 }) => {
+  const { t } = useTranslation("workingStandards");
   const isRequalification = Boolean(targetLot);
   const [sourceMode, setSourceMode] = useState<"Manual" | "Received">("Manual");
   const [materialMasterEntryId, setMaterialMasterEntryId] = useState<number | "">("");
@@ -142,11 +147,10 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
           };
 
       const result = await WorkingStandardService.createQualification(payload);
-      toast.success(isRequalification ? "Requalification initiated" : "Qualification created");
+      toast.success(isRequalification ? t("newDialog.toastRequalified") : t("newDialog.toastCreated"));
       onSuccess(result);
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-        ?? "Failed to create qualification";
+      const msg = serverMessage(err) ?? t("newDialog.createFailed");
       setError(msg);
     } finally {
       setSubmitting(false);
@@ -156,14 +160,14 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
   return (
     <FloatingDialog
       open={open}
-      title={isRequalification ? "Requalify Working Standard" : "New Working Standard Qualification"}
+      title={isRequalification ? t("newDialog.titleRequalify") : t("newDialog.titleNew")}
       onClose={onClose}
       maxWidth="sm"
       actions={
         <>
-          <Button onClick={onClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={onClose} disabled={submitting}>{t("actions.cancel")}</Button>
           <Button variant="contained" onClick={handleSave} disabled={!isValid || submitting}>
-            {submitting ? "Saving..." : "Save"}
+            {submitting ? t("actions.saving") : t("actions.save")}
           </Button>
         </>
       }
@@ -174,13 +178,28 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
         {isRequalification && targetLot ? (
           <Alert severity="info">
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Requalifying Lot: {targetLot.code}
+              <Trans
+                i18nKey="newDialog.requalifyingLot"
+                ns="workingStandards"
+                values={{ code: targetLot.code }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Typography variant="body2">
-              Material: {targetLot.materialName} ({targetLot.masterEntryCode})
+              <Trans
+                i18nKey="newDialog.materialLine"
+                ns="workingStandards"
+                values={{ name: targetLot.materialName, code: targetLot.masterEntryCode }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Typography variant="body2">
-              Batch: {targetLot.batchNumber}
+              <Trans
+                i18nKey="newDialog.batchLine"
+                ns="workingStandards"
+                values={{ batch: targetLot.batchNumber }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Alert>
         ) : (
@@ -208,11 +227,11 @@ export const NewQualificationDialog: React.FC<NewQualificationDialogProps> = ({
           fullWidth
           size="small"
           type="number"
-          label="Moisture %"
+          label={t("newDialog.moistureLabel")}
           value={moisturePercent}
           onChange={(e) => setMoisturePercent(e.target.value)}
           required={isRequalification}
-          helperText={isRequalification ? "Enter moisture content % for requalification" : "Optional initial moisture content %"}
+          helperText={isRequalification ? t("newDialog.moistureHelperRequalify") : t("newDialog.moistureHelperInitial")}
         />
       </Stack>
     </FloatingDialog>

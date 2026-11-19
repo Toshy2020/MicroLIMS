@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -17,6 +17,18 @@ import {
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlineOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { BenchDialog } from "../../components/bench/BenchDialog";
+import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
+import { NumericEntryField } from "../../components/bench/NumericEntryField";
+import { DateField } from "../../components/DateField";
+import { TimeField24 } from "../../components/TimeField24";
+import { Ltr } from "../../components/Ltr";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
+import { useBenchDraft } from "../../hooks/useBenchDraft";
+import { useTranslation } from "../../i18n";
+import { useBenchMode } from "../../theme/BenchModeContext";
+import { toast } from "sonner";
+import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage, useKeptOffline } from "./benchSave";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { SpecificationService, SpecificationDto } from "../laboratoryConfiguration/specifications/services/SpecificationService";
 import { ItemService } from "../laboratoryConfiguration/items/services/ItemService";
@@ -25,7 +37,6 @@ import { getSections, LaboratorySection } from "../../services/laboratorySection
 import {
   buildContainerRows,
   buildQualitativePayload,
-  getConclusionLine,
   isValidContainerCount
 } from "./qualitativePerContainerHelper";
 
@@ -53,7 +64,7 @@ interface Props {
 
 interface QualitativeContainerRowState {
   index: number;
-  conforms: boolean;
+  conforms: boolean | null;
   observation: string;
 }
 
@@ -61,9 +72,47 @@ interface QualitativeRowState {
   specificationId: number;
   parameterName: string;
   specLimitText: string;
-  conforms: boolean;
+  conforms: boolean | null;
   observation: string;
   containers?: QualitativeContainerRowState[];
+}
+
+// The form as the draft sees it. `comment` is the comment signed with the result, so it is
+// in this type only to be kept out of the draft: pickQualitativeDraft is an allow-list and
+// lists every field that may be written to the tablet. The password lives only inside the
+// signature dialog and never reaches this form.
+interface QualitativeFormValues {
+  analysedAt: string;
+  equipmentId: number | "";
+  containerCountInput: string;
+  rows: QualitativeDraftRow[];
+  comment: string;
+}
+
+interface QualitativeDraftRow {
+  specificationId: number;
+  conforms: boolean | null;
+  observation: string;
+  containers?: QualitativeContainerRowState[];
+}
+
+function aggregateContainerConforms(containers: QualitativeContainerRowState[]): boolean | null {
+  if (containers.length === 0 || containers.some((c) => c.conforms === null)) return null;
+  return containers.every((c) => c.conforms === true);
+}
+
+function pickQualitativeDraft(v: QualitativeFormValues): Partial<QualitativeFormValues> {
+  return {
+    analysedAt: v.analysedAt,
+    equipmentId: v.equipmentId,
+    containerCountInput: v.containerCountInput,
+    rows: v.rows.map((r) => ({
+      specificationId: r.specificationId,
+      conforms: r.conforms,
+      observation: r.observation,
+      containers: (r.containers ?? []).map((c) => ({ index: c.index, conforms: c.conforms, observation: c.observation }))
+    }))
+  };
 }
 
 const getLocalIsoString = (date: Date = new Date()): string => {
@@ -77,8 +126,11 @@ export function QualitativePanel({
   testCode,
   itemId,
   current,
-  onRecorded
+  onRecorded,
+  onClose
 }: Props) {
+  const { t } = useTranslation("testingWorkspace");
+  const signReasonId = useId();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,6 +152,10 @@ export function QualitativePanel({
   const [outcome, setOutcome] = useState<{ outcomeSummary?: string; status?: string } | null>(null);
 
   const effectiveTestCode = current.testName || testCode || "";
+
+  const { benchMode } = useBenchMode();
+  const [keptOffline, setKeptOffline] = useKeptOffline();
+  const [benchOpen, setBenchOpen] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -137,7 +193,7 @@ export function QualitativePanel({
 
         if (loadedSpecs.length === 0) {
           if (active) {
-            setError(`No specifications configured for test ${effectiveTestCode}.`);
+            setError(t("qualitative.noSpecsConfigured", { testCode: effectiveTestCode }));
             setLoading(false);
           }
           return;
@@ -163,13 +219,13 @@ export function QualitativePanel({
             s.specLimit ||
             s.expectedResultText ||
             s.expectedState ||
-            (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} – ${s.upperLimit ?? ""}` : "Conforms");
+            (s.lowerLimit != null || s.upperLimit != null ? `${s.lowerLimit ?? ""} – ${s.upperLimit ?? ""}` : t("qualitative.conformsDefault"));
 
           return {
             specificationId: s.id!,
             parameterName: s.parameterName || s.testCode,
             specLimitText: limitText,
-            conforms: true,
+            conforms: null,
             observation: "",
             containers: []
           };
@@ -183,7 +239,7 @@ export function QualitativePanel({
       } catch (err: unknown) {
         const msg =
           (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-          "Could not load qualitative test configuration or specifications.";
+          t("qualitative.loadConfigFailed");
         if (active) setError(msg);
       } finally {
         if (active) setLoading(false);
@@ -195,7 +251,7 @@ export function QualitativePanel({
     return () => {
       active = false;
     };
-  }, [effectiveTestCode, itemId, current.sampleContext?.sampleName, testOrderId]);
+  }, [effectiveTestCode, itemId, current.sampleContext?.sampleName, testOrderId, t]);
 
   const handleRowChange = (index: number, patch: Partial<QualitativeRowState>) => {
     setRows((prev) =>
@@ -221,7 +277,7 @@ export function QualitativePanel({
         return {
           ...r,
           containers: updatedContainers,
-          conforms: updatedContainers.every((c) => c.conforms)
+          conforms: aggregateContainerConforms(updatedContainers)
         };
       })
     );
@@ -268,7 +324,7 @@ export function QualitativePanel({
         return {
           ...r,
           containers: nextContainers,
-          conforms: nextContainers.every((c) => c.conforms)
+          conforms: aggregateContainerConforms(nextContainers)
         };
       })
     );
@@ -278,42 +334,116 @@ export function QualitativePanel({
     return isValidContainerCount(Number(containerCountInput));
   }, [containerCountInput]);
 
-  const isFormValid = useMemo(() => {
-    if (rows.length === 0) return false;
-    if (!analysedAt.trim()) return false;
+  // Why the form cannot be signed yet, or null when it can. The conditions are the ones the
+  // Sign button has always used; the text is what a gated bench screen shows.
+  const formProblem = useMemo((): string | null => {
+    if (rows.length === 0) return t("qualitative.noParameters");
+    if (!analysedAt.trim()) return t("qualitative.enterAnalysisTime");
 
     // Check analysis time is not more than 5 minutes in the future
     const parsedDate = new Date(analysedAt);
     if (isNaN(parsedDate.getTime()) || parsedDate.getTime() > Date.now() + 5 * 60 * 1000) {
-      return false;
+      return t("qualitative.invalidAnalysisTime");
     }
 
     if (isPerContainer) {
       const count = Number(containerCountInput);
-      if (!isValidContainerCount(count)) return false;
+      if (!isValidContainerCount(count)) return t("qualitative.enterContainersCount");
 
       for (const r of rows) {
-        if (!r.containers || r.containers.length !== count) return false;
+        if (!r.containers || r.containers.length !== count) return t("qualitative.enterContainersCount");
+        if (r.containers.some((c) => c.conforms === null)) {
+          return t("qualitative.chooseEveryRow");
+        }
         for (const c of r.containers) {
-          if (!c.conforms) {
-            if (!c.observation.trim()) return false;
+          if (c.conforms === false) {
+            if (!c.observation.trim()) return t("qualitative.describeNonComplyingContainers");
           }
-          if (c.observation.length > 500) return false;
+          if (c.observation.length > 500) return t("qualitative.observationTooLong");
         }
       }
-      return true;
+      return null;
     }
 
-    // For every row: if !conforms, observation is required and <= 500 chars
+    if (rows.some((r) => r.conforms === null)) {
+      return t("qualitative.chooseEveryRow");
+    }
+
+    // For every row: if conforms === false, observation is required and <= 500 chars
     for (const r of rows) {
-      if (!r.conforms) {
-        if (!r.observation.trim()) return false;
+      if (r.conforms === false) {
+        if (!r.observation.trim()) return t("qualitative.stateNonConformance");
       }
-      if (r.observation.length > 500) return false;
+      if (r.observation.length > 500) return t("qualitative.observationTooLong");
     }
 
-    return true;
-  }, [rows, analysedAt, isPerContainer, containerCountInput]);
+    return null;
+  }, [rows, analysedAt, isPerContainer, containerCountInput, t]);
+  const isFormValid = formProblem === null;
+
+  // Bench mode (a shared touch tablet): the entry is a full-screen form and is kept as a
+  // local draft until the analyst signs. Outside bench mode nothing here changes.
+  const benchPanel = benchMode && !current.allStepsComplete && !outcome;
+  const draft = useBenchDraft<QualitativeFormValues>({
+    formKey: "qualitative",
+    recordKey: `${testOrderId}:${effectiveTestCode}`,
+    recordVersion: null,
+    title: t("qualitative.draftTitle", { displayName }),
+    values: { analysedAt, equipmentId: selectedEquipmentId, containerCountInput, rows, comment },
+    pick: pickQualitativeDraft,
+    enabled: benchPanel && benchOpen && !loading && rows.length > 0
+  });
+
+  const restoreDraft = () => {
+    const saved = draft.acceptRestore();
+    if (!saved) return;
+    if (typeof saved.analysedAt === "string" && saved.analysedAt !== "") setAnalysedAt(saved.analysedAt);
+    if (typeof saved.equipmentId === "number" && fpEquipment.some((e) => e.id === saved.equipmentId)) setSelectedEquipmentId(saved.equipmentId);
+    if (isPerContainer && typeof saved.containerCountInput === "string") {
+      setContainerCountInput(saved.containerCountInput);
+      setContainerCountTouched(true);
+    }
+    const savedRows = Array.isArray(saved.rows) ? saved.rows : [];
+    setRows((prev) =>
+      prev.map((row) => {
+        const found = savedRows.find((x) => x && x.specificationId === row.specificationId);
+        if (!found) return row;
+        const containers: QualitativeContainerRowState[] = (Array.isArray(found.containers) ? found.containers : [])
+          .filter((c) => typeof c.index === "number" && (typeof c.conforms === "boolean" || c.conforms === null))
+          .map((c) => ({
+            index: c.index,
+            conforms: typeof c.conforms === "boolean" ? c.conforms : null,
+            observation: typeof c.observation === "string" ? c.observation : ""
+          }));
+        containerMemoryRef.current.set(row.specificationId, new Map(containers.map((c) => [c.index, { ...c }])));
+        return {
+          ...row,
+          conforms: isPerContainer
+            ? aggregateContainerConforms(containers)
+            : (typeof found.conforms === "boolean" ? found.conforms : null),
+          observation: typeof found.observation === "string" ? found.observation : row.observation,
+          containers
+        };
+      })
+    );
+  };
+
+  const benchDirty =
+    comment.trim() !== "" ||
+    containerCountInput !== "" ||
+    rows.some((r) => r.conforms !== null || r.observation.trim() !== "" || (r.containers ?? []).some((c) => c.conforms !== null || c.observation.trim() !== ""));
+
+  const closeBench = async () => {
+    // Leaving a form with entries was confirmed as a discard; an offered draft nobody accepted is left alone.
+    if (benchDirty && !draft.restored) await draft.discard();
+    setBenchOpen(false);
+    onClose?.();
+  };
+
+  const keepDraft = () => {
+    toast.info(t("qualitative.draftKeptOffline"));
+    setBenchOpen(false);
+  };
 
   const submit = async (password: string) => {
     setError(null);
@@ -328,7 +458,9 @@ export function QualitativePanel({
         parameters: rows
       });
 
-      const res = await TestWorkflowService.recordQualitativeResult(testOrderId, payload);
+      const res = await TestWorkflowService.recordQualitativeResult(testOrderId, payload, ...draftHeaderArgs(draft.submitHeaders()));
+      await draft.onSubmitted();
+      setKeptOffline(false);
       setSigning(false);
       setOutcome({
         outcomeSummary: res?.outcomeSummary ?? res?.finalResult,
@@ -338,10 +470,20 @@ export function QualitativePanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to record qualitative result.";
-      setError(msg);
+      if (benchPanel) {
+        const failure = classifySaveFailure(err);
+        if (failure.kind === "network") {
+          // Nothing reached MicroLIMS: the entries stay in the form and in the local draft.
+          setKeptOffline(true);
+          return;
+        }
+        if (failure.kind === "conflict") {
+          await draft.onRejected(failure.message);
+          setError(failure.message);
+          return;
+        }
+      }
+      setError(serverMessage(err) ?? t("qualitative.recordFailed"));
     }
   };
 
@@ -354,16 +496,16 @@ export function QualitativePanel({
     return (
       <Box>
         <Alert severity={alertSeverity} sx={{ mb: 2 }}>
-          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? "Results Recorded"}</strong>
+          {displayName}: <strong>{outcome?.outcomeSummary ?? current.finalResult ?? t("qualitative.resultsRecordedFallback")}</strong>
           {outcome?.status && ` (${outcome.status})`}
         </Alert>
 
         <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5, bgcolor: "background.paper" }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1 }}>
-            Qualitative Analysis Summary
+            {t("qualitative.summaryTitle")}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {specs.length} parameter{specs.length === 1 ? "" : "s"} evaluated and recorded.
+            {t("qualitative.paramsEvaluated", { count: specs.length })}
           </Typography>
         </Box>
       </Box>
@@ -378,13 +520,22 @@ export function QualitativePanel({
     );
   }
 
-  return (
-    <Box>
+  const formatConclusion = (total: number, containers: QualitativeContainerRowState[]): string => {
+    const failedIndexes = containers.filter((c) => c.conforms === false).map((c) => c.index).sort((a, b) => a - b);
+    if (total === 1) return failedIndexes.length === 0 ? t("qualitative.conclusion.oneComply") : t("qualitative.conclusion.oneNonComply");
+    if (failedIndexes.length === 0) return t("qualitative.conclusion.allComply", { count: total });
+    if (failedIndexes.length === 1) return t("qualitative.conclusion.singleFailed", { index: failedIndexes[0], total });
+    const detailed = t("qualitative.conclusion.multiFailed", { indexes: failedIndexes.join(", "), total });
+    return detailed.length > 100 ? t("qualitative.conclusion.manyFailed", { failed: failedIndexes.length, total }) : detailed;
+  };
+
+  const formBody = (
+    <>
       {current.returnInfo && (
         <Alert severity="warning" sx={{ mb: 2 }}>
           {current.returnInfo.reason
-            ? `Returned for revision: ${current.returnInfo.reason}`
-            : "Returned by reviewer for revision"}
+            ? t("qualitative.returnedWithReason", { reason: current.returnInfo.reason })
+            : t("qualitative.returnedDefault")}
         </Alert>
       )}
 
@@ -398,48 +549,80 @@ export function QualitativePanel({
         {/* Section 1: Analysis Configuration */}
         <Box sx={{ p: 2, bgcolor: "background.default", border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            1. Analysis Configuration
+            {t("qualitative.section1Title")}
           </Typography>
 
           <Stack spacing={2}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-              <TextField
-                size="small"
-                type="datetime-local"
-                label="Analysis time"
-                value={analysedAt}
-                onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true } }}
-                required
-                fullWidth
-              />
+              <Box>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <DateField
+                    label={t("qualitative.analysisTime")}
+                    value={analysedAt.slice(0, 10)}
+                    onChange={(d) => {
+                      const timePart = analysedAt.slice(11, 16) || "00:00";
+                      setAnalysedAt(d ? `${d}T${timePart}` : "");
+                    }}
+                    required
+                    fullWidth
+                  />
+                  <TimeField24
+                    value={analysedAt.slice(11, 16)}
+                    onChange={(time) => {
+                      const datePart = analysedAt.slice(0, 10) || getLocalIsoString().slice(0, 10);
+                      setAnalysedAt(`${datePart}T${time}`);
+                    }}
+                    ariaLabel={t("qualitative.analysisTime")}
+                    sx={{ minWidth: 115 }}
+                  />
+                </Box>
+                {analysedAt && !Number.isNaN(new Date(analysedAt).getTime()) && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                    <Ltr>{formatDateTimeWithTimeZone(new Date(analysedAt))}</Ltr>
+                  </Typography>
+                )}
+              </Box>
 
               <FormControl size="small" fullWidth>
-                <InputLabel id="equipment-select-label">Equipment (Physicochemical)</InputLabel>
+                <InputLabel id="equipment-select-label">{t("qualitative.equipmentLabel")}</InputLabel>
                 <Select
                   labelId="equipment-select-label"
-                  label="Equipment (Physicochemical)"
+                  label={t("qualitative.equipmentLabel")}
                   value={selectedEquipmentId}
                   onChange={(e) => setSelectedEquipmentId(String(e.target.value) === "" ? "" : Number(e.target.value))}
                 >
                   <MenuItem value="">
-                    <em>None (no instrument linked)</em>
+                    <em>{t("qualitative.noInstrument")}</em>
                   </MenuItem>
                   {fpEquipment.map((eq) => (
                     <MenuItem key={eq.id} value={eq.id}>
-                      {eq.name} ({eq.code})
+                      {eq.name} (<Ltr>{eq.code}</Ltr>)
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
 
-            {isPerContainer && (
+            {isPerContainer && benchPanel && (
+              <NumericEntryField
+                label={t("qualitative.containersReceived")}
+                value={containerCountInput}
+                onChange={handleContainerCountChange}
+                onNext={handleContainerCountCommit}
+                onBlur={handleContainerCountCommit}
+                kind="count"
+                maxLength={3}
+                required
+                error={(containerCountTouched || containerCountInput !== "") && !isCountValid ? t("qualitative.enterContainersCount") : undefined}
+              />
+            )}
+
+            {isPerContainer && !benchPanel && (
               <TextField
                 size="small"
                 type="number"
-                label="Containers received"
-                placeholder="1–200"
+                label={t("qualitative.containersReceived")}
+                placeholder={t("qualitative.containersRangePlaceholder")}
                 value={containerCountInput}
                 onChange={(e) => handleContainerCountChange(e.target.value)}
                 onBlur={handleContainerCountCommit}
@@ -449,8 +632,8 @@ export function QualitativePanel({
                     handleContainerCountCommit();
                   }
                 }}
-                slotProps={{ htmlInput: { min: 1, max: 200, step: 1 } }}
-                helperText="Enter the number of containers received (1 to 200)."
+                slotProps={{ htmlInput: { min: 1, max: 200, step: 1, dir: "ltr" } }}
+                helperText={t("qualitative.enterContainersCount")}
                 error={Boolean((containerCountTouched || containerCountInput !== "") && !isCountValid)}
                 required
                 sx={{ maxWidth: { xs: "100%", sm: 300 } }}
@@ -462,12 +645,12 @@ export function QualitativePanel({
         {/* Section 2: Qualitative Parameters Rows */}
         <Box sx={{ p: 2, border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5, color: "text.primary" }}>
-            2. Qualitative Observations ({rows.length} parameter{rows.length === 1 ? "" : "s"})
+            {t("qualitative.section2Title", { count: rows.length })}
           </Typography>
 
           {isPerContainer && !isCountValid && (
             <Alert severity="info">
-              Enter the number of containers received (1 to 200) to record results.
+              {t("qualitative.enterContainersPrompt")}
             </Alert>
           )}
 
@@ -477,8 +660,11 @@ export function QualitativePanel({
                 if (!isCountValid) return null;
 
                 const parsedCount = Number(containerCountInput);
-                const conclusion = getConclusionLine(parsedCount, row.containers);
-                const allComply = !row.containers?.some((c) => !c.conforms);
+                const rowContainers = row.containers ?? [];
+                const allChosen = rowContainers.length === parsedCount && rowContainers.every((c) => c.conforms !== null);
+                const hasFailed = rowContainers.some((c) => c.conforms === false);
+                const allComply = allChosen && !hasFailed;
+                const conclusion = allChosen ? formatConclusion(parsedCount, rowContainers) : null;
 
                 return (
                   <Box
@@ -486,9 +672,9 @@ export function QualitativePanel({
                     sx={{
                       p: 2,
                       border: "1px solid",
-                      borderColor: allComply ? "divider" : "error.light",
+                      borderColor: hasFailed ? "error.light" : "divider",
                       borderRadius: 1.5,
-                      bgcolor: allComply ? "background.paper" : "error.lighter",
+                      bgcolor: hasFailed ? "error.lighter" : "background.paper",
                       transition: "border-color 0.2s, background-color 0.2s"
                     }}
                   >
@@ -497,43 +683,45 @@ export function QualitativePanel({
                         {row.parameterName}
                       </Typography>
                       <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 12, mb: 1.5 }}>
-                        Criteria: <strong>{row.specLimitText}</strong>
+                        {t("qualitative.criteria")} <strong>{row.specLimitText}</strong>
                       </Typography>
 
-                      {/* Read-only conclusion line */}
-                      <Box
-                        role="status"
-                        aria-live="polite"
-                        sx={{
-                          p: 1.5,
-                          borderRadius: 1,
-                          bgcolor: allComply ? "action.hover" : "background.paper",
-                          border: "1px solid",
-                          borderColor: allComply ? "divider" : "error.main",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 1
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
-                          Conclusion:
-                        </Typography>
-                        <Typography
+                      {/* Read-only conclusion line (only once every container has a choice) */}
+                      {conclusion !== null && (
+                        <Box
+                          role="status"
+                          aria-live="polite"
                           sx={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: allComply ? "success.dark" : "error.dark"
+                            p: 1.5,
+                            borderRadius: 1,
+                            bgcolor: allComply ? "action.hover" : "background.paper",
+                            border: "1px solid",
+                            borderColor: allComply ? "divider" : "error.main",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1
                           }}
                         >
-                          {conclusion}
-                        </Typography>
-                      </Box>
+                          <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.secondary" }}>
+                            {t("qualitative.conclusionLabel")}
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: allComply ? "success.dark" : "error.dark"
+                            }}
+                          >
+                            {conclusion}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
 
                     {/* Container rows 1..n */}
                     <Stack spacing={1.5}>
                       {(row.containers || []).map((container) => {
-                        const obsRequired = !container.conforms;
+                        const obsRequired = container.conforms === false;
                         const obsMissing = obsRequired && !container.observation.trim();
 
                         return (
@@ -542,9 +730,9 @@ export function QualitativePanel({
                             sx={{
                               p: 1.5,
                               border: "1px solid",
-                              borderColor: container.conforms ? "divider" : "error.light",
+                              borderColor: container.conforms === false ? "error.light" : "divider",
                               borderRadius: 1,
-                              bgcolor: container.conforms ? "background.paper" : "rgba(211, 47, 47, 0.04)"
+                              bgcolor: container.conforms === false ? "rgba(211, 47, 47, 0.04)" : "background.paper"
                             }}
                           >
                             <Box
@@ -558,14 +746,14 @@ export function QualitativePanel({
                               }}
                             >
                               <Typography sx={{ fontWeight: 600, fontSize: 13 }}>
-                                Container {container.index} of {parsedCount}
+                                {t("qualitative.containerOf", { index: container.index, total: parsedCount })}
                               </Typography>
 
                               <ToggleButtonGroup
-                                aria-label={`Container ${container.index} result`}
-                                value={container.conforms ? "complies" : "non-comply"}
+                                aria-label={t("qualitative.containerResultAria", { index: container.index })}
+                                value={container.conforms === null ? null : container.conforms ? "complies" : "non-comply"}
                                 exclusive
-                                size="small"
+                                size={benchPanel ? "large" : "small"}
                                 onChange={(_, val) => {
                                   if (val !== null) {
                                     handleContainerChange(idx, container.index, { conforms: val === "complies" });
@@ -589,7 +777,7 @@ export function QualitativePanel({
                                   }}
                                 >
                                   <CheckCircleOutlineIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                                  Complies
+                                  {t("qualitative.complies")}
                                 </ToggleButton>
                                 <ToggleButton
                                   value="non-comply"
@@ -608,7 +796,7 @@ export function QualitativePanel({
                                   }}
                                 >
                                   <HighlightOffIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                                  Does not comply
+                                  {t("qualitative.doesNotComply")}
                                 </ToggleButton>
                               </ToggleButtonGroup>
                             </Box>
@@ -616,17 +804,17 @@ export function QualitativePanel({
                             <TextField
                               size="small"
                               fullWidth
-                              label={obsRequired ? "Observation (required) *" : "Observation (optional)"}
-                              placeholder={obsRequired ? `Describe what container ${container.index} shows.` : "Notes or visual description"}
+                              label={obsRequired ? t("qualitative.observationRequired") : t("qualitative.observationOptional")}
+                              placeholder={obsRequired ? t("qualitative.describeContainer", { index: container.index }) : t("qualitative.notesPlaceholder")}
                               value={container.observation}
                               onChange={(e) => handleContainerChange(idx, container.index, { observation: e.target.value })}
                               required={obsRequired}
                               error={obsMissing}
                               helperText={
                                 obsMissing
-                                  ? `Describe what container ${container.index} shows.`
+                                  ? t("qualitative.describeContainer", { index: container.index })
                                   : container.observation.length > 450
-                                  ? `${container.observation.length}/500 chars`
+                                  ? t("qualitative.charsCount", { count: container.observation.length })
                                   : undefined
                               }
                               slotProps={{ htmlInput: { maxLength: 500 } }}
@@ -640,7 +828,7 @@ export function QualitativePanel({
               }
 
               // Non-per-container: original rendering
-              const observationRequired = !row.conforms;
+              const observationRequired = row.conforms === false;
               const hasObservationError = observationRequired && !row.observation.trim();
 
               return (
@@ -649,9 +837,9 @@ export function QualitativePanel({
                   sx={{
                     p: 2,
                     border: "1px solid",
-                    borderColor: row.conforms ? "divider" : "error.light",
+                    borderColor: row.conforms === false ? "error.light" : "divider",
                     borderRadius: 1.5,
-                    bgcolor: row.conforms ? "background.paper" : "error.lighter",
+                    bgcolor: row.conforms === false ? "error.lighter" : "background.paper",
                     transition: "border-color 0.2s, background-color 0.2s"
                   }}
                 >
@@ -670,16 +858,16 @@ export function QualitativePanel({
                         {row.parameterName}
                       </Typography>
                       <Typography variant="body2" sx={{ color: "text.secondary", fontSize: 12 }}>
-                        Criteria: <strong>{row.specLimitText}</strong>
+                        {t("qualitative.criteria")} <strong>{row.specLimitText}</strong>
                       </Typography>
                     </Box>
 
                     {/* Complies / Does not comply toggle */}
                     <ToggleButtonGroup
-                      value={row.conforms ? "complies" : "non-comply"}
+                      value={row.conforms === null ? null : row.conforms ? "complies" : "non-comply"}
                       exclusive
-                      size="small"
-                      aria-label={`Conformance for ${row.parameterName}`}
+                      size={benchPanel ? "large" : "small"}
+                      aria-label={t("qualitative.conformanceAria", { parameter: row.parameterName })}
                       onChange={(_, val) => {
                         if (val !== null) {
                           handleRowChange(idx, { conforms: val === "complies" });
@@ -703,7 +891,7 @@ export function QualitativePanel({
                         }}
                       >
                         <CheckCircleOutlineIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                        Complies
+                        {t("qualitative.complies")}
                       </ToggleButton>
                       <ToggleButton
                         value="non-comply"
@@ -722,7 +910,7 @@ export function QualitativePanel({
                         }}
                       >
                         <HighlightOffIcon sx={{ fontSize: 16, mr: 0.5 }} />
-                        Does not comply
+                        {t("qualitative.doesNotComply")}
                       </ToggleButton>
                     </ToggleButtonGroup>
                   </Box>
@@ -731,17 +919,17 @@ export function QualitativePanel({
                   <TextField
                     size="small"
                     fullWidth
-                    label={observationRequired ? "Observation (required) *" : "Observation (optional)"}
-                    placeholder={observationRequired ? "State non-conformance details (required, max 500 chars)" : "Notes or visual description"}
+                    label={observationRequired ? t("qualitative.observationRequired") : t("qualitative.observationOptional")}
+                    placeholder={observationRequired ? t("qualitative.nonConformancePlaceholder") : t("qualitative.notesPlaceholder")}
                     value={row.observation}
                     onChange={(e) => handleRowChange(idx, { observation: e.target.value })}
                     required={observationRequired}
                     error={hasObservationError}
                     helperText={
                       hasObservationError
-                        ? "Observation is required when non-compliant"
+                        ? t("qualitative.observationRequiredMsg")
                         : row.observation.length > 450
-                        ? `${row.observation.length}/500 chars`
+                        ? t("qualitative.charsCount", { count: row.observation.length })
                         : undefined
                     }
                     slotProps={{ htmlInput: { maxLength: 500 } }}
@@ -755,7 +943,7 @@ export function QualitativePanel({
         {/* Section 3: Comment */}
         <TextField
           size="small"
-          label="Comment (optional)"
+          label={t("qualitative.commentOptional")}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           multiline
@@ -763,22 +951,57 @@ export function QualitativePanel({
           fullWidth
         />
 
-        {/* Section 4: Action button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button
-            variant="contained"
-            disabled={!isFormValid}
-            onClick={() => setSigning(true)}
-            sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
-          >
-            Sign and record result
-          </Button>
-        </Box>
+        {/* Section 4: Action button (on a bench tablet the action bar of the full-screen form) */}
+        {!benchPanel && (
+          <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
+            {formProblem && (
+              <Typography id={signReasonId} variant="body2" color="text.secondary">
+                {formProblem}
+              </Typography>
+            )}
+            <Button
+              variant="contained"
+              disabled={!isFormValid}
+              aria-describedby={formProblem ? signReasonId : undefined}
+              onClick={() => setSigning(true)}
+              sx={{ minWidth: 140, fontWeight: 700, textTransform: "none" }}
+            >
+              {t("qualitative.signAndRecord")}
+            </Button>
+          </Box>
+        )}
       </Stack>
+    </>
+  );
+
+  return (
+    <Box>
+      {benchPanel ? (
+        <>
+          <BenchDialog
+            open={benchOpen}
+            title={t("qualitative.benchTitle", { displayName })}
+            onClose={() => void closeBench()}
+            onSave={keptOffline ? keepDraft : () => setSigning(true)}
+            saving={false}
+            saveLabel={keptOffline ? t("qualitative.keepDraft") : t("qualitative.signAndRecord")}
+            saveDisabledReason={keptOffline ? undefined : (formProblem ?? undefined)}
+            dirty={benchDirty}
+          >
+            <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
+            {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
+            {formBody}
+          </BenchDialog>
+          {!benchOpen && <Button variant="outlined" onClick={() => setBenchOpen(true)}>{t("qualitative.openEntryForm")}</Button>}
+        </>
+      ) : (
+        formBody
+      )}
 
       <SignatureDialog
         open={signing}
         meaningStatement="I entered these qualitative observations and am recording this test result."
+        meaningStatementTranslation={t("qualitative.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

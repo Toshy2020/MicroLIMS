@@ -1,7 +1,12 @@
 import { Button, Chip, Paper, Typography, useTheme } from "@mui/material";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import LayersIcon from "@mui/icons-material/Layers";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
 interface Props {
   selectedCount: number;
@@ -13,6 +18,9 @@ interface Props {
   showingSelectedOnly: boolean;
   onToggleShowSelectedOnly: () => void;
   onClear: () => void;
+  onBulkAssign?: () => void;
+  // Present only for a user who may export; the page logs the export with the server before the file is made.
+  onExport?: () => void;
 }
 
 // Selection used to be invisible until the second checkbox, at which point
@@ -24,9 +32,12 @@ export function SelectionSummaryBar({
   hiddenCount,
   showingSelectedOnly,
   onToggleShowSelectedOnly,
-  onClear
+  onClear,
+  onBulkAssign,
+  onExport
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   if (selectedCount === 0) return null;
 
   const needsMore = selectedCount < 2;
@@ -52,13 +63,19 @@ export function SelectionSummaryBar({
       <LayersIcon sx={{ fontSize: 18, color: theme.custom.status.purple.text }} />
 
       <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.custom.status.purple.text }}>
-        {selectedCount} {selectedCount === 1 ? "sample" : "samples"} selected
+        <Trans
+          i18nKey="selection.selectedCount"
+          ns="receiving"
+          count={selectedCount}
+          values={{ count: selectedCount }}
+          components={{ ltr: <Ltr>{null}</Ltr> }}
+        />
       </Typography>
 
       {hiddenCount > 0 && !showingSelectedOnly && (
         <Chip
           size="small"
-          label={`${hiddenCount} hidden by current filters`}
+          label={t("selection.hiddenCount", { count: hiddenCount })}
           sx={{
             height: 20,
             fontSize: 12,
@@ -72,10 +89,10 @@ export function SelectionSummaryBar({
 
       <Typography sx={{ fontSize: 12, color: "text.secondary", flex: 1, minWidth: 180 }}>
         {showingSelectedOnly
-          ? "Showing only the selected samples; other filters are paused."
+          ? t("selection.showingSelectedOnly")
           : needsMore
-          ? "Select at least one more to open grouped preparation and incubation setup."
-          : "Grouped actions are available for this selection."}
+          ? t("selection.selectMore")
+          : t("selection.groupedAvailable")}
       </Typography>
 
       {(hiddenCount > 0 || showingSelectedOnly) && (
@@ -86,7 +103,31 @@ export function SelectionSummaryBar({
           onClick={onToggleShowSelectedOnly}
           sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
         >
-          {showingSelectedOnly ? "Back to filters" : "Show selected only"}
+          {showingSelectedOnly ? t("selection.backToFilters") : t("selection.showSelectedOnly")}
+        </Button>
+      )}
+
+      {onBulkAssign && (
+        <Button
+          size="small"
+          variant="contained"
+          startIcon={<AssignmentIndIcon sx={{ fontSize: 16 }} />}
+          onClick={onBulkAssign}
+          sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600 }}
+        >
+          {t("selection.assignAnalyst")}
+        </Button>
+      )}
+
+      {onExport && (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<FileDownloadOutlinedIcon sx={{ fontSize: 16 }} />}
+          onClick={onExport}
+          sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
+        >
+          {t("common:table.exportSelected")}
         </Button>
       )}
 
@@ -97,7 +138,7 @@ export function SelectionSummaryBar({
         onClick={onClear}
         sx={{ height: 26, fontSize: 12, textTransform: "none", fontWeight: 600, borderColor: "divider" }}
       >
-        Clear selection
+        {t("selection.clearSelection")}
       </Button>
     </Paper>
   );

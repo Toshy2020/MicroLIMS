@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Box, Paper, Typography, Button, Alert, CircularProgress, Divider, Chip
 } from "@mui/material";
@@ -7,7 +7,11 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
 import { PageHeader } from "../../components/PageHeader";
+import { useTranslation } from "../../i18n";
+import { getErrorMessage } from "../../utils/errorMessage";
 import { ReasonDialog } from "../laboratoryConfiguration/masterDataSimple/solutionMaster/ReasonDialog";
 import { PreparationStatusBadge } from "./components/PreparationStatusBadge";
 import { PreparationComponentsTable } from "./record/PreparationComponentsTable";
@@ -23,20 +27,37 @@ import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { solutionTypeLabel } from "./types";
 import { SolutionPreparationService } from "./services/SolutionPreparationService";
-import { formatLabDate, formatLabDateTime } from "../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type { SolutionPreparationResponse, RecipeSnapshot } from "./types";
+import type { LabelTarget } from "../../services/labelService";
+import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
+import { useTrackRecent } from "../navigation/useTrackRecent";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
 
 export function PreparationRecordPage() {
+  const { t } = useTranslation("solutionPreparation");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { permissions } = useAuth();
   const canRelease = permissions.includes(PERMISSIONS.SOLUTIONS_RELEASE);
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const {
+    dialogOpen: postCreateDialogOpen,
+    targets: postCreateTargets,
+    offerPrint,
+    closeDialog: closePostCreateDialog
+  } = usePostCreateLabelPrint();
+  const consumedOfferRef = useRef<string | null>(null);
 
   const [preparation, setPreparation] = useState<SolutionPreparationResponse | null>(null);
+  useTrackRecent("solution", preparation?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useBreadcrumb(preparation ? [preparation.code, preparation.solutionMasterName].filter(Boolean).join(" ") : error ? t("record.unavailable") : null);
 
   // Reason dialog state for Cancel / Discard
   const [actionType, setActionType] = useState<"cancel" | "discard" | null>(null);
@@ -51,12 +72,11 @@ export function PreparationRecordPage() {
       const data = await SolutionPreparationService.getById(prepId);
       setPreparation(data);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load preparation record.");
+      setError(getErrorMessage(err, t("record.loadError")));
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const refreshPreparation = useCallback(async (prepId: number) => {
     await loadPreparation(prepId, true);
@@ -77,6 +97,17 @@ export function PreparationRecordPage() {
     }
   }, [id, loadPreparation]);
 
+  useEffect(() => {
+    const state = location.state as { offerPrintTarget?: LabelTarget } | null;
+    const target = state?.offerPrintTarget;
+    if (!target) return;
+    const key = `${target.entityType}:${target.entityId}:${target.code}`;
+    if (consumedOfferRef.current === key) return;
+    consumedOfferRef.current = key;
+    offerPrint([target]);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+  }, [location.state, location.pathname, location.search, navigate, offerPrint]);
+
   const recipe = useMemo<RecipeSnapshot | null>(() => {
     if (!preparation?.recipeSnapshotJson) return null;
     try {
@@ -95,7 +126,7 @@ export function PreparationRecordPage() {
   const handleConfirmAction = async () => {
     if (!preparation || !actionType) return;
     if (!reason.trim()) {
-      setActionError("Reason is required.");
+      setActionError(t("record.reasonRequired"));
       return;
     }
 
@@ -104,64 +135,91 @@ export function PreparationRecordPage() {
     try {
       if (actionType === "cancel") {
         await SolutionPreparationService.cancel(preparation.id, reason.trim());
-        toast.success("Preparation cancelled.");
+        toast.success(t("record.cancelledToast"));
       } else {
         await SolutionPreparationService.discard(preparation.id, reason.trim());
-        toast.success("Solution discarded.");
+        toast.success(t("record.discardedToast"));
       }
       setActionType(null);
       await loadPreparation(preparation.id);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setActionError(e.response?.data?.message ?? e.message ?? `Failed to ${actionType} preparation.`);
+      setActionError(
+        getErrorMessage(err, actionType === "cancel" ? t("record.cancelFailed") : t("record.discardFailed"))
+      );
     } finally {
       setActionLoading(false);
     }
   };
 
+  const postCreateDialog = (
+    <PrintLabelsDialog
+      open={postCreateDialogOpen}
+      targets={postCreateTargets}
+      onClose={closePostCreateDialog}
+    />
+  );
+
   if (loading) {
     return (
-      <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <CircularProgress />
-      </Box>
+      <>
+        <Box sx={{ p: 4, display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <CircularProgress />
+        </Box>
+        {postCreateDialog}
+      </>
     );
   }
 
   if (error || !preparation) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error ?? "Preparation not found."}
-        </Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/preparation")}>
-          Back to List
-        </Button>
-      </Box>
+      <>
+        <Box sx={{ p: 3 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error ?? t("record.notFound")}
+          </Alert>
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/preparation")}>
+            {t("record.backToList")}
+          </Button>
+        </Box>
+        {postCreateDialog}
+      </>
     );
   }
 
   const isInProgress = preparation.effectiveStatus === "InProgress";
   const isPrepared = preparation.effectiveStatus === "Prepared";
-  const releaseText = releaseStateText(preparation);
+  const releaseText = releaseStateText(preparation, t);
   const awaitingRelease = preparation.approvalStatus === "PendingReview";
   const showRelease = canRelease && awaitingRelease;
   const hasAutoclave = Boolean(preparation.autoclaveEquipmentId) || recipe?.sterilizationRequired === true;
+  const typeLabel = solutionTypeLabel(preparation.type, t);
+  const subtitle = preparation.hplcMethodAbbreviation
+    ? t("record.subtitleWithMethod", { type: typeLabel, recipe: preparation.solutionMasterName, method: preparation.hplcMethodAbbreviation })
+    : t("record.subtitle", { type: typeLabel, recipe: preparation.solutionMasterName });
 
   return (
     <Box sx={{ p: 3, maxWidth: 1100, mx: "auto" }}>
       <PageHeader
         title={preparation.code || preparation.solutionMasterName}
-        subtitle={`${solutionTypeLabel(preparation.type)} · Recipe: ${preparation.solutionMasterName}${preparation.hplcMethodAbbreviation ? ` · Method: ${preparation.hplcMethodAbbreviation}` : ""}`}
+        subtitle={subtitle}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
           <PreparationStatusBadge status={preparation.effectiveStatus} size="medium" />
+          <PrintLabelButton
+            target={{
+              entityType: "SolutionPreparation",
+              entityId: preparation.id,
+              code: preparation.code ?? "",
+              displayName: preparation.solutionMasterName || preparation.code || t("record.defaultPrintName")
+            }}
+          />
           <Button
             variant="outlined"
             size="small"
             startIcon={<ArrowBackIcon />}
             onClick={() => navigate("/preparation")}
           >
-            Back to List
+            {t("record.backToList")}
           </Button>
         </Box>
       </PageHeader>
@@ -170,37 +228,42 @@ export function PreparationRecordPage() {
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
           <Box>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Code</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("record.codeLabel")}</Typography>
             <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-              {preparation.code || "In progress (no code yet)"}
+              {preparation.code ? <Ltr>{preparation.code}</Ltr> : t("record.noCodeYet")}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Started By / At</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("record.startedByAt")}</Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {preparation.startedByUserName || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {formatLabDateTime(preparation.startedAt)}
+              <Ltr>{formatDateTimeWithTimeZone(preparation.startedAt)}</Ltr>
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Prepared By / At</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("record.preparedByAt")}</Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {preparation.preparedByUserName || "—"}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {preparation.preparedAt ? formatLabDateTime(preparation.preparedAt) : "Not yet prepared"}
+              {preparation.preparedAt ? <Ltr>{formatDateTimeWithTimeZone(preparation.preparedAt)}</Ltr> : t("record.notYetPrepared")}
             </Typography>
           </Box>
           <Box>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>Expires At</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>{t("record.expiresAt")}</Typography>
             <Typography variant="body2" sx={{ fontWeight: 700, color: preparation.effectiveStatus === "Expired" ? "error.main" : "text.primary" }}>
-              {preparation.expiresAt ? formatLabDate(preparation.expiresAt) : "—"}
+              {preparation.expiresAt ? <Ltr>{formatDateTimeWithTimeZone(preparation.expiresAt)}</Ltr> : "—"}
             </Typography>
             {recipe && (
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Shelf life: {recipe.shelfLifeValue} {recipe.shelfLifeUnit}
+                <Trans
+                  i18nKey="record.shelfLife"
+                  ns="solutionPreparation"
+                  values={{ value: recipe.shelfLifeValue, unit: recipe.shelfLifeUnit }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             )}
           </Box>
@@ -211,7 +274,14 @@ export function PreparationRecordPage() {
         {/* Quantities & Parameters */}
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
           <Chip
-            label={`Final Volume: ${preparation.finalVolumeMl ?? "—"} mL`}
+            label={
+              <Trans
+                i18nKey="record.finalVolumeChip"
+                ns="solutionPreparation"
+                values={{ value: preparation.finalVolumeMl ?? "—" }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
+            }
             color="primary"
             variant="outlined"
             size="small"
@@ -219,7 +289,23 @@ export function PreparationRecordPage() {
           />
           {preparation.measuredPh != null && (
             <Chip
-              label={`Measured pH: ${preparation.measuredPh}${recipe?.phTarget != null ? ` (Target: ${recipe.phTarget} ± ${recipe.phTolerance ?? 0})` : ""}`}
+              label={
+                recipe?.phTarget != null ? (
+                  <Trans
+                    i18nKey="record.measuredPhTargetChip"
+                    ns="solutionPreparation"
+                    values={{ value: preparation.measuredPh, target: recipe.phTarget, tolerance: recipe.phTolerance ?? 0 }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                ) : (
+                  <Trans
+                    i18nKey="record.measuredPhChip"
+                    ns="solutionPreparation"
+                    values={{ value: preparation.measuredPh }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
+                )
+              }
               size="small"
               variant="outlined"
               sx={{ fontWeight: 600 }}
@@ -227,7 +313,7 @@ export function PreparationRecordPage() {
           )}
           {recipe?.storageCondition && (
             <Chip
-              label={`Storage: ${recipe.storageCondition}`}
+              label={t("record.storageChip", { condition: recipe.storageCondition })}
               size="small"
               variant="outlined"
               sx={{ fontWeight: 500 }}
@@ -247,7 +333,7 @@ export function PreparationRecordPage() {
         {recipe?.instructions && (
           <Box sx={{ p: 1.5, bgcolor: "action.hover", borderRadius: 1, mt: 1 }}>
             <Typography variant="caption" sx={{ fontWeight: 700, display: "block", mb: 0.5 }}>
-              Recipe Instructions:
+              {t("record.recipeInstructions")}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", whiteSpace: "pre-wrap" }}>
               {recipe.instructions}
@@ -269,27 +355,36 @@ export function PreparationRecordPage() {
       {hasAutoclave && (
         <Paper variant="outlined" sx={{ p: 3, mb: 3 }} data-testid="autoclave-record">
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-            Autoclave
+            {t("record.autoclaveHeading")}
           </Typography>
           {preparation.autoclaveEquipmentId ? (
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)" }, gap: 2 }}>
               {[
-                ["Autoclave", preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}`],
-                ["Program", preparation.autoclaveProgram ?? "—"],
-                ["Load type", preparation.loadType ?? "—"],
-                ["Temperature", preparation.autoclaveTemperature != null ? `${preparation.autoclaveTemperature} °C` : "—"],
-                ["Cycle time", preparation.autoclaveCycleTime != null ? `${preparation.autoclaveCycleTime} min` : "—"],
-                ["Cycle number", preparation.autoclaveCycleNumber != null ? String(preparation.autoclaveCycleNumber) : "—"]
-              ].map(([label, value]) => (
-                <Box key={label}>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{label}</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{value}</Typography>
+                { label: t("record.autoclaveFields.autoclave"), value: preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}` },
+                { label: t("record.autoclaveFields.program"), value: preparation.autoclaveProgram ?? "—" },
+                { label: t("record.autoclaveFields.loadType"), value: preparation.loadType ?? "—" },
+                {
+                  label: t("record.autoclaveFields.temperature"),
+                  value: preparation.autoclaveTemperature != null ? <Ltr>{t("units.celsius", { value: preparation.autoclaveTemperature })}</Ltr> : "—"
+                },
+                {
+                  label: t("record.autoclaveFields.cycleTime"),
+                  value: preparation.autoclaveCycleTime != null ? <Ltr>{t("units.minutes", { value: preparation.autoclaveCycleTime })}</Ltr> : "—"
+                },
+                {
+                  label: t("record.autoclaveFields.cycleNumber"),
+                  value: preparation.autoclaveCycleNumber != null ? <Ltr>{String(preparation.autoclaveCycleNumber)}</Ltr> : "—"
+                }
+              ].map((item) => (
+                <Box key={item.label}>
+                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{item.label}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.value}</Typography>
                 </Box>
               ))}
             </Box>
           ) : (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Sterilization is required for this recipe; the autoclave record has not been entered yet.
+              {t("record.autoclaveNotEntered")}
             </Typography>
           )}
         </Paper>
@@ -298,7 +393,7 @@ export function PreparationRecordPage() {
       {/* Components Table */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-          Recipe Components & Consumed Lots
+          {t("record.componentsHeading")}
         </Typography>
         <PreparationComponentsTable components={preparation.components} />
       </Paper>
@@ -307,7 +402,7 @@ export function PreparationRecordPage() {
       {preparation.type === "Titrant" && (
         <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-            Standardization History
+            {t("record.standardizationHistoryHeading")}
           </Typography>
           <StandardizationHistoryTable
             standardizations={standardizations}
@@ -326,7 +421,7 @@ export function PreparationRecordPage() {
       {/* Status History */}
       <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
-          Status History
+          {t("record.statusHistoryHeading")}
         </Typography>
         <PreparationHistoryTable history={preparation.statusHistory} />
       </Paper>
@@ -340,7 +435,7 @@ export function PreparationRecordPage() {
               onClick={() => setReleaseOpen(true)}
               sx={{ textTransform: "none", fontWeight: 700 }}
             >
-              Release
+              {t("record.releaseAction")}
             </Button>
           )}
           {isInProgress && (
@@ -351,7 +446,7 @@ export function PreparationRecordPage() {
                 startIcon={<CancelOutlinedIcon />}
                 onClick={() => handleOpenAction("cancel")}
               >
-                Cancel Preparation
+                {t("record.cancelAction")}
               </Button>
               <Button
                 variant="contained"
@@ -359,7 +454,7 @@ export function PreparationRecordPage() {
                 onClick={() => navigate(`/preparation/${preparation.id}/edit`)}
                 sx={{ textTransform: "none", fontWeight: 700 }}
               >
-                Resume Preparation
+                {t("record.resumeAction")}
               </Button>
             </>
           )}
@@ -371,7 +466,7 @@ export function PreparationRecordPage() {
               startIcon={<DeleteOutlineOutlinedIcon />}
               onClick={() => handleOpenAction("discard")}
             >
-              Discard Solution
+              {t("record.discardAction")}
             </Button>
           )}
         </Box>
@@ -392,23 +487,21 @@ export function PreparationRecordPage() {
       {/* Cancel / Discard Reason Dialog */}
       <ReasonDialog
         open={Boolean(actionType)}
-        title={actionType === "cancel" ? "Cancel Preparation" : "Discard Solution"}
+        title={actionType === "cancel" ? t("record.cancelDialogTitle") : t("record.discardDialogTitle")}
         onClose={() => { if (!actionLoading) setActionType(null); }}
         onConfirm={handleConfirmAction}
-        confirmText={actionType === "cancel" ? "Cancel Preparation" : "Discard Solution"}
+        confirmText={actionType === "cancel" ? t("record.cancelDialogTitle") : t("record.discardDialogTitle")}
         confirmColor="error"
         loading={actionLoading}
-        loadingText="Submitting..."
+        loadingText={t("record.submitting")}
         error={actionError}
         reason={reason}
         onReasonChange={setReason}
-        label="Reason *"
-        placeholder={actionType === "cancel" ? "State the operational reason for cancelling this preparation..." : "State the reason for discarding this prepared solution..."}
+        label={t("record.reasonLabel")}
+        placeholder={actionType === "cancel" ? t("record.cancelPlaceholder") : t("record.discardPlaceholder")}
       >
         <Alert severity="warning" sx={{ fontSize: 13 }}>
-          {actionType === "cancel"
-            ? "Cancelling this preparation will close it permanently. No stock will be consumed."
-            : "Discarding this solution will mark it as discarded. Stock consumed at preparation time will not be restored."}
+          {actionType === "cancel" ? t("record.cancelWarning") : t("record.discardWarning")}
         </Alert>
       </ReasonDialog>
 
@@ -421,6 +514,8 @@ export function PreparationRecordPage() {
           onSuccess={handleSuccess}
         />
       )}
+
+      {postCreateDialog}
     </Box>
   );
 }

@@ -13,12 +13,13 @@ import HistoryIcon from "@mui/icons-material/History";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import TimelineIcon from "@mui/icons-material/Timeline";
 import CodeIcon from "@mui/icons-material/Code";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";
 import { AuditTraceabilityChain } from "./AuditTraceabilityChain";
 import { AuditRawJsonViewer } from "./AuditRawJsonViewer";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   open: boolean;
@@ -40,6 +41,7 @@ export function AuditEventDrawer({
   onViewRecordHistory
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("auditSearch");
   if (!event) return null;
 
   const friendlyEntity = ENTITY_DISPLAY_NAMES[event.entityName] ?? event.entityName;
@@ -74,7 +76,7 @@ export function AuditEventDrawer({
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
             <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-              Audit Event #{event.id}
+              {t("drawer.title", { id: event.id })}
             </Typography>
             <Chip
               label={event.action.toUpperCase()}
@@ -87,11 +89,11 @@ export function AuditEventDrawer({
             {friendlyEntity} · ID: <span style={{ fontFamily: "monospace" }}>{event.entityId}</span>
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-            Timestamp: {formatLabDateTime(event.timestamp)} UTC
+            {t("drawer.timestamp", { time: formatDateTimeWithTimeZone(event.timestamp) })}
           </Typography>
         </Box>
 
-        <IconButton aria-label="Close audit event details" size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+        <IconButton aria-label={t("drawer.closeAria")} size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -103,7 +105,7 @@ export function AuditEventDrawer({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <PersonIcon sx={{ fontSize: 18, color: "primary.main" }} />
             <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-              User Identity
+              {t("drawer.userIdentity")}
             </Typography>
           </Box>
           <Box
@@ -119,10 +121,10 @@ export function AuditEventDrawer({
               {event.userName}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
-              {event.userCurrentRole ? `Current role: ${event.userCurrentRole}` : "User"}
+              {event.userCurrentRole ? t("results.currentRole", { role: event.userCurrentRole }) : t("results.userFallback")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5, fontFamily: "monospace" }}>
-              User ID: #{event.userId} {event.userUsername ? `(${event.userUsername})` : ""}
+              {t("drawer.userId", { id: event.userId })} {event.userUsername ? `(${event.userUsername})` : ""}
             </Typography>
           </Box>
         </Box>
@@ -132,7 +134,7 @@ export function AuditEventDrawer({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <EventNoteIcon sx={{ fontSize: 18, color: "primary.main" }} />
             <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-              Changed Fields (Inline Diff)
+              {t("drawer.changedInline")}
             </Typography>
           </Box>
           <AuditDiffViewer
@@ -149,7 +151,7 @@ export function AuditEventDrawer({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <TimelineIcon sx={{ fontSize: 18, color: "primary.main" }} />
             <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-              Record Traceability
+              {t("drawer.traceability")}
             </Typography>
           </Box>
           <AuditTraceabilityChain
@@ -165,7 +167,7 @@ export function AuditEventDrawer({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
             <CodeIcon sx={{ fontSize: 18, color: "primary.main" }} />
             <Typography sx={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", color: "text.secondary" }}>
-              Raw Storage
+              {t("drawer.rawStorage")}
             </Typography>
           </Box>
           <AuditRawJsonViewer
@@ -183,7 +185,7 @@ export function AuditEventDrawer({
             onClick={() => onViewRecordHistory(event.entityName, event.entityId)}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            View Complete History for {event.entityName} #{event.entityId}
+            {t("drawer.viewHistory", { entity: event.entityName, id: event.entityId })}
           </Button>
         </Box>
       </Box>

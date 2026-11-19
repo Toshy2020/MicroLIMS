@@ -10,6 +10,7 @@ import { ArchivedRecordsService, ArchivedRecordSummary } from "../../testingWork
 import { CryovialSummary } from "./types/cryovialSummaryTypes";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { lightTheme } from "../../../theme";
+import { PrintLabelButton } from "../../../components/labels/PrintLabelButton";
 
 function approvalTone(s: CryovialSummary): "" | "is-danger" | "is-warning" | "is-neutral" {
   if (s.isDestroyed || s.approvalStatus === "Rejected") return "is-danger";
@@ -77,6 +78,16 @@ export function CryovialReportPage() {
               {approvalLabel(s)}
             </div>
             <div className="header-date">Prepared {dt(s.preparedAt)}</div>
+            <div className="no-print" style={{ marginTop: 8 }}>
+              <PrintLabelButton
+                target={{
+                  entityType: "Cryovial",
+                  entityId: s.cryovialId,
+                  code: s.code,
+                  displayName: s.organismName || s.code
+                }}
+              />
+            </div>
           </div>
         </div>
 

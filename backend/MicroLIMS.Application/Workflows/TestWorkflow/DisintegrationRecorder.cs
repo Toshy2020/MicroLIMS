@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,6 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
@@ -26,9 +26,9 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.UnitMinutes == null)
-            throw new BusinessRuleException("Unit minutes are required.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationUnitMinutesRequired, "Unit minutes are required.");
         if (payload.UnitMinutes.Any(u => u.HasValue && u.Value <= 0m))
-            throw new BusinessRuleException("Disintegration time must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationTimePositive, "Disintegration time must be greater than zero.");
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Disintegration, userId);
@@ -40,7 +40,10 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         var stageConfig = new DisintegrationStageConfig(s1Units, s2Units, maxStage1Failures, minPassTotal);
 
         if (payload.UnitMinutes.Count != s1Units)
-            throw new BusinessRuleException($"Stage 1 disintegration requires exactly {s1Units} units.");
+            throw new BusinessRuleException(
+                MessageCodes.DisintegrationStage1UnitCount,
+                $"Stage 1 disintegration requires exactly {s1Units} units.",
+                new Dictionary<string, string> { ["count"] = s1Units.ToString(CultureInfo.InvariantCulture) });
 
         var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
             ? Array.Empty<string>()
@@ -52,27 +55,40 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         if (configuredLabels.Length > 0)
         {
             if (payload.Conditions == null)
-                throw new BusinessRuleException("Conditions are required.");
+                throw new BusinessRuleException(MessageCodes.DissolutionConditionsRequired, "Conditions are required.");
 
             if (payload.Conditions.Count != configuredLabels.Length)
-                throw new BusinessRuleException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+                throw new BusinessRuleException(
+                    MessageCodes.DissolutionConditionCountMismatch,
+                    $"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.",
+                    new Dictionary<string, string>
+                    {
+                        ["expected"] = configuredLabels.Length.ToString(CultureInfo.InvariantCulture),
+                        ["received"] = payload.Conditions.Count.ToString(CultureInfo.InvariantCulture),
+                    });
 
             foreach (var label in configuredLabels)
             {
                 if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
-                    throw new BusinessRuleException($"Condition field \"{label}\" is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.DissolutionConditionFieldRequired,
+                        $"Condition field \"{label}\" is required.",
+                        new Dictionary<string, string> { ["field"] = label });
             }
 
             foreach (var key in payload.Conditions.Keys)
             {
                 if (!configuredLabels.Contains(key))
-                    throw new BusinessRuleException($"Unexpected condition field \"{key}\".");
+                    throw new BusinessRuleException(
+                        MessageCodes.DissolutionUnexpectedConditionField,
+                        $"Unexpected condition field \"{key}\".",
+                        new Dictionary<string, string> { ["field"] = key });
             }
         }
         else
         {
             if (payload.Conditions != null && payload.Conditions.Count > 0)
-                throw new BusinessRuleException("No condition fields are configured for this test.");
+                throw new BusinessRuleException(MessageCodes.DissolutionNoConditionFieldsConfigured, "No condition fields are configured for this test.");
         }
 
         string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
@@ -188,6 +204,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         };
 
         _db.TestAnalyses.Add(entry);
+        await _publisher.ResolveAsync($"TestReturned:test:{order.Id}");
         await _db.SaveChangesAsync();
 
         var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
@@ -229,29 +246,38 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
-            throw new BusinessRuleException("Password is required to sign the result.");
+            throw new BusinessRuleException(MessageCodes.DissolutionPasswordRequired, "Password is required to sign the result.");
         if (payload.UnitMinutes == null || payload.UnitMinutes.Count == 0)
-            throw new BusinessRuleException("Unit minutes are required.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationUnitMinutesRequired, "Unit minutes are required.");
         if (payload.UnitMinutes.Any(u => u.HasValue && u.Value <= 0m))
-            throw new BusinessRuleException("Disintegration time must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationTimePositive, "Disintegration time must be greater than zero.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         RequireOrderNotFinalized(order);
 
         if (order.IsSuperseded)
-            throw new BusinessRuleException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException(MessageCodes.DissolutionSupersededOrder, "Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.DissolutionTestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         if (definition.WorkflowType != WorkflowType.Disintegration)
-            throw new BusinessRuleException($"Test order {testOrderId} is not a Disintegration workflow.");
+            throw new BusinessRuleException(
+                MessageCodes.DisintegrationWrongWorkflow,
+                $"Test order {testOrderId} is not a Disintegration workflow.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
@@ -259,21 +285,21 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
             .Include(e => e.ParameterResults)
                 .ThenInclude(pr => pr.Readings)
             .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
-            ?? throw new BusinessRuleException("No active disintegration entry found for this test order.");
+            ?? throw new BusinessRuleException(MessageCodes.DisintegrationNoActiveEntry, "No active disintegration entry found for this test order.");
 
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
-            ?? throw new BusinessRuleException("No active disintegration parameter result found.");
+            ?? throw new BusinessRuleException(MessageCodes.DisintegrationNoActiveParameterResult, "No active disintegration parameter result found.");
 
         if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
-            throw new BusinessRuleException("Active disintegration analysis does not require a next stage.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationNextStageNotRequired, "Active disintegration analysis does not require a next stage.");
 
         if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
-            throw new BusinessRuleException("Active disintegration parameter result lacks calculation data.");
+            throw new BusinessRuleException(MessageCodes.DisintegrationMissingCalculationData, "Active disintegration parameter result lacks calculation data.");
 
         var prevCalc = JsonSerializer.Deserialize<DisintegrationCalculationData>(
             paramResult.CalculationJson,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-            ?? throw new BusinessRuleException("Failed to deserialize disintegration calculation data.");
+            ?? throw new BusinessRuleException(MessageCodes.DisintegrationCalculationDataDeserializationFailed, "Failed to deserialize disintegration calculation data.");
 
         // Stage 2 is judged by the limit and stage rules snapshotted at stage 1, so a
         // Test Master or specification edit between the stages cannot change the rules.
@@ -286,10 +312,16 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
 
         int existingUnitCount = paramResult.Readings.Count;
         if (existingUnitCount != s1Units)
-            throw new BusinessRuleException($"Invalid existing unit count ({existingUnitCount}) for next stage.");
+            throw new BusinessRuleException(
+                MessageCodes.DisintegrationInvalidExistingUnitCount,
+                $"Invalid existing unit count ({existingUnitCount}) for next stage.",
+                new Dictionary<string, string> { ["count"] = existingUnitCount.ToString(CultureInfo.InvariantCulture) });
 
         if (payload.UnitMinutes.Count != s2Units)
-            throw new BusinessRuleException($"Stage 2 disintegration requires exactly {s2Units} units.");
+            throw new BusinessRuleException(
+                MessageCodes.DisintegrationStage2UnitCount,
+                $"Stage 2 disintegration requires exactly {s2Units} units.",
+                new Dictionary<string, string> { ["count"] = s2Units.ToString(CultureInfo.InvariantCulture) });
 
         var allUnits = new List<decimal?>();
         foreach (var r in paramResult.Readings.OrderBy(r => r.Index))

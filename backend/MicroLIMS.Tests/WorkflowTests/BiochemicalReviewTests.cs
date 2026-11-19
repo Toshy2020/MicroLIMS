@@ -131,12 +131,10 @@ public class BiochemicalReviewTests
         await engine.RecordAnalystDecisionAsync(orderId, AnalystDecision.SubmitAsDetected, AnalystId);
         var resultId = (await db.WorkflowStepResults.SingleAsync(r => r.StepName == "Confirmatory Plating")).Id;
 
-        // A fresh engine sharing the same db, wired to a spy so the
-        // "NotifiesTheAnalyst" half of this test's name is actually
-        // checked - PathogenTestData.SeedFiveStageOrderAsync sets
+        // A fresh engine sharing the same db verifies the analyst notification
+        // persisted for the bell — PathogenTestData.SeedFiveStageOrderAsync sets
         // AssignedAnalystId = AnalystId specifically for this.
-        var spy = new SpyNotificationService();
-        var notifyingEngine = TestServiceFactory.TestWorkflow(db, spy);
+        var notifyingEngine = TestServiceFactory.TestWorkflow(db);
         await notifyingEngine.RecordBiochemicalReviewDecisionAsync(resultId, approve: false, "Required per SOP-MB-007.", ReviewerId);
 
         var stored = await db.WorkflowStepResults.SingleAsync(r => r.Id == resultId);
@@ -148,11 +146,7 @@ public class BiochemicalReviewTests
         var order = await db.TestOrders.Include(t => t.Sample).SingleAsync(t => t.Id == orderId);
         var expectedMessage = $"Test {order.TestCode} for sample {order.Sample!.ReferenceNumber} was returned for biochemical confirmation: Required per SOP-MB-007.";
 
-        var notification = Assert.Single(spy.Sent);
-        Assert.Equal(AnalystId, notification.UserId);
-        Assert.Equal(expectedMessage, notification.Message);
-
-        // Also persisted, so it survives in the analyst's notification bell.
+        // Persisted so it survives in the analyst's notification bell.
         var logged = Assert.Single(await db.NotificationLogs.Where(n => n.Type == "TestReturnedForBiochemical").ToListAsync());
         Assert.Equal(AnalystId, logged.UserId);
         Assert.Equal(expectedMessage, logged.Message);

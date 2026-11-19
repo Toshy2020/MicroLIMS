@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Logging;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
@@ -28,16 +30,42 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public uint? ExpectedVersion { get; set; }
     public string? CurrentReason { get; set; }
 
+    // Set by DraftContextMiddleware; copied to AuditLog.SourceContext for the
+    // rows the automatic capture builds. Never changes the audit timestamp.
+    public string? CurrentSourceContext { get; set; }
+
     // Stamps every audit row (CLAUDE.md Rule 3.3.2 / 5.6): the application's
     // injected TimeProvider, never the static system clock, so audit time and
     // every time-dependent rule share one clock that tests can control.
     private readonly TimeProvider _clock = TimeProvider.System;
+    private readonly ILiveSignalPublisher? _signalPublisher;
+    private readonly ILogger<MicroLimsDbContext>? _logger;
+    private readonly object _signalsLock = new();
+    private readonly List<LiveSignal> _pendingSignals = new();
+    private readonly HashSet<LiveSignal> _pendingSignalSet = new();
+    private static readonly SignalTransactionInterceptor s_signalInterceptor = new();
 
     public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options) : base(options) { }
 
     // The DI container picks this constructor (TimeProvider is registered as a
     // singleton), so production audit rows use the application clock.
-    public MicroLimsDbContext(DbContextOptions<MicroLimsDbContext> options, TimeProvider clock) : base(options) => _clock = clock;
+    public MicroLimsDbContext(
+        DbContextOptions<MicroLimsDbContext> options,
+        TimeProvider clock,
+        ILiveSignalPublisher? signalPublisher = null,
+        ILogger<MicroLimsDbContext>? logger = null)
+        : base(options)
+    {
+        _clock = clock;
+        _signalPublisher = signalPublisher;
+        _logger = logger;
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.AddInterceptors(s_signalInterceptor);
+    }
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Role> Roles => Set<Role>();
@@ -49,6 +77,16 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
     public DbSet<AdminPasswordRecovery> AdminPasswordRecoveries => Set<AdminPasswordRecovery>();
+    public DbSet<UserMfaCredential> UserMfaCredentials => Set<UserMfaCredential>();
+    public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
+    public DbSet<MfaChallenge> MfaChallenges => Set<MfaChallenge>();
+    public DbSet<UserUiState> UserUiStates => Set<UserUiState>();
+    public DbSet<RecentRecord> RecentRecords => Set<RecentRecord>();
+    public DbSet<TableView> TableViews => Set<TableView>();
+    public DbSet<UserTableDefault> UserTableDefaults => Set<UserTableDefault>();
+    public DbSet<TrustedDevice> TrustedDevices => Set<TrustedDevice>();
+    public DbSet<SsoPendingRequest> SsoPendingRequests => Set<SsoPendingRequest>();
+    public DbSet<SsoExchangeCode> SsoExchangeCodes => Set<SsoExchangeCode>();
     public DbSet<ElectronicSignature> ElectronicSignatures => Set<ElectronicSignature>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Specification> Specifications => Set<Specification>();
@@ -65,6 +103,12 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions => Set<BiologicalWasteDestruction>();
     public DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems => Set<BiologicalWasteDestructionItem>();
     public DbSet<NotificationLog> NotificationLogs => Set<NotificationLog>();
+    public DbSet<EmailOutbox> EmailOutbox => Set<EmailOutbox>();
+    public DbSet<UserNotificationPreference> UserNotificationPreferences => Set<UserNotificationPreference>();
+    public DbSet<MandatoryNotificationType> MandatoryNotificationTypes => Set<MandatoryNotificationType>();
+    public DbSet<EscalationRule> EscalationRules => Set<EscalationRule>();
+    public DbSet<EscalationEvent> EscalationEvents => Set<EscalationEvent>();
+    public DbSet<LabWorkingHours> LabWorkingHours => Set<LabWorkingHours>();
     public DbSet<Sample> Samples => Set<Sample>();
     public DbSet<SampleSectionSignoff> SampleSectionSignoffs => Set<SampleSectionSignoff>();
     public DbSet<SampleTest> SampleTests => Set<SampleTest>();
@@ -140,6 +184,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<SystemSettingVersion> SystemSettingVersions => Set<SystemSettingVersion>();
     public DbSet<AccessReview> AccessReviews => Set<AccessReview>();
     public DbSet<AccessReviewFinding> AccessReviewFindings => Set<AccessReviewFinding>();
+    public DbSet<AuditTrailReview> AuditTrailReviews => Set<AuditTrailReview>();
+    public DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings => Set<AuditTrailReviewFinding>();
     public DbSet<AnalystAvailability> AnalystAvailabilities => Set<AnalystAvailability>();
 
     // Media Configuration
@@ -231,6 +277,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
+    public DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings => Set<SectionSelfAssignmentSetting>();
     public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();
@@ -265,6 +312,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<NotApplicableTest> NotApplicableTests => Set<NotApplicableTest>();
     public DbSet<BackgroundJobRun> BackgroundJobRuns => Set<BackgroundJobRun>();
     public DbSet<BackupRun> BackupRuns => Set<BackupRun>();
+    public DbSet<LabelPrintLog> LabelPrintLogs => Set<LabelPrintLog>();
+    public DbSet<LabelFormat> LabelFormats => Set<LabelFormat>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -518,6 +567,77 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames) =>
         UniqueIndexSave.TrySaveChangesAsync(this, uniqueIndexNames);
 
+    public void QueueSignal(string kind, string key) =>
+        QueueSignal(kind, key, CurrentUserId);
+
+    public void QueueSignal(string kind, string key, int? actorUserId)
+    {
+        if (string.IsNullOrWhiteSpace(kind) || string.IsNullOrWhiteSpace(key))
+            return;
+
+        var signal = new LiveSignal(kind, key, actorUserId);
+        lock (_signalsLock)
+        {
+            if (_pendingSignalSet.Add(signal))
+                _pendingSignals.Add(signal);
+        }
+    }
+
+    public async Task FlushSignalsAsync(CancellationToken cancellationToken = default)
+    {
+        var batch = DrainPendingSignals();
+        if (batch is null || _signalPublisher is null)
+            return;
+
+        try
+        {
+            await _signalPublisher.PublishAsync(batch, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Live signal publish failed for {Count} signal(s) after commit", batch.Length);
+        }
+    }
+
+    internal void FlushSignalsSync()
+    {
+        var batch = DrainPendingSignals();
+        if (batch is null || _signalPublisher is null)
+            return;
+
+        try
+        {
+            _signalPublisher.PublishAsync(batch, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Live signal publish failed for {Count} signal(s) after commit", batch.Length);
+        }
+    }
+
+    public void DiscardSignals()
+    {
+        lock (_signalsLock)
+        {
+            _pendingSignals.Clear();
+            _pendingSignalSet.Clear();
+        }
+    }
+
+    private LiveSignal[]? DrainPendingSignals()
+    {
+        lock (_signalsLock)
+        {
+            if (_pendingSignals.Count == 0)
+                return null;
+
+            var batch = _pendingSignals.ToArray();
+            _pendingSignals.Clear();
+            _pendingSignalSet.Clear();
+            return batch;
+        }
+    }
+
     // Frozen Principle #5 - Traceability. Captures every insert/update/
     // delete automatically so no service can forget to log a change.
     //
@@ -531,32 +651,147 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public override int SaveChanges()
     {
         var pending = CapturePendingAuditEntries();
+        var recordChanges = CaptureRecordChanges();
         if (pending.Count == 0)
-            return base.SaveChanges();
+        {
+            try
+            {
+                var writtenZero = base.SaveChanges();
+                QueueRecordSignals(recordChanges);
+                if (Database.CurrentTransaction is null)
+                    FlushSignalsSync();
+                return writtenZero;
+            }
+            catch
+            {
+                if (Database.CurrentTransaction is null)
+                    DiscardSignals();
+                throw;
+            }
+        }
 
         var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
         using var tx = ownsTransaction ? Database.BeginTransaction() : null;
-        var written = base.SaveChanges();
-        AddAuditLogs(pending);
-        written += base.SaveChanges();
-        tx?.Commit();
-        return written;
+        try
+        {
+            var written = base.SaveChanges();
+            QueueRecordSignals(recordChanges);
+            AddAuditLogs(pending);
+            written += base.SaveChanges();
+            tx?.Commit();
+            if (Database.CurrentTransaction is null)
+                FlushSignalsSync();
+            return written;
+        }
+        catch
+        {
+            if (ownsTransaction || Database.CurrentTransaction is null)
+                DiscardSignals();
+            throw;
+        }
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var pending = CapturePendingAuditEntries();
+        var recordChanges = CaptureRecordChanges();
         if (pending.Count == 0)
-            return await base.SaveChangesAsync(cancellationToken);
+        {
+            try
+            {
+                var writtenZero = await base.SaveChangesAsync(cancellationToken);
+                QueueRecordSignals(recordChanges);
+                if (Database.CurrentTransaction is null)
+                    await FlushSignalsAsync(cancellationToken);
+                return writtenZero;
+            }
+            catch
+            {
+                if (Database.CurrentTransaction is null)
+                    DiscardSignals();
+                throw;
+            }
+        }
 
         var ownsTransaction = Database.IsRelational() && Database.CurrentTransaction is null;
         await using var tx = ownsTransaction ? await Database.BeginTransactionAsync(cancellationToken) : null;
-        var written = await base.SaveChangesAsync(cancellationToken);
-        AddAuditLogs(pending);
-        written += await base.SaveChangesAsync(cancellationToken);
-        if (tx is not null)
-            await tx.CommitAsync(cancellationToken);
-        return written;
+        try
+        {
+            var written = await base.SaveChangesAsync(cancellationToken);
+            QueueRecordSignals(recordChanges);
+            AddAuditLogs(pending);
+            written += await base.SaveChangesAsync(cancellationToken);
+            if (tx is not null)
+                await tx.CommitAsync(cancellationToken);
+            if (Database.CurrentTransaction is null)
+                await FlushSignalsAsync(cancellationToken);
+            return written;
+        }
+        catch
+        {
+            if (ownsTransaction || Database.CurrentTransaction is null)
+                DiscardSignals();
+            throw;
+        }
+    }
+
+    // "Changed by someone else" banner support. Entity type -> the record type name that
+    // LiveHub.WatchRecord accepts. Signals are only queued here (data-free; flushed after commit
+    // and discarded on rollback by the save paths above); no audit behaviour depends on this.
+    private static readonly IReadOnlyDictionary<Type, string> RecordSignalTypes = new Dictionary<Type, string>
+    {
+        [typeof(Sample)] = "sample",
+        [typeof(TestOrder)] = "testOrder",
+        [typeof(DocumentMaster)] = "document",
+        [typeof(Specification)] = "specification",
+        [typeof(Equipment)] = "equipment",
+        [typeof(SolutionMaster)] = "solutionMaster",
+        [typeof(MaterialMasterEntry)] = "materialMasterEntry",
+        [typeof(Item)] = "item",
+        [typeof(Department)] = "department",
+        [typeof(Room)] = "room",
+        [typeof(RoomTestConfiguration)] = "roomTestConfiguration",
+        [typeof(WaterDepartment)] = "waterDepartment",
+        [typeof(WaterSamplingPoint)] = "waterSamplingPoint",
+        [typeof(WaterPointLabFrequency)] = "waterPointLabFrequency",
+        [typeof(Machine)] = "machine",
+        [typeof(MachinePart)] = "machinePart",
+        [typeof(MachinePartConfiguration)] = "machinePartConfiguration"
+    };
+
+    private sealed record RecordChange(
+        Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry, string Type, int? KnownId);
+
+    private List<RecordChange> CaptureRecordChanges()
+    {
+        var changes = new List<RecordChange>();
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted))
+                continue;
+            if (!RecordSignalTypes.TryGetValue(entry.Entity.GetType(), out var type))
+                continue;
+            // An added row has only a temporary key until it is inserted; read it after the save.
+            int? knownId = entry.State == EntityState.Added ? null : ReadIntId(entry);
+            changes.Add(new RecordChange(entry, type, knownId));
+        }
+        return changes;
+    }
+
+    private void QueueRecordSignals(List<RecordChange> changes)
+    {
+        foreach (var change in changes)
+        {
+            var id = change.KnownId ?? ReadIntId(change.Entry);
+            if (id is > 0)
+                QueueSignal(LiveSignalKinds.Record, $"record:{change.Type}:{id}", CurrentUserId);
+        }
+    }
+
+    private static int? ReadIntId(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry)
+    {
+        var property = entry.Metadata.FindProperty("Id");
+        return property is not null && entry.Property("Id").CurrentValue is int id ? id : null;
     }
 
     private sealed record PendingAuditEntry(
@@ -578,13 +813,20 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         typeof(BackgroundJobRun), // operational run log; a row per pass would be noise. Manual triggers are audited as security events
         typeof(BackupRun), // operational backup status, written by backup.sh; not a GxP record
         typeof(RefreshToken), // session state; recorded in the Security Audit Trail instead
+        typeof(MfaChallenge), // short-lived login state; every outcome is recorded by MfaService as an explicit security event
+        typeof(SsoPendingRequest), // short-lived sign-in state; outcomes are recorded as explicit security events
+        typeof(SsoExchangeCode), // short-lived sign-in state; outcomes are recorded as explicit security events
         typeof(NotificationLog), // derived reminders and read state; not a GxP record
+        typeof(EmailOutbox), // operational send queue; the notification itself is the record (approved 2026-11-11)
+        typeof(EscalationEvent), // fire-once ledger for escalation rules; the rule is audited (approved 2026-11-11)
         typeof(InstrumentIngestPayload), // append-only by DB trigger; hashes carried by the explicit ingest audit event
         typeof(SecurityAuditEvent), // security evidence, not a GxP record; also prevents recursive audit
         typeof(SystemSetting), // audited explicitly (Configuration category, with reason and signature) by SystemSettingsService
         typeof(SystemSettingVersion), // append-only by DB trigger; is itself the change history
         typeof(AccessReview), // immutable snapshot (DB trigger); audited explicitly by AccessReviewService, which would otherwise copy the whole report into AuditLogs
-        typeof(AccessReviewFinding) // immutable once signed (DB trigger); audited explicitly by AccessReviewService
+        typeof(AccessReviewFinding), // immutable once signed (DB trigger); audited explicitly by AccessReviewService
+        typeof(UserUiState), // per-user interface preferences; no laboratory data (approved 2026-11-11)
+        typeof(RecentRecord) // convenience list, not an access log (approved 2026-11-11)
     };
 
     private List<PendingAuditEntry> CapturePendingAuditEntries()
@@ -643,6 +885,11 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
     {
         var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
+        var entityId = idProperty?.CurrentValue?.ToString();
+        if (entityId is null && entry.Metadata.FindPrimaryKey() is { Properties: { Count: > 0 } pk })
+        {
+            entityId = string.Join(":", pk.Select(p => entry.Property(p.Name).CurrentValue?.ToString()));
+        }
 
         // An instrument agent has no user id: record it as the System actor
         // with the agent's code, and no user. If a user id is also present the
@@ -655,7 +902,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         return new AuditLog
         {
             EntityName = entry.Entity.GetType().Name,
-            EntityId = idProperty?.CurrentValue?.ToString() ?? "unknown",
+            EntityId = entityId ?? "unknown",
             Action = action,
             PreviousValue = previousValue,
             NewValue = newValue,
@@ -664,6 +911,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = _clock.GetUtcNow().UtcDateTime,
             Reason = CurrentReason,
+            SourceContext = CurrentSourceContext,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
             SampleReferenceNumber = GetPropertyAsString(entry, "ReferenceNumber"),

@@ -2,8 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { apiClient } from "../services/apiClient";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
+import type { Role, SignInMethod } from "../modules/authentication/types/authTypes";
 
-export type Role = "SystemAdministrator" | "SectionHead" | "Reviewer" | "Analyst" | "QcManager";
+export type { Role, SignInMethod };
 
 export interface LoginData {
   token: string;
@@ -17,6 +18,8 @@ export interface LoginData {
   jobTitle?: string | null;
   userId: number;
   mustChangePassword: boolean;
+  signingPasswordRequired?: boolean;
+  signInMethod?: SignInMethod;
 }
 
 interface AuthState {
@@ -33,9 +36,12 @@ interface AuthState {
   jobTitle: string | null;
   userId: number | null;
   mustChangePassword: boolean;
+  signingPasswordRequired: boolean;
+  signInMethod: SignInMethod;
   login: (data: LoginData) => void;
   logout: () => void;
   refresh: () => Promise<void>;
+  clearSigningPasswordRequired: () => void;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -67,6 +73,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(readStored<number | null>("microlims_user_id", null, Number));
   const [mustChangePassword, setMustChangePassword] = useState<boolean>(
     readStored<boolean>("microlims_must_change_password", false, (raw) => raw === "true")
+  );
+  const [signingPasswordRequired, setSigningPasswordRequired] = useState<boolean>(
+    readStored<boolean>("microlims_signing_password_required", false, (raw) => raw === "true")
+  );
+  const [signInMethod, setSignInMethod] = useState<SignInMethod>(
+    readStored<SignInMethod>("microlims_sign_in_method", "Local", (raw) => (raw === "Directory" ? "Directory" : "Local"))
   );
 
   // apiClient refreshes the access token on its own when a request comes
@@ -112,8 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem("microlims_job_title");
     }
+    const nextSigningPasswordRequired = Boolean(data.signingPasswordRequired);
+    const nextSignInMethod: SignInMethod = data.signInMethod ?? "Local";
     localStorage.setItem("microlims_user_id", String(data.userId));
     localStorage.setItem("microlims_must_change_password", String(data.mustChangePassword));
+    localStorage.setItem("microlims_signing_password_required", String(nextSigningPasswordRequired));
+    localStorage.setItem("microlims_sign_in_method", nextSignInMethod);
 
     setToken(data.token);
     setRefreshToken(data.refreshToken);
@@ -125,9 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setJobTitle(data.jobTitle ?? null);
     setUserId(data.userId);
     setMustChangePassword(data.mustChangePassword);
+    setSigningPasswordRequired(nextSigningPasswordRequired);
+    setSignInMethod(nextSignInMethod);
   };
 
   const clearLocalState = () => {
+    // Device trust (microlims_device_token) is intentionally kept across logout
+    // and idle timeout; it is cleared only when the server ignores it at login.
     localStorage.removeItem("microlims_token");
     localStorage.removeItem("microlims_refresh_token");
     localStorage.removeItem("microlims_username");
@@ -138,6 +158,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("microlims_job_title");
     localStorage.removeItem("microlims_user_id");
     localStorage.removeItem("microlims_must_change_password");
+    localStorage.removeItem("microlims_signing_password_required");
+    localStorage.removeItem("microlims_sign_in_method");
+    try {
+      sessionStorage.removeItem("microlims_mywork_empty_redirected");
+    } catch {
+      // Storage may be unavailable in restricted contexts.
+    }
     setToken(null);
     setRefreshToken(null);
     setUsername(null);
@@ -148,6 +175,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setJobTitle(null);
     setUserId(null);
     setMustChangePassword(false);
+    setSigningPasswordRequired(false);
+    setSignInMethod("Local");
   };
 
   const logout = () => {
@@ -182,7 +211,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem("microlims_job_title");
     }
+    const nextMethod: SignInMethod = info.signInMethod ?? "Local";
+    const nextSigningPasswordRequired = nextMethod === "Directory" && !(info.signingPasswordSet ?? false);
     localStorage.setItem("microlims_must_change_password", String(info.mustChangePassword));
+    localStorage.setItem("microlims_signing_password_required", String(nextSigningPasswordRequired));
+    localStorage.setItem("microlims_sign_in_method", nextMethod);
     if (info.roleName) {
       localStorage.setItem("microlims_role_name", info.roleName);
       setRoleName(info.roleName);
@@ -190,11 +223,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setFullName(info.fullName);
     setJobTitle(info.jobTitle ?? null);
     setMustChangePassword(info.mustChangePassword);
+    setSigningPasswordRequired(nextSigningPasswordRequired);
+    setSignInMethod(nextMethod);
+  };
+
+  const clearSigningPasswordRequired = () => {
+    localStorage.setItem("microlims_signing_password_required", "false");
+    setSigningPasswordRequired(false);
   };
 
   return (
     <AuthContext.Provider
-      value={{ token, refreshToken, username, role, roleName, permissions, fullName, jobTitle, userId, mustChangePassword, login, logout, refresh }}
+      value={{
+        token,
+        refreshToken,
+        username,
+        role,
+        roleName,
+        permissions,
+        fullName,
+        jobTitle,
+        userId,
+        mustChangePassword,
+        signingPasswordRequired,
+        signInMethod,
+        login,
+        logout,
+        refresh,
+        clearSigningPasswordRequired
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -205,6 +262,14 @@ export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
+}
+
+/**
+ * Optional variant of useAuth for shared UI primitives (such as table toolbars)
+ * that may be rendered in isolated tests without an AuthProvider.
+ */
+export function useOptionalAuth(): AuthState | undefined {
+  return useContext(AuthContext);
 }
 
 // Whether the signed-in user holds a permission code (or any code in an array).

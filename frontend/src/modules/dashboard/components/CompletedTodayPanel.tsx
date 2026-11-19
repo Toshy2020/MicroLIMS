@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../i18n";
 import { Paper, Box, Typography, Stack, useTheme } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import MedicationLiquidIcon from "@mui/icons-material/MedicationLiquid";
@@ -10,6 +11,7 @@ interface CompletedTodayPanelProps {
 }
 
 export function CompletedTodayPanel({ metrics }: CompletedTodayPanelProps) {
+  const { t } = useTranslation("dashboard");
   const theme = useTheme();
   const lab = useDashboardLab();
 
@@ -18,7 +20,7 @@ export function CompletedTodayPanel({ metrics }: CompletedTodayPanelProps) {
 
   return (
     <Paper sx={{ p: 2.5, height: "100%", display: "flex", flexDirection: "column" }}>
-      <SectionTitle>Completed Today</SectionTitle>
+      <SectionTitle>{t("completed.title")}</SectionTitle>
 
       <Stack direction="row" spacing={2} sx={{ flex: 1, alignItems: "center" }}>
         <Box
@@ -40,7 +42,7 @@ export function CompletedTodayPanel({ metrics }: CompletedTodayPanelProps) {
             {testsCount}
           </Typography>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
-            Tests Completed
+            {t("completed.tests")}
           </Typography>
         </Box>
 
@@ -65,7 +67,7 @@ export function CompletedTodayPanel({ metrics }: CompletedTodayPanelProps) {
               {mediaCount}
             </Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary", mt: 0.5 }}>
-              Media Lots Prepared
+              {t("completed.media")}
             </Typography>
           </Box>
         )}

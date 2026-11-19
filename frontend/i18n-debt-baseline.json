@@ -1,0 +1,26 @@
+{
+  "total": 765,
+  "modules": {
+    "components": 36,
+    "modules/admin": 13,
+    "modules/auditReview": 2,
+    "modules/auditSearch": 10,
+    "modules/authentication": 3,
+    "modules/dashboard": 13,
+    "modules/discussions": 4,
+    "modules/documentControl": 6,
+    "modules/hplcWorkspace": 31,
+    "modules/icpWorkspace": 10,
+    "modules/inventory": 73,
+    "modules/laboratoryConfiguration": 197,
+    "modules/messages": 2,
+    "modules/navigation": 12,
+    "modules/notifications": 1,
+    "modules/reports": 40,
+    "modules/roles": 1,
+    "modules/testingWorkspace": 303,
+    "modules/users": 5,
+    "pages": 1,
+    "pwa": 2
+  }
+}

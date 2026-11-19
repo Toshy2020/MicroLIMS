@@ -9,7 +9,8 @@ import {
   useTheme
 } from "@mui/material";
 import HistoryIcon from "@mui/icons-material/History";
-import { formatLabDateTime } from "../utils/formatDate";
+import { useTranslation } from "../i18n";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 import { FloatingDialog } from "./FloatingDialog";
 import { DialogBodySkeleton } from "./DialogBodySkeleton";
 import { EmptyState } from "./lab/EmptyState";
@@ -39,6 +40,7 @@ export function AuditHistoryDialog({
   entityName,
   entityId
 }: AuditHistoryDialogProps) {
+  const { t } = useTranslation();
   const theme = useTheme();
   const [entries, setEntries] = useState<AuditLogItem[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -55,10 +57,10 @@ export function AuditHistoryDialog({
       setError(null);
       AuditSearchService.getForEntity(entityName, entityId)
         .then((res) => setEntries(res))
-        .catch((err) => setError(getErrorMessage(err, "The audit history could not be loaded.")))
+        .catch((err) => setError(getErrorMessage(err, t("components.auditHistoryDialog.loadFailed"))))
         .finally(() => setLoading(false));
     }
-  }, [open, entityName, entityId, reloadKey]);
+  }, [open, entityName, entityId, reloadKey, t]);
 
   const friendlyEntity = ENTITY_DISPLAY_NAMES[entityName] ?? entityName;
 
@@ -72,13 +74,13 @@ export function AuditHistoryDialog({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon sx={{ color: theme.palette.primary.main }} />
           <Typography component="span" variant="h6" sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-            Audit History · {friendlyEntity} #{entityId}
+            {t("components.auditHistoryDialog.title", { entity: friendlyEntity, id: entityId })}
           </Typography>
         </Box>
       }
       actions={
         <Button onClick={onClose} color="inherit">
-          Close
+          {t("actions.close")}
         </Button>
       }
     >
@@ -87,15 +89,15 @@ export function AuditHistoryDialog({
       ) : error ? (
         <Alert
           severity="error"
-          action={<Button color="inherit" size="small" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>}
+          action={<Button color="inherit" size="small" onClick={() => setReloadKey((k) => k + 1)}>{t("actions.retry")}</Button>}
         >
           {error}
         </Alert>
       ) : !entries || entries.length === 0 ? (
         <EmptyState
           icon={<HistoryIcon />}
-          title="No audit entries recorded"
-          description="No changes have been recorded for this record yet."
+          title={t("components.auditHistoryDialog.emptyTitle")}
+          description={t("components.auditHistoryDialog.emptyDescription")}
         />
       ) : (
         // Newest first as the server returns them. Each entry answers who,
@@ -136,12 +138,12 @@ export function AuditHistoryDialog({
                     {entry.userName}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
-                    User #{entry.userId}
+                    {t("components.auditHistoryDialog.userId", { id: entry.userId })}
                   </Typography>
                 </Box>
 
                 <Typography component="time" dateTime={entry.timestamp} sx={{ fontSize: 12.5, color: "text.secondary", fontVariantNumeric: "tabular-nums" }}>
-                  {formatLabDateTime(entry.timestamp)} UTC
+                  {formatDateTimeWithTimeZone(entry.timestamp)}
                 </Typography>
               </Box>
 

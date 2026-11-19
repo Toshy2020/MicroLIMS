@@ -17,8 +17,10 @@ import { MediaProductWorkspace, WORKSPACE_TABS } from "./components/MediaProduct
 import { AddMediaProductDialog } from "./dialogs/AddMediaProductDialog";
 import { RenameMediaProductDialog } from "./dialogs/RenameMediaProductDialog";
 import { ChangeMediaProductCodeDialog } from "./dialogs/ChangeMediaProductCodeDialog";
+import { useTranslation } from "../../../i18n";
 
 export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}) {
+  const { t } = useTranslation("labConfig");
   const { role, permissions } = useAuth();
   const isManager = permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE);
   const isSectionHead = role === "SectionHead";
@@ -56,7 +58,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
     } catch (err: unknown) {
       const text =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to load media configuration data.";
+        t("media.configPage.loadError");
       setMessage({ text, ok: false });
     } finally {
       setLoaded(true);
@@ -73,12 +75,12 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
   };
 
   const emptyListMessage = !loaded
-    ? "Loading media products..."
+    ? t("media.configPage.loading")
     : products.length === 0
       ? isManager
-        ? "No media products yet. Add one to start configuring it."
-        : "No media products have been configured yet."
-      : "No media products match your search.";
+        ? t("media.configPage.emptyManager")
+        : t("media.configPage.emptyViewer")
+      : t("media.configPage.emptySearch");
 
   // Client-side fast search by media name or code
   const filteredProducts = useMemo(() => {
@@ -96,7 +98,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
   }, [products, selectedProductId]);
 
   const handleProductCreated = (newProduct: MediaProductOption) => {
-    setMessage({ text: `Media product "${newProduct.name}" created successfully.`, ok: true });
+    setMessage({ text: t("media.configPage.messages.created", { name: newProduct.name }), ok: true });
     setSelectedProductId(newProduct.id);
     // A new medium needs an incubation condition before it can be configured.
     setWorkspaceTab(WORKSPACE_TABS.conditions);
@@ -107,7 +109,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
     setMessage(null);
     try {
       await masterDataOptions.deleteMediaProduct(productToDelete.id);
-      setMessage({ text: `Media product "${productToDelete.name}" deleted.`, ok: true });
+      setMessage({ text: t("media.configPage.messages.deleted", { name: productToDelete.name }), ok: true });
       if (selectedProductId === productToDelete.id) {
         setSelectedProductId(null);
       }
@@ -115,7 +117,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
     } catch (err: unknown) {
       const text =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Could not delete this media product.";
+        t("media.configPage.messages.deleteError");
       setMessage({ text, ok: false });
     }
   };
@@ -124,23 +126,28 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
     setMessage(null);
     try {
       await masterDataOptions.setMediaProductActive(product.id, value);
-      setMessage({ text: `Media product "${product.name}" ${value ? "activated" : "deactivated"}.`, ok: true });
+      setMessage({
+        text: value
+          ? t("media.configPage.messages.activated", { name: product.name })
+          : t("media.configPage.messages.deactivated", { name: product.name }),
+        ok: true
+      });
       loadData();
     } catch (err: unknown) {
       const text =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Could not change the status of this media product.";
+        t("media.configPage.messages.statusError");
       setMessage({ text, ok: false });
     }
   };
 
   const handleProductRenamed = () => {
-    setMessage({ text: "Media product renamed successfully.", ok: true });
+    setMessage({ text: t("media.configPage.messages.renamed"), ok: true });
     loadData();
   };
 
   const handleCodeChanged = () => {
-    setMessage({ text: "Media product code changed successfully.", ok: true });
+    setMessage({ text: t("media.configPage.messages.codeChanged"), ok: true });
     loadData();
   };
 
@@ -150,8 +157,8 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
       <Box sx={{ display: "flex", justifyContent: embedded ? "flex-end" : "space-between", alignItems: "flex-start", mb: 2 }}>
         {!embedded && (
           <PageHeader
-            title="Media Configurations"
-            subtitle="Configure each dehydrated medium and how it is used."
+            title={t("media.configPage.title")}
+            subtitle={t("media.configPage.subtitle")}
           />
         )}
         {isManager && (
@@ -162,7 +169,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
             onClick={() => setAddDialogOpen(true)}
             sx={{ textTransform: "none", fontWeight: 700, px: 2.5, py: 1 }}
           >
-            Add Media Product
+            {t("media.configPage.addButton")}
           </Button>
         )}
       </Box>
@@ -200,7 +207,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
               }}
             >
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                Configured Media ({filteredProducts.length})
+                {t("media.configPage.configuredCount", { count: filteredProducts.length })}
               </Typography>
             </Stack>
             <MediaProductList
@@ -242,7 +249,7 @@ export function MediaConfigurationPage({ embedded }: { embedded?: boolean } = {}
         /* Full width register when no media product is selected */
         <Box sx={{ mt: 1 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.primary" }}>
-            Configured Media ({filteredProducts.length})
+            {t("media.configPage.configuredCount", { count: filteredProducts.length })}
           </Typography>
           <MediaProductList
             products={filteredProducts}

@@ -189,6 +189,13 @@ public static class SampleWorkflowQueues
         || (incubationEndUtc != null && incubationEndUtc <= now)
         || minimumDurationOverriddenByUserId != null;
 
+    // The same rule as a translatable predicate, for queries that must decide it in SQL (My Work).
+    // IncubationReadyRuleTests pins it to IsIncubationReadyToRead for every combination.
+    public static Expression<Func<Incubation, bool>> IsIncubationReadyAt(DateTime now) => i =>
+        (i.ExpectedReadingAt != null && i.ExpectedReadingAt <= now)
+        || (i.IncubationEndUtc != null && i.IncubationEndUtc <= now)
+        || i.MinimumDurationOverriddenByUserId != null;
+
     public static bool IsIncubationReadyToRead(Incubation incubation, DateTime now) =>
         IsIncubationReadyToRead(incubation.ExpectedReadingAt, incubation.IncubationEndUtc, incubation.MinimumDurationOverriddenByUserId, now);
 

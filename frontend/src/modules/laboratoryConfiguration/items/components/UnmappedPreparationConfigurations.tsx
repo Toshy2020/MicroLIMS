@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Box, Button, Collapse, Typography } from "@mui/material";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import {
   ItemPreparationConfigurationService,
   type ItemPreparationConfiguration
@@ -13,6 +15,7 @@ interface Props {
 // neutralizer is still legacy text, so no lot can be recorded for them.
 // Renders nothing when there are none (or the list cannot be read).
 export function UnmappedPreparationConfigurations({ onOpenItem }: Props) {
+  const { t } = useTranslation("labConfig");
   const [rows, setRows] = useState<ItemPreparationConfiguration[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -32,21 +35,25 @@ export function UnmappedPreparationConfigurations({ onOpenItem }: Props) {
       sx={{ mb: 2 }}
       action={
         <Button color="inherit" size="small" onClick={() => setOpen((o) => !o)}>
-          {open ? "Hide" : "Show"}
+          {open ? t("items.unmappedPrep.hide") : t("items.unmappedPrep.show")}
         </Button>
       }
     >
-      <strong>Not linked to master data:</strong> {rows.length} item{rows.length === 1 ? "" : "s"} still use a
-      typed diluent or neutralizer, so no lot can be recorded for them.
+      <Trans
+        i18nKey="items.unmappedPrep.banner"
+        ns="labConfig"
+        count={rows.length}
+        components={{ bold: <strong /> }}
+      />
       <Collapse in={open} unmountOnExit>
         <Box sx={{ mt: 1, display: "grid", gap: 0.5 }}>
           {rows.map((r) => (
             <Box key={r.id} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
               <Button size="small" variant="text" onClick={() => onOpenItem(r.itemId)} sx={{ textTransform: "none", fontWeight: 700 }}>
-                {r.itemName ?? `Item #${r.itemId}`}
+                {r.itemName ?? t("items.unmappedPrep.itemFallback", { id: r.itemId })}
               </Button>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Diluent: {r.diluent || "—"} · Neutralizer: {r.neutralizer || "—"}
+                {t("items.unmappedPrep.details", { diluent: r.diluent || "—", neutralizer: r.neutralizer || "—" })}
               </Typography>
             </Box>
           ))}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "../../../i18n";
 import { Box, Typography } from "@mui/material";
 import { MonitoringChecklist } from "../../monitoringPlan/components/MonitoringChecklist";
 import { AfterCleaningPreparationService } from "./services/AfterCleaningPreparationService";
@@ -22,6 +23,7 @@ interface Props {
 // configured tests in this batch (one TestOrder per distinct TestCode
 // across every selected part, not one TestOrder per part).
 export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId, cleaningTechniques, onComplete }: Props) {
+  const { t } = useTranslation("labConfig");
   const [parts, setParts] = useState<Part[]>([]);
   const [loadingParts, setLoadingParts] = useState(true);
   const [checked, setChecked] = useState<Record<number, boolean>>({});
@@ -63,7 +65,7 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId
           return false;
         }
         if (cleaningTechniques !== undefined && cleaningTechniques !== null) {
-          const def = testDefinitions.find((t) => t.code === c.testCode);
+          const def = testDefinitions.find((td) => td.code === c.testCode);
           const tech = cleaningTechniqueOf(def?.workflowType);
           if (!cleaningTechniques.includes(tech)) {
             return false;
@@ -78,11 +80,11 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId
     return filteredParts.map((part) => ({
       id: part.id,
       title: part.name,
-      subtitle: "Machine Part",
+      subtitle: t("afterCleaning.prep.machinePart"),
       assignedTests: Array.from(new Set(part.configs?.map((c) => c.testCode) ?? [])),
       disabled: !part.configs || part.configs.length === 0
     }));
-  }, [filteredParts]);
+  }, [filteredParts, t]);
 
   const toggle = (partId: number) => setChecked((c) => ({ ...c, [partId]: !c[partId] }));
 
@@ -107,7 +109,7 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId
       await AfterCleaningPreparationService.prepare(sampleId, machinePartConfigurationIds, monitoringIds);
       onComplete();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not prepare sample.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("afterCleaning.prep.prepareError"), ok: false });
     } finally {
       setLoading(false);
     }
@@ -120,7 +122,7 @@ export function AfterCleaningPreparationForm({ sampleId, machineId, labSectionId
       <MonitoringChecklist sampleId={sampleId} onChange={setMonitoringIds} />
       {isStillLoading ? (
         <Typography sx={{ fontSize: 13, color: "text.secondary", py: 2 }}>
-          Loading machine parts...
+          {t("afterCleaning.prep.loading")}
         </Typography>
       ) : (
         <SamplingPointGrid

@@ -20,6 +20,9 @@ import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import { PathogenTestingSessionDto } from "../types/pathogenSessionTypes";
 import { brandColors } from "../../../theme";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
 
 interface Props {
   session: PathogenTestingSessionDto;
@@ -27,8 +30,9 @@ interface Props {
 }
 
 export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
-  const tsbCount = session.assignedTests.filter((t) => t.requiresTsb).length;
+  const tsbCount = session.assignedTests.filter((tItem) => tItem.requiresTsb).length;
 
   return (
     <Stack spacing={3}>
@@ -64,10 +68,10 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: "text.primary" }}>
-                {session.totalLocations}
+                <Ltr>{session.totalLocations}</Ltr>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                Sampling Locations
+                {t("pathogenSession.overview.samplingLocations")}
               </Typography>
             </Box>
           </Stack>
@@ -93,10 +97,10 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: "text.primary" }}>
-                {session.totalAssignedTests}
+                <Ltr>{session.totalAssignedTests}</Ltr>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                Assigned Tests
+                {t("pathogenSession.overview.assignedTests")}
               </Typography>
             </Box>
           </Stack>
@@ -122,10 +126,15 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: "text.primary" }}>
-                {session.requiredResultCount}
+                <Ltr>{session.requiredResultCount}</Ltr>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                Required Results ({session.totalLocations} × {session.totalAssignedTests})
+                <Trans
+                  i18nKey="pathogenSession.overview.requiredResults"
+                  ns="testingWorkspace"
+                  values={{ locations: session.totalLocations, testCount: session.totalAssignedTests }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           </Stack>
@@ -151,10 +160,15 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             </Box>
             <Box>
               <Typography sx={{ fontSize: 22, fontWeight: 800, color: "text.primary" }}>
-                {session.completedResultCount}
+                <Ltr>{session.completedResultCount}</Ltr>
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                Completed ({session.pendingResultCount} pending)
+                <Trans
+                  i18nKey="pathogenSession.overview.completedPending"
+                  ns="testingWorkspace"
+                  values={{ count: session.pendingResultCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
             </Box>
           </Stack>
@@ -179,16 +193,16 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
                 mb: 0.5
               }}>
               <Chip
-                label="Master Data Driven"
+                label={t("pathogenSession.overview.masterDataDriven")}
                 size="small"
                 sx={{ bgcolor: brandColors.sectionTitle, color: "common.white", fontWeight: 700, fontSize: 12 }}
               />
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: "text.primary" }}>
-                Workflow Configured from Test Master
+                {t("pathogenSession.overview.workflowConfiguredTitle")}
               </Typography>
             </Stack>
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Assigned tests are loaded automatically from the Sample Test Profile. Procedural steps (TSB enrichment & selective incubation) are executed once per session, while final analytical results are entered per location.
+              {t("pathogenSession.overview.workflowConfiguredDesc")}
             </Typography>
           </Box>
 
@@ -199,7 +213,7 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             onClick={onStartWorkflow}
             sx={{ px: 3, py: 1, fontWeight: 700, flexShrink: 0 }}
           >
-            {tsbCount > 0 ? "Open Shared TSB Setup" : "Open Test Workflows"}
+            {tsbCount > 0 ? t("pathogenSession.overview.openSharedTsbSetup") : t("pathogenSession.overview.openTestWorkflows")}
           </Button>
         </Stack>
       </Paper>
@@ -216,10 +230,15 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               mb: 2
             }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: "text.primary" }}>
-              Assigned Tests ({session.assignedTests.length})
+              <Trans
+                i18nKey="pathogenSession.overview.assignedTestsTitle"
+                ns="testingWorkspace"
+                values={{ count: session.assignedTests.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Chip
-              label="Source: Test Master"
+              label={t("pathogenSession.overview.sourceTestMaster")}
               size="small"
               variant="outlined"
               sx={{ fontSize: 12, fontWeight: 600 }}
@@ -229,30 +248,30 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
             <Table size="small">
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Test Code</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Display Name</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Workflow</TableCell>
-                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>TSB</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colTestCode")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colDisplayName")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colWorkflow")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colTsb")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {session.assignedTests.map((t) => (
-                  <TableRow key={t.testCode} hover>
+                {session.assignedTests.map((tItem) => (
+                  <TableRow key={tItem.testCode} hover>
                     <TableCell sx={{ fontWeight: 700, color: theme.palette.primary.main }}>
-                      {t.testCode}
+                      <Ltr>{tItem.testCode}</Ltr>
                     </TableCell>
-                    <TableCell sx={{ fontSize: 13 }}>{t.displayName}</TableCell>
+                    <TableCell sx={{ fontSize: 13 }}>{tItem.displayName}</TableCell>
                     <TableCell>
                       <Chip
-                        label={t.workflowType}
+                        label={tItem.workflowType}
                         size="small"
                         sx={{ fontSize: 12, height: 20, bgcolor: "background.default" }}
                       />
                     </TableCell>
                     <TableCell>
-                      {t.requiresTsb ? (
+                      {tItem.requiresTsb ? (
                         <Chip
-                          label="Required"
+                          label={t("pathogenSession.overview.required")}
                           size="small"
                           sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
                         />
@@ -277,10 +296,15 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               mb: 2
             }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700, color: "text.primary" }}>
-              Sampling Locations ({session.locations.length})
+              <Trans
+                i18nKey="pathogenSession.overview.samplingLocationsTitle"
+                ns="testingWorkspace"
+                values={{ count: session.locations.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
             <Chip
-              label={`Program: ${session.programName}`}
+              label={t("pathogenSession.overview.programChip", { name: session.programName })}
               size="small"
               variant="outlined"
               sx={{ fontSize: 12, fontWeight: 600 }}
@@ -291,22 +315,22 @@ export function SessionOverviewPanel({ session, onStartWorkflow }: Props) {
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>#</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Location Name</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>Grade</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colIndex")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colLocationName")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colType")}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>{t("pathogenSession.overview.colGrade")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {session.locations.map((loc, idx) => (
                     <TableRow key={loc.id} hover>
-                      <TableCell sx={{ color: "text.secondary", fontSize: 12 }}>{idx + 1}</TableCell>
+                      <TableCell sx={{ color: "text.secondary", fontSize: 12 }}><Ltr>{idx + 1}</Ltr></TableCell>
                       <TableCell sx={{ fontWeight: 600, fontSize: 13 }}>{loc.locationName}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>{loc.locationType}</TableCell>
                       <TableCell sx={{ fontSize: 12 }}>
                         {loc.gradeClassification ? (
                           <Chip
-                            label={`Grade ${loc.gradeClassification}`}
+                            label={t("pathogenSession.overview.gradeChip", { grade: loc.gradeClassification })}
                             size="small"
                             sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text }}
                           />

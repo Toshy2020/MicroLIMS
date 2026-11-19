@@ -5,6 +5,8 @@ import { useState } from "react";
 import { AuditHistoryDialog } from "../../../components/AuditHistoryDialog";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { withUnit } from "../../../utils/reportedValue";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -13,6 +15,7 @@ interface RecordDetailDialogProps {
 }
 
 export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialogProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const [auditOpen, setAuditOpen] = useState(false);
 
@@ -29,10 +32,10 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flex: 1, minWidth: 0 }}>
             <Box>
               <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-                Laboratory Result Record
+                {t("recordDetail.title")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Reference: <strong>{record.referenceNumber}</strong> · Read-only source record
+                {t("recordDetail.reference")} <strong>{record.referenceNumber}</strong> {t("recordDetail.readOnlySource")}
               </Typography>
             </Box>
             <Box sx={{ display: "flex", gap: 1, mr: 1 }}>
@@ -44,10 +47,10 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
         actions={
           <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
             <Button variant="outlined" size="small" onClick={() => setAuditOpen(true)}>
-              View Audit Trail
+              {t("recordDetail.viewAuditTrail")}
             </Button>
             <Button variant="contained" size="small" onClick={onClose}>
-              Close
+              {t("recordDetail.close")}
             </Button>
           </Box>
         }
@@ -56,7 +59,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
             {/* Section 1: Sample & Identification */}
             <Grid size={12}>
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Sample & Item Details
+                {t("recordDetail.sectionSample")}
               </Typography>
             </Grid>
 
@@ -65,7 +68,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Sample / Reference</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.sampleReference")}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.referenceNumber}</Typography>
             </Grid>
 
@@ -74,7 +77,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Item / Subject Name</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.itemSubjectName")}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.subjectName}</Typography>
             </Grid>
 
@@ -83,7 +86,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Item Detail / Location</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.itemDetailLocation")}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.subjectDetail ?? "—"}</Typography>
             </Grid>
 
@@ -92,7 +95,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Batch Number</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.batchNumber")}</Typography>
               <Typography sx={{ fontSize: 13 }}>{record.batchNumber ?? "—"}</Typography>
             </Grid>
 
@@ -101,7 +104,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Control Number</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.controlNumber")}</Typography>
               <Typography sx={{ fontSize: 13 }}>{record.controlNumber ?? "—"}</Typography>
             </Grid>
 
@@ -110,14 +113,14 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Category</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.category")}</Typography>
               <Typography sx={{ fontSize: 13 }}>{record.category}</Typography>
             </Grid>
 
             <Grid size={12}>
               <Divider sx={{ my: 1 }} />
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Test & Result Execution
+                {t("recordDetail.sectionExecution")}
               </Typography>
             </Grid>
 
@@ -126,7 +129,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Test Code & Name</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.testCodeName")}</Typography>
               <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{record.testCode}: {record.testDisplayName}</Typography>
             </Grid>
 
@@ -135,7 +138,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Reported Result Value</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.reportedResultValue")}</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
                 {withUnit(record.reportedValue, record.unit)}
               </Typography>
@@ -146,7 +149,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Result Level</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.resultLevel")}</Typography>
               <Box sx={{ mt: 0.5 }}>
                 <StatusBadge status={record.resultLevel} />
               </Box>
@@ -157,7 +160,7 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Specification Limit</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.specificationLimit")}</Typography>
               <Typography sx={{ fontSize: 13 }}>{record.specLimit ?? "—"}</Typography>
             </Grid>
 
@@ -166,9 +169,9 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Alert / Action Limits</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.alertActionLimits")}</Typography>
               <Typography sx={{ fontSize: 13 }}>
-                Alert: {record.alertLimit ?? "—"} · Action: {record.actionLimit ?? "—"}
+                {t("recordDetail.alertActionValue", { alert: record.alertLimit ?? "—", action: record.actionLimit ?? "—" })}
               </Typography>
             </Grid>
 
@@ -177,16 +180,16 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 4
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Detection Limit / Round</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.detectionLimitRound")}</Typography>
               <Typography sx={{ fontSize: 13 }}>
-                {record.detectionLimit != null ? `${record.detectionLimit} ${record.unit ?? ""}` : "—"} (Round {record.round})
+                {record.detectionLimit != null ? `${record.detectionLimit} ${record.unit ?? ""}` : "—"} {t("recordDetail.roundSuffix", { round: record.round })}
               </Typography>
             </Grid>
 
             <Grid size={12}>
               <Divider sx={{ my: 1 }} />
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: theme.palette.primary.main, mb: 1, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Attribution, Timing & Review Chain
+                {t("recordDetail.sectionAttribution")}
               </Typography>
             </Grid>
 
@@ -195,10 +198,10 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 6
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Result Entered By (Analyst)</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.enteredByAnalyst")}</Typography>
               <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{record.resultEnteredByName}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {new Date(record.resultEnteredAt).toLocaleString("en-GB")}
+                {formatDateTimeWithTimeZone(record.resultEnteredAt)}
               </Typography>
             </Grid>
 
@@ -207,10 +210,10 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
                 xs: 12,
                 sm: 6
               }}>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Approved By (Section Head / Reviewer)</Typography>
-              <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{record.approvedByName ?? "Pending Approval"}</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("recordDetail.approvedBySectionHead")}</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 600 }}>{record.approvedByName ?? t("recordDetail.pendingApproval")}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {record.approvedAt ? new Date(record.approvedAt).toLocaleString("en-GB") : "—"}
+                {record.approvedAt ? formatDateTimeWithTimeZone(record.approvedAt) : "—"}
               </Typography>
             </Grid>
           </Grid>

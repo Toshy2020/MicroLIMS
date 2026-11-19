@@ -1,8 +1,33 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
+import { readFileSync } from 'node:fs'
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'prompt',
+      injectRegister: null,
+      manifest: false,
+      workbox: {
+        navigateFallback: '/index.html',
+        runtimeCaching: [],
+        globPatterns: [
+          'index.html',
+          'assets/*.{js,css,woff2,woff,ttf,svg,png}',
+          'manifest.webmanifest',
+          'icons/*.png',
+        ],
+        globIgnores: ['**/help/**'],
+      },
+    }),
+  ],
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  },
   test: {
     environment: 'jsdom',
     globals: false,
@@ -12,7 +37,9 @@ export default defineConfig({
     maxWorkers: 4
   },
   server: {
-    port: process.env.PORT ? Number(process.env.PORT) : 5173
+    port: process.env.PORT ? Number(process.env.PORT) : 5173,
+    // The in-app Help imports the guide chapters (?raw) from ../documentation.
+    fs: { allow: ['.', '../documentation'] }
   },
   build: {
     chunkSizeWarningLimit: 650,

@@ -23,12 +23,15 @@ import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
 
 import { PageHeader } from "../../components/PageHeader";
 import { TableSkeleton } from "../../components/TableSkeleton";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { tableHeadSx } from "../../theme";
 import { masterDataOptions } from "../../services/masterDataOptions";
 import { TrackingService, TrackingRow } from "./services/TrackingService";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { DateField } from "../../components/DateField";
 import { visuallyHidden } from "@mui/utils";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 // Matched on section Code, never Id: Ids are database-assigned and differ
 // between installations. Codes are never renamed, only labels can change
@@ -36,25 +39,8 @@ import { visuallyHidden } from "@mui/utils";
 const MICRO_SECTION_CODE = "MICRO";
 const FP_SECTION_CODE = "FP";
 
-const OVERALL_OPTIONS = [
-  { value: "ALL", label: "All Overall Statuses" },
-  { value: "InProgress", label: "In Progress" },
-  { value: "Approved", label: "Approved" },
-  { value: "Rejected", label: "Rejected" },
-  { value: "RetestRequested", label: "Retest Requested" },
-  { value: "Voided", label: "Voided" },
-  { value: "Cancelled", label: "Cancelled" }
-];
-
-const LAB_OPTIONS = [
-  { value: "ALL", label: "All Laboratories" },
-  { value: MICRO_SECTION_CODE, label: "Microbiology Laboratory" },
-  { value: FP_SECTION_CODE, label: "Physicochemical Laboratory" }
-];
-
-const OVERALL_STATUS_LABELS: Record<string, string> = Object.fromEntries(
-  OVERALL_OPTIONS.filter((o) => o.value !== "ALL").map((o) => [o.value, o.label])
-);
+const OVERALL_VALUES = ["ALL", "InProgress", "Approved", "Rejected", "RetestRequested", "Voided", "Cancelled"] as const;
+const LAB_VALUES = ["ALL", MICRO_SECTION_CODE, FP_SECTION_CODE] as const;
 
 function overallChipColor(status: string): "error" | "success" | "info" | "default" {
   if (status === "Rejected") return "error";
@@ -65,15 +51,16 @@ function overallChipColor(status: string): "error" | "success" | "info" | "defau
 
 function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: string }) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const lab = row.labs.find((l) => l.sectionCode.toUpperCase() === sectionCode);
   if (!lab) {
     // A lab the sample never went to is an absence, not an event: a quiet
     // dash keeps whole columns of it from out-shouting the real stages.
     // The words stay available to screen readers and on hover.
     return (
-      <Box component="span" title="Not requested" sx={{ color: "text.disabled", fontSize: 14 }}>
+      <Box component="span" title={t("tracking.notRequested")} sx={{ color: "text.disabled", fontSize: 14 }}>
         <span aria-hidden="true">—</span>
-        <Box component="span" sx={visuallyHidden}>Not requested</Box>
+        <Box component="span" sx={visuallyHidden}>{t("tracking.notRequested")}</Box>
       </Box>
     );
   }
@@ -97,7 +84,7 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
         border: `1px solid ${tone.border}`
       }}
     >
-      {lab.stage.replace(/([a-z])([A-Z])/g, "$1 $2")}
+      {t(`tracking.stages.${lab.stage}`, { defaultValue: lab.stage.replace(/([a-z])([A-Z])/g, "$1 $2") })}
     </Box>
   );
 }
@@ -106,6 +93,7 @@ function LabStageCell({ row, sectionCode }: { row: TrackingRow; sectionCode: str
 // one row per sample, its overall status, and each laboratory's own stage.
 export function TrackingBoardPage() {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [rows, setRows] = useState<TrackingRow[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -166,7 +154,7 @@ export function TrackingBoardPage() {
 
   const formatReceivedDate = (d: string) => {
     try {
-      return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }
@@ -175,8 +163,8 @@ export function TrackingBoardPage() {
   return (
     <Box>
       <PageHeader
-        title="Tracking Board"
-        subtitle="Every received sample across both laboratories, with each lab's own stage."
+        title={t("tracking.title")}
+        subtitle={t("tracking.subtitle")}
       />
 
       <Paper elevation={0} sx={{ p: 2, mb: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, bgcolor: "background.paper" }}>
@@ -189,29 +177,29 @@ export function TrackingBoardPage() {
           }}
         >
           <FormControl size="small" fullWidth>
-            <InputLabel id="lab-filter-label">Laboratory</InputLabel>
+            <InputLabel id="lab-filter-label">{t("tracking.labFilter")}</InputLabel>
             <Select
               labelId="lab-filter-label"
-              label="Laboratory"
+              label={t("tracking.labFilter")}
               value={labFilter}
               onChange={(e) => { setLabFilter(e.target.value); setPage(0); }}
             >
-              {LAB_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+              {LAB_VALUES.map((val) => (
+                <MenuItem key={val} value={val}>{t(`tracking.labOptions.${val}`)}</MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <FormControl size="small" fullWidth>
-            <InputLabel id="overall-filter-label">Overall Status</InputLabel>
+            <InputLabel id="overall-filter-label">{t("tracking.overallFilter")}</InputLabel>
             <Select
               labelId="overall-filter-label"
-              label="Overall Status"
+              label={t("tracking.overallFilter")}
               value={overallFilter}
               onChange={(e) => { setOverallFilter(e.target.value); setPage(0); }}
             >
-              {OVERALL_OPTIONS.map((o) => (
-                <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>
+              {OVERALL_VALUES.map((val) => (
+                <MenuItem key={val} value={val}>{t(`tracking.overallOptions.${val}`)}</MenuItem>
               ))}
             </Select>
           </FormControl>
@@ -223,19 +211,19 @@ export function TrackingBoardPage() {
             value={productFilter}
             onChange={(_, v) => { setProductFilter(v); setPage(0); }}
             isOptionEqualToValue={(a, b) => a.id === b.id}
-            noOptionsText={itemsLoadFailed ? "Product list could not be loaded" : undefined}
+            noOptionsText={itemsLoadFailed ? t("tracking.itemsLoadFailed") : undefined}
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Product / Item"
+                label={t("tracking.productItem")}
                 error={itemsLoadFailed}
-                helperText={itemsLoadFailed ? "Product list unavailable - reload the page to retry." : undefined}
+                helperText={itemsLoadFailed ? t("tracking.itemsLoadFailedHelper") : undefined}
               />
             )}
           />
 
           <DateField
-            label="Received From"
+            label={t("tracking.receivedFrom")}
             value={fromDate}
             onChange={(v) => { setFromDate(v); setPage(0); }}
             max={toDate}
@@ -243,7 +231,7 @@ export function TrackingBoardPage() {
           />
 
           <DateField
-            label="Received To"
+            label={t("tracking.receivedTo")}
             value={toDate}
             onChange={(v) => { setToDate(v); setPage(0); }}
             min={fromDate}
@@ -259,7 +247,7 @@ export function TrackingBoardPage() {
               startIcon={<FilterAltOffIcon sx={{ fontSize: 18 }} />}
               sx={{ height: 40, borderColor: "divider", color: "text.secondary", whiteSpace: "nowrap" }}
             >
-              Reset Filters
+              {t("tracking.resetFilters")}
             </Button>
           )}
         </Box>
@@ -273,13 +261,13 @@ export function TrackingBoardPage() {
             <Table size="small" stickyHeader sx={{ minWidth: 960 }}>
               <TableHead sx={tableHeadSx}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Reference</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>Product</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Batch</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Received</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Overall</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Microbiology</TableCell>
-                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Physicochemical</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>{t("tracking.columns.reference")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>{t("tracking.columns.product")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>{t("tracking.columns.batch")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>{t("tracking.columns.received")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>{t("tracking.columns.overall")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>{t("tracking.columns.microbiology")}</TableCell>
+                  <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>{t("tracking.columns.physicochemical")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -287,7 +275,7 @@ export function TrackingBoardPage() {
                   <TableRow>
                     <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                       <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-                        No samples found matching the filter criteria.
+                        {t("tracking.empty")}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -301,17 +289,22 @@ export function TrackingBoardPage() {
                     >
                       <TableCell>
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
-                          {row.referenceNumber}
+                          <Ltr>{row.referenceNumber}</Ltr>
                         </Typography>
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>#{row.sampleId}</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}><Ltr>#{row.sampleId}</Ltr></Typography>
                       </TableCell>
                       <TableCell sx={{ fontSize: 12 }}>{row.product || "—"}</TableCell>
-                      <TableCell sx={{ fontSize: 12 }}>{row.batchNumber || "—"}</TableCell>
+                      <TableCell sx={{ fontSize: 12 }}>{row.batchNumber ? <Ltr>{row.batchNumber}</Ltr> : "—"}</TableCell>
                       <TableCell sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
-                        {formatReceivedDate(row.receivedAt)}
+                        <Ltr>{formatReceivedDate(row.receivedAt)}</Ltr>
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={OVERALL_STATUS_LABELS[row.overallStatus] || row.overallStatus} color={overallChipColor(row.overallStatus)} sx={{ fontSize: 12, fontWeight: 700 }} />
+                        <Chip
+                          size="small"
+                          label={t(`tracking.overallOptions.${row.overallStatus}`, { defaultValue: row.overallStatus })}
+                          color={overallChipColor(row.overallStatus)}
+                          sx={{ fontSize: 12, fontWeight: 700 }}
+                        />
                       </TableCell>
                       <TableCell>
                         <LabStageCell row={row} sectionCode={MICRO_SECTION_CODE} />

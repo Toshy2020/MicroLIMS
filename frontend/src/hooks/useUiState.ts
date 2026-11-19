@@ -1,0 +1,185 @@
+import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { isAxiosError } from "axios";
+import { uiStateService, type UiStateMap } from "../services/uiStateService";
+
+// Per-user interface preferences kept on the server, with a localStorage
+// fallback when the server store cannot be reached. One shared request serves
+// every component that uses the hook; it is cancelled when the last one unmounts.
+
+type Status = "idle" | "loading" | "ready" | "failed";
+
+interface Snapshot {
+  status: Status;
+  map: UiStateMap;
+}
+
+const IDLE: Snapshot = { status: "idle", map: {} };
+
+let snapshot: Snapshot = IDLE;
+let owner: string | null = null;
+let controller: AbortController | null = null;
+let subscribers = 0;
+const listeners = new Set<() => void>();
+
+function emit(next: Snapshot) {
+  snapshot = next;
+  listeners.forEach((l) => l());
+}
+
+function currentOwner(): string {
+  try {
+    return localStorage.getItem("microlims_user_id") ?? "anonymous";
+  } catch {
+    // Storage blocked: every session shares the "anonymous" bucket.
+    return "anonymous";
+  }
+}
+
+function storageKey(key: string): string {
+  return `microlims.uiState.${currentOwner()}.${key}`;
+}
+
+function readLocal(key: string): string | null {
+  try {
+    return localStorage.getItem(storageKey(key));
+  } catch {
+    // Storage unavailable (private window, blocked site data): behave as "not set".
+    return null;
+  }
+}
+
+function writeLocal(key: string, value: string | null): boolean {
+  try {
+    if (value === null) localStorage.removeItem(storageKey(key));
+    else localStorage.setItem(storageKey(key), value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// The server answered (4xx/5xx): the store is reachable and said no.
+function isServerRefusal(err: unknown): boolean {
+  return isAxiosError(err) && err.response !== undefined;
+}
+
+function load() {
+  const ownerAtStart = currentOwner();
+  owner = ownerAtStart;
+  const mine = new AbortController();
+  controller = mine;
+  emit({ status: "loading", map: {} });
+  uiStateService
+    .getAll(mine.signal)
+    .then((map) => {
+      if (!mine.signal.aborted) emit({ status: "ready", map });
+    })
+    .catch(() => {
+      // The store is unreachable: fall back to this browser's own copy.
+      if (!mine.signal.aborted) emit({ status: "failed", map: {} });
+    });
+}
+
+function acquire() {
+  subscribers += 1;
+  // A different user signed in on this page: never show the previous user's values.
+  if (snapshot.status !== "idle" && owner !== currentOwner()) {
+    controller?.abort();
+    snapshot = IDLE;
+  }
+  if (snapshot.status === "idle") load();
+}
+
+function release() {
+  subscribers -= 1;
+  if (subscribers === 0 && snapshot.status === "loading") {
+    controller?.abort();
+    controller = null;
+    snapshot = IDLE;
+  }
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return snapshot;
+}
+
+// For tests: forget everything held between renders.
+export function resetUiStateCache() {
+  controller?.abort();
+  controller = null;
+  subscribers = 0;
+  owner = null;
+  snapshot = IDLE;
+  listeners.clear();
+}
+
+export interface UiStateHandle {
+  value: string | null;
+  loaded: boolean;
+  set(value: string): Promise<void>;
+  remove(): Promise<void>;
+}
+
+// The server's key rule (UserUiStateService.KeyPattern): a lowercase letter,
+// then letters, digits and dots, 2 to 64 characters. A key outside it would be
+// refused on every save, so the choice would silently never be remembered.
+const UI_STATE_KEY = /^[a-z][a-zA-Z0-9.]{1,63}$/;
+
+export function isUiStateKey(key: string): boolean {
+  return UI_STATE_KEY.test(key);
+}
+
+export function useUiState(key: string): UiStateHandle {
+  if (!isUiStateKey(key)) throw new Error(`Interface state key "${key}" does not match the server's key rule.`);
+  const snap = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  useEffect(() => {
+    acquire();
+    return release;
+  }, []);
+
+  const loaded = snap.status === "ready" || snap.status === "failed";
+  // A value known in memory (from the server or a later write) wins; the local
+  // copy is read only for keys the server never gave us.
+  const value = !loaded ? null : key in snap.map ? snap.map[key] : snap.status === "failed" ? readLocal(key) : null;
+
+  const set = useCallback(async (next: string) => {
+    try {
+      await uiStateService.set(key, next);
+      if (snapshot.status === "failed") writeLocal(key, next);
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: snapshot.status, map: { ...snapshot.map, [key]: next } });
+    } catch (err) {
+      // A refusal from the server (bad key, too many keys) is an error for the
+      // caller; only an unreachable server falls back to this browser's copy.
+      if (isServerRefusal(err) || !writeLocal(key, next)) throw err;
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: "failed", map: { ...snapshot.map, [key]: next } });
+    }
+  }, [key]);
+
+  const remove = useCallback(async () => {
+    const withoutKey = () => {
+      const rest = { ...snapshot.map };
+      delete rest[key];
+      return rest;
+    };
+    try {
+      await uiStateService.remove(key);
+      if (snapshot.status === "failed") writeLocal(key, null);
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: snapshot.status, map: withoutKey() });
+    } catch (err) {
+      if (isServerRefusal(err) || !writeLocal(key, null)) throw err;
+      if (snapshot.status === "ready" || snapshot.status === "failed")
+        emit({ status: "failed", map: withoutKey() });
+    }
+  }, [key]);
+
+  return { value, loaded, set, remove };
+}

@@ -22,6 +22,10 @@ public class Equipment : IVersionedEntity
     public int SectionId { get; set; }
     public DocumentSection? Section { get; set; }
 
+    // Optional link to the physical asset register (EquipmentInventory) for barcode scan resolution.
+    public int? EquipmentInventoryId { get; set; }
+    public EquipmentInventory? EquipmentInventory { get; set; }
+
     // Finished Product / HPLC fields
     public string? Vendor { get; set; }
     public CdsSoftware? CdsSoftware { get; set; }

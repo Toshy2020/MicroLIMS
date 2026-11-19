@@ -1,0 +1,57 @@
+{
+  "page": {
+    "title": "الرسائل المباشرة والجماعية",
+    "subtitle": "نقاشات فورية في مكان العمل مع المحللين والمراجعين ورؤساء الأقسام في المختبر.",
+    "newMessage": "رسالة جديدة",
+    "loadError": "تعذّر تحميل المحادثات."
+  },
+  "list": {
+    "filterPlaceholder": "تصفية المحادثات...",
+    "filterLabel": "تصفية المحادثات",
+    "empty": "لا توجد محادثات بعد. ابدأ رسالة جديدة!",
+    "noMatch": "لا توجد محادثات مطابقة.",
+    "fallbackTitle": "محادثة",
+    "noMessagesYet": "لا توجد رسائل بعد",
+    "you": "أنت: ",
+    "lastMessage": "{{prefix}}{{content}}"
+  },
+  "chat": {
+    "back": "العودة إلى المحادثات",
+    "fallbackTitle": "محادثة",
+    "members": "{{count}} أعضاء: {{names}}",
+    "jobRole": "{{jobTitle}} • {{roleName}}",
+    "colleague": "زميل",
+    "sendError": "تعذّر إرسال الرسالة.",
+    "noMessages": "لا توجد رسائل في هذه المحادثة بعد.",
+    "sayHello": "قل مرحبًا لبدء المحادثة!",
+    "placeholder": "اكتب رسالة... (اضغط Enter للإرسال)",
+    "inputLabel": "الرسالة",
+    "sendAria": "إرسال الرسالة"
+  },
+  "emptyPane": {
+    "title": "اختر محادثة",
+    "body": "اختر محادثة من القائمة، أو استخدم «رسالة جديدة» أعلاه لبدء واحدة."
+  },
+  "dialog": {
+    "directoryFailed": "تعذّر تحميل دليل المستخدمين، لذلك لا يمكن عرض المستلمين. أغلق هذه النافذة وأعد فتحها للمحاولة مجددًا.",
+    "noRecipient": "يرجى اختيار مستلم واحد على الأقل.",
+    "groupTitleRequired": "عنوان المحادثة الجماعية مطلوب.",
+    "initialEmpty": "لا يمكن أن تكون الرسالة الأولى فارغة.",
+    "createFailed": "تعذّر إنشاء المحادثة.",
+    "conversationType": "نوع المحادثة",
+    "direct": "رسالة مباشرة (واحد لواحد)",
+    "group": "محادثة جماعية",
+    "groupTitle": "عنوان المجموعة",
+    "groupPlaceholder": "مثال: فريق الأحياء الدقيقة، مجموعة اختبار المياه...",
+    "selectParticipants": "اختر المشاركين",
+    "selectRecipient": "اختر المستلم",
+    "searchPlaceholder": "ابحث عن الزملاء بالاسم...",
+    "jobTitle": "• {{jobTitle}}",
+    "roleJob": "{{role}} {{job}}",
+    "initialMessage": "الرسالة الأولى",
+    "initialPlaceholder": "اكتب رسالتك هنا...",
+    "cancel": "إلغاء",
+    "sending": "جارٍ الإرسال...",
+    "send": "إرسال الرسالة"
+  }
+}

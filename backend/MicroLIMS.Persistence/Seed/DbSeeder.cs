@@ -31,7 +31,8 @@ public static class DbSeeder
                 new Role { Type = RoleType.SectionHead, Name = "Section Head", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Reviewer, Name = "Reviewer", IsSystemRole = true, IsActive = true },
                 new Role { Type = RoleType.Analyst, Name = "Analyst", IsSystemRole = true, IsActive = true },
-                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true }
+                new Role { Type = RoleType.QcManager, Name = "QC Manager", IsSystemRole = true, IsActive = true },
+                new Role { Type = RoleType.Qa, Name = "QA", IsSystemRole = true, IsActive = true }
             );
             db.SaveChanges();
         }
@@ -485,6 +486,8 @@ public static class DbSeeder
             (PermissionConstants.SystemViewSecurityAudit, "View the security audit trail (authentication, session and account security events)."),
             (PermissionConstants.SystemConfigureSettings, "Change system operating settings (security thresholds, retention, worker limits) in the admin Settings registry."),
             (PermissionConstants.AccessReview, "Generate, record findings on and sign the periodic access review (who holds which access)."),
+            (PermissionConstants.AuditReview, "Perform and sign an audit trail review."),
+            (PermissionConstants.AccessReviewSign, "Decide and sign a user access review (Quality Assurance)."),
             (PermissionConstants.DocumentsRegister, "Register a new controlled Document Master."),
             (PermissionConstants.DocumentsDraftEdit, "Edit draft metadata and controlled files, and cancel a draft revision."),
             (PermissionConstants.DocumentsRevisionCreate, "Create a new revision from the current effective revision."),
@@ -524,9 +527,15 @@ public static class DbSeeder
             (PermissionConstants.NotApplicableTestsFinalApprove, "Give the final approval of a not-applicable test (QC Manager only)."),
             (PermissionConstants.TestsOutsource, "Outsource a test to an outside laboratory."),
             (PermissionConstants.SamplesPrepare, "Prepare a sample for testing: record, confirm or batch-confirm a sample preparation."),
+            (PermissionConstants.TestsSelfAssign, "Take an unassigned test in your own laboratory section and release it again while nothing is recorded on it."),
             (PermissionConstants.SectionsViewAll, "View every laboratory section's records read-only."),
             (PermissionConstants.SectionsConfigureAll, "Configure master data and settings for every laboratory section."),
             (PermissionConstants.SystemManageJobs, "View background job status and run history; run housekeeping jobs manually."),
+            (PermissionConstants.LabelsReprint, "Reprint barcode labels with a documented reason."),
+            (PermissionConstants.LabelsConfigure, "Configure barcode label sizes, layouts and default copy counts."),
+            (PermissionConstants.TableViewsShare, "Share a saved table view with a laboratory section the user belongs to."),
+            (PermissionConstants.DataExport, "Export a table to a CSV file (every export is logged)."),
+            (PermissionConstants.NotificationsConfigure, "Mark notification types as mandatory and configure escalation rules and laboratory working hours for your section."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is
@@ -592,7 +601,10 @@ public static class DbSeeder
                     PermissionConstants.MonitoringPlanView, PermissionConstants.MonitoringPlanManage, PermissionConstants.MonitoringPlanApprove,
                     PermissionConstants.EquipmentPlanManage, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.NotApplicableTestsManage, PermissionConstants.TestsOutsource,
-                    PermissionConstants.SamplesPrepare
+                    PermissionConstants.SamplesPrepare,
+                    PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure,
+                    PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
+                    PermissionConstants.NotificationsConfigure
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -608,7 +620,8 @@ public static class DbSeeder
                     PermissionConstants.DashboardsReview, PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab, PermissionConstants.SamplesCorrect,
                     PermissionConstants.SolutionsRelease,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
-                    PermissionConstants.SamplesPrepare
+                    PermissionConstants.SamplesPrepare,
+                    PermissionConstants.DataExport
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -627,14 +640,17 @@ public static class DbSeeder
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
-                    PermissionConstants.SamplesPrepare
+                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign
                 })
             };
 
             // QC Manager: final approval of a not-applicable test, plus only what Reviewer may view or read.
             var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
-            grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove).ToArray())).ToArray();
+            grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove)
+                .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport)
+                .Append(PermissionConstants.NotificationsConfigure).ToArray())).ToArray();
+            grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)
             {

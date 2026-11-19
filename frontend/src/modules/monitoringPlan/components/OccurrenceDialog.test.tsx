@@ -37,7 +37,9 @@ describe("OccurrenceDialog", () => {
     const onChanged = vi.fn();
     renderDialog(onChanged);
 
-    expect(await screen.findByText("SP 206 – Week 43, 2026")).toBeTruthy();
+    const matchTitle = (_c: string, el: Element | null) =>
+      el?.classList.contains("MuiDialogTitle-root") === true && el.textContent === "SP 206 – Week 43, 2026";
+    expect(await screen.findByText(matchTitle)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Skip" }));
     fireEvent.change(screen.getByLabelText(/^Reason/), { target: { value: "Room closed for validation" } });
     fireEvent.click(screen.getByRole("button", { name: "Continue to sign" }));
@@ -56,7 +58,9 @@ describe("OccurrenceDialog", () => {
 
   it("starts a window change from the current dates", async () => {
     renderDialog();
-    await screen.findByText("SP 206 – Week 43, 2026");
+    await screen.findByText(
+      (_c, el) => el?.classList.contains("MuiDialogTitle-root") === true && el.textContent === "SP 206 – Week 43, 2026"
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Change window" }));
 

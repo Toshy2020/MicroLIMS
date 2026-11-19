@@ -16,6 +16,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import GroupIcon from "@mui/icons-material/Group";
 import { ConversationSummary } from "../types/messageTypes";
 import { brandColors } from "../../../theme";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   conversations: ConversationSummary[];
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ConversationList({ conversations, selectedId, onSelect, currentUserId }: Props) {
+  const { t } = useTranslation("messages");
   const [filter, setFilter] = useState<string>("");
 
   const filtered = conversations.filter((c) => {
@@ -57,12 +59,12 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
       {/* Search Filter */}
       <Box sx={{ p: 1.5, pb: 1 }}>
         <TextField
-          placeholder="Filter conversations..."
+          placeholder={t("list.filterPlaceholder")}
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
           size="small"
           fullWidth
-          slotProps={{ htmlInput: { "aria-label": "Filter conversations" },
+          slotProps={{ htmlInput: { "aria-label": t("list.filterLabel") },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -80,14 +82,14 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
         {filtered.length === 0 ? (
           <Typography sx={{ p: 3, textAlign: "center", color: "text.secondary", fontSize: 13 }}>
             {conversations.length === 0
-              ? "No conversations yet. Start a new message!"
-              : "No matching conversations found."}
+              ? t("list.empty")
+              : t("list.noMatch")}
           </Typography>
         ) : (
           filtered.map((c) => {
             const isSelected = c.id === selectedId;
             const otherParticipant = c.participants.find((p) => p.userId !== currentUserId);
-            const displayTitle = c.title || otherParticipant?.fullName || "Conversation";
+            const displayTitle = c.title || otherParticipant?.fullName || t("list.fallbackTitle");
             const initial = displayTitle.charAt(0).toUpperCase();
 
             return (
@@ -158,8 +160,11 @@ export function ConversationList({ conversations, selectedId, onSelect, currentU
                       }}
                     >
                       {c.lastMessage
-                        ? `${c.lastMessage.senderUserId === currentUserId ? "You: " : ""}${c.lastMessage.content}`
-                        : "No messages yet"}
+                        ? t("list.lastMessage", {
+                            prefix: c.lastMessage.senderUserId === currentUserId ? t("list.you") : "",
+                            content: c.lastMessage.content
+                          })
+                        : t("list.noMessagesYet")}
                     </Typography>
                   }
                 />

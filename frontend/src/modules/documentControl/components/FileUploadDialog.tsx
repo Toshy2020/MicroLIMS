@@ -20,6 +20,9 @@ import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutl
 import { documentControlService } from "../services/documentControlService";
 import type { FileRole } from "../types/documentControlTypes";
 import { clickable } from "../../../utils/clickable";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface FileUploadDialogProps {
   open: boolean;
@@ -40,6 +43,7 @@ export function FileUploadDialog({
   companyDocumentCode,
   hasExistingActiveFile = false
 }: FileUploadDialogProps) {
+  const { t } = useTranslation("documentControl");
   const [fileRole, setFileRole] = useState<FileRole>("ControlledPdf");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,12 +55,12 @@ export function FileUploadDialog({
       const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
 
       if (fileRole === "ControlledPdf" && ext !== ".pdf") {
-        setError("Controlled document file must be in PDF format (.pdf).");
+        setError(t("fileUpload.pdfFormatError"));
         setSelectedFile(null);
         return;
       }
       if (fileRole === "SourceFile" && ext !== ".docx" && ext !== ".doc") {
-        setError("Source editable file must be in Word format (.docx or .doc).");
+        setError(t("fileUpload.wordFormatError"));
         setSelectedFile(null);
         return;
       }
@@ -68,7 +72,7 @@ export function FileUploadDialog({
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      setError("Please select a file to upload.");
+      setError(t("fileUpload.selectFileError"));
       return;
     }
 
@@ -80,9 +84,8 @@ export function FileUploadDialog({
       setSelectedFile(null);
       onSuccess();
       onClose();
-    } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || "Failed to upload file.";
-      setError(msg);
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("fileUpload.uploadError")));
     } finally {
       setLoading(false);
     }
@@ -97,9 +100,14 @@ export function FileUploadDialog({
   };
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
+    if (bytes === 0) return `0 ${t("fileUpload.units.bytes")}`;
     const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const sizes = [
+      t("fileUpload.units.bytes"),
+      t("fileUpload.units.kb"),
+      t("fileUpload.units.mb"),
+      t("fileUpload.units.gb")
+    ];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
@@ -108,19 +116,24 @@ export function FileUploadDialog({
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ pb: 1 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          {hasExistingActiveFile ? "Replace Draft File" : "Upload Draft File"}
+          {hasExistingActiveFile ? t("fileUpload.replaceTitle") : t("fileUpload.uploadTitle")}
         </Typography>
         <Typography variant="caption" sx={{
           color: "text.secondary"
         }}>
-          Document: <strong>{companyDocumentCode}</strong> | Revision: <strong>{revisionNumber} (Draft)</strong>
+          <Trans
+            i18nKey="fileUpload.subtitle"
+            ns="documentControl"
+            values={{ code: companyDocumentCode, rev: revisionNumber }}
+            components={{ strong: <strong /> }}
+          />
         </Typography>
       </DialogTitle>
 
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
         {hasExistingActiveFile && (
           <Alert severity="info">
-            An active file already exists for this draft revision. Uploading a new file will set it as the active version while permanently retaining previous copies in the audit trail.
+            {t("fileUpload.replaceInfo")}
           </Alert>
         )}
 
@@ -128,7 +141,7 @@ export function FileUploadDialog({
 
         <FormControl component="fieldset">
           <FormLabel component="legend" sx={{ fontSize: 13, fontWeight: 700, mb: 0.5 }}>
-            File Role
+            {t("fileUpload.fileRoleLabel")}
           </FormLabel>
           <RadioGroup
             row
@@ -142,12 +155,12 @@ export function FileUploadDialog({
             <FormControlLabel
               value="ControlledPdf"
               control={<Radio size="small" />}
-              label="Controlled Document (PDF)"
+              label={t("fileUpload.controlledPdfOption")}
             />
             <FormControlLabel
               value="SourceFile"
               control={<Radio size="small" />}
-              label="Editable Source (Word .docx)"
+              label={t("fileUpload.sourceDocxOption")}
             />
           </RadioGroup>
         </FormControl>
@@ -164,7 +177,7 @@ export function FileUploadDialog({
             transition: "all 0.2s"
           }}
           onClick={() => document.getElementById("file-input-control")?.click()}
-          {...clickable(() => document.getElementById("file-input-control")?.click(), { label: "Choose a file to upload" })}
+          {...clickable(() => document.getElementById("file-input-control")?.click(), { label: t("fileUpload.chooseFileAria") })}
         >
           <input
             id="file-input-control"
@@ -175,7 +188,7 @@ export function FileUploadDialog({
           />
           <CloudUploadOutlinedIcon sx={{ fontSize: 40, color: "primary.main", mb: 1 }} />
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-            {selectedFile ? selectedFile.name : "Click or browse to choose a file"}
+            {selectedFile ? selectedFile.name : t("fileUpload.clickToBrowse")}
           </Typography>
           <Typography
             variant="caption"
@@ -183,7 +196,7 @@ export function FileUploadDialog({
               color: "text.secondary",
               display: "block"
             }}>
-            {fileRole === "ControlledPdf" ? "Accepts .pdf format (max 50 MB)" : "Accepts .docx or .doc format (max 50 MB)"}
+            {fileRole === "ControlledPdf" ? t("fileUpload.acceptsPdf") : t("fileUpload.acceptsWord")}
           </Typography>
         </Box>
 
@@ -206,7 +219,7 @@ export function FileUploadDialog({
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={loading} color="inherit">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleUpload}
@@ -214,7 +227,7 @@ export function FileUploadDialog({
           disabled={!selectedFile || loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <CloudUploadOutlinedIcon />}
         >
-          {loading ? "Uploading & Hashing..." : "Upload & Compute SHA-256"}
+          {loading ? t("fileUpload.uploading") : t("fileUpload.submit")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -14,11 +14,15 @@ import {
 import DescriptionIcon from "@mui/icons-material/Description";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DownloadIcon from "@mui/icons-material/Download";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../i18n";
+import { Ltr } from "./Ltr";
 import {
   ItemStmService,
   ItemStmDto,
 } from "../modules/laboratoryConfiguration/items/services/ItemStmService";
 import { documentControlService } from "../modules/documentControl/services/documentControlService";
+import { formatLabCalendarDate } from "../utils/formatDate";
 
 interface ItemStmPanelProps {
   itemId: number;
@@ -26,15 +30,12 @@ interface ItemStmPanelProps {
 
 function formatDate(dateStr?: string | null): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  return formatLabCalendarDate(dateStr);
 }
 
 export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
   const theme = useTheme();
+  const { t } = useTranslation();
   const [stm, setStm] = useState<ItemStmDto | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -53,7 +54,7 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
         .catch(() => {
           if (!cancelled) {
             setStm(null);
-            setFetchError("Failed to load STM details.");
+            setFetchError("load");
           }
         })
         .finally(() => {
@@ -73,7 +74,7 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
       const { url } = await documentControlService.viewFileBlob(stm.controlledPdfFileId);
       window.open(url, "_blank");
     } catch {
-      setActionError("Could not open controlled PDF. Please try again.");
+      setActionError(t("components.itemStmPanel.openFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -89,7 +90,7 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
         `${stm.companyDocumentCode || "STM"}_rev${stm.revisionNumber || "01"}.pdf`;
       await documentControlService.downloadFile(stm.controlledPdfFileId, fileName);
     } catch {
-      setActionError("Could not download controlled PDF. Please try again.");
+      setActionError(t("components.itemStmPanel.downloadFailed"));
     } finally {
       setActionLoading(null);
     }
@@ -104,7 +105,7 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
   }
 
   if (fetchError) {
-    return <Alert severity="error">{fetchError}</Alert>;
+    return <Alert severity="error">{t("components.itemStmPanel.loadFailed")}</Alert>;
   }
 
   if (!stm) {
@@ -168,7 +169,12 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
                 mt: 0.25,
               }}
             >
-              Revision {stm.revisionNumber} · Effective {formatDate(stm.effectiveDate)}
+              <Trans
+                i18nKey="components.itemStmPanel.revisionEffective"
+                ns="common"
+                values={{ revision: stm.revisionNumber, date: formatDate(stm.effectiveDate) }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
 
@@ -186,9 +192,9 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
               }
               onClick={handleView}
               sx={{ textTransform: "none", fontSize: 12, minHeight: 32 }}
-              aria-label={`View ${stm.companyDocumentCode ?? "STM"}`}
+              aria-label={t("components.itemStmPanel.viewAria", { code: stm.companyDocumentCode ?? "STM" })}
             >
-              View
+              {t("components.itemStmPanel.view")}
             </Button>
             {stm.canDownload && (
               <Button
@@ -205,9 +211,9 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
                 }
                 onClick={handleDownload}
                 sx={{ textTransform: "none", fontSize: 12, minHeight: 32 }}
-                aria-label={`Download ${stm.companyDocumentCode ?? "STM"}`}
+                aria-label={t("components.itemStmPanel.downloadAria", { code: stm.companyDocumentCode ?? "STM" })}
               >
-                Download
+                {t("components.itemStmPanel.download")}
               </Button>
             )}
           </Stack>
@@ -229,16 +235,16 @@ export function ItemStmPanel({ itemId }: ItemStmPanelProps) {
 
   let warningMessage = "";
   if (stm.status === "NotLinked") {
-    warningMessage = "This item has no SOP number.";
+    warningMessage = t("components.itemStmPanel.notLinked");
   } else if (stm.status === "NotFound") {
-    warningMessage = `SOP number ${stm.sopNumber ?? ""} is not in the Document Library.`;
+    warningMessage = t("components.itemStmPanel.notFound", { sop: stm.sopNumber ?? "" });
   } else if (stm.status === "NoEffectiveRevision") {
-    warningMessage = `${stm.companyDocumentCode ?? ""} has no effective revision yet.`;
+    warningMessage = t("components.itemStmPanel.noEffectiveRevision", { code: stm.companyDocumentCode ?? "" });
   }
 
   return (
     <Alert severity="warning" sx={{ borderRadius: 1.5 }}>
-      <AlertTitle sx={{ fontWeight: 700 }}>No effective STM</AlertTitle>
+      <AlertTitle sx={{ fontWeight: 700 }}>{t("components.itemStmPanel.noEffectiveTitle")}</AlertTitle>
       {warningMessage}
     </Alert>
   );

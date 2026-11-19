@@ -26,6 +26,7 @@ import { HplcTechnique, HplcResultMode } from "../services/HplcMethodService";
 import { MaterialMasterEntry } from "../services/MaterialMasterService";
 import { AnalyteRowState } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
+import { useTranslation } from "../../../../i18n";
 
 export interface HplcAnalytesSectionProps {
   technique?: HplcTechnique;
@@ -58,6 +59,7 @@ export function HplcAnalytesSection({
   onRemoveAnalyte,
   onMoveAnalyte
 }: HplcAnalytesSectionProps) {
+  const { t } = useTranslation("masterData");
   const isGc = technique === "Gc";
   const isResidual = isGc && resultMode === "ResidualSolvents";
   const isRelatedSubstances = !isGc && resultMode === "RelatedSubstances";
@@ -74,23 +76,23 @@ export function HplcAnalytesSection({
         <div>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
             {isRelatedSubstances
-              ? "Principal Peak & System Suitability Criteria"
+              ? t("hplcMethod.analytes.titleRelated")
               : isResidual
-              ? "Residual Solvents Analytes & SST Acceptance Criteria (USP <467>)"
+              ? t("hplcMethod.analytes.titleResidual")
               : isCleaningResidue
-              ? "Cleaning Residue Analytes & SST Acceptance Criteria"
-              : "Method Analytes & System Suitability Criteria"}
+              ? t("hplcMethod.analytes.titleCleaning")
+              : t("hplcMethod.analytes.titleDefault")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
             {isRelatedSubstances
-              ? "Define the principal peak, detection wavelength, reference standard, standard injections, and SST criteria."
+              ? t("hplcMethod.analytes.subtitleRelated")
               : isResidual
-              ? "Specify reference standards, calibration standard concentrations (µg/mL), injections, and SST limits for volatile solvent impurities."
+              ? t("hplcMethod.analytes.subtitleResidual")
               : isCleaningResidue
-              ? "Specify reference standards, standard concentrations (µg/mL), MACO limits and units, injections, and SST limits for residue testing."
+              ? t("hplcMethod.analytes.subtitleCleaning")
               : isGc
-              ? "Define active analytes, reference standards, theoretical weights, and SST criteria."
-              : "Define active analytes, detection wavelengths, reference standards, theoretical weights, and SST criteria."}
+              ? t("hplcMethod.analytes.subtitleGc")
+              : t("hplcMethod.analytes.subtitleHplc")}
           </Typography>
         </div>
         {!isRelatedSubstances && (
@@ -101,7 +103,7 @@ export function HplcAnalytesSection({
             onClick={onAddAnalyte}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Add Analyte
+            {t("hplcMethod.analytes.addAnalyte")}
           </Button>
         )}
       </Stack>
@@ -119,22 +121,22 @@ export function HplcAnalytesSection({
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Sample Solution Volume (USP &lt;467&gt;)
+            {t("hplcMethod.analytes.sampleVolTitle")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-            Method-level test solution volume (mL) used for dissolving the drug substance/product sample.
+            {t("hplcMethod.analytes.sampleVolSubtitle")}
           </Typography>
           <TextField
             size="small"
-            label="Sample Solution Volume (mL) *"
+            label={t("hplcMethod.analytes.sampleVolLabel")}
             type="number"
             value={sampleSolutionVolumeMl}
             onChange={(e) => onSampleSolutionVolumeMlChange?.(e.target.value)}
             required
-            placeholder="e.g. 5.0"
+            placeholder={t("hplcMethod.analytes.sampleVolPlaceholder")}
             error={Boolean(errors["sampleSolutionVolumeMl"])}
             helperText={
-              errors["sampleSolutionVolumeMl"] ?? "Volume of diluent in mL used to prepare test sample"
+              errors["sampleSolutionVolumeMl"] ?? t("hplcMethod.analytes.sampleVolHelper")
             }
             slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
             sx={{ maxWidth: 320 }}
@@ -155,37 +157,37 @@ export function HplcAnalytesSection({
           }}
         >
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
-            Cleaning Residue Parameters
+            {t("hplcMethod.analytes.cleaningTitle")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-            Extraction volume and swabbed area used to desorb swabs and calculate residue carryover.
+            {t("hplcMethod.analytes.cleaningSubtitle")}
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <TextField
               size="small"
-              label="Extraction volume (mL) *"
+              label={t("hplcMethod.analytes.extractionVolLabel")}
               type="number"
               value={sampleSolutionVolumeMl}
               onChange={(e) => onSampleSolutionVolumeMlChange?.(e.target.value)}
               required
-              placeholder="e.g. 10.0"
+              placeholder={t("hplcMethod.analytes.extractionVolPlaceholder")}
               error={Boolean(errors["sampleSolutionVolumeMl"])}
               helperText={
-                errors["sampleSolutionVolumeMl"] ?? "Extraction solvent volume in mL"
+                errors["sampleSolutionVolumeMl"] ?? t("hplcMethod.analytes.extractionVolHelper")
               }
               slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
               sx={{ maxWidth: 320 }}
             />
             <TextField
               size="small"
-              label="Swabbed area (cm²)"
+              label={t("hplcMethod.analytes.swabAreaLabel")}
               type="number"
               value={swabAreaCm2}
               onChange={(e) => onSwabAreaCm2Change?.(e.target.value)}
-              placeholder="e.g. 25.0"
+              placeholder={t("hplcMethod.analytes.swabAreaPlaceholder")}
               error={Boolean(errors["swabAreaCm2"])}
               helperText={
-                errors["swabAreaCm2"] ?? "Required if any analyte uses µg/cm²"
+                errors["swabAreaCm2"] ?? t("hplcMethod.analytes.swabAreaHelper")
               }
               slotProps={{ htmlInput: { min: 0.01, step: "any" } }}
               sx={{ maxWidth: 320 }}
@@ -226,21 +228,21 @@ export function HplcAnalytesSection({
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <ScienceOutlinedIcon fontSize="small" color="primary" />
                   <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                    {a.name.trim() ? a.name.trim() : isRelatedSubstances ? "Principal Peak" : `Analyte #${idx + 1}`}
+                    {a.name.trim() ? a.name.trim() : isRelatedSubstances ? t("hplcMethod.analytes.principalPeak") : t("hplcMethod.analytes.analyteFallback", { index: idx + 1 })}
                   </Typography>
                   {a.id != null && (
                     <Typography variant="caption" sx={{ color: "text.disabled" }}>
-                      (ID: {a.id})
+                      {t("hplcMethod.analytes.idPrefix", { id: a.id })}
                     </Typography>
                   )}
                 </Stack>
 
                 {!isRelatedSubstances && (
                 <Stack direction="row" spacing={0.5}>
-                  <Tooltip title="Move up">
+                  <Tooltip title={t("hplcMethod.analytes.moveUp")}>
                     <span>
                       <IconButton
-                        aria-label="Move up"
+                        aria-label={t("hplcMethod.analytes.moveUp")}
                         size="small"
                         onClick={() => onMoveAnalyte(idx, "up")}
                         disabled={idx === 0}
@@ -249,10 +251,10 @@ export function HplcAnalytesSection({
                       </IconButton>
                     </span>
                   </Tooltip>
-                  <Tooltip title="Move down">
+                  <Tooltip title={t("hplcMethod.analytes.moveDown")}>
                     <span>
                       <IconButton
-                        aria-label="Move down"
+                        aria-label={t("hplcMethod.analytes.moveDown")}
                         size="small"
                         onClick={() => onMoveAnalyte(idx, "down")}
                         disabled={idx === analytes.length - 1}
@@ -261,10 +263,10 @@ export function HplcAnalytesSection({
                       </IconButton>
                     </span>
                   </Tooltip>
-                  <Tooltip title="Remove analyte">
+                  <Tooltip title={t("hplcMethod.analytes.removeAnalyte")}>
                     <span>
                       <IconButton
-                        aria-label="Remove analyte"
+                        aria-label={t("hplcMethod.analytes.removeAnalyte")}
                         size="small"
                         onClick={() => onRemoveAnalyte(idx)}
                         disabled={analytes.length <= 1}
@@ -291,8 +293,8 @@ export function HplcAnalytesSection({
               >
                 <TextField
                   size="small"
-                  label="Analyte Name *"
-                  placeholder={isRelatedSubstances ? "e.g. Sildenafil Principal Peak" : isResidual ? "e.g. Methanol, Acetone, DCM" : "e.g. Paracetamol, Caffeine"}
+                  label={t("hplcMethod.analytes.nameLabel")}
+                  placeholder={isRelatedSubstances ? t("hplcMethod.analytes.namePlaceholderRelated") : isResidual ? t("hplcMethod.analytes.namePlaceholderResidual") : t("hplcMethod.analytes.namePlaceholderDefault")}
                   value={a.name}
                   onChange={(e) => onAnalyteChange(idx, "name", e.target.value)}
                   required
@@ -303,33 +305,33 @@ export function HplcAnalytesSection({
                 {!isGc && (
                   <TextField
                     size="small"
-                    label="λ (nm) *"
+                    label={t("hplcMethod.analytes.wavelengthLabel")}
                     type="number"
                     value={a.wavelengthNm}
                     onChange={(e) => onAnalyteChange(idx, "wavelengthNm", e.target.value)}
                     required
                     error={Boolean(err("wavelengthNm"))}
-                    helperText={err("wavelengthNm") ?? "190–900"}
+                    helperText={err("wavelengthNm") ?? t("hplcMethod.analytes.wavelengthHelper")}
                     slotProps={{ htmlInput: { min: 190, max: 900, step: "any" } }}
                     fullWidth
                   />
                 )}
                 <FormControl size="small" fullWidth required error={Boolean(err("standardEntryId"))}>
-                  <InputLabel id={`analyte-std-label-${idx}`}>Reference Standard *</InputLabel>
+                  <InputLabel id={`analyte-std-label-${idx}`}>{t("hplcMethod.analytes.stdLabel")}</InputLabel>
                   <Select
                     labelId={`analyte-std-label-${idx}`}
-                    label="Reference Standard *"
+                    label={t("hplcMethod.analytes.stdLabel")}
                     value={a.standardEntryId}
                     onChange={(e) => onAnalyteChange(idx, "standardEntryId", Number(e.target.value) || "")}
                   >
                     {availableStandards.length === 0 ? (
                       <MenuItem disabled value="">
-                        <em>No reference standards available in this section</em>
+                        <em>{t("hplcMethod.analytes.noStds")}</em>
                       </MenuItem>
                     ) : (
                       availableStandards.map((s) => (
                         <MenuItem key={s.id} value={s.id}>
-                          {s.code} &middot; {s.name} {!s.isActive && "(Inactive)"}
+                          {s.code} &middot; {s.name} {!s.isActive && t("hplcMethod.analytes.inactiveSuffix")}
                         </MenuItem>
                       ))
                     )}
@@ -352,13 +354,13 @@ export function HplcAnalytesSection({
                 >
                   <TextField
                     size="small"
-                    label="Standard Injections *"
+                    label={t("hplcMethod.analytes.stdInjectionsLabel")}
                     type="number"
                     value={a.standardInjections}
                     onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
                     required
                     error={Boolean(err("standardInjections"))}
-                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    helperText={err("standardInjections") ?? t("hplcMethod.analytes.stdInjectionsHelper")}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     fullWidth
                   />
@@ -375,31 +377,31 @@ export function HplcAnalytesSection({
                 >
                   <TextField
                     size="small"
-                    label="Standard Concentration (µg/mL) *"
+                    label={t("hplcMethod.analytes.stdConcLabel")}
                     type="number"
                     value={a.standardConcentrationUgPerMl}
                     onChange={(e) =>
                       onAnalyteChange(idx, "standardConcentrationUgPerMl", e.target.value)
                     }
                     required
-                    placeholder="e.g. 50.0"
+                    placeholder={t("hplcMethod.analytes.stdConcPlaceholderResidual")}
                     error={Boolean(err("standardConcentrationUgPerMl"))}
                     helperText={
                       err("standardConcentrationUgPerMl") ??
-                      "Standard concentration in µg/mL (C_std)"
+                      t("hplcMethod.analytes.stdConcHelper")
                     }
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <TextField
                     size="small"
-                    label="Standard Injections *"
+                    label={t("hplcMethod.analytes.stdInjectionsLabel")}
                     type="number"
                     value={a.standardInjections}
                     onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
                     required
                     error={Boolean(err("standardInjections"))}
-                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    helperText={err("standardInjections") ?? t("hplcMethod.analytes.stdInjectionsHelper")}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     fullWidth
                   />
@@ -416,40 +418,40 @@ export function HplcAnalytesSection({
                 >
                   <TextField
                     size="small"
-                    label="Standard Concentration (µg/mL) *"
+                    label={t("hplcMethod.analytes.stdConcLabel")}
                     type="number"
                     value={a.standardConcentrationUgPerMl}
                     onChange={(e) =>
                       onAnalyteChange(idx, "standardConcentrationUgPerMl", e.target.value)
                     }
                     required
-                    placeholder="e.g. 10.0"
+                    placeholder={t("hplcMethod.analytes.stdConcPlaceholderCleaning")}
                     error={Boolean(err("standardConcentrationUgPerMl"))}
                     helperText={
                       err("standardConcentrationUgPerMl") ??
-                      "Standard concentration in µg/mL (C_std)"
+                      t("hplcMethod.analytes.stdConcHelper")
                     }
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <TextField
                     size="small"
-                    label="MACO Limit *"
+                    label={t("hplcMethod.analytes.macoLimitLabel")}
                     type="number"
                     value={a.macoLimit}
                     onChange={(e) => onAnalyteChange(idx, "macoLimit", e.target.value)}
                     required
-                    placeholder="e.g. 10.0"
+                    placeholder={t("hplcMethod.analytes.macoLimitPlaceholder")}
                     error={Boolean(err("macoLimit"))}
-                    helperText={err("macoLimit") ?? "Maximum allowable carryover"}
+                    helperText={err("macoLimit") ?? t("hplcMethod.analytes.macoLimitHelper")}
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <FormControl size="small" fullWidth required error={Boolean(err("macoUnit"))}>
-                    <InputLabel id={`analyte-maco-unit-label-${idx}`}>MACO Unit *</InputLabel>
+                    <InputLabel id={`analyte-maco-unit-label-${idx}`}>{t("hplcMethod.analytes.macoUnitLabel")}</InputLabel>
                     <Select
                       labelId={`analyte-maco-unit-label-${idx}`}
-                      label="MACO Unit *"
+                      label={t("hplcMethod.analytes.macoUnitLabel")}
                       value={a.macoUnit || "UgPerSwab"}
                       onChange={(e) => onAnalyteChange(idx, "macoUnit", e.target.value)}
                     >
@@ -460,13 +462,13 @@ export function HplcAnalytesSection({
                   </FormControl>
                   <TextField
                     size="small"
-                    label="Standard Injections *"
+                    label={t("hplcMethod.analytes.stdInjectionsLabel")}
                     type="number"
                     value={a.standardInjections}
                     onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
                     required
                     error={Boolean(err("standardInjections"))}
-                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    helperText={err("standardInjections") ?? t("hplcMethod.analytes.stdInjectionsHelper")}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     fullWidth
                   />
@@ -483,48 +485,48 @@ export function HplcAnalytesSection({
                 >
                   <TextField
                     size="small"
-                    label="Th. Wt. Std (mg) *"
+                    label={t("hplcMethod.analytes.thWtStdLabel")}
                     type="number"
                     value={a.theoreticalWeightStdMg}
                     onChange={(e) => onAnalyteChange(idx, "theoreticalWeightStdMg", e.target.value)}
                     required
                     error={Boolean(err("theoreticalWeightStdMg"))}
-                    helperText={err("theoreticalWeightStdMg") ?? "Theoretical standard weight in mg"}
+                    helperText={err("theoreticalWeightStdMg") ?? t("hplcMethod.analytes.thWtStdHelper")}
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <TextField
                     size="small"
-                    label="Th. Wt. Test (mg) *"
+                    label={t("hplcMethod.analytes.thWtTestLabel")}
                     type="number"
                     value={a.theoreticalWeightTestMg}
                     onChange={(e) => onAnalyteChange(idx, "theoreticalWeightTestMg", e.target.value)}
                     required
                     error={Boolean(err("theoreticalWeightTestMg"))}
-                    helperText={err("theoreticalWeightTestMg") ?? "Theoretical sample weight in mg"}
+                    helperText={err("theoreticalWeightTestMg") ?? t("hplcMethod.analytes.thWtTestHelper")}
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <TextField
                     size="small"
-                    label="Standard Dilution (mL)"
+                    label={t("hplcMethod.analytes.stdDilutionLabel")}
                     type="number"
                     value={a.standardDilution}
                     onChange={(e) => onAnalyteChange(idx, "standardDilution", e.target.value)}
                     error={Boolean(err("standardDilution"))}
-                    helperText={err("standardDilution") ?? "Volume standard is diluted to"}
+                    helperText={err("standardDilution") ?? t("hplcMethod.analytes.stdDilutionHelper")}
                     slotProps={{ htmlInput: { min: 0.0001, step: "any" } }}
                     fullWidth
                   />
                   <TextField
                     size="small"
-                    label="Standard Injections *"
+                    label={t("hplcMethod.analytes.stdInjectionsLabel")}
                     type="number"
                     value={a.standardInjections}
                     onChange={(e) => onAnalyteChange(idx, "standardInjections", e.target.value)}
                     required
                     error={Boolean(err("standardInjections"))}
-                    helperText={err("standardInjections") ?? "e.g. 5 or 6 replicate injections"}
+                    helperText={err("standardInjections") ?? t("hplcMethod.analytes.stdInjectionsHelper")}
                     slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     fullWidth
                   />
@@ -539,8 +541,8 @@ export function HplcAnalytesSection({
                 endIcon={isSstExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                 sx={{ textTransform: "none", fontWeight: 600, px: 0.5 }}
               >
-                {isSstExpanded ? "Hide SST Acceptance Criteria" : "System Suitability Acceptance Criteria (Optional)"}
-                {hasSstConfigured && !isSstExpanded && " (Configured)"}
+                {isSstExpanded ? t("hplcMethod.analytes.hideSst") : t("hplcMethod.analytes.showSst")}
+                {hasSstConfigured && !isSstExpanded && t("hplcMethod.analytes.configuredSuffix")}
               </Button>
 
               <Collapse in={isSstExpanded}>
@@ -555,7 +557,7 @@ export function HplcAnalytesSection({
                   }}
                 >
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-                    Criteria checked during system suitability runs. Blank fields are not enforced.
+                    {t("hplcMethod.analytes.sstHelp")}
                   </Typography>
                   <Box
                     sx={{
@@ -566,9 +568,9 @@ export function HplcAnalytesSection({
                   >
                     <TextField
                       size="small"
-                      label="Max RSD (%)"
+                      label={t("hplcMethod.analytes.sstMaxRsd")}
                       type="number"
-                      placeholder="e.g. 2.0"
+                      placeholder={t("hplcMethod.analytes.example", { value: "2.0" })}
                       value={a.sstMaxRsdPercent}
                       onChange={(e) => onAnalyteChange(idx, "sstMaxRsdPercent", e.target.value)}
                       error={Boolean(err("sstMaxRsdPercent"))}
@@ -577,9 +579,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Min Resolution"
+                      label={t("hplcMethod.analytes.sstMinResolution")}
                       type="number"
-                      placeholder="e.g. 1.5"
+                      placeholder={t("hplcMethod.analytes.example", { value: "1.5" })}
                       value={a.sstMinResolution}
                       onChange={(e) => onAnalyteChange(idx, "sstMinResolution", e.target.value)}
                       error={Boolean(err("sstMinResolution"))}
@@ -588,9 +590,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Max Tailing Factor"
+                      label={t("hplcMethod.analytes.sstMaxTailing")}
                       type="number"
-                      placeholder="e.g. 2.0"
+                      placeholder={t("hplcMethod.analytes.example", { value: "2.0" })}
                       value={a.sstMaxTailingFactor}
                       onChange={(e) => onAnalyteChange(idx, "sstMaxTailingFactor", e.target.value)}
                       error={Boolean(err("sstMaxTailingFactor"))}
@@ -599,9 +601,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Min Theoretical Plates"
+                      label={t("hplcMethod.analytes.sstMinPlates")}
                       type="number"
-                      placeholder="e.g. 2000"
+                      placeholder={t("hplcMethod.analytes.example", { value: "2000" })}
                       value={a.sstMinTheoreticalPlates}
                       onChange={(e) => onAnalyteChange(idx, "sstMinTheoreticalPlates", e.target.value)}
                       error={Boolean(err("sstMinTheoreticalPlates"))}
@@ -610,9 +612,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Min Retention Factor (k')"
+                      label={t("hplcMethod.analytes.sstMinRetention")}
                       type="number"
-                      placeholder="e.g. 2.0"
+                      placeholder={t("hplcMethod.analytes.example", { value: "2.0" })}
                       value={a.sstMinRetentionFactor}
                       onChange={(e) => onAnalyteChange(idx, "sstMinRetentionFactor", e.target.value)}
                       error={Boolean(err("sstMinRetentionFactor"))}
@@ -621,9 +623,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Min Signal-to-Noise"
+                      label={t("hplcMethod.analytes.sstMinSn")}
                       type="number"
-                      placeholder="e.g. 10"
+                      placeholder={t("hplcMethod.analytes.example", { value: "10" })}
                       value={a.sstMinSignalToNoise}
                       onChange={(e) => onAnalyteChange(idx, "sstMinSignalToNoise", e.target.value)}
                       error={Boolean(err("sstMinSignalToNoise"))}
@@ -632,9 +634,9 @@ export function HplcAnalytesSection({
                     />
                     <TextField
                       size="small"
-                      label="Min Peak-to-Valley"
+                      label={t("hplcMethod.analytes.sstMinPv")}
                       type="number"
-                      placeholder="e.g. 1.2"
+                      placeholder={t("hplcMethod.analytes.example", { value: "1.2" })}
                       value={a.sstMinPeakToValley}
                       onChange={(e) => onAnalyteChange(idx, "sstMinPeakToValley", e.target.value)}
                       error={Boolean(err("sstMinPeakToValley"))}

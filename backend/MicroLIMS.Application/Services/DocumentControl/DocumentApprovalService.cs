@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -6,7 +7,9 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
 
@@ -17,27 +20,30 @@ public class DocumentApprovalService : IDocumentApprovalService
     private readonly IDocumentAuthorizationService _auth;
     private readonly IElectronicSignatureService _signatureService;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public DocumentApprovalService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         IDocumentAuthorizationService auth,
         IElectronicSignatureService signatureService,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _auth = auth;
         _signatureService = signatureService;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
-    private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId)
+    private async Task<(bool IsActive, RoleType? RoleType)> GetUserRoleAsync(int userId, CancellationToken cancellationToken = default)
     {
         var user = await _db.Users
             .Include(u => u.Role)
             .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == userId);
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null || !user.IsActive)
             return (false, null);
@@ -56,6 +62,7 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         var revision = await _db.DocumentRevisions
             .Include(r => r.DocumentMaster)
+                .ThenInclude(m => m.DocumentType)
             .Include(r => r.Files)
             .Include(r => r.ReviewTasks)
                 .ThenInclude(t => t.Findings)
@@ -103,11 +110,10 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (approver == null || !approver.IsActive)
             throw new BusinessRuleException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
 
-        // Approver role eligibility: Reviewer or SectionHead. A System Administrator
+        // Approver role eligibility: Reviewer, SectionHead, or Qa. A System Administrator
         // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
-        if (approver.Role == null ||
-            (approver.Role.Type != RoleType.Reviewer &&
-             approver.Role.Type != RoleType.SectionHead))
+        if (approver.Role is null ||
+            approver.Role.Type is not (RoleType.Reviewer or RoleType.SectionHead or RoleType.Qa))
         {
             throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
         }
@@ -119,6 +125,12 @@ public class DocumentApprovalService : IDocumentApprovalService
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
         ValidateSegregationOfDuties(revision, request.ApproverUserId);
+
+        EnsureQaApproverRequirement(
+            revision.DocumentMaster.DocumentType?.RequiresQaApprover ?? false,
+            requireApproved: false,
+            Array.Empty<(RoleType?, RoleType?, DocumentApprovalTaskStatus)>(),
+            proposedApproverRole: approver.Role.Type);
 
         var task = new DocumentApprovalTask
         {
@@ -133,8 +145,20 @@ public class DocumentApprovalService : IDocumentApprovalService
         };
 
         _db.DocumentApprovalTasks.Add(task);
+        _db.QueueSignal(LiveSignalKinds.Record, $"document:{revision.DocumentMasterId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{request.ApproverUserId}");
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
+
+        await _publisher.PublishAsync(new NotificationRequest(
+            Type: "DocumentTask",
+            UserIds: new[] { request.ApproverUserId },
+            Message: $"Document {revision.DocumentMaster.MicroLimsDocumentId} (Rev {revision.RevisionNumber}) was assigned to you for approval.",
+            TargetType: "document-approval",
+            TargetId: task.Id,
+            SectionId: revision.DocumentMaster.SectionId,
+            DedupeKey: $"DocumentTask:approval:{task.Id}",
+            DueAtUtc: request.DueDate));
 
         var assigner = await _db.Users.FindAsync(userId);
 
@@ -383,16 +407,17 @@ public class DocumentApprovalService : IDocumentApprovalService
     public Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null) =>
         UnitOfWork.RunAsync(_db, () => ExecuteApprovalDecisionCoreAsync(approvalTaskId, request, userId, ipAddress));
 
-    private async Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionCoreAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null)
-    {
-        var (isActorActive, actorRole) = await GetUserRoleAsync(userId);
-        if (!isActorActive || actorRole == null)
-            throw new UnauthorizedAccessException("User is inactive or not found.");
+    private const string InactiveActorMessage = "User is inactive or not found.";
 
-        var task = await _db.DocumentApprovalTasks
+    // The approval task with everything a decision reads.
+    private IQueryable<DocumentApprovalTask> DecisionTasks() =>
+        _db.DocumentApprovalTasks
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.DocumentMaster)
                     .ThenInclude(m => m.Revisions)
+            .Include(t => t.DocumentRevision)
+                .ThenInclude(r => r.DocumentMaster)
+                    .ThenInclude(m => m.DocumentType)
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.Files)
             .Include(t => t.DocumentRevision)
@@ -403,29 +428,104 @@ public class DocumentApprovalService : IDocumentApprovalService
             .Include(t => t.DocumentRevision)
                 .ThenInclude(r => r.ImpactAssessment)
             .Include(t => t.AssignedApproverUser)
-            .Include(t => t.AssignedByUser)
-            .FirstOrDefaultAsync(t => t.Id == approvalTaskId);
+                .ThenInclude(u => u.Role)
+            .Include(t => t.AssignedByUser);
+
+    // Whether the user could approve through this task now: every check ExecuteApprovalDecisionAsync makes for an
+    // Approve decision before it asks for the signature, in the same order. The password, the notes and the
+    // effective date are the approver's input and stay with the action.
+    public async Task<ActionCheck> CheckApproveAsync(int approvalTaskId, int userId, CancellationToken cancellationToken = default)
+    {
+        var (isActorActive, actorRole) = await GetUserRoleAsync(userId, cancellationToken);
+        if (!isActorActive || actorRole is not { } role)
+            return ActionCheck.Denied(InactiveActorMessage);
+
+        var task = await DecisionTasks().AsNoTrackingWithIdentityResolution().FirstOrDefaultAsync(t => t.Id == approvalTaskId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Document approval task {approvalTaskId} not found.");
+
+        var decision = await CheckDecisionAsync(task, userId, role);
+        if (!decision.Allowed) return decision;
+        return await CheckApprovePrerequisitesAsync(task, userId, role, cancellationToken);
+    }
+
+    // The approval task a decision on the revision would go through: the pending one, else the latest. Null when
+    // the revision has never been sent for approval.
+    public async Task<int?> FindDecisionTaskIdAsync(int revisionId, CancellationToken cancellationToken = default) =>
+        await _db.DocumentApprovalTasks.AsNoTracking()
+            .Where(t => t.DocumentRevisionId == revisionId)
+            .OrderByDescending(t => t.Status == DocumentApprovalTaskStatus.Pending)
+            .ThenByDescending(t => t.AssignedAt)
+            .ThenByDescending(t => t.Id)
+            .Select(t => (int?)t.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+    // Checks every decision shares (approve, return, decline), after the actor is known to be active: the task
+    // is pending, the actor neither wrote nor reviewed the revision, is the assigned approver or the Document
+    // Controller, and holds Documents.Approve.
+    private async Task<ActionCheck> CheckDecisionAsync(DocumentApprovalTask task, int userId, RoleType actorRole)
+    {
+        if (task.Status != DocumentApprovalTaskStatus.Pending)
+            return ActionCheck.No($"Cannot execute decision on approval task in status '{task.Status}'.");
+
+        // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
+        // Actor cannot be Author, Actor cannot be Reviewer! SystemAdministrator is NOT exempt!
+        var segregation = CheckDecisionSegregationOfDuties(task.DocumentRevision, userId);
+        if (!segregation.Allowed) return segregation;
+
+        // Verify assignment: Must be the assigned approver or Document Controller (SectionHead)
+        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead)
+            return ActionCheck.Denied(MessageCodes.DocumentOnlyAssignedApprover, "Only the assigned approver or Document Controller may execute an approval decision.");
+
+        if (!await _auth.CanExecuteApprovalAsync(userId))
+            return ActionCheck.Denied(MessageCodes.DocumentApprovePermissionRequired, "Your role does not hold the Documents.Approve permission required to execute an approval decision.");
+
+        return ActionCheck.Ok;
+    }
+
+    // What an approval needs beyond the shared checks: a QA approver where the document type asks for one, the
+    // revision's readiness, and no approval signature on the revision yet.
+    private async Task<ActionCheck> CheckApprovePrerequisitesAsync(DocumentApprovalTask task, int userId, RoleType actorRole, CancellationToken cancellationToken = default)
+    {
+        var revision = task.DocumentRevision;
+        var master = revision.DocumentMaster;
+
+        var qaApprover = CheckQaApproverRequirement(
+            master.DocumentType?.RequiresQaApprover ?? false,
+            requireApproved: true,
+            new[] { (task.AssignedApproverUser.Role?.Type, (RoleType?)actorRole, DocumentApprovalTaskStatus.Approved) });
+        if (!qaApprover.Allowed) return qaApprover;
+
+        // Verify readiness strictly server-side
+        var readiness = EvaluateReadiness(task, userId);
+        if (!readiness.IsReady)
+        {
+            return ActionCheck.No(
+                "Cannot approve document revision: Prerequisites not met. Errors: " + string.Join("; ", readiness.ValidationErrors));
+        }
+
+        // Check duplicate signature prevention
+        var existingSig = await _db.ElectronicSignatures
+            .AnyAsync(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved, cancellationToken);
+        if (existingSig)
+        {
+            return ActionCheck.No($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
+        }
+
+        return ActionCheck.Ok;
+    }
+
+    private async Task<DocumentApprovalTaskDto> ExecuteApprovalDecisionCoreAsync(int approvalTaskId, ExecuteApprovalDecisionRequest request, int userId, string? ipAddress = null)
+    {
+        var (isActorActive, actorRole) = await GetUserRoleAsync(userId);
+        if (!isActorActive || actorRole == null)
+            throw new UnauthorizedAccessException(InactiveActorMessage);
+
+        var task = await DecisionTasks().FirstOrDefaultAsync(t => t.Id == approvalTaskId);
 
         if (task == null)
             throw new KeyNotFoundException($"Document approval task {approvalTaskId} not found.");
 
-        if (task.Status != DocumentApprovalTaskStatus.Pending)
-            throw new BusinessRuleException($"Cannot execute decision on approval task in status '{task.Status}'.");
-
-        var revision = task.DocumentRevision;
-
-        // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
-        // Actor cannot be Author, Actor cannot be Reviewer! SystemAdministrator is NOT exempt!
-        ValidateDecisionSegregationOfDuties(revision, userId);
-
-        // Verify assignment: Must be the assigned approver or Document Controller (SectionHead)
-        if (userId != task.AssignedApproverUserId && actorRole != RoleType.SectionHead)
-        {
-            throw new UnauthorizedAccessException("Only the assigned approver or Document Controller may execute an approval decision.");
-        }
-
-        if (!await _auth.CanExecuteApprovalAsync(userId))
-            throw new UnauthorizedAccessException("Your role does not hold the Documents.Approve permission required to execute an approval decision.");
+        (await CheckDecisionAsync(task, userId, actorRole.Value)).ThrowIfRefused();
 
         var actorUser = await _db.Users.FindAsync(userId);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -437,7 +537,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             return await DeclineAsync(task, request, userId, actorUser, now);
 
         if (request.Decision == DocumentApprovalDecision.Approve)
-            return await ApproveAsync(task, request, userId, actorUser, now, ipAddress);
+            return await ApproveAsync(task, request, userId, actorUser, actorRole.Value, now, ipAddress);
 
         throw new ArgumentException($"Unsupported approval decision: {request.Decision}", nameof(request.Decision));
     }
@@ -461,6 +561,8 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         // Revert revision status to Draft (DC-URS-075, FS-1b-075)
         revision.RevisionStatus = DocumentRevisionStatus.Draft;
+
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
 
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
@@ -507,6 +609,8 @@ public class DocumentApprovalService : IDocumentApprovalService
         revision.CancelledByUserId = userId;
         revision.CancelReason = task.DecisionNotes;
 
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
@@ -530,7 +634,7 @@ public class DocumentApprovalService : IDocumentApprovalService
     }
 
     private async Task<DocumentApprovalTaskDto> ApproveAsync(
-        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, DateTime now, string? ipAddress)
+        DocumentApprovalTask task, ExecuteApprovalDecisionRequest request, int userId, User? actorUser, RoleType actorRole, DateTime now, string? ipAddress)
     {
         var revision = task.DocumentRevision;
         var master = revision.DocumentMaster;
@@ -542,21 +646,7 @@ public class DocumentApprovalService : IDocumentApprovalService
             throw new BusinessRuleException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
         }
 
-        // Verify readiness strictly server-side
-        var readiness = EvaluateReadiness(task, userId);
-        if (!readiness.IsReady)
-        {
-            throw new BusinessRuleException(
-                "Cannot approve document revision: Prerequisites not met. Errors: " + string.Join("; ", readiness.ValidationErrors));
-        }
-
-        // Check duplicate signature prevention
-        var existingSig = await _db.ElectronicSignatures
-            .AnyAsync(s => s.EntityType == "DocumentRevision" && s.EntityId == revision.Id && s.MeaningOfSignature == SignatureMeaning.Approved);
-        if (existingSig)
-        {
-            throw new BusinessRuleException($"An electronic signature for approval has already been applied to revision {revision.RevisionNumber}.");
-        }
+        (await CheckApprovePrerequisitesAsync(task, userId, actorRole)).ThrowIfRefused();
 
         // Execute 21 CFR Part 11 Electronic Signature ceremony via qualified IElectronicSignatureService
         // This verifies the user's password hash via BCrypt. If it fails, it throws and writes a failed signature audit event.
@@ -610,6 +700,8 @@ public class DocumentApprovalService : IDocumentApprovalService
             master.CurrentEffectiveRevisionId = revision.Id;
         }
 
+        await _publisher.ResolveAsync($"DocumentTask:approval:{task.Id}");
+
         _db.CurrentUserId = userId;
         await _db.SaveChangesAsync();
 
@@ -656,6 +748,49 @@ public class DocumentApprovalService : IDocumentApprovalService
 
     // ---- Helper Methods ----
 
+    internal const string QaApproverRequiredMessage = "This document type requires approval by Quality Assurance.";
+
+    /// <summary>
+    /// Enforces the per-document-type "QA approver required" setting at workflow transitions.
+    /// Per Rule 3.1, switching <see cref="DocumentType.RequiresQaApprover"/> on never retroactively
+    /// alters revisions already in approval or already effective; this check runs at each
+    /// transition (submitting for approval or becoming effective) that occurs after the switch.
+    /// </summary>
+    internal static void EnsureQaApproverRequirement(
+        bool requiresQaApprover,
+        bool requireApproved,
+        IEnumerable<(RoleType? AssignedApproverRole, RoleType? DecisionActorRole, DocumentApprovalTaskStatus Status)> approvalTasks,
+        RoleType? proposedApproverRole = null) =>
+        CheckQaApproverRequirement(requiresQaApprover, requireApproved, approvalTasks, proposedApproverRole).ThrowIfRefused();
+
+    // EnsureQaApproverRequirement without the throw.
+    internal static ActionCheck CheckQaApproverRequirement(
+        bool requiresQaApprover,
+        bool requireApproved,
+        IEnumerable<(RoleType? AssignedApproverRole, RoleType? DecisionActorRole, DocumentApprovalTaskStatus Status)> approvalTasks,
+        RoleType? proposedApproverRole = null)
+    {
+        if (!requiresQaApprover)
+            return ActionCheck.Ok;
+
+        if (requireApproved)
+        {
+            var hasQaApproval = approvalTasks.Any(t =>
+                t.Status == DocumentApprovalTaskStatus.Approved &&
+                t.AssignedApproverRole == RoleType.Qa &&
+                t.DecisionActorRole == RoleType.Qa);
+
+            return hasQaApproval ? ActionCheck.Ok : ActionCheck.No(QaApproverRequiredMessage);
+        }
+
+        var hasQaAssignee = proposedApproverRole == RoleType.Qa ||
+            approvalTasks.Any(t =>
+                t.Status == DocumentApprovalTaskStatus.Pending &&
+                t.AssignedApproverRole == RoleType.Qa);
+
+        return hasQaAssignee ? ActionCheck.Ok : ActionCheck.No(QaApproverRequiredMessage);
+    }
+
     private static void ValidateSegregationOfDuties(DocumentRevision revision, int approverUserId)
     {
         if (approverUserId == revision.CreatedByUserId)
@@ -677,11 +812,11 @@ public class DocumentApprovalService : IDocumentApprovalService
         }
     }
 
-    private static void ValidateDecisionSegregationOfDuties(DocumentRevision revision, int actorUserId)
+    private static ActionCheck CheckDecisionSegregationOfDuties(DocumentRevision revision, int actorUserId)
     {
         if (actorUserId == revision.CreatedByUserId)
         {
-            throw new UnauthorizedAccessException(
+            return ActionCheck.Denied(
                 "Segregation of Duties Violation: The author of a document revision cannot approve or decide upon their own revision.");
         }
 
@@ -693,9 +828,11 @@ public class DocumentApprovalService : IDocumentApprovalService
 
         if (reviewerUserIds.Contains(actorUserId))
         {
-            throw new UnauthorizedAccessException(
+            return ActionCheck.Denied(
                 "Segregation of Duties Violation: A technical reviewer for this revision cannot approve or decide upon this revision.");
         }
+
+        return ActionCheck.Ok;
     }
 
     private ApprovalReadinessDto EvaluateReadiness(DocumentApprovalTask task, int userId)

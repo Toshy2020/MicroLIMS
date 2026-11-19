@@ -13,6 +13,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
 import { ImpurityRowState, createImpurityRowState } from "./hplcMethodForm";
 import { HplcMethodErrors } from "./hplcMethodValidation";
+import { useTranslation } from "../../../../i18n";
 
 export interface HplcImpuritiesSectionProps {
   referenceSolutionPercent: string | number;
@@ -33,6 +34,7 @@ export function HplcImpuritiesSection({
   onDisregardLimitPercentChange,
   onImpuritiesChange
 }: HplcImpuritiesSectionProps) {
+  const { t } = useTranslation("masterData");
   const handleAddImpurity = () => {
     onImpuritiesChange([
       ...impurities,
@@ -55,10 +57,10 @@ export function HplcImpuritiesSection({
       <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <div>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
-            Related Substances Parameters & Impurities
+            {t("hplcMethod.impurities.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Configure reference solution percentage, disregard limit, and known impurities with relative retention times (RRT) and correction factors.
+            {t("hplcMethod.impurities.subtitle")}
           </Typography>
         </div>
         <Button
@@ -68,7 +70,7 @@ export function HplcImpuritiesSection({
           onClick={handleAddImpurity}
           sx={{ textTransform: "none", fontWeight: 600 }}
         >
-          Add Impurity
+          {t("hplcMethod.impurities.addImpurity")}
         </Button>
       </Stack>
 
@@ -88,31 +90,31 @@ export function HplcImpuritiesSection({
       >
         <TextField
           size="small"
-          label="Reference solution (% of test) *"
+          label={t("hplcMethod.impurities.refSolutionLabel")}
           type="number"
           value={referenceSolutionPercent}
           onChange={(e) => onReferenceSolutionPercentChange(e.target.value)}
           required
-          placeholder="e.g. 0.1 or 0.5"
+          placeholder={t("hplcMethod.impurities.refSolutionPlaceholder")}
           error={Boolean(errors.referenceSolutionPercent)}
           helperText={
             errors.referenceSolutionPercent ??
-            "Reference solution concentration as % of test solution"
+            t("hplcMethod.impurities.refSolutionHelper")
           }
           slotProps={{ htmlInput: { min: 0.0001, max: 100, step: "any" } }}
           fullWidth
         />
         <TextField
           size="small"
-          label="Disregard limit (%)"
+          label={t("hplcMethod.impurities.disregardLimitLabel")}
           type="number"
           value={disregardLimitPercent}
           onChange={(e) => onDisregardLimitPercentChange(e.target.value)}
-          placeholder="e.g. 0.05"
+          placeholder={t("hplcMethod.impurities.disregardLimitPlaceholder")}
           error={Boolean(errors.disregardLimitPercent)}
           helperText={
             errors.disregardLimitPercent ??
-            "Peak reporting threshold (peaks below this limit are ignored)"
+            t("hplcMethod.impurities.disregardLimitHelper")
           }
           slotProps={{ htmlInput: { min: 0, step: "any" } }}
           fullWidth
@@ -135,7 +137,7 @@ export function HplcImpuritiesSection({
           >
             <BiotechOutlinedIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
             <Typography variant="body2" color="text.secondary">
-              No known impurities added yet. Click &quot;Add Impurity&quot; to specify named impurities.
+              {t("hplcMethod.impurities.empty")}
             </Typography>
           </Paper>
         ) : (
@@ -165,8 +167,8 @@ export function HplcImpuritiesSection({
                   >
                     <TextField
                       size="small"
-                      label="Impurity Name *"
-                      placeholder="e.g. Impurity A"
+                      label={t("hplcMethod.impurities.nameLabel")}
+                      placeholder={t("hplcMethod.impurities.namePlaceholder")}
                       value={imp.name}
                       onChange={(e) => handleFieldChange(idx, "name", e.target.value)}
                       required
@@ -176,35 +178,35 @@ export function HplcImpuritiesSection({
                     />
                     <TextField
                       size="small"
-                      label="Relative Retention (RRT)"
+                      label={t("hplcMethod.impurities.rrtLabel")}
                       type="number"
-                      placeholder="e.g. 0.15"
+                      placeholder={t("hplcMethod.impurities.rrtPlaceholder")}
                       value={imp.relativeRetention}
                       onChange={(e) => handleFieldChange(idx, "relativeRetention", e.target.value)}
                       error={Boolean(err("relativeRetention"))}
-                      helperText={err("relativeRetention") ?? "Optional RRT"}
+                      helperText={err("relativeRetention") ?? t("hplcMethod.impurities.rrtHelper")}
                       slotProps={{ htmlInput: { min: 0.001, step: "any" } }}
                       fullWidth
                     />
                     <TextField
                       size="small"
-                      label="Correction Factor *"
+                      label={t("hplcMethod.impurities.cfLabel")}
                       type="number"
-                      placeholder="1.0"
+                      placeholder={t("hplcMethod.impurities.cfPlaceholder")}
                       value={imp.correctionFactor}
                       onChange={(e) => handleFieldChange(idx, "correctionFactor", e.target.value)}
                       required
                       error={Boolean(err("correctionFactor"))}
-                      helperText={err("correctionFactor") ?? "Default 1.0"}
+                      helperText={err("correctionFactor") ?? t("hplcMethod.impurities.cfHelper")}
                       slotProps={{ htmlInput: { min: 0.001, step: "any" } }}
                       fullWidth
                     />
                   </Box>
 
-                  <Tooltip title="Remove impurity">
+                  <Tooltip title={t("hplcMethod.impurities.removeImpurity")}>
                     <span>
                       <IconButton
-                        aria-label="Remove impurity"
+                        aria-label={t("hplcMethod.impurities.removeImpurity")}
                         size="small"
                         color="error"
                         onClick={() => handleRemoveImpurity(idx)}

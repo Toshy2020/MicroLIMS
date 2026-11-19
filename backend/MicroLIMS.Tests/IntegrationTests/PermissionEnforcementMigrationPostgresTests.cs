@@ -46,6 +46,7 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.NotApplicableTestsFinalApprove,
         PermissionConstants.TestsOutsource,
         PermissionConstants.SamplesPrepare,
+        PermissionConstants.TestsSelfAssign,
         PermissionConstants.SectionsViewAll,
         PermissionConstants.SectionsConfigureAll,
         PermissionConstants.DocumentsTrainingViewMatrix,
@@ -58,7 +59,14 @@ public class PermissionEnforcementMigrationPostgresTests
         PermissionConstants.DocumentsApprove,
         PermissionConstants.DocumentsPeriodicReview,
         PermissionConstants.DocumentsReassign,
-        PermissionConstants.AccessReview
+        PermissionConstants.AccessReview,
+        PermissionConstants.AuditReview,
+        PermissionConstants.AccessReviewSign,
+        PermissionConstants.LabelsReprint,
+        PermissionConstants.LabelsConfigure,
+        PermissionConstants.TableViewsShare,
+        PermissionConstants.DataExport,
+        PermissionConstants.NotificationsConfigure
     };
 
     private readonly PostgresTestFixture _fixture;

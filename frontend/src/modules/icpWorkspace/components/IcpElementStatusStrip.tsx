@@ -1,6 +1,8 @@
 import { Box, Chip, Tooltip, Typography, useTheme } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { IcpCalibrationElementDto } from "../types";
 
 export interface IcpElementStatusStripProps {
@@ -9,6 +11,7 @@ export interface IcpElementStatusStripProps {
 }
 
 export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
 
   if (elements.length === 0) {
@@ -29,7 +32,7 @@ export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripPr
       }}
     >
       <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", mr: 0.5, textTransform: "uppercase", letterSpacing: 0.5 }}>
-        Calibrated elements:
+        {t("elementStrip.title")}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -40,7 +43,7 @@ export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripPr
                 key={el.id}
                 size="small"
                 icon={<CheckCircleIcon sx={{ fontSize: "16px !important" }} />}
-                label={`${el.symbol}: r ${el.correlationR ?? "-"}`}
+                label={<Ltr>{`${el.symbol}: r ${el.correlationR ?? "-"}`}</Ltr>}
                 color="success"
                 variant="outlined"
                 sx={{
@@ -53,13 +56,13 @@ export function IcpElementStatusStrip({ elements = [] }: IcpElementStatusStripPr
             );
           }
 
-          const failureText = el.failureReasons || "Failed calibration";
+          const failureText = el.failureReasons || t("elementStrip.failedFallback");
           return (
             <Tooltip key={el.id} title={failureText} arrow placement="top">
               <Chip
                 size="small"
                 icon={<ErrorOutlinedIcon sx={{ fontSize: "16px !important" }} />}
-                label={`${el.symbol}: ${failureText}`}
+                label={<><Ltr>{el.symbol}</Ltr>: {failureText}</>}
                 color="error"
                 variant="outlined"
                 sx={{

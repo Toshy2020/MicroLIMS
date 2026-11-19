@@ -3,7 +3,10 @@ import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle,
   Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { SignatureDialog } from "../../components/SignatureDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 import { VerdictBanner } from "../../components/lab";
 import type { Verdict } from "../../components/lab";
 import { tableHeadSx } from "../../theme";
@@ -34,6 +37,7 @@ export function OutsourceTestAction({ testOrderId, status, onOutsourced }: {
   status?: string | null;
   onOutsourced: (externalLab: string) => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
   const [open, setOpen] = useState(false);
   const [signing, setSigning] = useState(false);
@@ -53,29 +57,30 @@ export function OutsourceTestAction({ testOrderId, status, onOutsourced }: {
   return (
     <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
       <Button size="small" variant="outlined" onClick={() => setOpen(true)} sx={{ textTransform: "none" }}>
-        Outsource test
+        {t("outsourced.outsourceTestBtn")}
       </Button>
       <Dialog open={open && !signing} onClose={() => setOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Outsource test</DialogTitle>
+        <DialogTitle>{t("outsourced.dialogTitle")}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Alert severity="info">
-              The test will be reported from the external laboratory's report instead of being run here. This decision is signed and cannot be undone.
+              {t("outsourced.outsourceAlert")}
             </Alert>
-            <TextField label="External laboratory" size="small" value={lab} onChange={(e) => setLab(e.target.value)} fullWidth />
-            <TextField label="Reason for outsourcing" size="small" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={2} fullWidth />
+            <TextField label={t("outsourced.externalLabLabel")} size="small" value={lab} onChange={(e) => setLab(e.target.value)} fullWidth />
+            <TextField label={t("outsourced.outsourceReasonLabel")} size="small" value={reason} onChange={(e) => setReason(e.target.value)} multiline minRows={2} fullWidth />
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancel</Button>
+          <Button onClick={() => setOpen(false)}>{t("outsourced.cancel")}</Button>
           <Button variant="contained" disabled={!lab.trim() || !reason.trim()} onClick={() => setSigning(true)}>
-            Continue to signature
+            {t("outsourced.continueToSignature")}
           </Button>
         </DialogActions>
       </Dialog>
       <SignatureDialog
         open={signing}
         meaningStatement={`I am sending this test to ${lab.trim()} and take responsibility for this decision.`}
+        meaningStatementTranslation={t("outsourced.outsourceSignatureMeaning", { lab: lab.trim() })}
         onCancel={() => setSigning(false)}
         onConfirm={confirm}
       />
@@ -106,6 +111,7 @@ interface Props {
 // Result entry for a test an outside laboratory ran: upload its report, copy the reported values
 // per specification, sign. Conformity is the server's call and is shown after signing.
 export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourcedToLab, sampleId, status, onRecorded }: Props) {
+  const { t } = useTranslation("testingWorkspace");
   const recorded = !!status && status !== "Pending" && status !== "InProgress";
   const [specs, setSpecs] = useState<SpecificationDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -127,12 +133,12 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
         if (!active) return;
         const mine = (all ?? []).filter((s) => s.testCode === testCode).sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
         setSpecs(mine);
-        if (mine.length === 0) setError(`No specifications configured for test ${testCode}.`);
+        if (mine.length === 0) setError(t("outsourced.noSpecsConfigured", { testCode }));
       })
-      .catch((e) => active && setError(errorText(e, "Could not load the specifications.")))
+      .catch((e) => active && setError(errorText(e, t("outsourced.loadSpecsFailed"))))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, [testOrderId, testCode, recorded]);
+  }, [testOrderId, testCode, recorded, t]);
 
   // Recorded already: show what the server holds instead of a form.
   const [analysis, setAnalysis] = useState<AnalysisDetail | null>(null);
@@ -155,7 +161,7 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
     try {
       setReport(await TestWorkflowService.uploadExternalReport(testOrderId, file));
     } catch (e) {
-      setError(errorText(e, "Could not upload the report."));
+      setError(errorText(e, t("outsourced.uploadFailed")));
     } finally {
       setUploading(false);
     }
@@ -190,7 +196,12 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
     return (
       <Stack spacing={2}>
         <Alert severity="info">
-          Outsourced to <strong>{outsourcedToLab}</strong>. The result of {displayName} is recorded from the external laboratory's report; it is shown on the sample summary.
+          <Trans
+            i18nKey="outsourced.recordedInfo"
+            ns="testingWorkspace"
+            values={{ lab: outsourcedToLab, displayName }}
+            components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+          />
         </Alert>
         {analysis && (
           <Box>
@@ -208,7 +219,7 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
     const status = outcome.status ?? "";
     const verdict: Verdict = status.includes("OutOfSpecification") ? "Fail" : status.includes("WithinLimits") ? "Pass" : "Pending";
     return (
-      <VerdictBanner verdict={verdict} detail={`${displayName}: ${outcome.outcomeSummary ?? "Result recorded"}${status ? ` (${status})` : ""}`} />
+      <VerdictBanner verdict={verdict} detail={`${displayName}: ${outcome.outcomeSummary ?? t("outsourced.resultRecordedFallback")}${status ? ` (${status})` : ""}`} />
     );
   }
 
@@ -216,33 +227,46 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
 
   return (
     <Stack spacing={2}>
-      <Alert severity="info">Outsourced to <strong>{outsourcedToLab}</strong>. Upload the laboratory's report, then enter its results below.</Alert>
+      <Alert severity="info">
+        <Trans
+          i18nKey="outsourced.uploadPrompt"
+          ns="testingWorkspace"
+          values={{ lab: outsourcedToLab }}
+          components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+        />
+      </Alert>
       {error && <Alert severity="error">{error}</Alert>}
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: { sm: "center" } }}>
         <Button component="label" variant="outlined" disabled={uploading} sx={{ textTransform: "none" }}>
-          {report ? "Replace external lab report" : "Upload external lab report"}
+          {report ? t("outsourced.replaceReport") : t("outsourced.uploadReport")}
           <input
             hidden
             type="file"
             accept="application/pdf,image/*"
-            aria-label="External lab report file"
+            aria-label={t("outsourced.reportFileAria")}
             onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }}
           />
         </Button>
         {report && (
           <Chip
             label={report.originalFileName}
-            onClick={() => void viewReport(report.id).catch(() => setError("Could not open the report."))}
+            onClick={() => void viewReport(report.id).catch(() => setError(t("outsourced.openReportFailed")))}
           />
         )}
       </Stack>
 
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-        <TextField label="External report number" size="small" value={reportNumber} onChange={(e) => setReportNumber(e.target.value)} />
         <TextField
-          label="Report date" size="small" type="date" value={reportDate}
-          onChange={(e) => setReportDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }}
+          label={t("outsourced.externalReportNumber")}
+          size="small"
+          value={reportNumber}
+          onChange={(e) => setReportNumber(e.target.value)}
+          slotProps={{ htmlInput: { dir: "ltr" } }}
+        />
+        <TextField
+          label={t("outsourced.reportDate")} size="small" type="date" value={reportDate}
+          onChange={(e) => setReportDate(e.target.value)} slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
         />
       </Stack>
 
@@ -250,9 +274,9 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={tableHeadSx}>Parameter</TableCell>
-              <TableCell sx={tableHeadSx}>Specification</TableCell>
-              <TableCell sx={tableHeadSx}>Reported by the external lab</TableCell>
+              <TableCell sx={tableHeadSx}>{t("outsourced.parameterCol")}</TableCell>
+              <TableCell sx={tableHeadSx}>{t("outsourced.specificationCol")}</TableCell>
+              <TableCell sx={tableHeadSx}>{t("outsourced.reportedExternalCol")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -262,27 +286,27 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
               return (
                 <TableRow key={s.id}>
                   <TableCell>{name}</TableCell>
-                  <TableCell>{s.specLimit || s.expectedResultText || "—"}{s.unit ? ` ${s.unit}` : ""}</TableCell>
+                  <TableCell><Ltr>{s.specLimit || s.expectedResultText || "—"}{s.unit ? ` ${s.unit}` : ""}</Ltr></TableCell>
                   <TableCell>
                     {isQualitative(s) ? (
                       <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
                         <Button size="small" variant={r.conforms === true ? "contained" : "outlined"} onClick={() => setRow(s.id!, { conforms: true })}>
-                          Conforms
+                          {t("outsourced.conforms")}
                         </Button>
                         <Button size="small" color="error" variant={r.conforms === false ? "contained" : "outlined"} onClick={() => setRow(s.id!, { conforms: false })}>
-                          Does not conform
+                          {t("outsourced.doesNotConform")}
                         </Button>
                         <TextField
-                          label="Observation" size="small" value={r.observation}
+                          label={t("outsourced.observationLabel")} size="small" value={r.observation}
                           onChange={(e) => setRow(s.id!, { observation: e.target.value })}
-                          helperText={r.conforms === false ? "Required when not conforming" : " "}
+                          helperText={r.conforms === false ? t("outsourced.requiredWhenNotConforming") : " "}
                         />
                       </Stack>
                     ) : (
                       <TextField
                         size="small" type="number" value={r.value}
                         onChange={(e) => setRow(s.id!, { value: e.target.value })}
-                        slotProps={{ htmlInput: { "aria-label": `Value for ${name}`, step: "any" } }}
+                        slotProps={{ htmlInput: { "aria-label": t("outsourced.valueForAria", { name }), step: "any", dir: "ltr" } }}
                       />
                     )}
                   </TableCell>
@@ -293,17 +317,18 @@ export function OutsourcedPanel({ testOrderId, displayName, testCode, outsourced
         </Table>
       </TableContainer>
 
-      <TextField label="Comment (optional)" size="small" value={comment} onChange={(e) => setComment(e.target.value)} multiline rows={2} fullWidth />
+      <TextField label={t("outsourced.commentOptional")} size="small" value={comment} onChange={(e) => setComment(e.target.value)} multiline rows={2} fullWidth />
       <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2 }}>
-        {!canSign && <Typography variant="caption" color="text.secondary">Upload the report and fill every row to sign.</Typography>}
+        {!canSign && <Typography variant="caption" color="text.secondary">{t("outsourced.uploadAndFillHint")}</Typography>}
         <Button variant="contained" disabled={!canSign} onClick={() => setSigning(true)} sx={{ fontWeight: 700, textTransform: "none" }}>
-          Sign and record result
+          {t("outsourced.signAndRecord")}
         </Button>
       </Box>
 
       <SignatureDialog
         open={signing}
         meaningStatement="I transcribed these results from the external laboratory's report and am recording this test result."
+        meaningStatementTranslation={t("outsourced.recordSignatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
       />

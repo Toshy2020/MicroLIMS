@@ -37,6 +37,20 @@ public static class JwtAuthenticationExtensions
 
             options.Events = new JwtBearerEvents
             {
+                // SignalR negotiates over WebSockets / Server-Sent Events where custom
+                // Authorization headers are unavailable, so accept the token from
+                // the access_token query parameter strictly on /hubs/live paths.
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    if (!string.IsNullOrEmpty(accessToken)
+                        && context.HttpContext.Request.Path.StartsWithSegments("/hubs/live"))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
                 // A valid signature says who the user was at issue time;
                 // this checks they still are. See AccessTokenRevalidator.
                 OnTokenValidated = async context =>

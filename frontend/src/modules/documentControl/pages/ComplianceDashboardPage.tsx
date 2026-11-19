@@ -27,6 +27,8 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 import { PageHeader } from "../../../components/PageHeader";
 import { tableHeadSx } from "../../../theme";
@@ -35,6 +37,7 @@ import type { ComplianceKpiSummaryDto } from "../types/trainingMatrixTypes";
 import { compactChipStrongSx, compactChipSx } from "../documentControlStyles";
 
 export function ComplianceDashboardPage() {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -48,12 +51,12 @@ export function ComplianceDashboardPage() {
       setError(null);
       const data = await trainingMatrixService.getComplianceKpis();
       setKpis(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to load compliance KPIs.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("compliance.loadError")));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadKpis();
@@ -62,8 +65,8 @@ export function ComplianceDashboardPage() {
   return (
     <Box sx={{ pb: 4 }}>
       <PageHeader
-        title="Training Compliance Dashboard"
-        subtitle="Executive & operational compliance metrics, departmental ranking, and overdue exceptions."
+        title={t("compliance.title")}
+        subtitle={t("compliance.subtitle")}
       >
         <Stack direction="row" spacing={1.5}>
           <Button
@@ -72,7 +75,7 @@ export function ComplianceDashboardPage() {
             onClick={() => loadKpis()}
             disabled={loading}
           >
-            Refresh
+            {t("compliance.refresh")}
           </Button>
           <Button
             variant="contained"
@@ -80,7 +83,7 @@ export function ComplianceDashboardPage() {
             startIcon={<GridOnIcon />}
             onClick={() => navigate("/document-control/training-matrix")}
           >
-            View Full Matrix
+            {t("compliance.viewFullMatrix")}
           </Button>
         </Stack>
       </PageHeader>
@@ -97,7 +100,7 @@ export function ComplianceDashboardPage() {
           <Typography variant="body2" sx={{
             color: "text.secondary"
           }}>
-            Aggregating organizational training compliance metrics...
+            {t("compliance.loading")}
           </Typography>
         </Box>
       ) : kpis && (
@@ -118,7 +121,7 @@ export function ComplianceDashboardPage() {
                       color: "text.secondary",
                       fontWeight: "bold"
                     }}>
-                    OVERALL COMPLIANCE RATE
+                    {t("compliance.kpis.overallRate")}
                   </Typography>
                   <Typography
                     variant="h3"
@@ -132,7 +135,7 @@ export function ComplianceDashboardPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    {kpis.completedAssignments} / {kpis.totalRequiredAssignments} required training assignments
+                    {t("compliance.kpis.requiredAssignments", { completed: kpis.completedAssignments, total: kpis.totalRequiredAssignments })}
                   </Typography>
                   <LinearProgress
                     variant="determinate"
@@ -158,7 +161,7 @@ export function ComplianceDashboardPage() {
                       color: "text.secondary",
                       fontWeight: "bold"
                     }}>
-                    QUALIFIED & COMPLETED
+                    {t("compliance.kpis.qualifiedCompleted")}
                   </Typography>
                   <Typography
                     variant="h3"
@@ -172,7 +175,7 @@ export function ComplianceDashboardPage() {
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
                   }}>
-                    Across {kpis.totalTrackedUsers} personnel & {kpis.totalEffectiveDocuments} effective documents
+                    {t("compliance.kpis.acrossUsersAndDocs", { users: kpis.totalTrackedUsers, docs: kpis.totalEffectiveDocuments })}
                   </Typography>
                 </CardContent>
               </Card>
@@ -201,7 +204,7 @@ export function ComplianceDashboardPage() {
                       color: "text.secondary",
                       fontWeight: "bold"
                     }}>
-                    OVERDUE EXCEPTIONS
+                    {t("compliance.kpis.overdueExceptions")}
                   </Typography>
                   <Typography
                     variant="h3"
@@ -221,7 +224,7 @@ export function ComplianceDashboardPage() {
                       gap: 0.5
                     }}>
                     <ErrorOutlineIcon fontSize="inherit" />
-                    Action required. Click to filter matrix
+                    {t("compliance.kpis.actionRequiredFilter")}
                   </Typography>
                 </CardContent>
               </Card>
@@ -241,7 +244,7 @@ export function ComplianceDashboardPage() {
                       color: "text.secondary",
                       fontWeight: "bold"
                     }}>
-                    SUPERSEDED GAPS
+                    {t("compliance.kpis.supersededGaps")}
                   </Typography>
                   <Typography
                     variant="h3"
@@ -261,7 +264,7 @@ export function ComplianceDashboardPage() {
                       gap: 0.5
                     }}>
                     <WarningAmberIcon fontSize="inherit" />
-                    Qualified on prior revision only
+                    {t("compliance.kpis.priorRevisionOnly")}
                   </Typography>
                 </CardContent>
               </Card>
@@ -280,7 +283,7 @@ export function ComplianceDashboardPage() {
                 <Typography variant="h6" gutterBottom sx={{
                   fontWeight: "bold"
                 }}>
-                  Departmental Compliance Ranking
+                  {t("compliance.deptRanking.title")}
                 </Typography>
                 <Typography
                   variant="body2"
@@ -288,25 +291,25 @@ export function ComplianceDashboardPage() {
                     color: "text.secondary",
                     mb: 2
                   }}>
-                  Organizational compliance breakdown categorized by department.
+                  {t("compliance.deptRanking.subtitle")}
                 </Typography>
 
                 <TableContainer>
                   <Table size="small">
                     <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Department</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Required</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Qualified</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Overdue</TableCell>
-                        <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>Compliance Rate</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("compliance.deptRanking.columns.department")}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>{t("compliance.deptRanking.columns.required")}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>{t("compliance.deptRanking.columns.qualified")}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>{t("compliance.deptRanking.columns.overdue")}</TableCell>
+                        <TableCell sx={{ fontWeight: 700, minWidth: 150 }}>{t("compliance.deptRanking.columns.complianceRate")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {kpis.departmentCompliance.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                            No department training data recorded.
+                            {t("compliance.deptRanking.empty")}
                           </TableCell>
                         </TableRow>
                       ) : (
@@ -360,14 +363,14 @@ export function ComplianceDashboardPage() {
                   <Typography variant="h6" sx={{
                     fontWeight: "bold"
                   }}>
-                    Top Overdue Documents
+                    {t("compliance.topOverdue.title")}
                   </Typography>
                   <Button
                     size="small"
                     endIcon={<ArrowForwardIcon />}
                     onClick={() => navigate("/document-control/training-matrix")}
                   >
-                    View All
+                    {t("compliance.topOverdue.viewAll")}
                   </Button>
                 </Box>
                 <Typography
@@ -376,15 +379,15 @@ export function ComplianceDashboardPage() {
                     color: "text.secondary",
                     mb: 2
                   }}>
-                  Controlled documents with the highest volume of overdue reading assignments.
+                  {t("compliance.topOverdue.subtitle")}
                 </Typography>
 
                 <TableContainer>
                   <Table size="small">
                     <TableHead sx={tableHeadSx(theme)}>
                       <TableRow>
-                        <TableCell sx={{ fontWeight: 700 }}>Document Code & Title</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: 700 }}>Overdue</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>{t("compliance.topOverdue.columns.codeAndTitle")}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>{t("compliance.topOverdue.columns.overdue")}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -395,7 +398,7 @@ export function ComplianceDashboardPage() {
                             <Typography variant="body2" sx={{
                               color: "text.secondary"
                             }}>
-                              Zero overdue documents! All assignments are on schedule.
+                              {t("compliance.topOverdue.empty")}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -419,7 +422,7 @@ export function ComplianceDashboardPage() {
                             </TableCell>
                             <TableCell align="right">
                               <Chip
-                                label={`${doc.overdueCount} Overdue`}
+                                label={t("compliance.topOverdue.overdueCount", { count: doc.overdueCount })}
                                 size="small"
                                 color="error"
                                 sx={compactChipStrongSx}

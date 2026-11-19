@@ -22,13 +22,17 @@ import {
   Typography
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { Trans } from "react-i18next";
+import { DateField } from "../../../components/DateField";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { serverMessage } from "../../../utils/errorMessage";
 import { EquipmentInventoryService } from "../../inventory/equipment/services/EquipmentInventoryService";
 import type { EquipmentItem } from "../../inventory/equipment/types/equipmentTypes";
-import { EVENT_TYPE_LABEL } from "../statusDisplay";
-import type { CalendarEventResponse, CalendarEventType, UpdateCalendarEventRequest } from "../types";
 import { isDuplicateCalendarEvent } from "../eventDuplicates";
-import { DateField } from "../../../components/DateField";
+import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { EVENT_TYPE_KEY } from "../statusDisplay";
+import type { CalendarEventResponse, CalendarEventType, UpdateCalendarEventRequest } from "../types";
 
 export interface EventDialogProps {
   event: CalendarEventResponse | null;
@@ -49,6 +53,7 @@ export function EventDialog({
   events,
   onSubmit
 }: EventDialogProps) {
+  const { t } = useTranslation("monitoring");
   const [currentEvent, setCurrentEvent] = useState<CalendarEventResponse | null>(event);
   const [type, setType] = useState<CalendarEventType>("VendorVisit");
   const [title, setTitle] = useState("");
@@ -63,7 +68,7 @@ export function EventDialog({
   const [cancelReason, setCancelReason] = useState("");
 
   const [error, setError] = useState<string | null>(null);
-  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ title: string; type: CalendarEventType; dateOrMonth: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -86,7 +91,7 @@ export function EventDialog({
       setShowCancel(false);
       setCancelReason("");
       setError(null);
-      setDuplicateWarning(null);
+      setDuplicateInfo(null);
       setBusy(false);
 
       if (event.equipmentInventoryId) {
@@ -119,7 +124,7 @@ export function EventDialog({
   const handleSave = async (confirmDuplicateInput: boolean | React.MouseEvent = false) => {
     const confirmDuplicate = typeof confirmDuplicateInput === "boolean" ? confirmDuplicateInput : false;
     if (!title.trim()) {
-      setError("Title is required.");
+      setError(t("errors.titleRequired"));
       return;
     }
 
@@ -139,16 +144,15 @@ export function EventDialog({
         })
       );
       if (isDup) {
-        const dateOrMonth = targetDate ?? targetMonth ?? "";
         setError(null);
-        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+        setDuplicateInfo({ title: title.trim(), type, dateOrMonth: targetDate ?? targetMonth ?? "" });
         return;
       }
     }
 
     setBusy(true);
     setError(null);
-    setDuplicateWarning(null);
+    setDuplicateInfo(null);
     const body: UpdateCalendarEventRequest = {
       type,
       title: title.trim(),
@@ -168,13 +172,12 @@ export function EventDialog({
       }
       onChanged();
       onClose();
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.message ?? "";
+    } catch (err: unknown) {
+      const msg = serverMessage(err) ?? (err instanceof Error ? err.message : "");
       if (typeof msg === "string" && msg.startsWith("A matching event already exists")) {
-        const dateOrMonth = targetDate ?? targetMonth ?? "";
-        setDuplicateWarning(`An event "${title.trim()}" (${EVENT_TYPE_LABEL[type]}) is already on ${dateOrMonth}.`);
+        setDuplicateInfo({ title: title.trim(), type, dateOrMonth: targetDate ?? targetMonth ?? "" });
       } else {
-        setError(msg || "Could not update the event.");
+        setError(msg || t("errors.updateEvent"));
       }
     } finally {
       setBusy(false);
@@ -183,7 +186,7 @@ export function EventDialog({
 
   const handleCancelEvent = async () => {
     if (!cancelReason.trim()) {
-      setError("A cancellation reason is required.");
+      setError(t("errors.cancelReasonRequired"));
       return;
     }
     setBusy(true);
@@ -194,8 +197,8 @@ export function EventDialog({
       setShowCancel(false);
       onChanged();
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not cancel the event.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("errors.cancelEvent"));
     } finally {
       setBusy(false);
     }
@@ -210,8 +213,8 @@ export function EventDialog({
       const updated = await EquipmentPlanService.uploadEventDocument(currentEvent.id, file);
       setCurrentEvent(updated);
       onChanged();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Could not upload the report.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? t("errors.uploadReport"));
     } finally {
       setBusy(false);
       e.target.value = "";
@@ -222,14 +225,14 @@ export function EventDialog({
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
         <Typography variant="h6" component="span" sx={{ fontWeight: 600 }}>
-          {isCancelled ? "Cancelled event" : "Event details"}
+          {isCancelled ? t("eventDialog.cancelledTitle") : t("eventDialog.detailsTitle")}
         </Typography>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {isPtWithoutDocs && (
-            <Chip label="Report pending" color="warning" size="small" />
+            <Chip label={t("monthGrid.reportPending")} color="warning" size="small" />
           )}
           {isCancelled && (
-            <Chip label="Cancelled" color="error" size="small" />
+            <Chip label={t("eventDialog.cancelledChip")} color="error" size="small" />
           )}
         </Box>
       </DialogTitle>
@@ -237,11 +240,20 @@ export function EventDialog({
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
-          {duplicateWarning && (
+          {duplicateInfo && (
             <Alert severity="warning">
               <Box>
                 <Typography variant="body2" sx={{ mb: 1 }}>
-                  {duplicateWarning}
+                  <Trans
+                    i18nKey="eventDialog.duplicateWarning"
+                    ns="monitoring"
+                    values={{
+                      title: duplicateInfo.title,
+                      type: t(EVENT_TYPE_KEY[duplicateInfo.type]),
+                      dateOrMonth: duplicateInfo.dateOrMonth
+                    }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <Button
@@ -250,14 +262,14 @@ export function EventDialog({
                     onClick={() => void handleSave(true)}
                     disabled={busy}
                   >
-                    Add anyway
+                    {t("commonFields.addAnyway")}
                   </Button>
                   <Button
                     size="small"
-                    onClick={() => setDuplicateWarning(null)}
+                    onClick={() => setDuplicateInfo(null)}
                     disabled={busy}
                   >
-                    Back
+                    {t("commonFields.back")}
                   </Button>
                 </Box>
               </Box>
@@ -266,7 +278,8 @@ export function EventDialog({
 
           {(currentEvent.equipmentCode || selectedEquipment?.code) && (
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              Instrument: <strong>{selectedEquipment?.code ?? currentEvent.equipmentCode}</strong>
+              {t("eventDialog.instrumentLabel")}
+              <strong><Ltr>{selectedEquipment?.code ?? currentEvent.equipmentCode}</Ltr></strong>
             </Typography>
           )}
 
@@ -281,30 +294,30 @@ export function EventDialog({
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Instrument (optional)"
-                placeholder="Search equipment register..."
+                label={t("eventDialog.instrumentOptional")}
+                placeholder={t("eventDialog.instrumentPlaceholder")}
               />
             )}
           />
 
           <FormControl fullWidth size="small" disabled={isCancelled}>
-            <InputLabel id="edit-event-type-label">Event type</InputLabel>
+            <InputLabel id="edit-event-type-label">{t("eventDialog.eventType")}</InputLabel>
             <Select
               labelId="edit-event-type-label"
               value={type}
-              label="Event type"
+              label={t("eventDialog.eventType")}
               onChange={(e) => setType(e.target.value as CalendarEventType)}
             >
-              {(Object.keys(EVENT_TYPE_LABEL) as CalendarEventType[]).map((t) => (
-                <MenuItem key={t} value={t}>
-                  {EVENT_TYPE_LABEL[t]}
+              {(Object.keys(EVENT_TYPE_KEY) as CalendarEventType[]).map((k) => (
+                <MenuItem key={k} value={k}>
+                  {t(EVENT_TYPE_KEY[k])}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
           <TextField
-            label="Title"
+            label={t("eventDialog.title")}
             required
             fullWidth
             size="small"
@@ -331,17 +344,17 @@ export function EventDialog({
               }}
             >
               <ToggleButton value="day" sx={{ textTransform: "none" }}>
-                On a day
+                {t("eventDialog.onADay")}
               </ToggleButton>
               <ToggleButton value="month" sx={{ textTransform: "none" }}>
-                Whole month
+                {t("eventDialog.wholeMonth")}
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
           {dateMode === "day" ? (
             <DateField
-              label="Specific date"
+              label={t("eventDialog.specificDate")}
               fullWidth
               disabled={isCancelled}
               value={date}
@@ -349,7 +362,7 @@ export function EventDialog({
             />
           ) : (
             <TextField
-              label="Whole month"
+              label={t("eventDialog.wholeMonth")}
               type="month"
               size="small"
               fullWidth
@@ -361,7 +374,7 @@ export function EventDialog({
           )}
 
           <TextField
-            label="Note"
+            label={t("eventDialog.note")}
             multiline
             rows={2}
             fullWidth
@@ -376,7 +389,7 @@ export function EventDialog({
           {/* Documents / Report section */}
           <Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>Report & attachments</Typography>
+              <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{t("eventDialog.reportAndAttachments")}</Typography>
               {!isCancelled && (
                 <Button
                   component="label"
@@ -385,7 +398,7 @@ export function EventDialog({
                   startIcon={<CloudUploadIcon />}
                   disabled={busy}
                 >
-                  Attach report
+                  {t("eventDialog.attachReport")}
                   <input type="file" hidden onChange={handleFileUpload} />
                 </Button>
               )}
@@ -413,17 +426,22 @@ export function EventDialog({
                       underline="hover"
                       sx={{ fontSize: 13, fontWeight: 500 }}
                     >
-                      {doc.originalFileName}
+                      <Ltr>{doc.originalFileName}</Ltr>
                     </Link>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {Math.round(doc.fileSizeBytes / 1024)} KB · {doc.uploadedByName}
+                      <Trans
+                        i18nKey="eventDialog.attachmentMeta"
+                        ns="monitoring"
+                        values={{ kb: Math.round(doc.fileSizeBytes / 1024), name: doc.uploadedByName }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
                     </Typography>
                   </Box>
                 ))}
               </Stack>
             ) : (
               <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                No report attached yet.
+                {t("eventDialog.noReport")}
               </Typography>
             )}
           </Box>
@@ -440,16 +458,16 @@ export function EventDialog({
                     onClick={() => setShowCancel(true)}
                     disabled={busy}
                   >
-                    Cancel event
+                    {t("eventDialog.cancelEvent")}
                   </Button>
                 </Box>
               ) : (
                 <Stack spacing={1.5} sx={{ p: 1.5, border: 1, borderColor: "error.light", borderRadius: 1 }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 600, color: "error.main" }}>
-                    Cancel this event
+                    {t("eventDialog.cancelHeading")}
                   </Typography>
                   <TextField
-                    label="Reason for cancellation"
+                    label={t("eventDialog.cancelReason")}
                     required
                     size="small"
                     fullWidth
@@ -464,10 +482,10 @@ export function EventDialog({
                       disabled={busy || !cancelReason.trim()}
                       onClick={handleCancelEvent}
                     >
-                      Confirm cancellation
+                      {t("eventDialog.confirmCancel")}
                     </Button>
                     <Button size="small" onClick={() => setShowCancel(false)}>
-                      Back
+                      {t("commonFields.back")}
                     </Button>
                   </Box>
                 </Stack>
@@ -479,7 +497,7 @@ export function EventDialog({
 
       <DialogActions>
         <Button onClick={onClose} disabled={busy}>
-          Close
+          {t("commonFields.close")}
         </Button>
         {!isCancelled && (
           <Button
@@ -487,7 +505,7 @@ export function EventDialog({
             onClick={() => void handleSave(false)}
             disabled={busy || !title.trim()}
           >
-            Save changes
+            {t("eventDialog.saveChanges")}
           </Button>
         )}
       </DialogActions>

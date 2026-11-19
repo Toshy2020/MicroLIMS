@@ -6,6 +6,7 @@ import {
   Alert
 } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { useTranslation } from "../../../../i18n";
 
 export interface ReasonDialogProps {
   open: boolean;
@@ -31,20 +32,25 @@ export function ReasonDialog({
   title,
   onClose,
   onConfirm,
-  confirmText = "Confirm",
+  confirmText,
   confirmColor = "primary",
   loading = false,
-  loadingText = "Saving...",
+  loadingText,
   error,
   reason,
   onReasonChange,
-  label = "Reason *",
-  placeholder = "Explain why this action is being taken...",
+  label,
+  placeholder,
   disabled,
   maxLength = 500,
   children
 }: ReasonDialogProps) {
+  const { t } = useTranslation("masterData");
   const isConfirmDisabled = disabled !== undefined ? disabled : (!reason.trim() || loading);
+  const resolvedConfirmText = confirmText ?? t("solutionMaster.reasonDialog.defaultConfirm");
+  const resolvedLoadingText = loadingText ?? t("solutionMaster.reasonDialog.defaultLoading");
+  const resolvedLabel = label ?? t("solutionMaster.reasonDialog.defaultLabel");
+  const resolvedPlaceholder = placeholder ?? t("solutionMaster.reasonDialog.defaultPlaceholder");
 
   return (
     <FloatingDialog
@@ -57,7 +63,7 @@ export function ReasonDialog({
       actions={
         <>
           <Button onClick={onClose} disabled={loading}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -66,7 +72,7 @@ export function ReasonDialog({
             disabled={isConfirmDisabled}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            {loading ? loadingText : confirmText}
+            {loading ? resolvedLoadingText : resolvedConfirmText}
           </Button>
         </>
       }
@@ -75,8 +81,8 @@ export function ReasonDialog({
         {error && <Alert severity="error">{error}</Alert>}
         {children}
         <TextField
-          label={label}
-          placeholder={placeholder}
+          label={resolvedLabel}
+          placeholder={resolvedPlaceholder}
           multiline
           rows={3}
           fullWidth
@@ -85,7 +91,7 @@ export function ReasonDialog({
           size="small"
           value={reason}
           onChange={(e) => onReasonChange(e.target.value.slice(0, maxLength))}
-          helperText={`${reason.trim().length} / ${maxLength} characters (required)`}
+          helperText={t("solutionMaster.reasonDialog.charCount", { count: reason.trim().length, max: maxLength })}
         />
       </Stack>
     </FloatingDialog>

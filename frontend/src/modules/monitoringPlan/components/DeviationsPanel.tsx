@@ -3,19 +3,20 @@ import {
   Alert, Box, Button, ButtonBase, Checkbox, FormControlLabel,
   Paper, Radio, RadioGroup, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography, useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../../components/FloatingDialog";
+import { Ltr } from "../../../components/Ltr";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { useHasPermission } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
+import { serverMessage } from "../../../utils/errorMessage";
 import { MonitoringDeviationApi } from "../services/MonitoringPlanService";
-import { CATEGORY_LABEL, MONTH_NAMES } from "../statusDisplay";
+import { CATEGORY_KEY, formatShortDate } from "../statusDisplay";
 import type { Deviation, DeviationClosure, DeviationList } from "../types";
 import { StatusPill } from "./StatusPill";
 
 const occurrenceDate = (d: Deviation) => d.targetDate ?? d.windowEnd;
-
-const shortDate = (iso: string, thisYear: string) =>
-  `${Number(iso.slice(8))} ${MONTH_NAMES[Number(iso.slice(5, 7)) - 1].slice(0, 3)}${iso.startsWith(thisYear) ? "" : ` ${iso.slice(0, 4)}`}`;
 
 interface MissedGroup { key: string; target: string; group: string | null; category: Deviation["category"]; items: Deviation[] }
 
@@ -33,7 +34,13 @@ function groupMissed(items: Deviation[]): MissedGroup[] {
   return [...groups.values()].sort((a, b) => b.items.length - a.items.length || a.target.localeCompare(b.target));
 }
 
-const CLOSURE_LABEL: Record<DeviationClosure, string> = {
+const CLOSURE_KEY: Record<DeviationClosure, string> = {
+  NotApplicableBeforeGoLive: "deviations.closure.NotApplicableBeforeGoLive",
+  Justified: "deviations.closure.Justified",
+  Investigated: "deviations.closure.Investigated"
+};
+
+const CLOSURE_ENGLISH: Record<DeviationClosure, string> = {
   NotApplicableBeforeGoLive: "Not applicable: it was before the plan went live",
   Justified: "Explained and accepted",
   Investigated: "Investigated: follow-up done or not needed"
@@ -43,6 +50,7 @@ const CLOSURE_LABEL: Record<DeviationClosure, string> = {
 // them. The plan opens them by itself; a person closes them with a reason and
 // two signatures.
 export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => void }) {
+  const { t } = useTranslation("monitoring");
   const canManage = useHasPermission(PERMISSIONS.MONITORING_PLAN_MANAGE);
   const canApprove = useHasPermission(PERMISSIONS.MONITORING_PLAN_APPROVE);
   const tokens = useTheme().custom.status.detected;
@@ -62,11 +70,11 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
     try {
       setList(await MonitoringDeviationApi.list(show));
       setSelected(new Set());
-    } catch (e: any) {
+    } catch (e: unknown) {
       setList(null);
-      setError(e?.response?.data?.message ?? "Could not load the deviations.");
+      setError(serverMessage(e) ?? t("errors.loadDeviations"));
     }
-  }, [show]);
+  }, [show, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -91,8 +99,8 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
     try {
       setMessage(await action());
       await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? failure);
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? failure);
     } finally {
       setBusy(false);
     }
@@ -101,12 +109,18 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
   const scan = () => run(async () => {
     const r = await MonitoringDeviationApi.scan();
     return r.missedOpened + r.excursionsOpened === 0
-      ? "Nothing new to record."
-      : `Opened ${r.missedOpened} for missed occurrences and ${r.excursionsOpened} for results over the action limit.`;
-  }, "The scan failed.");
+      ? t("deviations.scanNothingNew")
+      : t("deviations.scanOpened", { missed: r.missedOpened, excursions: r.excursionsOpened });
+  }, t("errors.scanFailed"));
 
   const trimmedReason = reason.trim();
-  const closureMeaning = `I am closing ${chosen.length} monitoring deviation(s) as "${CLOSURE_LABEL[closure]}". Reason: ${trimmedReason}`;
+  // Recorded statement stays English; Arabic translation is shown alongside it in SignatureDialog.
+  const closureMeaning = `I am closing ${chosen.length} monitoring deviation(s) as "${CLOSURE_ENGLISH[closure]}". Reason: ${trimmedReason}`;
+  const closureMeaningTranslation = t("deviations.signatureMeaning", {
+    count: chosen.length,
+    closure: t(CLOSURE_KEY[closure]),
+    reason: trimmedReason
+  });
 
   // Errors propagate to SignatureDialog, which shows them and stays open.
   const sign = async (password: string, second?: { username: string; password: string }) => {
@@ -117,7 +131,7 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
     setSigning(false);
     setClosing(false);
     setReason("");
-    setMessage(`Closed ${n} deviation(s).`);
+    setMessage(t("deviations.closedCount", { count: n }));
     await load();
   };
 
@@ -127,9 +141,16 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
     setClosing(true);
   };
 
-  const dueText = (items: Deviation[]) => {
+  const renderDueText = (items: Deviation[]) => {
     const first = items.reduce((a, b) => (a.dueDate <= b.dueDate ? a : b));
-    return first.pastDue ? `past due since ${first.dueDate}` : `due ${first.dueDate}`;
+    return (
+      <Trans
+        i18nKey={first.pastDue ? "deviations.pastDueSince" : "deviations.dueDate"}
+        ns="monitoring"
+        values={{ date: first.dueDate }}
+        components={{ ltr: <Ltr>{null}</Ltr> }}
+      />
+    );
   };
 
   return (
@@ -138,56 +159,68 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
       {message && <Alert severity="success">{message}</Alert>}
       <Paper variant="outlined" sx={{ p: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", mb: 1 }}>
-          <Typography sx={{ fontWeight: 600 }}>Deviations</Typography>
+          <Typography sx={{ fontWeight: 600 }}>{t("deviations.title")}</Typography>
           {list && (
             <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              {list.openCount} open{list.pastDueCount > 0 ? `, ${list.pastDueCount} past due` : ""}
+              <Trans i18nKey="deviations.openCount" ns="monitoring" values={{ count: list.openCount }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              {list.pastDueCount > 0 && (
+                <Trans i18nKey="deviations.pastDueCount" ns="monitoring" values={{ count: list.pastDueCount }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              )}
             </Typography>
           )}
-          <ToggleButtonGroup exclusive size="small" value={show} aria-label="Show deviations" onChange={(_, v) => { if (v) setShow(v); }} sx={{ ml: "auto" }}>
-            <ToggleButton value="Open">Open</ToggleButton>
-            <ToggleButton value="Closed">Closed</ToggleButton>
+          <ToggleButtonGroup exclusive size="small" value={show} aria-label={t("deviations.showAria")} onChange={(_, v) => { if (v) setShow(v); }} sx={{ ml: "auto" }}>
+            <ToggleButton value="Open">{t("deviations.open")}</ToggleButton>
+            <ToggleButton value="Closed">{t("deviations.closed")}</ToggleButton>
           </ToggleButtonGroup>
-          {canManage && <Button variant="outlined" size="small" disabled={busy} onClick={() => void scan()}>Scan now</Button>}
+          {canManage && <Button variant="outlined" size="small" disabled={busy} onClick={() => void scan()}>{t("deviations.scanNow")}</Button>}
           {canApprove && show === "Open" && (
             <Button variant="contained" size="small" disabled={busy || chosen.length === 0 || chosenKinds.size > 1} onClick={openClose}>
-              Close selected ({chosen.length})
+              <Trans i18nKey="deviations.closeSelected" ns="monitoring" values={{ count: chosen.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
             </Button>
           )}
         </Box>
         {chosenKinds.size > 1 && (
-          <Alert severity="info" sx={{ mb: 1 }}>Select missed occurrences or results over the action limit, not both, to close them together.</Alert>
+          <Alert severity="info" sx={{ mb: 1 }}>{t("deviations.mixedKindsInfo")}</Alert>
         )}
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          The plan opens these by itself: an occurrence missed after its grace days, or an approved result over its action limit (which also opens follow-up sampling).
+          {t("deviations.subtitle")}
         </Typography>
       </Paper>
 
       {list && list.items.length === 0 && (
-        <Typography sx={{ color: "text.secondary" }}>{show === "Open" ? "No open deviations." : "No closed deviations."}</Typography>
+        <Typography sx={{ color: "text.secondary" }}>{show === "Open" ? t("deviations.noOpen") : t("deviations.noClosed")}</Typography>
       )}
 
       {excursions.length > 0 && (
         <Paper variant="outlined" sx={{ p: 1.5 }}>
-          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>Results over the action limit · {excursions.length}</Typography>
+          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Trans i18nKey="deviations.excursionsHeading" ns="monitoring" values={{ count: excursions.length }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+          </Typography>
           {excursions.map((d) => (
             <Box key={d.id} sx={{ display: "flex", gap: 1, alignItems: "flex-start", py: 0.75, borderBottom: 1, borderColor: "divider" }}>
               {canApprove && show === "Open" && (
-                <Checkbox size="small" checked={selected.has(d.id)} onChange={(e) => toggle([d.id], e.target.checked)} slotProps={{ input: { "aria-label": `Select ${d.number}` } }} />
+                <Checkbox size="small" checked={selected.has(d.id)} onChange={(e) => toggle([d.id], e.target.checked)} slotProps={{ input: { "aria-label": t("deviations.selectItem", { name: d.number }) } }} />
               )}
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{d.number}</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600 }}><Ltr>{d.number}</Ltr></Typography>
                 <Typography sx={{ fontSize: 13 }}>{d.description}</Typography>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5, alignItems: "center" }}>
-                  <Button size="small" onClick={() => onPick(d.occurrenceId)}>Open the occurrence</Button>
-                  {d.followUpOccurrenceId && <Button size="small" onClick={() => onPick(d.followUpOccurrenceId!)}>Open the follow-up sampling</Button>}
+                  <Button size="small" onClick={() => onPick(d.occurrenceId)}>{t("deviations.openOccurrence")}</Button>
+                  {d.followUpOccurrenceId && <Button size="small" onClick={() => onPick(d.followUpOccurrenceId!)}>{t("deviations.openFollowUp")}</Button>}
                   <Typography sx={{ fontSize: 12, color: d.pastDue ? "error.main" : "text.secondary" }}>
-                    {d.status === "Open" ? dueText([d]) : `closed ${d.closedAt?.slice(0, 10)}: ${d.closureReason}`}
+                    {d.status === "Open" ? renderDueText([d]) : (
+                      <Trans
+                        i18nKey="deviations.closedInline"
+                        ns="monitoring"
+                        values={{ date: d.closedAt?.slice(0, 10) ?? "", reason: d.closureReason ?? "" }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
+                    )}
                   </Typography>
                 </Box>
               </Box>
               <StatusPill tone={d.status === "Open" ? "detected" : "notDetected"} symbol={d.status === "Open" ? "▲" : "✓"}>
-                {d.status === "Open" ? "Open" : "Closed"}
+                {d.status === "Open" ? t("deviations.open") : t("deviations.closed")}
               </StatusPill>
             </Box>
           ))}
@@ -196,7 +229,15 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
 
       {missed.length > 0 && (
         <Paper variant="outlined" sx={{ p: 1.5 }}>
-          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>Missed occurrences · {missed.length} sampling point(s)</Typography>
+          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Trans
+              i18nKey="deviations.missedHeading"
+              ns="monitoring"
+              count={missed.length}
+              values={{ count: missed.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          </Typography>
           {missed.map((g) => {
             const ids = g.items.map((d) => d.id);
             const picked = ids.filter((id) => selected.has(id)).length;
@@ -205,33 +246,46 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
                 {canApprove && show === "Open" && (
                   <Checkbox
                     size="small" checked={picked === ids.length} indeterminate={picked > 0 && picked < ids.length}
-                    onChange={(e) => toggle(ids, e.target.checked)} slotProps={{ input: { "aria-label": `Select ${g.target}` } }}
+                    onChange={(e) => toggle(ids, e.target.checked)} slotProps={{ input: { "aria-label": t("deviations.selectItem", { name: g.target }) } }}
                   />
                 )}
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 14, fontWeight: 600 }}>{g.target}</Typography>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600 }}><Ltr>{g.target}</Ltr></Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    {g.group ? `${g.group} · ` : ""}{CATEGORY_LABEL[g.category]}{show === "Open" ? ` · ${dueText(g.items)}` : ""}
+                    {g.group ? `${g.group} · ` : ""}{t(CATEGORY_KEY[g.category])}{show === "Open" ? <> · {renderDueText(g.items)}</> : ""}
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 0.5, mt: 0.5 }}>
-                    <Typography sx={{ fontSize: 12, color: "text.secondary", mr: 0.5 }}>Missed on</Typography>
-                    {g.items.map((d) => (
-                      <ButtonBase
-                        key={d.id} onClick={() => onPick(d.occurrenceId)} aria-label={`${g.target}, ${shortDate(occurrenceDate(d), thisYear)}`}
-                        sx={{ px: 0.75, py: 0.125, borderRadius: 1, fontSize: 12, color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`, "&:hover": { filter: "brightness(0.96)" } }}
-                      >
-                        {shortDate(occurrenceDate(d), thisYear)}
-                      </ButtonBase>
-                    ))}
+                    <Typography sx={{ fontSize: 12, color: "text.secondary", mr: 0.5 }}>{t("deviations.missedOn")}</Typography>
+                    {g.items.map((d) => {
+                      const short = formatShortDate(occurrenceDate(d), thisYear, t);
+                      return (
+                        <ButtonBase
+                          key={d.id} onClick={() => onPick(d.occurrenceId)} aria-label={`${g.target}, ${short}`}
+                          sx={{ px: 0.75, py: 0.125, borderRadius: 1, fontSize: 12, color: tokens.text, bgcolor: tokens.bg, border: `1px solid ${tokens.border}`, "&:hover": { filter: "brightness(0.96)" } }}
+                        >
+                          <Ltr>{short}</Ltr>
+                        </ButtonBase>
+                      );
+                    })}
                   </Box>
                   {show === "Closed" && g.items[0].closureReason && (
                     <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
-                      Closed {g.items[0].closedAt?.slice(0, 10)}: {g.items[0].closureReason}
+                      <Trans
+                        i18nKey="deviations.closedLine"
+                        ns="monitoring"
+                        values={{ date: g.items[0].closedAt?.slice(0, 10) ?? "", reason: g.items[0].closureReason }}
+                        components={{ ltr: <Ltr>{null}</Ltr> }}
+                      />
                     </Typography>
                   )}
                 </Box>
                 <StatusPill tone={show === "Open" ? "detected" : "notDetected"} symbol={show === "Open" ? "▲" : "✓"}>
-                  {show === "Open" ? "Open" : "Closed"} ×{g.items.length}
+                  <Trans
+                    i18nKey={show === "Open" ? "deviations.pillOpenCount" : "deviations.pillClosedCount"}
+                    ns="monitoring"
+                    values={{ count: g.items.length }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </StatusPill>
               </Box>
             );
@@ -241,26 +295,34 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
 
       <FloatingDialog
         open={closing && !signing}
-        title={`Close ${chosen.length} deviation(s)`}
+        title={
+          <Trans
+            i18nKey="deviations.closeDialogTitle"
+            ns="monitoring"
+            count={chosen.length}
+            values={{ count: chosen.length }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
+        }
         onClose={() => setClosing(false)}
         maxWidth="sm"
         actions={
           <>
-            <Button onClick={() => setClosing(false)}>Cancel</Button>
-            <Button variant="contained" disabled={trimmedReason.length < 5} onClick={() => setSigning(true)}>Continue to sign</Button>
+            <Button onClick={() => setClosing(false)}>{t("commonFields.cancel")}</Button>
+            <Button variant="contained" disabled={trimmedReason.length < 5} onClick={() => setSigning(true)}>{t("commonFields.continueToSign")}</Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <RadioGroup value={closure} onChange={(e) => setClosure(e.target.value as DeviationClosure)}>
-            {closureOptions.map((c) => <FormControlLabel key={c} value={c} control={<Radio />} label={CLOSURE_LABEL[c]} />)}
+            {closureOptions.map((c) => <FormControlLabel key={c} value={c} control={<Radio />} label={t(CLOSURE_KEY[c])} />)}
           </RadioGroup>
           {closure === "NotApplicableBeforeGoLive" && (
-            <Alert severity="warning">The missed occurrences are skipped, so they stop counting against the plan. This cannot be undone.</Alert>
+            <Alert severity="warning">{t("deviations.skipWarning")}</Alert>
           )}
           <TextField
-            label="Reason" required multiline minRows={2} value={reason}
-            onChange={(e) => setReason(e.target.value)} helperText="At least 5 characters."
+            label={t("commonFields.reason")} required multiline minRows={2} value={reason}
+            onChange={(e) => setReason(e.target.value)} helperText={t("commonFields.minChars", { min: 5 })}
           />
         </Stack>
       </FloatingDialog>
@@ -268,8 +330,9 @@ export function DeviationsPanel({ onPick }: { onPick: (occurrenceId: number) => 
       <SignatureDialog
         open={signing}
         meaningStatement={closureMeaning}
+        meaningStatementTranslation={closureMeaningTranslation}
         requireSecondSigner
-        secondSignerHint="A different person who is allowed to approve monitoring plan changes signs as well."
+        secondSignerHint={t("commonFields.secondSignerHint")}
         onCancel={() => setSigning(false)}
         onConfirm={sign}
       />

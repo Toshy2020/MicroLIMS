@@ -1,13 +1,11 @@
 import { useMemo, useState } from "react";
 import {
-  Box, Paper, Typography, Chip, Checkbox, Tooltip, IconButton, Menu, MenuItem, Select, FormControl, Button, Alert, Link, Stack, useTheme
+  Box, Paper, Typography, Chip, Checkbox, Tooltip, IconButton, Menu, MenuItem, Button, Alert, Link, Stack, useTheme
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ViewColumnIcon from "@mui/icons-material/ViewColumn";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
@@ -19,8 +17,14 @@ import { ReportingService } from "../services/ReportingService";
 import { exportResultsPdf } from "../utils/exportPdf";
 import { useAuth } from "../../../contexts/AuthContext";
 import { ResultRecordItem, ResultRecordSearchParams, ResultRecordSearchResponse, SampleCategory } from "../types/reportingTypes";
-import { DataTable, Column } from "../../../components/DataTable";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import { buildCsv, downloadCsv } from "../../../components/lab/table/exportCsv";
+import { exportLogService } from "../../../components/lab/table/services/exportLogService";
+import { TABLES } from "../../../components/lab/table/tableRegistry";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import { fetchAllPages } from "../../../services/fetchAllPages";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -47,7 +51,7 @@ function formatDateTime(iso: string): { date: string; time: string } {
   const d = new Date(iso);
   return {
     date: d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false })
+    time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZoneName: "short" })
   };
 }
 
@@ -91,6 +95,7 @@ export function ReportResultsTable({
   onClearFilters,
   onAnalyzeTrend
 }: ReportResultsTableProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const { fullName } = useAuth();
   const [visibleColumns, setVisibleColumns] = useState<Record<ColumnKey, boolean>>(
@@ -100,8 +105,19 @@ export function ReportResultsTable({
   const [rowMenu, setRowMenu] = useState<{ anchor: HTMLElement; row: ResultRecordItem } | null>(null);
   const [detailRecord, setDetailRecord] = useState<ResultRecordItem | null>(null);
 
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [selectAllMatching, setSelectAllMatching] = useState(false);
+  const resetKey = JSON.stringify({
+    search: appliedParams.search,
+    category: appliedParams.category,
+    testCode: appliedParams.testCode,
+    resultLevel: appliedParams.resultLevel,
+    sampleStatus: appliedParams.sampleStatus,
+    approvalStatus: appliedParams.approvalStatus,
+    fromDate: appliedParams.fromDate,
+    toDate: appliedParams.toDate,
+    subjectName: appliedParams.subjectName,
+    resultKind: appliedParams.resultKind
+  });
+  const selection = useRowSelection<string | number>(resetKey);
 
   const [exportConfirmOpen, setExportConfirmOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -109,45 +125,14 @@ export function ReportResultsTable({
 
   const items = useMemo(() => results?.items ?? [], [results]);
   const totalCount = results?.totalCount ?? 0;
-  const page = appliedParams.page ?? 1;
-  const pageSize = appliedParams.pageSize ?? 25;
+  const page = results?.page ?? appliedParams.page ?? 1;
+  const pageSize = results?.pageSize ?? appliedParams.pageSize ?? 25;
 
-  const approvedVisibleIds = useMemo(() => items.filter((r) => r.approvalStatus === "Approved").map((r) => r.id), [items]);
-  const allVisibleSelected = approvedVisibleIds.length > 0 && approvedVisibleIds.every((id) => selectedIds.has(id));
-  const someVisibleSelected = approvedVisibleIds.some((id) => selectedIds.has(id));
-
-  const selectionCount = selectAllMatching ? totalCount : selectedIds.size;
-  const selectedRecords = useMemo(() => items.filter((r) => selectedIds.has(r.id)), [items, selectedIds]);
-
-  const toggleRow = (row: ResultRecordItem) => {
-    if (row.approvalStatus !== "Approved") return;
-    setSelectAllMatching(false);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(row.id)) next.delete(row.id); else next.add(row.id);
-      return next;
-    });
-  };
-
-  const toggleVisiblePage = () => {
-    setSelectAllMatching(false);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) approvedVisibleIds.forEach((id) => next.delete(id));
-      else approvedVisibleIds.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
-  const selectAllMatchingRecords = () => {
-    setSelectedIds(new Set());
-    setSelectAllMatching(true);
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-    setSelectAllMatching(false);
-  };
+  const selectionCount = selection.count;
+  const selectedRecords = useMemo(
+    () => items.filter((r) => selection.selected.has(r.id)),
+    [items, selection.selected]
+  );
 
   const runExport = async () => {
     setExportConfirmOpen(false);
@@ -156,7 +141,7 @@ export function ReportResultsTable({
     try {
       await ReportingService.exportCsv(appliedParams);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : "Export failed.");
+      setExportError(err instanceof Error ? err.message : t("search.errors.exportFailed"));
     } finally {
       setExporting(false);
     }
@@ -171,9 +156,9 @@ export function ReportResultsTable({
     });
   };
 
-  const handleExportSelectedCsv = () => {
-    if (selectAllMatching) {
-      runExport();
+  const handleExportSelectedCsv = async () => {
+    if (selection.allMatching) {
+      await runExport();
       return;
     }
     if (selectedRecords.length === 0) return;
@@ -182,37 +167,53 @@ export function ReportResultsTable({
       "Reported Value", "Unit", "Result Level", "Alert Limit", "Action Limit", "Spec Limit",
       "Status", "Analyst", "Approved By", "Approval Date"
     ];
+    setExportError(null);
+    let logResult;
+    try {
+      logResult = await exportLogService.log({
+        tableKey: "reports.results",
+        filterJson: JSON.stringify(appliedParams),
+        columns: headers,
+        rowCount: selectedRecords.length,
+        recordIds: selectedRecords.map((r) => String(r.id))
+      });
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : t("search.errors.exportFailed"));
+      return;
+    }
+    const headerRows: string[][] = [
+      ["Exported by", logResult.exportedBy],
+      ["Exported at", `${logResult.serverTimeUtc} (${logResult.timeZoneId})`],
+      ["List", TABLES["reports.results"]?.title ?? "reports.results"],
+      ["Filters", summarizeFilters(appliedParams)],
+      ["Rows", String(selectedRecords.length)],
+      ["Export ID", String(logResult.exportId)]
+    ];
     const rows = selectedRecords.map((r) => [
-      `"${r.resultEnteredAt}"`,
-      `"${r.referenceNumber}"`,
-      `"${r.subjectName}"`,
-      `"${r.subjectDetail ?? ""}"`,
-      `"${r.category}"`,
-      `"${r.testCode}"`,
-      `"${r.testDisplayName || r.testCode}"`,
-      `"${r.reportedValue}"`,
-      `"${r.unit ?? ""}"`,
-      `"${r.resultLevel}"`,
-      `"${r.alertLimit ?? ""}"`,
-      `"${r.actionLimit ?? ""}"`,
-      `"${r.specLimit ?? ""}"`,
-      `"${r.approvalStatus}"`,
-      `"${r.resultEnteredByName ?? ""}"`,
-      `"${r.approvedByName ?? ""}"`,
-      `"${r.approvedAt ?? ""}"`
+      r.resultEnteredAt,
+      r.referenceNumber,
+      r.subjectName,
+      r.subjectDetail ?? "",
+      r.category,
+      r.testCode,
+      r.testDisplayName || r.testCode,
+      r.reportedValue,
+      r.unit ?? "",
+      r.resultLevel,
+      r.alertLimit ?? "",
+      r.actionLimit ?? "",
+      r.specLimit ?? "",
+      r.approvalStatus,
+      r.resultEnteredByName ?? "",
+      r.approvedByName ?? "",
+      r.approvedAt ?? ""
     ]);
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `selected_laboratory_results_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    const csv = buildCsv(headerRows, headers, rows);
+    downloadCsv(`selected_laboratory_results_${new Date().toISOString().slice(0, 10)}.csv`, csv);
   };
 
   const handleExportSelectedPdf = async () => {
-    if (selectAllMatching) {
+    if (selection.allMatching) {
       setExporting(true);
       try {
         // Every matching result, page by page - not just the first page.
@@ -224,7 +225,7 @@ export function ReportResultsTable({
           isSelection: true
         });
       } catch (err) {
-        setExportError(err instanceof Error ? err.message : "Export failed.");
+        setExportError(err instanceof Error ? err.message : t("search.errors.exportFailed"));
       } finally {
         setExporting(false);
       }
@@ -239,16 +240,12 @@ export function ReportResultsTable({
     });
   };
 
-  const pageStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
-  const pageEnd = Math.min(page * pageSize, totalCount);
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-  // Maps each toggleable ColumnKey to its real DataTable column definition -
+  // Maps each toggleable ColumnKey to its real RegisterTable column definition -
   // visibleColumns (driven by the Columns menu) filters this list before
-  // it's handed to DataTable; the trailing Actions column is appended
+  // it's handed to RegisterTable; the trailing Actions column is appended
   // unconditionally since it isn't part of the toggle set.
-  const columnDefs: { colKey: ColumnKey; column: Column<ResultRecordItem> }[] = [
-    { colKey: "dateTime", column: { key: "resultEnteredAt", label: COLUMN_LABELS.dateTime, render: (row) => {
+  const columnDefs: { colKey: ColumnKey; column: RegisterColumn<ResultRecordItem> }[] = [
+    { colKey: "dateTime", column: { key: "resultEnteredAt", label: t("search.table.columns.dateTime"), render: (row) => {
       const dt = formatDateTime(row.resultEnteredAt);
       return (
         <>
@@ -257,7 +254,7 @@ export function ReportResultsTable({
         </>
       );
     } } },
-    { colKey: "reference", column: { key: "referenceNumber", label: COLUMN_LABELS.reference, render: (row) => (
+    { colKey: "reference", column: { key: "referenceNumber", label: t("search.table.columns.reference"), render: (row) => (
       <Link
         component="button"
         type="button"
@@ -268,32 +265,32 @@ export function ReportResultsTable({
         {row.referenceNumber}
       </Link>
     ) } },
-    { colKey: "subject", column: { key: "subjectName", label: COLUMN_LABELS.subject, render: (row) => (
+    { colKey: "subject", column: { key: "subjectName", label: t("search.table.columns.subject"), render: (row) => (
       <>
         <Typography sx={{ fontSize: 13 }}>{row.subjectName}</Typography>
         {row.subjectDetail && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{row.subjectDetail}</Typography>}
       </>
     ) } },
-    { colKey: "type", column: { key: "category", label: COLUMN_LABELS.type, render: (row) => <CategoryBadge category={row.category} /> } },
-    { colKey: "test", column: { key: "testCode", label: COLUMN_LABELS.test, render: (row) => row.testCode } },
-    { colKey: "result", column: { key: "reportedValue", label: COLUMN_LABELS.result, render: (row) => <Box sx={{ fontWeight: 600 }}>{row.reportedValue}</Box> } },
-    { colKey: "unit", column: { key: "unit", label: COLUMN_LABELS.unit, render: (row) => row.unit ?? "—" } },
-    { colKey: "resultLevel", column: { key: "resultLevel", label: COLUMN_LABELS.resultLevel, render: (row) => (
+    { colKey: "type", column: { key: "category", label: t("search.table.columns.type"), render: (row) => <CategoryBadge category={row.category} /> } },
+    { colKey: "test", column: { key: "testCode", label: t("search.table.columns.test"), render: (row) => row.testCode } },
+    { colKey: "result", column: { key: "reportedValue", label: t("search.table.columns.result"), render: (row) => <Box sx={{ fontWeight: 600 }}>{row.reportedValue}</Box> } },
+    { colKey: "unit", column: { key: "unit", label: t("search.table.columns.unit"), render: (row) => row.unit ?? "—" } },
+    { colKey: "resultLevel", column: { key: "resultLevel", label: t("search.table.columns.resultLevel"), render: (row) => (
       row.resultLevel === "NotApplicable" ? "—" : <StatusBadge status={row.resultLevel} />
     ) } },
-    { colKey: "status", column: { key: "approvalStatus", label: COLUMN_LABELS.status, render: (row) => <StatusBadge status={row.approvalStatus} /> } },
-    { colKey: "approvedBy", column: { key: "approvedByName", label: COLUMN_LABELS.approvedBy, render: (row) => row.approvedByName ?? "—" } },
-    { colKey: "approvalDate", column: { key: "approvedAt", label: COLUMN_LABELS.approvalDate, render: (row) => row.approvedAt ? formatDate(row.approvedAt) : "—" } }
+    { colKey: "status", column: { key: "approvalStatus", label: t("search.table.columns.status"), render: (row) => <StatusBadge status={row.approvalStatus} /> } },
+    { colKey: "approvedBy", column: { key: "approvedByName", label: t("search.table.columns.approvedBy"), render: (row) => row.approvedByName ?? "—" } },
+    { colKey: "approvalDate", column: { key: "approvedAt", label: t("search.table.columns.approvalDate"), render: (row) => row.approvedAt ? formatDateTimeWithTimeZone(row.approvedAt) : "—" } }
   ];
 
-  const tableColumns: Column<ResultRecordItem>[] = [
+  const tableColumns: RegisterColumn<ResultRecordItem>[] = [
     ...columnDefs.filter((d) => visibleColumns[d.colKey]).map((d) => d.column),
     {
       key: "id",
       label: "",
       align: "center",
       render: (row) => (
-        <IconButton aria-label="Row actions" size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
+        <IconButton aria-label={t("search.table.rowActionsAria", { reference: row.referenceNumber })} size="small" onClick={(e) => { e.stopPropagation(); setRowMenu({ anchor: e.currentTarget, row }); }}>
           <MoreVertIcon fontSize="small" />
         </IconButton>
       )
@@ -305,12 +302,12 @@ export function ReportResultsTable({
       {/* Top Title & Mode A Export Toolbar (When No Rows Selected) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
-          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>Search Results</Typography>
-          <Chip size="small" label={`${totalCount} Records Found`} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
+          <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>{t("search.table.title")}</Typography>
+          <Chip size="small" label={t("search.table.recordsFound", { count: totalCount })} sx={{ bgcolor: brandColors.causeBadgeBg, color: brandColors.causeBadgeText, fontWeight: 700 }} />
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Button size="small" startIcon={<ViewColumnIcon />} onClick={(e) => setColumnsMenuAnchor(e.currentTarget)}>
-            Columns
+            {t("search.table.columnsButton")}
           </Button>
           <Button
             size="small"
@@ -319,7 +316,7 @@ export function ReportResultsTable({
             disabled={totalCount === 0}
             onClick={handleExportCurrentPdf}
           >
-            Export PDF
+            {t("search.table.exportPdf")}
           </Button>
           <Button
             size="small"
@@ -328,7 +325,7 @@ export function ReportResultsTable({
             disabled={exporting || totalCount === 0}
             onClick={() => setExportConfirmOpen(true)}
           >
-            Export CSV
+            {t("search.table.exportCsv")}
           </Button>
         </Box>
       </Box>
@@ -337,7 +334,7 @@ export function ReportResultsTable({
         {ALL_COLUMNS.map((col) => (
           <MenuItem key={col} onClick={() => setVisibleColumns((v) => ({ ...v, [col]: !v[col] }))} dense>
             <Checkbox size="small" checked={visibleColumns[col]} />
-            {COLUMN_LABELS[col]}
+            {t(`search.table.columns.${col}`)}
           </MenuItem>
         ))}
       </Menu>
@@ -347,18 +344,18 @@ export function ReportResultsTable({
       {/* Multi-Select Toolbar & Mode B Export Actions (When Rows Selected) */}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5, flexWrap: "wrap", gap: 1, bgcolor: selectionCount > 0 ? theme.custom.status.purple.bg : "transparent", p: selectionCount > 0 ? 1 : 0, borderRadius: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
-          <Tooltip title="Selects every Approved result matching your current filters, not just the loaded page.">
-            <Link component="button" type="button" onClick={selectAllMatchingRecords} sx={{ fontSize: 13 }} underline="hover">
-              Select All {totalCount} Matching Records
+          <Tooltip title={t("search.table.selectAllTooltip")}>
+            <Link component="button" type="button" onClick={() => selection.selectAllMatching(totalCount)} sx={{ fontSize: 13 }} underline="hover">
+              {t("search.table.selectAllMatching", { count: totalCount })}
             </Link>
           </Tooltip>
 
           {selectionCount > 0 && (
             <Typography sx={{ fontSize: 13, color: "text.secondary", fontWeight: 600 }}>
-              {selectAllMatching ? `All ${totalCount} selected` : `${selectionCount} selected`}
+              {selection.allMatching ? t("search.table.allSelected", { count: totalCount }) : t("search.table.someSelected", { count: selectionCount })}
               {" · "}
-              <Link component="button" type="button" onClick={clearSelection} sx={{ fontSize: 13 }} underline="hover">
-                Clear
+              <Link component="button" type="button" onClick={selection.clear} sx={{ fontSize: 13 }} underline="hover">
+                {t("search.table.clear")}
               </Link>
             </Typography>
           )}
@@ -372,7 +369,7 @@ export function ReportResultsTable({
               startIcon={<PictureAsPdfIcon />}
               onClick={handleExportSelectedPdf}
             >
-              Export Selected PDF
+              {t("search.table.exportSelectedPdf")}
             </Button>
             <Button
               size="small"
@@ -380,7 +377,7 @@ export function ReportResultsTable({
               startIcon={<FileDownloadIcon />}
               onClick={handleExportSelectedCsv}
             >
-              Export Selected CSV
+              {t("search.table.exportSelectedCsv")}
             </Button>
             {onAnalyzeTrend && (
               <Button
@@ -392,7 +389,7 @@ export function ReportResultsTable({
                   if (target && onAnalyzeTrend) onAnalyzeTrend(target.testCode, target.subjectName, target.category);
                 }}
               >
-                Analyze Selected
+                {t("search.table.analyzeSelected")}
               </Button>
             )}
           </Stack>
@@ -403,28 +400,36 @@ export function ReportResultsTable({
 
       {!error && !loading && items.length === 0 && (
         <Box sx={{ textAlign: "center", py: 6 }}>
-          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>No results found</Typography>
+          <Typography sx={{ fontWeight: 600, mb: 0.5 }}>{t("search.table.noResultsTitle")}</Typography>
           <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-            Try widening the date range or clearing some filters.
+            {t("search.table.noResultsDescription")}
           </Typography>
-          <Button variant="outlined" onClick={onClearFilters}>Clear Filters</Button>
+          <Button variant="outlined" onClick={onClearFilters}>{t("search.table.clearFilters")}</Button>
         </Box>
       )}
 
       {!error && (loading || items.length > 0) && (
         <>
           <Box sx={{ opacity: loading ? 0.6 : 1 }}>
-            <DataTable
+            <RegisterTable
               columns={tableColumns}
               rows={items}
               getRowId={(row) => row.id}
-              selection={{
-                isSelected: (row) => selectAllMatching || selectedIds.has(row.id),
-                onToggle: (row) => toggleRow(row),
-                isSelectable: (row) => row.approvalStatus === "Approved",
-                headerChecked: allVisibleSelected,
-                headerIndeterminate: !allVisibleSelected && someVisibleSelected,
-                onToggleAll: toggleVisiblePage
+              loading={loading}
+              empty={{
+                title: t("search.table.noResultsTitle"),
+                description: t("search.table.noResultsDescription"),
+                action: <Button variant="outlined" onClick={onClearFilters}>{t("search.table.clearFilters")}</Button>
+              }}
+              selection={selection}
+              isSelectable={(row) => row.approvalStatus === "Approved"}
+              serverPaged={{
+                totalCount,
+                page: Math.max(0, page - 1),
+                onPageChange: (nextZeroBasedPage) => onPageChange(nextZeroBasedPage + 1),
+                pageSize,
+                onPageSizeChange,
+                pageSizeOptions: ROWS_PER_PAGE_OPTIONS
               }}
             />
           </Box>
@@ -437,7 +442,7 @@ export function ReportResultsTable({
               }}
             >
               <VisibilityIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
-              View Record Details
+              {t("search.table.viewRecordDetails")}
             </MenuItem>
             {onAnalyzeTrend && (
               <MenuItem
@@ -447,7 +452,7 @@ export function ReportResultsTable({
                 }}
               >
                 <ShowChartIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
-                Analyze Trend
+                {t("search.table.analyzeTrend")}
               </MenuItem>
             )}
             <MenuItem
@@ -457,35 +462,15 @@ export function ReportResultsTable({
               }}
             >
               <ContentCopyIcon fontSize="small" sx={{ mr: 1, color: "text.secondary" }} />
-              Copy Reference Number
+              {t("search.table.copyReferenceNumber")}
             </MenuItem>
           </Menu>
-
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 2, flexWrap: "wrap", gap: 1 }}>
-            <FormControl size="small">
-              <Select value={pageSize} onChange={(e) => onPageSizeChange(Number(e.target.value))} inputProps={{ "aria-label": "Rows per page" }}>
-                {ROWS_PER_PAGE_OPTIONS.map((n) => <MenuItem key={n} value={n}>{n} / page</MenuItem>)}
-              </Select>
-            </FormControl>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                {pageStart} - {pageEnd} of {totalCount}
-              </Typography>
-              <IconButton aria-label="Previous page" size="small" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-                <ChevronLeftIcon fontSize="small" />
-              </IconButton>
-              <IconButton aria-label="Next page" size="small" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
-                <ChevronRightIcon fontSize="small" />
-              </IconButton>
-            </Box>
-          </Box>
         </>
       )}
 
       <ConfirmationDialog
         open={exportConfirmOpen}
-        message={`This will export ${totalCount} row${totalCount === 1 ? "" : "s"} matching your current filters as a CSV file. This export will be logged.`}
+        message={t("search.table.exportConfirm", { count: totalCount })}
         onConfirm={runExport}
         onCancel={() => setExportConfirmOpen(false)}
       />

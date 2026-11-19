@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { i18n } from "../../../i18n";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { HplcSampleEntryPage } from "./HplcSampleEntryPage";
@@ -133,6 +135,31 @@ describe("HplcSampleEntryPage operator controls", () => {
 
     for (const input of screen.getAllByRole("spinbutton")) {
       expect(isDisabled(input)).toBe(false);
+    }
+  });
+});
+
+describe("HplcSampleEntryPage language change", () => {
+  it("keeps typed replicate values when the interface language changes", async () => {
+    auth.current = { ...auth.current, role: "Analyst", permissions: ["Hplc.Operate"] };
+    const user = userEvent.setup();
+    vi.mocked(HplcWorkspaceService.getSampleEntry).mockClear();
+    renderPage();
+
+    const input = (await screen.findAllByRole("spinbutton"))[0] as HTMLInputElement;
+    await waitFor(() => expect(input.disabled).toBe(false));
+    await user.clear(input);
+    await user.type(input, "12.5");
+    try {
+      await act(async () => {
+        await i18n.changeLanguage("ar");
+      });
+      expect(HplcWorkspaceService.getSampleEntry).toHaveBeenCalledTimes(1);
+      expect(input.value).toBe("12.5");
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
     }
   });
 });

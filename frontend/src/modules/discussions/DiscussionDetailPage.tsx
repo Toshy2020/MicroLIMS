@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { i18n, useTranslation } from "../../i18n";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Box,
@@ -39,8 +40,11 @@ import { DiscussionHistoryDialog } from "./components/DiscussionHistoryDialog";
 import { brandColors } from "../../theme";
 import { ConfirmationDialog } from "../../components/ConfirmationDialog";
 import { toast } from "sonner";
+import { useBreadcrumb } from "../../components/breadcrumbContext";
+import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 export function DiscussionDetailPage() {
+  const { t } = useTranslation("discussions");
   const { id } = useParams<{ id: string }>();
   const postId = Number(id);
   const navigate = useNavigate();
@@ -51,6 +55,7 @@ export function DiscussionDetailPage() {
   const [post, setPost] = useState<DiscussionPostDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  useBreadcrumb(post?.title ?? (error ? t("detail.unavailable") : null));
 
   // New comment state
   const [newCommentText, setNewCommentText] = useState<string>("");
@@ -75,7 +80,7 @@ export function DiscussionDetailPage() {
       const res = await discussionService.getById(postId);
       setPost(res);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load discussion.");
+      setError(err.response?.data?.message || err.message || i18n.t("detail.loadError", { ns: "discussions" }));
     } finally {
       setLoading(false);
     }
@@ -90,9 +95,9 @@ export function DiscussionDetailPage() {
     try {
       const isImportant = await discussionService.toggleImportant(post.id);
       setPost((prev) => (prev ? { ...prev, isImportant } : null));
-      toast.success(isImportant ? "Marked as important" : "Unmarked as important");
+      toast.success(isImportant ? t("toast.markedImportant") : t("toast.unmarkedImportant"));
     } catch {
-      toast.error("Failed to toggle important status.");
+      toast.error(t("toast.toggleImportantError"));
     }
   };
 
@@ -105,10 +110,10 @@ export function DiscussionDetailPage() {
     if (!post) return;
     try {
       await discussionService.deletePost(post.id);
-      toast.success("Discussion post deleted");
+      toast.success(t("toast.postDeleted"));
       navigate("/discussions");
     } catch {
-      toast.error("Failed to delete discussion post.");
+      toast.error(t("toast.deleteError"));
     } finally {
       setConfirmDeletePostOpen(false);
     }
@@ -121,9 +126,9 @@ export function DiscussionDetailPage() {
       const created = await discussionService.addComment(post.id, newCommentText.trim());
       setPost((prev) => (prev ? { ...prev, comments: [...prev.comments, created] } : null));
       setNewCommentText("");
-      toast.success("Comment added");
+      toast.success(t("toast.commentAdded"));
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to post comment.");
+      toast.error(err.response?.data?.message || t("toast.commentError"));
     } finally {
       setSubmittingComment(false);
     }
@@ -147,9 +152,9 @@ export function DiscussionDetailPage() {
           : null
       );
       setEditingCommentId(null);
-      toast.success("Comment updated");
+      toast.success(t("toast.commentUpdated"));
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to save comment.");
+      toast.error(err.response?.data?.message || t("toast.commentSaveError"));
     }
   };
 
@@ -170,9 +175,9 @@ export function DiscussionDetailPage() {
             }
           : null
       );
-      toast.success("Comment deleted");
+      toast.success(t("toast.commentDeleted"));
     } catch {
-      toast.error("Failed to delete comment.");
+      toast.error(t("toast.commentDeleteError"));
     } finally {
       setCommentToDelete(null);
     }
@@ -190,9 +195,9 @@ export function DiscussionDetailPage() {
     return (
       <Box sx={{ maxWidth: 900, mx: "auto", py: 4 }}>
         <Button component={Link} to="/discussions" startIcon={<ArrowBackIcon />} sx={{ mb: 2 }}>
-          Back to Discussions
+          {t("actions.backToDiscussions")}
         </Button>
-        <Alert severity="error">{error || "Discussion not found."}</Alert>
+        <Alert severity="error">{error || t("detail.notFound")}</Alert>
       </Box>
     );
   }
@@ -211,7 +216,7 @@ export function DiscussionDetailPage() {
           startIcon={<ArrowBackIcon />}
           sx={{ fontWeight: 600, color: "text.secondary" }}
         >
-          Back to Discussions
+          {t("actions.backToDiscussions")}
         </Button>
 
         {canModify && (
@@ -222,9 +227,9 @@ export function DiscussionDetailPage() {
               startIcon={<EditIcon />}
               onClick={() => setEditDialogOpen(true)}
             >
-              Edit Post
+              {t("actions.editPost")}
             </Button>
-            <IconButton aria-label="Post actions" size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
+            <IconButton aria-label={t("actions.postActions", { title: post.title })} size="small" onClick={(e) => setMenuAnchor(e.currentTarget)}>
               <MoreVertIcon fontSize="small" />
             </IconButton>
             <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
@@ -237,7 +242,7 @@ export function DiscussionDetailPage() {
                 <ListItemIcon>
                   {post.isImportant ? <StarBorderIcon fontSize="small" /> : <StarIcon fontSize="small" />}
                 </ListItemIcon>
-                <ListItemText primary={post.isImportant ? "Unmark Important" : "Mark Important"} />
+                <ListItemText primary={post.isImportant ? t("actions.unmarkImportant") : t("actions.markImportant")} />
               </MenuItem>
               <MenuItem
                 onClick={() => {
@@ -249,7 +254,7 @@ export function DiscussionDetailPage() {
                 <ListItemIcon sx={{ color: "error.main" }}>
                   <DeleteOutlineIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText primary="Delete Discussion" />
+                <ListItemText primary={t("actions.deleteDiscussion")} />
               </MenuItem>
             </Menu>
           </Box>
@@ -276,7 +281,7 @@ export function DiscussionDetailPage() {
             <Box>
               <Typography sx={{ fontWeight: 700, fontSize: 14.5 }}>{post.authorName}</Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                {post.authorRole} • Posted {new Date(post.createdAt).toLocaleString()}
+                {post.authorRole} • {t("detail.posted", { date: formatDateTimeWithTimeZone(post.createdAt) })}
               </Typography>
             </Box>
           </Box>
@@ -285,7 +290,7 @@ export function DiscussionDetailPage() {
             {post.isImportant && (
               <Chip
                 icon={<StarIcon sx={{ fontSize: "14px !important", color: "warning.main" }} />}
-                label="Important"
+                label={t("detail.important")}
                 size="small"
                 sx={{
                   fontWeight: 700,
@@ -297,10 +302,10 @@ export function DiscussionDetailPage() {
             )}
             <DiscussionCategoryBadge category={post.category} categoryName={post.categoryName} />
             {post.isEdited && (
-              <Tooltip title="Click to view full revision history">
+              <Tooltip title={t("detail.historyTooltip")}>
                 <Chip
                   icon={<HistoryIcon sx={{ fontSize: "13px !important" }} />}
-                  label={`v${post.currentVersion} Edited`}
+                  label={t("card.editedChip", { version: post.currentVersion })}
                   size="small"
                   variant="outlined"
                   onClick={() => setHistoryOpen(true)}
@@ -335,7 +340,7 @@ export function DiscussionDetailPage() {
           <Box sx={{ mt: 3, pt: 2.5, borderTop: "1px solid", borderColor: "divider" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, display: "flex", alignItems: "center", gap: 0.75 }}>
               <AttachFileIcon fontSize="small" />
-              Attachments ({post.attachments.length})
+              {t("detail.attachments", { n: post.attachments.length })}
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
               {post.attachments.map((att) => (
@@ -360,11 +365,11 @@ export function DiscussionDetailPage() {
                       {(att.fileSizeBytes / 1024).toFixed(1)} KB
                     </Typography>
                   </Box>
-                  <IconButton aria-label={`Download ${att.fileName}`}
+                  <IconButton aria-label={t("detail.download", { name: att.fileName })}
                     size="small"
                     color="primary"
                     onClick={() => discussionService.downloadAttachment(post.id, att.id, att.fileName)}
-                    title="Download file"
+                    title={t("detail.downloadTitle")}
                   >
                     <DownloadIcon fontSize="small" />
                   </IconButton>
@@ -378,13 +383,13 @@ export function DiscussionDetailPage() {
       {/* Comments Thread */}
       <Box sx={{ mt: 4 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 2.5 }}>
-          Comments ({post.comments.length})
+          {t("detail.comments", { n: post.comments.length })}
         </Typography>
 
         {/* Add Comment Input */}
         <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5, mb: 3 }}>
           <TextField
-            placeholder="Write a comment or response to this discussion..."
+            placeholder={t("detail.commentPlaceholder")}
             value={newCommentText}
             onChange={(e) => setNewCommentText(e.target.value)}
             fullWidth
@@ -393,7 +398,7 @@ export function DiscussionDetailPage() {
             maxRows={8}
             disabled={submittingComment}
             sx={{ mb: 1.5 }}
-            slotProps={{ htmlInput: { "aria-label": "Comment" } }}
+            slotProps={{ htmlInput: { "aria-label": t("detail.commentLabel") } }}
           />
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button
@@ -405,7 +410,7 @@ export function DiscussionDetailPage() {
               disabled={submittingComment || !newCommentText.trim()}
               sx={{ fontWeight: 600 }}
             >
-              {submittingComment ? "Posting..." : "Post Comment"}
+              {submittingComment ? t("detail.posting") : t("detail.postComment")}
             </Button>
           </Box>
         </Paper>
@@ -413,7 +418,7 @@ export function DiscussionDetailPage() {
         {/* Flat Comments List */}
         {post.comments.length === 0 ? (
           <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center", py: 4 }}>
-            No comments yet. Be the first to share your feedback or observations!
+            {t("detail.noComments")}
           </Typography>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -443,7 +448,7 @@ export function DiscussionDetailPage() {
                           {comment.authorName}
                         </Typography>
                         <Typography sx={{ fontSize: 12, color: "text.secondary", lineHeight: 1.1 }}>
-                          {comment.authorRole} • {new Date(comment.createdAt).toLocaleString()}
+                          {comment.authorRole} • {formatDateTimeWithTimeZone(comment.createdAt)}
                         </Typography>
                       </Box>
                     </Box>
@@ -451,15 +456,15 @@ export function DiscussionDetailPage() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                       {comment.isEdited && (
                         <Typography variant="caption" sx={{ color: "text.secondary", fontStyle: "italic", mr: 0.5 }}>
-                          (Edited)
+                          {t("detail.edited")}
                         </Typography>
                       )}
                       {canEditThisComment && !isInlineEditing && (
                         <>
-                          <IconButton aria-label="Edit comment" size="small" onClick={() => handleStartEditComment(comment)}>
+                          <IconButton aria-label={t("detail.editComment")} size="small" onClick={() => handleStartEditComment(comment)}>
                             <EditIcon sx={{ fontSize: 15 }} />
                           </IconButton>
-                          <IconButton aria-label="Delete comment" size="small" color="error" onClick={() => handleDeleteComment(comment.id)}>
+                          <IconButton aria-label={t("detail.deleteComment")} size="small" color="error" onClick={() => handleDeleteComment(comment.id)}>
                             <DeleteOutlineIcon sx={{ fontSize: 15 }} />
                           </IconButton>
                         </>
@@ -477,13 +482,13 @@ export function DiscussionDetailPage() {
                         value={editingCommentText}
                         onChange={(e) => setEditingCommentText(e.target.value)}
                         sx={{ mb: 1 }}
-                        slotProps={{ htmlInput: { "aria-label": "Edit comment" } }}
+                        slotProps={{ htmlInput: { "aria-label": t("detail.editComment") } }}
                       />
                       <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                        <IconButton aria-label="Cancel editing" size="small" onClick={() => setEditingCommentId(null)}>
+                        <IconButton aria-label={t("detail.cancelEdit")} size="small" onClick={() => setEditingCommentId(null)}>
                           <CloseIcon fontSize="small" />
                         </IconButton>
-                        <IconButton aria-label="Save comment"
+                        <IconButton aria-label={t("detail.saveComment")}
                           size="small"
                           color="primary"
                           onClick={() => handleSaveEditComment(comment.id)}
@@ -535,9 +540,9 @@ export function DiscussionDetailPage() {
 
       <ConfirmationDialog
         open={confirmDeletePostOpen}
-        title="Delete Discussion Post"
-        message="Are you sure you want to delete this discussion post? This action cannot be undone."
-        confirmText="Delete Post"
+        title={t("card.deleteTitle")}
+        message={t("card.deleteMessage")}
+        confirmText={t("card.deleteConfirm")}
         destructive
         onConfirm={confirmDeletePost}
         onCancel={() => setConfirmDeletePostOpen(false)}
@@ -545,9 +550,9 @@ export function DiscussionDetailPage() {
 
       <ConfirmationDialog
         open={commentToDelete !== null}
-        title="Delete Comment"
-        message="Are you sure you want to delete this comment? This action cannot be undone."
-        confirmText="Delete Comment"
+        title={t("detail.deleteCommentTitle")}
+        message={t("detail.deleteCommentMessage")}
+        confirmText={t("detail.deleteCommentConfirm")}
         destructive
         onConfirm={confirmDeleteComment}
         onCancel={() => setCommentToDelete(null)}

@@ -3,6 +3,7 @@ import { Box, FormControl, FormControlLabel, FormHelperText, InputLabel, MenuIte
 import { SolutionMasterService, SolutionMaster } from "./services/SolutionMasterService";
 import { MaterialMasterService, MaterialMasterEntry } from "./services/MaterialMasterService";
 import { MoistureRole } from "../../../services/masterDataOptions";
+import { useTranslation } from "../../../i18n";
 import {
   TITRATION_CALCULATION_OPTIONS,
   TITRATION_ENDPOINT_OPTIONS,
@@ -24,6 +25,7 @@ interface Props {
 // Titration configuration block of the physicochemical Test Master dialog.
 // Visibility rules live in titrationConfig.ts (unit tested).
 export function TitrationConfigSection({ form, onChange, sectionId, moistureRole = "None", onMoistureRoleChange }: Props) {
+  const { t } = useTranslation("masterData");
   const [titrants, setTitrants] = useState<SolutionMaster[]>([]);
   const [standards, setStandards] = useState<MaterialMasterEntry[]>([]);
   const [indicators, setIndicators] = useState<MaterialMasterEntry[]>([]);
@@ -42,11 +44,11 @@ export function TitrationConfigSection({ form, onChange, sectionId, moistureRole
         setStandards(s);
         setIndicators(i);
       })
-      .catch(() => active && setLoadError("Could not load titrants, indicators or reference standards."));
+      .catch(() => active && setLoadError(t("titration.loadError")));
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   const v = titrationVisibility(form);
   const kf = form.type === "KarlFischer";
@@ -104,34 +106,55 @@ export function TitrationConfigSection({ form, onChange, sectionId, moistureRole
 
   return (
     <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }} data-testid="titration-config">
-      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>Titration Settings (USP &lt;541&gt;)</Typography>
+      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 1.5 }}>{t("titration.sectionTitle")}</Typography>
       {loadError && <Typography color="error" sx={{ fontSize: 12, mb: 1 }}>{loadError}</Typography>}
       <Stack spacing={2}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {select("titration-type-label", "Titration type", form.type, TITRATION_TYPE_OPTIONS, (t) => {
-            set({ type: t, titrantSolutionMasterId: "", excessSolutionMasterId: "" });
-            if (t !== "KarlFischer" && moistureRole === "Water") {
-              onMoistureRoleChange?.("None");
+          {select(
+            "titration-type-label",
+            t("titration.typeLabel"),
+            form.type,
+            TITRATION_TYPE_OPTIONS.map((o) => ({ value: o.value, label: t(`titration.types.${o.value}`, { defaultValue: o.label }) })),
+            (val) => {
+              set({ type: val, titrantSolutionMasterId: "", excessSolutionMasterId: "" });
+              if (val !== "KarlFischer" && moistureRole === "Water") {
+                onMoistureRoleChange?.("None");
+              }
             }
-          })}
-          {v.mode && select("titration-mode-label", "Mode", form.mode, TITRATION_MODE_OPTIONS, (m) => set({ mode: m }))}
-          {v.calculation && select("titration-calc-label", "Calculation method", form.calculation, TITRATION_CALCULATION_OPTIONS.filter((o) => o.value !== "Relative" || form.mode !== "Residual"), (c) => set({ calculation: c }))}
+          )}
+          {v.mode && select(
+            "titration-mode-label",
+            t("titration.modeLabel"),
+            form.mode,
+            TITRATION_MODE_OPTIONS.map((o) => ({ value: o.value, label: t(`titration.modes.${o.value}`, { defaultValue: o.label }) })),
+            (m) => set({ mode: m })
+          )}
+          {v.calculation && select(
+            "titration-calc-label",
+            t("titration.calculationLabel"),
+            form.calculation,
+            TITRATION_CALCULATION_OPTIONS.filter((o) => o.value !== "Relative" || form.mode !== "Residual").map((o) => ({
+              value: o.value,
+              label: t(`titration.calculations.${o.value}`, { defaultValue: o.label })
+            })),
+            (c) => set({ calculation: c })
+          )}
         </Stack>
         {kf && (
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "center" }}>
             <Typography variant="body2" sx={{ color: "text.secondary", flex: 1 }}>
-            Karl Fischer is direct, USP-factor only; the titrant strength is the reagent water equivalent (mg H2O/mL).
+              {t("titration.kfDescription")}
             </Typography>
             <FormControl size="small" sx={{ minWidth: 200, maxWidth: 300 }}>
-              <InputLabel id="titration-moisture-role-label">Moisture role</InputLabel>
+              <InputLabel id="titration-moisture-role-label">{t("titration.moistureRoleLabel")}</InputLabel>
               <Select<MoistureRole>
                 labelId="titration-moisture-role-label"
-                label="Moisture role"
+                label={t("titration.moistureRoleLabel")}
                 value={moistureRole === "LossOnDrying" ? "None" : (moistureRole || "None")}
                 onChange={(e) => onMoistureRoleChange?.(e.target.value as MoistureRole)}
               >
-                <MenuItem value="None">None</MenuItem>
-                <MenuItem value="Water">Water</MenuItem>
+                <MenuItem value="None">{t("titration.moistureRoleNone")}</MenuItem>
+                <MenuItem value="Water">{t("titration.moistureRoleWater")}</MenuItem>
               </Select>
             </FormControl>
           </Stack>
@@ -140,7 +163,7 @@ export function TitrationConfigSection({ form, onChange, sectionId, moistureRole
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
           {select(
             "titration-titrant-label",
-            kf ? "KF reagent (titrant)" : "Titrant",
+            kf ? t("titration.kfTitrantLabel") : t("titration.titrantLabel"),
             form.titrantSolutionMasterId,
             titrantOptions.map((s) => ({ value: s.id, label: titrantLabel(s) })),
             (id) => set({ titrantSolutionMasterId: id })
@@ -148,72 +171,78 @@ export function TitrationConfigSection({ form, onChange, sectionId, moistureRole
           {v.excess &&
             select(
               "titration-excess-label",
-              "Excess titrant",
+              t("titration.excessTitrantLabel"),
               form.excessSolutionMasterId,
               excessOptions.map((s) => ({ value: s.id, label: titrantLabel(s) })),
               (id) => set({ excessSolutionMasterId: id }),
-              "The volumetric solution added in excess (same strength unit as the titrant)"
+              t("titration.excessTitrantHelper")
             )}
         </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-          {v.factor && field("Equivalency factor F (mg per mEq/mmol)", "equivalencyFactor", "e.g. 88.06 (ascorbic acid, iodine)", "any", true)}
-          {v.excess && field("Excess volume (mL)", "excessVolumeMl", "Required for residual titration", "any", true)}
+          {v.factor && field(t("titration.equivalencyFactorLabel"), "equivalencyFactor", t("titration.equivalencyFactorHelper"), "any", true)}
+          {v.excess && field(t("titration.excessVolumeLabel"), "excessVolumeMl", t("titration.excessVolumeHelper"), "any", true)}
           <TextField
             size="small"
             type="number"
-            label="Replicate count *"
+            label={t("titration.replicateCountLabel")}
             value={form.replicateCount}
             onChange={(e) => set({ replicateCount: e.target.value })}
             slotProps={{ htmlInput: { min: 1, max: 10, step: 1 } }}
-            helperText="1-10"
+            helperText={t("titration.replicateCountHelper")}
             sx={{ flex: 1, minWidth: 200 }}
           />
-          {field("Maximum RSD % (optional)", "maxRsdPercent", "Over replicate results")}
+          {field(t("titration.maxRsdLabel"), "maxRsdPercent", t("titration.maxRsdHelper"))}
         </Stack>
 
         <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ alignItems: "flex-start" }}>
-          {select("titration-endpoint-label", "Endpoint", form.endpoint, TITRATION_ENDPOINT_OPTIONS, (e) => set({ endpoint: e }))}
+          {select(
+            "titration-endpoint-label",
+            t("titration.endpointLabel"),
+            form.endpoint,
+            TITRATION_ENDPOINT_OPTIONS.map((o) => ({ value: o.value, label: t(`titration.endpoints.${o.value}`, { defaultValue: o.label }) })),
+            (e) => set({ endpoint: e })
+          )}
           {v.indicator &&
             select(
               "titration-indicator-label",
-              "Indicator",
+              t("titration.indicatorLabel"),
               form.indicatorEntryId,
               indicatorOptions.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
               (id) => set({ indicatorEntryId: id }),
-              indicatorOptions.length === 0 ? "No active Indicator entries in Reagents & Reference Standards" : "From Reagents & Reference Standards"
+              indicatorOptions.length === 0 ? t("titration.indicatorEmptyHelper") : t("titration.indicatorHelper")
             )}
         </Stack>
 
         <Stack direction="row" spacing={3} sx={{ flexWrap: "wrap" }} useFlexGap>
           <FormControlLabel
             control={<Switch checked={form.blankRequired} onChange={(e) => set({ blankRequired: e.target.checked })} />}
-            label="Blank determination required (one per series)"
+            label={t("titration.blankRequiredLabel")}
           />
           {v.nonAqueous && (
             <FormControlLabel
               control={<Switch checked={form.nonAqueous} onChange={(e) => set({ nonAqueous: e.target.checked })} />}
-              label="Non-aqueous"
+              label={t("titration.nonAqueousLabel")}
             />
           )}
           {v.tempCorrection && (
             <FormControlLabel
               control={<Switch checked={form.tempCorrection} onChange={(e) => set({ tempCorrection: e.target.checked })} />}
-              label="Temperature volume correction"
+              label={t("titration.tempCorrectionLabel")}
             />
           )}
         </Stack>
-        {v.tempCorrection && form.tempCorrection && field("Expansion coefficient (per deg C)", "expansionCoefficient", "Default 0.0011", "any", true)}
+        {v.tempCorrection && form.tempCorrection && field(t("titration.expansionCoeffLabel"), "expansionCoefficient", t("titration.expansionCoeffHelper"), "any", true)}
 
         {v.standard && (
           <Stack spacing={2}>
             {select(
               "titration-standard-label",
-              "Reference standard",
+              t("titration.referenceStandardLabel"),
               form.standardEntryId,
               standardOptions.map((s) => ({ value: s.id, label: `${s.name} (${s.code})` })),
               (id) => set({ standardEntryId: id }),
-              "Reference standard lot or approved working standard of this entry is picked at analysis time"
+              t("titration.referenceStandardHelper")
             )}
           </Stack>
         )}

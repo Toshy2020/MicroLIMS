@@ -14,11 +14,12 @@ import {
   Tooltip
 } from "@mui/material";
 import TimelineIcon from "@mui/icons-material/Timeline";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { AuditLogItem } from "../types/auditTypes";
 import { ENTITY_DISPLAY_NAMES } from "../types/auditTypes";
 import { AuditDiffViewer } from "./AuditDiffViewer";
 import { tableHeadSx } from "../../../theme";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   items: AuditLogItem[];
@@ -46,14 +47,15 @@ export function AuditResultsTable({
   onRowsPerPageChange,
   onSelectEvent
 }: Props) {
+  const { t } = useTranslation("auditSearch");
   if (items.length === 0) {
     return (
       <Paper sx={{ p: 5, textAlign: "center", border: "1px solid", borderColor: "divider", borderRadius: 2 }}>
         <Typography sx={{ fontSize: 15, fontWeight: 600, color: "text.primary", mb: 0.5 }}>
-          No audit events found
+          {t("results.noEvents")}
         </Typography>
         <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-          Try adjusting your search criteria or date filters.
+          {t("results.adjust")}
         </Typography>
       </Paper>
     );
@@ -65,13 +67,13 @@ export function AuditResultsTable({
         <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Date / Time</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>User</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 150 }}>Entity</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center", width: 90 }}>Action</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 260 }}>Changed Fields (Diff)</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Record Ref</TableCell>
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center", width: 100 }}>Details</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>{t("results.dateTime")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 180 }}>{t("results.user")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 150 }}>{t("results.entity")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center", width: 90 }}>{t("results.action")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 260 }}>{t("results.changedFields")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>{t("results.recordRef")}</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "center", width: 100 }}>{t("results.details")}</TableCell>
             </TableRow>
           </TableHead>
 
@@ -93,7 +95,7 @@ export function AuditResultsTable({
                   {/* Timestamp */}
                   <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
                     <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                      {formatLabDateTime(item.timestamp)}
+                      {formatDateTimeWithTimeZone(item.timestamp)}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
                       UTC
@@ -106,10 +108,10 @@ export function AuditResultsTable({
                       {item.userName}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "primary.main", fontWeight: 600 }}>
-                      {item.userCurrentRole ? `Current role: ${item.userCurrentRole}` : "User"}
+                      {item.userCurrentRole ? t("results.currentRole", { role: item.userCurrentRole }) : t("results.userFallback")}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary", fontFamily: "monospace" }}>
-                      ID: #{item.userId}
+                      {t("results.userIdLine", { id: item.userId })}
                     </Typography>
                   </TableCell>
 
@@ -119,18 +121,18 @@ export function AuditResultsTable({
                       {friendlyEntity}
                     </Typography>
                     <Typography sx={{ fontSize: 12, fontFamily: "monospace", color: "text.secondary" }}>
-                      ID: {item.entityId}
+                      {t("results.entityIdLine", { id: item.entityId })}
                     </Typography>
                     {item.entityIdNegative && (
                       <Tooltip
                         title={
                           item.correctedByAuditLogId
-                            ? `This row recorded a temporary negative record ID. A correction was appended as audit event #${item.correctedByAuditLogId}; the original row is unchanged.`
-                            : "This row recorded a temporary negative record ID (captured before the insert). It cannot be edited; a correction row is appended by the data-integrity script."
+                            ? t("results.correctedTip", { id: item.correctedByAuditLogId })
+                            : t("results.needsCorrectionTip")
                         }
                       >
                         <Chip
-                          label={item.correctedByAuditLogId ? `Corrected (#${item.correctedByAuditLogId})` : "Needs correction"}
+                          label={item.correctedByAuditLogId ? t("results.corrected", { id: item.correctedByAuditLogId }) : t("results.needsCorrection")}
                           size="small"
                           color={item.correctedByAuditLogId ? "info" : "warning"}
                           sx={{ fontSize: 11, fontWeight: 700, height: 18, mt: 0.5 }}
@@ -165,7 +167,7 @@ export function AuditResultsTable({
                   <TableCell sx={{ fontSize: 12 }}>
                     {item.sampleReferenceNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Sample:</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("results.sample")}</Typography>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.sampleReferenceNumber}
                         </Typography>
@@ -173,7 +175,7 @@ export function AuditResultsTable({
                     )}
                     {item.batchNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Batch:</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("results.batch")}</Typography>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.batchNumber}
                         </Typography>
@@ -181,7 +183,7 @@ export function AuditResultsTable({
                     )}
                     {item.mediaLotNumber && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Media Lot:</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("results.mediaLot")}</Typography>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.mediaLotNumber}
                         </Typography>
@@ -189,7 +191,7 @@ export function AuditResultsTable({
                     )}
                     {item.cryovialCode && (
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Cryovial:</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("results.cryovial")}</Typography>
                         <Typography sx={{ fontSize: 12, fontWeight: 600, fontFamily: "monospace" }}>
                           {item.cryovialCode}
                         </Typography>
@@ -202,7 +204,7 @@ export function AuditResultsTable({
 
                   {/* Actions / Trace */}
                   <TableCell sx={{ textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                    <Tooltip title="Inspect Event & Traceability Chain">
+                    <Tooltip title={t("results.inspectTip")}>
                       <Button
                         size="small"
                         variant="outlined"
@@ -216,7 +218,7 @@ export function AuditResultsTable({
                           fontWeight: 600
                         }}
                       >
-                        Trace
+                        {t("results.trace")}
                       </Button>
                     </Tooltip>
                   </TableCell>

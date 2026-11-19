@@ -143,6 +143,9 @@ public static class PermissionConstants
     // Sample Preparation writes (prepare, confirm, batch confirm). Every working role holds it; QC Manager (approval-only) does not.
     public const string SamplesPrepare = "samples.prepare";
 
+    // Take an unassigned test in a section the user belongs to (My Work), and release it again while nothing is recorded on it. Granted to the Analyst role; a Section Head assigns instead (Samples.AssignAnalyst).
+    public const string TestsSelfAssign = "Tests.SelfAssign";
+
     // Read every laboratory section's records without being a member. Read-only: writes always follow section membership, for administrators too (UserSectionScopeService).
     public const string SectionsViewAll = "Sections.ViewAll";
 
@@ -154,6 +157,21 @@ public static class PermissionConstants
 
     // Periodically review who holds which access (EU GMP Annex 11 s.12, 21 CFR 11.10(d)(g)): generate the access-review report, record findings, sign it. Deliberately NOT in a segregation-of-duties set, and held by the System Administrator only because it is read-and-attest, never GxP work.
     public const string AccessReview = "Access.Review";
+
+    // Quality Assurance (RoleType.Qa): perform and sign periodic audit trail reviews, and decide and sign user access reviews. Never granted to SystemAdministrator.
+    public const string AuditReview = "Audit.Review";
+    public const string AccessReviewSign = "Access.Review.Sign";
+
+    // Barcode labels and scanning (B1).
+    public const string LabelsReprint = "Labels.Reprint";
+    public const string LabelsConfigure = "Labels.Configure";
+
+    // Smarter tables (C3): share a saved table view with a laboratory section, and export a table to CSV (audited).
+    public const string TableViewsShare = "TableViews.Share";
+    public const string DataExport = "Data.Export";
+
+    // Notification centre and escalation (C5): mark notification types mandatory and configure escalation rules and working hours for your section.
+    public const string NotificationsConfigure = "Notifications.Configure";
 
     public static readonly IReadOnlyList<string> All = new[]
     {
@@ -177,8 +195,12 @@ public static class PermissionConstants
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
-        SamplesPrepare,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+        SamplesPrepare, TestsSelfAssign,
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
+        AuditReview, AccessReviewSign,
+        LabelsReprint, LabelsConfigure,
+        TableViewsShare, DataExport,
+        NotificationsConfigure
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -200,6 +222,18 @@ public static class PermissionConstants
         SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
     };
 
+    // Default grants for the built-in Quality Assurance role (RoleType.Qa):
+    // QC Manager view/read baseline minus tests.not-applicable.final-approve,
+    // plus cross-section read, audit/security review, access review, dashboards/KPIs,
+    // messaging, and Document Control review/approval/training matrix.
+    public static readonly IReadOnlyList<string> QaGrants = new[]
+    {
+        DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
+        SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
+        KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix
+    };
+
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
@@ -217,8 +251,12 @@ public static class PermissionConstants
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
         EquipmentPlanManage, EquipmentPlanApprove, EquipmentWorkRecord, CalendarEventManage,
         NotApplicableTestsManage, NotApplicableTestsFinalApprove, TestsOutsource,
-        SamplesPrepare,
-        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview
+        SamplesPrepare, TestsSelfAssign,
+        SectionsViewAll, SectionsConfigureAll, SystemManageJobs, AccessReview,
+        AuditReview, AccessReviewSign,
+        LabelsReprint, LabelsConfigure,
+        TableViewsShare, DataExport,
+        NotificationsConfigure
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

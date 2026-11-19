@@ -18,9 +18,9 @@ import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import DescriptionIcon from "@mui/icons-material/Description";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import { useTranslation } from "../../../i18n";
 import { Item } from "./services/ItemService";
 import { CategoryBadge, StatusBadge } from "../../../components/StatusBadge";
-import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { ItemDocumentService } from "./services/ItemDocumentService";
 
 const ALLOWED_ITEM_CATEGORIES = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
@@ -63,11 +63,10 @@ export function ItemTable({
   onResetFilters,
   readOnly = false,
 }: ItemTableProps) {
-  const [pendingDelete, setPendingDelete] = useState<Item | null>(null);
-
+  const { t } = useTranslation("labConfig");
   if (loading && items.length === 0) {
     return (
-      <Stack spacing={1.5} aria-busy="true" aria-label="Loading items">
+      <Stack spacing={1.5} aria-busy="true" aria-label={t("items.table.loadingAriaLabel")}>
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} variant="rounded" height={76} />
         ))}
@@ -83,16 +82,16 @@ export function ItemTable({
       >
         <Inventory2OutlinedIcon sx={{ fontSize: 36, color: "text.disabled", mb: 1 }} />
         <Typography sx={{ fontWeight: 600, fontSize: 14 }}>
-          {onResetFilters ? "No items match your filters" : "No items configured yet"}
+          {onResetFilters ? t("items.table.emptyFilteredTitle") : t("items.table.emptyTitle")}
         </Typography>
         <Typography sx={{ color: "text.secondary", fontSize: 13, mt: 0.5 }}>
           {onResetFilters
-            ? "Try a different search term or clear the filters."
-            : "Use \u201CAdd Item\u201D to create the first one."}
+            ? t("items.table.emptyFilteredHint")
+            : t("items.table.emptyHint")}
         </Typography>
         {onResetFilters && (
           <Button size="small" onClick={onResetFilters} sx={{ mt: 1.5, textTransform: "none" }}>
-            Clear filters
+            {t("items.table.clearFilters")}
           </Button>
         )}
       </Paper>
@@ -119,7 +118,7 @@ export function ItemTable({
               onSelectItem={onSelectItem}
               onEdit={onEdit}
               onToggleFreeze={onToggleFreeze}
-              onDelete={(item) => setPendingDelete(item)}
+              onDelete={onDelete}
               readOnly={readOnly}
             />
           );
@@ -133,7 +132,7 @@ export function ItemTable({
           page={page}
           rowsPerPage={rowsPerPage}
           rowsPerPageOptions={compact ? [] : ITEM_ROWS_PER_PAGE_OPTIONS}
-          labelRowsPerPage="Items per page:"
+          labelRowsPerPage={t("items.table.rowsPerPage")}
           onPageChange={(_, newPage) => onPageChange(newPage)}
           onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
           sx={{
@@ -146,21 +145,6 @@ export function ItemTable({
           }}
         />
       )}
-
-      <ConfirmationDialog
-        destructive
-        open={pendingDelete != null}
-        message={
-          pendingDelete
-            ? `Delete item "${pendingDelete.name}" (${pendingDelete.code})? This cannot be undone. If it has already been used to receive samples, deletion will be blocked - freeze it instead.`
-            : ""
-        }
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => {
-          if (pendingDelete) onDelete(pendingDelete);
-          setPendingDelete(null);
-        }}
-      />
     </>
   );
 }
@@ -186,6 +170,7 @@ function ItemRowCard({
   onDelete: (item: Item) => void;
   readOnly: boolean;
 }) {
+  const { t } = useTranslation("labConfig");
   const theme = useTheme();
   const [docCount, setDocCount] = useState<number | null>(null);
   const specCount = item.specifications?.length ?? 0;
@@ -202,7 +187,11 @@ function ItemRowCard({
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
-      aria-label={`${item.name} (${item.code})${item.isActive ? "" : ", frozen"}`}
+      aria-label={
+        item.isActive
+          ? t("items.table.rowAriaLabel", { name: item.name, code: item.code })
+          : t("items.table.rowAriaLabelFrozen", { name: item.name, code: item.code })
+      }
       onClick={() => onSelectItem(item)}
       onKeyDown={(e) => {
         if (e.target !== e.currentTarget) return;
@@ -273,7 +262,7 @@ function ItemRowCard({
             <StatusBadge status={item.isActive ? "Active" : "Frozen"} />
 
             <Chip
-              label={`${testCount} ${testCount === 1 ? "Test" : "Tests"}`}
+              label={t("items.table.testCount", { count: testCount })}
               size="small"
               sx={{
                 fontSize: 12,
@@ -286,7 +275,7 @@ function ItemRowCard({
 
             {specCount > 0 && (
               <Chip
-                label={`${specCount} ${specCount === 1 ? "Spec" : "Specs"}`}
+                label={t("items.table.specCount", { count: specCount })}
                 size="small"
                 variant="outlined"
                 color="primary"
@@ -301,7 +290,7 @@ function ItemRowCard({
             {docCount !== null && (
               <Chip
                 icon={<DescriptionIcon style={{ fontSize: 13, color: "inherit" }} />}
-                label={`${docCount} ${docCount === 1 ? "Doc" : "Docs"}`}
+                label={t("items.table.docCount", { count: docCount })}
                 size="small"
                 variant="outlined"
                 sx={{
@@ -314,7 +303,7 @@ function ItemRowCard({
 
             {isLegacyCategory && (
               <Chip
-                label="⚠ Legacy category"
+                label={t("items.table.legacyCategory")}
                 size="small"
                 sx={{
                   backgroundColor: theme.custom.status.inconclusive.bg,
@@ -336,25 +325,29 @@ function ItemRowCard({
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
-          <Tooltip title="Edit item">
-            <IconButton size="small" aria-label={`Edit ${item.name}`} onClick={() => onEdit(item)}>
+          <Tooltip title={t("items.table.editTooltip")}>
+            <IconButton size="small" aria-label={t("items.table.editAriaLabel", { name: item.name })} onClick={() => onEdit(item)}>
               <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
-          <Tooltip title={item.isActive ? "Freeze item" : "Unfreeze item"}>
+          <Tooltip title={item.isActive ? t("items.table.freezeTooltip") : t("items.table.unfreezeTooltip")}>
             <IconButton
               size="small"
-              aria-label={`${item.isActive ? "Freeze" : "Unfreeze"} ${item.name}`}
+              aria-label={
+                item.isActive
+                  ? t("items.table.freezeAriaLabel", { name: item.name })
+                  : t("items.table.unfreezeAriaLabel", { name: item.name })
+              }
               onClick={() => onToggleFreeze(item)}
             >
               {item.isActive ? <BlockIcon fontSize="small" /> : <LockOpenIcon fontSize="small" />}
             </IconButton>
           </Tooltip>
-          <Tooltip title="Delete item">
+          <Tooltip title={t("items.table.deleteTooltip")}>
             <IconButton
               size="small"
               color="error"
-              aria-label={`Delete ${item.name}`}
+              aria-label={t("items.table.deleteAriaLabel", { name: item.name })}
               onClick={() => onDelete(item)}
             >
               <DeleteIcon fontSize="small" />

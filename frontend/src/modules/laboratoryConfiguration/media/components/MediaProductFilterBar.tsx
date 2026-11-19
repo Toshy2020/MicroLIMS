@@ -1,6 +1,7 @@
 import { Box, TextField, Button, Stack, InputAdornment } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import { useTranslation } from "../../../../i18n";
 
 interface MediaProductFilterBarProps {
   searchQuery: string;
@@ -13,6 +14,7 @@ export function MediaProductFilterBar({
   onSearchChange,
   onReset,
 }: MediaProductFilterBarProps) {
+  const { t } = useTranslation("labConfig");
   const isFiltered = searchQuery.trim() !== "";
 
   return (
@@ -35,11 +37,11 @@ export function MediaProductFilterBar({
       >
         <TextField
           size="small"
-          placeholder="Search by media name or code..."
+          placeholder={t("media.productFilterBar.placeholder")}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           sx={{ flexGrow: 1, minWidth: { xs: "100%", sm: 280 } }}
-          slotProps={{ htmlInput: { "aria-label": "Search by media name or code" },
+          slotProps={{ htmlInput: { "aria-label": t("media.productFilterBar.ariaLabel") },
             input: {
               startAdornment: (
                 <InputAdornment position="start">
@@ -59,7 +61,7 @@ export function MediaProductFilterBar({
             onClick={onReset}
             sx={{ textTransform: "none", height: 40 }}
           >
-            Reset
+            {t("media.productFilterBar.reset")}
           </Button>
         )}
       </Stack>

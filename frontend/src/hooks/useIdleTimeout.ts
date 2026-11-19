@@ -5,7 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // explicit "Stay signed in" click resets the clock.
 const IDLE_TIMEOUT_MS = 20 * 60 * 1000;
 const WARNING_COUNTDOWN_SECONDS = 60;
-const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "scroll"] as const;
+export const ACTIVITY_EVENTS = [
+  "mousemove",
+  "keydown",
+  "click",
+  "scroll",
+  "pointerdown",
+  "touchstart"
+] as const;
 
 export function useIdleTimeout(onTimeout: () => void) {
   const [showWarning, setShowWarning] = useState(false);

@@ -1,34 +1,83 @@
+import { useEffect, useRef } from "react";
 import { Box, Typography, Stack, Button, Accordion, AccordionSummary, AccordionDetails, Chip, useTheme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import AssignmentReturnOutlinedIcon from "@mui/icons-material/AssignmentReturnOutlined";
+import { Trans } from "react-i18next";
+import { GatedAction } from "../../../components/GatedAction";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummaryDetail } from "../types/sampleSummaryTypes";
 import { humanize } from "../SampleReportPage";
 import { IncubationStageBlock } from "./SummaryCards";
 import { FinalResultBlock } from "./FinalResultBlock";
 
+// Return to Analyst for one test order, gated by the server's answer for that order.
+function ReturnToAnalystAction({
+  order,
+  onReturn
+}: {
+  order: TestOrderSummaryDetail;
+  onReturn?: (order: TestOrderSummaryDetail) => void;
+}) {
+  const { t } = useTranslation("testingWorkspace");
+  const availability = useActionAvailability("test-order", order.testOrderId);
+  const { refresh } = availability;
+  // The order moved on (returned, reviewed): its reasons moved with it.
+  const status = useRef(order.status);
+  useEffect(() => {
+    if (status.current === order.status) return;
+    status.current = order.status;
+    refresh();
+  }, [order.status, refresh]);
+
+  return (
+    <GatedAction action="review.return" availability={availability}>
+      <Button
+        variant="outlined"
+        color="warning"
+        size="small"
+        startIcon={<AssignmentReturnOutlinedIcon />}
+        onClick={() => onReturn?.(order)}
+        sx={{
+          fontWeight: 600,
+          fontSize: 12,
+          borderColor: "warning.main",
+          color: "warning.dark",
+          "&:hover": {
+            borderColor: "warning.dark",
+            bgcolor: "rgba(237, 108, 2, 0.08)"
+          }
+        }}
+      >
+        {t("sampleSummary.testResults.returnToAnalyst")}
+      </Button>
+    </GatedAction>
+  );
+}
+
 // 2. Test Results Section
 export function TestResultsSection({
   testOrders,
   overallStatus,
-  canReturn,
   onReturnTest
 }: {
   testOrders: TestOrderSummaryDetail[];
   overallStatus: string;
-  canReturn?: boolean;
   onReturnTest?: (order: TestOrderSummaryDetail) => void;
 }) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 16, color: theme.palette.primary.main }}>
-          Test Results
+          {t("sampleSummary.testResults.title")}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-            Overall Status:
+            {t("sampleSummary.testResults.overallStatus")}
           </Typography>
           <StatusBadge status={overallStatus} />
         </Box>
@@ -40,9 +89,8 @@ export function TestResultsSection({
             (order.countTestReadings.length > 0 ||
               (order.results.length > 0 && order.biochemicalResults.length === 0 && order.locations.length === 0)) &&
             order.pathogenObservations.length === 0;
-          const canReturnOrder = Boolean(
-            canReturn && !order.isSuperseded && order.status === "ResultEntered" && isCountTest
-          );
+          // Only a count test's result can be returned; whether it can be now, and by this user, is the server's answer.
+          const canReturnOrder = !order.isSuperseded && isCountTest;
 
           return (
             <Accordion
@@ -68,7 +116,7 @@ export function TestResultsSection({
                     flexWrap: "wrap"
                   }}>
                   <Typography sx={{ fontWeight: 700, fontSize: 14, color: "text.primary" }}>
-                    {order.testCode}: {order.testDisplayName}
+                    {order.testDisplayName} (<Ltr>{order.testCode}</Ltr>)
                   </Typography>
                   {order.sectionName && (
                     <Chip
@@ -85,8 +133,16 @@ export function TestResultsSection({
                       when another lab's rejection closed this one's work. */}
                   {order.status === "Cancelled" && order.cancelledAtStep && (
                     <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                      Cancelled at {humanize(order.cancelledAtStep)}
-                      {order.cancelledAtStage != null ? `, stage ${order.cancelledAtStage}` : ""}
+                      {order.cancelledAtStage != null ? (
+                        <Trans
+                          i18nKey="sampleSummary.testResults.cancelledAtStage"
+                          ns="testingWorkspace"
+                          values={{ step: humanize(order.cancelledAtStep), stage: order.cancelledAtStage }}
+                          components={{ ltr: <Ltr>{null}</Ltr> }}
+                        />
+                      ) : (
+                        t("sampleSummary.testResults.cancelledAt", { step: humanize(order.cancelledAtStep) })
+                      )}
                     </Typography>
                   )}
                 </Stack>
@@ -109,25 +165,7 @@ export function TestResultsSection({
                   {/* Return to Analyst Action */}
                   {canReturnOrder && (
                     <Box sx={{ display: "flex", justifyContent: "flex-end", pt: 0.5 }}>
-                      <Button
-                        variant="outlined"
-                        color="warning"
-                        size="small"
-                        startIcon={<AssignmentReturnOutlinedIcon />}
-                        onClick={() => onReturnTest?.(order)}
-                        sx={{
-                          fontWeight: 600,
-                          fontSize: 12,
-                          borderColor: "warning.main",
-                          color: "warning.dark",
-                          "&:hover": {
-                            borderColor: "warning.dark",
-                            bgcolor: "rgba(237, 108, 2, 0.08)"
-                          }
-                        }}
-                      >
-                        Return to Analyst
-                      </Button>
+                      <ReturnToAnalystAction order={order} onReturn={onReturnTest} />
                     </Box>
                   )}
                 </Stack>

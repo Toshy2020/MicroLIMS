@@ -20,6 +20,7 @@ vi.mock("../services/reassignmentService", () => ({ reassignmentService: service
 
 import { ReassignmentsPage } from "./ReassignmentsPage";
 import { ReassignmentsButton } from "../components/ReassignmentsButton";
+import { i18n } from "../../../i18n";
 
 const item = (over: Record<string, unknown> = {}) => ({
   itemType: "ReviewTask", itemId: 1, departmentId: 1, departmentName: "Quality Control", documentMasterId: 10,
@@ -48,7 +49,7 @@ describe("ReassignmentsPage", () => {
     ]);
     service.reassign.mockResolvedValue(undefined);
   });
-  afterEach(() => { cleanup(); vi.clearAllMocks(); });
+  afterEach(async () => { cleanup(); vi.clearAllMocks(); await i18n.changeLanguage("en"); });
 
   it("lists the queue, showing the holder as an inactive user with the name for the person handing over", async () => {
     renderPage();
@@ -126,11 +127,20 @@ describe("ReassignmentsPage", () => {
     expect(await screen.findByText("User 'Rita' is not a member of the department.")).toBeTruthy();
     expect(screen.getByRole("dialog")).toBeTruthy();
   });
+
+  it("renders heading and empty message in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["documentControl"]);
+    service.getQueue.mockResolvedValue(queue([]));
+    renderPage();
+    expect(await screen.findByText("يتطلب إعادة إسناد")).toBeTruthy();
+    expect(screen.getByText("لا يوجد شيء بانتظار إعادة الإسناد.")).toBeTruthy();
+  });
 });
 
 describe("ReassignmentsButton", () => {
   beforeEach(() => { service.getCount.mockResolvedValue({ total: 4, overdue: 1 }); });
-  afterEach(() => { cleanup(); vi.clearAllMocks(); });
+  afterEach(async () => { cleanup(); vi.clearAllMocks(); await i18n.changeLanguage("en"); });
 
   it("shows the count to people who can act", async () => {
     auth.permissions = ["Documents.Reassign"];

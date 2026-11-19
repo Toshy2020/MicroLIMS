@@ -1,25 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, TextField, Button, Typography, Alert, Paper, List, ListItem, ListItemIcon, ListItemText, CircularProgress } from "@mui/material";
-import { visuallyHidden } from "@mui/utils";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import RemoveIcon from "@mui/icons-material/Remove";
+import { Box, TextField, Button, Alert, Paper, CircularProgress } from "@mui/material";
 import { PageHeader } from "../components/PageHeader";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
+import { PASSWORD_POLICY_RULES, PasswordPolicyChecklist } from "../modules/authentication/components/PasswordPolicyChecklist";
 import { useAuth } from "../contexts/AuthContext";
-
-// Mirrors the server-side PasswordPolicy (MicroLIMS.Shared.Validation) -
-// the server still validates authoritatively regardless of this.
-const POLICY_RULES: { label: string; test: (pw: string) => boolean }[] = [
-  { label: "At least 8 characters", test: (pw) => pw.length >= 8 },
-  { label: "At least one uppercase letter", test: (pw) => /[A-Z]/.test(pw) },
-  { label: "At least one lowercase letter", test: (pw) => /[a-z]/.test(pw) },
-  { label: "At least one digit", test: (pw) => /[0-9]/.test(pw) },
-  { label: "At least one special (non-alphanumeric) character", test: (pw) => /[^a-zA-Z0-9]/.test(pw) }
-];
+import { getErrorMessage, serverMessage } from "../utils/errorMessage";
+import { useTranslation } from "../i18n";
 
 export function ChangePasswordPage() {
+  const { t } = useTranslation("account");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,21 +20,30 @@ export function ChangePasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const { refresh } = useAuth();
+  const { refresh, signInMethod } = useAuth();
   const navigate = useNavigate();
 
-  const failedRules = POLICY_RULES.filter((rule) => !rule.test(newPassword));
+  const isDirectoryUser = signInMethod === "Directory";
+  const failedRules = PASSWORD_POLICY_RULES.filter((rule) => !rule.test(newPassword));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (failedRules.length > 0) {
-      setError("New password does not meet the policy requirements below.");
+      setError(
+        isDirectoryUser
+          ? t("changePassword.signingPolicyNotMet")
+          : t("changePassword.policyNotMet")
+      );
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError("New password and confirmation do not match.");
+      setError(
+        isDirectoryUser
+          ? t("changePassword.signingMismatch")
+          : t("changePassword.passwordMismatch")
+      );
       return;
     }
 
@@ -54,8 +53,11 @@ export function ChangePasswordPage() {
       await refresh();
       setSuccess(true);
       setTimeout(() => navigate("/profile"), 1500);
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? "Could not change password.");
+    } catch (err: unknown) {
+      setError(
+        serverMessage(err) ??
+          getErrorMessage(err, isDirectoryUser ? t("changePassword.signingChangeFailed") : t("changePassword.passwordChangeFailed"))
+      );
     } finally {
       setSubmitting(false);
     }
@@ -64,63 +66,54 @@ export function ChangePasswordPage() {
   return (
     <>
       <PageHeader
-        title="Change Password"
-        subtitle="Update your laboratory credentials in compliance with periodic security policy."
+        title={isDirectoryUser ? t("changePassword.signingTitle") : t("changePassword.title")}
+        subtitle={
+          isDirectoryUser
+            ? t("changePassword.signingSubtitle")
+            : t("changePassword.subtitle")
+        }
       />
       <Paper sx={{ p: 3, maxWidth: 480 }}>
         {success ? (
-          <Alert severity="success">Password changed successfully. Returning to your profile...</Alert>
+          <Alert severity="success">
+            {isDirectoryUser
+              ? t("changePassword.signingSuccess")
+              : t("changePassword.success")}
+          </Alert>
         ) : (
           <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             {error && <Alert severity="error">{error}</Alert>}
             <TextField
-              label="Current Password" type="password" value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)} autoFocus required
+              label={isDirectoryUser ? t("changePassword.currentSigningPassword") : t("changePassword.currentPassword")}
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoFocus
+              required
             />
             <TextField
-              label="New Password" type="password" value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)} required
+              label={isDirectoryUser ? t("changePassword.newSigningPassword") : t("changePassword.newPassword")}
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
               onBlur={() => setNewPasswordBlurred(true)}
             />
             <TextField
-              label="Confirm New Password" type="password" value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)} required
+              label={isDirectoryUser ? t("changePassword.confirmSigningPassword") : t("changePassword.confirmPassword")}
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
               error={confirmPassword.length > 0 && confirmPassword !== newPassword}
-              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? "Passwords do not match." : undefined}
+              helperText={confirmPassword.length > 0 && confirmPassword !== newPassword ? t("changePassword.passwordsDoNotMatch") : undefined}
             />
 
-            <Box>
-              <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 0.5 }}>Password must contain:</Typography>
-              <List dense disablePadding aria-label="Password policy requirements" aria-live="polite">
-                {POLICY_RULES.map((rule) => {
-                  const met = rule.test(newPassword);
-                  // A dash until there is something to judge, rather than a
-                  // hollow circle that reads as an unselected radio button.
-                  const state = met ? "met" : newPasswordBlurred && newPassword ? "failed" : "pending";
-                  const statusDesc = state === "met" ? "Satisfied" : state === "failed" ? "Requirement not met" : "Not met yet";
-                  return (
-                    <ListItem key={rule.label} disableGutters disablePadding>
-                      <ListItemIcon sx={{ minWidth: 28 }}>
-                        {state === "met" && <CheckCircleIcon fontSize="small" color="success" titleAccess="Met" />}
-                        {state === "failed" && <CancelIcon fontSize="small" color="error" titleAccess="Not met" />}
-                        {state === "pending" && <RemoveIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Not met yet" />}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <>
-                            {rule.label}
-                            <Box component="span" sx={visuallyHidden}>: {statusDesc}</Box>
-                          </>
-                        }
-                        slotProps={{
-                          primary: { sx: { fontSize: 13, color: state === "failed" ? "error.main" : met ? "text.primary" : "text.secondary" } }
-                        }}
-                      />
-                    </ListItem>
-                  );
-                })}
-              </List>
-            </Box>
+            <PasswordPolicyChecklist
+              password={newPassword}
+              blurred={newPasswordBlurred}
+              heading={isDirectoryUser ? t("changePassword.signingPolicyHeading") : t("changePassword.policyHeading")}
+            />
 
             <Button
               type="submit"
@@ -129,7 +122,11 @@ export function ChangePasswordPage() {
               disabled={submitting}
               startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
             >
-              {submitting ? "Updating Credentials..." : "Change Password"}
+              {submitting
+                ? t("changePassword.updating")
+                : isDirectoryUser
+                  ? t("changePassword.signingTitle")
+                  : t("changePassword.title")}
             </Button>
           </Box>
         )}

@@ -1,11 +1,15 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.Application.Services;
@@ -23,10 +27,14 @@ public class SampleReviewService
     private readonly IUserSectionScopeService _scope;
     private readonly IAuditEventService _audit;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
+    private readonly NotificationRecipients _recipients;
 
     public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
         IUserSectionScopeService scope, IAuditEventService audit,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null,
+        NotificationRecipients? recipients = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
@@ -34,6 +42,8 @@ public class SampleReviewService
         _reviewGate = reviewGate;
         _scope = scope;
         _audit = audit;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
+        _recipients = recipients ?? new NotificationRecipients(db, segregationOfDuties);
     }
 
     private Task<Sample?> LoadAsync(int sampleId) =>
@@ -59,7 +69,10 @@ public class SampleReviewService
     public async Task<bool> CanSubmitForReviewAsync(int sampleId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (!IsBeingTested(sample)) return false;
 
@@ -74,7 +87,10 @@ public class SampleReviewService
     public async Task AutoSubmitForReviewIfReadyAsync(int sampleId, int triggeredByUserId)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (!IsBeingTested(sample)) return;
 
@@ -89,6 +105,27 @@ public class SampleReviewService
                 ReviewEntityTypes.Sample, sampleId, triggeredByUserId,
                 ReviewWorkflowEventType.SubmittedForReview,
                 "All tests completed - automatically submitted for review", sectionId: sectionId);
+
+            var orderIds = SampleSectionRollup.CurrentOrders(sample, sectionId).Select(o => o.Id).ToList();
+            var reviewers = await _recipients.ReviewersAsync(sectionId, orderIds);
+            if (reviewers.Count > 0)
+            {
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "ReviewWaiting",
+                    UserIds: reviewers,
+                    Message: $"Sample {sample.ReferenceNumber} is awaiting review.",
+                    TargetType: "sample-review",
+                    TargetId: sampleId,
+                    SectionId: sectionId,
+                    DedupeKey: $"ReviewWaiting:sample:{sampleId}:section:{sectionId}",
+                    SampleId: sampleId));
+
+                foreach (var reviewerId in reviewers)
+                    _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerId}");
+            }
+
+            _db.QueueSignal(LiveSignalKinds.Counters, $"section:{sectionId}");
+            _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
         }
 
         SampleSectionRollup.Apply(sample);
@@ -100,22 +137,14 @@ public class SampleReviewService
     private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null)
     {
         var sample = await LoadAsync(sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var userScope = await _scope.GetMemberSectionIdsAsync(reviewerUserId);
-        var section = SampleSectionRollup.ResolveSection(
-            sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
-            "Sample must be under review before it can be reviewed.");
-
+        var (check, section) = await CheckCompleteReviewAsync(sample, reviewerUserId, sectionId);
+        check.ThrowIfRefused();
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
-        foreach (var order in currentOrders)
-        {
-            if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, reviewerUserId))
-                throw new BusinessRuleException("You cannot review a sample you tested.");
-        }
-
-        if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
-            throw new BusinessRuleException("Cannot complete review: one or more tests are not in Ready step.");
 
         // Checked before anything is signed or written.
         var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
@@ -172,7 +201,59 @@ public class SampleReviewService
         }
 
         SampleSectionRollup.Apply(sample);
+
+        await _publisher.ResolveAsync($"ReviewWaiting:sample:{sampleId}:section:{section}");
+
+        var orderIds = currentOrders.Select(o => o.Id).ToList();
+        var approvers = (await _recipients.ApproversAsync(section, orderIds))
+            .Where(id => id != reviewerUserId)
+            .ToList();
+        if (approvers.Count > 0)
+        {
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "ApprovalWaiting",
+                UserIds: approvers,
+                Message: $"Sample {sample.ReferenceNumber} has been reviewed and is awaiting approval.",
+                TargetType: "sample-approval",
+                TargetId: sampleId,
+                SectionId: section,
+                DedupeKey: $"ApprovalWaiting:sample:{sampleId}:section:{section}",
+                SampleId: sampleId));
+
+            foreach (var approverId in approvers)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{approverId}");
+        }
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{section}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerUserId}");
+
         await _db.SaveChangesAsync();
+    }
+
+    // The pre-signing checks of a review, in the order the action applies them: the section (state and membership),
+    // the reviewer did none of its tests, every test is Ready. The retention quantity is the reviewer's input and
+    // is validated by the action.
+    // Section is meaningful only when the check is allowed. The sample carries its TestOrders and SectionSignoffs
+    // and is not changed.
+    internal async Task<(ActionCheck Check, int Section)> CheckCompleteReviewAsync(
+        Sample sample, int reviewerUserId, int? sectionId, CancellationToken ct = default)
+    {
+        var userScope = await _scope.GetMemberSectionIdsAsync(reviewerUserId, ct);
+        var (sectionCheck, section) = SampleSectionRollup.CheckSection(
+            sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
+            "Sample must be under review before it can be reviewed.");
+        if (!sectionCheck.Allowed) return (sectionCheck, section);
+
+        var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
+        var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(reviewerUserId, currentOrders.Select(o => o.Id).ToList(), ct);
+        if (performed.Count > 0)
+            return (ActionCheck.No(MessageCodes.SampleCannotReviewTested, SignoffRefusalSentences.CannotReviewTested), section);
+
+        if (currentOrders.Any(t => t.CurrentStep != WorkflowStep.Ready))
+            return (ActionCheck.No("Cannot complete review: one or more tests are not in Ready step."), section);
+
+        return (ActionCheck.Ok, section);
     }
 
     private static readonly string[] RetentionUnits = { "g", "mg", "kg", "mL", "L" };
@@ -186,27 +267,100 @@ public class SampleReviewService
         if (!required)
         {
             if (quantity is not null || !string.IsNullOrWhiteSpace(unit))
-                throw new BusinessRuleException("Retention quantity is recorded only at the physicochemical review of a raw material.");
+                throw new BusinessRuleException(
+                    MessageCodes.SampleRetentionNotApplicable,
+                    "Retention quantity is recorded only at the physicochemical review of a raw material.");
             return null;
         }
 
-        if (quantity is null) throw new BusinessRuleException("Enter the retention quantity kept for this raw material.");
-        if (quantity <= 0) throw new BusinessRuleException("Retention quantity must be greater than zero.");
-        if (quantity >= 1_000_000m) throw new BusinessRuleException("Retention quantity must be less than 1,000,000.");
+        if (quantity is null) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityRequired,
+            "Enter the retention quantity kept for this raw material.");
+        if (quantity <= 0) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityPositive,
+            "Retention quantity must be greater than zero.");
+        if (quantity >= 1_000_000m) throw new BusinessRuleException(
+            MessageCodes.SampleRetentionQuantityTooLarge,
+            "Retention quantity must be less than 1,000,000.");
         return RetentionUnits.FirstOrDefault(u => string.Equals(u, unit?.Trim(), StringComparison.OrdinalIgnoreCase))
-            ?? throw new BusinessRuleException("Retention unit must be g, mg, kg, mL or L.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleRetentionUnitInvalid,
+                "Retention unit must be g, mg, kg, mL or L.");
     }
 
-    public Task<TestReturnEventResponse> ReturnToAnalystAsync(int testOrderId, int reviewerId, string? reason) =>
-        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason)));
+    public Task<TestReturnEventResponse> ReturnToAnalystAsync(
+        int testOrderId, int reviewerId, string? reason, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, async () => TestReturnEventResponse.From(await ReturnToAnalystCoreAsync(testOrderId, reviewerId, reason, ct)));
 
-    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(int testOrderId, int reviewerId, string? reason)
+    private async Task<TestReturnEvent> ReturnToAnalystCoreAsync(
+        int testOrderId, int reviewerId, string? reason, CancellationToken ct = default)
     {
-        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+        var order = await _db.TestOrders.FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
-            .FirstOrDefaultAsync(s => s.Id == order.SampleId);
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
+
+        // The moisture order's row is locked before its dependent assays are scanned (forAction), so an
+        // assay being recorded against this result either commits before the scan (and is returned) or waits
+        // and then finds the result returned.
+        var returnable = await CheckReturnToAnalystAsync(order, sample, reviewerId, forAction: true, ct);
+        returnable.Check.ThrowIfRefused();
+        var sectionStatus = returnable.SectionStatus;
+        var dependents = returnable.Dependents;
+        // Never null once the check is allowed; this keeps the compiler's null analysis honest.
+        var definition = returnable.Definition
+            ?? throw new BusinessRuleException(
+                MessageCodes.SampleTestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
+
+        var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
+
+        var phrase = definition.MoistureRole == MoistureRole.LossOnDrying ? "loss on drying" : "water content";
+        foreach (var dependent in dependents)
+        {
+            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode, ct);
+            await ReturnOrderAsync(dependent, dependentDefinition, sample, null, reviewerId, $"Recalculate: the {phrase} result was returned.");
+        }
+
+        await _db.SaveChangesAsync(ct);
+
+        return returnEvent;
+    }
+
+    private sealed record ReturnCheck(ActionCheck Check, SectionSignoffStatus SectionStatus, TestDefinition? Definition, List<TestOrder> Dependents);
+
+    // The pre-conditions of returning a test to its analyst, in the order the action applies them: the test's
+    // section is not reviewed yet, a result is entered, the acting user did not perform the test (SoD),
+    // the workflow can be returned, and no assay that read this moisture result is already reviewed.
+    // The reason is the reviewer's input and stays with the action.
+    public async Task<ActionCheck> CheckReturnToAnalystAsync(int testOrderId, int actingUserId, CancellationToken ct = default)
+    {
+        var order = await _db.TestOrders.AsNoTracking().FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        var sample = await _db.Samples.AsNoTracking().Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct);
+        return (await CheckReturnToAnalystAsync(order, sample, actingUserId, forAction: false, ct)).Check;
+    }
+
+    // forAction: the action's own call - entities are tracked and the moisture order's row is locked. The
+    // availability call reads without tracking and takes no lock.
+    private async Task<ReturnCheck> CheckReturnToAnalystAsync(
+        TestOrder order, Sample? sample, int actingUserId, bool forAction, CancellationToken ct = default)
+    {
+        var dependents = new List<TestOrder>();
+        ReturnCheck Refused(string reason, SectionSignoffStatus status, TestDefinition? definition = null) =>
+            new(ActionCheck.No(reason), status, definition, dependents);
+        ReturnCheck RefusedCoded(string code, string reason, SectionSignoffStatus status, TestDefinition? definition = null) =>
+            new(ActionCheck.No(code, reason), status, definition, dependents);
+
         // Review is per section: this test's own section must not have been
         // reviewed yet. A sample that is past review as a whole (every
         // section is, then) or closed is refused outright.
@@ -219,64 +373,57 @@ public class SampleReviewService
             or SampleStatus.Voided
             || sectionStatus is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview)))
         {
-            throw new BusinessRuleException("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.");
+            return Refused("Cannot return a test to the analyst after the sample has been reviewed. Use Reject or Retest at approval instead.", sectionStatus);
         }
 
         if (order.Status != ApprovalStatus.ResultEntered)
-            throw new BusinessRuleException($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.");
+            return Refused($"Cannot return a test order in {order.Status} status. Only test orders in ResultEntered status can be returned to the analyst.", sectionStatus);
 
-        var definition = await _db.TestDefinitions.FirstOrDefaultAsync(d => d.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+        if (await _segregationOfDuties.DidUserPerformTestAsync(order.Id, actingUserId, ct))
+            return RefusedCoded(MessageCodes.SampleCannotReviewTested, SignoffRefusalSentences.CannotReviewTested, sectionStatus);
+
+        var definitions = forAction ? _db.TestDefinitions : _db.TestDefinitions.AsNoTracking();
+        var definition = await definitions.FirstOrDefaultAsync(d => d.Code == order.TestCode, ct);
+        if (definition is null)
+            return Refused($"Test definition \"{order.TestCode}\" not found.", sectionStatus);
 
         if (definition.WorkflowType != WorkflowType.CountTest && !AnalysisWorkflows.UsesTestAnalysis(definition.WorkflowType))
-            throw new BusinessRuleException($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.");
+            return Refused($"Return to Analyst is only supported for Count Test and result-entry (analysis) workflows. \"{order.TestCode}\" is a {definition.WorkflowType} workflow.", sectionStatus, definition);
 
         // A moisture (LOD / water) result is read by the dried / anhydrous assays of the same sample:
         // returning it returns every assay that used it, in the same unit of work. Found first - the
-        // state transition below saves, and the moisture results are inactive from then on.
-        // The moisture order's row is locked first, so an assay being recorded against this result either
-        // commits before the scan below (and is returned) or waits and then finds the result returned.
-        var dependents = new List<TestOrder>();
+        // state transition that follows saves, and the moisture results are inactive from then on.
         if (definition.MoistureRole != MoistureRole.None)
         {
-            await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
-            dependents = await FindDependentAssaysAsync(order);
+            if (forAction)
+                await SampleMoistureResolver.LockMoistureOrderAsync(_db, order.Id);
+            dependents = await FindDependentAssaysAsync(order, tracked: forAction, ct);
             foreach (var dependent in dependents)
             {
                 var dependentSection = sample is null ? SectionSignoffStatus.InTesting : SampleSectionRollup.StatusOf(sample, dependent.SectionId);
                 if (dependent.Status != ApprovalStatus.ResultEntered
                     || dependentSection is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview))
-                    throw new BusinessRuleException($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.");
+                    return Refused($"Cannot return {order.TestCode}: assay {dependent.TestCode} has already been reviewed.", sectionStatus, definition);
             }
         }
 
-        var returnEvent = await ReturnOrderAsync(order, definition, sample, sectionStatus, reviewerId, reason);
-
-        var phrase = definition.MoistureRole == MoistureRole.LossOnDrying ? "loss on drying" : "water content";
-        foreach (var dependent in dependents)
-        {
-            var dependentDefinition = await _db.TestDefinitions.FirstAsync(d => d.Code == dependent.TestCode);
-            await ReturnOrderAsync(dependent, dependentDefinition, sample, null, reviewerId, $"Recalculate: the {phrase} result was returned.");
-        }
-
-        await _db.SaveChangesAsync();
-
-        return returnEvent;
+        return new ReturnCheck(ActionCheck.Ok, sectionStatus, definition, dependents);
     }
 
     // Live (not cancelled, voided or superseded) titration, HPLC and UV orders of the same sample, in any status, whose
     // active analysis took its moisture value from one of this order's active results. The caller refuses
     // the return when one is already past ResultEntered. Must run before those results are superseded.
-    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder)
+    private async Task<List<TestOrder>> FindDependentAssaysAsync(TestOrder moistureOrder, bool tracked = true, CancellationToken ct = default)
     {
-        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync();
-        var candidates = await _db.TestAnalyses
+        var resultIds = await _db.ParameterResults.Where(r => r.TestOrderId == moistureOrder.Id && r.IsActive).Select(r => r.Id).ToListAsync(ct);
+        var analyses = tracked ? _db.TestAnalyses : _db.TestAnalyses.AsNoTracking();
+        var candidates = await analyses
             .Where(a => a.IsActive && (a.AnalysisType == WorkflowType.Titration || a.AnalysisType == WorkflowType.HplcMethodAssay
                 || a.AnalysisType == WorkflowType.UvSpectrophotometry) && a.TestOrderId != moistureOrder.Id
                 && a.TestOrder!.SampleId == moistureOrder.SampleId && !a.TestOrder.IsSuperseded
                 && a.TestOrder.CancelledAtStep == null && a.TestOrder.Status != ApprovalStatus.Cancelled && a.TestOrder.Status != ApprovalStatus.Voided)
             .Select(a => new { a.TestOrder, a.ConditionsJson })
-            .ToListAsync();
+            .ToListAsync(ct);
         return candidates
             .Where(c => UsesMoistureResult(c.ConditionsJson, resultIds))
             .Select(c => c.TestOrder!)
@@ -354,6 +501,7 @@ public class SampleReviewService
         {
             SampleSectionRollup.GetOrAdd(sample, order.SectionId).Status = SectionSignoffStatus.InTesting;
             SampleSectionRollup.Apply(sample);
+            await _publisher.ResolveAsync($"ReviewWaiting:sample:{sample.Id}:section:{order.SectionId}");
         }
 
         // 4. Revert TestOrder state back to Incubating/Running (keeps AssignedAnalystId unchanged)
@@ -378,6 +526,32 @@ public class SampleReviewService
         };
 
         _db.TestReturnEvents.Add(returnEvent);
+
+        if (order.AssignedAnalystId is int assignedAnalystId)
+        {
+            var sampleRef = sample?.ReferenceNumber ?? $"#{order.SampleId}";
+            var returnMessage = string.IsNullOrWhiteSpace(reason)
+                ? $"Test {order.TestCode} for sample {sampleRef} was returned for revision."
+                : $"Test {order.TestCode} for sample {sampleRef} was returned for revision: {reason.Trim()}";
+
+            await _publisher.PublishAsync(new NotificationRequest(
+                Type: "TestReturned",
+                UserIds: new[] { assignedAnalystId },
+                Message: returnMessage,
+                TargetType: "test-step",
+                TargetId: testOrderId,
+                SectionId: order.SectionId,
+                DedupeKey: $"TestReturned:test:{testOrderId}",
+                SampleId: order.SampleId,
+                TestOrderId: testOrderId));
+
+            _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignedAnalystId}");
+        }
+
+        _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
+        _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");
+        _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerId}");
 
         return returnEvent;
     }

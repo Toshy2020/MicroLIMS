@@ -6,6 +6,9 @@ import {
 } from "@mui/material";
 import { FormDialog } from "../../../../components/lab";
 import { toast } from "sonner";
+import { useTranslation } from "../../../../i18n";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
 import {
   SolutionMaster,
   SolutionType,
@@ -60,6 +63,7 @@ export function SolutionMasterDialog({
   onSuccess,
   resolveSectionDisplay
 }: SolutionMasterDialogProps) {
+  const { t } = useTranslation("masterData");
   const [form, setForm] = useState<SolutionFormState>(() =>
     editingEntry
       ? solutionEntityToFormState(editingEntry)
@@ -73,6 +77,28 @@ export function SolutionMasterDialog({
   const [saveReasonDialogOpen, setSaveReasonDialogOpen] = useState(false);
   const [saveReason, setSaveReason] = useState("");
   const [pendingSavePayload, setPendingSavePayload] = useState<SaveSolutionMasterRequest | null>(null);
+
+  // The record as last loaded for this dialog. A user-requested reload from the
+  // "changed by someone else" banner replaces it, so the next save carries the new version.
+  const [reloadedEntry, setReloadedEntry] = useState<SolutionMaster | null>(null);
+  useEffect(() => setReloadedEntry(null), [editingEntry]);
+  const loadedEntry = reloadedEntry ?? editingEntry;
+  const formIsDirty = loadedEntry
+    ? JSON.stringify(form) !== JSON.stringify(solutionEntityToFormState(loadedEntry))
+    : false;
+
+  const reloadLatest = async () => {
+    if (!editingEntry) return;
+    try {
+      const fresh = await SolutionMasterService.getById(editingEntry.id);
+      setReloadedEntry(fresh);
+      setForm(solutionEntityToFormState(fresh));
+      setFieldErrors({});
+      setDialogError(null);
+    } catch {
+      setDialogError(t("solutionMaster.dialog.reloadError"));
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -165,11 +191,15 @@ export function SolutionMasterDialog({
   const handleInitiateSave = () => {
     setDialogError(null);
     setFieldErrors({});
-    const validationError = validateSolutionForm(form, {
-      isEditing: Boolean(editingEntry),
-      hasMultipleSections: mySections.length > 1,
-      editingEntryId: editingEntry?.id
-    });
+    const validationError = validateSolutionForm(
+      form,
+      {
+        isEditing: Boolean(editingEntry),
+        hasMultipleSections: mySections.length > 1,
+        editingEntryId: editingEntry?.id
+      },
+      t
+    );
     if (validationError) {
       if (validationError.field) setFieldErrors({ [validationError.field]: validationError.message });
       else setDialogError(validationError.message);
@@ -191,12 +221,12 @@ export function SolutionMasterDialog({
     setDialogError(null);
     try {
       await SolutionMasterService.create(payload);
-      toast.success(`Solution master "${payload.name}" created.`);
+      toast.success(t("solutionMaster.dialog.createdToast", { name: payload.name }));
       onClose();
       onSuccess();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setDialogError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not create solution master.");
+      setDialogError(errorObj.response?.data?.message ?? errorObj.message ?? t("solutionMaster.dialog.createError"));
     } finally {
       setSaving(false);
     }
@@ -210,15 +240,16 @@ export function SolutionMasterDialog({
     setSaving(true);
     try {
       const finalPayload: SaveSolutionMasterRequest = { ...pendingSavePayload, reason: trimmedReason };
-      await SolutionMasterService.update(editingEntry.id, finalPayload, editingEntry.version);
-      toast.success(`Solution master "${editingEntry.name}" updated.`);
+      await SolutionMasterService.update(editingEntry.id, finalPayload, (reloadedEntry ?? editingEntry).version);
+      noteOwnSave("solutionMaster", editingEntry.id);
+      toast.success(t("solutionMaster.dialog.updatedToast", { name: editingEntry.name }));
       setSaveReasonDialogOpen(false);
       setPendingSavePayload(null);
       onClose();
       onSuccess();
     } catch (err: unknown) {
       const errorObj = err as { response?: { data?: { message?: string } }; message?: string };
-      setDialogError(errorObj.response?.data?.message ?? errorObj.message ?? "Could not update solution master.");
+      setDialogError(errorObj.response?.data?.message ?? errorObj.message ?? t("solutionMaster.dialog.updateError"));
       setSaveReasonDialogOpen(false);
     } finally {
       setSaving(false);
@@ -229,14 +260,22 @@ export function SolutionMasterDialog({
     <>
       <FormDialog
         open={open}
-        title={editingEntry ? `Edit Solution Master: ${editingEntry.name}` : "Add Solution Master"}
+        title={editingEntry ? t("solutionMaster.dialog.editTitle", { name: editingEntry.name }) : t("solutionMaster.dialog.addTitle")}
         onClose={onClose}
         onSubmit={handleInitiateSave}
-        submitLabel={saving ? "Saving..." : editingEntry ? "Save Changes" : "Create Solution"}
+        submitLabel={saving ? t("solutionMaster.dialog.saving") : editingEntry ? t("common.saveChanges") : t("solutionMaster.dialog.createButton")}
         submitting={saving}
         error={dialogError}
         maxWidth="md"
       >
+          {editingEntry && (
+            <RecordChangedBanner
+              type="solutionMaster"
+              id={editingEntry.id}
+              dirty={formIsDirty}
+              onReload={() => void reloadLatest()}
+            />
+          )}
           <SolutionGeneralSection
             name={form.name}
             type={form.type}
@@ -321,24 +360,23 @@ export function SolutionMasterDialog({
       {/* Audit Reason Dialog for Editing Solution */}
       <ReasonDialog
         open={saveReasonDialogOpen}
-        title="Reason for Modification"
+        title={t("solutionMaster.dialog.reasonTitle")}
         onClose={() => {
           if (!saving) setSaveReasonDialogOpen(false);
         }}
         onConfirm={handleConfirmSaveWithReason}
-        confirmText="Confirm & Save"
+        confirmText={t("solutionMaster.dialog.reasonConfirm")}
         confirmColor="primary"
         loading={saving}
-        loadingText="Saving..."
+        loadingText={t("solutionMaster.dialog.saving")}
         reason={saveReason}
         onReasonChange={setSaveReason}
-        label="Reason for Modification *"
-        placeholder="Explain why this solution master recipe is being modified..."
+        label={t("solutionMaster.dialog.reasonLabel")}
+        placeholder={t("solutionMaster.dialog.reasonPlaceholder")}
         disabled={!saveReason.trim() || saving}
       >
         <Alert severity="info" sx={{ fontSize: 13 }}>
-          GMP and ALCOA+ data integrity guidelines require a documented reason when modifying an
-          existing solution master recipe.
+          {t("solutionMaster.dialog.reasonGmpNote")}
         </Alert>
 
         {editingEntry && (
@@ -352,10 +390,13 @@ export function SolutionMasterDialog({
             }}
           >
             <Typography variant="body2">
-              Solution: <strong>{editingEntry.name}</strong>
+              {t("solutionMaster.dialog.reasonSolutionLabel")} <strong>{editingEntry.name}</strong>
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Type: {editingEntry.type} · Section: {resolveSectionDisplay(editingEntry.sectionId, editingEntry.sectionName)}
+              {t("solutionMaster.dialog.reasonMeta", {
+                type: t(`solutionMasterPage.types.${editingEntry.type}`, { defaultValue: editingEntry.type }),
+                section: resolveSectionDisplay(editingEntry.sectionId, editingEntry.sectionName)
+              })}
             </Typography>
           </Box>
         )}

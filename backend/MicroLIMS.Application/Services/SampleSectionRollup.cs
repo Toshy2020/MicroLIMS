@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -65,7 +66,7 @@ public static class SampleSectionRollup
             // keeps a review already recorded on the sample - the
             // reviewer-cannot-approve check depends on it.
             var status = FromSampleStatus(sample.Status);
-            var reviewed = status is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview);
+            var reviewed = IsPastReview(status);
             row = new SampleSectionSignoff
             {
                 SampleId = sample.Id,
@@ -77,6 +78,17 @@ public static class SampleSectionRollup
             sample.SectionSignoffs.Add(row);
         }
         return row;
+    }
+
+    private static bool IsPastReview(SectionSignoffStatus status) =>
+        status is not (SectionSignoffStatus.InTesting or SectionSignoffStatus.UnderReview);
+
+    // Who reviewed the section: what GetOrAdd(sample, sectionId).ReviewedByUserId would be, without adding the row.
+    public static int? ReviewedByOf(Sample sample, int sectionId)
+    {
+        var row = sample.SectionSignoffs.FirstOrDefault(s => s.SectionId == sectionId);
+        if (row is not null) return row.ReviewedByUserId;
+        return IsPastReview(FromSampleStatus(sample.Status)) ? sample.ReviewedByUserId : null;
     }
 
     public static List<TestOrder> CurrentOrders(Sample sample, int sectionId) =>
@@ -137,27 +149,38 @@ public static class SampleSectionRollup
         Sample sample, int? requestedSectionId, SectionSignoffStatus requiredStatus,
         IReadOnlyCollection<int>? userScope, string wrongStateMessage)
     {
+        var (check, section) = CheckSection(sample, requestedSectionId, requiredStatus, userScope, wrongStateMessage);
+        check.ThrowIfRefused();
+        return section;
+    }
+
+    // ResolveSection without the throw: the first reason no section can be picked, or the section. Section is
+    // meaningful only when the check is allowed.
+    public static (ActionCheck Check, int Section) CheckSection(
+        Sample sample, int? requestedSectionId, SectionSignoffStatus requiredStatus,
+        IReadOnlyCollection<int>? userScope, string wrongStateMessage)
+    {
         if (requestedSectionId is int requested)
         {
             if (!SectionIds(sample).Contains(requested))
-                throw new BusinessRuleException("This sample has no tests in the selected laboratory section.");
+                return (ActionCheck.No("This sample has no tests in the selected laboratory section."), 0);
             if (userScope is not null && !userScope.Contains(requested))
-                throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+                return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), 0);
             if (StatusOf(sample, requested) != requiredStatus)
-                throw new BusinessRuleException(wrongStateMessage);
-            return requested;
+                return (ActionCheck.No(wrongStateMessage), 0);
+            return (ActionCheck.Ok, requested);
         }
 
         var inState = SectionIds(sample).Where(id => StatusOf(sample, id) == requiredStatus).ToList();
         if (inState.Count == 0)
-            throw new BusinessRuleException(wrongStateMessage);
+            return (ActionCheck.No(wrongStateMessage), 0);
 
         var candidates = userScope is null ? inState : inState.Where(userScope.Contains).ToList();
         if (candidates.Count == 0)
-            throw new UnauthorizedAccessException("This test belongs to a laboratory section you are not assigned to.");
+            return (ActionCheck.Denied(MessageCodes.TestNotInYourSection, "This test belongs to a laboratory section you are not assigned to."), 0);
         if (candidates.Count > 1)
-            throw new BusinessRuleException("Choose a laboratory section - more than one section of this sample is waiting.");
+            return (ActionCheck.No("Choose a laboratory section - more than one section of this sample is waiting."), 0);
 
-        return candidates[0];
+        return (ActionCheck.Ok, candidates[0]);
     }
 }

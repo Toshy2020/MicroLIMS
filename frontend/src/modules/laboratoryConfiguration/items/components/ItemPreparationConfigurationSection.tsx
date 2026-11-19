@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import {
   Alert, Box, Button, Chip, CircularProgress, Paper, Select, Stack, TextField, Typography, MenuItem
 } from "@mui/material";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import {
   ItemPreparationConfigurationService,
   type ItemPreparationConfiguration
@@ -14,11 +16,13 @@ import {
 } from "../../../testPreparation/preparationMaterial";
 import { useAuth } from "../../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../../routes/routes";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 
 function MappingWarning() {
+  const { t } = useTranslation("labConfig");
   return (
     <Alert severity="warning" sx={{ fontSize: 12 }}>
-      Diluent/neutralizer not linked to master data — edit and pick them so the lot used can be recorded.
+      {t("items.prepConfig.mappingWarning")}
     </Alert>
   );
 }
@@ -32,6 +36,7 @@ interface Props {
 // Laboratory Configuration -> Items -> Preparation Configuration.
 // One protocol per item; editing an approved one re-opens it for approval.
 export function ItemPreparationConfigurationSection({ itemId, itemName, onChanged }: Props) {
+  const { t } = useTranslation("labConfig");
   const { permissions } = useAuth();
   const canManage = permissions.includes(PERMISSIONS.ITEMS_MANAGE);
 
@@ -49,7 +54,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
     setLoading(true);
     ItemPreparationConfigurationService.get(itemId)
       .then(setConfig)
-      .catch(() => setMessage({ text: "Could not load the preparation configuration.", ok: false }))
+      .catch(() => setMessage({ text: t("items.prepConfig.loadError"), ok: false }))
       .finally(() => setLoading(false));
   };
 
@@ -87,10 +92,10 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
       });
       setConfig(saved);
       setEditing(false);
-      setMessage({ text: "Preparation configuration saved. It is pending approval.", ok: true });
+      setMessage({ text: t("items.prepConfig.savedPending"), ok: true });
       onChanged?.();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not save the configuration.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("items.prepConfig.saveError"), ok: false });
     } finally {
       setSaving(false);
     }
@@ -101,10 +106,10 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
     setMessage(null);
     try {
       setConfig(await ItemPreparationConfigurationService.approve(itemId));
-      setMessage({ text: "Preparation configuration approved.", ok: true });
+      setMessage({ text: t("items.prepConfig.approvedMessage"), ok: true });
       onChanged?.();
     } catch (e: any) {
-      setMessage({ text: e?.response?.data?.message ?? "Could not approve the configuration.", ok: false });
+      setMessage({ text: e?.response?.data?.message ?? t("items.prepConfig.approveError"), ok: false });
     } finally {
       setSaving(false);
     }
@@ -120,8 +125,12 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
 
       {!config && !editing && (
         <Alert severity="info" sx={{ fontSize: 12 }}>
-          No preparation configuration set for <strong>{itemName}</strong>. One will be created automatically
-          from the first analyst confirmation, or you can configure it now.
+          <Trans
+            i18nKey="items.prepConfig.emptyInfo"
+            ns="labConfig"
+            values={{ name: itemName }}
+            components={{ bold: <strong /> }}
+          />
         </Alert>
       )}
 
@@ -130,13 +139,19 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Chip
               size="small"
-              label={config.approvalStatus === "Approved" ? "Approved" : "Pending Approval"}
+              label={config.approvalStatus === "Approved" ? t("items.prepConfig.statusApproved") : t("items.prepConfig.statusPending")}
               color={config.approvalStatus === "Approved" ? "success" : "warning"}
             />
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
               {config.approvalStatus === "Approved" && config.approvedAt
-                ? `Approved by ${config.approvedByName ?? `User #${config.approvedByUserId}`} on ${new Date(config.approvedAt).toLocaleDateString()}`
-                : `Created by ${config.createdByName ?? `User #${config.createdByUserId}`} on ${new Date(config.createdAt).toLocaleDateString()}`}
+                ? t("items.prepConfig.approvedBy", {
+                    name: config.approvedByName ?? t("items.prepConfig.userFallback", { id: config.approvedByUserId }),
+                    date: formatDateTimeWithTimeZone(config.approvedAt),
+                  })
+                : t("items.prepConfig.createdBy", {
+                    name: config.createdByName ?? t("items.prepConfig.userFallback", { id: config.createdByUserId }),
+                    date: formatDateTimeWithTimeZone(config.createdAt),
+                  })}
             </Typography>
           </Box>
 
@@ -146,8 +161,7 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
 
           {config.approvalStatus === "PendingReview" && (
             <Alert severity="warning" sx={{ fontSize: 12 }}>
-              This configuration is in effect and is already being used for testing. Approving it records your
-              review; editing it first replaces the protocol for future samples.
+              {t("items.prepConfig.pendingWarning")}
             </Alert>
           )}
         </>
@@ -156,17 +170,17 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
       {editing && (
         <Paper sx={{ p: 2, border: "1px solid", borderColor: "divider" }}>
           <Box sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 2 }}>
-            <TextField label="Sample Amount" value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} />
-            <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} inputProps={{ "aria-label": "Technique" }}>
-              <MenuItem value="PourPlate">Pour Plate</MenuItem>
-              <MenuItem value="Filtration">Filtration</MenuItem>
+            <TextField label={t("items.prepConfig.sampleAmountLabel")} value={form.amount ?? ""} onChange={(e) => setField("amount", e.target.value)} />
+            <Select value={form.technique} onChange={(e) => setField("technique", e.target.value)} inputProps={{ "aria-label": t("items.prepConfig.techniqueAriaLabel") }}>
+              <MenuItem value="PourPlate">{t("items.prepConfig.pourPlate")}</MenuItem>
+              <MenuItem value="Filtration">{t("items.prepConfig.filtration")}</MenuItem>
             </Select>
           </Box>
 
           {form.technique === "Filtration" && (
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
-              <TextField label="Filtration Volume (ml)" value={form.filtrationVolume ?? ""} onChange={(e) => setField("filtrationVolume", e.target.value)} />
-              <TextField label="Washing Volume (ml)" value={form.washingVolume ?? ""} onChange={(e) => setField("washingVolume", e.target.value)} />
+              <TextField label={t("items.prepConfig.filtrationVolumeLabel")} value={form.filtrationVolume ?? ""} onChange={(e) => setField("filtrationVolume", e.target.value)} />
+              <TextField label={t("items.prepConfig.washingVolumeLabel")} value={form.washingVolume ?? ""} onChange={(e) => setField("washingVolume", e.target.value)} />
             </Box>
           )}
 
@@ -174,11 +188,11 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
 
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, mt: 2 }}>
             <PreparationMaterialPicker
-              label="Diluent" value={diluentSel} onChange={setDiluentSel}
+              label={t("items.prepConfig.diluentLabel")} value={diluentSel} onChange={setDiluentSel}
               currentName={config?.diluent}
             />
             <PreparationMaterialPicker
-              label="Neutralizer" value={neutralizerSel} onChange={setNeutralizerSel}
+              label={t("items.prepConfig.neutralizerLabel")} value={neutralizerSel} onChange={setNeutralizerSel}
               allowContainedInMedium currentName={config?.neutralizer}
             />
           </Box>
@@ -189,20 +203,20 @@ export function ItemPreparationConfigurationSection({ itemId, itemName, onChange
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
           {editing ? (
             <>
-              <Button onClick={() => { setEditing(false); setMessage(null); }} disabled={saving}>Cancel</Button>
+              <Button onClick={() => { setEditing(false); setMessage(null); }} disabled={saving}>{t("items.prepConfig.cancel")}</Button>
               <Button variant="contained" onClick={save} disabled={saving || !isSelectionComplete(diluentSel) || !isSelectionComplete(neutralizerSel)}>
-                {saving ? "Saving..." : "Save Configuration"}
+                {saving ? t("items.prepConfig.saving") : t("items.prepConfig.save")}
               </Button>
             </>
           ) : (
             <>
               {config?.approvalStatus === "PendingReview" && (
                 <Button variant="contained" color="success" onClick={approve} disabled={saving}>
-                  Approve
+                  {t("items.prepConfig.approve")}
                 </Button>
               )}
               <Button variant={config ? "outlined" : "contained"} onClick={beginEdit} disabled={saving}>
-                {config ? "Edit" : "Configure Preparation"}
+                {config ? t("items.prepConfig.edit") : t("items.prepConfig.configure")}
               </Button>
             </>
           )}

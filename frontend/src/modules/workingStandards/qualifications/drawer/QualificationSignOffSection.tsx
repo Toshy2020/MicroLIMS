@@ -11,7 +11,10 @@ import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import UndoIcon from "@mui/icons-material/Undo";
 import RateReviewIcon from "@mui/icons-material/RateReview";
-import { formatLabDateTime } from "../../../../utils/formatDate";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../../components/Ltr";
+import { useTranslation } from "../../../../i18n";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 import type { WorkingStandardQualificationDto } from "../../types";
 import type { SignOffActionType } from "../SignOffDialog";
 
@@ -28,52 +31,65 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
   canApprove,
   onInitiateSignOff
 }) => {
+  const { t } = useTranslation("workingStandards");
   const { status, preparedByUserName, preparedAt, reviewedByUserName, reviewedAt, approvedByUserName, approvedAt, rejectedByUserName, rejectedAt } = qualification;
 
   const showReviewActions = status === "Assayed" && canReview;
   const showApproveActions = status === "Reviewed" && canApprove;
 
+  const renderUserDate = (user: string, date?: string | null) =>
+    date ? (
+      <Trans
+        i18nKey="signOffSection.userAtDate"
+        ns="workingStandards"
+        values={{ user, date: formatDateTimeWithTimeZone(date) }}
+        components={{ ltr: <Ltr>{null}</Ltr> }}
+      />
+    ) : (
+      user
+    );
+
   return (
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
       <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.secondary" }}>
-          WORKFLOW & SIGN-OFF
+          {t("signOffSection.heading")}
         </Typography>
 
         {/* Trail history */}
         <Stack spacing={1} sx={{ mb: 2 }}>
           {preparedByUserName && (
             <Box>
-              <Typography variant="caption" color="text.secondary">Prepared by:</Typography>
+              <Typography variant="caption" color="text.secondary">{t("signOffSection.preparedBy")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {preparedByUserName} {preparedAt && `on ${formatLabDateTime(preparedAt)}`}
+                {renderUserDate(preparedByUserName, preparedAt)}
               </Typography>
             </Box>
           )}
 
           {reviewedByUserName && (
             <Box>
-              <Typography variant="caption" color="text.secondary">Reviewed by:</Typography>
+              <Typography variant="caption" color="text.secondary">{t("signOffSection.reviewedBy")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {reviewedByUserName} {reviewedAt && `on ${formatLabDateTime(reviewedAt)}`}
+                {renderUserDate(reviewedByUserName, reviewedAt)}
               </Typography>
             </Box>
           )}
 
           {approvedByUserName && (
             <Box>
-              <Typography variant="caption" color="text.secondary">Approved by:</Typography>
+              <Typography variant="caption" color="text.secondary">{t("signOffSection.approvedBy")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "success.main" }}>
-                {approvedByUserName} {approvedAt && `on ${formatLabDateTime(approvedAt)}`}
+                {renderUserDate(approvedByUserName, approvedAt)}
               </Typography>
             </Box>
           )}
 
           {rejectedByUserName && (
             <Box>
-              <Typography variant="caption" color="text.secondary">Rejected by:</Typography>
+              <Typography variant="caption" color="text.secondary">{t("signOffSection.rejectedBy")}</Typography>
               <Typography variant="body2" sx={{ fontWeight: 600, color: "error.main" }}>
-                {rejectedByUserName} {rejectedAt && `on ${formatLabDateTime(rejectedAt)}`}
+                {renderUserDate(rejectedByUserName, rejectedAt)}
               </Typography>
             </Box>
           )}
@@ -83,7 +99,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
         {showReviewActions && (
           <Box sx={{ pt: 1.5, borderTop: 1, borderColor: "divider" }}>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontWeight: 600 }}>
-              Review Actions (Samples.Review required)
+              {t("signOffSection.reviewActionsTitle", { permission: "Samples.Review" })}
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               <Button
@@ -93,7 +109,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
                 startIcon={<RateReviewIcon fontSize="small" />}
                 onClick={() => onInitiateSignOff("review")}
               >
-                Review
+                {t("signOffSection.review")}
               </Button>
               <Button
                 variant="outlined"
@@ -102,7 +118,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
                 startIcon={<UndoIcon fontSize="small" />}
                 onClick={() => onInitiateSignOff("return")}
               >
-                Return to Draft
+                {t("signOffSection.returnToDraft")}
               </Button>
               <Button
                 variant="outlined"
@@ -111,7 +127,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
                 startIcon={<HighlightOffIcon fontSize="small" />}
                 onClick={() => onInitiateSignOff("rejectReview")}
               >
-                Reject
+                {t("signOffSection.reject")}
               </Button>
             </Box>
           </Box>
@@ -120,7 +136,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
         {showApproveActions && (
           <Box sx={{ pt: 1.5, borderTop: 1, borderColor: "divider" }}>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1, fontWeight: 600 }}>
-              Approval Actions (Samples.Approve required)
+              {t("signOffSection.approvalActionsTitle", { permission: "Samples.Approve" })}
             </Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               <Button
@@ -130,7 +146,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
                 startIcon={<CheckCircleOutlinedIcon fontSize="small" />}
                 onClick={() => onInitiateSignOff("approve")}
               >
-                Approve
+                {t("signOffSection.approve")}
               </Button>
               <Button
                 variant="outlined"
@@ -139,7 +155,7 @@ export const QualificationSignOffSection: React.FC<QualificationSignOffSectionPr
                 startIcon={<HighlightOffIcon fontSize="small" />}
                 onClick={() => onInitiateSignOff("rejectApproval")}
               >
-                Reject
+                {t("signOffSection.reject")}
               </Button>
             </Box>
           </Box>

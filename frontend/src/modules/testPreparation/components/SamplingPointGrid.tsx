@@ -13,6 +13,9 @@ import {
   useTheme
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 export interface SamplingPointGridItem {
   id: number;
@@ -42,11 +45,12 @@ export function SamplingPointGrid({
   onToggle,
   onSelectAll,
   onConfirm,
-  confirmLabel = "Start Testing",
+  confirmLabel,
   loading = false,
   errorMessage = null,
   confirmDisabled = false
 }: Props) {
+  const { t } = useTranslation("testPreparation");
   const theme = useTheme();
 
   const selectableItems = items.filter((item) => !item.disabled);
@@ -93,7 +97,7 @@ export function SamplingPointGrid({
           }
           label={
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-              Select All
+              {t("samplingPointGrid.selectAll")}
             </Typography>
           }
           sx={{ m: 0 }}
@@ -101,7 +105,14 @@ export function SamplingPointGrid({
 
         <Chip
           size="small"
-          label={`${selectedCount} selected`}
+          label={
+            <Trans
+              i18nKey="samplingPointGrid.selectedCount"
+              ns="testPreparation"
+              values={{ count: selectedCount }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          }
           variant={selectedCount > 0 ? "filled" : "outlined"}
           sx={{
             fontWeight: 700,
@@ -220,7 +231,7 @@ export function SamplingPointGrid({
                         mb: 0.5
                       }}
                     >
-                      Assigned Tests
+                      {t("samplingPointGrid.assignedTests")}
                     </Typography>
                     {item.assignedTests.length > 0 ? (
                       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
@@ -242,7 +253,7 @@ export function SamplingPointGrid({
                       </Box>
                     ) : (
                       <Typography sx={{ fontSize: 12, color: "text.disabled", fontStyle: "italic" }}>
-                        No tests configured
+                        {t("samplingPointGrid.noTestsConfigured")}
                       </Typography>
                     )}
                   </Box>
@@ -270,7 +281,7 @@ export function SamplingPointGrid({
             borderRadius: 1.5,
           }}
         >
-          {loading ? "Starting..." : confirmLabel}
+          {loading ? t("actions.starting") : (confirmLabel ?? t("actions.startTesting"))}
         </Button>
       </Box>
     </Box>

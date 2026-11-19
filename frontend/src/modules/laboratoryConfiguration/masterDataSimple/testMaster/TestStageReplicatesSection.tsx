@@ -4,12 +4,14 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
+import { useTranslation } from "react-i18next";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { masterDataOptions, TestDefinitionStageReplicateDto, ProductionStageRole } from "../../../../services/masterDataOptions";
 import { tableHeadSx } from "../../../../theme";
 import { ALL_STAGE_ROLES } from "./testMasterConstants";
 
 export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitionId: number }) {
+  const { t } = useTranslation("masterData");
   const [replicates, setReplicates] = useState<TestDefinitionStageReplicateDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
       .then(setReplicates)
       .catch((e: unknown) => {
         const errObj = e as { response?: { data?: { message?: string } }; message?: string };
-        setError(errObj.response?.data?.message ?? errObj.message ?? "Could not load stage replicates.");
+        setError(errObj.response?.data?.message ?? errObj.message ?? t("testMaster.stageReplicates.errors.loadFailed"));
       })
       .finally(() => setLoading(false));
   };
@@ -60,18 +62,18 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
 
   const handleSave = async () => {
     if (!editingReplicate && !role) {
-      setDialogError("Production stage role is required.");
+      setDialogError(t("testMaster.stageReplicates.errors.roleRequired"));
       return;
     }
 
     const smpStr = sampleReplicates.trim();
     if (!smpStr) {
-      setDialogError("Sample replicates is required.");
+      setDialogError(t("testMaster.stageReplicates.errors.replicatesRequired"));
       return;
     }
     const smp = Number(smpStr);
     if (!Number.isInteger(smp) || smp < 1) {
-      setDialogError("Sample replicates must be an integer greater than or equal to 1.");
+      setDialogError(t("testMaster.stageReplicates.errors.replicatesInteger"));
       return;
     }
 
@@ -92,7 +94,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
       loadReplicates();
     } catch (e: unknown) {
       const errObj = e as { response?: { data?: { message?: string } }; message?: string };
-      setDialogError(errObj.response?.data?.message ?? errObj.message ?? "Could not save stage replicate configuration.");
+      setDialogError(errObj.response?.data?.message ?? errObj.message ?? t("testMaster.stageReplicates.errors.saveFailed"));
     } finally {
       setSaving(false);
     }
@@ -108,7 +110,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
       loadReplicates();
     } catch (e: unknown) {
       const errObj = e as { response?: { data?: { message?: string } }; message?: string };
-      setError(errObj.response?.data?.message ?? errObj.message ?? "Could not delete stage replicate configuration.");
+      setError(errObj.response?.data?.message ?? errObj.message ?? t("testMaster.stageReplicates.errors.deleteFailed"));
     }
   };
 
@@ -116,7 +118,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
     <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 1, border: "1px solid", borderColor: "divider" }}>
       <Stack sx={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
         <Typography sx={{ fontWeight: 700, fontSize: 13 }}>
-          Replicates per stage ({replicates.length} configured)
+          {t("testMaster.stageReplicates.heading", { count: replicates.length })}
         </Typography>
         <Button
           size="small"
@@ -125,7 +127,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
           onClick={openAdd}
           disabled={availableRoles.length === 0 || loading}
         >
-          Add Stage Replicate
+          {t("testMaster.stageReplicates.addButton")}
         </Button>
       </Stack>
 
@@ -135,9 +137,9 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
         <Table size="small" sx={{ bgcolor: "background.paper", borderRadius: 1 }}>
           <TableHead>
             <TableRow sx={tableHeadSx}>
-              <TableCell>Stage Role</TableCell>
-              <TableCell>Sample Replicates</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>{t("testMaster.stageReplicates.columns.stageRole")}</TableCell>
+              <TableCell>{t("testMaster.stageReplicates.columns.sampleReplicates")}</TableCell>
+              <TableCell align="right">{t("testMaster.stageReplicates.columns.actions")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -148,14 +150,14 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
                 </TableCell>
                 <TableCell>{r.sampleReplicates}</TableCell>
                 <TableCell align="right">
-                  <IconButton aria-label="Edit replicates" size="small" onClick={() => openEdit(r)} title="Edit Replicates">
+                  <IconButton aria-label={t("testMaster.stageReplicates.editAria")} size="small" onClick={() => openEdit(r)} title={t("testMaster.stageReplicates.editTitle")}>
                     <EditIcon fontSize="small" />
                   </IconButton>
-                  <IconButton aria-label="Delete replicate rule"
+                  <IconButton aria-label={t("testMaster.stageReplicates.deleteAria")}
                     size="small"
                     color="error"
                     onClick={() => setPendingDelete(r)}
-                    title="Delete Replicate Configuration"
+                    title={t("testMaster.stageReplicates.deleteTitle")}
                   >
                     <DeleteIcon fontSize="small" />
                   </IconButton>
@@ -165,7 +167,7 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
             {replicates.length === 0 && !loading && (
               <TableRow>
                 <TableCell colSpan={3} align="center" sx={{ py: 2, color: "text.secondary" }}>
-                  No stage replicates configured yet. Click "Add Stage Replicate" to configure replicate counts.
+                  {t("testMaster.stageReplicates.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -174,21 +176,21 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
       </TableContainer>
 
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mt: 1 }}>
-        Production stages without a configured row are not configured for this test (not zero). Counts must be integers ≥ 1. HPLC standard injections are set on the method.
+        {t("testMaster.stageReplicates.footnote")}
       </Typography>
 
       <FloatingDialog
         open={dialogOpen}
-        title={editingReplicate ? `Edit Stage Replicates: ${editingReplicate.role}` : "Add Stage Replicate"}
+        title={editingReplicate ? t("testMaster.stageReplicates.dialog.editTitle", { role: editingReplicate.role }) : t("testMaster.stageReplicates.dialog.addTitle")}
         onClose={() => setDialogOpen(false)}
         maxWidth="xs"
         actions={
           <>
             <Button onClick={() => setDialogOpen(false)} variant="outlined" disabled={saving}>
-              Cancel
+              {t("testMaster.stageReplicates.dialog.cancel")}
             </Button>
             <Button variant="contained" onClick={handleSave} disabled={saving}>
-              {saving ? "Saving…" : editingReplicate ? "Save Changes" : "Add"}
+              {saving ? t("testMaster.stageReplicates.dialog.saving") : editingReplicate ? t("testMaster.stageReplicates.dialog.saveChanges") : t("testMaster.stageReplicates.dialog.add")}
             </Button>
           </>
         }
@@ -198,20 +200,20 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
           {editingReplicate ? (
             <TextField
               size="small"
-              label="Stage Role"
+              label={t("testMaster.stageReplicates.dialog.stageRoleLabel")}
               value={editingReplicate.role}
               disabled
               fullWidth
             />
           ) : (
             <FormControl size="small" fullWidth required>
-              <InputLabel id="stage-rep-role-select-label">Stage Role</InputLabel>
+              <InputLabel id="stage-rep-role-select-label">{t("testMaster.stageReplicates.dialog.stageRoleLabel")}</InputLabel>
               <Select<ProductionStageRole>
                 labelId="stage-rep-role-select-label"
-                label="Stage Role"
+                label={t("testMaster.stageReplicates.dialog.stageRoleLabel")}
                 value={role as ProductionStageRole}
                 onChange={(e) => setRole(e.target.value as ProductionStageRole)}
-                inputProps={{ "aria-label": "Stage Role" }}
+                inputProps={{ "aria-label": t("testMaster.stageReplicates.dialog.stageRoleLabel") }}
               >
                 {availableRoles.map((r) => (
                   <MenuItem key={r} value={r}>
@@ -224,12 +226,12 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
           <TextField
             size="small"
             type="number"
-            label="Sample Replicates *"
-            placeholder="e.g. 2"
+            label={t("testMaster.stageReplicates.dialog.sampleReplicatesLabel")}
+            placeholder={t("testMaster.stageReplicates.dialog.sampleReplicatesPlaceholder")}
             value={sampleReplicates}
             onChange={(e) => setSampleReplicates(e.target.value)}
             slotProps={{ htmlInput: { min: 1, step: 1 } }}
-            helperText="Integer ≥ 1"
+            helperText={t("testMaster.stageReplicates.dialog.sampleReplicatesHelper")}
             required
             fullWidth
           />
@@ -238,13 +240,13 @@ export function TestStageReplicatesSection({ testDefinitionId }: { testDefinitio
 
       <ConfirmationDialog
         open={pendingDelete != null}
-        title="Delete Stage Replicate Configuration"
+        title={t("testMaster.stageReplicates.deleteDialog.title")}
         message={
           pendingDelete
-            ? `Delete stage replicate configuration for role "${pendingDelete.role}"?`
+            ? t("testMaster.stageReplicates.deleteDialog.message", { role: pendingDelete.role })
             : ""
         }
-        confirmText="Delete"
+        confirmText={t("testMaster.stageReplicates.deleteDialog.confirm")}
         destructive
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}

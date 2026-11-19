@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Trans } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -20,6 +21,8 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import DrawIcon from "@mui/icons-material/Draw";
 import { toast } from "sonner";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { Ltr } from "../../../components/Ltr";
+import { i18n, useTranslation } from "../../../i18n";
 import { HplcWorkspaceService } from "../services/HplcWorkspaceService";
 import type { HplcSampleEntryDto, HplcQualificationEntryDto } from "../types";
 
@@ -38,6 +41,7 @@ export function SendForReviewDialog({
   onClose,
   onSuccess
 }: SendForReviewDialogProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const [signatureOpen, setSignatureOpen] = useState(false);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -68,20 +72,20 @@ export function SendForReviewDialog({
           password,
           comment: comment.trim() || null
         });
-        toast.success(`Qualification ${qualificationEntry.qualificationCode} submitted for review.`);
+        toast.success(t("entry.sendDialog.submittedQualToast", { code: qualificationEntry.qualificationCode }));
       } else if (sampleEntry) {
         await HplcWorkspaceService.submitSample(sampleEntry.runSampleId, {
           password,
           comment: comment.trim() || null
         });
-        toast.success(`Sample ${sampleEntry.sampleNumber} submitted for review.`);
+        toast.success(t("entry.sendDialog.submittedSampleToast", { sampleNumber: sampleEntry.sampleNumber }));
       }
       setSignatureOpen(false);
       onSuccess();
       onClose();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      const msg = e.response?.data?.message ?? e.message ?? "Submission failed.";
+      const msg = e.response?.data?.message ?? e.message ?? t("entry.sendDialog.submitFailed");
       setSubmitError(msg);
       throw err; // rethrow so SignatureDialog catches it and shows error
     } finally {
@@ -89,9 +93,12 @@ export function SendForReviewDialog({
     }
   };
 
-  const meaningStatement = qualificationEntry
-    ? `I confirm that chromatographic replicate data and evidence for working standard ${qualificationEntry.qualificationCode} (${qualificationEntry.materialName}) are complete, accurate, and ready for review.`
-    : `I confirm that chromatographic replicate data and evidence for sample ${sampleEntry?.sampleNumber} (${sampleEntry?.testCode}) are complete, accurate, and ready for review.`;
+  const meaningKey = qualificationEntry ? "entry.sendDialog.meaningQual" : "entry.sendDialog.meaningSample";
+  const meaningValues = qualificationEntry
+    ? { code: qualificationEntry.qualificationCode, materialName: qualificationEntry.materialName }
+    : { sampleNumber: sampleEntry?.sampleNumber ?? "", testCode: sampleEntry?.testCode ?? "" };
+  const meaningStatement = i18n.getFixedT("en", "hplcWorkspace")(meaningKey, meaningValues);
+  const meaningStatementTranslation = t(meaningKey, meaningValues);
 
   return (
     <>
@@ -102,7 +109,7 @@ export function SendForReviewDialog({
         fullWidth
       >
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          {isQualification ? "Submit Qualification for Review" : "Send Sample for Review"}
+          {isQualification ? t("entry.sendDialog.titleQual") : t("entry.sendDialog.titleSample")}
         </DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5}>
@@ -110,28 +117,34 @@ export function SendForReviewDialog({
 
             {!target.canSubmit && (
               <Alert severity="warning">
-                <strong>Cannot submit for review:</strong>{" "}
-                {target.canSubmitReason || "Submission criteria are not met."}
+                <strong>{t("entry.sendDialog.cannotSubmit")}</strong>{" "}
+                {target.canSubmitReason || t("entry.sendDialog.criteriaNotMet")}
               </Alert>
             )}
 
             <Box>
               <Typography variant="body2" sx={{ color: "text.secondary", mb: 1 }}>
                 {qualificationEntry ? (
-                  <>
-                    Qualification: <strong>{qualificationEntry.qualificationCode}</strong> · Material:{" "}
-                    <strong>{qualificationEntry.materialName}</strong>
-                  </>
+                  <Trans
+                    i18nKey="entry.sendDialog.qualSummary"
+                    ns="hplcWorkspace"
+                    values={{ code: qualificationEntry.qualificationCode, materialName: qualificationEntry.materialName }}
+                    components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+                  />
                 ) : (
                   <>
-                    Sample: <strong>{sampleEntry?.sampleNumber}</strong> · Test:{" "}
-                    <strong>{sampleEntry?.testCode}</strong>
-                    {sampleEntry?.productName ? ` · Product: ${sampleEntry.productName}` : ""}
+                    <Trans
+                      i18nKey="entry.sendDialog.sampleSummary"
+                      ns="hplcWorkspace"
+                      values={{ sampleNumber: sampleEntry?.sampleNumber ?? "", testCode: sampleEntry?.testCode ?? "" }}
+                      components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+                    />
+                    {sampleEntry?.productName ? t("entry.sendDialog.productSuffix", { productName: sampleEntry.productName }) : ""}
                   </>
                 )}
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                Verify the pre-submission readiness checklist below before applying your electronic signature.
+                {t("entry.sendDialog.verifyChecklist")}
               </Typography>
             </Box>
 
@@ -147,8 +160,8 @@ export function SendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="System Suitability"
-                  secondary={`Status: ${target.sstStatus} (Code: ${target.sstCode})`}
+                  primary={t("entry.sendDialog.sstTitle")}
+                  secondary={t("entry.sendDialog.sstSecondary", { status: target.sstStatus, code: target.sstCode })}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -165,8 +178,8 @@ export function SendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Replicate Count"
-                  secondary={`${target.replicates.length} replicate(s) entered · Required: ${target.requiredReplicates ?? "—"}`}
+                  primary={t("entry.sendDialog.repTitle")}
+                  secondary={t("entry.sendDialog.repSecondary", { entered: target.replicates.length, required: target.requiredReplicates ?? "—" })}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -183,8 +196,8 @@ export function SendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Evidence Reports"
-                  secondary={`${currentEvidenceCount} current chromatogram/evidence file(s) attached`}
+                  primary={t("entry.sendDialog.evidenceTitle")}
+                  secondary={t("entry.sendDialog.evidenceSecondary", { count: currentEvidenceCount })}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -201,8 +214,8 @@ export function SendForReviewDialog({
                   )}
                 </ListItemIcon>
                 <ListItemText
-                  primary="Submission Gate"
-                  secondary={target.canSubmit ? "Ready for electronic signature" : (target.canSubmitReason || "Gated")}
+                  primary={t("entry.sendDialog.gateTitle")}
+                  secondary={target.canSubmit ? t("entry.sendDialog.gateReady") : (target.canSubmitReason || t("entry.sendDialog.gateGated"))}
                   slotProps={{
                     primary: { sx: { fontWeight: 600, fontSize: 13 } },
                     secondary: { sx: { fontSize: 12 } }
@@ -213,11 +226,13 @@ export function SendForReviewDialog({
 
             <Alert severity="info" sx={{ fontSize: 12 }}>
               {isQualification
-                ? "Signing will freeze replicate data, record qualification results, and move the working standard qualification to Assayed status for review."
+                ? t("entry.sendDialog.freezeInfoQual")
                 : (
-                  <>
-                    Signing will freeze this sample entry, calculate official results, and move the test order to <strong>Under Review</strong> in the testing workspace.
-                  </>
+                  <Trans
+                    i18nKey="entry.sendDialog.freezeInfoSample"
+                    ns="hplcWorkspace"
+                    components={{ strong: <strong /> }}
+                  />
                 )}
             </Alert>
           </Stack>
@@ -227,7 +242,7 @@ export function SendForReviewDialog({
             onClick={onClose}
             disabled={submitting}
           >
-            Cancel
+            {t("entry.sendDialog.cancel")}
           </Button>
           <Button
             variant="contained"
@@ -237,7 +252,7 @@ export function SendForReviewDialog({
             startIcon={<DrawIcon />}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Proceed to Sign
+            {t("entry.sendDialog.proceedToSign")}
           </Button>
         </DialogActions>
       </Dialog>
@@ -246,6 +261,7 @@ export function SendForReviewDialog({
       <SignatureDialog
         open={signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         showComment={true}
         comment={comment}
         onCommentChange={setComment}

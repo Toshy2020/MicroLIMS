@@ -1,7 +1,9 @@
+using System.Globalization;
 using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -95,13 +97,18 @@ public partial class IcpRunService
     // ---- Assign / remove ----
 
     // First reason samples cannot be assigned now, or null. Shared by AssignSamplesAsync and the run DTO.
-    private string? AssignBlockReason(IcpRun run)
+    private string? AssignBlockReason(IcpRun run) => AssignBlockWithCode(run)?.Message;
+
+    private (string Code, string Message)? AssignBlockWithCode(IcpRun run)
     {
-        if (run.Status != IcpRunStatus.Open) return "The run is closed.";
-        if (run.Calibration?.Status != IcpCalibrationStatus.Confirmed) return "Confirm the calibration before assigning samples.";
+        if (run.Status != IcpRunStatus.Open)
+            return (MessageCodes.IcpRunClosed, "The run is closed.");
+        if (run.Calibration?.Status != IcpCalibrationStatus.Confirmed)
+            return (MessageCodes.IcpCalibrationConfirmBeforeAssigning, "Confirm the calibration before assigning samples.");
         if (IcpElementAvailability.ExpiresAt(run.Calibration) is { } expiresAt && expiresAt < _clock.UtcNow.UtcDateTime)
-            return "The calibration has expired. Start a new run with a new calibration.";
-        if (!run.Calibration.Elements.Any(e => e.Passed)) return "No calibrated element passes on this run.";
+            return (MessageCodes.IcpCalibrationExpiredStartNewRun, "The calibration has expired. Start a new run with a new calibration.");
+        if (!run.Calibration.Elements.Any(e => e.Passed))
+            return (MessageCodes.IcpNoCalibratedElementPasses, "No calibrated element passes on this run.");
         return null;
     }
 
@@ -110,12 +117,16 @@ public partial class IcpRunService
         var run = await LoadRunAsync(runId, ct);
         await EnsureAccessAsync(run, userId, ct);
 
-        var blocked = AssignBlockReason(run);
-        if (blocked != null) throw new BusinessRuleException(blocked);
+        var blocked = AssignBlockWithCode(run);
+        if (blocked != null)
+        {
+            var (code, message) = blocked.Value;
+            throw new BusinessRuleException(code, message);
+        }
 
         var ids = (r.TestOrderIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new BusinessRuleException("Select at least one test.");
+            throw new BusinessRuleException(MessageCodes.IcpSelectAtLeastOneTest, "Select at least one test.");
 
         var eligible = await EligibleOrdersQuery(run.SectionId).Where(o => ids.Contains(o.Id)).Select(o => o.Id).ToListAsync(ct);
         foreach (var id in ids.Where(id => !eligible.Contains(id)))
@@ -123,9 +134,21 @@ public partial class IcpRunService
             var busyRun = await _db.IcpRunSamples
                 .Where(s => s.TestOrderId == id && s.Status == IcpRunSampleStatus.Assigned && s.IcpRun!.Status != IcpRunStatus.Abandoned)
                 .Select(s => s.IcpRun!.Code).FirstOrDefaultAsync(ct);
-            throw new BusinessRuleException(busyRun != null
-                ? $"Test order {id} is already assigned to run {busyRun}."
-                : $"Test order {id} is not eligible for this run.");
+            if (busyRun != null)
+            {
+                throw new BusinessRuleException(
+                    MessageCodes.IcpTestOrderAlreadyAssignedToRun,
+                    $"Test order {id} is already assigned to run {busyRun}.",
+                    new Dictionary<string, string>
+                    {
+                        ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture),
+                        ["runCode"] = busyRun
+                    });
+            }
+            throw new BusinessRuleException(
+                MessageCodes.IcpTestOrderNotEligibleForRun,
+                $"Test order {id} is not eligible for this run.",
+                new Dictionary<string, string> { ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture) });
         }
 
         // Signs first - a wrong password must leave nothing assigned. One signature covers the whole action.
@@ -152,14 +175,17 @@ public partial class IcpRunService
         // A returned sample on a completed run must be removable, or its order stays busy forever.
         // The active-analysis check below keeps submitted samples in place.
         if (run.Status is not (IcpRunStatus.Open or IcpRunStatus.Completed))
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
 
         var sample = run.Samples.FirstOrDefault(s => s.Id == runSampleId)
-            ?? throw new NotFoundException($"Sample {runSampleId} not found on this run.");
+            ?? throw new NotFoundException(
+                MessageCodes.IcpRunSampleNotFound,
+                $"Sample {runSampleId} not found on this run.",
+                new Dictionary<string, string> { ["runSampleId"] = runSampleId.ToString(CultureInfo.InvariantCulture) });
         if (sample.Status != IcpRunSampleStatus.Assigned)
-            throw new BusinessRuleException("This sample was already removed from the run.");
+            throw new BusinessRuleException(MessageCodes.IcpRunSampleAlreadyRemoved, "This sample was already removed from the run.");
         if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == sample.TestOrderId && a.IsActive, ct))
-            throw new BusinessRuleException("A result has already been sent for review for this sample.");
+            throw new BusinessRuleException(MessageCodes.IcpRunSampleResultAlreadySubmitted, "A result has already been sent for review for this sample.");
 
         var trimmedReason = ValidateReason(reason);
         sample.Status = IcpRunSampleStatus.Removed;
@@ -185,26 +211,44 @@ public partial class IcpRunService
         var context = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, ct, _clock);
         await EnsureAccessAsync(context.Run, userId, ct);
 
-        var problem = context.EditableProblem() ?? context.CalibrationProblem();
-        if (problem != null)
-            throw new BusinessRuleException(problem);
+        var editable = context.EditableProblemWithCode();
+        if (editable != null)
+        {
+            var (code, message) = editable.Value;
+            throw new BusinessRuleException(code, message);
+        }
+        var calProblem = context.CalibrationProblemWithCode();
+        if (calProblem != null)
+        {
+            var (code, message, parameters) = calProblem.Value;
+            throw new BusinessRuleException(code, message, parameters);
+        }
 
         var needed = context.NeededElements;
         if (needed.Count == 0)
-            throw new BusinessRuleException("No specification is configured for this test on this item.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpNoSpecificationConfigured,
+                "No specification is configured for this test on this item.");
         if (context.NeedsWeight && r.ActualWeightG is not > 0m)
-            throw new BusinessRuleException("Enter the actual weight of the sample (g).");
+            throw new BusinessRuleException(MessageCodes.IcpSampleWeightRequired, "Enter the actual weight of the sample (g).");
         if (!context.NeedsWeight && r.ActualWeightG.HasValue)
-            throw new BusinessRuleException("The actual weight is only used for assay tests.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpActualWeightOnlyForAssay,
+                "The actual weight is only used for assay tests.");
 
         var inputs = r.Concentrations ?? new List<IcpConcentrationInput>();
         var neededIds = needed.Select(e => e.Id).ToList();
         if (inputs.Any(c => !neededIds.Contains(c.IcpTestElementId)))
-            throw new BusinessRuleException("A result belongs to an element that is not needed by this test.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpElementNotNeededByTest,
+                "A result belongs to an element that is not needed by this test.");
         foreach (var el in needed.Where(e => inputs.Count(c => c.IcpTestElementId == e.Id) != 1))
-            throw new BusinessRuleException($"Exactly one result for {el.Symbol} is required.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpSingleElementResultRequired,
+                $"Exactly one result for {el.Symbol} is required.",
+                new Dictionary<string, string> { ["symbol"] = el.Symbol });
         if (inputs.Any(c => c.ResultPpm < 0m))
-            throw new BusinessRuleException("A result cannot be negative.");
+            throw new BusinessRuleException(MessageCodes.IcpResultCannotBeNegative, "A result cannot be negative.");
 
         var sample = context.RunSample;
         sample.ActualWeightG = r.ActualWeightG;
@@ -228,7 +272,7 @@ public partial class IcpRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != IcpRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.IcpRunClosed, "The run is closed.");
 
         var orderIds = run.Samples.Where(s => s.Status == IcpRunSampleStatus.Assigned).Select(s => s.TestOrderId).ToList();
         var submitted = await _db.TestAnalyses
@@ -236,7 +280,10 @@ public partial class IcpRunService
             .Select(a => a.TestOrderId).Distinct().ToListAsync(ct);
         var pending = orderIds.Count(id => !submitted.Contains(id));
         if (pending > 0)
-            throw new BusinessRuleException($"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpPendingSamplesBlockCompletion,
+                $"{pending} assigned sample(s) have not been sent for review. Submit or remove them first.",
+                new Dictionary<string, string> { ["count"] = pending.ToString(CultureInfo.InvariantCulture) });
 
         run.Status = IcpRunStatus.Completed;
         run.ClosedAt = _clock.UtcNow.UtcDateTime;

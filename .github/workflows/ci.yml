@@ -119,6 +119,22 @@ jobs:
             --logger "trx;LogFileName=unit.trx" \
             --results-directory backend/TestResults
 
+      # A real LDAP directory for LdapDirectoryContainerTests (OpenLDAP with its generated
+      # self-signed certificate on 636 and a plain listener on 389). Started with docker run rather than
+      # as a service container so the seed users can be loaded before the tests start. The tests
+      # report Skipped with a reason when MICROLIMS_TEST_LDAP is absent (Run 1).
+      - name: Start the LDAP test directory
+        run: |
+          docker run -d --name ldap-test -p 389:389 -p 636:636 \
+            -e LDAP_ADMIN_PASSWORD=ldap-admin-ci -e LDAP_TLS_VERIFY_CLIENT=never \
+            osixia/openldap:1.5.0
+          for i in $(seq 1 30); do
+            docker exec ldap-test ldapsearch -x -H ldap://localhost -b dc=example,dc=org -D cn=admin,dc=example,dc=org -w ldap-admin-ci -s base dn && break
+            sleep 2
+          done
+          docker cp backend/MicroLIMS.Tests/Fixtures/ldap/seed.ldif ldap-test:/tmp/seed.ldif
+          docker exec ldap-test ldapadd -x -H ldap://localhost -D cn=admin,dc=example,dc=org -w ldap-admin-ci -f /tmp/seed.ldif
+
       # ---- Run 2: the real gate ----
       # MICROLIMS_TEST_POSTGRES names only the maintenance database. The
       # fixture generates its own microlims_test_<32 hex> database, applies
@@ -126,6 +142,10 @@ jobs:
       - name: Test - full suite against PostgreSQL
         env:
           MICROLIMS_TEST_POSTGRES: "Host=localhost;Port=5432;Database=postgres;Username=microlims_ci"
+          MICROLIMS_TEST_LDAP: "Host=localhost;Port=636;PlainPort=389;BaseDn=dc=example,dc=org;BindDn=cn=admin,dc=example,dc=org;BindPassword=ldap-admin-ci;UsernameAttribute=uid;SubjectAttribute=entryUUID"
+          # The container's certificate is self-signed for another host name; libldap would reject it.
+          # Test-only: production verifies the server certificate.
+          LDAPTLS_REQCERT: never
         run: |
           dotnet test backend/MicroLIMS.Tests/MicroLIMS.Tests.csproj \
             --configuration Release --no-build \
@@ -245,6 +265,12 @@ jobs:
       - name: Test and typing debt ratchet
         run: npm run debt:check
 
+      # F4 (Arabic/RTL): hard-coded interface text per module is pinned in
+      # i18n-debt-baseline.json. Fails if any module's count rises; lower the
+      # baseline with `npm run i18n:update` after converting a module to keys.
+      - name: Hard-coded interface text ratchet
+        run: npm run i18n:check
+
       - name: TypeScript
         run: npx tsc -b
 
@@ -254,6 +280,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Check service worker precache and routes
+        run: node scripts/check-sw.mjs
 
   # ---------------------------------------------------------------------
   # Specification documents: IDs, cross-references, headers and code

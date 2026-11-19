@@ -1,13 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
-import { useAuth, useHasPermission } from "../../../contexts/AuthContext";
-import { SignatureDialog } from "../../../components/SignatureDialog";
-import { PERMISSIONS } from "../../../routes/routes";
-import { EquipmentPlanService } from "../services/EquipmentPlanService";
-import type { EquipmentPlanPreview, EquipmentPlanRevision } from "../types";
+import { Trans } from "react-i18next";
 import { DateField } from "../../../components/DateField";
+import { Ltr } from "../../../components/Ltr";
+import { SignatureDialog } from "../../../components/SignatureDialog";
+import { useAuth, useHasPermission } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
+import { PERMISSIONS } from "../../../routes/routes";
+import { serverMessage } from "../../../utils/errorMessage";
+import { EquipmentPlanService } from "../services/EquipmentPlanService";
+import { EQUIPMENT_TASK_KEY } from "../statusDisplay";
+import type { EquipmentPlanPreview, EquipmentPlanRevision } from "../types";
 
 export function EquipmentPlanPanel({ year, onApproved }: { year: number; onApproved: () => void }) {
+  const { t } = useTranslation("monitoring");
   const { userId } = useAuth();
   const hasEqManage = useHasPermission("EquipmentPlan.Manage");
   const hasMonManage = useHasPermission(PERMISSIONS.MONITORING_PLAN_MANAGE);
@@ -34,10 +40,10 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
       setRevisions(list);
       const draft = list.find((r) => r.status === "Draft");
       setPreview(draft ? await EquipmentPlanService.getPreview(draft.id) : null);
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? "Could not load the equipment plan revisions.");
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? t("errors.loadEquipmentPlan"));
     }
-  }, [year]);
+  }, [year, t]);
 
   useEffect(() => {
     void load();
@@ -50,8 +56,8 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
       await action();
       setReason("");
       await load();
-    } catch (e: any) {
-      setError(e?.response?.data?.message ?? failure);
+    } catch (e: unknown) {
+      setError(serverMessage(e) ?? failure);
     } finally {
       setBusy(false);
     }
@@ -60,28 +66,41 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
   const approved = revisions.find((r) => r.status === "Approved");
   const draft = preview?.revision;
   const isGeneratingUser = Boolean(draft && userId != null && draft.generatedByUserId === userId);
+  const trimmedReason = reason.trim();
 
   return (
     <Stack spacing={2}>
       <Typography variant="h6" sx={{ fontWeight: 600, mt: 2 }}>
-        Equipment Calibration & Maintenance Plan
+        {t("equipmentPlan.title")}
       </Typography>
 
       {error && <Alert severity="error">{error}</Alert>}
 
       <Alert severity={approved ? "success" : "warning"}>
-        {approved
-          ? `The ${year} equipment plan is approved (revision ${approved.revisionNumber}, ${approved.taskCount} tasks).`
-          : `There is no approved equipment plan for ${year} yet. Generate a draft, check it, then approve it.`}
+        {approved ? (
+          <Trans
+            i18nKey="equipmentPlan.approvedAlert"
+            ns="monitoring"
+            values={{ year, rev: approved.revisionNumber, count: approved.taskCount }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
+        ) : (
+          <Trans
+            i18nKey="equipmentPlan.noApprovedAlert"
+            ns="monitoring"
+            values={{ year }}
+            components={{ ltr: <Ltr>{null}</Ltr> }}
+          />
+        )}
       </Alert>
 
       {canManage && (
         <Box sx={{ display: "flex", gap: 2, alignItems: "flex-start", flexWrap: "wrap" }}>
           <DateField
-            label="Go-live date (optional)"
+            label={t("plan.goLiveLabel")}
             value={goLive}
             onChange={(v) => setGoLive(v)}
-            helperText="The equipment plan starts on this date. Empty means today."
+            helperText={t("equipmentPlan.goLiveHelper")}
             sx={{ minWidth: 260 }}
           />
           <Button
@@ -91,11 +110,11 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
             onClick={() =>
               void run(
                 () => EquipmentPlanService.generateDraft(year, goLive || undefined),
-                "Could not generate the draft."
+                t("errors.generateDraft")
               )
             }
           >
-            {draft ? "Regenerate draft" : approved ? "Generate revision" : "Generate draft"}
+            {draft ? t("plan.regenerateDraft") : approved ? t("plan.generateRevision") : t("plan.generateDraft")}
           </Button>
         </Box>
       )}
@@ -103,28 +122,48 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
       {preview && draft && (
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography sx={{ fontWeight: 600, mb: 1 }}>
-            Draft revision {draft.revisionNumber}: {draft.taskCount} tasks from {draft.effectiveFrom}
+            <Trans
+              i18nKey="equipmentPlan.draftSummary"
+              ns="monitoring"
+              values={{ rev: draft.revisionNumber, count: draft.taskCount, date: draft.effectiveFrom }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
 
-          {preview.totals.map((t) => (
-            <Typography key={t.taskType} sx={{ fontSize: 14 }}>
-              {t.taskType === "Calibration" ? "Calibration" : "Preventive maintenance"}: {t.instruments} instruments, {t.tasks} tasks
+          {preview.totals.map((tot) => (
+            <Typography key={tot.taskType} sx={{ fontSize: 14 }}>
+              <Trans
+                i18nKey="equipmentPlan.typeTotals"
+                ns="monitoring"
+                values={{ taskType: t(EQUIPMENT_TASK_KEY[tot.taskType]), instruments: tot.instruments, tasks: tot.tasks }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           ))}
 
           {preview.toReschedule.length > 0 && (
             <Box sx={{ mt: 1 }}>
               <Typography sx={{ fontSize: 14 }}>
-                Approving moves {preview.toReschedule.length} task(s) to new dates.
+                <Trans
+                  i18nKey="equipmentPlan.rescheduleIntro"
+                  ns="monitoring"
+                  values={{ count: preview.toReschedule.length }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               {preview.toReschedule.slice(0, 8).map((m) => (
                 <Typography key={m.taskId} sx={{ fontSize: 13, color: "text.secondary" }}>
-                  {m.equipmentCode} · {m.taskType}: {m.oldDueDate} → {m.newDueDate}
+                  <Ltr>{m.equipmentCode}</Ltr> · {t(EQUIPMENT_TASK_KEY[m.taskType])}: <Ltr>{m.oldDueDate}</Ltr> → <Ltr>{m.newDueDate}</Ltr>
                 </Typography>
               ))}
               {preview.toReschedule.length > 8 && (
                 <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                  …and {preview.toReschedule.length - 8} more.
+                  <Trans
+                    i18nKey="plan.andMore"
+                    ns="monitoring"
+                    values={{ count: preview.toReschedule.length - 8 }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
               )}
             </Box>
@@ -132,7 +171,12 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
 
           {preview.toRetire.length > 0 && (
             <Typography sx={{ fontSize: 14, mt: 1 }}>
-              Approving retires {preview.toRetire.length} existing task(s) that no longer match the master data.
+              <Trans
+                i18nKey="equipmentPlan.retireIntro"
+                ns="monitoring"
+                values={{ count: preview.toRetire.length }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           )}
 
@@ -150,17 +194,28 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
                 !x.message?.toLowerCase().includes("no calibration or maintenance interval")
             );
 
+            const renderException = (x: typeof preview.exceptions[number], i: number, indented: boolean) => (
+              <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", ...(indented ? { pl: 2 } : { mt: 0.5 }) }}>
+                <Ltr>{x.equipmentCode}</Ltr> · {x.taskType ? t(EQUIPMENT_TASK_KEY[x.taskType]) : t("equipmentPlan.instrumentFallback")}: {x.message}
+              </Typography>
+            );
+
             return (
               <Box sx={{ mt: 1.5 }}>
                 <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-                  Not planned, or adjusted ({preview.exceptions.length})
+                  <Trans
+                    i18nKey="plan.exceptionsHeading"
+                    ns="monitoring"
+                    values={{ count: preview.exceptions.length }}
+                    components={{ ltr: <Ltr>{null}</Ltr> }}
+                  />
                 </Typography>
 
                 {possibleDuplicates.length > 0 && (
                   <Box sx={{ mt: 0.5 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                        Possible duplicate instruments (not planned)
+                        {t("equipmentPlan.possibleDuplicates")}
                       </Typography>
                       <Button
                         size="small"
@@ -168,16 +223,12 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
                         onClick={() => setShowPossibleDuplicates((prev) => !prev)}
                         sx={{ textTransform: "none", fontSize: 12, p: 0, minWidth: "auto" }}
                       >
-                        {showPossibleDuplicates ? "Hide" : "Show"}
+                        {showPossibleDuplicates ? t("equipmentPlan.hide") : t("equipmentPlan.show")}
                       </Button>
                     </Box>
                     {showPossibleDuplicates && (
                       <Box sx={{ mt: 0.5 }}>
-                        {possibleDuplicates.map((x, i) => (
-                          <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", pl: 2 }}>
-                            {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
-                          </Typography>
-                        ))}
+                        {possibleDuplicates.map((x, i) => renderException(x, i, true))}
                       </Box>
                     )}
                   </Box>
@@ -187,7 +238,13 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
                   <Box sx={{ mt: 0.5 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                       <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                        {noIntervals.length} {noIntervals.length === 1 ? "instrument has" : "instruments have"} no calibration or maintenance interval
+                        <Trans
+                          i18nKey="equipmentPlan.noInterval"
+                          ns="monitoring"
+                          count={noIntervals.length}
+                          values={{ count: noIntervals.length }}
+                          components={{ ltr: <Ltr>{null}</Ltr> }}
+                        />
                       </Typography>
                       <Button
                         size="small"
@@ -195,33 +252,25 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
                         onClick={() => setShowNoInterval((prev) => !prev)}
                         sx={{ textTransform: "none", fontSize: 12, p: 0, minWidth: "auto" }}
                       >
-                        {showNoInterval ? "Hide" : "Show"}
+                        {showNoInterval ? t("equipmentPlan.hide") : t("equipmentPlan.show")}
                       </Button>
                     </Box>
                     {showNoInterval && (
                       <Box sx={{ mt: 0.5 }}>
-                        {noIntervals.map((x, i) => (
-                          <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", pl: 2 }}>
-                            {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
-                          </Typography>
-                        ))}
+                        {noIntervals.map((x, i) => renderException(x, i, true))}
                       </Box>
                     )}
                   </Box>
                 )}
 
-                {otherExceptions.map((x, i) => (
-                  <Typography key={i} sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
-                    {x.equipmentCode} · {x.taskType ?? "Instrument"}: {x.message}
-                  </Typography>
-                ))}
+                {otherExceptions.map((x, i) => renderException(x, i, false))}
               </Box>
             );
           })()}
 
           {isGeneratingUser && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              The plan must be approved by someone other than the person who generated it.
+              {t("equipmentPlan.sameUserWarning")}
             </Alert>
           )}
 
@@ -229,7 +278,7 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
             <Stack spacing={1.5} sx={{ mt: 2, maxWidth: 420 }}>
               {approved && (
                 <TextField
-                  label="Reason for the revision"
+                  label={t("plan.revisionReasonLabel")}
                   required
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
@@ -238,10 +287,10 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
               <Box>
                 <Button
                   variant="contained"
-                  disabled={busy || isGeneratingUser || (!!approved && reason.trim().length < 5)}
+                  disabled={busy || isGeneratingUser || (!!approved && trimmedReason.length < 5)}
                   onClick={() => setSigning(true)}
                 >
-                  Continue to sign
+                  {t("commonFields.continueToSign")}
                 </Button>
               </Box>
             </Stack>
@@ -252,10 +301,17 @@ export function EquipmentPlanPanel({ year, onApproved }: { year: number; onAppro
       {draft && (
         <SignatureDialog
           open={signing}
-          meaningStatement={`I am approving the ${year} equipment calibration and maintenance plan (revision ${draft.revisionNumber}), which starts on ${draft.effectiveFrom} with ${draft.taskCount} planned task(s).${reason.trim() ? ` Reason: ${reason.trim()}` : ""}`}
+          meaningStatement={`I am approving the ${year} equipment calibration and maintenance plan (revision ${draft.revisionNumber}), which starts on ${draft.effectiveFrom} with ${draft.taskCount} planned task(s).${trimmedReason ? ` Reason: ${trimmedReason}` : ""}`}
+          meaningStatementTranslation={t("equipmentPlan.signatureMeaning", {
+            year,
+            rev: draft.revisionNumber,
+            date: draft.effectiveFrom,
+            count: draft.taskCount,
+            reasonSuffix: trimmedReason ? t("plan.reasonSuffix", { reason: trimmedReason }) : ""
+          })}
           onCancel={() => setSigning(false)}
           onConfirm={async (password) => {
-            await EquipmentPlanService.approve(draft.id, password, reason.trim() || undefined);
+            await EquipmentPlanService.approve(draft.id, password, trimmedReason || undefined);
             setSigning(false);
             setReason("");
             onApproved();

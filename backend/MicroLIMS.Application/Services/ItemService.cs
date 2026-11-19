@@ -1,3 +1,5 @@
+using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -14,6 +16,7 @@ namespace MicroLIMS.Application.Services;
 public class ItemService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly ChangeReasonGuard _reasonGuard;
 
     private static readonly SampleCategory[] AllowedItemCategories =
     {
@@ -22,9 +25,13 @@ public class ItemService
         SampleCategory.PackagingMaterial,
     };
 
-    public ItemService(IMicroLimsDbContext db)
+    public ItemService(
+        IMicroLimsDbContext db,
+        IUserSectionScopeService? scope = null,
+        ChangeReasonGuard? reasonGuard = null)
     {
         _db = db;
+        _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope ?? new UserSectionScopeService(db)));
     }
 
     public async Task<List<ItemResponse>> GetAllAsync() =>
@@ -34,7 +41,7 @@ public class ItemService
     // Distinct case-insensitively (legacy rows may differ only in case).
     public async Task<IReadOnlyList<string>> GetGradesAsync(int itemId)
     {
-        var grades = await _db.Specifications.Where(s => s.ItemId == itemId && s.Grade != null)
+        var grades = await _db.Specifications.Where(s => s.ItemId == itemId && s.Grade != null && !s.IsRetired)
             .Select(s => s.Grade!).Distinct().ToListAsync();
         return grades.GroupBy(g => g, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.OrderBy(x => x, StringComparer.Ordinal).First())
@@ -43,12 +50,15 @@ public class ItemService
 
     // Builds the Item from the fields a client may set. Id, IsActive and
     // Specifications are never taken from the request - see ItemSaveRequest.
-    public async Task<ItemResponse> CreateAsync(ItemSaveRequest request)
+    public async Task<ItemResponse> CreateAsync(ItemSaveRequest request, int currentUserId = 0, CancellationToken cancellationToken = default)
     {
         EnsureAllowedCategory(request.Category);
         EnsureMinimumQuantity(request);
 
-        if (await _db.Items.AnyAsync(i => i.Code == request.Code))
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+
+        if (await _db.Items.AnyAsync(i => i.Code == request.Code, cancellationToken))
             throw new BusinessRuleException($"An item with code '{request.Code}' already exists.");
 
         var item = new Item
@@ -64,7 +74,7 @@ public class ItemService
         };
 
         _db.Items.Add(item);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return ItemResponse.From(item);
     }
 
@@ -74,16 +84,22 @@ public class ItemService
     // without removing the old ones, and would wipe Specifications
     // (managed on its own page, never sent by this form) since the
     // incoming graph never populates that collection.
-    public async Task UpdateAsync(int id, ItemSaveRequest update)
+    public async Task UpdateAsync(
+        int id,
+        ItemSaveRequest update,
+        string? changeReason = null,
+        int currentUserId = 0,
+        CancellationToken cancellationToken = default)
     {
         EnsureAllowedCategory(update.Category);
         EnsureMinimumQuantity(update);
 
-        var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id)
+        var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Item {id} not found.");
         RecordVersion.EnsureCurrent(_db, item);
+        await _reasonGuard.EnsureAsync(MasterRecordType.Item, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
 
-        if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id))
+        if (await _db.Items.AnyAsync(i => i.Code == update.Code && i.Id != id, cancellationToken))
             throw new BusinessRuleException($"An item with code '{update.Code}' already exists.");
 
         item.Name = update.Name;
@@ -97,7 +113,9 @@ public class ItemService
         _db.RemoveRange(item.AssignedTests);
         item.AssignedTests = ToSampleTests(update.AssignedTests);
 
-        await _db.SaveChangesAsync();
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     private static void EnsureMinimumQuantity(ItemSaveRequest r)
@@ -129,35 +147,56 @@ public class ItemService
     // but ProductWorkflowEngine.ReceiveAsync refuses to use them for new
     // samples. This is the safe way to retire an Item that has already
     // been used - see DeleteAsync for why a hard delete can't always happen.
-    public async Task SetActiveAsync(int id, bool isActive)
+    public async Task SetActiveAsync(
+        int id,
+        bool isActive,
+        string? changeReason = null,
+        int currentUserId = 0,
+        CancellationToken cancellationToken = default)
     {
-        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id)
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Item {id} not found.");
+        await _reasonGuard.EnsureAsync(
+            MasterRecordType.Item,
+            id,
+            isActive ? ChangeKind.Unfreeze : ChangeKind.Freeze,
+            changeReason,
+            currentUserId,
+            cancellationToken);
         item.IsActive = isActive;
-        await _db.SaveChangesAsync();
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
+        await _db.SaveChangesAsync(cancellationToken);
     }
 
     // Sample.ItemId is a Restrict FK (see SampleConfiguration) - deleting
     // an Item that has ever received a sample would otherwise surface as
     // a raw database constraint error. Guard it here with a clear message
     // and point at Freeze as the alternative.
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(
+        int id,
+        string? changeReason = null,
+        int currentUserId = 0,
+        CancellationToken cancellationToken = default)
     {
-        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id)
+        var item = await _db.Items.FirstOrDefaultAsync(i => i.Id == id, cancellationToken)
             ?? throw new NotFoundException($"Item {id} not found.");
 
-        var sampleCount = await _db.Samples.CountAsync(s => s.ItemId == id);
+        var sampleCount = await _db.Samples.CountAsync(s => s.ItemId == id, cancellationToken);
         if (sampleCount > 0)
             throw new BusinessRuleException(
                 $"Cannot delete '{item.Name}' - it has been used to receive {sampleCount} sample(s). Freeze it instead to stop new samples without losing history.");
 
         // NotApplicableTest.ItemId is Restrict too; the signed records must survive, so refuse.
-        var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id);
+        var naCount = await _db.NotApplicableTests.CountAsync(n => n.ItemId == id, cancellationToken);
         if (naCount > 0)
             throw new BusinessRuleException(
                 $"Cannot delete '{item.Name}' - it has {naCount} not-applicable record(s). Freeze it instead to keep that history.");
 
+        await _reasonGuard.EnsureAsync(MasterRecordType.Item, id, ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
+        if (_db.CurrentUserId is null && currentUserId > 0)
+            _db.CurrentUserId = currentUserId;
         _db.Items.Remove(item);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
     }
 }

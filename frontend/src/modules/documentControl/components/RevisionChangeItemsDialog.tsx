@@ -33,6 +33,8 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutlined";
 import { documentRevisionService } from "../services/documentRevisionService";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
 import { tableHeadSx } from "../../../theme";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 import type {
   RevisionChangeItemDto
 } from "../types/documentControlTypes";
@@ -56,6 +58,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
   isEditable,
   onChanged
 }) => {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const [items, setItems] = useState<RevisionChangeItemDto[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -91,8 +94,8 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
     try {
       const data = await documentRevisionService.getChangeItems(revisionId);
       setItems(data);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load change items.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("changeItems.loadError")));
     } finally {
       setLoading(false);
     }
@@ -101,7 +104,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!description.trim()) {
-      setError("Description of change is required.");
+      setError(t("changeItems.descriptionRequired"));
       return;
     }
     setAdding(true);
@@ -118,8 +121,8 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
       setShowAdd(false);
       await loadItems();
       if (onChanged) onChanged();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to add change item.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("changeItems.addError")));
     } finally {
       setAdding(false);
     }
@@ -137,8 +140,8 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
       await documentRevisionService.deactivateChangeItem(id);
       await loadItems();
       if (onChanged) onChanged();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to remove change item.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("changeItems.removeError")));
     }
   };
 
@@ -155,15 +158,15 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
       }, item.version);
       await loadItems();
       if (onChanged) onChanged();
-    } catch (err: any) {
-      setError("Failed to update status.");
+    } catch (_err: unknown) {
+      setError(t("changeItems.statusError"));
     }
   };
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ fontWeight: 600, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span>Structured Change Items: Rev {revisionNumber}</span>
+        <span>{t("changeItems.title", { rev: revisionNumber })}</span>
         {isEditable && !showAdd && (
           <Button
             startIcon={<AddCircleOutlineIcon />}
@@ -171,7 +174,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
             size="small"
             onClick={() => setShowAdd(true)}
           >
-            Add Change Item
+            {t("changeItems.addButton")}
           </Button>
         )}
       </DialogTitle>
@@ -181,64 +184,64 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
         {showAdd && (
           <Paper variant="outlined" sx={{ p: 2.5, mb: 3, bgcolor: (t) => t.palette.mode === "dark" ? "action.hover" : "grey.50" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-              Add New Section Change Item
+              {t("changeItems.addSectionTitle")}
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.5fr", gap: 2, mb: 2 }}>
               <TextField
-                label="Section #"
+                label={t("changeItems.sectionNumLabel")}
                 size="small"
                 value={sectionNumber}
                 onChange={(e) => setSectionNumber(e.target.value)}
-                placeholder="e.g. 4.2"
+                placeholder={t("changeItems.sectionNumPlaceholder")}
                 required
               />
               <TextField
-                label="Section Title"
+                label={t("changeItems.sectionTitleLabel")}
                 size="small"
                 value={sectionTitle}
                 onChange={(e) => setSectionTitle(e.target.value)}
-                placeholder="e.g. Incubation Conditions"
+                placeholder={t("changeItems.sectionTitlePlaceholder")}
                 required
               />
               <FormControl size="small">
-                <InputLabel>Category</InputLabel>
+                <InputLabel>{t("changeItems.categoryLabel")}</InputLabel>
                 <Select
                   value={category}
-                  label="Category"
+                  label={t("changeItems.categoryLabel")}
                   onChange={(e) => setCategory(e.target.value)}
-                  inputProps={{ "aria-label": "Category" }}
+                  inputProps={{ "aria-label": t("changeItems.categoryLabel") }}
                 >
                   {CATEGORIES.map((c) => (
-                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                    <MenuItem key={c} value={c}>{t(`changeItems.categories.${c}`)}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 2 }}>
               <TextField
-                label="Description of Change *"
+                label={t("changeItems.descriptionLabel")}
                 multiline
                 rows={2}
                 size="small"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Detailed description of what is changing in this section..."
+                placeholder={t("changeItems.descriptionPlaceholder")}
                 required
               />
               <TextField
-                label="Change Rationale *"
+                label={t("changeItems.rationaleLabel")}
                 multiline
                 rows={2}
                 size="small"
                 value={rationale}
                 onChange={(e) => setRationale(e.target.value)}
-                placeholder="Regulatory, scientific, or compendial reason for this modification..."
+                placeholder={t("changeItems.rationalePlaceholder")}
                 required
               />
             </Box>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
               <Button size="small" onClick={() => { setShowAdd(false); resetForm(); }}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 size="small"
@@ -246,7 +249,7 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                 onClick={handleAddItem}
                 disabled={adding}
               >
-                {adding ? <CircularProgress size={18} /> : "Save Item"}
+                {adding ? <CircularProgress size={18} /> : t("changeItems.saveItem")}
               </Button>
             </Box>
           </Paper>
@@ -258,20 +261,20 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
           </Box>
         ) : items.length === 0 ? (
           <Alert severity="info">
-            No structured change items recorded for this revision yet.
+            {t("changeItems.empty")}
           </Alert>
         ) : (
           <TableContainer>
             <Table size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
-                  <TableCell sx={{ fontWeight: 600 }}>Section</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Rationale</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Origin</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                  {isEditable && <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>Actions</TableCell>}
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.section")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.category")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.description")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.rationale")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.origin")}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{t("changeItems.columns.status")}</TableCell>
+                  {isEditable && <TableCell sx={{ fontWeight: 600, textAlign: "right" }}>{t("changeItems.columns.actions")}</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -287,11 +290,11 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                     <TableCell sx={{ maxWidth: 220 }}>{item.changeRationale}</TableCell>
                     <TableCell>
                       {item.originatingReviewFindingId ? (
-                        <Chip label={`Finding #${item.originatingReviewFindingId}`} size="small" color="secondary" />
+                        <Chip label={t("changeItems.findingChip", { id: item.originatingReviewFindingId })} size="small" color="secondary" />
                       ) : (
                         <Typography variant="caption" sx={{
                           color: "text.secondary"
-                        }}>Author Added</Typography>
+                        }}>{t("changeItems.authorAdded")}</Typography>
                       )}
                     </TableCell>
                     <TableCell>
@@ -305,8 +308,8 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
                     </TableCell>
                     {isEditable && (
                       <TableCell sx={{ textAlign: "right" }}>
-                        <Tooltip title="Remove change item from this draft">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label="Remove change item from this draft">
+                        <Tooltip title={t("changeItems.removeTooltip")}>
+                          <IconButton size="small" color="error" onClick={() => handleDeleteItem(item.id)} aria-label={t("changeItems.removeAria")}>
                             <RemoveCircleOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -320,14 +323,14 @@ export const RevisionChangeItemsDialog: React.FC<RevisionChangeItemsDialogProps>
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t("changeItems.close")}</Button>
       </DialogActions>
 
       <ConfirmationDialog
         open={itemToDelete !== null}
-        title="Remove Change Item"
-        message="Remove this change item from the draft? It will no longer appear in the change item list. The record itself is retained and remains visible in the audit trail, as controlled records are never deleted."
-        confirmText="Remove Item"
+        title={t("changeItems.confirmTitle")}
+        message={t("changeItems.confirmMessage")}
+        confirmText={t("changeItems.confirmButton")}
         destructive
         onConfirm={confirmDeleteItem}
         onCancel={() => setItemToDelete(null)}

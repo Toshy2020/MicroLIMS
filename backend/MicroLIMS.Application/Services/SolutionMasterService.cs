@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services;
 
@@ -46,17 +47,20 @@ public class SolutionMasterService
     private readonly IUserSectionScopeService _scope;
     private readonly IAuditEventService _auditEventService;
     private readonly TimeProvider _time;
+    private readonly MasterDataBatchService _batch;
 
     public SolutionMasterService(
         IMicroLimsDbContext db,
         IUserSectionScopeService scope,
         IAuditEventService auditEventService,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        MasterDataBatchService? batchService = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _scope = scope;
         _auditEventService = auditEventService;
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public async Task<List<SolutionMasterResponse>> GetAllAsync(int currentUserId, SolutionType? type = null, bool activeOnly = false, CancellationToken ct = default)
@@ -122,6 +126,107 @@ public class SolutionMasterService
         await _db.SaveChangesAsync(ct);
 
         return await GetByIdAsync(solution.Id, currentUserId, ct);
+    }
+
+    public Task<IReadOnlyList<SolutionMasterResponse>> CreateBatchAsync(
+        IReadOnlyList<SaveSolutionMasterRequest>? requests,
+        int currentUserId,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            (row, index, token) => ValidateCreateRowAsync(currentUserId, row, index, token),
+            row => CreateAsync(row, currentUserId, ct),
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateRowAsync(
+        int currentUserId,
+        SaveSolutionMasterRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add(new FieldError("name", "Name is required.", row));
+        }
+
+        try
+        {
+            await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, ct, SectionAccess.Configure);
+        }
+        catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException)
+        {
+            errors.Add(new FieldError("sectionId", ex.Message, row));
+        }
+
+        if (request.PhAdjustingEntryId is int phEntryId
+            && (phEntryId <= 0 || !await _db.MaterialMasterEntries.AsNoTracking().AnyAsync(e => e.Id == phEntryId, ct)))
+        {
+            errors.Add(new FieldError("phAdjustingEntryId", $"Material master entry {phEntryId} not found.", row));
+        }
+
+        if (request.StandardEntryId is int standardEntryId
+            && (standardEntryId <= 0 || !await _db.MaterialMasterEntries.AsNoTracking().AnyAsync(e => e.Id == standardEntryId, ct)))
+        {
+            errors.Add(new FieldError("standardEntryId", $"Standard entry {standardEntryId} not found.", row));
+        }
+
+        if (request.ReferenceSolutionId is int refSolId
+            && (refSolId <= 0 || !await _db.SolutionMasters.AsNoTracking().AnyAsync(s => s.Id == refSolId, ct)))
+        {
+            errors.Add(new FieldError("referenceSolutionId", $"Reference solution {refSolId} not found.", row));
+        }
+
+        if (request.Components is null)
+        {
+            errors.Add(new FieldError("components", "At least one component is required.", row));
+        }
+        else
+        {
+            if (request.Components.Any(c => c is null))
+            {
+                errors.Add(new FieldError("components", "Component is required.", row));
+            }
+
+            var entryIds = request.Components
+                .Where(c => c is not null && c.MaterialMasterEntryId.HasValue)
+                .Select(c => c.MaterialMasterEntryId!.Value)
+                .Distinct()
+                .ToList();
+            if (entryIds.Count > 0)
+            {
+                var foundIds = (await _db.MaterialMasterEntries
+                    .AsNoTracking()
+                    .Where(e => entryIds.Contains(e.Id))
+                    .Select(e => e.Id)
+                    .ToListAsync(ct)).ToHashSet();
+                foreach (var missingId in entryIds.Where(id => !foundIds.Contains(id)))
+                {
+                    errors.Add(new FieldError("components", $"Material master entry {missingId} not found.", row));
+                }
+            }
+
+            var sourceIds = request.Components
+                .Where(c => c is not null && c.SourceSolutionMasterId.HasValue)
+                .Select(c => c.SourceSolutionMasterId!.Value)
+                .Distinct()
+                .ToList();
+            if (sourceIds.Count > 0)
+            {
+                var foundIds = (await _db.SolutionMasters
+                    .AsNoTracking()
+                    .Where(s => sourceIds.Contains(s.Id))
+                    .Select(s => s.Id)
+                    .ToListAsync(ct)).ToHashSet();
+                foreach (var missingId in sourceIds.Where(id => !foundIds.Contains(id)))
+                {
+                    errors.Add(new FieldError("components", $"Source solution {missingId} not found.", row));
+                }
+            }
+        }
+
+        return errors;
     }
 
     public async Task<SolutionMasterResponse> UpdateAsync(int id, SaveSolutionMasterRequest r, int currentUserId, CancellationToken ct = default)

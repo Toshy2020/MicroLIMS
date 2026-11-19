@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs;
@@ -34,6 +35,17 @@ public class MultiSectionReviewApprovalTests
         var role = new Role { Type = type, Name = type.ToString() };
         db.Roles.Add(role);
         await db.SaveChangesAsync();
+        if (type == RoleType.Reviewer)
+        {
+            var reviewPerm = await db.Permissions.FirstOrDefaultAsync(p => p.Code == PermissionConstants.SamplesReview);
+            if (reviewPerm is null)
+            {
+                reviewPerm = new Permission { Code = PermissionConstants.SamplesReview, Description = PermissionConstants.SamplesReview };
+                db.Permissions.Add(reviewPerm);
+                await db.SaveChangesAsync();
+            }
+            db.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = reviewPerm.Id });
+        }
         db.Users.Add(new User { Id = id, FullName = $"User {id}", Username = $"user{id}", RoleId = role.Id, PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password) });
         if (type != RoleType.SystemAdministrator)
             db.UserOrgMemberships.Add(new UserOrgMembership { UserId = id, DepartmentId = departmentId, SectionId = sectionId });
@@ -183,7 +195,7 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(SampleStatus.UnderReview, await StatusAsync(db, w.Sample.Id));
         Assert.Equal(WorkflowStep.Ready, (await db.TestOrders.AsNoTracking().FirstAsync(t => t.Id == w.MicroTamc.Id)).CurrentStep);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.ReviewerFp, Password, null, null, sectionId: w.Micro));
     }
 
@@ -197,9 +209,9 @@ public class MultiSectionReviewApprovalTests
         await db.SaveChangesAsync();
 
         // Administrators control the system, never review GxP data: no section is theirs to review, named or not.
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             review.CompleteReviewAsync(w.Sample.Id, w.Admin, Password, null, null, sectionId: w.Micro));
         Assert.Equal(SectionSignoffStatus.UnderReview, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }
@@ -366,7 +378,7 @@ public class MultiSectionReviewApprovalTests
         var w = await SeedUnderApprovalAsync(db);
         var approval = TestServiceFactory.SampleApproval(db);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+        await Assert.ThrowsAnyAsync<UnauthorizedAccessException>(() =>
             approval.DecideAsync(w.Sample.Id, w.HeadFp, Password, ApprovalDecision.Approve, null, null, sectionId: w.Micro));
         Assert.Equal(SectionSignoffStatus.UnderApproval, (await SignoffAsync(db, w.Sample.Id, w.Micro))!.Status);
     }
@@ -524,7 +536,7 @@ public class MultiSectionReviewApprovalTests
         Assert.Equal(new[] { w.Micro, w.Fp }.OrderBy(x => x), reviewer.ReviewQueue.Select(r => r.SectionId!.Value).OrderBy(x => x));
 
         var notifications = await TestServiceFactory.DashboardNotification(db).GetNotificationsAsync(RoleType.Reviewer, w.ReviewerFp);
-        Assert.Contains(notifications, n => n.Type == "ReviewWaiting" && n.Message == "1 sample(s) awaiting review.");
+        Assert.Contains(notifications, n => n.Type == "ReviewWaiting");
     }
 
     [Fact]

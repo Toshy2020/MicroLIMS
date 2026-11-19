@@ -4,6 +4,7 @@ import {
 } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
+import { i18n, useTranslation } from "../../../../i18n";
 import { AppliedLimit, ApplyLimitItem, LimitTarget } from "../../types/controlChartTypes";
 import { fmt } from "./SpcCharts";
 
@@ -37,6 +38,7 @@ const toText = (v: number | null) => (v == null ? "" : String(v));
 // records any difference as an override, and validates every pair - this
 // dialog only collects the signer's choice, reason and signature.
 export function ApplyLimitsDialog({ open, candidates, basisSummary, onCancel, onSubmit, onApplied }: ApplyLimitsDialogProps) {
+  const { t } = useTranslation("reports");
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [reason, setReason] = useState("");
   const [signing, setSigning] = useState(false);
@@ -74,38 +76,38 @@ export function ApplyLimitsDialog({ open, candidates, basisSummary, onCancel, on
     <>
       <FloatingDialog
         open={open && !signing}
-        title="Apply trend limits to configuration"
+        title={t("controlChart.applyLimits.title")}
         onClose={onCancel}
         maxWidth="lg"
         actions={
           <>
-            <Button onClick={onCancel}>Cancel</Button>
+            <Button onClick={onCancel}>{t("controlChart.applyLimits.cancel")}</Button>
             <Button variant="contained" disabled={!allValid || !reason.trim()} onClick={() => setSigning(true)}>
-              Sign & apply ({items.length})
+              {t("controlChart.applyLimits.signAndApply", { count: items.length })}
             </Button>
           </>
         }
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 1.5 }}>
-          Basis: {basisSummary}. New limits apply to results entered from now on; results already recorded keep the limits they were evaluated against.
+          {t("controlChart.applyLimits.basis", { basisSummary })}
         </Typography>
         {anyBelowMinimum && (
           <Alert severity="warning" sx={{ mb: 1.5 }}>
-            Some locations have fewer results than the minimum for a statistical limit. Justify this in the reason for change.
+            {t("controlChart.applyLimits.belowMinimumWarning")}
           </Alert>
         )}
         <Box sx={{ overflowX: "auto" }}>
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell>Location</TableCell>
-                <TableCell>Configuration</TableCell>
+                <TableCell>{t("controlChart.applyLimits.location")}</TableCell>
+                <TableCell>{t("controlChart.applyLimits.configuration")}</TableCell>
                 <TableCell align="right">n</TableCell>
-                <TableCell align="right">Current alert / action</TableCell>
-                <TableCell align="right">Calculated alert / action</TableCell>
-                <TableCell align="right">New alert</TableCell>
-                <TableCell align="right">New action</TableCell>
-                <TableCell align="right">Specification</TableCell>
+                <TableCell align="right">{t("controlChart.applyLimits.currentAlertAction")}</TableCell>
+                <TableCell align="right">{t("controlChart.applyLimits.calculatedAlertAction")}</TableCell>
+                <TableCell align="right">{t("controlChart.applyLimits.newAlert")}</TableCell>
+                <TableCell align="right">{t("controlChart.applyLimits.newAction")}</TableCell>
+                <TableCell align="right">{t("controlChart.applyLimits.specification")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -126,12 +128,12 @@ export function ApplyLimitsDialog({ open, candidates, basisSummary, onCancel, on
                     <TableCell align="right">{fmt(c.proposedAlert)} / {fmt(c.proposedAction)}</TableCell>
                     <TableCell align="right">
                       <TextField size="small" value={d.alert} onChange={(e) => setDraft(key(c), { alert: e.target.value })}
-                        slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": `New alert limit for ${c.subjectName}`, style: { textAlign: "right", width: 64 } } }} />
+                        slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": t("controlChart.applyLimits.newAlertAria", { subject: c.subjectName }), style: { textAlign: "right", width: 64 } } }} />
                     </TableCell>
                     <TableCell align="right">
                       <TextField size="small" value={d.action} onChange={(e) => setDraft(key(c), { action: e.target.value })}
-                        slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": `New action limit for ${c.subjectName}`, style: { textAlign: "right", width: 64 } } }} />
-                      {overridden && <Chip size="small" color="info" label="Override" sx={{ ml: 1 }} />}
+                        slotProps={{ htmlInput: { inputMode: "decimal", "aria-label": t("controlChart.applyLimits.newActionAria", { subject: c.subjectName }), style: { textAlign: "right", width: 64 } } }} />
+                      {overridden && <Chip size="small" color="info" label={t("controlChart.applyLimits.override")} sx={{ ml: 1 }} />}
                     </TableCell>
                     <TableCell align="right">{c.target.specLimit || "—"} {c.target.unit}</TableCell>
                   </TableRow>
@@ -141,21 +143,22 @@ export function ApplyLimitsDialog({ open, candidates, basisSummary, onCancel, on
           </Table>
         </Box>
         <TextField
-          label="Reason for change"
+          label={t("controlChart.applyLimits.reasonLabel")}
           required
           fullWidth
           multiline
           minRows={2}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. Annual alert/action limit review 2026 per SOP QC-EM-012"
+          placeholder={t("controlChart.applyLimits.reasonPlaceholder")}
           sx={{ mt: 2 }}
         />
       </FloatingDialog>
 
       <SignatureDialog
         open={open && signing}
-        meaningStatement={`I approve replacing the alert and action limits of ${items.length} configuration(s) with the values shown, derived from the trend analysis.`}
+        meaningStatement={i18n.getFixedT("en", "reports")("controlChart.applyLimits.signatureMeaning", { count: items.length })}
+        meaningStatementTranslation={t("controlChart.applyLimits.signatureMeaning", { count: items.length })}
         onCancel={() => setSigning(false)}
         onConfirm={async (password) => {
           const applied = await onSubmit(items, reason.trim(), password);

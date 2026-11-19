@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { i18n } from "../../../i18n";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { ChromatographyColumnsPage, chromatographyTypeLabel } from "./ChromatographyColumnsPage";
 import { EquipmentConfigurationService } from "./services/EquipmentConfigurationService";
@@ -26,7 +27,10 @@ vi.mock("../../../services/laboratorySectionService", () => ({
   getMySections: vi.fn().mockResolvedValue([{ sectionId: 5, sectionName: "FP" }])
 }));
 
-afterEach(cleanup);
+afterEach(async () => {
+  cleanup();
+  await i18n.changeLanguage("en");
+});
 
 describe("ChromatographyColumnsPage", () => {
   it("labels HPLC and GC instrument types", () => {
@@ -56,5 +60,21 @@ describe("ChromatographyColumnsPage", () => {
     const listbox = await screen.findByRole("listbox");
     expect(within(listbox).getByText("[GC] GC-01 - Agilent GC")).toBeTruthy();
     expect(within(listbox).getByText("[HPLC] HPLC-01 - Shimadzu LC")).toBeTruthy();
+  });
+
+  it("renders headings and actions in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["common", "masterData"]);
+
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <ChromatographyColumnsPage />
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    expect(await screen.findByRole("heading", { name: "أعمدة الكروماتوغرافيا" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { name: "إضافة عمود" }).length).toBeGreaterThan(0);
   });
 });

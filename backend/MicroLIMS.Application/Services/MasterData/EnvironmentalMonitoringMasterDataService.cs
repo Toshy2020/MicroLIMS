@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -17,10 +18,12 @@ namespace MicroLIMS.Application.Services.MasterData;
 public class EnvironmentalMonitoringMasterDataService
 {
     private readonly IMicroLimsDbContext _db;
+    private readonly MasterDataBatchService _batch;
 
-    public EnvironmentalMonitoringMasterDataService(IMicroLimsDbContext db)
+    public EnvironmentalMonitoringMasterDataService(IMicroLimsDbContext db, MasterDataBatchService? batchService = null)
     {
         _db = db;
+        _batch = batchService ?? new MasterDataBatchService(db);
     }
 
     public async Task<object> GetDepartmentsAsync()
@@ -122,6 +125,7 @@ public class EnvironmentalMonitoringMasterDataService
 
     public async Task<RoomResponse> CreateRoomAsync(CreateRoomRequest request)
     {
+        await EnsureRoomNameUniqueInDepartmentAsync(request.DepartmentId, request.Name);
         var room = new Room { Name = request.Name, DepartmentId = request.DepartmentId, GradeClassification = request.GradeClassification };
         await ApplyKindAsync(room, request.Kind, request.ParentRoomId);
         ApplyFrequency(room, request.Frequency);
@@ -130,11 +134,187 @@ public class EnvironmentalMonitoringMasterDataService
         return RoomResponse.From(room);
     }
 
+    public Task<IReadOnlyList<RoomResponse>> CreateRoomsBatchAsync(
+        IReadOnlyList<CreateRoomRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            ValidateCreateRoomRowAsync,
+            CreateRoomAsync,
+            validateBatchAsync: ValidateRoomsBatchUniquenessAsync,
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateRoomRowAsync(
+        CreateRoomRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (string.IsNullOrWhiteSpace(request.Name))
+        {
+            errors.Add(new FieldError("name", "Room name is required.", row));
+        }
+        else if (request.Name.Trim().Length > 150)
+        {
+            errors.Add(new FieldError("name", "Room name must be at most 150 characters.", row));
+        }
+
+        if (request.GradeClassification is null)
+        {
+            errors.Add(new FieldError("gradeClassification", "Grade classification is required.", row));
+        }
+
+        if (request.DepartmentId <= 0 || !await _db.Departments.AsNoTracking().AnyAsync(d => d.Id == request.DepartmentId, ct))
+        {
+            errors.Add(new FieldError("departmentId", $"Department {request.DepartmentId} not found.", row));
+        }
+
+        if (!Enum.IsDefined(request.Kind))
+        {
+            errors.Add(new FieldError("kind", $"Unknown room kind '{request.Kind}'.", row));
+        }
+        else if (request.Kind == RoomKind.LAF)
+        {
+            if (request.ParentRoomId is null)
+            {
+                errors.Add(new FieldError("parentRoomId", "An LAF must belong to a room.", row));
+            }
+            else
+            {
+                var parent = await _db.Rooms.AsNoTracking().FirstOrDefaultAsync(r => r.Id == request.ParentRoomId.Value, ct);
+                if (parent is null)
+                {
+                    errors.Add(new FieldError("parentRoomId", $"Room {request.ParentRoomId.Value} not found.", row));
+                }
+                else if (parent.Kind != RoomKind.Room)
+                {
+                    errors.Add(new FieldError("parentRoomId", "An LAF must sit in a room, not in another LAF.", row));
+                }
+                else if (parent.DepartmentId != request.DepartmentId)
+                {
+                    errors.Add(new FieldError("parentRoomId", "An LAF must be in the same department as its room.", row));
+                }
+            }
+        }
+
+        if (request.Frequency is not null && FrequencyRules.Validate(request.Frequency) is { } problem)
+        {
+            errors.Add(new FieldError("frequency", problem, row));
+        }
+
+        return errors;
+    }
+
+    private async Task<IReadOnlyList<FieldError>> ValidateRoomsBatchUniquenessAsync(
+        IReadOnlyList<CreateRoomRequest> rows,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+        var byKey = new Dictionary<(int DepartmentId, string Name), List<int>>(RoomKeyComparer.Instance);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            if (row is null || string.IsNullOrWhiteSpace(row.Name)) continue;
+
+            var key = (row.DepartmentId, row.Name.Trim());
+            if (!byKey.TryGetValue(key, out var indices))
+            {
+                indices = new List<int>();
+                byKey[key] = indices;
+            }
+            indices.Add(i);
+        }
+
+        foreach (var ((_, name), indices) in byKey)
+        {
+            if (indices.Count <= 1) continue;
+            foreach (var rowIndex in indices)
+            {
+                errors.Add(new FieldError("name", $"Duplicate room '{name}' in batch.", rowIndex));
+            }
+        }
+
+        if (byKey.Count > 0)
+        {
+            var existingSet = await FindExistingRoomKeysAsync(byKey.Keys, ct: ct);
+
+            foreach (var (key, indices) in byKey)
+            {
+                if (!existingSet.Contains(key)) continue;
+                foreach (var rowIndex in indices)
+                {
+                    errors.Add(new FieldError("name", DuplicateRoomMessage(key.Name), rowIndex));
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private static string DuplicateRoomMessage(string trimmedName) =>
+        $"Room '{trimmedName}' already exists.";
+
+    private async Task EnsureRoomNameUniqueInDepartmentAsync(
+        int departmentId,
+        string? name,
+        int? excludeRoomId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        var trimmedName = name.Trim();
+        var existing = await FindExistingRoomKeysAsync([(departmentId, trimmedName)], excludeRoomId, ct);
+        if (existing.Contains((departmentId, trimmedName)))
+            throw new BusinessRuleException(DuplicateRoomMessage(trimmedName));
+    }
+
+    private async Task<HashSet<(int DepartmentId, string Name)>> FindExistingRoomKeysAsync(
+        IEnumerable<(int DepartmentId, string Name)> keys,
+        int? excludeRoomId = null,
+        CancellationToken ct = default)
+    {
+        var keyList = keys
+            .Where(k => !string.IsNullOrWhiteSpace(k.Name))
+            .Select(k => (k.DepartmentId, Name: k.Name.Trim()))
+            .Distinct(RoomKeyComparer.Instance)
+            .ToList();
+
+        if (keyList.Count == 0)
+            return new HashSet<(int DepartmentId, string Name)>(RoomKeyComparer.Instance);
+
+        var deptIds = keyList.Select(k => k.DepartmentId).Distinct().ToList();
+        var loweredNames = keyList.Select(k => k.Name.ToLowerInvariant()).Distinct().ToList();
+
+        var query = _db.Rooms
+            .AsNoTracking()
+            .Where(r => deptIds.Contains(r.DepartmentId) && loweredNames.Contains(r.Name.Trim().ToLower()));
+
+        if (excludeRoomId.HasValue)
+            query = query.Where(r => r.Id != excludeRoomId.Value);
+
+        var existingRows = await query
+            .Select(r => new { r.DepartmentId, r.Name })
+            .ToListAsync(ct);
+
+        return new HashSet<(int DepartmentId, string Name)>(
+            existingRows.Select(r => (r.DepartmentId, r.Name.Trim())),
+            RoomKeyComparer.Instance);
+    }
+
     public async Task<RoomResponse> UpdateRoomAsync(int id, UpdateRoomRequest request)
     {
         var room = await _db.Rooms.FirstOrDefaultAsync(r => r.Id == id)
             ?? throw new NotFoundException($"Room {id} not found.");
         RecordVersion.EnsureCurrent(_db, room);
+
+        var nameOrDeptChanged = room.DepartmentId != request.DepartmentId
+            || !string.Equals(room.Name.Trim(), request.Name.Trim(), StringComparison.OrdinalIgnoreCase);
+        if (nameOrDeptChanged)
+            await EnsureRoomNameUniqueInDepartmentAsync(request.DepartmentId, request.Name, excludeRoomId: id);
+
         if (request.IsActive.HasValue) room.IsActive = request.IsActive.Value;
         room.Name = request.Name;
         room.DepartmentId = request.DepartmentId;
@@ -185,6 +365,7 @@ public class EnvironmentalMonitoringMasterDataService
     public async Task<RoomTestConfigurationResponse> CreateRoomTestConfigurationAsync(CreateRoomTestConfigRequest request)
     {
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
+        await EnsureRoomTestConfigUniqueAsync(request.RoomId, request.TestType, request.TestCode);
         var entity = new RoomTestConfiguration
         {
             RoomId = request.RoomId, TestType = request.TestType, TestCode = request.TestCode,
@@ -196,13 +377,223 @@ public class EnvironmentalMonitoringMasterDataService
         return RoomTestConfigurationResponse.From(entity);
     }
 
+    public Task<IReadOnlyList<RoomTestConfigurationResponse>> CreateRoomTestConfigurationsBatchAsync(
+        IReadOnlyList<CreateRoomTestConfigRequest>? requests,
+        CancellationToken ct = default) =>
+        _batch.ExecuteAsync(
+            requests,
+            ValidateCreateRoomTestConfigRowAsync,
+            CreateRoomTestConfigurationAsync,
+            validateBatchAsync: ValidateRoomTestConfigsBatchUniquenessAsync,
+            ct: ct);
+
+    private async Task<IReadOnlyList<FieldError>> ValidateCreateRoomTestConfigRowAsync(
+        CreateRoomTestConfigRequest request,
+        int row,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+
+        if (request.RoomId <= 0 || !await _db.Rooms.AsNoTracking().AnyAsync(r => r.Id == request.RoomId, ct))
+        {
+            errors.Add(new FieldError("roomId", $"Room {request.RoomId} not found.", row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TestType))
+        {
+            errors.Add(new FieldError("testType", "Test type is required.", row));
+        }
+        else if (!RoomTestTypes.IsKnown(request.TestType))
+        {
+            errors.Add(new FieldError(
+                "testType",
+                $"Unknown test type '{request.TestType}'. Allowed: {string.Join(", ", RoomTestTypes.All)}.",
+                row));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.TestCode))
+        {
+            errors.Add(new FieldError("testCode", "Test code is required.", row));
+        }
+
+        if (RoomTestTypes.UsesConfiguredUnit(request.TestType) && string.IsNullOrWhiteSpace(request.Unit))
+        {
+            errors.Add(new FieldError("unit", $"Unit is required for {request.TestType} test configurations.", row));
+        }
+
+        if (request.AlertLimit is null)
+        {
+            errors.Add(new FieldError("alertLimit", "Alert limit is required.", row));
+        }
+
+        if (request.ActionLimit is null)
+        {
+            errors.Add(new FieldError("actionLimit", "Action limit is required.", row));
+        }
+
+        if (request.SpecLimit is null)
+        {
+            errors.Add(new FieldError("specLimit", "Spec limit is required.", row));
+        }
+
+        return errors;
+    }
+
+    private async Task<IReadOnlyList<FieldError>> ValidateRoomTestConfigsBatchUniquenessAsync(
+        IReadOnlyList<CreateRoomTestConfigRequest> rows,
+        CancellationToken ct)
+    {
+        var errors = new List<FieldError>();
+        var byKey = new Dictionary<(int RoomId, string TestType, string TestCode), List<int>>(RoomTestConfigKeyComparer.Instance);
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            if (row is null || string.IsNullOrWhiteSpace(row.TestType) || string.IsNullOrWhiteSpace(row.TestCode)) continue;
+
+            var key = (row.RoomId, row.TestType.Trim(), row.TestCode.Trim());
+            if (!byKey.TryGetValue(key, out var indices))
+            {
+                indices = new List<int>();
+                byKey[key] = indices;
+            }
+            indices.Add(i);
+        }
+
+        foreach (var ((roomId, testType, testCode), indices) in byKey)
+        {
+            if (indices.Count <= 1) continue;
+            foreach (var rowIndex in indices)
+            {
+                errors.Add(new FieldError(
+                    "testCode",
+                    $"Duplicate test configuration '{testCode}' ({testType}) for room {roomId} in batch.",
+                    rowIndex));
+            }
+        }
+
+        if (byKey.Count > 0)
+        {
+            var existingSet = await FindExistingActiveRoomTestConfigKeysAsync(byKey.Keys, ct: ct);
+
+            foreach (var (key, indices) in byKey)
+            {
+                if (!existingSet.Contains(key)) continue;
+                foreach (var rowIndex in indices)
+                {
+                    errors.Add(new FieldError(
+                        "testCode",
+                        DuplicateRoomTestConfigMessage(key.RoomId, key.TestType, key.TestCode),
+                        rowIndex));
+                }
+            }
+        }
+
+        return errors;
+    }
+
+    private static string DuplicateRoomTestConfigMessage(int roomId, string trimmedTestType, string trimmedTestCode) =>
+        $"Test configuration '{trimmedTestCode}' ({trimmedTestType}) already exists for room {roomId}.";
+
+    private async Task EnsureRoomTestConfigUniqueAsync(
+        int roomId,
+        string? testType,
+        string? testCode,
+        int? excludeConfigId = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(testType) || string.IsNullOrWhiteSpace(testCode))
+            return;
+
+        var trimmedType = testType.Trim();
+        var trimmedCode = testCode.Trim();
+        var existing = await FindExistingActiveRoomTestConfigKeysAsync([(roomId, trimmedType, trimmedCode)], excludeConfigId, ct);
+        if (existing.Contains((roomId, trimmedType, trimmedCode)))
+            throw new BusinessRuleException(DuplicateRoomTestConfigMessage(roomId, trimmedType, trimmedCode));
+    }
+
+    private async Task<HashSet<(int RoomId, string TestType, string TestCode)>> FindExistingActiveRoomTestConfigKeysAsync(
+        IEnumerable<(int RoomId, string TestType, string TestCode)> keys,
+        int? excludeConfigId = null,
+        CancellationToken ct = default)
+    {
+        var keyList = keys
+            .Where(k => !string.IsNullOrWhiteSpace(k.TestType) && !string.IsNullOrWhiteSpace(k.TestCode))
+            .Select(k => (k.RoomId, TestType: k.TestType.Trim(), TestCode: k.TestCode.Trim()))
+            .Distinct(RoomTestConfigKeyComparer.Instance)
+            .ToList();
+
+        if (keyList.Count == 0)
+            return new HashSet<(int RoomId, string TestType, string TestCode)>(RoomTestConfigKeyComparer.Instance);
+
+        var roomIds = keyList.Select(k => k.RoomId).Distinct().ToList();
+        var loweredTypes = keyList.Select(k => k.TestType.ToLowerInvariant()).Distinct().ToList();
+        var loweredCodes = keyList.Select(k => k.TestCode.ToLowerInvariant()).Distinct().ToList();
+
+        var query = _db.RoomTestConfigurations
+            .AsNoTracking()
+            // An inactive row is history: replacing it with a new active row is allowed.
+            .Where(c => c.IsActive
+                && roomIds.Contains(c.RoomId)
+                && loweredTypes.Contains(c.TestType.Trim().ToLower())
+                && loweredCodes.Contains(c.TestCode.Trim().ToLower()));
+
+        if (excludeConfigId.HasValue)
+            query = query.Where(c => c.Id != excludeConfigId.Value);
+
+        var existingRows = await query
+            .Select(c => new { c.RoomId, c.TestType, c.TestCode })
+            .ToListAsync(ct);
+
+        return new HashSet<(int RoomId, string TestType, string TestCode)>(
+            existingRows.Select(c => (c.RoomId, c.TestType.Trim(), c.TestCode.Trim())),
+            RoomTestConfigKeyComparer.Instance);
+    }
+
+    private sealed class RoomKeyComparer : IEqualityComparer<(int DepartmentId, string Name)>
+    {
+        public static readonly RoomKeyComparer Instance = new();
+
+        public bool Equals((int DepartmentId, string Name) x, (int DepartmentId, string Name) y) =>
+            x.DepartmentId == y.DepartmentId && string.Equals(x.Name, y.Name, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((int DepartmentId, string Name) obj) =>
+            HashCode.Combine(obj.DepartmentId, StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Name));
+    }
+
+    private sealed class RoomTestConfigKeyComparer : IEqualityComparer<(int RoomId, string TestType, string TestCode)>
+    {
+        public static readonly RoomTestConfigKeyComparer Instance = new();
+
+        public bool Equals((int RoomId, string TestType, string TestCode) x, (int RoomId, string TestType, string TestCode) y) =>
+            x.RoomId == y.RoomId
+            && string.Equals(x.TestType, y.TestType, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.TestCode, y.TestCode, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((int RoomId, string TestType, string TestCode) obj) =>
+            HashCode.Combine(
+                obj.RoomId,
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.TestType),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(obj.TestCode));
+    }
+
     public async Task<RoomTestConfigurationResponse> UpdateRoomTestConfigurationAsync(int id, UpdateRoomTestConfigRequest request)
     {
         var entity = await _db.RoomTestConfigurations.FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new NotFoundException($"Room test configuration {id} not found.");
         RecordVersion.EnsureCurrent(_db, entity);
-        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         ValidateRoomTestConfiguration(request.TestType, request.Unit);
+
+        var wasActive = entity.IsActive;
+        var willBeActive = request.IsActive ?? entity.IsActive;
+        var typeOrCodeChanged =
+            !string.Equals(entity.TestType.Trim(), request.TestType.Trim(), StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(entity.TestCode.Trim(), request.TestCode.Trim(), StringComparison.OrdinalIgnoreCase);
+
+        if (willBeActive && (!wasActive || typeOrCodeChanged))
+            await EnsureRoomTestConfigUniqueAsync(entity.RoomId, request.TestType, request.TestCode, excludeConfigId: id);
+
+        if (request.IsActive.HasValue) entity.IsActive = request.IsActive.Value;
         entity.TestType = request.TestType;
         entity.TestCode = request.TestCode;
         entity.AlertLimit = request.AlertLimit;

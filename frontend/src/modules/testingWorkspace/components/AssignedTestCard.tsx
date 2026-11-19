@@ -15,9 +15,11 @@ import {
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import { Ltr } from "../../../components/Ltr";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { TestOrderSummary, SampleCard as WorkspaceSampleCard } from "../types/workspaceTypes";
 import { useTestStepQuickAction } from "../hooks/useTestStepQuickAction";
+import { useTranslation } from "../../../i18n";
 import { clickable } from "../../../utils/clickable";
 
 interface AssignedTestCardProps {
@@ -27,28 +29,14 @@ interface AssignedTestCardProps {
   onActionComplete: () => void;
 }
 
-function formatDuration(seconds: number): string {
-  if (seconds <= 0) return "Ready to read";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}h ${minutes}m remaining`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m ${secs}s remaining`;
-  }
-  return `${secs}s remaining`;
-}
-
 // Closed test states come from the backend (WorkflowStateResolver). A closed
 // test has no next step, so these win over every incubation/step rule below.
-const CLOSED_TEST_STATES: Record<string, { status: string; label: string; text: string }> = {
-  REJECTED: { status: "Rejected", label: "Rejected", text: "✗ Rejected" },
-  VOIDED: { status: "Voided", label: "Voided", text: "Voided: struck from the record" },
-  CANCELLED: { status: "Cancelled", label: "Cancelled", text: "Cancelled" },
-  SUPERSEDED: { status: "Superseded", label: "Superseded", text: "Superseded: retested on a new sample" },
-  ON_HOLD: { status: "OnHold", label: "On Hold", text: "On hold, awaiting retest outcome" }
+const CLOSED_TEST_STATUSES: Record<string, string> = {
+  REJECTED: "Rejected",
+  VOIDED: "Voided",
+  CANCELLED: "Cancelled",
+  SUPERSEDED: "Superseded",
+  ON_HOLD: "OnHold"
 };
 
 export function AssignedTestCard({
@@ -57,7 +45,22 @@ export function AssignedTestCard({
   onTestClick,
   onActionComplete
 }: AssignedTestCardProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds <= 0) return t("assignedCard.readyToRead");
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hours > 0) {
+      return t("assignedCard.remainingHours", { hours, minutes });
+    }
+    if (minutes > 0) {
+      return t("assignedCard.remainingMinutes", { minutes, seconds: secs });
+    }
+    return t("assignedCard.remainingSeconds", { seconds: secs });
+  };
 
   // Water, EM and After Cleaning create their test orders inside PrepareAsync,
   // so before preparation those samples have no tests to interact with at all.
@@ -81,7 +84,7 @@ export function AssignedTestCard({
   // For closed tests and tests past result entry, dynamicBadge and centerText
   // return before reading any step data, so their current step isn't fetched.
   const stepDataUnused =
-    Boolean(test.workflowState && CLOSED_TEST_STATES[test.workflowState]) ||
+    Boolean(test.workflowState && CLOSED_TEST_STATUSES[test.workflowState]) ||
     test.workflowState === "APPROVED" || test.status === "Approved" ||
     test.workflowState === "REVIEWED" || test.status === "Reviewed" ||
     test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview";
@@ -122,7 +125,7 @@ export function AssignedTestCard({
     }
   });
 
-  const unit = sample.category === "EnvironmentalMonitoring" ? "rooms" : "parts";
+  const unit = sample.category === "EnvironmentalMonitoring" ? t("assignedCard.unitRooms") : t("assignedCard.unitParts");
   const locationLabel = test.locationCount > 0 ? ` (${test.locationCount} ${unit})` : "";
 
   // Effective incubation state (combines server status with optimistic update)
@@ -159,39 +162,39 @@ export function AssignedTestCard({
 
   // Dynamic Badge resolution: distinguish between media/incubator setup vs actual result entry
   const dynamicBadge = useMemo(() => {
-    const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
-    if (closed) {
-      return { status: closed.status, label: closed.label };
+    const closedStatus = test.workflowState ? CLOSED_TEST_STATUSES[test.workflowState] : undefined;
+    if (closedStatus && test.workflowState) {
+      return { status: closedStatus, label: t(`assignedCard.closed.${test.workflowState}.label`) };
     }
     // Blocked by the server: never shown as ready, whatever the timestamps say.
     if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
-      return { status: "Blocked", label: "Window Not Configured" };
+      return { status: "Blocked", label: t("assignedCard.badge.windowNotConfigured") };
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
-      return { status: "Approved", label: "Approved" };
+      return { status: "Approved", label: t("assignedCard.badge.approved") };
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return { status: "Reviewed", label: "Reviewed, Pending Approval" };
+      return { status: "Reviewed", label: t("assignedCard.badge.reviewed") };
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
-      return { status: "PendingReview", label: "Pending Review" };
+      return { status: "PendingReview", label: t("assignedCard.badge.pendingReview") };
     }
     if (effectiveIsIncubating) {
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
         if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
-          return { status: "Ready: Plating", label: "Ready: Plating" };
+          return { status: "Ready: Plating", label: t("assignedCard.badge.readyPlating") };
         }
-        return { status: "EnterResult", label: "Enter Result" };
+        return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
       }
-      return { status: "InProgress", label: "Incubating" };
+      return { status: "InProgress", label: t("assignedCard.badge.incubating") };
     }
 
     // Step-aware resolution when step metadata is loaded
     if (step) {
       // 1. Broth steps (BrothEnrichment, SelectiveBroth) -> Always media/incubator setup
       if (step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth") {
-        return { status: "Ready: Broth", label: "Ready: Broth" };
+        return { status: "Ready: Broth", label: t("assignedCard.badge.readyBroth") };
       }
 
       // 2. Selective Plating step
@@ -201,9 +204,9 @@ export function AssignedTestCard({
           (test.workflowState === "AWAITING_RESULTS" && !requiresMediaSetup);
 
         if (isPlatingIncComplete) {
-          return { status: "EnterResult", label: "Enter Result" };
+          return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
         }
-        return { status: "Ready: Plating", label: "Ready: Plating" };
+        return { status: "Ready: Plating", label: t("assignedCard.badge.readyPlating") };
       }
 
       // 3. Plate Count step (TAMC, TYMC, etc.)
@@ -213,9 +216,9 @@ export function AssignedTestCard({
           (test.workflowState === "AWAITING_RESULTS" && !requiresMediaSetup);
 
         if (isCountIncComplete) {
-          return { status: "EnterResult", label: "Enter Result" };
+          return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
         }
-        return { status: "Ready: Setup", label: "Ready: Setup" };
+        return { status: "Ready: Setup", label: t("assignedCard.badge.readySetup") };
       }
 
       // 4. Confirmatory Plating step
@@ -224,23 +227,23 @@ export function AssignedTestCard({
           (openIncubationRow && dynamicRemainingSeconds <= 0);
 
         if (isConfComplete) {
-          return { status: "EnterResult", label: "Enter Result" };
+          return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
         }
-        return { status: "Ready: Confirmatory", label: "Ready: Confirmatory" };
+        return { status: "Ready: Confirmatory", label: t("assignedCard.badge.readyConfirmatory") };
       }
 
       // 5. Biochemical Test step -> actual result entry
       if (step.stepType === "BiochemicalTest") {
-        return { status: "EnterResult", label: "Enter Result" };
+        return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
       }
     }
 
     // Fallbacks if step metadata is loading or from workspace state
     if (test.workflowState === "READY_FOR_DOWNSTREAM") {
-      return { status: "Ready: Plating", label: "Ready: Plating" };
+      return { status: "Ready: Plating", label: t("assignedCard.badge.readyPlating") };
     }
     if (test.workflowStatus === "EnterResult" || test.workflowState === "AWAITING_RESULTS") {
-      return { status: "EnterResult", label: "Enter Result" };
+      return { status: "EnterResult", label: t("assignedCard.badge.enterResult") };
     }
 
     return { status: test.workflowStatus ?? test.status, label: undefined };
@@ -254,55 +257,57 @@ export function AssignedTestCard({
     nowMs,
     openIncubationRow,
     dynamicRemainingSeconds,
-    requiresMediaSetup
+    requiresMediaSetup,
+    t
   ]);
 
   // Center text resolution (e.g. Ready for Selective Plating or countdown timer)
   const centerText = useMemo(() => {
-    const closed = test.workflowState ? CLOSED_TEST_STATES[test.workflowState] : undefined;
-    if (closed) {
-      return closed.text;
+    const closedStatus = test.workflowState ? CLOSED_TEST_STATUSES[test.workflowState] : undefined;
+    if (closedStatus && test.workflowState) {
+      return t(`assignedCard.closed.${test.workflowState}.text`);
     }
     if (test.workflowState === "WINDOW_NOT_CONFIGURED") {
-      return "Blocked: incubation window not configured in Test Master";
+      return t("assignedCard.center.windowNotConfigured");
     }
     if (test.workflowState === "APPROVED" || test.status === "Approved") {
-      return "✓ Approved & Complete";
+      return t("assignedCard.center.approved");
     }
     if (test.workflowState === "REVIEWED" || test.status === "Reviewed") {
-      return "✓ Reviewed, Pending Approval";
+      return t("assignedCard.center.reviewed");
     }
     if (test.workflowState === "RESULTS_RECORDED" || test.status === "UnderReview") {
-      return "Result Recorded, Pending Review";
+      return t("assignedCard.center.pendingReview");
     }
 
     if (effectiveIsIncubating) {
-      const mediaLabel = optimisticDetails?.mediaName || activeIncubation?.mediaName || openIncubationRow?.lotNumber || permittedMaterialNames || "Media";
+      const mediaLabel = optimisticDetails?.mediaName || activeIncubation?.mediaName || openIncubationRow?.lotNumber || permittedMaterialNames || t("assignedCard.center.mediaFallback");
       const incLabel = optimisticDetails?.incCode || activeIncubation?.incubatorName || openIncubationRow?.incubatorName || "";
       const incSuffix = incLabel ? ` (${incLabel})` : "";
       const tempRange = stage1TempMin > 0 ? ` · ${stage1TempMin}–${stage1TempMax}°C` : "";
+      const summary = `${mediaLabel}${tempRange}`;
 
       if (dynamicRemainingSeconds > 0) {
-        return `⏳ ${mediaLabel}${tempRange} · ${formatDuration(dynamicRemainingSeconds)}${incSuffix}`;
+        return `⏳ ${summary} · ${formatDuration(dynamicRemainingSeconds)}${incSuffix}`;
       }
 
       // Check if endUtc has actually passed
       const endUtc = optimisticDetails?.endUtc || incubationEndUtc || activeIncubation?.incubationEndUtc;
       if (endUtc && nowMs >= new Date(endUtc).getTime()) {
         if (test.workflowState === "TSB_INCUBATING" || test.usesSharedTsb || step?.stepType === "BrothEnrichment" || step?.stepType === "SelectiveBroth") {
-          return `✓ ${mediaLabel}${tempRange} · Incubation Complete, Ready for Downstream Setup${incSuffix}`;
+          return t("assignedCard.center.incubationCompleteDownstream", { summary, incSuffix });
         }
-        return `⏳ ${mediaLabel}${tempRange} · Incubation Complete${incSuffix}`;
+        return t("assignedCard.center.incubationComplete", { summary, incSuffix });
       }
 
-      return `⏳ ${mediaLabel}${tempRange} · Incubation In Progress${incSuffix}`;
+      return t("assignedCard.center.incubationInProgress", { summary, incSuffix });
     }
 
     // When step is ready for action:
     if (step) {
       // 1. Broth steps (BrothEnrichment, SelectiveBroth) -> media/incubator setup
       if (step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth") {
-        return `Ready for ${step.stepName}`;
+        return t("assignedCard.center.readyForStep", { stepName: step.stepName });
       }
 
       // 2. Selective Plating
@@ -312,9 +317,9 @@ export function AssignedTestCard({
           (test.workflowState === "AWAITING_RESULTS" && !requiresMediaSetup);
 
         if (isPlatingIncComplete) {
-          return `Ready for Growth Observation (${step.stepName})`;
+          return t("assignedCard.center.readyGrowthObservation", { stepName: step.stepName });
         }
-        return `Ready for ${step.stepName}`;
+        return t("assignedCard.center.readyForStep", { stepName: step.stepName });
       }
 
       // 3. Plate Count
@@ -324,12 +329,12 @@ export function AssignedTestCard({
           (test.workflowState === "AWAITING_RESULTS" && !requiresMediaSetup);
 
         if (isCountIncComplete) {
-          return "Ready for Colony Count Readings (CFU)";
+          return t("assignedCard.center.readyColonyCount");
         }
         const mediaLabel = permittedMaterialNames ? ` · ${permittedMaterialNames}` : "";
         const tempLabel = stage1TempMin > 0 ? ` · ${stage1TempMin}–${stage1TempMax}°C` : "";
         const hoursLabel = stage1IncMinHours > 0 ? ` (${stage1IncMinHours}h)` : "";
-        return `Next: ${step.stepName}${mediaLabel}${tempLabel}${hoursLabel}`;
+        return t("assignedCard.center.nextWithSummary", { stepName: step.stepName, summary: `${mediaLabel}${tempLabel}${hoursLabel}` });
       }
 
       // 4. Confirmatory Plating
@@ -338,29 +343,29 @@ export function AssignedTestCard({
           (openIncubationRow && dynamicRemainingSeconds <= 0);
 
         if (isConfComplete) {
-          return "Ready for Confirmatory Readings";
+          return t("assignedCard.center.readyConfirmatoryReadings");
         }
-        return `Ready for Confirmatory Plating (${step.stepName})`;
+        return t("assignedCard.center.readyConfirmatoryPlating", { stepName: step.stepName });
       }
 
       // 5. Biochemical Test
       if (step.stepType === "BiochemicalTest") {
-        return `Ready for Biochemical Test Result`;
+        return t("assignedCard.center.readyBiochemical");
       }
 
-      return `Ready for ${step.stepName}`;
+      return t("assignedCard.center.readyForStep", { stepName: step.stepName });
     }
 
     // Fallbacks if step metadata is loading or from workspace state
     if (test.workflowState === "READY_FOR_DOWNSTREAM") {
-      return "Ready for Selective Plating";
+      return t("assignedCard.center.readySelectivePlating");
     }
     if (test.workflowState === "AWAITING_RESULTS" || test.isResultEntryAllowed) {
-      return "Ready for Result Entry";
+      return t("assignedCard.center.readyResultEntry");
     }
 
-    const stepLabel = test.currentStep || "Incubation";
-    return `Next: ${stepLabel}`;
+    const stepLabel = test.currentStep || t("assignedCard.center.incubationFallback");
+    return t("assignedCard.center.nextStep", { stepLabel });
   }, [
     effectiveIsIncubating,
     optimisticDetails,
@@ -375,7 +380,8 @@ export function AssignedTestCard({
     nowMs,
     requiresMediaSetup,
     test,
-    step
+    step,
+    t
   ]);
 
   const handleCardClick = () => {
@@ -400,8 +406,8 @@ export function AssignedTestCard({
     // Optimistic UI state flip with live estimated end time
     setOptimisticIncubating(true);
     setOptimisticDetails({
-      mediaName: chosenMedia?.lotNumber || permittedMaterialNames || "Media",
-      incCode: chosenInc?.code || "Incubator",
+      mediaName: chosenMedia?.lotNumber || permittedMaterialNames || t("assignedCard.center.mediaFallback"),
+      incCode: chosenInc?.code || t("assignedCard.center.incubatorFallback"),
       endUtc: estimatedEndUtc
     });
     setExpanded(false);
@@ -444,8 +450,8 @@ export function AssignedTestCard({
         borderRadius: 1.5,
         border: "1px solid",
         borderColor: expanded ? theme.palette.primary.main : "divider",
-        borderLeft: "3px solid",
-        borderLeftColor:
+        borderInlineStart: "3px solid",
+        borderInlineStartColor:
           dynamicBadge.status === "Approved"
             ? theme.custom.status.notDetected.text
             : effectiveIsIncubating
@@ -469,10 +475,10 @@ export function AssignedTestCard({
         {/* Left: Test Code (bold), Order #, Status Badge */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", whiteSpace: "nowrap" }}>
-            {test.testCode}{locationLabel}
+            <Ltr>{test.testCode}</Ltr>{locationLabel}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "text.secondary", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-            #{test.testOrderId}
+            <Ltr>#{test.testOrderId}</Ltr>
           </Typography>
           <StatusBadge status={dynamicBadge.status} label={dynamicBadge.label} />
         </Box>
@@ -497,7 +503,7 @@ export function AssignedTestCard({
           <Tooltip
             title={
               awaitingPreparation
-                ? "Complete and sign the sample preparation before starting laboratory testing."
+                ? t("assignedCard.prepTooltip")
                 : ""
             }
           >
@@ -524,14 +530,14 @@ export function AssignedTestCard({
                   "&:hover": { bgcolor: "transparent", textDecoration: "underline" }
                 }}
               >
-                Open Workflow
+                {t("assignedCard.openWorkflow")}
               </Button>
             </span>
           </Tooltip>
 
           {/* Chevron button: 24x24px. Shown when step requires media lot + incubator setup */}
           {!effectiveIsIncubating && test.status !== "Approved" && requiresMediaSetup && !awaitingPreparation && (
-            <Tooltip title={expanded ? "Close quick setup" : "Quick setup: Select Media & Incubator"}>
+            <Tooltip title={expanded ? t("assignedCard.closeQuickSetup") : t("assignedCard.openQuickSetup")}>
               <IconButton
                 size="small"
                 data-no-row-click="true"
@@ -576,7 +582,7 @@ export function AssignedTestCard({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 0.5 }}>
               <CircularProgress size={14} />
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Loading step requirements...
+                {t("assignedCard.loadingRequirements")}
               </Typography>
             </Box>
           ) : error ? (
@@ -609,19 +615,19 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
-                inputProps={{ "aria-label": "Media lot" }}
+                inputProps={{ "aria-label": t("assignedCard.mediaLotAria") }}
               >
                 <MenuItem value="" sx={{ fontSize: 12 }}>
-                  <em>Select Media Lot ({permittedMaterialNames || "Approved"})</em>
+                  <em>{t("assignedCard.selectMediaLot", { names: permittedMaterialNames || t("assignedCard.approvedFallback") })}</em>
                 </MenuItem>
                 {matchingMedia.map((m) => (
                   <MenuItem key={m.id} value={m.id} sx={{ fontSize: 12, py: 0.5 }}>
-                    {m.lotNumber} {m.materialName ? `(${m.materialName})` : ""}
+                    <Ltr>{m.lotNumber}</Ltr> {m.materialName ? `(${m.materialName})` : ""}
                   </MenuItem>
                 ))}
                 {matchingMedia.length === 0 && (
                   <MenuItem disabled value="" sx={{ fontSize: 12 }}>
-                    No released lots available
+                    {t("assignedCard.noReleasedLots")}
                   </MenuItem>
                 )}
               </Select>
@@ -641,19 +647,19 @@ export function AssignedTestCard({
                   bgcolor: "background.paper",
                   "& .MuiSelect-select": { py: 0.5, px: 1 }
                 }}
-                inputProps={{ "aria-label": "Incubator" }}
+                inputProps={{ "aria-label": t("assignedCard.incubatorAria") }}
               >
                 <MenuItem value="" sx={{ fontSize: 12 }}>
-                  <em>Incubator ({stage1TempMin}–{stage1TempMax}°C)</em>
+                  <em>{t("assignedCard.incubatorRange", { min: stage1TempMin, max: stage1TempMax })}</em>
                 </MenuItem>
                 {matchingIncubators.map((inc) => (
                   <MenuItem key={inc.id} value={inc.id} sx={{ fontSize: 12, py: 0.5 }}>
-                    {inc.code} ({inc.setPointTemperature}°C)
+                    <Ltr>{inc.code}</Ltr> (<Ltr>{inc.setPointTemperature}°C</Ltr>)
                   </MenuItem>
                 ))}
                 {matchingIncubators.length === 0 && (
                   <MenuItem disabled value="" sx={{ fontSize: 12 }}>
-                    No matching incubator
+                    {t("assignedCard.noMatchingIncubator")}
                   </MenuItem>
                 )}
               </Select>
@@ -674,13 +680,13 @@ export function AssignedTestCard({
                   whiteSpace: "nowrap"
                 }}
               >
-                {submitting ? "Starting..." : ctaLabel}
+                {submitting ? t("assignedCard.starting") : ctaLabel}
               </Button>
             </Box>
           ) : (
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", py: 0.25 }}>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Step requires full workflow interaction.
+                {t("assignedCard.requiresFullWorkflow")}
               </Typography>
               <Button
                 size="small"
@@ -689,7 +695,7 @@ export function AssignedTestCard({
                 onClick={() => onTestClick(test, sample)}
                 sx={{ fontSize: 12, fontWeight: 700, p: 0, textTransform: "none" }}
               >
-                Open Workflow →
+                {t("assignedCard.openWorkflowArrow")}
               </Button>
             </Box>
           )}

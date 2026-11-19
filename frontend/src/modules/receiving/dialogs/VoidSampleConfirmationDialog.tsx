@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Typography,
@@ -10,11 +10,14 @@ import {
 } from "@mui/material";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
+import { Trans } from "react-i18next";
 import { SampleRecord } from "../types/receivingTypes";
 import { CategoryBadge } from "../../../components/StatusBadge";
 import { ReceiveService } from "../services/ReceiveService";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   open: boolean;
@@ -28,9 +31,11 @@ const MEANING_STATEMENT = "I void this sample record; it is struck from the regi
 
 export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [signing, setSigning] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   if (!sample) return null;
 
@@ -63,6 +68,8 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
       <FloatingDialog
         open={open}
         onClose={handleCancel}
+        // Voiding is destructive: focus starts on Cancel, so an accidental Enter never opens the signature step.
+        onEntered={() => cancelRef.current?.focus()}
         maxWidth="sm"
         paperSx={{ borderRadius: 2.5, p: 1 }}
         titleSx={{ display: "flex", alignItems: "center", gap: 1.25, pb: 1 }}
@@ -84,10 +91,10 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                Void Sample Confirmation
+                {t("voidSample.title")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Strikes the sample from the register - signed with your password
+                {t("voidSample.subtitle")}
               </Typography>
             </Box>
           </>
@@ -96,11 +103,11 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
           <>
             {!reason.trim() && (
               <Typography role="status" sx={{ fontSize: 12, color: "text.secondary", mr: "auto", pl: 1 }}>
-                Enter a reason for voiding to sign.
+                {t("voidSample.enterReasonHint")}
               </Typography>
             )}
-            <Button onClick={handleCancel} color="inherit">
-              Cancel
+            <Button ref={cancelRef} autoFocus onClick={handleCancel} color="inherit">
+              {t("voidSample.cancel")}
             </Button>
             <Button
               onClick={handleConfirm}
@@ -114,7 +121,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
                 px: 2.5
               }}
             >
-              Sign &amp; Void
+              {t("voidSample.signAndVoid")}
             </Button>
           </>
         }
@@ -129,8 +136,12 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
               borderColor: "warning.light"
             }}
           >
-            Are you sure you want to void <strong>{sample.displayName}</strong> (Sample #{sample.sampleId})?
-            The sample record and its open tests will be marked as <strong>Voided</strong>.
+            <Trans
+              i18nKey="voidSample.warning"
+              ns="receiving"
+              values={{ name: sample.displayName, sampleId: sample.sampleId }}
+              components={{ strong: <strong />, ltr: <Ltr>{null}</Ltr> }}
+            />
           </Alert>
 
           {/* Sample Summary Information Box */}
@@ -147,16 +158,16 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
             <Stack spacing={1}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                  Sample Reference:
+                  {t("voidSample.sampleReference")}
                 </Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
-                  {sample.referenceNumber} (#{sample.sampleId})
+                  <Ltr>{sample.referenceNumber}</Ltr> (<Ltr>#{sample.sampleId}</Ltr>)
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                  Item / Location:
+                  {t("voidSample.itemLocation")}
                 </Typography>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
                   {sample.displayName}
@@ -165,7 +176,7 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
 
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                  Item Type:
+                  {t("voidSample.itemType")}
                 </Typography>
                 <CategoryBadge category={sample.category} />
               </Box>
@@ -173,12 +184,20 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
               {(sample.batchNumber || sample.controlNumber) && (
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                    Batch / Control No.:
+                    {t("voidSample.batchControl")}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.primary" }}>
-                    {sample.batchNumber ? `B: ${sample.batchNumber}` : ""}
+                    {sample.batchNumber && (
+                      <>
+                        {t("register.batchPrefix")} <Ltr>{sample.batchNumber}</Ltr>
+                      </>
+                    )}
                     {sample.batchNumber && sample.controlNumber ? " · " : ""}
-                    {sample.controlNumber ? `C: ${sample.controlNumber}` : ""}
+                    {sample.controlNumber && (
+                      <>
+                        {t("register.controlPrefix")} <Ltr>{sample.controlNumber}</Ltr>
+                      </>
+                    )}
                   </Typography>
                 </Box>
               )}
@@ -186,9 +205,8 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
           </Box>
 
           <TextField
-            autoFocus
-            label="Reason for Voiding *"
-            placeholder="Please provide the operational or compliance reason for voiding this sample..."
+            label={t("voidSample.reasonLabel")}
+            placeholder={t("voidSample.reasonPlaceholder")}
             multiline
             rows={3}
             fullWidth
@@ -199,13 +217,14 @@ export function VoidSampleConfirmationDialog({ open, sample, onClose, onSuccess 
               if (reasonError) setReasonError(false);
             }}
             error={reasonError}
-            helperText={reasonError ? "A reason for voiding is required." : "Recorded with your electronic signature and in the sample's audit trail."}
+            helperText={reasonError ? t("voidSample.reasonRequired") : t("voidSample.reasonHelper")}
           />
       </FloatingDialog>
 
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("voidSample.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

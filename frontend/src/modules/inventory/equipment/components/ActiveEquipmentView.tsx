@@ -16,9 +16,12 @@ import { monospaceFontFamily } from "../../../../theme/palette";
 import {
   EquipmentInventoryService, ActiveEquipmentDto, EquipmentActivityDto, WhereIsItResultDto
 } from "../services/EquipmentInventoryService";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { clickable } from "../../../../utils/clickable";
 import { DateField } from "../../../../components/DateField";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../../components/Ltr";
+import { useTranslation } from "../../../../i18n";
 
 interface ActiveEquipmentViewProps {
   onOpenDetails: (equipmentId: number) => void;
@@ -30,6 +33,7 @@ interface ActiveEquipmentViewProps {
 export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquipmentViewProps) {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation("inventory");
 
   // Active Equipment state
   const [allEquipment, setAllEquipment] = useState<ActiveEquipmentDto[]>([]);
@@ -149,33 +153,33 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
       : null;
 
   const whereColumns: RegisterColumn<WhereIsItResultDto["history"][number]>[] = [
-    { key: "equipmentCode", label: "Equipment", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}>{h.equipmentCode} ({h.equipmentName})</Box> },
-    { key: "activityType", label: "Activity", sortable: true },
-    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
-    { key: "performedBy", label: "Started By", sortable: true },
-    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : "Active") },
-    { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
+    { key: "equipmentCode", label: t("equipment.active.columns.equipment"), sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600, fontFamily: monospaceFontFamily }}><Ltr>{h.equipmentCode}</Ltr> ({h.equipmentName})</Box> },
+    { key: "activityType", label: t("equipment.active.columns.activity"), sortable: true },
+    { key: "startedOn", label: t("equipment.active.columns.startedOn"), sortable: true, render: (h) => formatDateTimeWithTimeZone(h.startedOn) },
+    { key: "performedBy", label: t("equipment.active.columns.startedBy"), sortable: true },
+    { key: "completedOn", label: t("equipment.active.columns.endedOn"), sortable: true, render: (h) => (h.completedOn ? formatDateTimeWithTimeZone(h.completedOn) : t("equipment.active.statusActive")) },
+    { key: "completedBy", label: t("equipment.active.columns.endedBy"), sortable: true, render: (h) => h.completedBy ?? "—" }
   ];
 
   const activityColumns: RegisterColumn<EquipmentActivityDto>[] = [
-    { key: "itemName", label: "Item / Activity", sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 600 }}>{a.itemName}</Box> },
-    { key: "itemCode", label: "Item Code", sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{a.itemCode}</Box> },
-    { key: "activityType", label: "Activity Type", sortable: true },
-    { key: "mediaDescription", label: "Media / Description" },
-    { key: "startedOn", label: "Started On", sortable: true, render: (a) => formatLabDateTime(a.startedOn) },
-    { key: "startedBy", label: "Started By", sortable: true },
-    { key: "expectedCompletion", label: "Expected Completion", sortable: true, render: (a) => (a.expectedCompletion ? formatLabDateTime(a.expectedCompletion) : "N/A") }
+    { key: "itemName", label: t("equipment.active.columns.itemActivity"), sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 600 }}>{a.itemName}</Box> },
+    { key: "itemCode", label: t("equipment.active.columns.itemCode"), sortable: true, render: (a) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}><Ltr>{a.itemCode}</Ltr></Box> },
+    { key: "activityType", label: t("equipment.active.columns.activityType"), sortable: true },
+    { key: "mediaDescription", label: t("equipment.active.columns.mediaDescription") },
+    { key: "startedOn", label: t("equipment.active.columns.startedOn"), sortable: true, render: (a) => formatDateTimeWithTimeZone(a.startedOn) },
+    { key: "startedBy", label: t("equipment.active.columns.startedBy"), sortable: true },
+    { key: "expectedCompletion", label: t("equipment.active.columns.expectedCompletion"), sortable: true, render: (a) => (a.expectedCompletion ? formatDateTimeWithTimeZone(a.expectedCompletion) : t("equipment.active.notAvailable")) }
   ];
 
   const historyColumns: RegisterColumn<EquipmentActivityDto>[] = [
-    { key: "itemName", label: "Item / Activity", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600 }}>{h.itemName}</Box> },
-    { key: "itemCode", label: "Item Code", sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}>{h.itemCode}</Box> },
-    { key: "activityType", label: "Activity Type", sortable: true },
-    { key: "mediaDescription", label: "Media / Description" },
-    { key: "startedOn", label: "Started On", sortable: true, render: (h) => formatLabDateTime(h.startedOn) },
-    { key: "startedBy", label: "Started By", sortable: true },
-    { key: "completedOn", label: "Ended On", sortable: true, render: (h) => (h.completedOn ? formatLabDateTime(h.completedOn) : <StatusBadge status="Active" />) },
-    { key: "completedBy", label: "Ended By", sortable: true, render: (h) => h.completedBy ?? "—" }
+    { key: "itemName", label: t("equipment.active.columns.itemActivity"), sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 600 }}>{h.itemName}</Box> },
+    { key: "itemCode", label: t("equipment.active.columns.itemCode"), sortable: true, render: (h) => <Box component="span" sx={{ fontWeight: 700, fontFamily: monospaceFontFamily }}><Ltr>{h.itemCode}</Ltr></Box> },
+    { key: "activityType", label: t("equipment.active.columns.activityType"), sortable: true },
+    { key: "mediaDescription", label: t("equipment.active.columns.mediaDescription") },
+    { key: "startedOn", label: t("equipment.active.columns.startedOn"), sortable: true, render: (h) => formatDateTimeWithTimeZone(h.startedOn) },
+    { key: "startedBy", label: t("equipment.active.columns.startedBy"), sortable: true },
+    { key: "completedOn", label: t("equipment.active.columns.endedOn"), sortable: true, render: (h) => (h.completedOn ? formatDateTimeWithTimeZone(h.completedOn) : <StatusBadge status="Active" label={t("equipment.active.statusActive")} />) },
+    { key: "completedBy", label: t("equipment.active.columns.endedBy"), sortable: true, render: (h) => h.completedBy ?? "—" }
   ];
 
   const selectedEquipment = activeEquipment.find((e) => e.id === selectedEqId);
@@ -192,17 +196,17 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
             <Typography variant="subtitle1" sx={{
               fontWeight: 700
             }}>
-              Where is it? Global Traceability Search
+              {t("equipment.active.whereTitle")}
             </Typography>
           </Stack>
           <Box component="form" onSubmit={handleWhereIsItSearch} sx={{ display: "flex", gap: 1.5 }}>
             <TextField
               size="small"
               fullWidth
-              placeholder="Search by item code, sample reference, or media lot (e.g. TSB/08/26, PT-0021)..."
+              placeholder={t("equipment.active.wherePlaceholder")}
               value={whereQuery}
               onChange={(e) => setWhereQuery(e.target.value)}
-              slotProps={{ htmlInput: { "aria-label": "Search by item code, sample reference, or media lot" } }}
+              slotProps={{ htmlInput: { "aria-label": t("equipment.active.whereAria") } }}
             />
             <Button
               type="submit"
@@ -212,7 +216,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
               disabled={loadingWhere}
               sx={{ whiteSpace: "nowrap", px: 3 }}
             >
-              {loadingWhere ? "Searching..." : "Where is it?"}
+              {loadingWhere ? t("equipment.active.searching") : t("equipment.active.whereButton")}
             </Button>
           </Box>
 
@@ -225,7 +229,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                   fontWeight: 700,
                   mb: 1.5
                 }}>
-                Traceability Results for "{whereResult.searchTerm}":
+                {t("equipment.active.traceabilityResultsFor", { term: whereResult.searchTerm })}
               </Typography>
 
               {whereResult.currentActivity ? (
@@ -243,23 +247,35 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           fontWeight: 700,
                           color: "success.dark"
                         }}>
-                        CURRENT LOCATION: {whereResult.currentEquipmentCode}, {whereResult.currentEquipmentName}
+                        {t("equipment.active.currentLocation", { code: whereResult.currentEquipmentCode, name: whereResult.currentEquipmentName })}
                       </Typography>
                       <Typography variant="body2">
-                        Activity: <strong>{whereResult.currentActivity.activityType}</strong> | Item: <strong>{whereResult.currentActivity.itemName} (@{whereResult.currentActivity.itemCode})</strong>
+                        <Trans
+                          i18nKey="equipment.active.currentActivitySummary"
+                          ns="inventory"
+                          values={{
+                            activityType: whereResult.currentActivity.activityType,
+                            itemName: whereResult.currentActivity.itemName,
+                            itemCode: whereResult.currentActivity.itemCode
+                          }}
+                          components={{ bold1: <strong />, bold2: <strong /> }}
+                        />
                       </Typography>
                       <Typography variant="caption" sx={{
                         color: "text.secondary"
                       }}>
-                        Started: {formatLabDateTime(whereResult.currentActivity.startedOn)} | Analyst: {whereResult.currentActivity.startedBy}
+                        {t("equipment.active.startedBySummary", {
+                          startedOn: formatDateTimeWithTimeZone(whereResult.currentActivity.startedOn),
+                          analyst: whereResult.currentActivity.startedBy
+                        })}
                       </Typography>
                     </Box>
-                    <StatusBadge status="Active" label="Active / Current Location" />
+                    <StatusBadge status="Active" label={t("equipment.active.activeLocation")} />
                   </Stack>
                 </Box>
               ) : (
                 <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
-                  Item is not currently in an active equipment location. Viewing location history below:
+                  {t("equipment.active.notCurrentlyActive")}
                 </Alert>
               )}
 
@@ -270,7 +286,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     rows={whereResult.history}
                     getRowId={(h) => `${h.equipmentCode}-${h.startedOn}-${h.activityType}`}
                     pageSize={25}
-                    empty={{ title: "No location history records found matching this query." }}
+                    empty={{ title: t("equipment.active.noLocationHistory") }}
                   />
                 </>
               ) : (
@@ -281,7 +297,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     color: "text.secondary",
                     py: 1
                   }}>
-                  No location history records found matching this query.
+                  {t("equipment.active.noLocationHistory")}
                 </Typography>
               )}
             </Paper>
@@ -304,7 +320,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                 fontWeight: 700,
                 mb: 0.25
               }}>
-              Equipment ({activeEquipment.length})
+              {t("equipment.active.equipmentCount", { count: activeEquipment.length })}
             </Typography>
             <Typography
               variant="caption"
@@ -313,7 +329,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                 display: "block",
                 mb: 2
               }}>
-              {activeEquipment.filter((e) => e.activeItemCount > 0).length} currently in use. Select any equipment to view its traceability history
+              {t("equipment.active.inUseSummary", { count: activeEquipment.filter((e) => e.activeItemCount > 0).length })}
             </Typography>
 
             {loadingActive ? (
@@ -324,7 +340,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                 }}><CircularProgress size={32} /></Box>
             ) : activeEquipment.length === 0 ? (
               <Alert severity="info" sx={{ fontSize: 13 }}>
-                No equipment records found.
+                {t("equipment.active.noEquipment")}
               </Alert>
             ) : (
               <Stack spacing={1.5}>
@@ -356,11 +372,11 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           mb: 1
                         }}>
                         <Typography sx={{ fontFamily: "monospace", fontWeight: 700, fontSize: 14, color: "primary.main" }}>
-                          {eq.code}
+                          <Ltr>{eq.code}</Ltr>
                         </Typography>
                         <StatusBadge
                           status={isInUse ? "InUse" : "Idle"}
-                          label={isInUse ? `${eq.activeItemCount} ${eq.activeItemCount === 1 ? "item" : "items"}` : "Idle"}
+                          label={isInUse ? t("equipment.active.itemCount", { count: eq.activeItemCount }) : t("equipment.active.idle")}
                         />
                       </Stack>
                       <Typography sx={{ fontWeight: 600, fontSize: 13 }}>{eq.instrumentType}</Typography>
@@ -395,20 +411,23 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     <Typography variant="h6" sx={{
                       fontWeight: 700
                     }}>
-                      {selectedEquipment.code}: {selectedEquipment.instrumentType}
+                      <Ltr>{selectedEquipment.code}</Ltr>: {selectedEquipment.instrumentType}
                     </Typography>
                     <Typography variant="body2" sx={{
                       color: "text.secondary"
                     }}>
-                      Location: {selectedEquipment.location}
+                      {t("equipment.active.locationValue", { location: selectedEquipment.location })}
                     </Typography>
                   </Box>
                   <Stack direction="row" spacing={1} sx={{
                     alignItems: "center"
                   }}>
-                    <StatusBadge status={selectedEquipment.activeItemCount > 0 ? "InUse" : "Idle"} label={selectedEquipment.activeItemCount > 0 ? "In Use" : "Idle"} />
+                    <StatusBadge
+                      status={selectedEquipment.activeItemCount > 0 ? "InUse" : "Idle"}
+                      label={selectedEquipment.activeItemCount > 0 ? t("equipment.active.inUse") : t("equipment.active.idle")}
+                    />
                     <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={() => onOpenDetails(selectedEquipment.id)}>
-                      Equipment Details
+                      {t("equipment.active.equipmentDetails")}
                     </Button>
                   </Stack>
                 </Stack>
@@ -424,7 +443,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Manufacturer</Typography>
+                      }}>{t("equipment.active.manufacturer")}</Typography>
                     <Typography variant="body2" sx={{
                       fontWeight: 600
                     }}>{selectedEquipment.manufacturerName || "—"}</Typography>
@@ -439,11 +458,11 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Set Temperature</Typography>
+                      }}>{t("equipment.active.setTemperature")}</Typography>
                     <Typography variant="body2" sx={{
                       fontWeight: 600
                     }}>
-                      {selectedEquipment.setPointTemperature ? `${selectedEquipment.setPointTemperature} °C` : "N/A"}
+                      {selectedEquipment.setPointTemperature ? <Ltr>{`${selectedEquipment.setPointTemperature} °C`}</Ltr> : t("equipment.active.notAvailable")}
                     </Typography>
                   </Grid>
                   <Grid
@@ -456,11 +475,11 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Calibration Due</Typography>
+                      }}>{t("equipment.active.calibrationDue")}</Typography>
                     <Typography variant="body2" sx={{
                       fontWeight: 600
                     }}>
-                      {selectedEquipment.calibrationDueDate ? formatLabDate(selectedEquipment.calibrationDueDate) : "—"}
+                      {selectedEquipment.calibrationDueDate ? formatLabCalendarDate(selectedEquipment.calibrationDueDate) : "—"}
                     </Typography>
                   </Grid>
                   <Grid
@@ -473,7 +492,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       sx={{
                         color: "text.secondary",
                         display: "block"
-                      }}>Current Active Items</Typography>
+                      }}>{t("equipment.active.currentActiveItems")}</Typography>
                     <Typography
                       variant="body2"
                       sx={{
@@ -492,7 +511,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     fontWeight: 700,
                     mb: 1.5
                   }}>
-                  Current Activities / Items ({activities.length})
+                  {t("equipment.active.currentActivitiesCount", { count: activities.length })}
                 </Typography>
 
                 {loadingActivities ? (
@@ -502,7 +521,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       py: 3
                     }}><CircularProgress size={28} /></Box>
                 ) : activities.length === 0 ? (
-                  <Alert severity="info" sx={{ fontSize: 13 }}>No active activities currently running in this equipment.</Alert>
+                  <Alert severity="info" sx={{ fontSize: 13 }}>{t("equipment.active.noActiveActivities")}</Alert>
                 ) : (
                   <>
                     <RegisterTable
@@ -513,9 +532,9 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                       onRowClick={(act) => { const route = activityRoute(act); if (route) navigate(route); }}
                       rowActions={(act) => {
                         const route = activityRoute(act);
-                        return route ? [{ label: "View activity / test workspace", onClick: () => navigate(route) }] : [];
+                        return route ? [{ label: t("equipment.active.viewWorkspace"), onClick: () => navigate(route) }] : [];
                       }}
-                      empty={{ title: "No active activities currently running in this equipment." }}
+                      empty={{ title: t("equipment.active.noActiveActivities") }}
                     />
                   </>
                 )}
@@ -531,7 +550,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                     <Typography variant="subtitle1" sx={{
                       fontWeight: 700
                     }}>
-                      Search Activity History: {selectedEquipment.code}
+                      {t("equipment.active.searchHistoryTitle", { code: selectedEquipment.code })}
                     </Typography>
                   </Stack>
 
@@ -546,8 +565,8 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                         }}>
                         <TextField
                           size="small"
-                          label="Item / Code Filter"
-                          placeholder="e.g. PT-0021"
+                          label={t("equipment.active.itemCodeFilter")}
+                          placeholder={t("equipment.active.itemCodePlaceholder")}
                           value={historyItemCode}
                           onChange={(e) => setHistoryItemCode(e.target.value)}
                           fullWidth
@@ -559,7 +578,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           sm: 3
                         }}>
                         <DateField
-                          label="From Date"
+                          label={t("equipment.active.fromDate")}
                           value={historyFromDate}
                           onChange={(v) => setHistoryFromDate(v)}
                           fullWidth
@@ -571,7 +590,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           sm: 3
                         }}>
                         <DateField
-                          label="To Date"
+                          label={t("equipment.active.toDate")}
                           value={historyToDate}
                           onChange={(v) => setHistoryToDate(v)}
                           fullWidth
@@ -583,7 +602,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                           sm: 2
                         }}>
                         <Button type="submit" variant="outlined" color="primary" fullWidth disabled={loadingHistory}>
-                          {loadingHistory ? "Searching..." : "Search"}
+                          {loadingHistory ? t("equipment.active.searching") : t("equipment.active.search")}
                         </Button>
                       </Grid>
                     </Grid>
@@ -596,7 +615,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
                         rows={historyResults}
                         getRowId={(h) => h.activityId}
                         pageSize={25}
-                        empty={{ title: "No historical activities found matching the selected search criteria." }}
+                        empty={{ title: t("equipment.active.noHistoricalActivities") }}
                       />
                     </Box>
                   )}
@@ -608,7 +627,7 @@ export function ActiveEquipmentView({ onOpenDetails, labSectionId }: ActiveEquip
               <Typography variant="body1" sx={{
                 color: "text.secondary"
               }}>
-                Select an active equipment record from the left panel to inspect its current activities and traceability history.
+                {t("equipment.active.selectPrompt")}
               </Typography>
             </Paper>
           )}

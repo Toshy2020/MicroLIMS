@@ -12,6 +12,7 @@ export interface AdminTab {
 // guarded by its own permission and there are no lab-data tabs.
 export const ADMIN_TABS: AdminTab[] = [
   { label: "Users", path: "/admin/users", permission: PERMISSIONS.USERS_MANAGE },
+  { label: "Company sign-in", path: "/admin/company-sign-in", permission: PERMISSIONS.USERS_MANAGE },
   { label: "Roles", path: "/admin/roles", permission: PERMISSIONS.ROLES_MANAGE },
   { label: "Organization", path: "/admin/organization", permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", permission: PERMISSIONS.AUDIT_VIEW },

@@ -1,0 +1,77 @@
+{
+  "title": "عملي",
+  "subtitle": "اختبارات وعمليات مراجعة واعتماد ومهام تنتظر إجراءك.",
+  "refresh": "تحديث",
+  "searchLabel": "البحث بالمعرّف",
+  "loading": "جارٍ تحميل بنود العمل...",
+  "itemsShown_zero": "لا توجد بنود معروضة",
+  "itemsShown_one": "بند واحد معروض",
+  "itemsShown_two": "بندان معروضان",
+  "itemsShown_few": "<ltr>{{count}}</ltr> بنود معروضة",
+  "itemsShown_many": "<ltr>{{count}}</ltr> بندًا معروضًا",
+  "itemsShown_other": "<ltr>{{count}}</ltr> بند معروض",
+  "lockedShown": "<ltr>{{count}}</ltr> مقفل، غير محتسب في كل بنود العمل",
+  "allWork": "كل بنود العمل",
+  "urgency": {
+    "Overdue": "متأخر",
+    "Now": "الآن",
+    "Today": "اليوم",
+    "Later": "لاحقًا"
+  },
+  "loadFailed": "تعذّر تحميل بنود العمل الخاصة بك.",
+  "retry": "إعادة المحاولة",
+  "empty": {
+    "title": "لا يوجد ما ينتظرك",
+    "description": "جميع الاختبارات والمراجعات والمهام المسندة إليك محدّثة.",
+    "goDashboard": "الانتقال إلى لوحة المتابعة"
+  },
+  "noMatches": {
+    "title": "لا توجد بنود عمل مطابقة",
+    "description": "لا توجد بنود تطابق فلتر الأولوية أو البحث الحالي.",
+    "clearFilters": "مسح الفلاتر"
+  },
+  "release": {
+    "title": "تحرير إسناد الاختبار",
+    "message": "هل تريد تحرير <ltr>{{identifier}}</ltr> ({{title}}) وإعادته إلى قائمة القسم؟",
+    "confirm": "تحرير",
+    "cancel": "إلغاء"
+  },
+  "toast": {
+    "taken": "تم أخذ <ltr>{{identifier}}</ltr>.",
+    "released": "تم تحرير <ltr>{{identifier}}</ltr>.",
+    "takeFailed": "تعذّر أخذ الاختبار.",
+    "releaseFailed": "تعذّر تحرير الاختبار."
+  },
+  "row": {
+    "locked": "مقفل",
+    "openFromWorkspace": "افتح من مساحة العمل",
+    "take": "أخذ",
+    "release": "تحرير",
+    "actionTitle": {
+      "perform": "تنفيذ {{name}}",
+      "take": "أخذ {{name}}",
+      "read": "قراءة {{name}}",
+      "revise": "مراجعة وتعديل {{name}}",
+      "review": "مراجعة {{name}}",
+      "approve": "اعتماد {{name}}",
+      "assign": "إسناد {{name}}"
+    }
+  },
+  "group": {
+    "showAll": "عرض الكل <ltr>{{count}}</ltr>",
+    "titles": {
+      "readyToRead": "جاهز للقراءة الآن",
+      "returned": "مُعاد إليّ",
+      "endingToday": "حضانة تنتهي اليوم",
+      "next24Hours": "حضانة تنتهي خلال 24 ساعة قادمة",
+      "toPerform": "اختبارات قيد التنفيذ",
+      "review": "بانتظار المراجعة",
+      "approval": "بانتظار اعتمادي",
+      "available": "متاح في قسمي",
+      "unassigned": "اختبارات غير مسندة",
+      "documents": "المستندات",
+      "equipment": "المعدات",
+      "materials": "أوساط زرعية ومحاليل وسلالات"
+    }
+  }
+}

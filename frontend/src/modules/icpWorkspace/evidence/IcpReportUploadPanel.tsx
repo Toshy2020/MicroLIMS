@@ -23,6 +23,7 @@ import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ImageIcon from "@mui/icons-material/Image";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import { useTranslation } from "react-i18next";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { IcpSupersedeEvidenceDialog } from "./IcpSupersedeEvidenceDialog";
 import { tableHeadSx } from "../../../theme";
@@ -32,6 +33,8 @@ import type {
   IcpEvidenceContext,
   IcpEvidenceKind
 } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { Ltr } from "../../../components/Ltr";
 
 export interface IcpReportUploadPanelProps {
   runId: number;
@@ -54,10 +57,13 @@ export function IcpReportUploadPanel({
   kind,
   evidenceList = [],
   onChanged,
-  title = "Calibration Report Upload",
-  description = "Upload the instrument instrument report file (Syngistix or instrument raw export). Required before calibration confirmation.",
+  title,
+  description,
   disabled = false
 }: IcpReportUploadPanelProps) {
+  const { t } = useTranslation("icpWorkspace");
+  const resolvedTitle = title ?? t("evidence.upload.defaultTitle");
+  const resolvedDescription = description ?? t("evidence.upload.defaultDescription");
   const theme = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -84,7 +90,7 @@ export function IcpReportUploadPanel({
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.size > MAX_FILE_SIZE_BYTES) {
-        setError("File exceeds the 25 MB limit.");
+        setError(t("evidence.upload.fileTooLarge"));
         setSelectedFile(null);
         return;
       }
@@ -110,7 +116,7 @@ export function IcpReportUploadPanel({
       onChanged?.();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Upload failed.");
+      setError(e.response?.data?.message ?? e.message ?? t("evidence.upload.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -144,14 +150,14 @@ export function IcpReportUploadPanel({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            {title}
+            {resolvedTitle}
           </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
-            {description}
+            {resolvedDescription}
           </Typography>
         </Box>
         {currentCount > 0 && (
-          <StatusBadge status="Completed" label={`${currentCount} Attached`} />
+          <StatusBadge status="Completed" label={t("evidence.upload.attachedBadge", { count: currentCount })} />
         )}
       </Box>
 
@@ -189,12 +195,12 @@ export function IcpReportUploadPanel({
             disabled={uploading}
             sx={{ textTransform: "none" }}
           >
-            {selectedFile ? "Choose Different File" : "Select File"}
+            {selectedFile ? t("evidence.upload.chooseDifferent") : t("evidence.upload.selectFile")}
           </Button>
 
           {selectedFile && (
             <Typography variant="body2" sx={{ fontWeight: 600, flexGrow: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              <Ltr>{`${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(2)} MB)`}</Ltr>
             </Typography>
           )}
 
@@ -205,7 +211,7 @@ export function IcpReportUploadPanel({
               disabled={uploading}
               sx={{ textTransform: "none" }}
             >
-              {uploading ? <CircularProgress size={20} color="inherit" /> : "Upload"}
+              {uploading ? <CircularProgress size={20} color="inherit" /> : t("evidence.upload.upload")}
             </Button>
           )}
         </Box>
@@ -218,11 +224,11 @@ export function IcpReportUploadPanel({
             <TableHead sx={tableHeadSx}>
               <TableRow>
                 <TableCell sx={{ width: 40 }}></TableCell>
-                <TableCell>File Name</TableCell>
-                <TableCell>Uploaded By</TableCell>
-                <TableCell>Uploaded At</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Actions</TableCell>
+                <TableCell>{t("evidence.upload.columns.fileName")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.uploadedBy")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.uploadedAt")}</TableCell>
+                <TableCell>{t("evidence.upload.columns.status")}</TableCell>
+                <TableCell align="right">{t("evidence.upload.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -237,31 +243,31 @@ export function IcpReportUploadPanel({
                   <TableCell>{getFileIcon(e.contentType)}</TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: e.isCurrent ? 600 : 400 }}>
-                      {e.fileName}
+                      <Ltr>{e.fileName}</Ltr>
                     </Typography>
                     {e.supersedeReason && (
                       <Typography variant="caption" sx={{ color: "error.main", display: "block" }}>
-                        Superseded: {e.supersedeReason}
+                        {t("evidence.upload.supersededPrefix", { reason: e.supersedeReason })}
                       </Typography>
                     )}
                   </TableCell>
-                  <TableCell>{e.uploadedByUserName ?? "Unknown"}</TableCell>
-                  <TableCell>{new Date(e.uploadedAt).toLocaleString()}</TableCell>
+                  <TableCell>{e.uploadedByUserName ?? t("evidence.upload.unknownUser")}</TableCell>
+                  <TableCell><Ltr>{formatDateTimeWithTimeZone(e.uploadedAt)}</Ltr></TableCell>
                   <TableCell>
                     {e.isCurrent ? (
-                      <StatusBadge status="Completed" label="Current" />
+                      <StatusBadge status="Completed" label={t("evidence.upload.current")} />
                     ) : (
-                      <StatusBadge status="Abandoned" label="Superseded" />
+                      <StatusBadge status="Abandoned" label={t("evidence.upload.superseded")} />
                     )}
                   </TableCell>
                   <TableCell align="right">
                     <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
-                      <Tooltip title="View File">
+                      <Tooltip title={t("evidence.upload.viewTooltip")}>
                         <span>
                           <IconButton
                             size="small"
                             onClick={() => handleView(e.id)}
-                            aria-label={`View ${e.fileName}`}
+                            aria-label={t("evidence.upload.viewAria", { fileName: e.fileName })}
                             disabled={viewingId === e.id}
                           >
                             {viewingId === e.id ? (
@@ -273,7 +279,7 @@ export function IcpReportUploadPanel({
                         </span>
                       </Tooltip>
                       {e.isCurrent && !disabled && (
-                        <Tooltip title="Supersede (Replace) File">
+                        <Tooltip title={t("evidence.upload.supersedeTooltip")}>
                           <IconButton
                             size="small"
                             color="warning"

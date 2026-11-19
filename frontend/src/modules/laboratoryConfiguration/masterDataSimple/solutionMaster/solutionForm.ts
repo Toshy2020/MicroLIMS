@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../../i18n";
 import {
   SolutionMaster,
   SolutionType,
@@ -207,45 +209,48 @@ export interface SolutionFormError {
   message: string;
 }
 
+const defaultT = (): TFunction => i18n.getFixedT("en", "masterData");
+
 export function validateSolutionForm(
   form: SolutionFormState,
-  options: ValidateSolutionFormOptions
+  options: ValidateSolutionFormOptions,
+  t: TFunction = defaultT()
 ): SolutionFormError | null {
   const fail = (field: SolutionFieldKey | null, message: string): SolutionFormError => ({ field, message });
   const trimmedName = form.name.trim();
   const trimmedStorage = form.storageCondition.trim();
   const trimmedInstructions = form.instructions.trim();
 
-  if (!trimmedName) return fail("name", "Solution Name is required.");
+  if (!trimmedName) return fail("name", t("solutionMaster.errors.nameRequired"));
   if (!options.isEditing && options.hasMultipleSections && !form.sectionId) {
-    return fail("section", "Laboratory Section is required.");
+    return fail("section", t("solutionMaster.errors.sectionRequired"));
   }
 
   const shelfLifeNum = Number(form.shelfLifeValue);
   if (!form.shelfLifeValue || isNaN(shelfLifeNum) || shelfLifeNum <= 0) {
-    return fail("shelfLife", "Shelf Life Value must be greater than zero.");
+    return fail("shelfLife", t("solutionMaster.errors.shelfLifePositive"));
   }
 
   const finalVolumeNum = Number(form.finalVolumeMl);
   if (!form.finalVolumeMl || isNaN(finalVolumeNum) || finalVolumeNum <= 0) {
-    return fail("finalVolume", "Final Volume (mL) must be greater than zero.");
+    return fail("finalVolume", t("solutionMaster.errors.finalVolumePositive"));
   }
 
-  if (!trimmedStorage) return fail("storage", "Storage Condition is required.");
-  if (!trimmedInstructions) return fail("instructions", "Preparation Instructions are required.");
-  if (form.components.length === 0) return fail(null, "At least one recipe component is required.");
+  if (!trimmedStorage) return fail("storage", t("solutionMaster.errors.storageRequired"));
+  if (!trimmedInstructions) return fail("instructions", t("solutionMaster.errors.instructionsRequired"));
+  if (form.components.length === 0) return fail(null, t("solutionMaster.errors.componentsRequired"));
 
   const usedEntryIds = new Set<number>();
   const usedSourceIds = new Set<number>();
   for (let i = 0; i < form.components.length; i++) {
     const comp = form.components[i];
-    const label = `Component #${i + 1}`;
+    const index = i + 1;
 
     if (comp.kind === "Text") {
       const text = comp.text.trim();
-      if (!text) return fail(null, `${label} needs text.`);
+      if (!text) return fail(null, t("solutionMaster.errors.componentTextRequired", { index }));
       if (text.length > MAX_TEXT_LINE_LENGTH) {
-        return fail(null, `${label} text can be at most ${MAX_TEXT_LINE_LENGTH} characters.`);
+        return fail(null, t("solutionMaster.errors.componentTextMax", { index, max: MAX_TEXT_LINE_LENGTH }));
       }
       continue;
     }
@@ -254,25 +259,25 @@ export function validateSolutionForm(
     if (comp.kind === "PreparedSolution") {
       const sourceId = Number(comp.sourceSolutionMasterId);
       if (!comp.sourceSolutionMasterId || isNaN(sourceId) || sourceId <= 0) {
-        return fail(null, `${label} must select a prepared solution recipe.`);
+        return fail(null, t("solutionMaster.errors.componentSourceRequired", { index }));
       }
       if (usedSourceIds.has(sourceId)) {
-        return fail(null, "A prepared solution is listed more than once in the components recipe.");
+        return fail(null, t("solutionMaster.errors.duplicateSource"));
       }
       usedSourceIds.add(sourceId);
     } else {
       const entryId = Number(comp.materialMasterEntryId);
       if (!comp.materialMasterEntryId || isNaN(entryId) || entryId <= 0) {
-        return fail(null, `${label} must select a Material Master entry.`);
+        return fail(null, t("solutionMaster.errors.componentMaterialRequired", { index }));
       }
       if (usedEntryIds.has(entryId)) {
-        return fail(null, "Material entry is listed more than once in the components recipe.");
+        return fail(null, t("solutionMaster.errors.duplicateMaterial"));
       }
       usedEntryIds.add(entryId);
     }
 
     if (!comp.quantity || isNaN(qty) || qty <= 0) {
-      return fail(null, `${label} quantity must be greater than zero.`);
+      return fail(null, t("solutionMaster.errors.componentQuantityPositive", { index }));
     }
   }
 
@@ -280,58 +285,58 @@ export function validateSolutionForm(
   const hasPhTarget = form.phTarget !== "";
   const phTargetNum = Number(form.phTarget);
   if (hasPhTarget && (isNaN(phTargetNum) || phTargetNum < 0 || phTargetNum > 14)) {
-    return fail("phTarget", "pH Target must be between 0.00 and 14.00.");
+    return fail("phTarget", t("solutionMaster.errors.phTargetRange"));
   }
 
   if (form.phTolerance !== "") {
-    if (!hasPhTarget) return fail("phTarget", "pH Target is required when pH Tolerance is specified.");
+    if (!hasPhTarget) return fail("phTarget", t("solutionMaster.errors.phTargetForTolerance"));
     const tolNum = Number(form.phTolerance);
-    if (isNaN(tolNum) || tolNum <= 0) return fail("phTolerance", "pH Tolerance must be greater than zero.");
+    if (isNaN(tolNum) || tolNum <= 0) return fail("phTolerance", t("solutionMaster.errors.phTolerancePositive"));
   }
 
   if (form.phAdjustingEntryId && !hasPhTarget) {
-    return fail("phAdjuster", "pH Target is required when a pH adjusting reagent is selected.");
+    return fail("phAdjuster", t("solutionMaster.errors.phTargetForAdjuster"));
   }
 
   // Titrant validation (only when type is Titrant)
   if (form.type === "Titrant") {
     const strengthNum = Number(form.nominalStrength);
     if (!form.nominalStrength || isNaN(strengthNum) || strengthNum <= 0) {
-      return fail(null, "Nominal Strength must be greater than zero for titrants.");
+      return fail(null, t("solutionMaster.errors.nominalStrengthPositive"));
     }
 
     if (form.standardizationMode === "PrimaryStandard") {
-      if (!form.standardEntryId) return fail(null, "Primary Standard entry is required for PrimaryStandard mode.");
+      if (!form.standardEntryId) return fail(null, t("solutionMaster.errors.primaryStandardRequired"));
       const equivNum = Number(form.equivalenceMgPerMl);
       if (!form.equivalenceMgPerMl || isNaN(equivNum) || equivNum <= 0) {
-        return fail(null, "Equivalence (mg/mL) must be greater than zero.");
+        return fail(null, t("solutionMaster.errors.equivalencePositive"));
       }
     } else if (form.standardizationMode === "AgainstVolumetricSolution") {
       if (!form.referenceSolutionId) {
-        return fail(null, "Reference Titrant is required for AgainstVolumetricSolution mode.");
+        return fail(null, t("solutionMaster.errors.referenceTitrantRequired"));
       }
       if (options.editingEntryId && Number(form.referenceSolutionId) === options.editingEntryId) {
-        return fail(null, "A titrant cannot standardize against itself.");
+        return fail(null, t("solutionMaster.errors.selfStandardization"));
       }
     }
 
     const repNum = Number(form.replicateCount);
     if (!form.replicateCount || isNaN(repNum) || repNum < 1 || !Number.isInteger(repNum)) {
-      return fail(null, "Replicate Count must be an integer of at least 1.");
+      return fail(null, t("solutionMaster.errors.replicateInteger"));
     }
 
     const minNum = Number(form.factorMin);
     const maxNum = Number(form.factorMax);
-    if (!form.factorMin || isNaN(minNum) || minNum <= 0) return fail(null, "Factor Min must be greater than zero.");
-    if (!form.factorMax || isNaN(maxNum) || maxNum <= 0) return fail(null, "Factor Max must be greater than zero.");
-    if (minNum > maxNum) return fail(null, "Factor Min cannot be greater than Factor Max.");
+    if (!form.factorMin || isNaN(minNum) || minNum <= 0) return fail(null, t("solutionMaster.errors.factorMinPositive"));
+    if (!form.factorMax || isNaN(maxNum) || maxNum <= 0) return fail(null, t("solutionMaster.errors.factorMaxPositive"));
+    if (minNum > maxNum) return fail(null, t("solutionMaster.errors.factorMinMaxOrder"));
 
     const rsdNum = Number(form.maxRsdPercent);
-    if (!form.maxRsdPercent || isNaN(rsdNum) || rsdNum <= 0) return fail(null, "Max RSD % must be greater than zero.");
+    if (!form.maxRsdPercent || isNaN(rsdNum) || rsdNum <= 0) return fail(null, t("solutionMaster.errors.maxRsdPositive"));
 
     const valDaysNum = Number(form.validityDays);
     if (form.validityDays === "" || isNaN(valDaysNum) || valDaysNum < 0 || !Number.isInteger(valDaysNum)) {
-      return fail(null, "Standardization Validity Days must be 0 or greater.");
+      return fail(null, t("solutionMaster.errors.validityDaysNonNegative"));
     }
   }
 

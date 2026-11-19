@@ -13,6 +13,10 @@ import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
 import { OverviewDashboardData, OverviewKpiCardData } from "../types/reportingTypes";
 import { OverviewService } from "../services/OverviewService";
 import { brandColors } from "../../../theme";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
+import { formatCount } from "../../../utils/formatCount";
 
 // "Results by Test" y-axis ticks.
 //
@@ -54,8 +58,11 @@ interface OverviewTabProps {
   canViewKpi?: boolean;
 }
 
-function KpiCard({ data }: { data: OverviewKpiCardData }) {
+type KpiSlot = "totalTests" | "approvedResults" | "pendingReview" | "pendingApproval" | "outOfSpec" | "alertActionLevel";
+
+function KpiCard({ data, slot }: { data: OverviewKpiCardData; slot: KpiSlot }) {
   const theme = useTheme();
+  const { t } = useTranslation("reports");
   const isUp = data.deltaDirection === "up";
   const isError = data.variant === "error";
   const isWarning = data.variant === "warning";
@@ -84,7 +91,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
       }}
     >
       <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
-        {data.title}
+        {t(`overview.kpi.${slot}`)}
       </Typography>
       <Typography
         sx={{
@@ -110,17 +117,26 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
           }}
         >
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
-          {Math.abs(data.deltaPercent)}%
+          <Ltr>{Math.abs(data.deltaPercent)}%</Ltr>
         </Box>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          {data.comparisonLabel}
+          {data.caption ? (
+            <Trans
+              i18nKey={`overview.kpi.caption.${data.caption.key}`}
+              ns="reports"
+              values={{ approved: formatCount(data.caption.approved ?? 0), total: formatCount(data.caption.total ?? 0) }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            data.comparisonLabel
+          )}
         </Typography>
       </Box>
     </Paper>
   );
 
   return data.tooltip ? (
-    <Tooltip title={data.tooltip} arrow>
+    <Tooltip title={slot === "outOfSpec" ? t("overview.kpi.outOfSpecTooltip") : data.tooltip} arrow>
       {content}
     </Tooltip>
   ) : (
@@ -129,6 +145,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
 }
 
 export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = false }: OverviewTabProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const chartPalette = theme.custom.chartPalette;
   const [data, setData] = useState<OverviewDashboardData | null>(null);
@@ -150,12 +167,12 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <VerifiedUserIcon sx={{ color: theme.custom.status.notDetected.text, fontSize: 18 }} />
           <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
-            Operational Metrics: Aggregated directly from live laboratory ResultRecords
+            {t("overview.operationalMetrics")}
           </Typography>
         </Box>
         <Chip
           size="small"
-          label="Live Database Data"
+          label={t("overview.liveDatabaseData")}
           sx={{ bgcolor: theme.custom.status.notDetected.bg, color: theme.custom.status.notDetected.text, fontSize: 12, fontWeight: 700 }}
         />
       </Box>
@@ -168,7 +185,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.totalTests} />
+          <KpiCard data={data.totalTests} slot="totalTests" />
         </Grid>
         <Grid
           size={{
@@ -176,7 +193,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.approvedResults} />
+          <KpiCard data={data.approvedResults} slot="approvedResults" />
         </Grid>
         <Grid
           size={{
@@ -184,7 +201,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.pendingReview} />
+          <KpiCard data={data.pendingReview} slot="pendingReview" />
         </Grid>
         <Grid
           size={{
@@ -192,7 +209,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.pendingApproval} />
+          <KpiCard data={data.pendingApproval} slot="pendingApproval" />
         </Grid>
         <Grid
           size={{
@@ -200,7 +217,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.outOfSpec} />
+          <KpiCard data={data.outOfSpec} slot="outOfSpec" />
         </Grid>
         <Grid
           size={{
@@ -208,7 +225,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.alertActionLevel} />
+          <KpiCard data={data.alertActionLevel} slot="alertActionLevel" />
         </Grid>
       </Grid>
 
@@ -222,11 +239,11 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              Results by Category
+              {t("overview.resultsByCategory")}
             </Typography>
             {data.categoryDistribution.length === 0 ? (
               <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Typography sx={{ fontSize: 13, color: "text.disabled" }}>No matching records found</Typography>
+                <Typography sx={{ fontSize: 13, color: "text.disabled" }}>{t("overview.noMatchingRecords")}</Typography>
               </Box>
             ) : (
               <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
@@ -261,7 +278,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                       {data.totalTests.value}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "text.secondary", fontWeight: 600 }}>
-                      TOTAL
+                      {t("overview.totalUpper")}
                     </Typography>
                   </Box>
                 </Box>
@@ -295,7 +312,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              Results by Test
+              {t("overview.resultsByTest")}
             </Typography>
             <Box sx={{ flex: 1, minHeight: 0 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -319,7 +336,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                   />
                   <RechartsTooltip
                     cursor={{ fill: theme.palette.action.hover }}
-                    formatter={(val: unknown) => [`${val} tests`, "Volume"]}
+                    formatter={(val: unknown) => [t("overview.tooltipTests", { value: val }), t("overview.tooltipVolume")]}
                   />
                   <Bar dataKey="count" fill={theme.palette.primary.main} radius={[0, 4, 4, 0]} barSize={14}>
                     <LabelList
@@ -343,7 +360,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           }}>
           <Paper sx={{ p: 2.5, height: 340, display: "flex", flexDirection: "column" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1 }}>
-              Results by Location / Point
+              {t("overview.resultsByLocation")}
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
               <Box sx={{ width: "50%", height: 220, position: "relative" }}>
@@ -361,7 +378,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                         <Cell key={idx} fill={entry.color} />
                       ))}
                     </Pie>
-                    <RechartsTooltip formatter={(val: unknown, name: unknown) => [`${val} tests`, String(name)]} />
+                    <RechartsTooltip formatter={(val: unknown, name: unknown) => [t("overview.tooltipTests", { value: val }), String(name)]} />
                   </PieChart>
                 </ResponsiveContainer>
                 <Box sx={{
@@ -369,9 +386,9 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                   textAlign: "center", pointerEvents: "none"
                 }}>
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
-                    {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
+                    {formatCount(data.locationDistribution.reduce((acc, x) => acc + x.count, 0))}
                   </Typography>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Total</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("overview.total")}</Typography>
                 </Box>
               </Box>
 
@@ -406,19 +423,19 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
               <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-                Recent Results
+                {t("overview.recentResults")}
               </Typography>
-              <Button size="small" onClick={() => onNavigateTab(1)}>View in Search</Button>
+              <Button size="small" onClick={() => onNavigateTab(1)}>{t("overview.viewInSearch")}</Button>
             </Box>
             <TableContainer>
               <Table size="small" sx={{ "& th": { fontWeight: 700, fontSize: 12 }, "& td": { fontSize: 12 } }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Subject / Ref</TableCell>
-                    <TableCell>Test</TableCell>
-                    <TableCell>Date Entered</TableCell>
-                    <TableCell>Entered By</TableCell>
-                    <TableCell>Status</TableCell>
+                    <TableCell>{t("overview.subjectRef")}</TableCell>
+                    <TableCell>{t("overview.test")}</TableCell>
+                    <TableCell>{t("overview.dateEntered")}</TableCell>
+                    <TableCell>{t("overview.enteredBy")}</TableCell>
+                    <TableCell>{t("overview.status")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -463,13 +480,13 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-              Quality Signals
+              {t("overview.qualitySignals")}
             </Typography>
             <Stack spacing={1.5}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1, bgcolor: theme.custom.status.detected.bg, borderRadius: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <ErrorOutlineIcon sx={{ color: brandColors.err, fontSize: 18 }} />
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.detected.text }}>Out of Spec</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.detected.text }}>{t("overview.outOfSpec")}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: brandColors.err }}>
                   {data.qualitySignals.outOfSpecCount}
@@ -479,7 +496,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1, bgcolor: theme.custom.status.inconclusive.bg, borderRadius: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <WarningAmberIcon sx={{ color: brandColors.badgePM, fontSize: 18 }} />
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.inconclusive.text }}>Alert / Action Level</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.inconclusive.text }}>{t("overview.alertActionLevel")}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: brandColors.badgePM }}>
                   {data.qualitySignals.alertActionCount}
@@ -489,7 +506,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1, bgcolor: theme.custom.status.purple.bg, borderRadius: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <HourglassEmptyIcon sx={{ color: theme.palette.primary.main, fontSize: 18 }} />
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.purple.text }}>Pending Review</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.purple.text }}>{t("overview.pendingReview")}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main }}>
                   {data.qualitySignals.pendingReviewCount}
@@ -499,7 +516,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1, bgcolor: theme.custom.status.notDetected.bg, borderRadius: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <VerifiedUserIcon sx={{ color: brandColors.ok, fontSize: 18 }} />
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.notDetected.text }}>Pending Approval</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: theme.custom.status.notDetected.text }}>{t("overview.pendingApproval")}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: brandColors.ok }}>
                   {data.qualitySignals.pendingApprovalCount}
@@ -517,7 +534,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
           }}>
           <Paper sx={{ p: 2.5, height: "100%" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main, mb: 1.5 }}>
-              Quick Actions
+              {t("overview.quickActions")}
             </Typography>
             <Stack spacing={1.25}>
               <Button
@@ -527,7 +544,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                 onClick={() => onNavigateTab(1)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
-                Search Records
+                {t("overview.searchRecords")}
               </Button>
               <Button
                 variant="outlined"
@@ -536,7 +553,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                 onClick={() => onNavigateTab(4)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
-                Trending & Control Charts
+                {t("overview.trendingControlCharts")}
               </Button>
               {canViewKpi && (
               <Button
@@ -546,7 +563,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                 onClick={() => onNavigateTab(5)}
                 sx={{ justifyContent: "flex-start", py: 1 }}
               >
-                KPI / Performance
+                {t("overview.kpiPerformance")}
               </Button>
               )}
             </Stack>
@@ -555,7 +572,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
       </Grid>
 
       <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 2 }}>
-        Source: MicroLIMS GMP Result Records & Test Orders · Figures reflect the selected reporting window.
+        {t("overview.sourceFootnote")}
       </Typography>
     </Box>
   );

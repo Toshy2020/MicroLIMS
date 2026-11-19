@@ -4,7 +4,9 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import HelpOutlinedIcon from "@mui/icons-material/HelpOutlined";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
-import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import type { CurrentFactorDto, CurrentFactorState } from "../types";
 
 interface CurrentFactorCardProps {
@@ -14,7 +16,7 @@ interface CurrentFactorCardProps {
 }
 
 interface StateConfig {
-  label: string;
+  labelKey: string;
   color: "success" | "warning" | "info" | "default";
   icon: React.ReactElement;
   textColor: string;
@@ -22,25 +24,25 @@ interface StateConfig {
 
 const STATE_CONFIGS: Record<CurrentFactorState, StateConfig> = {
   Valid: {
-    label: "Valid",
+    labelKey: "currentFactor.states.Valid",
     color: "success",
     icon: <CheckCircleOutlinedIcon fontSize="small" />,
     textColor: "success.main"
   },
   Due: {
-    label: "Due for Restandardization",
+    labelKey: "currentFactor.states.Due",
     color: "warning",
     icon: <WarningAmberIcon fontSize="small" />,
     textColor: "warning.main"
   },
   BeforeEachUse: {
-    label: "Restandardize Before Each Use",
+    labelKey: "currentFactor.states.BeforeEachUse",
     color: "info",
     icon: <InfoOutlinedIcon fontSize="small" />,
     textColor: "info.main"
   },
   NotStandardized: {
-    label: "Not Standardized",
+    labelKey: "currentFactor.states.NotStandardized",
     color: "default",
     icon: <HelpOutlinedIcon fontSize="small" />,
     textColor: "text.secondary"
@@ -52,13 +54,14 @@ export function CurrentFactorCard({
   canStandardize,
   onStandardize
 }: CurrentFactorCardProps) {
+  const { t } = useTranslation("solutionPreparation");
   const state: CurrentFactorState = currentFactor?.state ?? "NotStandardized";
   const config = STATE_CONFIGS[state] ?? STATE_CONFIGS.NotStandardized;
   const factor = currentFactor?.factor;
 
   const validUntilText = (() => {
-    if (state === "BeforeEachUse") return "Restandardize before each use";
-    if (currentFactor?.validUntil) return formatLabDate(currentFactor.validUntil);
+    if (state === "BeforeEachUse") return t("currentFactor.beforeEachUse");
+    if (currentFactor?.validUntil) return <Ltr>{formatLabCalendarDate(currentFactor.validUntil)}</Ltr>;
     return "—";
   })();
 
@@ -76,10 +79,10 @@ export function CurrentFactorCard({
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
           <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-            Current Factor
+            {t("currentFactor.heading")}
           </Typography>
           <Chip
-            label={config.label}
+            label={t(config.labelKey)}
             color={config.color}
             icon={config.icon}
             size="small"
@@ -96,7 +99,7 @@ export function CurrentFactorCard({
             onClick={onStandardize}
             sx={{ textTransform: "none", fontWeight: 700 }}
           >
-            Standardize
+            {t("currentFactor.standardize")}
           </Button>
         )}
       </Box>
@@ -110,7 +113,7 @@ export function CurrentFactorCard({
       >
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            Factor (Mean)
+            {t("currentFactor.factorMean")}
           </Typography>
           <Typography
             variant="h5"
@@ -120,24 +123,24 @@ export function CurrentFactorCard({
               color: factor != null ? config.textColor : "text.secondary"
             }}
           >
-            {factor != null ? factor.toFixed(4) : "—"}
+            {factor != null ? <Ltr>{factor.toFixed(4)}</Ltr> : "—"}
           </Typography>
         </Box>
 
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            Standardized At
+            {t("currentFactor.standardizedAt")}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {currentFactor?.standardizedAt
-              ? formatLabDateTime(currentFactor.standardizedAt)
+              ? <Ltr>{formatDateTimeWithTimeZone(currentFactor.standardizedAt)}</Ltr>
               : "—"}
           </Typography>
         </Box>
 
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            Valid Until
+            {t("currentFactor.validUntil")}
           </Typography>
           <Typography
             variant="body2"

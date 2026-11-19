@@ -7,6 +7,7 @@ import {
   Select,
   Typography
 } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 
 export interface IcpSpecElementOption {
   id: number;
@@ -25,6 +26,7 @@ export interface IcpSpecFieldsProps {
 // The ICP part of an item specification: pick one of the test's elements. The test already defines the
 // target concentration (assay) and the basis, so the item only needs the element and its limits.
 export function IcpSpecFields({ mode, elements, selectedElementId, onElementChange }: IcpSpecFieldsProps) {
+  const { t } = useTranslation("labConfig");
   const isImpurity = mode === "Impurity";
 
   return (
@@ -48,38 +50,36 @@ export function IcpSpecFields({ mode, elements, selectedElementId, onElementChan
           mb: 1.5
         }}
       >
-        {isImpurity ? "Elemental Impurity (ICP) Specification" : "Assay (ICP) Specification"}
+        {isImpurity ? t("items.icpSpecFields.impurityHeading") : t("items.icpSpecFields.assayHeading")}
       </Typography>
 
       <FormControl size="small" fullWidth required>
-        <InputLabel id="icp-spec-element-label">Element *</InputLabel>
+        <InputLabel id="icp-spec-element-label">{t("items.icpSpecFields.elementLabel")}</InputLabel>
         <Select
           labelId="icp-spec-element-label"
-          label="Element *"
+          label={t("items.icpSpecFields.elementLabel")}
           value={selectedElementId}
           onChange={(e) => {
             const id = Number(e.target.value);
             onElementChange(id, elements.find((el) => el.id === id));
           }}
-          inputProps={{ "aria-label": "Element" }}
+          inputProps={{ "aria-label": t("items.icpSpecFields.elementAriaLabel") }}
         >
           {elements.length === 0 ? (
             <MenuItem disabled value="">
-              <em>No elements configured on this test</em>
+              <em>{t("items.icpSpecFields.noElements")}</em>
             </MenuItem>
           ) : (
             elements.map((el) => (
               <MenuItem key={el.id} value={el.id}>
                 {el.symbol}
-                {!isImpurity && el.targetPpm != null ? ` (target ${el.targetPpm} ppm)` : ""}
+                {!isImpurity && el.targetPpm != null ? t("items.icpSpecFields.targetPpm", { ppm: el.targetPpm }) : ""}
               </MenuItem>
             ))
           )}
         </Select>
         <FormHelperText>
-          {isImpurity
-            ? "Limit is not more than the value below in ppm; 0 means not detected."
-            : "Limits apply to the assay % of the test's target concentration."}
+          {isImpurity ? t("items.icpSpecFields.impurityHelper") : t("items.icpSpecFields.assayHelper")}
         </FormHelperText>
       </FormControl>
     </Box>

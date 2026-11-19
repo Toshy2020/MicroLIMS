@@ -1,10 +1,13 @@
 import { Button } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { IcpStatusBadge } from "../components/IcpStatusBadge";
+import { Ltr } from "../../../components/Ltr";
 import { RegisterTable, ResultSection } from "../../../components/lab";
 import type { RegisterColumn } from "../../../components/lab";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpRunListItem } from "../types";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
 export interface IcpRunHistoryTableProps {
   historyRuns: IcpRunListItem[];
@@ -16,33 +19,34 @@ export function IcpRunHistoryTable({
   historyRuns,
   onSelectRun
 }: IcpRunHistoryTableProps) {
+  const { t } = useTranslation("icpWorkspace");
   const columns: RegisterColumn<IcpRunListItem>[] = [
     {
       key: "code",
-      label: "Run Code",
+      label: t("history.columns.runCode"),
       sortable: true,
-      render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>{hr.code}</span>
+      render: (hr) => <span style={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}><Ltr>{hr.code}</Ltr></span>
     },
-    { key: "analystUserName", label: "Analyst", sortable: true },
+    { key: "analystUserName", label: t("history.columns.analyst"), sortable: true },
     {
       key: "startedAt",
-      label: "Started At",
+      label: t("history.columns.startedAt"),
       sortable: true,
       sortValue: (hr) => new Date(hr.startedAt).getTime(),
-      render: (hr) => new Date(hr.startedAt).toLocaleString()
+      render: (hr) => <Ltr>{formatDateTimeWithTimeZone(hr.startedAt)}</Ltr>
     },
     {
       key: "sampleCount",
-      label: "Samples",
+      label: t("history.columns.samples"),
       sortable: true,
       align: "right",
-      render: (hr) => <span style={{ fontVariantNumeric: "tabular-nums" }}>{hr.sampleCount}</span>
+      render: (hr) => <span style={{ fontVariantNumeric: "tabular-nums" }}><Ltr>{hr.sampleCount}</Ltr></span>
     },
-    { key: "status", label: "Run Status", sortable: true, render: (hr) => <IcpStatusBadge status={hr.status} /> },
-    { key: "calibrationStatus", label: "Calibration", sortable: true, render: (hr) => <IcpStatusBadge status={hr.calibrationStatus} /> },
+    { key: "status", label: t("history.columns.runStatus"), sortable: true, render: (hr) => <IcpStatusBadge status={hr.status} /> },
+    { key: "calibrationStatus", label: t("history.columns.calibration"), sortable: true, render: (hr) => <IcpStatusBadge status={hr.calibrationStatus} /> },
     {
       key: "action",
-      label: "Action",
+      label: t("history.columns.action"),
       align: "right",
       render: (hr) => (
         <Button
@@ -54,14 +58,14 @@ export function IcpRunHistoryTable({
             onSelectRun(hr.id);
           }}
         >
-          View
+          {t("history.view")}
         </Button>
       )
     }
   ];
 
   return (
-    <ResultSection title={`Instrument run history (${historyRuns.length})`}>
+    <ResultSection title={t("history.title", { count: historyRuns.length })}>
       <RegisterTable
         columns={columns}
         rows={historyRuns}
@@ -69,8 +73,8 @@ export function IcpRunHistoryTable({
         onRowClick={(hr) => onSelectRun(hr.id)}
         defaultSort={{ key: "startedAt", direction: "desc" }}
         empty={{
-          title: "No past runs recorded",
-          description: "Completed, abandoned, and past ICP runs on this instrument appear here."
+          title: t("history.emptyTitle"),
+          description: t("history.emptyDescription")
         }}
       />
     </ResultSection>

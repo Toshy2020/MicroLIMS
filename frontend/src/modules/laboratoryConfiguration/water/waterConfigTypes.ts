@@ -1,4 +1,6 @@
-import type { FrequencyColumns } from "../../../components/configHierarchy";
+import type { FrequencyColumns, FrequencyRulePayload } from "../../../components/configHierarchy";
+
+export type { FrequencyRulePayload };
 
 export interface WaterPointLabFrequency extends FrequencyColumns {
   sectionId: number;
@@ -62,6 +64,15 @@ export function pointHealth(point: SamplingPoint, configs: SamplingConfig[], isC
     noTests: (point.assignedTestCodes ?? []).length === 0,
     missingLimitCodes: countTestsOf(point, isCountTest).filter((code) => !configured.has(code))
   };
+}
+
+export interface CreateWaterSamplingPointPayload {
+  code: string;
+  location: string;
+  testingFrequency: string;
+  assignedTestCodes: string[];
+  waterDepartmentId: number | null;
+  frequency?: FrequencyRulePayload | null;
 }
 
 export const needsAttention = (h: PointHealth) => h.noTests || h.missingLimitCodes.length > 0;

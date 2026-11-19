@@ -10,6 +10,8 @@ import {
   Alert,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
 import { ItemDocumentType, ItemDocumentService } from "../services/ItemDocumentService";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { DateField } from "../../../../components/DateField";
@@ -30,6 +32,7 @@ export function UploadItemDocumentDialog({
   onClose,
   onSuccess,
 }: UploadItemDocumentDialogProps) {
+  const { t } = useTranslation("labConfig");
   const [version, setVersion] = useState("Rev 01");
   const [effectiveDate, setEffectiveDate] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
@@ -47,7 +50,7 @@ export function UploadItemDocumentDialog({
 
   const handleUpload = async () => {
     if (!file) {
-      setError("Please select a document file to upload.");
+      setError(t("items.uploadDoc.errors.fileRequired"));
       return;
     }
 
@@ -70,8 +73,8 @@ export function UploadItemDocumentDialog({
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
           ? err.message
-          : "Failed to upload document.";
-      setError(msg || "Failed to upload document.");
+          : t("items.uploadDoc.errors.uploadFailed");
+      setError(msg || t("items.uploadDoc.errors.uploadFailed"));
     } finally {
       setUploading(false);
     }
@@ -83,14 +86,14 @@ export function UploadItemDocumentDialog({
       onClose={onClose}
       maxWidth="xs"
       titleSx={{ fontWeight: 700, fontSize: 15 }}
-      title="Upload Controlled Verification Report"
+      title={t("items.uploadDoc.title")}
       actions={
         <>
           <Button onClick={onClose} disabled={uploading} color="inherit">
-            Cancel
+            {t("items.uploadDoc.cancel")}
           </Button>
           <Button variant="contained" onClick={handleUpload} disabled={uploading || !file}>
-            {uploading ? "Uploading..." : "Upload"}
+            {uploading ? t("items.uploadDoc.uploading") : t("items.uploadDoc.upload")}
           </Button>
         </>
       }
@@ -99,36 +102,41 @@ export function UploadItemDocumentDialog({
         {error && <Alert severity="error">{error}</Alert>}
 
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Item: <strong>{itemName}</strong>
+          <Trans
+            i18nKey="items.uploadDoc.itemLabel"
+            ns="labConfig"
+            values={{ name: itemName }}
+            components={{ bold: <strong /> }}
+          />
         </Typography>
 
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-            Document Type
+            {t("items.uploadDoc.documentTypeLabel")}
           </Typography>
           <Select
             size="small"
             value={ItemDocumentType.VerificationReport}
             disabled
             fullWidth
-            inputProps={{ "aria-label": "Document Type" }}
+            inputProps={{ "aria-label": t("items.uploadDoc.documentTypeLabel") }}
           >
-            <MenuItem value={ItemDocumentType.VerificationReport}>Verification Report</MenuItem>
+            <MenuItem value={ItemDocumentType.VerificationReport}>{t("items.uploadDoc.verificationReport")}</MenuItem>
           </Select>
         </Box>
 
         <Stack direction="row" spacing={1.5}>
           <TextField
             size="small"
-            label="Version"
-            placeholder="e.g. Rev 01"
+            label={t("items.uploadDoc.versionLabel")}
+            placeholder={t("items.uploadDoc.versionPlaceholder")}
             value={version}
             onChange={(e) => setVersion(e.target.value)}
             sx={{ flex: 1 }}
             required
           />
           <DateField
-            label="Effective Date"
+            label={t("items.uploadDoc.effectiveDateLabel")}
             value={effectiveDate}
             onChange={(v) => setEffectiveDate(v)}
             sx={{ flex: 1 }}
@@ -159,10 +167,10 @@ export function UploadItemDocumentDialog({
           <label htmlFor="item-doc-upload-input" style={{ cursor: "pointer", display: "block" }}>
             <CloudUploadIcon sx={{ fontSize: 32, color: file ? "primary.main" : "text.secondary", mb: 0.5 }} />
             <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
-              {file ? file.name : "Choose File"}
+              {file ? file.name : t("items.uploadDoc.chooseFile")}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {file ? `${(file.size / 1024).toFixed(1)} KB` : "PDF, Word, Excel, or Image (Max 25MB)"}
+              {file ? `${(file.size / 1024).toFixed(1)} KB` : t("items.uploadDoc.fileTypesHint")}
             </Typography>
           </label>
         </Box>

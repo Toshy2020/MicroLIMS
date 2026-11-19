@@ -30,9 +30,12 @@ RUN dotnet publish MicroLIMS.API.csproj -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Tesseract OCR for scanned / photographed instrument reports
+# Tesseract OCR for scanned / photographed instrument reports; libldap for Active Directory
+# sign-in (System.DirectoryServices.Protocols loads libldap on Linux). The LDAP package is
+# libldap2 on Debian 13 and libldap-2.5-0 on Debian 12: install whichever the base image has.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+    && (apt-get install -y --no-install-recommends libldap2 || apt-get install -y --no-install-recommends libldap-2.5-0) \
     && rm -rf /var/lib/apt/lists/*
 
 # Ensure storage directory exists with app user ownership before switching user

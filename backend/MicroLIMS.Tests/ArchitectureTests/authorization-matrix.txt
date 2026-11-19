@@ -1,10 +1,15 @@
-AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest): SystemAdministrator
-AdminAccessReviewsController.Export(Int32): SystemAdministrator
-AdminAccessReviewsController.Generate(GenerateAccessReviewRequest): SystemAdministrator
-AdminAccessReviewsController.Get(Int32, CancellationToken): SystemAdministrator
-AdminAccessReviewsController.List(CancellationToken): SystemAdministrator
-AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest): SystemAdministrator
-AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest): SystemAdministrator
+ActionAvailabilityController.ForDocumentRevision(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForMedia(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForSample(Int32, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ActionAvailabilityController.ForTestOrder(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+AdminAccessReviewsController.AddFinding(Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Export(Int32, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Generate(GenerateAccessReviewRequest, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Get(Int32, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.List(CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.Sign(Int32, SignAccessReviewRequest, CancellationToken): SystemAdministrator,Qa
+AdminAccessReviewsController.UpdateFinding(Int32, Int32, SaveAccessReviewFindingRequest, CancellationToken): SystemAdministrator,Qa
+AdminEmailOutboxController.Summary(CancellationToken): SystemAdministrator
 AdminIntegrationsController.InstrumentAgents(CancellationToken): SystemAdministrator
 AdminIntegrationsController.Smtp(): SystemAdministrator
 AdminIntegrationsController.Storage(): SystemAdministrator
@@ -17,6 +22,15 @@ AdminJobsController.Runs(String, Int32, Int32, CancellationToken): SystemAdminis
 AdminSettingsController.GetAll(CancellationToken): SystemAdministrator
 AdminSettingsController.History(String, CancellationToken): SystemAdministrator
 AdminSettingsController.Update(String, UpdateSystemSettingRequest): SystemAdministrator
+AdminSsoController.Get(String, CancellationToken): SystemAdministrator
+AdminSsoController.ImportLinks(DirectoryLinkImportRequest, CancellationToken): SystemAdministrator
+AdminSsoController.PreviewLinks(DirectoryLinkImportRequest, CancellationToken): SystemAdministrator
+AdminSsoController.Test(String, CancellationToken): SystemAdministrator
+AdminUserDirectoryController.Relink(Int32, DirectoryRelinkRequest, CancellationToken): SystemAdministrator
+AdminUserMfaController.AssignHardwareToken(Int32, AssignHardwareTokenRequest, CancellationToken): SystemAdministrator
+AdminUserMfaController.ListTrustedDevices(Int32, CancellationToken): SystemAdministrator
+AdminUserMfaController.Reset(Int32, AdminResetMfaRequest, CancellationToken): SystemAdministrator
+AdminUserMfaController.RevokeTrustedDevice(Int32, Int32, CancellationToken): SystemAdministrator
 AdminUserSessionsController.List(Int32): SystemAdministrator
 AdminUserSessionsController.Revoke(Int32, RevokeUserSessionsRequest): SystemAdministrator
 AfterCleaningController.Prepare(PrepareAfterCleaningRequest): SectionHead,Reviewer,Analyst
@@ -27,42 +41,52 @@ AfterCleaningMasterDataController.CreateMachinePartConfiguration(CreateMachinePa
 AfterCleaningMasterDataController.DeleteMachine(Int32): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.DeleteMachinePart(Int32): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.DeleteMachinePartConfiguration(Int32): SystemAdministrator,SectionHead
-AfterCleaningMasterDataController.GetMachinePartConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-AfterCleaningMasterDataController.GetMachines(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+AfterCleaningMasterDataController.GetMachinePartConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+AfterCleaningMasterDataController.GetMachines(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AfterCleaningMasterDataController.UpdateMachine(Int32, UpdateMachineRequest): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.UpdateMachinePart(Int32, UpdateMachinePartRequest): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.UpdateMachinePartConfiguration(Int32, UpdateMachinePartConfigRequest): SystemAdministrator,SectionHead
-ArchivedRecordsController.Download(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ArchivedRecordsController.GetForEntity(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-AuditController.Export(AuditSearchRequest, CancellationToken): SystemAdministrator,SectionHead
-AuditController.Get(String, String): SystemAdministrator,SectionHead
-AuditController.GetLoginHistory(String, Int32, Nullable`1): SystemAdministrator
-AuditController.GetSecurityEvents(String, String, Nullable`1, Nullable`1, Int32, Nullable`1): SystemAdministrator
-AuditController.GetTraceability(Int32): SystemAdministrator,SectionHead
-AuditController.GetTraceabilityForEntity(String, String): SystemAdministrator,SectionHead
-AuditController.Search(AuditSearchRequest): SystemAdministrator,SectionHead
-AuthenticationController.ChangePassword(ChangePasswordRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ArchivedRecordsController.Download(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ArchivedRecordsController.GetForEntity(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+AuditController.Export(AuditSearchRequest, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditController.Get(String, String): SystemAdministrator,SectionHead,Qa
+AuditController.GetLoginHistory(String, Int32, Nullable`1): SystemAdministrator,Qa
+AuditController.GetSecurityEvents(String, String, Nullable`1, Nullable`1, Int32, Nullable`1): SystemAdministrator,Qa
+AuditController.GetTraceability(Int32): SystemAdministrator,SectionHead,Qa
+AuditController.GetTraceabilityForEntity(String, String): SystemAdministrator,SectionHead,Qa
+AuditController.Search(AuditSearchRequest): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.AddFinding(Int32, AddAuditTrailReviewFindingRequest, CancellationToken): Qa
+AuditTrailReviewsController.CloseFinding(Int32, CloseAuditTrailReviewFindingRequest, CancellationToken): Qa
+AuditTrailReviewsController.ExportPdf(Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.Get(Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.GetEntries(Int32, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.List(Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
+AuditTrailReviewsController.Sign(Int32, SignAuditTrailReviewRequest, String, CancellationToken): Qa
+AuditTrailReviewsController.Start(StartAuditTrailReviewRequest, CancellationToken): Qa
+AuthenticationController.ChangePassword(ChangePasswordRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AuthenticationController.ConfirmAdminPasswordRecovery(ConfirmAdminPasswordRecoveryRequest): anonymous
 AuthenticationController.ConfirmPasswordReset(ConfirmPasswordResetRequest): anonymous
 AuthenticationController.Login(LoginRequest): anonymous
-AuthenticationController.Logout(LogoutRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-AuthenticationController.Me(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+AuthenticationController.Logout(LogoutRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+AuthenticationController.Me(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 AuthenticationController.Refresh(RefreshRequest): anonymous
 AuthenticationController.RequestPasswordReset(RequestPasswordResetRequest): anonymous
+AuthenticationController.SetInitialSigningPassword(SetInitialSigningPasswordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 BiologicalWasteDestructionController.GetAll(): SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.GetById(Int32): SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.GetEligible(): SectionHead,Reviewer,Analyst
 BiologicalWasteDestructionController.Record(RecordBiologicalWasteDestructionRequest): SectionHead,Reviewer,Analyst
 CalendarEventsController.Cancel(Int32, CancelCalendarEventRequest): SectionHead,Reviewer
 CalendarEventsController.Create(CreateCalendarEventRequest): SectionHead,Reviewer
-CalendarEventsController.GetDocumentContent(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+CalendarEventsController.GetDocumentContent(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CalendarEventsController.Update(Int32, UpdateCalendarEventRequest): SectionHead,Reviewer
 CalendarEventsController.UploadDocument(Int32, IFormFile): SectionHead,Reviewer
+ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ControlChartController.ApplyLimits(ApplyTrendLimitsRequest): SystemAdministrator,SectionHead
-ControlChartController.GenerateReport(ControlChartReportRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ControlChartController.GetChart(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Boolean, SettingsParameters, CapabilityBasis, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ControlChartController.GetLimitReview(String, SampleCategory, Nullable`1, Nullable`1, Boolean, SettingsParameters): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ControlChartController.GenerateReport(ControlChartReportRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ControlChartController.GetChart(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Boolean, SettingsParameters, CapabilityBasis, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ControlChartController.GetLimitReview(String, SampleCategory, Nullable`1, Nullable`1, Boolean, SettingsParameters): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CryovialController.Approve(Int32, ApproveRequest): SectionHead
 CryovialController.Destroy(Int32): SectionHead,Reviewer,Analyst
 CryovialController.GetAll(): SectionHead,Reviewer,Analyst
@@ -72,132 +96,137 @@ CryovialController.GetSummaryWord(Int32): SectionHead,Reviewer,Analyst
 CryovialController.MoveStorage(Int32, MoveCryovialStorageRequest): SectionHead
 CryovialController.PrepareCryovials(PrepareCryovialsHttpRequest): SectionHead,Reviewer,Analyst
 CryovialController.ThawVial(Int32, ThawVialRequest): SectionHead,Reviewer,Analyst
-DashboardController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetAnalystMetrics(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetCategoryDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetIncubationOverview(Boolean, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetKpiDeltas(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetMonthlyTrend(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetMyTasks(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetNotifications(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetRecentActivity(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetReviewerDashboard(String): SystemAdministrator,SectionHead,Reviewer
-DashboardController.GetSectionHeadDashboard(String): SystemAdministrator,SectionHead
-DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.GetTodaysWork(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+DashboardController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetAnalystMetrics(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetCategoryDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetIncubationOverview(Boolean, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetKpiDeltas(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetMonthlyTrend(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetNotifications(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetRecentActivity(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.GetReviewerDashboard(String): SystemAdministrator,SectionHead,Reviewer,Qa
+DashboardController.GetSectionHeadDashboard(String): SystemAdministrator,SectionHead,Qa
+DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DatabaseOverviewController.Get(CancellationToken): SystemAdministrator
-DiscussionController.AddComment(Int32, CreateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.CreatePost(CreatePostForm): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.DeleteComment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.DeletePost(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.DownloadAttachment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.GetFeed(Nullable`1, String, Boolean, Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.GetPostHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.ToggleImportant(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.UpdateComment(Int32, Int32, UpdateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DiscussionController.UpdatePost(Int32, UpdateDiscussionPostRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAcknowledgementController.GetAcknowledgementContext(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAcknowledgementController.GetAcknowledgementStatus(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAcknowledgementController.RecordReadingProgress(Int32, ReadingProgressUpdateRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAcknowledgementController.SubmitAcknowledgement(Int32, AcknowledgementSubmissionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.CreateApprovalTask(Int32, CreateApprovalTaskRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.ExecuteApprovalDecision(Int32, ExecuteApprovalDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.GetActiveApprovalTask(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.GetApprovalDossier(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.GetApprovalSignature(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.GetApprovalTask(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.GetApprovalTasks(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.SignApproval(Int32, SignApprovalRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentApprovalController.ValidateApprovalReadiness(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAuditController.ExportAuditTrail(DocumentAuditFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAuditController.GetDocumentAuditHistory(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentAuditController.SearchAuditTrail(DocumentAuditFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+DiscussionController.AddComment(Int32, CreateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.CreatePost(CreatePostForm): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.DeleteComment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.DeletePost(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.DownloadAttachment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.GetFeed(Nullable`1, String, Boolean, Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.GetPostHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.ToggleImportant(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.UpdateComment(Int32, Int32, UpdateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DiscussionController.UpdatePost(Int32, UpdateDiscussionPostRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAcknowledgementController.GetAcknowledgementContext(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAcknowledgementController.GetAcknowledgementStatus(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAcknowledgementController.RecordReadingProgress(Int32, ReadingProgressUpdateRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAcknowledgementController.SubmitAcknowledgement(Int32, AcknowledgementSubmissionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.CreateApprovalTask(Int32, CreateApprovalTaskRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.ExecuteApprovalDecision(Int32, ExecuteApprovalDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.GetActiveApprovalTask(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.GetApprovalDossier(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.GetApprovalSignature(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.GetApprovalTask(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.GetApprovalTasks(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.SignApproval(Int32, SignApprovalRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentApprovalController.ValidateApprovalReadiness(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAuditController.ExportAuditTrail(DocumentAuditFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAuditController.GetDocumentAuditHistory(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentAuditController.SearchAuditTrail(DocumentAuditFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DocumentConfigurationController.CreateDepartment(CreateDocumentDepartmentRequest): SystemAdministrator
 DocumentConfigurationController.CreateSection(CreateDocumentSectionRequest): SystemAdministrator
 DocumentConfigurationController.CreateType(CreateDocumentTypeRequest): SystemAdministrator
 DocumentConfigurationController.GetDepartmentImpact(Int32): SystemAdministrator
-DocumentConfigurationController.GetDepartments(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentConfigurationController.GetNumberingConfig(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+DocumentConfigurationController.GetDepartments(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentConfigurationController.GetNumberingConfig(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DocumentConfigurationController.GetSectionImpact(Int32): SystemAdministrator
-DocumentConfigurationController.GetSections(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentConfigurationController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentConfigurationController.GetTypes(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+DocumentConfigurationController.GetSections(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentConfigurationController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentConfigurationController.GetTypes(Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DocumentConfigurationController.UpdateDepartment(Int32, UpdateDocumentDepartmentRequest): SystemAdministrator
 DocumentConfigurationController.UpdateNumberingConfig(UpdateDocumentNumberingConfigRequest): SystemAdministrator
 DocumentConfigurationController.UpdateSection(Int32, UpdateDocumentSectionRequest): SystemAdministrator
 DocumentConfigurationController.UpdateSetting(String, UpdateConfigurationSettingRequest): SystemAdministrator
 DocumentConfigurationController.UpdateType(Int32, UpdateDocumentTypeRequest): SystemAdministrator
-DocumentControlController.AddAssignment(Int32, CreateAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.CancelDraftRevision(Int32, CancelDraftRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.GetLibrary(DocumentLibraryFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.RegisterDocument(RegisterDocumentMasterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.RemoveAssignment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.UpdateDraftMetadata(Int32, UpdateDocumentMasterDraftRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentControlController.VoidMaster(Int32, VoidDocumentMasterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentEscalationController.GetAssignmentEscalationHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentEscalationController.GetOverdueTrainingSummary(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentEscalationController.ProcessDueEscalations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentEscalationController.ResolveEscalation(ResolveEscalationRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentFilesController.DownloadFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentFilesController.UploadFile(Int32, IFormFile, FileRole): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentFilesController.ViewFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReassignmentController.GetCandidates(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReassignmentController.GetCount(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReassignmentController.GetQueue(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReassignmentController.Reassign(ReassignRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.AddReviewFinding(Int32, AddReviewFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.DecideReview(Int32, ReviewDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.GetMyAssignedReviewTasks(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.GetReviewTaskById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.GetReviewTasksByRevisionId(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.ResolveFinding(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.RespondToFinding(Int32, RespondToFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.SubmitForReview(Int32, SubmitForReviewRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentReviewController.VerifyFinding(Int32, VerifyFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.AddChangeItem(Int32, AddChangeItemRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.ConvertFindingToChangeItem(Int32, Int32, ConvertFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.CreateRevisionFromEffective(Int32, CreateRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.DeactivateChangeItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.GetChangeItems(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.GetImpactAssessment(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.GetRevisionDetails(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.ProposeNextRevision(Int32, ProposeNextRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.SaveImpactAssessment(Int32, SaveImpactAssessmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentRevisionController.UpdateChangeItem(Int32, UpdateChangeItemRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.AssignToGroup(BulkGroupAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.AssignToUsers(ManualTrainingAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.CalculateDueDate(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.CheckSupersededGap(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.GetAssignmentById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.GetAssignments(DocumentTrainingAssignmentFilter): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.GetMyAssignments(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingAssignmentController.GetUserAssignments(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingMatrixController.GetComplianceKpis(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingMatrixController.GetDocumentCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingMatrixController.GetTrainingMatrixGrid(TrainingMatrixFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-DocumentTrainingMatrixController.GetUserCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+DocumentControlController.AddAssignment(Int32, CreateAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.CancelDraftRevision(Int32, CancelDraftRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.GetLibrary(DocumentLibraryFilterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.RegisterDocument(RegisterDocumentMasterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.RemoveAssignment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.UpdateDraftMetadata(Int32, UpdateDocumentMasterDraftRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentControlController.VoidMaster(Int32, VoidDocumentMasterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentEscalationController.GetAssignmentEscalationHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentEscalationController.GetOverdueTrainingSummary(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentEscalationController.ProcessDueEscalations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentEscalationController.ResolveEscalation(ResolveEscalationRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentFilesController.DownloadFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentFilesController.UploadFile(Int32, IFormFile, FileRole): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentFilesController.ViewFile(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReassignmentController.GetCandidates(String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReassignmentController.GetCount(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReassignmentController.GetQueue(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReassignmentController.Reassign(ReassignRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.AddReviewFinding(Int32, AddReviewFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.DecideReview(Int32, ReviewDecisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.GetMyAssignedReviewTasks(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.GetReviewTaskById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.GetReviewTasksByRevisionId(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.ResolveFinding(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.RespondToFinding(Int32, RespondToFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.SubmitForReview(Int32, SubmitForReviewRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentReviewController.VerifyFinding(Int32, VerifyFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.AddChangeItem(Int32, AddChangeItemRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.ConvertFindingToChangeItem(Int32, Int32, ConvertFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.CreateRevisionFromEffective(Int32, CreateRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.DeactivateChangeItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.GetChangeItems(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.GetImpactAssessment(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.GetRevisionDetails(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.ProposeNextRevision(Int32, ProposeNextRevisionRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.SaveImpactAssessment(Int32, SaveImpactAssessmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentRevisionController.UpdateChangeItem(Int32, UpdateChangeItemRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.AssignToGroup(BulkGroupAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.AssignToUsers(ManualTrainingAssignmentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.CalculateDueDate(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.CheckSupersededGap(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.GetAssignmentById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.GetAssignments(DocumentTrainingAssignmentFilter): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.GetMyAssignments(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingAssignmentController.GetUserAssignments(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingMatrixController.GetComplianceKpis(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingMatrixController.GetDocumentCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingMatrixController.GetTrainingMatrixGrid(TrainingMatrixFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+DocumentTrainingMatrixController.GetUserCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EMController.Prepare(PrepareEMRequest): SectionHead,Reviewer,Analyst
 EMController.Receive(ReceiveEMRequest): SectionHead,Reviewer,Analyst
+EntryDefaultsController.Get(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EnvironmentalMonitoringMasterDataController.CreateDepartment(CreateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.CreateRoom(CreateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.CreateRoomTestConfiguration(CreateRoomTestConfigRequest): SystemAdministrator,SectionHead
+EnvironmentalMonitoringMasterDataController.CreateRoomTestConfigurationsBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
+EnvironmentalMonitoringMasterDataController.CreateRoomsBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.DeleteDepartment(Int32): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.DeleteRoom(Int32): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.DeleteRoomTestConfiguration(Int32): SystemAdministrator,SectionHead
-EnvironmentalMonitoringMasterDataController.GetDepartments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EnvironmentalMonitoringMasterDataController.GetRoomTestConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EnvironmentalMonitoringMasterDataController.GetRooms(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+EnvironmentalMonitoringMasterDataController.GetDepartments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EnvironmentalMonitoringMasterDataController.GetRoomTestConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EnvironmentalMonitoringMasterDataController.GetRooms(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EnvironmentalMonitoringMasterDataController.UpdateDepartment(Int32, UpdateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoom(Int32, UpdateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoomTestConfiguration(Int32, UpdateRoomTestConfigRequest): SystemAdministrator,SectionHead
-EquipmentCalendarController.GetCalendar(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentCalendarController.GetInstrumentHistory(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentCalendarController.GetPlannedVsDone(Int32, EquipmentTaskType): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentCalendarController.GetYear(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+EscalationRulesController.Create(CreateEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.List(Nullable`1, Boolean, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Replace(Int32, ReplaceEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Retire(Int32, CancellationToken): SectionHead,QcManager
+EquipmentCalendarController.GetCalendar(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentCalendarController.GetInstrumentHistory(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentCalendarController.GetPlannedVsDone(Int32, EquipmentTaskType): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentCalendarController.GetYear(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentDocumentController.GetContent(Int32, Int32): SectionHead,Analyst
 EquipmentDocumentController.GetDocuments(Int32): SectionHead,Analyst
 EquipmentDocumentController.Supersede(Int32, Int32, IFormFile, String): SectionHead
@@ -215,16 +244,17 @@ EquipmentInventoryController.Update(Int32, SaveEquipmentInventoryHttpRequest): S
 EquipmentInventoryController.WhereIsIt(String): SectionHead,Analyst
 EquipmentMasterDataController.CreateColumn(CreateChromatographyColumnRequest): SectionHead,Analyst
 EquipmentMasterDataController.CreateEquipment(CreateEquipmentRequest): SystemAdministrator,SectionHead
+EquipmentMasterDataController.CreateEquipmentBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 EquipmentMasterDataController.DeactivateColumn(Int32): SectionHead,Analyst
-EquipmentMasterDataController.GetAllAutoclavePrograms(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetAutoclaveProgramHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetAutoclavePrograms(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetColumnById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetColumns(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetConfiguredSummary(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetEquipment(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetEquipmentById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentMasterDataController.GetSetPointHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+EquipmentMasterDataController.GetAllAutoclavePrograms(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetAutoclaveProgramHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetAutoclavePrograms(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetColumnById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetColumns(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetConfiguredSummary(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetEquipment(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetEquipmentById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentMasterDataController.GetSetPointHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentMasterDataController.LinkInventory(Int32): SystemAdministrator,SectionHead
 EquipmentMasterDataController.SaveAutoclaveProgram(Int32, SaveAutoclaveProgramRequest): SystemAdministrator,SectionHead
 EquipmentMasterDataController.SetAutoclaveProgramStatus(Int32, SetAutoclaveProgramStatusHttpRequest): SystemAdministrator,SectionHead
@@ -235,10 +265,10 @@ EquipmentMasterDataController.UpdateSetPoint(Int32, UpdateIncubatorSetPointReque
 EquipmentPlanController.SaveSchedule(Int32, SaveEquipmentScheduleRequest, String): SectionHead
 EquipmentPlanRevisionsController.ApproveRevision(Int32, ApprovePlanRequest): SectionHead
 EquipmentPlanRevisionsController.GenerateDraft(GenerateEquipmentDraftRequest): SectionHead
-EquipmentPlanRevisionsController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-EquipmentPlanRevisionsController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+EquipmentPlanRevisionsController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+EquipmentPlanRevisionsController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentWorkController.AddLogEntry(Int32, AddLogEntryRequest): SectionHead,Reviewer,Analyst
-EquipmentWorkController.GetMaintenanceLog(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+EquipmentWorkController.GetMaintenanceLog(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentWorkController.RecordCalibration(Int32, RecordCalibrationRequest): SectionHead,Reviewer,Analyst
 EquipmentWorkController.VoidLogEntry(Int32, VoidLogEntryRequest): SectionHead,Reviewer,Analyst
 ErrorMonitoringController.Export(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, CancellationToken): SystemAdministrator
@@ -247,11 +277,12 @@ ErrorMonitoringController.OverrideSeverity(Guid, SeverityOverrideRequest, Cancel
 ErrorMonitoringController.Reopen(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Resolve(Guid, ResolveIncidentRequest, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Search(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator
-GlobalSearchController.Search(String, String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ExportsController.Log(LogListExportRequest, CancellationToken): SectionHead,Reviewer,QcManager
+GlobalSearchController.Search(String, String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 HplcMethodController.Create(SaveHplcMethodRequest): SystemAdministrator,SectionHead
-HplcMethodController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+HplcMethodController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcMethodController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcMethodController.GetHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 HplcMethodController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 HplcMethodController.Update(Int32, SaveHplcMethodRequest): SystemAdministrator,SectionHead
 HplcWorkspaceController.Abandon(Int32, ReasonRequest): SectionHead,Analyst
@@ -259,17 +290,17 @@ HplcWorkspaceController.AssignQualifications(Int32, AssignQualificationsRequest)
 HplcWorkspaceController.AssignSamples(Int32, AssignHplcSamplesRequest): SectionHead,Analyst
 HplcWorkspaceController.Complete(Int32): SectionHead,Analyst
 HplcWorkspaceController.ConfirmSst(Int32, ConfirmSstRequest): SectionHead,Analyst
-HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetDissolutionStandard(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetEligibleQualifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetInstruments(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetMethodOptions(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetQualificationEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-HplcWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+HplcWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetDissolutionStandard(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetEligibleQualifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetInstruments(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetMethodOptions(HplcTechnique): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetQualificationEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+HplcWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 HplcWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SectionHead,Analyst
 HplcWorkspaceController.SaveQualificationReplicates(Int32, SaveReplicatesRequest): SectionHead,Analyst
 HplcWorkspaceController.SaveReplicates(Int32, SaveReplicatesRequest): SectionHead,Analyst
@@ -283,14 +314,14 @@ IcpWorkspaceController.Abandon(Int32, ReasonRequest): SectionHead,Analyst
 IcpWorkspaceController.AssignSamples(Int32, AssignIcpSamplesRequest): SectionHead,Analyst
 IcpWorkspaceController.Complete(Int32): SectionHead,Analyst
 IcpWorkspaceController.ConfirmCalibration(Int32, ConfirmIcpCalibrationRequest): SectionHead,Analyst
-IcpWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetReportValues(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-IcpWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+IcpWorkspaceController.DownloadEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetEligibleTests(Int32, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetInstruments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetReportValues(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetRun(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetRunHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetSampleEntry(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+IcpWorkspaceController.GetTestOrderEvidence(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 IcpWorkspaceController.RemoveSample(Int32, Int32, ReasonRequest): SectionHead,Analyst
 IcpWorkspaceController.SaveCalibration(Int32, SaveIcpCalibrationRequest): SectionHead,Analyst
 IcpWorkspaceController.SaveEntry(Int32, SaveIcpSampleEntryRequest): SectionHead,Analyst
@@ -306,31 +337,36 @@ InstrumentIngestController.Receive(): (agent)
 ItemController.Create(ItemSaveRequest): SystemAdministrator,SectionHead
 ItemController.Delete(Int32): SystemAdministrator,SectionHead
 ItemController.Freeze(Int32): SystemAdministrator,SectionHead
-ItemController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ItemController.GetGrades(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ItemController.GetStm(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ItemController.GetAll(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ItemController.GetGrades(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ItemController.GetStm(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ItemController.Unfreeze(Int32): SystemAdministrator,SectionHead
 ItemController.Update(Int32, ItemSaveRequest): SystemAdministrator,SectionHead
-ItemDocumentController.GetContent(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ItemDocumentController.GetDocuments(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ItemDocumentController.GetContent(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ItemDocumentController.GetDocuments(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ItemDocumentController.UploadDocument(Int32, IFormFile, ItemDocumentType, String, Nullable`1): SectionHead
 ItemPreparationConfigurationController.Approve(Int32): SystemAdministrator,SectionHead
-ItemPreparationConfigurationController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ItemPreparationConfigurationController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ItemPreparationConfigurationController.Upsert(Int32, UpsertPreparationConfigurationRequest): SystemAdministrator,SectionHead
-KpiDashboardController.GetDashboard(DateOnly, DateOnly, String, String, String, Nullable`1, CancellationToken): SystemAdministrator,SectionHead
-KpiDashboardController.GetDefinitions(DateOnly, DateOnly, CancellationToken): SystemAdministrator,SectionHead
-KpiDashboardController.GetRecords(String, DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead
+KpiDashboardController.GetDashboard(DateOnly, DateOnly, String, String, String, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Qa
+KpiDashboardController.GetDefinitions(DateOnly, DateOnly, CancellationToken): SystemAdministrator,SectionHead,Qa
+KpiDashboardController.GetRecords(String, DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Qa
 KpiWorkloadController.CreateAvailability(SaveAvailabilityRequest): SystemAdministrator,SectionHead
-KpiWorkloadController.GetSettings(Int32): SystemAdministrator,SectionHead
-KpiWorkloadController.GetWorkload(DateOnly, DateOnly, String, String, String, Nullable`1): SystemAdministrator,SectionHead
-KpiWorkloadController.GetWorkloadTests(DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32): SystemAdministrator,SectionHead
-KpiWorkloadController.ListAvailability(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead
+KpiWorkloadController.GetSettings(Int32): SystemAdministrator,SectionHead,Qa
+KpiWorkloadController.GetWorkload(DateOnly, DateOnly, String, String, String, Nullable`1): SystemAdministrator,SectionHead,Qa
+KpiWorkloadController.GetWorkloadTests(DateOnly, DateOnly, String, String, String, Nullable`1, Int32, Int32): SystemAdministrator,SectionHead,Qa
+KpiWorkloadController.ListAvailability(Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Qa
 KpiWorkloadController.UpdateAvailability(Int32, SaveAvailabilityRequest): SystemAdministrator,SectionHead
 KpiWorkloadController.UpdateSettings(Int32, UpdateKpiSettingsRequest): SystemAdministrator,SectionHead
+LabelController.GetFormats(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.Print(PrintLabelsRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.Status(LabelStatusRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LabelController.UpdateFormat(Int32, UpdateLabelFormatRequest, String, CancellationToken): SectionHead
 LaboratoryOrganizationController.GetMemberships(Int32): SystemAdministrator
-LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+LaboratoryOrganizationController.GetMySections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+LaboratoryOrganizationController.GetSections(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 LaboratoryOrganizationController.ReplaceMemberships(Int32, ReplaceUserMembershipsRequest): SystemAdministrator
+MasterDataUsageController.Get(MasterRecordType, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MasterDataWorkbookController.Download(): SystemAdministrator,SectionHead
 MasterDataWorkbookController.GetFile(Int32): SystemAdministrator,SectionHead
 MasterDataWorkbookController.GetImports(): SystemAdministrator,SectionHead
@@ -338,7 +374,7 @@ MasterDataWorkbookController.Import(IFormFile, String, String): SystemAdministra
 MasterDataWorkbookController.Validate(IFormFile): SystemAdministrator,SectionHead
 MasterDataWorkbookController.Verify(Int32, VerifyMasterDataImportRequest): SystemAdministrator,SectionHead
 MaterialCategoryController.Create(SaveMaterialCategoryRequest): SectionHead
-MaterialCategoryController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MaterialCategoryController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MaterialCategoryController.SetActive(Int32, Boolean): SectionHead
 MaterialCategoryController.Update(Int32, SaveMaterialCategoryRequest): SectionHead
 MaterialController.Create(SaveMaterialHttpRequest): SectionHead,Analyst
@@ -356,7 +392,8 @@ MaterialDocumentController.Upload(Int32, IFormFile, MaterialDocumentType): Secti
 MaterialDocumentController.Void(Int32, Int32, VoidDocumentHttpRequest): SectionHead
 MaterialMasterController.ChangeCode(Int32, ChangeMaterialMasterEntryCodeRequest): SystemAdministrator,SectionHead
 MaterialMasterController.Create(SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
-MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MaterialMasterController.CreateBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
+MaterialMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MaterialMasterController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 MaterialMasterController.Update(Int32, SaveMaterialMasterEntryRequest): SystemAdministrator,SectionHead
 MaterialReleaseController.Decide(Int32, DecideMaterialReleaseRequest): SectionHead
@@ -388,48 +425,68 @@ MediaMasterDataController.CreateMediaProduct(CreateMediaProductRequest): SystemA
 MediaMasterDataController.DeleteMediaConfiguration(Int32): SystemAdministrator,SectionHead
 MediaMasterDataController.DeleteMediaIncubationCondition(Int32): SystemAdministrator,SectionHead
 MediaMasterDataController.DeleteMediaProduct(Int32): SystemAdministrator,SectionHead
-MediaMasterDataController.GetMediaConfigurations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MediaMasterDataController.GetMediaIncubationConditions(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MediaMasterDataController.GetMediaProducts(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MediaMasterDataController.GetMediaConfigurations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MediaMasterDataController.GetMediaIncubationConditions(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MediaMasterDataController.GetMediaProducts(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MediaMasterDataController.SetMediaProductActive(Int32, Boolean): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaConfiguration(Int32, UpdateMediaConfigurationRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaIncubationCondition(Int32, UpdateMediaIncubationConditionRequest): SystemAdministrator,SectionHead
 MediaMasterDataController.UpdateMediaProduct(Int32, UpdateMediaProductRequest): SystemAdministrator,SectionHead
-MessageController.CreateConversation(CreateConversationRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.GetConversationById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.GetConversations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.GetMessages(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.GetTotalUnreadCount(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.MarkAsRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MessageController.SendMessage(Int32, SendMessageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MessageController.CreateConversation(CreateConversationRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.GetConversationById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.GetConversations(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.GetMessages(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.GetTotalUnreadCount(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.MarkAsRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MessageController.SendMessage(Int32, SendMessageRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.EnrolConfirm(MfaCodeRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.EnrolStart(MfaPasswordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.EnrolTokenConfirm(MfaTokenConfirmRequest, CancellationToken): anonymous
+MfaController.EnrolTokenStart(MfaTokenRequest, CancellationToken): anonymous
+MfaController.ForgetTrustedDevice(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.Options(CancellationToken): anonymous
+MfaController.RegenerateRecoveryCodes(MfaPasswordAndCodeRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.RemoveFactor(MfaPasswordAndCodeRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.Status(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MfaController.Verify(MfaVerifyRequest, CancellationToken): anonymous
 MonitoringDeviationsController.Close(CloseDeviationsRequest): SectionHead
-MonitoringDeviationsController.List(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringDeviationsController.List(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MonitoringDeviationsController.Scan(): SectionHead
 MonitoringOccurrencesController.ChangeWindow(Int32, ChangeWindowRequest): SectionHead
 MonitoringOccurrencesController.CreateManual(CreateManualOccurrenceRequest): SectionHead
-MonitoringOccurrencesController.GetCalendar(DateOnly, DateOnly, Nullable`1, Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetDetail(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetDue(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetForSession(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringOccurrencesController.GetYearSummary(Int32, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringOccurrencesController.GetCalendar(DateOnly, DateOnly, Nullable`1, Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringOccurrencesController.GetDetail(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringOccurrencesController.GetDue(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringOccurrencesController.GetForSession(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringOccurrencesController.GetYearSummary(Int32, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MonitoringOccurrencesController.Skip(Int32, SkipOccurrenceRequest): SectionHead
 MonitoringPlanController.ApproveRevision(Int32, ApprovePlanRequest): SectionHead
 MonitoringPlanController.GenerateRevision(GeneratePlanRequest): SectionHead
-MonitoringPlanController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringPlanController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringReportsController.GetCoverage(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringReportsController.GetSpacing(Int32, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringPlanController.GetPreview(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringPlanController.GetRevisions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringReportsController.GetCoverage(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringReportsController.GetSpacing(Int32, Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MonitoringSettingsController.AddCalendarDate(LabCalendarDateRequest): SectionHead
-MonitoringSettingsController.GetCalendarDates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+MonitoringSettingsController.GetCalendarDates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MonitoringSettingsController.GetSettings(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 MonitoringSettingsController.ImportLegacyFrequencies(): SystemAdministrator,SectionHead
 MonitoringSettingsController.RemoveCalendarDate(Int32): SectionHead
 MonitoringSettingsController.SaveSettings(MonitoringSettingsRequest): SectionHead
+MyWorkController.Get(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+MyWorkController.GetSummary(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotApplicableTestController.Create(Int32, CreateNotApplicableTestRequest): SectionHead
 NotApplicableTestController.FinalApprove(Int32, NotApplicableSignRequest): QcManager
 NotApplicableTestController.HeadApprove(Int32, NotApplicableSignRequest): SectionHead
-NotApplicableTestController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+NotApplicableTestController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotApplicableTestController.Withdraw(Int32, NotApplicableWithdrawRequest): SectionHead
+NotificationPreferencesController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationPreferencesController.GetMandatory(Int32, CancellationToken): SectionHead,QcManager
+NotificationPreferencesController.SetMandatory(Int32, UpdateMandatoryNotificationTypesRequest, CancellationToken): SectionHead,QcManager
+NotificationPreferencesController.Update(UpdateNotificationPreferencesRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.List(String, String, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.MarkAllRead(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.MarkRead(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+NotificationsController.Summary(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationDocumentController.GetContent(Int32, String): SectionHead
 OosInvestigationDocumentController.GetDocuments(String): SectionHead
 OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): SectionHead
@@ -438,7 +495,7 @@ OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocum
 OosTrackingController.Get(): SectionHead
 OrganismMasterDataController.CreateOrganism(CreateOrganismRequest): SystemAdministrator,SectionHead
 OrganismMasterDataController.DeleteOrganism(Int32): SystemAdministrator,SectionHead
-OrganismMasterDataController.GetOrganisms(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+OrganismMasterDataController.GetOrganisms(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 OrganismMasterDataController.UpdateOrganism(Int32, UpdateOrganismRequest): SystemAdministrator,SectionHead
 PathogenSessionController.CompleteSession(Int32): SectionHead,Reviewer,Analyst
 PathogenSessionController.GetEligibleConfirmations(Int32, Nullable`1): SectionHead,Reviewer,Analyst
@@ -449,17 +506,20 @@ PathogenSessionController.SavePrimaryObservations(Int32, SavePrimaryObservations
 PathogenSessionController.SaveResultMatrix(Int32, SaveResultMatrixRequest): SectionHead,Reviewer,Analyst
 PathogenSessionController.StartConfirmatorySetup(Int32, BatchConfirmatorySetupRequest): SectionHead,Reviewer,Analyst
 PathogenSessionController.StartSharedTsb(Int32, StartSharedTsbRequest): SectionHead,Reviewer,Analyst
-PeriodicReviewController.AddFinding(Int32, CreatePeriodicReviewFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.AssignReviewer(Int32, AssignPeriodicReviewerRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.CompleteReview(Int32, CompletePeriodicReviewRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.GetMasterReviewHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.GetReviewTaskById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.GetReviewTasks(Nullable`1, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.GetReviewWorkspace(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+PeriodicReviewController.AddFinding(Int32, CreatePeriodicReviewFindingRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.AssignReviewer(Int32, AssignPeriodicReviewerRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.CompleteReview(Int32, CompletePeriodicReviewRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.GetMasterReviewHistory(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.GetReviewTaskById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.GetReviewTasks(Nullable`1, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.GetReviewWorkspace(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 PreparationConfigurationQueueController.Pending(): SystemAdministrator,SectionHead
 PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionHead
+RecentRecordsController.Clear(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+RecentRecordsController.List(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+RecentRecordsController.Touch(TouchRecentRecordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ReferenceListMasterDataController.CreateCauseOfTesting(String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateNeutralizer(String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.CreateProductionStage(CreateProductionStageRequest): SystemAdministrator,SectionHead
@@ -467,43 +527,44 @@ ReferenceListMasterDataController.CreateSampler(String): SystemAdministrator,Sec
 ReferenceListMasterDataController.DeleteCauseOfTesting(Int32): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.DeleteProductionStage(Int32): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.DeleteSampler(Int32): SystemAdministrator,SectionHead
-ReferenceListMasterDataController.GetCausesOfTesting(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReferenceListMasterDataController.GetNeutralizers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReferenceListMasterDataController.GetProductionStages(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ReferenceListMasterDataController.GetCausesOfTesting(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReferenceListMasterDataController.GetNeutralizers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReferenceListMasterDataController.GetProductionStages(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReferenceListMasterDataController.GetSamplers(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ReferenceListMasterDataController.UpdateCauseOfTesting(Int32, String): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateProductionStage(Int32, UpdateProductionStageRequest): SystemAdministrator,SectionHead
 ReferenceListMasterDataController.UpdateSampler(Int32, String): SystemAdministrator,SectionHead
 ReferenceOrganismController.ChangeCode(Int32, ChangeReferenceOrganismCodeRequest): SystemAdministrator,SectionHead
 ReferenceOrganismController.Create(SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
-ReferenceOrganismController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ReferenceOrganismController.GetAll(Boolean, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 ReferenceOrganismController.SetActive(Int32, Boolean): SystemAdministrator,SectionHead
 ReferenceOrganismController.Update(Int32, SaveReferenceOrganismRequest): SystemAdministrator,SectionHead
 ReportingAdminController.Backfill(): SystemAdministrator
-ReportingController.ExportMediaGpt(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.ExportReferenceStrains(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.ExportResults(String, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetCompare(String, SampleCategory, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetCompletedByMonth(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetMediaGptById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetMediaGptFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetMediaGptResults(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetMediaGptSummary(Nullable`1, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetOverview(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetQualitativeEvents(String, String, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetReferenceStrainById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetReferenceStrainFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetReferenceStrainResults(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetResults(String, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ReportingController.GetTrend(String, String, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-ResultController.GetForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+ReportingController.ExportMediaGpt(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.ExportReferenceStrains(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.ExportResults(String, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetCompare(String, SampleCategory, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetCompletedByMonth(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetMediaGptById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetMediaGptFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetMediaGptResults(String, String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetMediaGptSummary(Nullable`1, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetOverview(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetQualitativeEvents(String, String, Nullable`1, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetReferenceStrainById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetReferenceStrainFilterOptions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetReferenceStrainResults(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetResults(String, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Nullable`1, String, Nullable`1, Int32, Int32, String, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ReportingController.GetTrend(String, String, Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ResultController.GetForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 RoleController.Create(CreateRoleRequest): SystemAdministrator
 RoleController.Delete(Int32, DeleteRoleRequest): SystemAdministrator
 RoleController.GetAll(): SystemAdministrator
 RoleController.GetAllPermissions(): SystemAdministrator
 RoleController.GetById(Int32): SystemAdministrator
+RoleController.GetQaForbiddenCodes(): SystemAdministrator
 RoleController.GetSodRules(): SystemAdministrator
 RoleController.Update(Int32, UpdateRoleRequest): SystemAdministrator
 RoleController.UpdatePermissions(Int32, UpdateRolePermissionsRequest): SystemAdministrator
@@ -513,77 +574,103 @@ SampleController.AddLaboratory(Int32, AddLaboratoryRequest): SectionHead
 SampleController.AssignAnalyst(Int32, AssignAnalystRequest): SectionHead
 SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest): SectionHead
 SampleController.AssignmentOptions(Int32): SectionHead
+SampleController.BulkAssign(BulkAssignRequest, CancellationToken): SectionHead
 SampleController.Correct(Int32, CorrectSampleRequest): SectionHead,Reviewer
-SampleController.GetTestSelection(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SampleController.GetTestSelection(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.Receive(ReceiveItemBasedSampleRequest): SectionHead,Reviewer,Analyst
+SampleController.ReceiveBatch(BatchReceiveRequest, CancellationToken): SectionHead,Reviewer,Analyst
 SampleController.SelectTests(Int32, SelectSampleTestsRequest, CancellationToken): SectionHead,Reviewer
 SampleController.Void(Int32, VoidSampleRequest): SectionHead,Reviewer
-SampleDocumentController.GetContent(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleDocumentController.List(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SampleDocumentController.GetContent(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleDocumentController.List(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleDocumentController.Upload(Int32, IFormFile, CancellationToken, SampleDocumentType): SectionHead,Reviewer,Analyst
 SampleDocumentController.UploadExternalReport(Int32, IFormFile, CancellationToken): SectionHead,Reviewer,Analyst
 SampleDocumentController.Void(Int32, VoidDocumentHttpRequest, CancellationToken): SectionHead,Reviewer
 SamplePreparationController.BatchConfirm(BatchConfirmPreparationHttpRequest, CancellationToken): SectionHead,Reviewer,Analyst
 SamplePreparationController.Confirm(ConfirmPreparationHttpRequest): SectionHead,Reviewer,Analyst
-SamplePreparationController.GetGroups(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SamplePreparationController.GetLotOptions(Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SamplePreparationController.GetLotOptionsForMaster(PreparationMaterialSource, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.GetGroups(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SamplePreparationController.GetLotOptions(Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SamplePreparationController.GetLotOptionsForMaster(PreparationMaterialSource, Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SamplePreparationController.Prepare(PrepareSampleHttpRequest): SectionHead,Reviewer,Analyst
-SamplePreparationController.WhereUsed(Nullable`1, Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SamplePreparationController.WhereUsed(Nullable`1, Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleReviewController.Complete(Int32, CompleteSampleReviewRequest): SectionHead,Reviewer
 SampleReviewController.ReturnTestToAnalyst(Int32, ReturnTestToAnalystRequest): SectionHead,Reviewer
-SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleSummaryController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,SectionHead
-SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SectionCountersController.GetDocumentControl(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleSummaryController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,SectionHead,Qa
+ScanController.Resolve(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SectionCountersController.GetDocumentControl(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SectionSelfAssignmentController.GetAll(CancellationToken): SectionHead
+SectionSelfAssignmentController.Update(Int32, UpdateSectionSelfAssignmentRequest, CancellationToken): SectionHead
 SignaturesController.GetTrail(String, Int32): SystemAdministrator,SectionHead
 SolutionMasterController.Create(SaveSolutionMasterRequest): SystemAdministrator,SectionHead
-SolutionMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionMasterController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SolutionMasterController.CreateBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
+SolutionMasterController.GetAll(Nullable`1, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionMasterController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SolutionMasterController.SetActive(Int32, Boolean, SetActiveRequest): SystemAdministrator,SectionHead
 SolutionMasterController.Update(Int32, SaveSolutionMasterRequest): SystemAdministrator,SectionHead
 SolutionPreparationController.Cancel(Int32, ReasonRequest): SectionHead,Analyst
 SolutionPreparationController.Complete(Int32, CompletePreparationRequest): SectionHead,Analyst
 SolutionPreparationController.Discard(Int32, ReasonRequest): SectionHead,Analyst
-SolutionPreparationController.GetAll(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetAvailable(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetByLot(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetLotOptions(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetReferenceOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetSourcePreparations(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetStandardLotOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetStandardizations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SolutionPreparationController.GetUsable(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SolutionPreparationController.GetAll(Nullable`1, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetAvailable(Int32, Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetById(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetByLot(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetLotOptions(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetReferenceOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetSourcePreparations(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetStandardLotOptions(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetStandardizations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SolutionPreparationController.GetUsable(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SolutionPreparationController.Release(Int32, ReleaseSolutionPreparationRequest): SectionHead,Reviewer
 SolutionPreparationController.Save(Int32, SavePreparationRequest): SectionHead,Analyst
 SolutionPreparationController.Standardize(Int32, StandardizeRequest): SectionHead,Analyst
 SolutionPreparationController.Start(StartPreparationRequest): SectionHead,Analyst
+SpecificationMasterDataController.CopySpecifications(CopySpecificationsRequest): SystemAdministrator,SectionHead
 SpecificationMasterDataController.CreateSpecification(CreateSpecificationRequest): SystemAdministrator,SectionHead
+SpecificationMasterDataController.CreateSpecificationsBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 SpecificationMasterDataController.DeleteSpecification(Int32): SystemAdministrator,SectionHead
-SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SpecificationMasterDataController.GetSpecifications(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SpecificationMasterDataController.GetSpecificationsForTestOrder(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SpecificationMasterDataController.PreviewCopySpecifications(CopySpecificationsRequest): SystemAdministrator,SectionHead
+SpecificationMasterDataController.ReinstateSpecification(Int32): SystemAdministrator,SectionHead
 SpecificationMasterDataController.UpdateSpecification(Int32, UpdateSpecificationRequest): SystemAdministrator,SectionHead
+SpecificationMasterDataController.ValidateSpecification(ValidateSpecificationRequest, Nullable`1): SystemAdministrator,SectionHead
+SsoController.Callback(String, String, String, CancellationToken): anonymous
+SsoController.Exchange(SsoExchangeRequest, CancellationToken): anonymous
+SsoController.GetMode(CancellationToken): anonymous
+SsoController.Start(CancellationToken): anonymous
 SupplierStatedAttributeController.Create(Int32, SupplierStatedAttributeRequest): SystemAdministrator,SectionHead
 SupplierStatedAttributeController.Delete(Int32): SystemAdministrator,SectionHead
-SupplierStatedAttributeController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+SupplierStatedAttributeController.ListForItem(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SupplierStatedAttributeController.Update(Int32, SupplierStatedAttributeRequest): SystemAdministrator,SectionHead
 SystemController.ReportClientError(ClientErrorReportRequest, CancellationToken): anonymous
 SystemStatusController.Get(CancellationToken): anonymous
+SystemVersionController.Get(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Create(CreateTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Delete(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.List(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.SetDefault(SetDefaultTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TableViewsController.Update(Int32, UpdateTableViewRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.CreateTestDefinition(CreateTestDefinitionRequest): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.CreateTestWithSteps(SaveTestWithStepsRequest): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.FreezeTestDefinition(Int32): SystemAdministrator,SectionHead
-TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+TestDefinitionMasterDataController.GetEditableCodes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestDefinitionMasterDataController.GetEquationTypes(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestDefinitionMasterDataController.GetItemsForTest(Int32, String, Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestDefinitionMasterDataController.GetTestDefinitions(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestDefinitionMasterDataController.UnfreezeTestDefinition(Int32): SystemAdministrator,SectionHead
 TestDefinitionMasterDataController.UpdateTestDefinition(Int32, UpdateTestDefinitionRequest): SystemAdministrator,SectionHead
+TestDefinitionMasterDataController.ValidateTestDefinition(ValidateTestDefinitionRequest, Nullable`1): SystemAdministrator,SectionHead
+TestSelfAssignmentController.Release(Int32, CancellationToken): Analyst
+TestSelfAssignmentController.Take(Int32, CancellationToken): Analyst
 TestStageReplicateMasterDataController.CreateTestDefinitionStageReplicate(Int32, CreateTestDefinitionStageReplicateRequest): SystemAdministrator,SectionHead
 TestStageReplicateMasterDataController.DeleteTestDefinitionStageReplicate(Int32, Int32): SystemAdministrator,SectionHead
-TestStageReplicateMasterDataController.GetTestDefinitionStageReplicates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+TestStageReplicateMasterDataController.GetTestDefinitionStageReplicates(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestStageReplicateMasterDataController.UpdateTestDefinitionStageReplicate(Int32, Int32, UpdateTestDefinitionStageReplicateRequest): SystemAdministrator,SectionHead
 TestWorkflowController.BatchSelectMedia(BatchSelectMediaRequest, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.CloseIncubationWindow(Int32): SectionHead,Reviewer,Analyst
@@ -597,6 +684,7 @@ TestWorkflowController.GetSiblingPathogenOrders(Int32, CancellationToken): Secti
 TestWorkflowController.GetTitrationContext(Int32, TitrationContextService, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.Outsource(Int32, OutsourceTestRequest): SectionHead
 TestWorkflowController.OverrideMinimumDuration(Int32): SectionHead
+TestWorkflowController.PreviewCountResult(Int32, RecordTestResultRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordAnalystDecision(Int32, AnalystDecisionRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordBatchPathogenResults(Int32, BatchPathogenResultsRequest): SectionHead,Reviewer,Analyst
 TestWorkflowController.RecordBatchResults(Int32, BatchResultsRequest): SectionHead,Reviewer,Analyst
@@ -627,14 +715,14 @@ TestWorkflowController.SubmitSelectivePlatingObservation(Int32, SubmitSelectiveP
 TestWorkflowController.SubmitSelectivePlating_Retired(Int32): SectionHead,Reviewer,Analyst
 TestWorkflowStepMasterDataController.CreateTestWorkflowStep(Int32, CreateTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.DeleteTestWorkflowStep(Int32): SystemAdministrator,SectionHead
-TestWorkflowStepMasterDataController.GetTestWorkflowSteps(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+TestWorkflowStepMasterDataController.GetTestWorkflowSteps(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 TestWorkflowStepMasterDataController.MoveTestWorkflowStep(Int32, MoveTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateTestWorkflowStep(Int32, UpdateTestWorkflowStepRequest): SystemAdministrator,SectionHead
 TestWorkflowStepMasterDataController.UpdateWorkflowType(Int32, UpdateWorkflowTypeRequest): SystemAdministrator,SectionHead
-TestingMaterialCatalogController.GetAll(String, String, Boolean, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-TestingWorkspaceController.GetActivePaged(TestingWorkspaceFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-TestingWorkspaceController.GetOne(Int32, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-TestingWorkspaceController.GetWorkloadCounts(Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+TestingMaterialCatalogController.GetAll(String, String, Boolean, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestingWorkspaceController.GetActivePaged(TestingWorkspaceFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestingWorkspaceController.GetOne(Int32, Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+TestingWorkspaceController.GetWorkloadCounts(Nullable`1, String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 UserAnalystController.GetEligibleAnalysts(): SectionHead
 UserController.ChangeRole(Int32, ChangeRoleRequest): SystemAdministrator
 UserController.Create(CreateUserRequest): SystemAdministrator
@@ -648,38 +736,44 @@ UserController.SetStatus(Int32, SetStatusRequest): SystemAdministrator
 UserController.Unlock(Int32, UnlockUserRequest): SystemAdministrator
 UserController.UpdateEmail(Int32, UpdateEmailRequest): SystemAdministrator
 UserController.UpdateProfile(Int32, UpdateProfileRequest): SystemAdministrator
-UserDirectoryController.GetDirectory(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WaterController.Calculate(CalculateWaterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+UserDirectoryController.GetDirectory(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.GetAll(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.Remove(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+UserUiStateController.Set(String, SetUiStateRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WaterController.Calculate(CalculateWaterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.Prepare(PrepareWaterRequest): SectionHead,Reviewer,Analyst
 WaterController.Receive(ReceiveWaterRequest): SectionHead,Reviewer,Analyst
 WaterMasterDataController.CreateWaterDepartment(CreateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.CreateWaterSamplingConfiguration(CreateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.CreateWaterSamplingPoint(CreateWaterSamplingPointRequest): SystemAdministrator,SectionHead
+WaterMasterDataController.CreateWaterSamplingPointsBatch(List`1, CancellationToken): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterDepartment(Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterPointLabFrequency(Int32, Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterSamplingConfiguration(Int32): SystemAdministrator,SectionHead
 WaterMasterDataController.DeleteWaterSamplingPoint(Int32): SystemAdministrator,SectionHead
-WaterMasterDataController.GetWaterDepartments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+WaterMasterDataController.GetWaterDepartments(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterMasterDataController.GetWaterPointLabFrequency(Int32, Int32): SystemAdministrator,SectionHead
-WaterMasterDataController.GetWaterSamplingConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+WaterMasterDataController.GetWaterSamplingConfigurations(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WaterMasterDataController.GetWaterSamplingPoints(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterMasterDataController.SetWaterPointLabFrequency(Int32, Int32, SetWaterPointLabFrequencyRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterDepartment(Int32, UpdateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingConfiguration(Int32, UpdateWaterSamplingConfigRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.UpdateWaterSamplingPoint(Int32, UpdateWaterSamplingPointRequest): SystemAdministrator,SectionHead
-WorkflowProfilesController.Coverage(): SystemAdministrator,SectionHead
+WorkflowProfilesController.Coverage(): SystemAdministrator,SectionHead,Qa
 WorkflowProfilesController.Create(CreateWorkflowProfileVersionRequest): SystemAdministrator,SectionHead
-WorkflowProfilesController.List(Nullable`1, String, Boolean, Nullable`1): SystemAdministrator,SectionHead
-WorkflowProfilesController.Overview(): SystemAdministrator,SectionHead
+WorkflowProfilesController.List(Nullable`1, String, Boolean, Nullable`1): SystemAdministrator,SectionHead,Qa
+WorkflowProfilesController.Overview(): SystemAdministrator,SectionHead,Qa
 WorkflowProfilesController.Sign(Int32, SignWorkflowProfileDraftRequest): SystemAdministrator,SectionHead
+WorkingHoursController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingHoursController.Update(UpdateWorkingHoursRequest, CancellationToken): SectionHead,QcManager
 WorkingStandardsController.Approve(Int32, WorkingStandardSignRequest): SectionHead
 WorkingStandardsController.Create(CreateQualificationRequest): SectionHead,Analyst
-WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WorkingStandardsController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WorkingStandardsController.GetEligibleSourceSamples(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WorkingStandardsController.GetLots(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
-WorkingStandardsController.GetQualifications(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager
+WorkingStandardsController.DownloadDocument(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingStandardsController.Get(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingStandardsController.GetEligibleSourceSamples(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingStandardsController.GetLots(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+WorkingStandardsController.GetQualifications(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WorkingStandardsController.RejectAtApproval(Int32, WorkingStandardReasonRequest): SectionHead
 WorkingStandardsController.RejectAtReview(Int32, WorkingStandardReasonRequest): SectionHead,Reviewer
 WorkingStandardsController.Return(Int32, WorkingStandardReturnRequest): SectionHead,Reviewer

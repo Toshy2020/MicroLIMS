@@ -28,6 +28,8 @@ import { ReasonDialog } from "../../laboratoryConfiguration/masterDataSimple/sol
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { ICP_ROUTES } from "../routes";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpRunDto, IcpRunSampleSummaryDto } from "../types";
 
@@ -42,6 +44,7 @@ export function IcpSampleAssignmentPanel({
   canOperate,
   onRunUpdated
 }: IcpSampleAssignmentPanelProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -67,13 +70,13 @@ export function IcpSampleAssignmentPanel({
     setRemoveError(null);
     try {
       await IcpWorkspaceService.removeSample(run.id, sampleToRemove.id, removeReason.trim());
-      toast.success(`Sample ${sampleToRemove.sampleNumber} removed from run.`);
+      toast.success(t("samples.panel.removedToast", { sampleNumber: sampleToRemove.sampleNumber }));
       setRemoveDialogOpen(false);
       setSampleToRemove(null);
       onRunUpdated?.();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setRemoveError(e.response?.data?.message ?? e.message ?? "Could not remove sample.");
+      setRemoveError(e.response?.data?.message ?? e.message ?? t("samples.panel.removeError"));
     } finally {
       setRemoving(false);
     }
@@ -81,11 +84,11 @@ export function IcpSampleAssignmentPanel({
 
   const canAssign = run.canAssignSamples && canOperate && run.status === "Open";
   const assignTooltip = !run.canAssignSamples
-    ? run.canAssignSamplesReason || "Sample assignment locked until calibration is confirmed"
+    ? run.canAssignSamplesReason || t("samples.panel.tooltipCal")
     : run.status !== "Open"
-    ? "Run is no longer open"
+    ? t("samples.panel.tooltipClosed")
     : !canOperate
-    ? "Permission required"
+    ? t("samples.panel.tooltipPermission")
     : "";
 
   return (
@@ -93,12 +96,12 @@ export function IcpSampleAssignmentPanel({
       {/* Gating alert */}
       {!run.canAssignSamples ? (
         <Alert severity="warning" icon={<LockOutlinedIcon />}>
-          <strong>Sample assignment is locked.</strong>{" "}
-          {run.canAssignSamplesReason || "Sample assignment is locked until calibration is confirmed and element availability is verified."}
+          <strong>{t("samples.panel.lockedBold")}</strong>{" "}
+          {run.canAssignSamplesReason || t("samples.panel.lockedFallback")}
         </Alert>
       ) : (
         <Alert severity="success">
-          Calibration confirmed. Eligible test orders can be assigned to this ICP run.
+          {t("samples.panel.unlockedAlert")}
         </Alert>
       )}
 
@@ -123,10 +126,10 @@ export function IcpSampleAssignmentPanel({
         >
           <Box>
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-              Assigned Run Samples ({samples.length})
+              {t("samples.panel.assignedTitle", { count: samples.length })}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Samples linked to this ICP run for analysis and result entry.
+              {t("samples.panel.assignedSubtitle")}
             </Typography>
           </Box>
 
@@ -141,7 +144,7 @@ export function IcpSampleAssignmentPanel({
                 onClick={() => setEligibleDialogOpen(true)}
                 sx={{ textTransform: "none", fontWeight: 600 }}
               >
-                Assign Samples...
+                {t("samples.panel.assignSamples")}
               </Button>
             </span>
           </Tooltip>
@@ -151,12 +154,12 @@ export function IcpSampleAssignmentPanel({
           <Box sx={{ py: 6, textAlign: "center" }}>
             <ScienceOutlinedIcon sx={{ fontSize: 48, color: "text.disabled", mb: 1 }} />
             <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
-              No samples assigned to this run yet
+              {t("samples.panel.emptyTitle")}
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
               {run.canAssignSamples
-                ? "Click “Assign Samples...” to link eligible test orders to this run."
-                : run.canAssignSamplesReason || "Sample assignment is locked."}
+                ? t("samples.panel.emptyDescription")
+                : run.canAssignSamplesReason || t("samples.panel.emptyLocked")}
             </Typography>
           </Box>
         ) : (
@@ -164,12 +167,12 @@ export function IcpSampleAssignmentPanel({
             <Table size="small">
               <TableHead sx={tableHeadSx(theme)}>
                 <TableRow>
-                  <TableCell>Sample Number</TableCell>
-                  <TableCell>Batch</TableCell>
-                  <TableCell>Product</TableCell>
-                  <TableCell>Test Code</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Actions</TableCell>
+                  <TableCell>{t("samples.panel.columns.sampleNumber")}</TableCell>
+                  <TableCell>{t("samples.panel.columns.batch")}</TableCell>
+                  <TableCell>{t("samples.panel.columns.product")}</TableCell>
+                  <TableCell>{t("samples.panel.columns.testCode")}</TableCell>
+                  <TableCell>{t("samples.panel.columns.status")}</TableCell>
+                  <TableCell align="right">{t("samples.panel.columns.actions")}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -180,17 +183,17 @@ export function IcpSampleAssignmentPanel({
                   return (
                     <TableRow key={s.id} hover>
                       <TableCell sx={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>
-                        <div>{s.sampleNumber}</div>
+                        <div><Ltr>{s.sampleNumber}</Ltr></div>
                         {s.subjectName && (
                           <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontWeight: 400 }}>
                             {s.subjectName}
                           </Typography>
                         )}
                       </TableCell>
-                      <TableCell>{s.batchNumber ?? "—"}</TableCell>
+                      <TableCell>{s.batchNumber ? <Ltr>{s.batchNumber}</Ltr> : "—"}</TableCell>
                       <TableCell>{s.productName ?? "—"}</TableCell>
                       <TableCell sx={{ fontFamily: monospaceFontFamily, fontWeight: 600 }}>
-                        {s.testCode}
+                        <Ltr>{s.testCode}</Ltr>
                       </TableCell>
                       <TableCell>
                         <IcpStatusBadge status={s.status} />
@@ -205,7 +208,7 @@ export function IcpSampleAssignmentPanel({
                             onClick={() => navigate(entryUrl)}
                             sx={{ textTransform: "none", py: 0.25 }}
                           >
-                            Enter Results
+                            {t("samples.panel.enterResults")}
                           </Button>
 
                           {canRemove && (
@@ -217,7 +220,7 @@ export function IcpSampleAssignmentPanel({
                               onClick={() => handleOpenRemoveDialog(s)}
                               sx={{ textTransform: "none", py: 0.25 }}
                             >
-                              Remove
+                              {t("samples.panel.remove")}
                             </Button>
                           )}
                         </Stack>
@@ -244,18 +247,18 @@ export function IcpSampleAssignmentPanel({
       {/* Remove Sample Reason Dialog */}
       <ReasonDialog
         open={removeDialogOpen}
-        title={`Remove Sample ${sampleToRemove?.sampleNumber ?? ""}`}
+        title={t("samples.panel.removeDialogTitle", { sampleNumber: sampleToRemove?.sampleNumber ?? "" })}
         onClose={() => !removing && setRemoveDialogOpen(false)}
         onConfirm={handleConfirmRemove}
-        confirmText="Remove Sample"
+        confirmText={t("samples.panel.removeConfirmText")}
         confirmColor="error"
         loading={removing}
-        loadingText="Removing..."
+        loadingText={t("samples.panel.removingText")}
         error={removeError}
         reason={removeReason}
         onReasonChange={setRemoveReason}
-        label="Reason for Removal *"
-        placeholder="Explain why this sample is being removed from the run..."
+        label={t("samples.panel.removeReasonLabel")}
+        placeholder={t("samples.panel.removeReasonPlaceholder")}
       />
     </Stack>
   );

@@ -32,6 +32,8 @@ import {
 import { SpcChart, SpcChartOptions, fmt } from "./SpcCharts";
 import { ApplyCandidate, ApplyLimitsDialog } from "./ApplyLimitsDialog";
 import { ReportBuilderDrawer } from "./ReportBuilderDrawer";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
+import { useTranslation } from "../../../../i18n";
 
 // Report charts are captured at this width whatever the screen size, so
 // every figure in a report has the same proportions and text size.
@@ -118,37 +120,18 @@ function ChartBody({ kind, result, options, width, onPointClick }: {
   return <SpcChart kind={kind} result={result} options={options} height={400} width={width} onPointClick={onPointClick} />;
 }
 
-const CATEGORY_LABELS: Partial<Record<SampleCategory, string>> = {
-  EnvironmentalMonitoring: "Environmental Monitoring",
-  Water: "Water",
-  AfterCleaning: "After Cleaning",
-  FinishedProduct: "Finished Product",
-  RawMaterial: "Raw Material",
-  PackagingMaterial: "Packaging Material"
-};
+const CATEGORY_KEYS: SampleCategory[] = [
+  "EnvironmentalMonitoring", "Water", "AfterCleaning", "FinishedProduct", "RawMaterial", "PackagingMaterial"
+];
 
 // Only these configurations carry alert/action limits the analysis can replace.
 const LIMIT_CATEGORIES: SampleCategory[] = ["EnvironmentalMonitoring", "Water"];
 
-const METHOD_LABELS: Record<LimitMethod, string> = {
-  MovingRange: "Mean ± k·σ (σ from moving range, Minitab I-chart)",
-  StandardDeviation: "Mean ± k × standard deviation",
-  Percentile: "Percentiles of the data"
-};
+const METHOD_KEYS: LimitMethod[] = ["MovingRange", "StandardDeviation", "Percentile"];
 
-const ROUNDING_LABELS: Record<LimitRounding, string> = {
-  None: "None",
-  OneDecimal: "1 decimal",
-  TwoDecimals: "2 decimals",
-  UpToWholeNumber: "Up to whole number"
-};
+const ROUNDING_KEYS: LimitRounding[] = ["None", "OneDecimal", "TwoDecimals", "UpToWholeNumber"];
 
-const BASIS_LABELS: Record<CapabilityBasis, string> = {
-  SpecLimit: "Specification limit",
-  ActionLimit: "Configured action limit",
-  AlertLimit: "Configured alert limit",
-  Custom: "Custom LSL / USL"
-};
+const BASIS_KEYS: CapabilityBasis[] = ["SpecLimit", "ActionLimit", "AlertLimit", "Custom"];
 
 function defaultCriteria(): ControlChartCriteria {
   const to = new Date();
@@ -169,10 +152,13 @@ function defaultCriteria(): ControlChartCriteria {
   };
 }
 
-function methodSummary(s: ControlChartSettings): string {
-  if (s.method === "Percentile") return `P${s.alertPercentile} / P${s.actionPercentile} of the results${s.excludeOutOfSpec ? ", OOS excluded" : ""}`;
-  const sigma = s.method === "StandardDeviation" ? "SD" : `σ (MR span ${s.movingRangeLength})`;
-  return `mean + ${s.alertK} / ${s.actionK} ${sigma}${s.excludeOutOfSpec ? ", OOS excluded" : ""}`;
+function methodSummary(s: ControlChartSettings, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  const oos = s.excludeOutOfSpec ? t("controlChart.summary.oosExcluded") : "";
+  if (s.method === "Percentile") {
+    return t("controlChart.summary.percentile", { alert: s.alertPercentile, action: s.actionPercentile, oos });
+  }
+  const sigma = s.method === "StandardDeviation" ? "SD" : t("controlChart.summary.mrSigma", { span: s.movingRangeLength });
+  return t("controlChart.summary.sigma", { alert: s.alertK, action: s.actionK, sigma, oos });
 }
 
 function capabilityTone(v: number | null): "success" | "warning" | "error" | "default" {
@@ -192,6 +178,7 @@ function useDebounced<T>(value: T, ms: number): T {
 }
 
 export function ControlChartTab() {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const canManageLimits = useHasPermission(PERMISSIONS.MASTER_DATA_MANAGE);
 
@@ -262,10 +249,10 @@ export function ControlChartTab() {
           fromDate: c.fromDate ? `${c.fromDate}T00:00:00.000Z` : undefined, toDate: c.toDate ? `${c.toDate}T23:59:59.999Z` : undefined
         }).then((r) => { if (!cancelled) setEvents(r.events); });
     request
-      .catch((e: unknown) => { if (!cancelled) setError(serverMessage(e) ?? "The analysis could not be loaded."); })
+      .catch((e: unknown) => { if (!cancelled) setError(serverMessage(e) ?? t("controlChart.errors.loadAnalysis")); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [query, reloadKey]);
+  }, [query, reloadKey, t]);
 
   const set = <K extends keyof ControlChartCriteria>(k: K, v: ControlChartCriteria[K]) => setCriteria((c) => ({ ...c, [k]: v }));
   const setS = <K extends keyof ControlChartSettings>(k: K, v: ControlChartSettings[K]) => setSettings((s) => ({ ...s, [k]: v }));
@@ -285,7 +272,7 @@ export function ControlChartTab() {
     try {
       setDrillDown(await ReportingService.getResultById(recordId));
     } catch {
-      toast.error("The source record could not be loaded.");
+      toast.error(t("controlChart.errors.loadRecord"));
     }
   };
   const handlePointClick = (p: ControlChartPoint) => openRecord(p.recordId);
@@ -355,7 +342,7 @@ export function ControlChartTab() {
       a.download = `${criteria.testCode}_${criteria.subjectName}_${chartKind}.png`.replace(/\s+/g, "_");
       a.click();
     } catch (e: unknown) {
-      toast.error(failureMessage(e, "Could not capture the chart."));
+      toast.error(failureMessage(e, t("controlChart.errors.captureChart")));
     }
   };
 
@@ -364,9 +351,9 @@ export function ControlChartTab() {
     try {
       const image = await captureChart(chart, chartKind);
       setReportItems([...persistedReportItems, newItem(chart, chartKind, image, chartSource.criteria, chartSource.settings)]);
-      toast.success(`Added ${chart.subjectName} to the report.`);
+      toast.success(t("controlChart.toasts.addedOne", { subject: chart.subjectName }));
     } catch (e: unknown) {
-      toast.error(failureMessage(e, "Could not capture the chart."));
+      toast.error(failureMessage(e, t("controlChart.errors.captureChart")));
     }
   };
 
@@ -385,9 +372,9 @@ export function ControlChartTab() {
         added.push(newItem(result, chartKind, await captureChart(result, chartKind), c, s));
         setBatch({ done: added.length, total: subjects.length });
       }
-      toast.success(`Added ${added.length} chart(s) to the report.`);
+      toast.success(t("controlChart.toasts.addedMany", { count: added.length }));
     } catch (e: unknown) {
-      toast.error(serverMessage(e) ?? failureMessage(e, "Some charts could not be added."));
+      toast.error(serverMessage(e) ?? failureMessage(e, t("controlChart.errors.addSomeCharts")));
     } finally {
       if (added.length) setReportItems([...persistedReportItems, ...added]);
       setBatch(null);
@@ -402,7 +389,7 @@ export function ControlChartTab() {
     a.download = fileName;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    toast.success(`${fileName} downloaded.`);
+    toast.success(t("controlChart.toasts.downloaded", { fileName }));
   };
 
   const exportPointsCsv = () => {
@@ -435,8 +422,13 @@ export function ControlChartTab() {
     ? { fromDate: criteria.calculationFrom || criteria.fromDate, toDate: criteria.calculationTo || criteria.toDate }
     : { fromDate: criteria.fromDate, toDate: criteria.toDate };
 
-  const basisSummary = `${methodSummary(settings)}, rounding ${ROUNDING_LABELS[settings.rounding].toLowerCase()}, ` +
-    `results ${applyPeriod.fromDate || "start"} to ${applyPeriod.toDate || "now"}${criteria.approvedOnly ? " (approved only)" : ""}`;
+  const basisSummary = t("controlChart.summary.basis", {
+    method: methodSummary(settings, t),
+    rounding: t(`controlChart.rounding.${settings.rounding}`).toLowerCase(),
+    from: applyPeriod.fromDate || t("controlChart.summary.start"),
+    to: applyPeriod.toDate || t("controlChart.summary.now"),
+    approvedOnly: criteria.approvedOnly ? t("controlChart.summary.approvedOnly") : ""
+  });
 
   const openApplyFromChart = () => {
     if (!chart) return;
@@ -468,7 +460,7 @@ export function ControlChartTab() {
 
   const onApplied = (applied: AppliedLimit[]) => {
     setApplyCandidates(null);
-    toast.success(`Limits updated for ${applied.map((a) => a.location).join(", ")}.`);
+    toast.success(t("controlChart.toasts.limitsUpdated", { locations: applied.map((a) => a.location).join(", ") }));
     setReloadKey((k) => k + 1);
   };
 
@@ -490,20 +482,24 @@ export function ControlChartTab() {
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "300px 1fr" }, gap: 2, alignItems: "start", pb: 4 }}>
       {/* ---------------- Criteria ---------------- */}
       <Paper sx={{ p: 2.5 }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main, mb: 2 }}>Analysis criteria</Typography>
-        {optionsFailed && <Alert severity="error" sx={{ mb: 2 }}>The test and location lists could not be loaded. Reload the page to try again.</Alert>}
+        <Typography sx={{ fontSize: 15, fontWeight: 700, color: theme.palette.primary.main, mb: 2 }}>{t("controlChart.criteria.title")}</Typography>
+        {optionsFailed && <Alert severity="error" sx={{ mb: 2 }}>{t("controlChart.errors.loadOptions")}</Alert>}
         <Stack spacing={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Sample category</InputLabel>
-            <Select label="Sample category" value={criteria.category}
+            <InputLabel>{t("controlChart.criteria.sampleCategory")}</InputLabel>
+            <Select label={t("controlChart.criteria.sampleCategory")} value={criteria.category}
               onChange={(e) => setCriteria((c) => ({ ...c, category: e.target.value as SampleCategory, subjectName: "" }))}>
-              {categoryOptions.map((c) => <MenuItem key={c} value={c}>{CATEGORY_LABELS[c] ?? c}</MenuItem>)}
+              {categoryOptions.map((c) => (
+                <MenuItem key={c} value={c}>
+                  {CATEGORY_KEYS.includes(c) ? t(`controlChart.categories.${c}`) : c}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
           <FormControl fullWidth size="small">
-            <InputLabel>Test</InputLabel>
-            <Select label="Test" value={criteria.testCode} onChange={(e) => set("testCode", e.target.value)}>
-              {testCodes.map((t) => <MenuItem key={t.testCode} value={t.testCode}>{t.testDisplayName || t.testCode}</MenuItem>)}
+            <InputLabel>{t("controlChart.criteria.test")}</InputLabel>
+            <Select label={t("controlChart.criteria.test")} value={criteria.testCode} onChange={(e) => set("testCode", e.target.value)}>
+              {testCodes.map((tOpt) => <MenuItem key={tOpt.testCode} value={tOpt.testCode}>{tOpt.testDisplayName || tOpt.testCode}</MenuItem>)}
             </Select>
           </FormControl>
           {view !== "review" && (hasLocationHierarchy(criteria.category) ? (
@@ -511,71 +507,71 @@ export function ControlChartTab() {
               onSubjectNameChange={(name) => set("subjectName", name)} />
           ) : (
             <FormControl fullWidth size="small">
-              <InputLabel>Product / subject</InputLabel>
-              <Select label="Product / subject" value={criteria.subjectName} onChange={(e) => set("subjectName", e.target.value)}>
+              <InputLabel>{t("controlChart.criteria.productOrSubject")}</InputLabel>
+              <Select label={t("controlChart.criteria.productOrSubject")} value={criteria.subjectName} onChange={(e) => set("subjectName", e.target.value)}>
                 {subjectNames.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
               </Select>
             </FormControl>
           ))}
           <Stack spacing={2}>
-            <DateField label="From" size="small" fullWidth value={criteria.fromDate} onChange={(v) => set("fromDate", v)} />
-            <DateField label="To" size="small" fullWidth value={criteria.toDate} onChange={(v) => set("toDate", v)} />
+            <DateField label={t("controlChart.criteria.from")} size="small" fullWidth value={criteria.fromDate} onChange={(v) => set("fromDate", v)} />
+            <DateField label={t("controlChart.criteria.to")} size="small" fullWidth value={criteria.toDate} onChange={(v) => set("toDate", v)} />
           </Stack>
           <FormControlLabel control={<Checkbox size="small" checked={criteria.approvedOnly} onChange={(e) => set("approvedOnly", e.target.checked)} />}
-            label={<Typography sx={{ fontSize: 13 }}>Approved results only</Typography>} />
+            label={<Typography sx={{ fontSize: 13 }}>{t("controlChart.criteria.approvedOnly")}</Typography>} />
 
           {view !== "events" && (<>
           <Divider />
-          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Limit calculation</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t("controlChart.criteria.limitCalculation")}</Typography>
           <FormControl fullWidth size="small">
-            <InputLabel>Method</InputLabel>
-            <Select label="Method" value={settings.method} onChange={(e) => setS("method", e.target.value as LimitMethod)}>
-              {(Object.keys(METHOD_LABELS) as LimitMethod[]).map((m) => <MenuItem key={m} value={m}>{METHOD_LABELS[m]}</MenuItem>)}
+            <InputLabel>{t("controlChart.criteria.method")}</InputLabel>
+            <Select label={t("controlChart.criteria.method")} value={settings.method} onChange={(e) => setS("method", e.target.value as LimitMethod)}>
+              {METHOD_KEYS.map((m) => <MenuItem key={m} value={m}>{t(`controlChart.methods.${m}`)}</MenuItem>)}
             </Select>
           </FormControl>
           {settings.method === "Percentile" ? (
-            <Stack direction="row" spacing={1}>{numberField("alertPercentile", "Alert percentile")}{numberField("actionPercentile", "Action percentile")}</Stack>
+            <Stack direction="row" spacing={1}>{numberField("alertPercentile", t("controlChart.criteria.alertPercentile"))}{numberField("actionPercentile", t("controlChart.criteria.actionPercentile"))}</Stack>
           ) : (
-            <Stack direction="row" spacing={1}>{numberField("alertK", "Alert k")}{numberField("actionK", "Action k")}</Stack>
+            <Stack direction="row" spacing={1}>{numberField("alertK", t("controlChart.criteria.alertK"))}{numberField("actionK", t("controlChart.criteria.actionK"))}</Stack>
           )}
           <Stack direction="row" spacing={1}>
             <FormControl size="small" sx={{ flex: 1 }}>
-              <InputLabel>MR span</InputLabel>
-              <Select label="MR span" value={settings.movingRangeLength} onChange={(e) => setS("movingRangeLength", Number(e.target.value))}>
-                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <MenuItem key={n} value={n}>{n}{n === 2 ? " (consecutive)" : ""}</MenuItem>)}
+              <InputLabel>{t("controlChart.criteria.mrSpan")}</InputLabel>
+              <Select label={t("controlChart.criteria.mrSpan")} value={settings.movingRangeLength} onChange={(e) => setS("movingRangeLength", Number(e.target.value))}>
+                {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <MenuItem key={n} value={n}>{n}{n === 2 ? t("controlChart.criteria.consecutiveSuffix") : ""}</MenuItem>)}
               </Select>
             </FormControl>
-            {numberField("minimumPoints", "Min. points")}
+            {numberField("minimumPoints", t("controlChart.criteria.minPoints"))}
           </Stack>
           <FormControl fullWidth size="small">
-            <InputLabel>Rounding</InputLabel>
-            <Select label="Rounding" value={settings.rounding} onChange={(e) => setS("rounding", e.target.value as LimitRounding)}>
-              {(Object.keys(ROUNDING_LABELS) as LimitRounding[]).map((r) => <MenuItem key={r} value={r}>{ROUNDING_LABELS[r]}</MenuItem>)}
+            <InputLabel>{t("controlChart.criteria.rounding")}</InputLabel>
+            <Select label={t("controlChart.criteria.rounding")} value={settings.rounding} onChange={(e) => setS("rounding", e.target.value as LimitRounding)}>
+              {ROUNDING_KEYS.map((r) => <MenuItem key={r} value={r}>{t(`controlChart.rounding.${r}`)}</MenuItem>)}
             </Select>
           </FormControl>
           <FormControlLabel
             control={<Checkbox size="small" checked={settings.excludeOutOfSpec} onChange={(e) => setS("excludeOutOfSpec", e.target.checked)} />}
-            label={<Typography sx={{ fontSize: 13 }}>Exclude out-of-spec results from the limits</Typography>} />
+            label={<Typography sx={{ fontSize: 13 }}>{t("controlChart.criteria.excludeOos")}</Typography>} />
           {view === "chart" && (
             <>
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Estimate limits from (blank = whole period)</Typography>
+              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("controlChart.criteria.estimateFrom")}</Typography>
               <Stack spacing={2}>
-                <DateField label="Limits from" size="small" fullWidth value={criteria.calculationFrom} onChange={(v) => set("calculationFrom", v)} />
-                <DateField label="Limits to" size="small" fullWidth value={criteria.calculationTo} onChange={(v) => set("calculationTo", v)} />
+                <DateField label={t("controlChart.criteria.limitsFrom")} size="small" fullWidth value={criteria.calculationFrom} onChange={(v) => set("calculationFrom", v)} />
+                <DateField label={t("controlChart.criteria.limitsTo")} size="small" fullWidth value={criteria.calculationTo} onChange={(v) => set("calculationTo", v)} />
               </Stack>
             </>
           )}
 
           <Divider />
-          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Tests that flag a point</Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t("controlChart.criteria.testsThatFlag")}</Typography>
           <Box>
-            {Object.entries(RULE_LABELS).map(([n, label]) => {
+            {Object.keys(RULE_LABELS).map((n) => {
               const rule = Number(n);
               return (
                 <FormControlLabel key={n} sx={{ display: "flex", mr: 0 }}
                   control={<Checkbox size="small" checked={settings.rules.includes(rule)}
                     onChange={(e) => setS("rules", e.target.checked ? [...settings.rules, rule].sort() : settings.rules.filter((r) => r !== rule))} />}
-                  label={<Typography sx={{ fontSize: 12 }}>{n}: {label}</Typography>} />
+                  label={<Typography sx={{ fontSize: 12 }}>{n}: {t(`controlChart.rules.${n}`)}</Typography>} />
               );
             })}
           </Box>
@@ -584,11 +580,11 @@ export function ControlChartTab() {
           {view === "chart" && (
             <>
               <Divider />
-              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>Process capability against</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{t("controlChart.criteria.capabilityAgainst")}</Typography>
               <FormControl fullWidth size="small">
-                <InputLabel>Capability limits</InputLabel>
-                <Select label="Capability limits" value={criteria.capabilityBasis} onChange={(e) => set("capabilityBasis", e.target.value as CapabilityBasis)}>
-                  {(Object.keys(BASIS_LABELS) as CapabilityBasis[]).map((b) => <MenuItem key={b} value={b}>{BASIS_LABELS[b]}</MenuItem>)}
+                <InputLabel>{t("controlChart.criteria.capabilityLimits")}</InputLabel>
+                <Select label={t("controlChart.criteria.capabilityLimits")} value={criteria.capabilityBasis} onChange={(e) => set("capabilityBasis", e.target.value as CapabilityBasis)}>
+                  {BASIS_KEYS.map((b) => <MenuItem key={b} value={b}>{t(`controlChart.basis.${b}`)}</MenuItem>)}
                 </Select>
               </FormControl>
               {criteria.capabilityBasis === "Custom" && (
@@ -606,27 +602,27 @@ export function ControlChartTab() {
       <Box sx={{ minWidth: 0 }}>
         <Paper sx={{ px: 2, mb: 2, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <Tabs value={view} onChange={(_, v) => setView(v)} variant="scrollable" scrollButtons="auto">
-            <Tab value="chart" label="Control chart & capability" />
-            <Tab value="review" label="Limit review (all locations)" />
-            <Tab value="events" label="Detection events" />
+            <Tab value="chart" label={t("controlChart.tabs.chart")} />
+            <Tab value="review" label={t("controlChart.tabs.review")} />
+            <Tab value="events" label={t("controlChart.tabs.events")} />
           </Tabs>
           <Stack direction="row" spacing={1} sx={{ py: 1 }}>
             <Button size="small" variant="outlined" startIcon={<CompareArrowsIcon />}
               disabled={!criteria.category || !criteria.testCode} onClick={() => setCompareOpen(true)}>
-              Compare
+              {t("controlChart.actions.compare")}
             </Button>
             <Button size="small" variant="outlined" startIcon={<ArticleIcon />} onClick={() => setReportOpen(true)}>
-              Report ({reportItems.length})
+              {t("controlChart.actions.report", { count: reportItems.length })}
             </Button>
-            <Tooltip describeChild title="Clear the criteria, settings, results and report queue">
-              <Button size="small" color="inherit" startIcon={<RestartAltIcon />} onClick={resetAll}>Reset</Button>
+            <Tooltip describeChild title={t("controlChart.actions.resetTooltip")}>
+              <Button size="small" color="inherit" startIcon={<RestartAltIcon />} onClick={resetAll}>{t("controlChart.actions.reset")}</Button>
             </Tooltip>
           </Stack>
         </Paper>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {(!criteria.category || !criteria.testCode) && <Alert severity="info">Choose a sample category and a test to analyse.</Alert>}
-        {view === "chart" && criteria.category && criteria.testCode && !criteria.subjectName && <Alert severity="info">Choose a location or product to chart.</Alert>}
+        {(!criteria.category || !criteria.testCode) && <Alert severity="info">{t("controlChart.prompts.chooseCategoryAndTest")}</Alert>}
+        {view === "chart" && criteria.category && criteria.testCode && !criteria.subjectName && <Alert severity="info">{t("controlChart.prompts.chooseSubject")}</Alert>}
 
         {view === "chart" && chart && criteria.subjectName && (
           <Stack spacing={2}>
@@ -634,30 +630,30 @@ export function ControlChartTab() {
               <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} sx={{ mb: 1.5, alignItems: { md: "center" }, justifyContent: "space-between" }}>
                 <Box>
                   <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{chart.testDisplayName} · {chart.subjectName}</Typography>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{chartTitle?.description}</Typography>
+                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{chartTitle ? t(`controlChart.chartKinds.${chartTitle.value}.description`) : ""}</Typography>
                 </Box>
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
                   <FormControl size="small" sx={{ minWidth: 220 }}>
-                    <InputLabel>Chart type</InputLabel>
-                    <Select label="Chart type" value={chartKind} onChange={(e) => setChartKind(e.target.value as ChartKind)}>
-                      {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{k.label}</MenuItem>)}
+                    <InputLabel>{t("controlChart.actions.chartType")}</InputLabel>
+                    <Select label={t("controlChart.actions.chartType")} value={chartKind} onChange={(e) => setChartKind(e.target.value as ChartKind)}>
+                      {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{t(`controlChart.chartKinds.${k.value}.label`)}</MenuItem>)}
                     </Select>
                   </FormControl>
-                  <Tooltip title="Add this chart to the report"><span>
+                  <Tooltip title={t("controlChart.actions.addToReportTooltip")}><span>
                     <Button size="small" variant="contained" startIcon={<PostAddIcon />} disabled={!chart.points.length || !!offscreen} onClick={addChartToReport}>
-                      Add to report
+                      {t("controlChart.actions.addToReport")}
                     </Button>
                   </span></Tooltip>
-                  <Tooltip title="Download chart (PNG)"><span><Button size="small" disabled={!!offscreen} onClick={exportPng}><ImageIcon fontSize="small" /></Button></span></Tooltip>
-                  <Tooltip title="Download points (CSV)"><span><Button size="small" onClick={exportPointsCsv}><FileDownloadIcon fontSize="small" /></Button></span></Tooltip>
+                  <Tooltip title={t("controlChart.actions.downloadPngTooltip")}><span><Button size="small" disabled={!!offscreen} onClick={exportPng}><ImageIcon fontSize="small" /></Button></span></Tooltip>
+                  <Tooltip title={t("controlChart.actions.downloadCsvTooltip")}><span><Button size="small" onClick={exportPointsCsv}><FileDownloadIcon fontSize="small" /></Button></span></Tooltip>
                 </Stack>
               </Stack>
               <Stack direction="row" sx={{ mb: 1, flexWrap: "wrap" }}>
                 {([
-                  ["showConfiguredLimits", "Configured limits"],
-                  ["showLowerLimits", "Lower limits (−2SL, LCL)"],
-                  ["showRuleNumbers", "Test numbers"],
-                  ["showValueLabels", "Value labels"]
+                  ["showConfiguredLimits", t("controlChart.chartOptions.showConfiguredLimits")],
+                  ["showLowerLimits", t("controlChart.chartOptions.showLowerLimits")],
+                  ["showRuleNumbers", t("controlChart.chartOptions.showRuleNumbers")],
+                  ["showValueLabels", t("controlChart.chartOptions.showValueLabels")]
                 ] as [keyof SpcChartOptions, string][]).map(([k, label]) => (
                   <FormControlLabel key={k} label={<Typography sx={{ fontSize: 12 }}>{label}</Typography>}
                     control={<Checkbox size="small" checked={options[k]} onChange={(e) => setOptions((o) => ({ ...o, [k]: e.target.checked }))} />} />
@@ -665,17 +661,17 @@ export function ControlChartTab() {
               </Stack>
               {stats?.belowMinimumPoints && (
                 <Alert severity="warning" sx={{ mb: 1 }}>
-                  Only {stats.count} result(s) in the calculation window - fewer than the minimum of {settings.minimumPoints} for a statistically based limit.
+                  {t("controlChart.banners.belowMinPoints", { count: stats.count, minimum: settings.minimumPoints })}
                 </Alert>
               )}
               {chart.points.length === 0 && !loading && (
                 <Alert severity="info" sx={{ mb: 1 }}>
-                  No numeric results for this test and subject in the period. For detected / not detected tests use Detection events.
+                  {t("controlChart.banners.noNumericResults")}
                 </Alert>
               )}
               {chart.imputedPointCount > 0 && (
                 <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1 }}>
-                  {chart.imputedPointCount} result(s) below the detection limit are plotted at half the limit.
+                  {t("controlChart.banners.imputedPoints", { count: chart.imputedPointCount })}
                 </Typography>
               )}
               <Box sx={{ opacity: loading ? 0.5 : 1 }}>
@@ -686,34 +682,34 @@ export function ControlChartTab() {
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, height: "100%" }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>Statistics</Typography>
-                  {statRow("Results (n)", String(stats?.count ?? 0))}
-                  {statRow("Mean", fmt(stats?.mean))}
-                  {statRow("Median", fmt(stats?.median))}
-                  {statRow("Min / Max", `${fmt(stats?.min)} / ${fmt(stats?.max)}`)}
-                  {statRow("Standard deviation", fmt(stats?.standardDeviation), "Overall sample SD (n−1)")}
-                  {statRow("σ within (MR̄/d2)", fmt(stats?.sigmaWithin), "Short-term σ from the average moving range")}
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>{t("controlChart.stats.title")}</Typography>
+                  {statRow(t("controlChart.stats.resultsN"), String(stats?.count ?? 0))}
+                  {statRow(t("controlChart.stats.mean"), fmt(stats?.mean))}
+                  {statRow(t("controlChart.stats.median"), fmt(stats?.median))}
+                  {statRow(t("controlChart.stats.minMax"), `${fmt(stats?.min)} / ${fmt(stats?.max)}`)}
+                  {statRow(t("controlChart.stats.sd"), fmt(stats?.standardDeviation), t("controlChart.stats.sdHint"))}
+                  {statRow(t("controlChart.stats.sigmaWithin"), fmt(stats?.sigmaWithin), t("controlChart.stats.sigmaWithinHint"))}
                   {statRow("MR̄", fmt(stats?.movingRangeMean))}
                 </Paper>
               </Grid>
               <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, height: "100%" }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>Proposed limits · {methodSummary(settings)}</Typography>
-                  {statRow("Alert", fmt(stats?.limits.alertUpper))}
-                  {statRow("Action", fmt(stats?.limits.actionUpper))}
-                  {statRow("Current alert / action", `${fmt(chart.currentLimits.alert)} / ${fmt(chart.currentLimits.action)}`)}
-                  {statRow("Specification", chart.currentLimits.specUpper != null ? fmt(chart.currentLimits.specUpper) : "—")}
-                  {statRow("Points flagged", String(flaggedPoints.length))}
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>{t("controlChart.stats.proposedLimits", { summary: methodSummary(settings, t) })}</Typography>
+                  {statRow(t("controlChart.stats.alert"), fmt(stats?.limits.alertUpper))}
+                  {statRow(t("controlChart.stats.action"), fmt(stats?.limits.actionUpper))}
+                  {statRow(t("controlChart.stats.currentAlertAction"), `${fmt(chart.currentLimits.alert)} / ${fmt(chart.currentLimits.action)}`)}
+                  {statRow(t("controlChart.stats.specification"), chart.currentLimits.specUpper != null ? fmt(chart.currentLimits.specUpper) : "—")}
+                  {statRow(t("controlChart.stats.pointsFlagged"), String(flaggedPoints.length))}
                   {canApplyCategory && (
                     <Box sx={{ mt: 1.5 }}>
                       {chart.limitTargets.length === 0 ? (
-                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>No active configuration matches this location and test.</Typography>
+                        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("controlChart.stats.noMatchingConfig")}</Typography>
                       ) : (
-                        <Tooltip title={canManageLimits ? "" : "Needs the MasterData.Manage permission"}>
+                        <Tooltip title={canManageLimits ? "" : t("controlChart.actions.needsManagePermission")}>
                           <span>
                             <Button fullWidth variant="contained" size="small" startIcon={<PublishedWithChangesIcon />}
                               disabled={!canManageLimits || stats?.limits.actionUpper == null} onClick={openApplyFromChart}>
-                              Apply to configuration
+                              {t("controlChart.actions.applyToConfig")}
                             </Button>
                           </span>
                         </Tooltip>
@@ -725,7 +721,10 @@ export function ControlChartTab() {
               <Grid size={{ xs: 12, md: 4 }}>
                 <Paper sx={{ p: 2, height: "100%" }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>
-                    Process capability · {cap?.lsl != null ? `LSL ${fmt(cap.lsl)} ` : ""}{cap?.usl != null ? `USL ${fmt(cap.usl)}` : "no limit"}
+                    {t("controlChart.stats.processCapability", {
+                      lsl: cap?.lsl != null ? `LSL ${fmt(cap.lsl)} ` : "",
+                      usl: cap?.usl != null ? `USL ${fmt(cap.usl)}` : t("controlChart.stats.noLimit")
+                    })}
                   </Typography>
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
                     {(["cp", "cpk", "pp", "ppk"] as const).map((k) => (
@@ -733,12 +732,11 @@ export function ControlChartTab() {
                         label={`${k === "cp" ? "Cp" : k === "cpk" ? "Cpk" : k === "pp" ? "Pp" : "Ppk"} ${fmt(cap?.[k] ?? null)}`} />
                     ))}
                   </Stack>
-                  {statRow("Cpu / Cpl", `${fmt(cap?.cpu)} / ${fmt(cap?.cpl)}`)}
-                  {statRow("Observed outside limits", cap?.observedPercentOutside != null ? `${fmt(cap.observedPercentOutside)} %` : "—")}
-                  {statRow("Expected outside (normal)", cap?.expectedPercentOutside != null ? `${fmt(cap.expectedPercentOutside, 3)} %` : "—")}
+                  {statRow(t("controlChart.stats.cpuCpl"), `${fmt(cap?.cpu)} / ${fmt(cap?.cpl)}`)}
+                  {statRow(t("controlChart.stats.observedOutside"), cap?.observedPercentOutside != null ? `${fmt(cap.observedPercentOutside)} %` : "—")}
+                  {statRow(t("controlChart.stats.expectedOutside"), cap?.expectedPercentOutside != null ? `${fmt(cap.expectedPercentOutside, 3)} %` : "—")}
                   <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 1 }}>
-                    Cp/Cpk use σ within, Pp/Ppk the overall SD. With only an upper limit Cpk = Cpu. Indices assume roughly normal data -
-                    microbial counts are usually skewed, so read them with the capability histogram.
+                    {t("controlChart.stats.capabilityNote")}
                   </Typography>
                 </Paper>
               </Grid>
@@ -746,16 +744,16 @@ export function ControlChartTab() {
 
             {flaggedPoints.length > 0 && (
               <Paper sx={{ p: 2 }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>Flagged points</Typography>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, mb: 1 }}>{t("controlChart.flagged.title")}</Typography>
                 <Table size="small">
-                  <TableHead><TableRow><TableCell>Date</TableCell><TableCell>Reference</TableCell><TableCell align="right">Result</TableCell><TableCell>Failed tests</TableCell></TableRow></TableHead>
+                  <TableHead><TableRow><TableCell>{t("controlChart.flagged.date")}</TableCell><TableCell>{t("controlChart.flagged.reference")}</TableCell><TableCell align="right">{t("controlChart.flagged.result")}</TableCell><TableCell>{t("controlChart.flagged.failedTests")}</TableCell></TableRow></TableHead>
                   <TableBody>
                     {flaggedPoints.map((p) => (
                       <TableRow key={p.recordId} hover sx={{ cursor: "pointer" }} onClick={() => handlePointClick(p)}>
                         <TableCell>{new Date(p.date).toLocaleDateString("en-GB")}</TableCell>
                         <TableCell>{p.referenceNumber}</TableCell>
                         <TableCell align="right">{p.reportedValue}</TableCell>
-                        <TableCell>{p.rules.map((r) => `${r}: ${RULE_LABELS[r]}`).join("; ")}</TableCell>
+                        <TableCell>{p.rules.map((r) => `${r}: ${t(`controlChart.rules.${r}`)}`).join("; ")}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -769,27 +767,34 @@ export function ControlChartTab() {
           <Paper sx={{ p: 2 }}>
             <Stack direction={{ xs: "column", md: "row" }} spacing={1} sx={{ mb: 1.5, justifyContent: "space-between" }}>
               <Box>
-                <Typography sx={{ fontSize: 15, fontWeight: 700 }}>{review.testDisplayName} · {CATEGORY_LABELS[review.category] ?? review.category}</Typography>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Proposed limits: {methodSummary(settings)}, rounding {ROUNDING_LABELS[settings.rounding].toLowerCase()}</Typography>
+                <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
+                  {review.testDisplayName} · {CATEGORY_KEYS.includes(review.category) ? t(`controlChart.categories.${review.category}`) : review.category}
+                </Typography>
+                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+                  {t("controlChart.review.subtitle", {
+                    summary: methodSummary(settings, t),
+                    rounding: t(`controlChart.rounding.${settings.rounding}`).toLowerCase()
+                  })}
+                </Typography>
               </Box>
               <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap" }}>
                 <FormControl size="small" sx={{ minWidth: 200 }}>
-                  <InputLabel>Report chart type</InputLabel>
-                  <Select label="Report chart type" value={chartKind} onChange={(e) => setChartKind(e.target.value as ChartKind)}>
-                    {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{k.label}</MenuItem>)}
+                  <InputLabel>{t("controlChart.actions.reportChartType")}</InputLabel>
+                  <Select label={t("controlChart.actions.reportChartType")} value={chartKind} onChange={(e) => setChartKind(e.target.value as ChartKind)}>
+                    {CHART_KINDS.map((k) => <MenuItem key={k.value} value={k.value}>{t(`controlChart.chartKinds.${k.value}.label`)}</MenuItem>)}
                   </Select>
                 </FormControl>
                 <Button size="small" variant="outlined" startIcon={<LibraryAddIcon />}
                   disabled={!!batch || !review.rows.some((r) => r.count > 0)} onClick={addAllToReport}>
-                  {batch ? `Adding ${batch.done}/${batch.total}...` : "Add all to report"}
+                  {batch ? t("controlChart.actions.addingProgress", { done: batch.done, total: batch.total }) : t("controlChart.actions.addAllToReport")}
                 </Button>
                 <Button size="small" startIcon={<FileDownloadIcon />} onClick={exportReviewCsv}>CSV</Button>
                 {canApplyCategory && (
-                  <Tooltip title={canManageLimits ? "" : "Needs the MasterData.Manage permission"}>
+                  <Tooltip title={canManageLimits ? "" : t("controlChart.actions.needsManagePermission")}>
                     <span>
                       <Button size="small" variant="contained" startIcon={<PublishedWithChangesIcon />}
                         disabled={!canManageLimits || selected.size === 0} onClick={openApplyFromReview}>
-                        Apply selected ({selected.size})
+                        {t("controlChart.actions.applySelected", { count: selected.size })}
                       </Button>
                     </span>
                   </Tooltip>
@@ -801,35 +806,35 @@ export function ControlChartTab() {
                 <TableHead>
                   <TableRow>
                     {canApplyCategory && <TableCell padding="checkbox" />}
-                    <TableCell>Location</TableCell>
-                    <TableCell>Configuration</TableCell>
+                    <TableCell>{t("controlChart.review.location")}</TableCell>
+                    <TableCell>{t("controlChart.review.configuration")}</TableCell>
                     <TableCell align="right">n</TableCell>
-                    <TableCell align="right">Mean</TableCell>
+                    <TableCell align="right">{t("controlChart.review.mean")}</TableCell>
                     <TableCell align="right">SD</TableCell>
-                    <TableCell align="right">σ used</TableCell>
-                    <TableCell align="right" sx={{ bgcolor: theme.custom.status.inconclusive.bg }}>New alert</TableCell>
-                    <TableCell align="right" sx={{ bgcolor: theme.custom.status.inconclusive.bg }}>New action</TableCell>
-                    <TableCell align="right">Current alert</TableCell>
-                    <TableCell align="right">Current action</TableCell>
-                    <TableCell align="right">Δ alert</TableCell>
-                    <TableCell align="right">Δ action</TableCell>
+                    <TableCell align="right">{t("controlChart.review.sigmaUsed")}</TableCell>
+                    <TableCell align="right" sx={{ bgcolor: theme.custom.status.inconclusive.bg }}>{t("controlChart.review.newAlert")}</TableCell>
+                    <TableCell align="right" sx={{ bgcolor: theme.custom.status.inconclusive.bg }}>{t("controlChart.review.newAction")}</TableCell>
+                    <TableCell align="right">{t("controlChart.review.currentAlert")}</TableCell>
+                    <TableCell align="right">{t("controlChart.review.currentAction")}</TableCell>
+                    <TableCell align="right">{t("controlChart.review.deltaAlert")}</TableCell>
+                    <TableCell align="right">{t("controlChart.review.deltaAction")}</TableCell>
                     <TableCell align="right">Cpk</TableCell>
-                    <TableCell align="right">Flagged</TableCell>
+                    <TableCell align="right">{t("controlChart.review.flagged")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {review.rows.flatMap((r) => {
                     const lines = r.limitTargets.length ? r.limitTargets : [null];
-                    return lines.map((t) => {
-                      const key = t ? `${t.kind}:${t.configurationId}` : `none:${r.subjectName}`;
+                    return lines.map((tItem) => {
+                      const key = tItem ? `${tItem.kind}:${tItem.configurationId}` : `none:${r.subjectName}`;
                       const delta = (a: number | null, b: number | null) => (a != null && b != null ? fmt(a - b) : "—");
-                      const selectable = !!t && r.proposedAction != null && r.proposedAlert != null;
+                      const selectable = !!tItem && r.proposedAction != null && r.proposedAlert != null;
                       return (
                         <TableRow key={key} hover>
                           {canApplyCategory && (
                             <TableCell padding="checkbox">
                               <Checkbox size="small" disabled={!selectable || !canManageLimits} checked={selected.has(key)}
-                                slotProps={{ input: { "aria-label": `Select ${r.subjectName}` } }}
+                                slotProps={{ input: { "aria-label": t("controlChart.review.selectLocationAria", { subject: r.subjectName }) } }}
                                 onChange={(e) => setSelected((s) => {
                                   const next = new Set(s);
                                   if (e.target.checked) next.add(key); else next.delete(key);
@@ -842,17 +847,17 @@ export function ControlChartTab() {
                               onClick={() => { setCriteria((c) => ({ ...c, subjectName: r.subjectName })); setView("chart"); }}>
                               {r.subjectName}
                             </Button>
-                            {t?.detail && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{t.detail}</Typography>}
+                            {tItem?.detail && <Typography sx={{ fontSize: 11, color: "text.secondary" }}>{tItem.detail}</Typography>}
                           </TableCell>
-                          <TableCell sx={{ fontSize: 12 }}>{t ? (t.testType ?? t.testCode) : "Not configured"}</TableCell>
+                          <TableCell sx={{ fontSize: 12 }}>{tItem ? (tItem.testType ?? tItem.testCode) : t("controlChart.review.notConfigured")}</TableCell>
                           <TableCell align="right" sx={{ color: r.belowMinimumPoints ? "error.main" : undefined, fontWeight: r.belowMinimumPoints ? 700 : undefined }}>{r.count}</TableCell>
                           <TableCell align="right">{fmt(r.mean)}</TableCell>
                           <TableCell align="right">{fmt(r.standardDeviation)}</TableCell>
                           <TableCell align="right">{fmt(r.sigmaUsed)}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>{fmt(r.proposedAlert)}</TableCell>
                           <TableCell align="right" sx={{ fontWeight: 700 }}>{fmt(r.proposedAction)}</TableCell>
-                          <TableCell align="right">{t?.alertLimit || fmt(r.currentAlert)}</TableCell>
-                          <TableCell align="right">{t?.actionLimit || fmt(r.currentAction)}</TableCell>
+                          <TableCell align="right">{tItem?.alertLimit || fmt(r.currentAlert)}</TableCell>
+                          <TableCell align="right">{tItem?.actionLimit || fmt(r.currentAction)}</TableCell>
                           <TableCell align="right">{delta(r.proposedAlert, r.currentAlert)}</TableCell>
                           <TableCell align="right">{delta(r.proposedAction, r.currentAction)}</TableCell>
                           <TableCell align="right"><Chip size="small" variant="outlined" color={capabilityTone(r.cpk)} label={fmt(r.cpk)} /></TableCell>
@@ -865,7 +870,7 @@ export function ControlChartTab() {
               </Table>
             </Box>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 1 }}>
-              Red n = fewer results than the minimum. Cpk is against the specification limit. Select locations and apply to replace their configured alert and action limits under your electronic signature.
+              {t("controlChart.review.footnote")}
             </Typography>
           </Paper>
         )}
@@ -873,26 +878,26 @@ export function ControlChartTab() {
         {view === "events" && events && criteria.category && criteria.testCode && (
           <Paper sx={{ p: 2, opacity: loading ? 0.5 : 1 }}>
             <Typography sx={{ fontSize: 15, fontWeight: 700 }}>
-              Detected results · {criteria.subjectName || "all subjects"} ({events.length})
+              {t("controlChart.events.title", { subject: criteria.subjectName || t("controlChart.events.allSubjects"), count: events.length })}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1.5 }}>
-              Qualitative results reported as Detected, by result entry date. Click a row to open the record.
+              {t("controlChart.events.subtitle")}
             </Typography>
             {events.length === 0 ? (
-              <Alert severity="success">No detections recorded for this test in the selected period.</Alert>
+              <Alert severity="success">{t("controlChart.events.empty")}</Alert>
             ) : (
               <Box sx={{ overflowX: "auto" }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Date entered</TableCell><TableCell>Reference</TableCell><TableCell>Item / location</TableCell>
-                      <TableCell>Test</TableCell><TableCell>Result</TableCell><TableCell>Entered by</TableCell><TableCell>Status</TableCell>
+                      <TableCell>{t("controlChart.events.dateEntered")}</TableCell><TableCell>{t("controlChart.events.reference")}</TableCell><TableCell>{t("controlChart.events.itemLocation")}</TableCell>
+                      <TableCell>{t("controlChart.events.test")}</TableCell><TableCell>{t("controlChart.events.result")}</TableCell><TableCell>{t("controlChart.events.enteredBy")}</TableCell><TableCell>{t("controlChart.events.status")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {events.map((ev) => (
                       <TableRow key={ev.id} hover sx={{ cursor: "pointer" }} onClick={() => openRecord(ev.id)}>
-                        <TableCell>{new Date(ev.resultEnteredAt).toLocaleDateString("en-GB")}</TableCell>
+                        <TableCell>{formatDateTimeWithTimeZone(ev.resultEnteredAt)}</TableCell>
                         <TableCell sx={{ fontWeight: 600 }}>{ev.referenceNumber}</TableCell>
                         <TableCell>{ev.subjectName}{ev.subjectDetail ? ` (${ev.subjectDetail})` : ""}</TableCell>
                         <TableCell>{ev.testDisplayName}</TableCell>

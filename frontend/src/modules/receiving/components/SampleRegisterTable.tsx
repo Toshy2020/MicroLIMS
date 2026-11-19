@@ -1,25 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import {
-  Paper,
   Table,
-  TableHead,
-  TableRow,
-  TableCell,
   TableBody,
-  TablePagination,
+  TableCell,
+  TableRow,
   Box,
   Typography,
   Tooltip,
   Button,
+  type ButtonProps,
   Checkbox,
   Avatar,
-  IconButton,
-  Popover,
-  FormGroup,
-  FormControlLabel,
   useTheme
 } from "@mui/material";
-import ViewColumnIcon from "@mui/icons-material/ViewColumn";
+import type { SxProps, Theme } from "@mui/material/styles";
 import HourglassTopIcon from "@mui/icons-material/HourglassTop";
 import DescriptionIcon from "@mui/icons-material/Description";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
@@ -29,24 +23,52 @@ import SubdirectoryArrowRightIcon from "@mui/icons-material/SubdirectoryArrowRig
 import { Chip } from "@mui/material";
 import { SampleRecord, TestOrderSummary } from "../types/receivingTypes";
 import { CategoryBadge, CauseBadge, categoryLabel } from "../../../components/StatusBadge";
+import { DirectionalIcon } from "../../../components/DirectionalIcon";
+import { Ltr } from "../../../components/Ltr";
+import { i18n as appI18n, useTranslation } from "../../../i18n";
 import { StatusTone } from "../../../theme/statusTokens";
-import { TestStatusSummaryCell } from "./TestStatusSummaryCell";
+import { TestStatusSummaryCell, testSummaryText } from "./TestStatusSummaryCell";
+import type { TFunction } from "i18next";
 import { SampleActionMenu } from "./SampleActionMenu";
 import { assignedAnalystsByTest, assignedAnalystsLabel } from "../utils/assignedAnalysts";
-import { tableHeadSx } from "../../../theme";
 import { ReadOnlyItemDocumentsDialog } from "../../../components/ReadOnlyItemDocumentsDialog";
 import { ItemDocumentService } from "../../laboratoryConfiguration/items/services/ItemDocumentService";
 import { ItemStmService } from "../../laboratoryConfiguration/items/services/ItemStmService";
 import { useAuth } from "../../../contexts/AuthContext";
+import { GatedAction } from "../../../components/GatedAction";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
 import { PERMISSIONS } from "../../../routes/routes";
 import { isInteractiveElement } from "../../../utils/isInteractiveElement";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import type { BulkAction } from "../../../components/lab/table/BulkActionBar";
+import { TableToolbar } from "../../../components/lab/table/TableToolbar";
+import type { TableState } from "../../../components/lab/table/tableUrlCodec";
+import type { RowSelection } from "../../../components/lab/table/useRowSelection";
+import { useTableState, type UseTableState } from "../../../components/lab/table/useTableState";
+import type { ExportColumn } from "../../../components/lab/table/exportRows";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 
-interface Props {
+export interface SampleRegisterTableProps {
   samples: SampleRecord[];
+  // Registry key (frontend/src/tables/tableRegistry.json) naming this register.
+  tableKey: string;
+  // The page owns the state when it builds a server filter from it (the workspace);
+  // without it the table keeps its own (the receiving register).
+  tableState?: UseTableState;
+  // Used only when the table creates its own state.
+  tableDefaults?: Partial<TableState>;
+  // localStorage key of this register's old column choice, read once into the table state and removed.
+  legacyColumnsKey?: string;
   selectedSampleId?: number | null;
-  checkedSampleIds?: Set<number>;
-  onToggleCheck?: (sampleId: number, checked: boolean) => void;
-  onToggleCheckMany?: (sampleIds: number[], checked: boolean) => void;
+  // The checked samples; present only where a selection feeds grouped or bulk actions.
+  selection?: RowSelection<number>;
+  bulkActions?: BulkAction<string | number>[];
+  // The samples are one page of a server-paged list with this many rows in total.
+  serverTotal?: number;
+  serverSortableColumns?: ReadonlySet<string> | readonly string[];
+  onServerSortChange?: (next: { key: string; direction: "asc" | "desc" } | null) => void;
+  serverSort?: { key: string; direction: "asc" | "desc" } | null;
+  loadAllMatching?: () => Promise<SampleRecord[]>;
   onSelectSample?: (sample: SampleRecord) => void;
   onTestClick: (test: TestOrderSummary, sample: SampleRecord) => void;
   onViewSummary: (sample: SampleRecord) => void;
@@ -59,16 +81,14 @@ interface Props {
   onAddLaboratory?: (sample: SampleRecord) => void;
   // Periodic retest awaiting its tests: opens the test-selection dialog.
   onSelectTests?: (sample: SampleRecord) => void;
-  // localStorage key for this register's column choice, so each page that
-  // uses the table remembers its own set.
-  columnsStorageKey?: string;
 }
 
-// Columns the user can show or hide (the item column and actions always
-// show). Whatever is hidden among received date, #, item type, cause and
-// sampled-by is summarised under the item name instead, so hiding a column
-// never hides the information.
-export type RegisterColumnKey =
+// Columns the user can show or hide (the item column always shows). Whatever
+// is hidden among received date, #, item type, cause, sampled-by and due is
+// summarised under the item name instead, so hiding a column never hides the
+// information. The keys are the ones in the table registry.
+type RegisterColumnKey =
+  | "item"
   | "receivedAt"
   | "sampleId"
   | "category"
@@ -81,48 +101,177 @@ export type RegisterColumnKey =
   | "tests"
   | "nextAction";
 
-export const REGISTER_COLUMNS: { key: RegisterColumnKey; label: string }[] = [
-  { key: "receivedAt", label: "Received At" },
-  { key: "sampleId", label: "Sample #" },
-  { key: "category", label: "Item Type" },
-  { key: "cause", label: "Cause" },
-  { key: "sampledBy", label: "Sampled By" },
-  { key: "batchControl", label: "Batch / Control No." },
-  { key: "assignedTo", label: "Assigned To" },
-  { key: "sampleStatus", label: "Sample Status" },
-  { key: "due", label: "Due" },
-  { key: "tests", label: "Tests" },
-  { key: "nextAction", label: "Next Action" }
+// Where each column sat in the old fixed layout; the old stored choice is
+// turned into a column list in this order.
+const LEGACY_COLUMN_ORDER: RegisterColumnKey[] = [
+  "receivedAt", "sampleId", "item", "category", "cause", "sampledBy",
+  "batchControl", "assignedTo", "sampleStatus", "due", "tests", "nextAction"
 ];
 
-export const DEFAULT_REGISTER_COLUMNS: RegisterColumnKey[] = ["batchControl", "assignedTo", "sampleStatus", "due", "tests", "nextAction"];
+export const SAMPLE_REGISTER_DEFAULTS: Partial<TableState> = { density: "compact" };
+export const WORKSPACE_REGISTER_DEFAULTS: Partial<TableState> = { density: "compact", pageSize: 50 };
 
-function loadColumns(storageKey: string): Set<RegisterColumnKey> {
+// The columns an old stored choice asked for, or null when there is nothing usable to carry over.
+function parseLegacyColumns(raw: string): string[] | null {
   try {
-    const raw = localStorage.getItem(storageKey);
-    if (raw) {
-      const valid = new Set(REGISTER_COLUMNS.map((c) => c.key));
-      const stored = JSON.parse(raw) as string[];
-      const parsed = stored.filter((k): k is RegisterColumnKey => valid.has(k as RegisterColumnKey));
-      // A choice saved before the Due column existed gets it once, by default.
-      if (!stored.includes("due") && !stored.includes("due:off")) parsed.push("due");
-      return new Set(parsed);
-    }
+    const valid = new Set<string>(LEGACY_COLUMN_ORDER);
+    const stored = JSON.parse(raw) as unknown;
+    if (!Array.isArray(stored)) return null;
+    const names = stored.filter((k): k is string => typeof k === "string");
+    const chosen = new Set(names.filter((k) => valid.has(k) && k !== "item"));
+    // A choice saved before the Due column existed gets it once, by default.
+    if (!names.includes("due") && !names.includes("due:off")) chosen.add("due");
+    return LEGACY_COLUMN_ORDER.filter((k) => k === "item" || chosen.has(k));
   } catch {
-    // Storage blocked or corrupt - fall back to the default set.
-  }
-  return new Set(DEFAULT_REGISTER_COLUMNS);
-}
-
-function saveColumns(storageKey: string, cols: Set<RegisterColumnKey>) {
-  try {
-    const keys: string[] = Array.from(cols);
-    if (!cols.has("due")) keys.push("due:off");
-    localStorage.setItem(storageKey, JSON.stringify(keys));
-  } catch {
-    // Not persisted; the choice still applies for this visit.
+    return null;
   }
 }
+
+// What the next-action column offers, from the statuses the server reported. `target` names the handler the
+// register routes a click to; an export carries only the label.
+interface ResolvedNextAction {
+  label: string;
+  // The server-answered action that gates the button (review.complete, approval.approve); a refusal shows its sentence.
+  gate?: string;
+  // "wait" renders a passive chip; anything else renders a button.
+  kind: "primary" | "secondary" | "wait";
+  target?: "selectTests" | "prepare" | "summary" | "report" | "test" | "assign";
+  test?: TestOrderSummary;
+}
+
+// Which next actions this user can be offered.
+export interface NextActionCapabilities {
+  canSelectTests: boolean;
+  canAssign: boolean;
+}
+
+type ReceivingT = TFunction<"receiving">;
+
+// Reads only statuses the server reported; no laboratory rule is decided here.
+function resolveNextAction(sample: SampleRecord, caps: NextActionCapabilities, t: ReceivingT): ResolvedNextAction | null {
+  if (CLOSED_STATUSES.has(sample.status)) return null;
+  // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
+  if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
+    return caps.canSelectTests
+      ? { label: t("register.nextAction.selectTests"), kind: "primary", target: "selectTests" }
+      : { label: t("register.nextAction.awaitingTestSelection"), kind: "wait" };
+  }
+  if (sample.preparationStatus === "NeedsPreparation") {
+    return { label: t("register.nextAction.prepare"), kind: "primary", target: "prepare" };
+  }
+  if (sample.status === "UnderReview" || sample.status === "PendingReview") {
+    return { label: t("register.nextAction.review"), kind: "primary", gate: "review.complete", target: "summary" };
+  }
+  if (sample.status === "UnderApproval") {
+    return { label: t("register.nextAction.approve"), kind: "primary", gate: "approval.approve", target: "summary" };
+  }
+  if (sample.status === "Approved") {
+    return { label: t("register.nextAction.viewReport"), kind: "secondary", target: "report" };
+  }
+  const tests = sample.assignedTests || [];
+  const ready = tests.find((test) => ["ReadyToRead", "EnterResult"].includes(effectiveTestStatus(test)));
+  if (ready) {
+    return {
+      label: tests.length > 1 ? t("register.nextAction.recordCode", { code: ready.testCode }) : t("register.nextAction.recordResult"),
+      kind: "primary",
+      target: "test",
+      test: ready
+    };
+  }
+  const hasAnalyst = Boolean(sample.assignedAnalystName || tests.some((test) => test.assignedAnalystName));
+  if (!hasAnalyst && caps.canAssign) {
+    return { label: t("register.nextAction.assign"), kind: "secondary", target: "assign" };
+  }
+  const notStarted = tests.find((test) => ["Pending", "Waiting", "NotStarted"].includes(effectiveTestStatus(test)));
+  if (notStarted) {
+    return {
+      label: tests.length > 1 ? t("register.nextAction.startCode", { code: notStarted.testCode }) : t("register.nextAction.startTest"),
+      kind: "secondary",
+      target: "test",
+      test: notStarted
+    };
+  }
+  if (tests.some((test) => ["InProgress", "Running", "Incubating"].includes(effectiveTestStatus(test)))) {
+    return { label: t("register.nextAction.inProgress"), kind: "wait" };
+  }
+  return null;
+}
+
+const safeDateTime = (iso: string): string => {
+  try {
+    return formatDateTimeWithTimeZone(iso, { english: true });
+  } catch {
+    return iso;
+  }
+};
+
+// The register's columns without their cell renderers: what a CSV export of the register carries.
+// `exportValue` is the text the screen shows for the column (dates with their zone, labels, never raw
+// epochs or enums); `caps` decides whether a next action the user cannot take is offered.
+const SAMPLE_COLUMN_DEFS: ReadonlyArray<{
+  key: RegisterColumnKey;
+  sortValue?: (s: SampleRecord) => string | number | null | undefined;
+  exportValue: (s: SampleRecord, t: ReceivingT, caps: NextActionCapabilities) => string;
+}> = [
+  { key: "item", sortValue: (s) => s.displayName, exportValue: (s) => `${s.displayName} / ${s.referenceNumber}` },
+  { key: "receivedAt", sortValue: (s) => new Date(s.receivedAt).getTime(), exportValue: (s) => safeDateTime(s.receivedAt) },
+  { key: "sampleId", sortValue: (s) => s.sampleId, exportValue: (s) => `#${s.sampleId}` },
+  { key: "category", sortValue: (s) => s.category, exportValue: (s) => categoryLabel(s.category) },
+  { key: "cause", exportValue: (s) => s.causeOfTesting || "" },
+  { key: "sampledBy", sortValue: (s) => s.sampledBy, exportValue: (s) => s.sampledBy || "" },
+  {
+    key: "batchControl",
+    sortValue: (s) => s.batchNumber ?? s.controlNumber,
+    exportValue: (s, t) =>
+      [s.batchNumber ? `${t("register.batchPrefix")} ${s.batchNumber}` : "", `${t("register.controlPrefix")} ${s.controlNumber || "—"}`]
+        .filter(Boolean)
+        .join(" ")
+  },
+  {
+    key: "assignedTo",
+    sortValue: (s) => assignedAnalystsLabel(s.assignedTests),
+    exportValue: (s, t) => assignedAnalystsLabel(s.assignedTests) ?? t("register.unassigned")
+  },
+  {
+    key: "sampleStatus",
+    sortValue: (s) => s.status,
+    exportValue: (s, t) => t(`register.sampleStatus.${s.status}`, { defaultValue: s.status })
+  },
+  {
+    key: "due",
+    sortValue: (s) => (s.dueAt ? new Date(s.dueAt).getTime() : null),
+    exportValue: (s) => (s.dueAt ? safeDateTime(s.dueAt) : "")
+  },
+  { key: "tests", exportValue: (s, t) => testSummaryText(t, s) },
+  { key: "nextAction", exportValue: (s, t, caps) => resolveNextAction(s, caps, t)?.label ?? "" }
+];
+
+// The file is English whatever the interface language: the English record is the regulated one.
+const englishT = (): ReceivingT => appI18n.getFixedT("en", "receiving") as ReceivingT;
+
+// The export columns for the register columns a user has chosen to show, in their order. Labels and values
+// are always English.
+export function sampleExportColumns(
+  visibleKeys: readonly string[],
+  caps: NextActionCapabilities = { canSelectTests: false, canAssign: false }
+): ExportColumn<SampleRecord>[] {
+  const t = englishT();
+  const byKey = new Map(SAMPLE_COLUMN_DEFS.map((d) => [String(d.key), d]));
+  return visibleKeys
+    .map((key) => byKey.get(key))
+    .filter((d): d is NonNullable<typeof d> => Boolean(d))
+    .map((d) => ({
+      key: String(d.key),
+      label: t(`register.columns.${d.key}`),
+      exportLabel: t(`register.columns.${d.key}`),
+      sortValue: d.sortValue,
+      exportValue: (s: SampleRecord) => d.exportValue(s, t, caps)
+    }));
+}
+
+const getSampleRowId = (sample: SampleRecord) => sample.sampleId;
+
+const ROW_CELL_SX = { fontSize: 12, color: "text.secondary" } as const;
 
 // "Due in 5 h" / "Overdue by 2 d" from the server's due time and flag. The
 // relative wording is display only; whether it is overdue comes from the server.
@@ -130,13 +279,20 @@ export function dueLabel(dueAt: string | null | undefined, isOverdue: boolean | 
   if (!dueAt) return null;
   const diffMs = new Date(dueAt).getTime() - now;
   const abs = Math.abs(diffMs);
-  const span = abs >= 48 * 3600e3 ? `${Math.floor(abs / (24 * 3600e3))} d`
-    : abs >= 3600e3 ? `${Math.floor(abs / 3600e3)} h`
-    : `${Math.max(1, Math.floor(abs / 60e3))} min`;
-  return isOverdue ? `Overdue by ${span}` : diffMs > 0 ? `Due in ${span}` : "Due now";
+  const span = abs >= 48 * 3600e3 ? appI18n.t("register.due.days", { ns: "receiving", count: Math.floor(abs / (24 * 3600e3)) })
+    : abs >= 3600e3 ? appI18n.t("register.due.hours", { ns: "receiving", count: Math.floor(abs / 3600e3) })
+    : appI18n.t("register.due.minutes", { ns: "receiving", count: Math.max(1, Math.floor(abs / 60e3)) });
+  return isOverdue
+    ? appI18n.t("register.due.overdueBy", { ns: "receiving", span })
+    : diffMs > 0
+    ? appI18n.t("register.due.in", { ns: "receiving", span })
+    : appI18n.t("register.due.now", { ns: "receiving" });
 }
 
 const CLOSED_STATUSES = new Set(["Rejected", "Voided", "Cancelled", "RetestRequested"]);
+// A sample in one of these has no open test left, so its analyst can no longer be set or changed (the server
+// refuses with "no open tests you can assign"); the register shows no assign control for it.
+const NO_ASSIGN_STATUSES = new Set([...CLOSED_STATUSES, "Approved"]);
 const effectiveTestStatus = (t: TestOrderSummary) => t.workflowStatus ?? t.status;
 
 // Colour of one test's segment in the progress bar - presentation only,
@@ -154,8 +310,21 @@ const initialsOf = (name: string) =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
 const initialsSx = { fontSize: "10px !important", fontWeight: 700, bgcolor: "primary.main", color: "primary.contrastText" } as const;
 
+// One next-action button gated by the server's answer for its sample. Only rows that offer a gated action mount
+// it, so the register asks about the few samples waiting for review or approval, not about every row.
+function GatedNextAction({ sampleId, action, children }: { sampleId: number; action: string; children: ReactElement<ButtonProps> }) {
+  const availability = useActionAvailability("sample", sampleId);
+  return (
+    <GatedAction action={action} availability={availability}>
+      {children}
+    </GatedAction>
+  );
+}
+
 interface NextAction {
   label: string;
+  // The server-answered action that gates the button (review.complete, approval.approve); a refusal shows its sentence.
+  gate?: string;
   // "wait" renders a passive chip; anything else renders a button.
   kind: "primary" | "secondary" | "wait";
   run?: () => void;
@@ -166,23 +335,25 @@ interface NextAction {
 // all read "Cancelled / Voided" here) - so this stays a local label+tone
 // map rather than reusing StatusBadge directly, while still sourcing its
 // colors from the one shared theme.custom.status table (not its own hex).
-const SAMPLE_STATUS_MAP: Record<string, { label: string; tone: StatusTone }> = {
-  Received: { label: "Received", tone: "pending" },
-  InTesting: { label: "Under Testing", tone: "info" },
-  UnderReview: { label: "Pending Review", tone: "action" },
-  UnderApproval: { label: "Pending Approval", tone: "action" },
-  PendingReview: { label: "Pending Review", tone: "action" },
-  Approved: { label: "Approved", tone: "notDetected" },
-  Rejected: { label: "Rejected", tone: "detected" },
-  RetestRequested: { label: "Cancelled / Voided", tone: "pending" },
-  Cancelled: { label: "Cancelled / Voided", tone: "pending" },
-  Voided: { label: "Cancelled / Voided", tone: "pending" }
+const SAMPLE_STATUS_TONES: Record<string, StatusTone> = {
+  Received: "pending",
+  InTesting: "info",
+  UnderReview: "action",
+  UnderApproval: "action",
+  PendingReview: "action",
+  Approved: "notDetected",
+  Rejected: "detected",
+  RetestRequested: "pending",
+  Cancelled: "pending",
+  Voided: "pending"
 };
 
 function OverallSampleStatusBadge({ status }: { status: string }) {
   const theme = useTheme();
-  const config = SAMPLE_STATUS_MAP[status] || { label: status, tone: "pending" as StatusTone };
-  const tokens = theme.custom.status[config.tone];
+  const { t } = useTranslation("receiving");
+  const tone = SAMPLE_STATUS_TONES[status] ?? "pending";
+  const label = t(`register.sampleStatus.${status}`, { defaultValue: status });
+  const tokens = theme.custom.status[tone];
 
   return (
     <Box
@@ -201,17 +372,36 @@ function OverallSampleStatusBadge({ status }: { status: string }) {
         border: `1px solid ${tokens.border}`
       }}
     >
-      {config.label}
+      {label}
     </Box>
   );
 }
 
-export function SampleRegisterTable({
+export function SampleRegisterTable(props: SampleRegisterTableProps) {
+  if (props.tableState) {
+    return <SampleRegisterTableInner {...props} tableState={props.tableState} />;
+  }
+  return <ManagedSampleRegisterTable {...props} />;
+}
+
+function ManagedSampleRegisterTable(props: SampleRegisterTableProps) {
+  const tableState = useTableState(props.tableKey, props.tableDefaults ?? SAMPLE_REGISTER_DEFAULTS);
+  return <SampleRegisterTableInner {...props} tableState={tableState} />;
+}
+
+function SampleRegisterTableInner({
   samples,
+  tableKey,
+  tableState,
+  legacyColumnsKey,
   selectedSampleId,
-  checkedSampleIds,
-  onToggleCheck,
-  onToggleCheckMany,
+  selection,
+  bulkActions,
+  serverTotal,
+  serverSortableColumns,
+  onServerSortChange,
+  serverSort,
+  loadAllMatching,
   onSelectSample,
   onTestClick,
   onViewSummary,
@@ -222,87 +412,65 @@ export function SampleRegisterTable({
   onAssignAnalyst,
   onVoid,
   onAddLaboratory,
-  onSelectTests,
-  columnsStorageKey = "microlims.sampleRegister.columns"
-}: Props) {
+  onSelectTests
+}: SampleRegisterTableProps & { tableState: UseTableState }) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
+  const { t: tCommon } = useTranslation("common");
   const { permissions, role } = useAuth();
   const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   // Mirrors the server: only a Section Head or Supervisor chooses a periodic retest's tests.
   const canChooseTests = permissions.includes(PERMISSIONS.SAMPLES_CORRECT) && (role === "SectionHead" || role === "Reviewer");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [activeDocSample, setActiveDocSample] = useState<SampleRecord | null>(null);
-  const [expandedSampleIds, setExpandedSampleIds] = useState<Set<number>>(new Set());
-  const [visibleColumns, setVisibleColumns] = useState<Set<RegisterColumnKey>>(() => loadColumns(columnsStorageKey));
-  const [columnsAnchor, setColumnsAnchor] = useState<HTMLElement | null>(null);
+  const [expandedIds, setExpandedIds] = useState<ReadonlySet<string | number>>(() => new Set());
+
+  const visibleColumns = useMemo(() => new Set<string>(tableState.state.columns), [tableState.state.columns]);
   const show = (key: RegisterColumnKey) => visibleColumns.has(key);
 
-  const updateColumns = (next: Set<RegisterColumnKey>) => {
-    setVisibleColumns(next);
-    saveColumns(columnsStorageKey, next);
-  };
-  const toggleColumn = (key: RegisterColumnKey) => {
-    const next = new Set(visibleColumns);
-    if (next.has(key)) next.delete(key);
-    else next.add(key);
-    updateColumns(next);
+  // The old column choice (one localStorage key per register) is carried into
+  // the table state once and then removed. A choice already made in the new
+  // state wins; the old key goes either way.
+  const setColumns = tableState.setColumns;
+  const migratedRef = useRef(false);
+  useEffect(() => {
+    if (!legacyColumnsKey || migratedRef.current) return;
+    migratedRef.current = true;
+    try {
+      const raw = localStorage.getItem(legacyColumnsKey);
+      if (raw === null) return;
+      localStorage.removeItem(legacyColumnsKey);
+      if (localStorage.getItem(`microlims.table.${tableKey}`) !== null) return;
+      const carried = parseLegacyColumns(raw);
+      if (carried) setColumns(carried);
+    } catch {
+      // Storage blocked: the default columns apply.
+    }
+  }, [legacyColumnsKey, tableKey, setColumns]);
+
+  const nextActionCaps: NextActionCapabilities = {
+    canSelectTests: Boolean(onSelectTests) && canChooseTests,
+    canAssign: isAuthorizedToAssign && Boolean(onAssignAnalyst)
   };
 
   // What the analyst should do next for this sample, routed to the same
-  // handlers the row's menus already use. It reads only statuses the server
-  // reported; no laboratory rule is decided here.
+  // handlers the row's menus already use.
   const getNextAction = (sample: SampleRecord): NextAction | null => {
-    if (CLOSED_STATUSES.has(sample.status)) return null;
-    // A laboratory with tests of its own carries on; the rest is shown by the summary chip.
-    if (sample.awaitingTestSelection && sample.assignedTests.length === 0) {
-      return onSelectTests && canChooseTests
-        ? { label: "Select tests", kind: "primary", run: () => onSelectTests(sample) }
-        : { label: "Awaiting test selection", kind: "wait" };
-    }
-    if (sample.preparationStatus === "NeedsPreparation") {
-      return { label: "Prepare", kind: "primary", run: () => onPrepareSample(sample) };
-    }
-    if (sample.status === "UnderReview" || sample.status === "PendingReview") {
-      return { label: "Review", kind: "primary", run: () => onViewSummary(sample) };
-    }
-    if (sample.status === "UnderApproval") {
-      return { label: "Approve", kind: "primary", run: () => onViewSummary(sample) };
-    }
-    if (sample.status === "Approved") {
-      return { label: "View Report", kind: "secondary", run: () => onViewReport(sample) };
-    }
-    const tests = sample.assignedTests || [];
-    const ready = tests.find((t) => ["ReadyToRead", "EnterResult"].includes(effectiveTestStatus(t)));
-    if (ready) {
-      return { label: tests.length > 1 ? `Record ${ready.testCode}` : "Record Result", kind: "primary", run: () => onTestClick(ready, sample) };
-    }
-    const hasAnalyst = Boolean(sample.assignedAnalystName || tests.some((t) => t.assignedAnalystName));
-    if (!hasAnalyst && isAuthorizedToAssign && onAssignAnalyst) {
-      return { label: "Assign", kind: "secondary", run: () => onAssignAnalyst(sample) };
-    }
-    const notStarted = tests.find((t) => ["Pending", "Waiting", "NotStarted"].includes(effectiveTestStatus(t)));
-    if (notStarted) {
-      return { label: tests.length > 1 ? `Start ${notStarted.testCode}` : "Start Test", kind: "secondary", run: () => onTestClick(notStarted, sample) };
-    }
-    if (tests.some((t) => ["InProgress", "Running", "Incubating"].includes(effectiveTestStatus(t)))) {
-      return { label: "In Progress", kind: "wait" };
-    }
-    return null;
+    const resolved = resolveNextAction(sample, nextActionCaps, t);
+    if (!resolved) return null;
+    const { target, test, ...rest } = resolved;
+    const runners: Record<NonNullable<ResolvedNextAction["target"]>, (() => void) | undefined> = {
+      selectTests: () => onSelectTests?.(sample),
+      prepare: () => onPrepareSample(sample),
+      summary: () => onViewSummary(sample),
+      report: () => onViewReport(sample),
+      test: test ? () => onTestClick(test, sample) : undefined,
+      assign: () => onAssignAnalyst?.(sample)
+    };
+    return { ...rest, run: target ? runners[target] : undefined };
   };
 
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  const toggleExpand = (sampleId: number, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setExpandedSampleIds((prev) => {
+  const toggleExpand = (sampleId: string | number) => {
+    setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(sampleId)) {
         next.delete(sampleId);
@@ -314,623 +482,534 @@ export function SampleRegisterTable({
   };
 
   // Group samples into top-level samples and nested retest children
-  const sampleIdSet = new Set(samples.map((s) => s.sampleId));
-  const childrenByParentId = new Map<number, SampleRecord[]>();
-  const topLevelSamples: SampleRecord[] = [];
-
-  for (const sample of samples) {
-    if (sample.originSampleId != null && sampleIdSet.has(sample.originSampleId)) {
-      const list = childrenByParentId.get(sample.originSampleId) || [];
-      list.push(sample);
-      childrenByParentId.set(sample.originSampleId, list);
-    } else {
-      topLevelSamples.push(sample);
+  const { topLevelSamples, childrenByParentId } = useMemo(() => {
+    const sampleIdSet = new Set(samples.map((s) => s.sampleId));
+    const byParent = new Map<number, SampleRecord[]>();
+    const topLevel: SampleRecord[] = [];
+    for (const sample of samples) {
+      if (sample.originSampleId != null && sampleIdSet.has(sample.originSampleId)) {
+        const list = byParent.get(sample.originSampleId) || [];
+        list.push(sample);
+        byParent.set(sample.originSampleId, list);
+      } else {
+        topLevel.push(sample);
+      }
     }
-  }
-
-  // The parent owns filtering, so narrowing a filter shrinks this list under
-  // whatever page the user is on - which used to render the "no samples found"
-  // empty state over a perfectly non-empty result set. Clamp rather than reset
-  // to page 0, so a background refresh does not yank the user back to page 1.
-  //
-  // The clamp is applied during render, not only in the effect below: effects
-  // run after commit, so relying on the effect alone would hand MUI an
-  // out-of-range page prop for one render and trip its console warning.
-  const lastPageIndex = Math.max(0, Math.ceil(topLevelSamples.length / rowsPerPage) - 1);
-  const effectivePage = Math.min(page, lastPageIndex);
-
-  useEffect(() => {
-    if (page !== effectivePage) {
-      setPage(effectivePage);
-    }
-  }, [page, effectivePage]);
-
-  const paginatedTopLevelSamples = topLevelSamples.slice(
-    effectivePage * rowsPerPage,
-    effectivePage * rowsPerPage + rowsPerPage
-  );
+    return { topLevelSamples: topLevel, childrenByParentId: byParent };
+  }, [samples]);
 
   // Every id the current page renders, including retest children of any
   // expanded parent - "select all" should mean what is on screen, not the
   // whole filtered set, which could be hundreds of rows away.
-  const idsOnPage: number[] = [];
-  const collectIds = (sample: SampleRecord) => {
-    idsOnPage.push(sample.sampleId);
-    if (expandedSampleIds.has(sample.sampleId)) {
-      (childrenByParentId.get(sample.sampleId) || []).forEach(collectIds);
-    }
-  };
-  paginatedTopLevelSamples.forEach(collectIds);
-
-  const checkedOnPage = idsOnPage.filter((id) => checkedSampleIds?.has(id)).length;
-  const allOnPageChecked = idsOnPage.length > 0 && checkedOnPage === idsOnPage.length;
-  const someOnPageChecked = checkedOnPage > 0 && !allOnPageChecked;
+  const pageSelectionIds = useCallback((paged: SampleRecord[]): number[] => {
+    const ids: number[] = [];
+    const collect = (sample: SampleRecord) => {
+      ids.push(sample.sampleId);
+      if (expandedIds.has(sample.sampleId)) {
+        (childrenByParentId.get(sample.sampleId) || []).forEach(collect);
+      }
+    };
+    paged.forEach(collect);
+    return ids;
+  }, [expandedIds, childrenByParentId]);
 
   const formatReceivedDate = (d: string) => {
     try {
-      const date = new Date(d);
-      return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
+      return formatDateTimeWithTimeZone(d);
     } catch {
       return d;
     }
   };
 
-  const renderSampleRow = (sample: SampleRecord, level = 0): React.ReactNode => {
-    // Each test has its own analyst: "Mona Ali +1" when there are several.
-    const assignedAnalystName = assignedAnalystsLabel(sample.assignedTests);
-    const analystsByTest = assignedAnalystsByTest(sample.assignedTests);
+  const handleRowClick = (sample: SampleRecord, e?: React.SyntheticEvent<HTMLElement>) => {
+    if (e && isInteractiveElement(e.target, e.currentTarget)) {
+      return;
+    }
+    onSelectSample?.(sample);
+  };
 
+  // A row's state edge: overdue, selected, needs preparation or a nested
+  // retest. Overdue wins even over selection, so a late sample never looks on
+  // time. Drawn on the first cell - a border on the row itself does not
+  // render in a collapsed-border table.
+  const rowSxFor = (sample: SampleRecord, level: number): SxProps<Theme> => {
     const isSelected = selectedSampleId === sample.sampleId;
+    const isNested = level > 0;
     const needsPreparation = sample.preparationStatus === "NeedsPreparation";
+    const edgeOffset = theme.direction === "rtl" ? "-4px" : "4px";
+    return {
+      cursor: "pointer",
+      bgcolor: isSelected
+        ? theme.custom.status.purple.bg
+        : isNested
+        ? "action.hover"
+        : "inherit",
+      "& > td:first-of-type": {
+        boxShadow: `inset ${edgeOffset} 0 0 ${
+          sample.isOverdue
+            ? theme.custom.status.detected.text
+            : isSelected
+            ? theme.custom.status.purple.border
+            : needsPreparation
+            ? theme.custom.status.inconclusive.border
+            : isNested
+            ? theme.palette.warning.main
+            : "transparent"
+        }`
+      },
+      "&:last-child td, &:last-child th": { border: 0 },
+      "&:hover": {
+        bgcolor: isSelected
+          ? theme.custom.status.purple.bg
+          : isNested
+          ? "action.selected"
+          : "action.hover"
+      }
+    };
+  };
+
+  const checkboxLabel = (sample: SampleRecord) => t("register.selectRowAria", { name: sample.displayName, reference: sample.referenceNumber });
+
+  // Item / reference cell: name, reference, retest and OOS chips, whatever
+  // columns are hidden, and the controlled-document badge. A nested retest
+  // carries its own checkbox here because it is not a row of the main table.
+  const renderItemCell = (sample: SampleRecord, level: number) => {
+    const isSelected = selectedSampleId === sample.sampleId;
     const children = childrenByParentId.get(sample.sampleId) || [];
     const hasChildren = children.length > 0;
-    const isExpanded = expandedSampleIds.has(sample.sampleId);
+    const isExpanded = expandedIds.has(sample.sampleId);
     const isNested = level > 0;
-    const nextAction = show("nextAction") ? getNextAction(sample) : null;
-    const itemMeta = [
-      !show("sampleId") ? `#${sample.sampleId}` : null,
-      !show("category") ? categoryLabel(sample.category) : null,
-      !show("cause") ? sample.causeOfTesting : null,
-      !show("sampledBy") ? sample.sampledBy : null,
-      !show("receivedAt") ? formatReceivedDate(sample.receivedAt) : null,
+    const itemMetaNodes: React.ReactNode[] = [
+      !show("sampleId") ? <Ltr key="id">#{sample.sampleId}</Ltr> : null,
+      !show("category") ? categoryLabel(sample.category, tCommon) : null,
+      !show("cause") && sample.causeOfTesting?.trim()
+        ? tCommon(`causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
+        : null,
+      !show("sampledBy") && sample.sampledBy?.trim() ? sample.sampledBy : null,
+      !show("receivedAt") ? <Ltr key="received">{formatReceivedDate(sample.receivedAt)}</Ltr> : null,
       !show("due") && sample.isOverdue ? dueLabel(sample.dueAt, sample.isOverdue) : null
-    ].filter((v): v is string => Boolean(v));
+    ].filter((v): v is React.ReactElement | string => Boolean(typeof v === "string" ? v.trim() : v));
 
     return (
-      <React.Fragment key={sample.sampleId}>
-        <TableRow
-          hover
-          tabIndex={0}
-          role="row"
-          onClick={(e) => {
-            if (isInteractiveElement(e.target, e.currentTarget)) {
-              return;
-            }
-            onSelectSample?.(sample);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              if (isInteractiveElement(e.target, e.currentTarget)) {
-                return;
-              }
-              e.preventDefault();
-              onSelectSample?.(sample);
-            }
-          }}
-          sx={{
-            cursor: "pointer",
-            bgcolor: isSelected
-              ? theme.custom.status.purple.bg
-              : isNested
-              ? "action.hover"
-              : "inherit",
-            // A row's state edge: overdue, selected, needs preparation or a
-            // nested retest. Overdue wins even over selection, so a late sample
-            // never looks on time. Drawn on the first cell - a border on the
-            // row itself does not render in a collapsed-border table.
-            "& > td:first-of-type": {
-              boxShadow: `inset 4px 0 0 ${
-                sample.isOverdue
-                  ? theme.custom.status.detected.text
-                  : isSelected
-                  ? theme.custom.status.purple.border
-                  : needsPreparation
-                  ? theme.custom.status.inconclusive.border
-                  : isNested
-                  ? theme.palette.warning.main
-                  : "transparent"
-              }`
-            },
-            "&:last-child td, &:last-child th": { border: 0 },
-            "&:hover": {
-              bgcolor: isSelected
-                ? theme.custom.status.purple.bg
-                : isNested
-                ? "action.selected"
-                : "action.hover"
-            }
-          }}
-        >
-          {/* Received At */}
-          {show("receivedAt") && (
-            <TableCell sx={{ fontSize: 12, color: "text.secondary", whiteSpace: "nowrap" }}>
-              {formatReceivedDate(sample.receivedAt)}
-            </TableCell>
-          )}
-
-          {/* # ID */}
-          {show("sampleId") && (
-            <TableCell sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}>
-              #{sample.sampleId}
-            </TableCell>
-          )}
-
-          {/* Item / Reference */}
-          <TableCell sx={{ pl: isNested ? `${level * 24 + 16}px` : undefined }}>
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75 }}>
-              {onToggleCheck && (
-                <Checkbox
+      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, ps: isNested ? `${level * 24}px` : undefined }}>
+        {isNested && selection && (
+          <Checkbox
+            size="small"
+            checked={selection.isSelected(sample.sampleId)}
+            onChange={() => selection.toggle(sample.sampleId)}
+            onClick={(e) => e.stopPropagation()}
+            sx={{ p: 0.25, mr: 0.25 }}
+            slotProps={{ input: { "aria-label": checkboxLabel(sample) } }}
+          />
+        )}
+        {isNested && (
+          <DirectionalIcon>
+            <SubdirectoryArrowRightIcon
+              sx={{ fontSize: 16, color: "warning.main", mt: 0.25, flexShrink: 0 }}
+            />
+          </DirectionalIcon>
+        )}
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography
+            sx={{
+              fontWeight: isSelected ? 700 : 600,
+              fontSize: 13,
+              color: isSelected ? theme.palette.primary.main : "text.primary",
+              lineHeight: 1.2
+            }}
+          >
+            {sample.displayName}
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap", mt: 0.25 }}>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              <Ltr>{sample.referenceNumber}</Ltr>
+            </Typography>
+            {isNested && (
+              <Chip
+                size="small"
+                label={t("register.retestChip")}
+                color="warning"
+                variant="outlined"
+                sx={{ height: 20, fontSize: 12, fontWeight: 700 }}
+              />
+            )}
+            {sample.oosGroupCode && (
+              <Tooltip title={t("register.oosChainTooltip", { code: sample.oosGroupCode })}>
+                <Chip
                   size="small"
-                  checked={Boolean(checkedSampleIds?.has(sample.sampleId))}
-                  onChange={(e) => {
+                  label={<Ltr>{sample.oosGroupCode}</Ltr>}
+                  sx={{ height: 20, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}
+                />
+              </Tooltip>
+            )}
+            {hasChildren && (
+              <Tooltip title={isExpanded ? t("register.collapseRetest") : t("register.expandRetest")}>
+                <Chip
+                  size="small"
+                  data-no-row-click="true"
+                  icon={
+                    isExpanded ? (
+                      <KeyboardArrowDownIcon sx={{ fontSize: "14px !important" }} />
+                    ) : (
+                      <DirectionalIcon>
+                        <KeyboardArrowRightIcon sx={{ fontSize: "14px !important" }} />
+                      </DirectionalIcon>
+                    )
+                  }
+                  label={t("register.retestCount", { count: children.length })}
+                  onClick={(e) => {
                     e.stopPropagation();
-                    onToggleCheck(sample.sampleId, e.target.checked);
+                    toggleExpand(sample.sampleId);
                   }}
-                  onClick={(e) => e.stopPropagation()}
-                  sx={{ p: 0.25, mr: 0.25 }}
-                  slotProps={{
-                    input: {
-                      "aria-label": `Select ${sample.displayName} (${sample.referenceNumber}) for grouped actions`
+                  sx={{
+                    height: 20,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    bgcolor: isExpanded ? "primary.main" : "action.selected",
+                    color: isExpanded ? "primary.contrastText" : "text.primary",
+                    "&:hover": {
+                      bgcolor: isExpanded ? "primary.dark" : "action.focus"
                     }
                   }}
                 />
-              )}
-              {isNested && (
-                <SubdirectoryArrowRightIcon
-                  sx={{ fontSize: 16, color: "warning.main", mt: 0.25, flexShrink: 0 }}
-                />
-              )}
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  sx={{
-                    fontWeight: isSelected ? 700 : 600,
-                    fontSize: 13,
-                    color: isSelected ? theme.palette.primary.main : "text.primary",
-                    lineHeight: 1.2
-                  }}
-                >
-                  {sample.displayName}
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap", mt: 0.25 }}>
-                  <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                    {sample.referenceNumber}
-                  </Typography>
-                  {isNested && (
-                    <Chip
-                      size="small"
-                      label="Retest"
-                      color="warning"
-                      variant="outlined"
-                      sx={{ height: 20, fontSize: 12, fontWeight: 700 }}
-                    />
-                  )}
-                  {sample.oosGroupCode && (
-                    <Tooltip title={`OOS Investigation Chain: ${sample.oosGroupCode}`}>
-                      <Chip
-                        size="small"
-                        label={sample.oosGroupCode}
-                        sx={{ height: 20, fontSize: 12, fontFamily: "monospace", fontWeight: 600 }}
-                      />
-                    </Tooltip>
-                  )}
-                  {hasChildren && (
-                    <Tooltip title={isExpanded ? "Collapse retest chain" : "Expand retest chain"}>
-                      <Chip
-                        size="small"
-                        data-no-row-click="true"
-                        icon={
-                          isExpanded ? (
-                            <KeyboardArrowDownIcon sx={{ fontSize: "14px !important" }} />
-                          ) : (
-                            <KeyboardArrowRightIcon sx={{ fontSize: "14px !important" }} />
-                          )
-                        }
-                        label={`${children.length} retest${children.length === 1 ? "" : "s"}`}
-                        onClick={(e) => toggleExpand(sample.sampleId, e)}
-                        sx={{
-                          height: 20,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          bgcolor: isExpanded ? "primary.main" : "action.selected",
-                          color: isExpanded ? "primary.contrastText" : "text.primary",
-                          "&:hover": {
-                            bgcolor: isExpanded ? "primary.dark" : "action.focus"
-                          }
-                        }}
-                      />
-                    </Tooltip>
-                  )}
-                </Box>
-                {itemMeta.length > 0 && (
-                  <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
-                    {itemMeta.join(" · ")}
-                  </Typography>
-                )}
-                {sample.itemId && (
-                  <SampleDocIndicator
-                    sample={sample}
-                    onOpenDocs={(s) => setActiveDocSample(s)}
-                  />
-                )}
-              </Box>
-            </Box>
-          </TableCell>
-
-          {/* Item Type */}
-          {show("category") && (
-            <TableCell>
-              <CategoryBadge category={sample.category} />
-            </TableCell>
-          )}
-
-          {/* Cause of Testing */}
-          {show("cause") && (
-            <TableCell>
-              <CauseBadge label={sample.causeOfTesting || "—"} />
-            </TableCell>
-          )}
-
-          {/* Sampled By */}
-          {show("sampledBy") && (
-            <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-              {sample.sampledBy || "—"}
-            </TableCell>
-          )}
-
-          {/* Batch / Control No. */}
-          {show("batchControl") && (
-          <TableCell>
-            {sample.batchNumber ? (
-              <Box sx={{ fontSize: 12 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
-                  B: {sample.batchNumber}
-                </Typography>
-                <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                  C: {sample.controlNumber || "—"}
-                </Typography>
-              </Box>
-            ) : (
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                C: {sample.controlNumber || "—"}
-              </Typography>
-            )}
-          </TableCell>
-          )}
-
-          {/* Assigned To */}
-          {show("assignedTo") && (
-          <TableCell>
-            {assignedAnalystName ? (
-              isAuthorizedToAssign && onAssignAnalyst ? (
-                <Tooltip title={`${analystsByTest}. Click to reassign analysts (Section Head)`}>
-                  <Chip
-                    size="small"
-                    data-no-row-click="true"
-                    avatar={<Avatar>{initialsOf(assignedAnalystName)}</Avatar>}
-                    label={assignedAnalystName}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAssignAnalyst(sample);
-                    }}
-                    variant="outlined"
-                    sx={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      "& .MuiChip-avatar": initialsSx,
-                      color: theme.palette.primary.main,
-                      borderColor: theme.palette.primary.main,
-                      bgcolor: `${theme.palette.primary.main}0D`,
-                      "&:hover": {
-                        bgcolor: `${theme.palette.primary.main}1A`
-                      }
-                    }}
-                  />
-                </Tooltip>
-              ) : (
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }} title={analystsByTest}>
-                  <Avatar sx={{ ...initialsSx, width: 22, height: 22 }}>{initialsOf(assignedAnalystName)}</Avatar>
-                  <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }} noWrap>
-                    {assignedAnalystName}
-                  </Typography>
-                </Box>
-              )
-            ) : isAuthorizedToAssign && onAssignAnalyst ? (
-              <Tooltip title="Assign responsible analyst (Section Head)">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  data-no-row-click="true"
-                  startIcon={<AssignmentIndIcon sx={{ fontSize: 15 }} />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAssignAnalyst(sample);
-                  }}
-                  sx={{
-                    fontSize: 12,
-                    py: 0.25,
-                    px: 1,
-                    textTransform: "none",
-                    fontWeight: 600,
-                    borderRadius: 1.5
-                  }}
-                >
-                  Assign Analyst
-                </Button>
               </Tooltip>
-            ) : (
-              <Chip
-                size="small"
-                label="Unassigned"
-                variant="outlined"
-                sx={{ fontSize: 12, height: 20, color: "text.disabled", borderColor: "divider" }}
-              />
             )}
-          </TableCell>
+          </Box>
+          {itemMetaNodes.length > 0 && (
+            <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.25 }}>
+              {itemMetaNodes.map((node, i) => (
+                <React.Fragment key={i}>
+                  {i > 0 && " · "}
+                  {node}
+                </React.Fragment>
+              ))}
+            </Typography>
           )}
-
-          {/* Sample Status */}
-          {show("sampleStatus") && (
-            <TableCell>
-              <OverallSampleStatusBadge status={sample.status} />
-            </TableCell>
-          )}
-
-          {/* Due */}
-          {show("due") && (
-            <TableCell sx={{ whiteSpace: "nowrap" }}>
-              {sample.dueAt ? (
-                <Tooltip title={`Due ${formatReceivedDate(sample.dueAt)}`}>
-                  <Typography
-                    component="span"
-                    sx={{
-                      fontSize: 12,
-                      fontWeight: sample.isOverdue ? 700 : 500,
-                      color: sample.isOverdue ? theme.custom.status.detected.text : "text.secondary"
-                    }}
-                  >
-                    {dueLabel(sample.dueAt, sample.isOverdue)}
-                  </Typography>
-                </Tooltip>
-              ) : (
-                <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>
-              )}
-            </TableCell>
-          )}
-
-          {/* Tests: progress bar + status summary */}
-          {show("tests") && (
-            <TableCell>
-              <Box sx={{ display: "grid", gap: 0.75, justifyItems: "start", minWidth: 150 }}>
-                {sample.assignedTests.length > 0 && (
-                  <Box
-                    aria-hidden="true"
-                    sx={{ display: "flex", gap: "2px", height: 6, width: "100%", maxWidth: 180 }}
-                  >
-                    {sample.assignedTests.map((t) => (
-                      <Box
-                        key={t.testOrderId}
-                        sx={{ flex: 1, borderRadius: "2px", bgcolor: theme.custom.status[testSegmentTone(effectiveTestStatus(t))].text, opacity: testSegmentTone(effectiveTestStatus(t)) === "pending" ? 0.35 : 1 }}
-                      />
-                    ))}
-                  </Box>
-                )}
-                <TestStatusSummaryCell
-                  sample={sample}
-                  onTestClick={onTestClick}
-                  onViewAllTests={onViewSummary}
-                  onPrepareSample={onPrepareSample}
-                  onSelectTests={onSelectTests}
-                />
-              </Box>
-            </TableCell>
-          )}
-
-          {/* Next Action */}
-          {show("nextAction") && (
-            <TableCell>
-              {nextAction ? (
-                nextAction.kind === "wait" ? (
-                  <Chip
-                    size="small"
-                    icon={<HourglassTopIcon sx={{ fontSize: "14px !important" }} />}
-                    label={nextAction.label}
-                    sx={{ fontSize: 12, fontWeight: 600, bgcolor: theme.custom.status.info.bg, color: theme.custom.status.info.text }}
-                  />
-                ) : (
-                  <Button
-                    size="small"
-                    variant={nextAction.kind === "primary" ? "contained" : "outlined"}
-                    data-no-row-click="true"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      nextAction.run?.();
-                    }}
-                    sx={{ fontSize: 12, fontWeight: 600, textTransform: "none", whiteSpace: "nowrap", minWidth: 110 }}
-                  >
-                    {nextAction.label}
-                  </Button>
-                )
-              ) : (
-                <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>
-              )}
-            </TableCell>
-          )}
-
-          {/* Actions */}
-          <TableCell align="center">
-            <SampleActionMenu
+          {sample.itemId && (
+            <SampleDocIndicator
               sample={sample}
-              onViewSummary={onViewSummary}
-              onEdit={onEdit}
-              onViewReport={onViewReport}
-              onViewAuditHistory={onViewAuditHistory}
-              onPrepareSample={onPrepareSample}
-              onAssignAnalyst={onAssignAnalyst}
-              onVoid={onVoid}
-              onAddLaboratory={onAddLaboratory}
-              onSelectTests={onSelectTests}
+              onOpenDocs={(s) => setActiveDocSample(s)}
             />
-          </TableCell>
-        </TableRow>
-
-        {/* Recursive rendering of children when expanded */}
-        {hasChildren && isExpanded && children.map((child) => renderSampleRow(child, level + 1))}
-      </React.Fragment>
+          )}
+        </Box>
+      </Box>
     );
   };
 
-  return (
-    <Paper
-      elevation={0}
-      sx={{
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        overflow: "hidden",
-        bgcolor: "background.paper"
-      }}
-    >
-      <Box sx={{ overflowX: "auto", maxHeight: { md: "calc(100vh - 240px)" } }}>
-        <Table size="small" stickyHeader sx={{ minWidth: 640 + visibleColumns.size * 60 }}>
-          <TableHead sx={tableHeadSx}>
-            <TableRow>
-              {show("receivedAt") && (
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Received At</TableCell>
-              )}
-              {show("sampleId") && <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 50 }}>#</TableCell>}
-              <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 180 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  {onToggleCheckMany && (
-                    <Checkbox
-                      size="small"
-                      checked={allOnPageChecked}
-                      indeterminate={someOnPageChecked}
-                      disabled={idsOnPage.length === 0}
-                      onChange={(e) => onToggleCheckMany(idsOnPage, e.target.checked)}
-                      sx={{ p: 0.25 }}
-                      slotProps={{
-                        input: {
-                          "aria-label": allOnPageChecked
-                            ? `Deselect all ${idsOnPage.length} samples on this page`
-                            : `Select all ${idsOnPage.length} samples on this page`
-                        }
-                      }}
-                    />
-                  )}
-                  Item / Reference
-                </Box>
-              </TableCell>
-              {show("category") && <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 110 }}>Item Type</TableCell>}
-              {show("cause") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 120 }}>Cause</TableCell>}
-              {show("sampledBy") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 110 }}>Sampled By</TableCell>}
-              {show("batchControl") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 140 }}>Batch / Control No.</TableCell>}
-              {show("assignedTo") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 130 }}>Assigned To</TableCell>}
-              {show("sampleStatus") && <TableCell sx={{ fontWeight: 700, fontSize: 12, width: 140 }}>Sample Status</TableCell>}
-              {show("due") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 110 }}>Due</TableCell>}
-              {show("tests") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 170 }}>Tests</TableCell>}
-              {show("nextAction") && <TableCell sx={{ fontWeight: 700, fontSize: 12, minWidth: 130 }}>Next Action</TableCell>}
-              <TableCell align="center" sx={{ fontWeight: 700, fontSize: 12, width: 120 }}>
-                <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
-                  Actions
-                  <Tooltip title="Choose columns">
-                    <IconButton
-                      size="small"
-                      aria-label="Choose visible columns"
-                      aria-haspopup="dialog"
-                      onClick={(e) => setColumnsAnchor(e.currentTarget)}
-                      sx={{ color: "inherit" }}
-                    >
-                      <ViewColumnIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
-              </TableCell>
-            </TableRow>
-          </TableHead>
-
-          <TableBody>
-            {paginatedTopLevelSamples.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={2 + visibleColumns.size} align="center" sx={{ py: 6 }}>
-                  <Typography sx={{ color: "text.secondary", fontSize: 14 }}>
-                    No samples found matching the filter criteria.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedTopLevelSamples.map((sample) => renderSampleRow(sample, 0))
+  const renderCell = (key: RegisterColumnKey, sample: SampleRecord, level: number): React.ReactNode => {
+    switch (key) {
+      case "item":
+        return renderItemCell(sample, level);
+      case "receivedAt":
+        return <Typography component="span" sx={{ ...ROW_CELL_SX, whiteSpace: "nowrap" }}><Ltr>{formatReceivedDate(sample.receivedAt)}</Ltr></Typography>;
+      case "sampleId":
+        return <Typography component="span" sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary" }}><Ltr>#{sample.sampleId}</Ltr></Typography>;
+      case "category":
+        return <CategoryBadge category={sample.category} />;
+      case "cause":
+        return (
+          <CauseBadge
+            label={
+              sample.causeOfTesting?.trim()
+                ? t(`common:causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
+                : "—"
+            }
+          />
+        );
+      case "sampledBy":
+        return <Typography component="span" sx={ROW_CELL_SX}>{sample.sampledBy || "—"}</Typography>;
+      case "batchControl":
+        return sample.batchNumber ? (
+          <Box sx={{ fontSize: 12 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
+              {t("register.batchPrefix")} <Ltr>{sample.batchNumber}</Ltr>
+            </Typography>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              {t("register.controlPrefix")} <Ltr>{sample.controlNumber || "—"}</Ltr>
+            </Typography>
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            {t("register.controlPrefix")} <Ltr>{sample.controlNumber || "—"}</Ltr>
+          </Typography>
+        );
+      case "assignedTo": {
+        // Each test has its own analyst: "Mona Ali +1" when there are several.
+        const assignedAnalystName = assignedAnalystsLabel(sample.assignedTests);
+        const analystsByTest = assignedAnalystsByTest(sample.assignedTests);
+        const assignable = isAuthorizedToAssign && Boolean(onAssignAnalyst) && !NO_ASSIGN_STATUSES.has(sample.status);
+        if (assignedAnalystName) {
+          return assignable && onAssignAnalyst ? (
+            <Tooltip title={t("register.reassignTooltip", { analysts: analystsByTest })}>
+              <Chip
+                size="small"
+                data-no-row-click="true"
+                avatar={<Avatar>{initialsOf(assignedAnalystName)}</Avatar>}
+                label={assignedAnalystName}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAssignAnalyst(sample);
+                }}
+                variant="outlined"
+                sx={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  "& .MuiChip-avatar": initialsSx,
+                  color: theme.palette.primary.main,
+                  borderColor: theme.palette.primary.main,
+                  bgcolor: `${theme.palette.primary.main}0D`,
+                  "&:hover": {
+                    bgcolor: `${theme.palette.primary.main}1A`
+                  }
+                }}
+              />
+            </Tooltip>
+          ) : (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }} title={analystsByTest}>
+              <Avatar sx={{ ...initialsSx, width: 22, height: 22 }}>{initialsOf(assignedAnalystName)}</Avatar>
+              <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }} noWrap>
+                {assignedAnalystName}
+              </Typography>
+            </Box>
+          );
+        }
+        return assignable && onAssignAnalyst ? (
+          <Tooltip title={t("register.assignTooltip")}>
+            <Button
+              size="small"
+              variant="outlined"
+              data-no-row-click="true"
+              startIcon={<AssignmentIndIcon sx={{ fontSize: 15 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAssignAnalyst(sample);
+              }}
+              sx={{
+                fontSize: 12,
+                py: 0.25,
+                px: 1,
+                textTransform: "none",
+                fontWeight: 600,
+                borderRadius: 1.5
+              }}
+            >
+              {t("register.assignAnalyst")}
+            </Button>
+          </Tooltip>
+        ) : (
+          <Chip
+            size="small"
+            label={t("register.unassigned")}
+            variant="outlined"
+            sx={{ fontSize: 12, height: 20, color: "text.disabled", borderColor: "divider" }}
+          />
+        );
+      }
+      case "sampleStatus":
+        return <OverallSampleStatusBadge status={sample.status} />;
+      case "due":
+        return sample.dueAt ? (
+          <Tooltip title={t("register.dueTooltip", { date: formatReceivedDate(sample.dueAt) })}>
+            <Typography
+              component="span"
+              sx={{
+                fontSize: 12,
+                fontWeight: sample.isOverdue ? 700 : 500,
+                color: sample.isOverdue ? theme.custom.status.detected.text : "text.secondary",
+                whiteSpace: "nowrap"
+              }}
+            >
+              {dueLabel(sample.dueAt, sample.isOverdue)}
+            </Typography>
+          </Tooltip>
+        ) : (
+          <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>
+        );
+      case "tests":
+        // Progress bar + status summary
+        return (
+          <Box sx={{ display: "grid", gap: 0.75, justifyItems: "start", minWidth: 130 }}>
+            {sample.assignedTests.length > 0 && (
+              <Box
+                aria-hidden="true"
+                sx={{ display: "flex", gap: "2px", height: 6, width: "100%", maxWidth: 180 }}
+              >
+                {sample.assignedTests.map((t) => (
+                  <Box
+                    key={t.testOrderId}
+                    sx={{ flex: 1, borderRadius: "2px", bgcolor: theme.custom.status[testSegmentTone(effectiveTestStatus(t))].text, opacity: testSegmentTone(effectiveTestStatus(t)) === "pending" ? 0.35 : 1 }}
+                  />
+                ))}
+              </Box>
             )}
-          </TableBody>
-        </Table>
-      </Box>
+            <TestStatusSummaryCell
+              sample={sample}
+              onTestClick={onTestClick}
+              onViewAllTests={onViewSummary}
+              onPrepareSample={onPrepareSample}
+              onSelectTests={onSelectTests}
+            />
+          </Box>
+        );
+      case "nextAction": {
+        const nextAction = getNextAction(sample);
+        if (!nextAction) {
+          return <Typography sx={{ fontSize: 12, color: "text.disabled" }}>—</Typography>;
+        }
+        if (nextAction.kind !== "wait" && nextAction.gate) {
+          return (
+            <GatedNextAction sampleId={sample.sampleId} action={nextAction.gate}>
+              <Button
+                size="small"
+                variant="contained"
+                data-no-row-click="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  nextAction.run?.();
+                }}
+                sx={{ fontSize: 12, fontWeight: 600, textTransform: "none", whiteSpace: "nowrap", minWidth: 110 }}
+              >
+                {nextAction.label}
+              </Button>
+            </GatedNextAction>
+          );
+        }
+        return nextAction.kind === "wait" ? (
+          <Chip
+            size="small"
+            icon={<HourglassTopIcon sx={{ fontSize: "14px !important" }} />}
+            label={nextAction.label}
+            sx={{ fontSize: 12, fontWeight: 600, bgcolor: theme.custom.status.info.bg, color: theme.custom.status.info.text }}
+          />
+        ) : (
+          <Button
+            size="small"
+            variant={nextAction.kind === "primary" ? "contained" : "outlined"}
+            data-no-row-click="true"
+            onClick={(e) => {
+              e.stopPropagation();
+              nextAction.run?.();
+            }}
+            sx={{ fontSize: 12, fontWeight: 600, textTransform: "none", whiteSpace: "nowrap", minWidth: 110 }}
+          >
+            {nextAction.label}
+          </Button>
+        );
+      }
+    }
+  };
 
-      {topLevelSamples.length > 0 && (
-        <TablePagination
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          component="div"
-          count={topLevelSamples.length}
-          rowsPerPage={rowsPerPage}
-          page={effectivePage}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
-          sx={{
-            borderTop: "1px solid",
-            borderColor: "divider",
-            "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-              fontSize: 12
+  const renderActions = (sample: SampleRecord) => (
+    <SampleActionMenu
+      sample={sample}
+      onViewSummary={onViewSummary}
+      onEdit={onEdit}
+      onViewReport={onViewReport}
+      onViewAuditHistory={onViewAuditHistory}
+      onPrepareSample={onPrepareSample}
+      onAssignAnalyst={onAssignAnalyst}
+      onVoid={onVoid}
+      onAddLaboratory={onAddLaboratory}
+      onSelectTests={onSelectTests}
+    />
+  );
+
+  const column = (
+    key: RegisterColumnKey,
+    label: string,
+    sortValue?: (s: SampleRecord) => string | number | null | undefined
+  ): RegisterColumn<SampleRecord> => ({
+    key,
+    label,
+    sortable: Boolean(sortValue),
+    sortValue,
+    render: (sample) => renderCell(key, sample, 0)
+  });
+
+  const columns: RegisterColumn<SampleRecord>[] = SAMPLE_COLUMN_DEFS.map((d) => ({
+    ...column(d.key, t(`register.columns.${d.key}`), d.sortValue),
+    exportLabel: englishT()(`register.columns.${d.key}`),
+    exportValue: (s: SampleRecord) => d.exportValue(s, englishT(), nextActionCaps)
+  }));
+
+  // Retest children of an expanded sample, each with the same visible columns
+  // and the same row behaviour as a row of the table; their own retests follow.
+  const renderChildren = (parent: SampleRecord, level: number): React.ReactNode =>
+    (childrenByParentId.get(parent.sampleId) || []).map((child) => (
+      <React.Fragment key={child.sampleId}>
+        <TableRow
+          hover
+          tabIndex={0}
+          onClick={(e) => handleRowClick(child, e)}
+          onKeyDown={(e) => {
+            if ((e.key === "Enter" || e.key === " ") && e.target === e.currentTarget) {
+              e.preventDefault();
+              handleRowClick(child);
             }
           }}
-        />
-      )}
+          sx={rowSxFor(child, level)}
+        >
+          {tableState.state.columns.map((key) => (
+            <TableCell key={key} sx={{ py: 0.5 }}>
+              {renderCell(key as RegisterColumnKey, child, level)}
+            </TableCell>
+          ))}
+          <TableCell align="center" sx={{ py: 0.5 }}>{renderActions(child)}</TableCell>
+        </TableRow>
+        {expandedIds.has(child.sampleId) && renderChildren(child, level + 1)}
+      </React.Fragment>
+    ));
 
-      <Popover
-        open={Boolean(columnsAnchor)}
-        anchorEl={columnsAnchor}
-        onClose={() => setColumnsAnchor(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "right" }}
-      >
-        <Box sx={{ p: 2, minWidth: 220 }}>
-          <Typography sx={{ fontSize: 12, fontWeight: 700, mb: 0.5, color: "text.secondary" }}>
-            Visible Columns
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: "text.secondary", mb: 1, maxWidth: 220 }}>
-            Hidden details still show under the item name.
-          </Typography>
-          <FormGroup>
-            {REGISTER_COLUMNS.map((col) => (
-              <FormControlLabel
-                key={col.key}
-                label={<Typography sx={{ fontSize: 13 }}>{col.label}</Typography>}
-                control={
-                  <Checkbox size="small" checked={visibleColumns.has(col.key)} onChange={() => toggleColumn(col.key)} />
-                }
-              />
-            ))}
-          </FormGroup>
-          <Button size="small" onClick={() => updateColumns(new Set(DEFAULT_REGISTER_COLUMNS))} sx={{ mt: 1, textTransform: "none" }}>
-            Reset to default
-          </Button>
-        </Box>
-      </Popover>
+  const hasRetests = childrenByParentId.size > 0;
+
+  return (
+    <>
+      <RegisterTable<SampleRecord>
+        columns={columns}
+        rows={topLevelSamples}
+        getRowId={getSampleRowId}
+        empty={{ title: t("register.emptyTitle") }}
+        tableKey={tableKey}
+        tableState={tableState}
+        toolbar={<TableToolbar tableKey={tableKey} tableState={tableState} showSearch={false} />}
+        onRowClick={handleRowClick}
+        rowSx={(sample) => rowSxFor(sample, 0)}
+        trailingCell={{ label: t("register.actionsColumn"), render: renderActions }}
+        selection={selection}
+        alwaysSelectable
+        selectionLabels={{
+          row: checkboxLabel,
+          page: (count, allSelected) =>
+            allSelected
+              ? t("register.deselectAllPage", { count })
+              : t("register.selectAllPage", { count })
+        }}
+        pageSelectionIds={pageSelectionIds}
+        bulkActions={bulkActions}
+        exportLabel={tCommon("table.exportSelected")}
+        totalMatching={serverTotal}
+        loadAllMatching={loadAllMatching}
+        serverPaged={
+          serverTotal !== undefined
+            ? {
+                totalCount: serverTotal,
+                sortableColumns: serverSortableColumns,
+                onSortChange: onServerSortChange,
+                sort: serverSort
+              }
+            : undefined
+        }
+        renderExpanded={hasRetests ? (sample) => (
+          <Table size="small" aria-label={t("register.retestsOfAria", { name: sample.displayName })}>
+            <TableBody>{renderChildren(sample, 1)}</TableBody>
+          </Table>
+        ) : undefined}
+        isExpandable={(sample) => (childrenByParentId.get(sample.sampleId) || []).length > 0}
+        expandedIds={expandedIds}
+        onToggleExpand={toggleExpand}
+      />
 
       {/* Read-Only Controlled Item Documents Dialog */}
       <ReadOnlyItemDocumentsDialog
@@ -940,7 +1019,7 @@ export function SampleRegisterTable({
         category={activeDocSample?.category}
         onClose={() => setActiveDocSample(null)}
       />
-    </Paper>
+    </>
   );
 }
 
@@ -974,6 +1053,7 @@ function SampleDocIndicator({
   sample: SampleRecord;
   onOpenDocs: (sample: SampleRecord) => void;
 }) {
+  const { t } = useTranslation("receiving");
   const [docCount, setDocCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -1023,11 +1103,11 @@ function SampleDocIndicator({
           bgcolor: "action.selected",
         },
       }}
-      aria-label={`View controlled item documents for ${sample.displayName} (${docCount} available)`}
-      title="View Controlled Item Documents (SOP & Verification Report)"
+      aria-label={t("register.docsAria", { name: sample.displayName, count: docCount })}
+      title={t("register.docsTooltip")}
     >
       <DescriptionIcon style={{ fontSize: 11 }} />
-      {docCount > 0 ? `${docCount} Docs` : "0 Docs"}
+      {t("register.docsCount", { count: docCount })}
     </Box>
   );
 }

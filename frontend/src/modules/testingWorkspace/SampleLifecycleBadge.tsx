@@ -3,29 +3,35 @@ import PrintIcon from "@mui/icons-material/Print";
 import { StatusTone } from "../../theme/statusTokens";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { useTranslation } from "../../i18n";
 
-const LABELS: Record<string, string> = {
-  InTesting: "Under Testing",
-  UnderReview: "Under Review",
-  UnderApproval: "Under Approval",
-  Approved: "Approved",
-  Rejected: "Rejected"
-};
+const KNOWN_STATUSES = new Set([
+  "Received",
+  "InTesting",
+  "UnderReview",
+  "UnderApproval",
+  "Approved",
+  "Rejected",
+  "Voided",
+  "Cancelled"
+]);
 
 const TONES: Record<string, StatusTone> = {
+  Received: "pending",
   InTesting: "info",
   UnderReview: "purple",
   UnderApproval: "action",
   Approved: "notDetected",
-  Rejected: "detected"
+  Rejected: "detected",
+  Voided: "detected",
+  Cancelled: "pending"
 };
 
 // Which permission lets the user click each status to open the Sample
 // Summary dialog and act on it - the same code the review or approval
 // endpoint checks - Approved has no entry restriction because its
 // print/report view is meant to be viewable by anyone, not just the
-// approver. Statuses with no entry here (or not in LABELS at all, e.g.
-// "Received") render non-clickable or not at all.
+// approver. Statuses with no entry here render non-clickable.
 const CLICKABLE_PERMISSION: Partial<Record<string, string>> = {
   UnderReview: PERMISSIONS.SAMPLES_REVIEW,
   UnderApproval: PERMISSIONS.SAMPLES_APPROVE
@@ -47,9 +53,10 @@ interface Props {
 // opens SampleSummaryDialog.
 export function SampleLifecycleBadge({ status, onClick, interactive = true }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
-  const label = LABELS[status];
-  if (!label) return null;
+  if (!KNOWN_STATUSES.has(status)) return null;
+  const label = t(`lifecycleBadge.${status}`);
 
   const tokens = theme.custom.status[TONES[status] ?? "pending"];
   const permission = CLICKABLE_PERMISSION[status];

@@ -24,6 +24,10 @@ import { Link } from "react-router-dom";
 import { SampleRecord } from "../types/receivingTypes";
 import { useAuth } from "../../../contexts/AuthContext";
 import { PERMISSIONS } from "../../../routes/routes";
+import { GatedMenuItem } from "../../../components/GatedMenuItem";
+import { AvailabilityFailedNotice } from "../../../components/GatedAction";
+import { useActionAvailability } from "../../../hooks/useActionAvailability";
+import { useTranslation } from "../../../i18n";
 import { SampleDocumentsDialog } from "../dialogs/SampleDocumentsDialog";
 
 interface Props {
@@ -54,11 +58,13 @@ export function SampleActionMenu({
   onSelectTests
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const { permissions, role } = useAuth();
-  const isAuthorizedToAssign = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
   const [documentsOpen, setDocumentsOpen] = useState(false);
+  // The server's answer for void and assign (and why not), asked only while the menu is open.
+  const availability = useActionAvailability("sample", isMenuOpen ? sample.sampleId : null);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
@@ -72,12 +78,12 @@ export function SampleActionMenu({
     setAnchorEl(null);
   };
 
-  // Mirrors SampleController: Analysts cannot correct or void (the backend enforces it).
+  // Void and assign are offered whenever the screen handles them; the server says whether they can be done.
   const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
   const canManageSample = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
   const isEditable = Boolean(sample.canEditDetails);
   const canEdit = canManageSample && Boolean(onEdit);
-  const canVoid = canManageSample && Boolean(onVoid) && sample.status !== "Voided";
+  const canVoid = Boolean(onVoid);
   const needsPreparation = sample.preparationStatus === "NeedsPreparation";
   const canSelectTests = canManageSample && (role === "SectionHead" || role === "Reviewer") && Boolean(onSelectTests) && Boolean(sample.awaitingTestSelection);
   const canAddLab = canReceive && Boolean(onAddLaboratory) && !["Rejected", "Voided", "Cancelled"].includes(sample.status);
@@ -85,7 +91,7 @@ export function SampleActionMenu({
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
       {/* View Sample Action */}
-      <Tooltip title="View Sample Details & Workflow">
+      <Tooltip title={t("actionMenu.viewDetails")}>
         <IconButton
           size="small"
           onClick={(e) => {
@@ -106,15 +112,15 @@ export function SampleActionMenu({
         <Tooltip
           title={
             isEditable
-              ? "Edit Sample Details"
-              : "Locked: the sample has been submitted for review"
+              ? t("actionMenu.editDetails")
+              : t("actionMenu.editLocked")
           }
         >
           <span>
             <IconButton aria-label={
             isEditable
-              ? "Edit Sample Details"
-              : "Locked: the sample has been submitted for review"
+              ? t("actionMenu.editDetails")
+              : t("actionMenu.editLocked")
           }
               size="small"
               disabled={!isEditable}
@@ -133,27 +139,8 @@ export function SampleActionMenu({
         </Tooltip>
       )}
 
-      {/* Void Sample Action */}
-      {canVoid && (
-        <Tooltip title="Void Sample">
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (onVoid) onVoid(sample);
-            }}
-            sx={{
-              color: "text.secondary",
-              "&:hover": { color: theme.custom.status.detected.text, bgcolor: theme.custom.status.detected.bg }
-            }}
-          >
-            <BlockOutlinedIcon sx={{ fontSize: 18 }} />
-          </IconButton>
-        </Tooltip>
-      )}
-
       {/* More Actions Menu */}
-      <IconButton aria-label="Sample actions"
+      <IconButton aria-label={t("actionMenu.sampleActionsAria", { reference: sample.referenceNumber })}
         size="small"
         onClick={handleOpenMenu}
         sx={{
@@ -179,20 +166,18 @@ export function SampleActionMenu({
           }
         }}
       >
-        {isAuthorizedToAssign && onAssignAnalyst && (
-          <MenuItem
-            onClick={() => {
+        {onAssignAnalyst && (
+          <GatedMenuItem
+            action="sample.assign"
+            availability={availability}
+            label={t("actionMenu.assignAnalyst")}
+            icon={<AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />}
+            labelSx={{ fontSize: 13, fontWeight: 600 }}
+            onSelect={() => {
               handleCloseMenu();
               onAssignAnalyst(sample);
             }}
-          >
-            <ListItemIcon>
-              <AssignmentIndOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
-            </ListItemIcon>
-            <ListItemText primary="Assign Analyst" slotProps={{
-              primary: { sx: { fontSize: 13, fontWeight: 600 } }
-            }} />
-          </MenuItem>
+          />
         )}
 
         {canSelectTests && (
@@ -205,7 +190,7 @@ export function SampleActionMenu({
             <ListItemIcon>
               <ChecklistOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
             </ListItemIcon>
-            <ListItemText primary="Select Tests" slotProps={{
+            <ListItemText primary={t("actionMenu.selectTests")} slotProps={{
               primary: { sx: { fontSize: 13, fontWeight: 600 } }
             }} />
           </MenuItem>
@@ -221,7 +206,7 @@ export function SampleActionMenu({
             <ListItemIcon>
               <LibraryAddOutlinedIcon sx={{ fontSize: 18, color: theme.palette.primary.main }} />
             </ListItemIcon>
-            <ListItemText primary="Add Laboratory" slotProps={{
+            <ListItemText primary={t("actionMenu.addLaboratory")} slotProps={{
               primary: { sx: { fontSize: 13, fontWeight: 600 } }
             }} />
           </MenuItem>
@@ -237,29 +222,24 @@ export function SampleActionMenu({
             <ListItemIcon>
               <ScienceOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.action.text }} />
             </ListItemIcon>
-            <ListItemText primary="Prepare Sample" slotProps={{
+            <ListItemText primary={t("actionMenu.prepareSample")} slotProps={{
               primary: { sx: { fontSize: 13, fontWeight: 600 } }
             }} />
           </MenuItem>
         )}
 
         {canVoid && (
-          <MenuItem
-            onClick={() => {
+          <GatedMenuItem
+            action="sample.void"
+            availability={availability}
+            label={t("actionMenu.voidSample")}
+            icon={<BlockOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.detected.text }} />}
+            labelSx={{ fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text }}
+            onSelect={() => {
               handleCloseMenu();
               if (onVoid) onVoid(sample);
             }}
-          >
-            <ListItemIcon>
-              <BlockOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.detected.text }} />
-            </ListItemIcon>
-            <ListItemText
-              primary="Void Sample"
-              slotProps={{
-                primary: { sx: { fontSize: 13, fontWeight: 600, color: theme.custom.status.detected.text } }
-              }}
-            />
-          </MenuItem>
+          />
         )}
 
         <MenuItem
@@ -272,7 +252,7 @@ export function SampleActionMenu({
           <ListItemIcon>
             <PictureAsPdfOutlinedIcon sx={{ fontSize: 18, color: theme.custom.status.info.text }} />
           </ListItemIcon>
-          <ListItemText primary="View Full Report" slotProps={{
+          <ListItemText primary={t("actionMenu.viewFullReport")} slotProps={{
             primary: { sx: { fontSize: 13 } }
           }} />
         </MenuItem>
@@ -286,7 +266,7 @@ export function SampleActionMenu({
           <ListItemIcon>
             <AttachFileOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
           </ListItemIcon>
-          <ListItemText primary="Documents" slotProps={{
+          <ListItemText primary={t("actionMenu.documents")} slotProps={{
             primary: { sx: { fontSize: 13 } }
           }} />
         </MenuItem>
@@ -300,10 +280,15 @@ export function SampleActionMenu({
           <ListItemIcon>
             <HistoryOutlinedIcon sx={{ fontSize: 18, color: "text.secondary" }} />
           </ListItemIcon>
-          <ListItemText primary="Audit History" slotProps={{
+          <ListItemText primary={t("actionMenu.auditHistory")} slotProps={{
             primary: { sx: { fontSize: 13 } }
           }} />
         </MenuItem>
+        {availability.failed && (
+          <Box sx={{ px: 2, py: 0.5 }}>
+            <AvailabilityFailedNotice availability={availability} />
+          </Box>
+        )}
       </Menu>
 
       {documentsOpen && <SampleDocumentsDialog sample={sample} onClose={() => setDocumentsOpen(false)} />}

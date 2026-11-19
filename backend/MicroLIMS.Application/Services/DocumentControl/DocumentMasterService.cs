@@ -236,7 +236,30 @@ public class DocumentMasterService : IDocumentMasterService
         return MapToDto(master);
     }
 
-    public async Task<DocumentLibraryResponse> GetLibraryAsync(DocumentLibraryFilterRequest filter, int userId)
+    private static readonly IReadOnlyDictionary<string, Func<IQueryable<DocumentMaster>, bool, IOrderedQueryable<DocumentMaster>>> LibrarySortAllowList =
+        new Dictionary<string, Func<IQueryable<DocumentMaster>, bool, IOrderedQueryable<DocumentMaster>>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["companyDocumentCode"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.CompanyDocumentCode, asc, d => d.Id),
+            ["code"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.CompanyDocumentCode, asc, d => d.Id),
+            ["microLimsDocumentId"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.MicroLimsDocumentId, asc, d => d.Id),
+            ["id"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.MicroLimsDocumentId, asc, d => d.Id),
+            ["title"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.Title, asc, d => d.Id),
+            ["createdAt"] = (q, asc) => ServerSort.ApplyOrder(q, d => d.CreatedAt, asc, d => d.Id),
+            ["effectiveDate"] = (q, asc) => ServerSort.ApplyOrderWithGroup(
+                q,
+                d => d.CurrentEffectiveRevision != null && d.CurrentEffectiveRevision.EffectiveDate != null ? 0 : 1,
+                d => d.CurrentEffectiveRevision != null ? d.CurrentEffectiveRevision.EffectiveDate : null,
+                asc,
+                d => d.Id),
+            ["nextReviewDate"] = (q, asc) => ServerSort.ApplyOrderWithGroup(
+                q,
+                d => d.CurrentEffectiveRevision != null && d.CurrentEffectiveRevision.NextReviewDate != null ? 0 : 1,
+                d => d.CurrentEffectiveRevision != null ? d.CurrentEffectiveRevision.NextReviewDate : null,
+                asc,
+                d => d.Id),
+        };
+
+    public async Task<DocumentLibraryResponse> GetLibraryAsync(DocumentLibraryFilterRequest filter, int userId, CancellationToken cancellationToken = default)
     {
         var query = _db.DocumentMasters
             .Include(d => d.DocumentType)
@@ -311,22 +334,29 @@ public class DocumentMasterService : IDocumentMasterService
             }
         }
 
-        // Sorting
-        query = filter.SortBy?.ToLower() switch
+        // Sorting (validated against allow-list with Id tie-breaker before paging)
+        var ascending = ServerSort.ParseAscending(filter.SortDir, filter.SortDescending);
+        IOrderedQueryable<DocumentMaster> orderedQuery;
+        if (string.IsNullOrWhiteSpace(filter.SortBy))
         {
-            "code" => filter.SortDescending ? query.OrderByDescending(d => d.CompanyDocumentCode) : query.OrderBy(d => d.CompanyDocumentCode),
-            "id" => filter.SortDescending ? query.OrderByDescending(d => d.MicroLimsDocumentId) : query.OrderBy(d => d.MicroLimsDocumentId),
-            "title" => filter.SortDescending ? query.OrderByDescending(d => d.Title) : query.OrderBy(d => d.Title),
-            _ => filter.SortDescending ? query.OrderByDescending(d => d.CreatedAt) : query.OrderBy(d => d.CreatedAt)
-        };
+            orderedQuery = ServerSort.ApplyOrder(query, d => d.CreatedAt, ascending, d => d.Id);
+        }
+        else
+        {
+            var key = filter.SortBy.Trim();
+            if (!LibrarySortAllowList.TryGetValue(key, out var applySort))
+                throw new BusinessRuleException($"Unsupported sort column '{filter.SortBy}'.");
 
-        var totalCount = await query.CountAsync();
+            orderedQuery = applySort(query, ascending);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
         var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 20);
 
-        var masters = await query
+        var masters = await orderedQuery
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var items = masters.Select(m =>
         {

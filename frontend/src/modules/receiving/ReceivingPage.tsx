@@ -1,23 +1,30 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Box, Button, Snackbar, Alert } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import { Trans } from "react-i18next";
 
 import { PageHeader } from "../../components/PageHeader";
 import { WorkspaceSkeleton } from "../../components/WorkspaceSkeleton";
 import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
+import { Ltr } from "../../components/Ltr";
+import { useTranslation } from "../../i18n";
 
-import { SampleRecord } from "./types/receivingTypes";
+import { CreatedSampleRef, SampleRecord } from "./types/receivingTypes";
 import { ReceiveService } from "./services/ReceiveService";
-import { SampleRegisterTable } from "./components/SampleRegisterTable";
+import { SampleRegisterTable, SAMPLE_REGISTER_DEFAULTS } from "./components/SampleRegisterTable";
 import { NewSampleDialog } from "./dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "./dialogs/EditSampleDetailsDialog";
 import { VoidSampleConfirmationDialog } from "./dialogs/VoidSampleConfirmationDialog";
 import { AddLaboratoryDialog } from "./dialogs/AddLaboratoryDialog";
 import { SelectRetestTestsDialog } from "./dialogs/SelectRetestTestsDialog";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
+import { useRowSelection } from "../../components/lab/table/useRowSelection";
+import { useTableState } from "../../components/lab/table/useTableState";
 import { fetchAllPages } from "../../services/fetchAllPages";
 
 // The main Receiving area only offers these three item-based categories
@@ -29,11 +36,25 @@ const RECEIVING_CATEGORY_NAMES = ["FinishedProduct", "RawMaterial", "PackagingMa
 // "Receive" wizard with a required target-lab choice, and a signed
 // "Add Laboratory" action for samples already on the register (requires Samples.Receive).
 export function ReceivingPage() {
+  const { t } = useTranslation("receiving");
   const { permissions, role } = useAuth();
   const canReceive = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE);
   const canReceiveOwnLab = permissions.includes(PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB);
   const canReceiveAny = canReceive || canReceiveOwnLab;
   const canCorrect = permissions.includes(PERMISSIONS.SAMPLES_CORRECT);
+  // Rows are selectable here only to export them; with no export permission the register offers no checkboxes.
+  const canExport = permissions.includes(PERMISSIONS.DATA_EXPORT);
+  const tableState = useTableState("samples.receiving", SAMPLE_REGISTER_DEFAULTS);
+  const selectionResetKey = useMemo(() => {
+    const sortedFilters = Object.keys(tableState.state.filters)
+      .sort()
+      .map((k) => [k, tableState.state.filters[k]]);
+    return JSON.stringify({
+      filters: sortedFilters,
+      search: tableState.state.search
+    });
+  }, [tableState.state.filters, tableState.state.search]);
+  const selection = useRowSelection<number>(selectionResetKey);
 
   const [samples, setSamples] = useState<SampleRecord[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,7 +65,8 @@ export function ReceivingPage() {
   const [selectingTestsSample, setSelectingTestsSample] = useState<SampleRecord | null>(null);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
-  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" } | null>(null);
+  const [notification, setNotification] = useState<{ text: ReactNode; severity: "success" | "error" } | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const loadRecords = useCallback(async () => {
     setLoading(true);
@@ -59,22 +81,39 @@ export function ReceivingPage() {
       merged.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());
       setSamples(merged);
     } catch {
-      setNotification({ text: "Failed to load the sample register.", severity: "error" });
+      setNotification({ text: t("toast.loadFailed"), severity: "error" });
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadRecords();
   }, [loadRecords]);
 
-  const handleReceiveSuccess = (count: number) => {
+  const handleReceiveSuccess = (created: CreatedSampleRef[]) => {
+    const count = created.length;
     setNotification({
-      text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
+      text: (
+        <Trans
+          i18nKey="toast.received"
+          ns="receiving"
+          count={count}
+          values={{ count }}
+          components={{ ltr: <Ltr>{null}</Ltr> }}
+        />
+      ),
       severity: "success"
     });
     loadRecords();
+    postCreatePrint.offerPrint(
+      created.map((sample) => ({
+        entityType: "Sample",
+        entityId: sample.id,
+        code: sample.referenceNumber,
+        displayName: "Sample"
+      }))
+    );
   };
 
   if (samples === null) {
@@ -84,8 +123,8 @@ export function ReceivingPage() {
   return (
     <Box>
       <PageHeader
-        title="Receive Sample"
-        subtitle="Register incoming Finished Product, Raw Material, and Packaging Material samples, and choose which laboratories they go to."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
       >
         <Box sx={{ display: "flex", gap: 1.5 }}>
           <Button
@@ -95,7 +134,7 @@ export function ReceivingPage() {
             startIcon={<RefreshIcon />}
             sx={{ fontWeight: 600 }}
           >
-            Refresh
+            {t("actions.refresh")}
           </Button>
           {canReceiveAny && (
             <Button
@@ -104,7 +143,7 @@ export function ReceivingPage() {
               startIcon={<AddIcon />}
               sx={{ fontWeight: 700 }}
             >
-              Receive
+              {t("actions.receive")}
             </Button>
           )}
         </Box>
@@ -112,7 +151,10 @@ export function ReceivingPage() {
 
       <SampleRegisterTable
         samples={samples}
-        columnsStorageKey="microlims.receivingRegister.columns"
+        tableKey="samples.receiving"
+        tableState={tableState}
+        selection={canExport ? selection : undefined}
+        legacyColumnsKey="microlims.receivingRegister.columns"
         onTestClick={(_test, sample) => setSummarySampleId(sample.sampleId)}
         onViewSummary={(sample) => setSummarySampleId(sample.sampleId)}
         onEdit={canCorrect ? ((sample) => setEditSample(sample)) : undefined}
@@ -141,7 +183,7 @@ export function ReceivingPage() {
           onClose={() => setEditSample(null)}
           onSuccess={() => {
             setEditSample(null);
-            setNotification({ text: "Sample details corrected and signed.", severity: "success" });
+            setNotification({ text: t("toast.corrected"), severity: "success" });
             loadRecords();
           }}
         />
@@ -154,7 +196,7 @@ export function ReceivingPage() {
           onClose={() => setVoidingSample(null)}
           onSuccess={() => {
             setVoidingSample(null);
-            setNotification({ text: "Sample voided.", severity: "success" });
+            setNotification({ text: t("toast.voided"), severity: "success" });
             loadRecords();
           }}
         />
@@ -167,7 +209,7 @@ export function ReceivingPage() {
           onClose={() => setAddingLabSample(null)}
           onSuccess={() => {
             setAddingLabSample(null);
-            setNotification({ text: "Laboratory added to the sample.", severity: "success" });
+            setNotification({ text: t("toast.labAdded"), severity: "success" });
             loadRecords();
           }}
         />
@@ -180,7 +222,7 @@ export function ReceivingPage() {
         onClose={() => setSelectingTestsSample(null)}
         onSuccess={() => {
           setSelectingTestsSample(null);
-          setNotification({ text: "Tests chosen and signed.", severity: "success" });
+          setNotification({ text: t("toast.testsSelected"), severity: "success" });
           loadRecords();
         }}
       />
@@ -199,6 +241,12 @@ export function ReceivingPage() {
         entityName="Sample"
         entityId={auditSampleId}
         onClose={() => setAuditSampleId(null)}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
       />
 
       <Snackbar

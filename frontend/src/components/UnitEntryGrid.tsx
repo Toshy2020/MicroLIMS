@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   Table,
   TableBody,
@@ -8,6 +8,7 @@ import {
   TableRow,
   TextField
 } from "@mui/material";
+import { useGridNavigation } from "./entry/useGridNavigation";
 
 export interface UnitEntryGridColumn {
   key: string;
@@ -40,29 +41,24 @@ export function UnitEntryGrid({
   disabled = false,
   inputMode = "decimal"
 }: UnitEntryGridProps) {
-  const inputRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
-
-  const cellKey = (row: number, col: number) => `${row}:${col}`;
-
-  const handleKeyDown = (
-    e: React.KeyboardEvent,
-    rIdx: number,
-    cIdx: number
-  ) => {
-    if (e.key === "Enter" || e.key === "ArrowDown") {
-      if (rIdx + 1 < rowCount) {
-        e.preventDefault();
-        const nextInput = inputRefs.current.get(cellKey(rIdx + 1, cIdx));
-        nextInput?.focus();
-      }
-    } else if (e.key === "ArrowUp") {
-      if (rIdx - 1 >= 0) {
-        e.preventDefault();
-        const prevInput = inputRefs.current.get(cellKey(rIdx - 1, cIdx));
-        prevInput?.focus();
-      }
-    }
+  const handleCellChange = (rIdx: number, colKey: string, val: string) => {
+    const nextValues = Array.from({ length: rowCount }, (_, i) => ({ ...(values[i] || {}) }));
+    nextValues[rIdx][colKey] = val;
+    onChange(nextValues);
   };
+
+  const { cellProps } = useGridNavigation({
+    rows: rowCount,
+    cols: columns.length,
+    isEditable: (_r, c) => !columns[c]?.readOnly,
+    onCopyDown: (r, c) => {
+      if (r <= 0) return;
+      const col = columns[c];
+      if (!col || col.readOnly) return;
+      const aboveVal = values[r - 1]?.[col.key] ?? "";
+      handleCellChange(r, col.key, aboveVal);
+    }
+  });
 
   const handlePaste = (
     e: React.ClipboardEvent,
@@ -101,12 +97,6 @@ export function UnitEntryGrid({
       }
     }
 
-    onChange(nextValues);
-  };
-
-  const handleCellChange = (rIdx: number, colKey: string, val: string) => {
-    const nextValues = Array.from({ length: rowCount }, (_, i) => ({ ...(values[i] || {}) }));
-    nextValues[rIdx][colKey] = val;
     onChange(nextValues);
   };
 
@@ -149,6 +139,7 @@ export function UnitEntryGrid({
                     ? (readOnlyValues?.[rIdx]?.[col.key] ?? values[rIdx]?.[col.key] ?? "")
                     : (values[rIdx]?.[col.key] ?? "");
                   const ariaLabel = `${currentLabel} ${col.label}`;
+                  const nav = cellProps(rIdx, cIdx);
 
                   return (
                     <TableCell key={col.key} sx={{ py: 0.5 }}>
@@ -159,15 +150,14 @@ export function UnitEntryGrid({
                         disabled={disabled}
                         value={cellVal}
                         onChange={(e) => handleCellChange(rIdx, col.key, e.target.value)}
-                        onKeyDown={(e) => handleKeyDown(e, rIdx, cIdx)}
+                        onKeyDown={nav.onKeyDown}
                         onPaste={(e) => handlePaste(e, rIdx, cIdx)}
-                        inputRef={(el: HTMLInputElement | null) => {
-                          inputRefs.current.set(cellKey(rIdx, cIdx), el);
-                        }}
+                        inputRef={nav.ref}
                         slotProps={{
                           htmlInput: {
                             "aria-label": ariaLabel,
                             "aria-description": col.unit ? `Unit: ${col.unit}` : undefined,
+                            "data-grid-cell": nav["data-grid-cell"],
                             readOnly: isReadOnly,
                             inputMode: isReadOnly ? undefined : inputMode
                           }

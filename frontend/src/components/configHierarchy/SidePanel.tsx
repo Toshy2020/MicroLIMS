@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Alert, Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import { useTranslation } from "../../i18n";
 
 interface Props {
   open: boolean;
@@ -17,7 +18,8 @@ interface Props {
 // Right-hand drawer used for every add/edit form on the configuration
 // pages, so editing happens next to the record instead of in a form at
 // the top of the page.
-export function SidePanel({ open, overline, title, onClose, onSave, saving, saveLabel = "Save", error, children }: Props) {
+export function SidePanel({ open, overline, title, onClose, onSave, saving, saveLabel, error, children }: Props) {
+  const { t } = useTranslation();
   return (
     <Drawer
       anchor="right"
@@ -36,7 +38,7 @@ export function SidePanel({ open, overline, title, onClose, onSave, saving, save
             {title}
           </Typography>
         </Box>
-        <IconButton aria-label="Close panel" onClick={onClose} disabled={saving}>
+        <IconButton aria-label={t("components.sidePanel.closeAria")} onClick={onClose} disabled={saving}>
           <CloseIcon />
         </IconButton>
       </Stack>
@@ -54,10 +56,10 @@ export function SidePanel({ open, overline, title, onClose, onSave, saving, save
       </Box>
       <Stack direction="row" spacing={1.25} sx={{ px: 3, py: 2, borderTop: "1px solid", borderColor: "divider", justifyContent: "flex-end" }}>
         <Button onClick={onClose} disabled={saving}>
-          Cancel
+          {t("components.sidePanel.cancel")}
         </Button>
         <Button type="submit" form="config-side-panel-form" variant="contained" disabled={saving} sx={{ textTransform: "none", fontWeight: 700 }}>
-          {saving ? "Saving..." : saveLabel}
+          {saving ? t("components.sidePanel.saving") : (saveLabel ?? t("components.sidePanel.save"))}
         </Button>
       </Stack>
     </Drawer>

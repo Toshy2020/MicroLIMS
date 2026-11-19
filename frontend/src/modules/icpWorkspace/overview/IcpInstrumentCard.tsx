@@ -16,6 +16,8 @@ import ScienceIcon from "@mui/icons-material/Science";
 import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
 import BiotechIcon from "@mui/icons-material/Biotech";
 import { IcpStatusBadge } from "../components/IcpStatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { monospaceFontFamily } from "../../../theme/palette";
 import type { IcpInstrumentDto } from "../types";
 
@@ -34,6 +36,7 @@ export function IcpInstrumentCard({
   onStartRun,
   onViewHistory
 }: IcpInstrumentCardProps) {
+  const { t } = useTranslation("icpWorkspace");
   const theme = useTheme();
 
   const isRunning = instrument.state.toLowerCase() === "running" && Boolean(instrument.activeRun);
@@ -68,7 +71,7 @@ export function IcpInstrumentCard({
               {instrument.name}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, fontSize: 12, fontFamily: monospaceFontFamily }}>
-              {instrument.code}
+              <Ltr>{instrument.code}</Ltr>
             </Typography>
           </Box>
           <IcpStatusBadge status={instrument.state} />
@@ -77,7 +80,7 @@ export function IcpInstrumentCard({
         {/* Unavailable reason banner */}
         {isUnavailable && (
           <Alert severity="error" sx={{ mt: 1.5, py: 0.5, fontSize: 13 }}>
-            {instrument.reason || "Instrument is out of service or calibration is overdue."}
+            {instrument.reason || t("overview.card.unavailableReasonFallback")}
           </Alert>
         )}
 
@@ -94,11 +97,11 @@ export function IcpInstrumentCard({
           >
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main", fontFamily: monospaceFontFamily }}>
-                {instrument.activeRun.code}
+                <Ltr>{instrument.activeRun.code}</Ltr>
               </Typography>
               <IcpStatusBadge
                 status={instrument.activeRun.calibrationStatus}
-                label={`Cal: ${instrument.activeRun.calibrationStatus}`}
+                label={t("overview.card.calBadge", { status: instrument.activeRun.calibrationStatus })}
                 size="small"
               />
             </Box>
@@ -107,21 +110,21 @@ export function IcpInstrumentCard({
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <BiotechIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13 }}>
-                  Run: <strong>{instrument.activeRun.code}</strong>
+                  {t("overview.card.run")} <strong><Ltr>{instrument.activeRun.code}</Ltr></strong>
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <PersonOutlinedIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13 }}>
-                  Analyst: {instrument.activeRun.analystName}
+                  {t("overview.card.analyst")} {instrument.activeRun.analystName}
                 </Typography>
               </Box>
 
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <ScienceIcon sx={{ fontSize: 16, color: "text.secondary" }} />
                 <Typography variant="body2" sx={{ fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
-                  Assigned Samples: <strong>{instrument.activeRun.sampleCount}</strong>
+                  {t("overview.card.assignedSamples")} <strong><Ltr>{instrument.activeRun.sampleCount}</Ltr></strong>
                 </Typography>
               </Box>
             </Stack>
@@ -141,7 +144,7 @@ export function IcpInstrumentCard({
             }}
           >
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Instrument is ready. No analytical run currently active.
+              {t("overview.card.ready")}
             </Typography>
           </Box>
         )}
@@ -155,7 +158,7 @@ export function IcpInstrumentCard({
           onClick={() => onViewHistory(instrument.equipmentId)}
           sx={{ textTransform: "none", color: "text.secondary" }}
         >
-          Run History
+          {t("overview.card.runHistory")}
         </Button>
 
         {isRunning && instrument.activeRun && (
@@ -167,7 +170,7 @@ export function IcpInstrumentCard({
             onClick={() => onOpenRun(instrument.equipmentId, instrument.activeRun!.runId)}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Open Run
+            {t("overview.card.openRun")}
           </Button>
         )}
 
@@ -181,7 +184,7 @@ export function IcpInstrumentCard({
             disabled={!canOperate}
             sx={{ textTransform: "none", fontWeight: 600 }}
           >
-            Start Run
+            {t("overview.card.startRun")}
           </Button>
         )}
       </CardActions>

@@ -12,6 +12,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import ScienceIcon from "@mui/icons-material/Science";
 import { LabPage, KpiStrip, FilterBar, EmptyState } from "../../../components/lab";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { IcpWorkspaceService } from "../services/IcpWorkspaceService";
 import { ICP_ROUTES } from "../routes";
@@ -20,6 +21,7 @@ import { StartIcpRunDialog } from "../run/StartIcpRunDialog";
 import type { IcpInstrumentDto, IcpRunDto } from "../types";
 
 export function IcpWorkspacePage() {
+  const { t } = useTranslation("icpWorkspace");
   const navigate = useNavigate();
   const { permissions } = useAuth();
   const canOperate = permissions.includes(PERMISSIONS.HPLC_OPERATE);
@@ -42,11 +44,11 @@ export function IcpWorkspacePage() {
       setInstruments(data);
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
-      setError(e.response?.data?.message ?? e.message ?? "Could not load ICP instruments.");
+      setError(e.response?.data?.message ?? e.message ?? t("overview.loadError"));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     loadInstruments();
@@ -105,8 +107,8 @@ export function IcpWorkspacePage() {
 
   return (
     <LabPage
-      title="ICP-OES Workspace"
-      subtitle="Overview of inductively coupled plasma optical emission spectrometers, active analytical runs, and calibrations."
+      title={t("overview.title")}
+      subtitle={t("overview.subtitle")}
       actions={
         <Button
           variant="outlined"
@@ -116,18 +118,18 @@ export function IcpWorkspacePage() {
           disabled={loading}
           sx={{ textTransform: "none" }}
         >
-          Refresh
+          {t("overview.refresh")}
         </Button>
       }
       kpis={
         <KpiStrip
           loading={loading}
           tiles={[
-            { label: "Instruments", value: counts.total },
-            { label: "Available", value: counts.available, tone: "notDetected" },
-            { label: "In use", value: counts.running, tone: "info" },
-            { label: "Cal. pending", value: counts.calPending, tone: counts.calPending > 0 ? "pending" : undefined },
-            { label: "Unavailable", value: counts.unavailable, tone: counts.unavailable > 0 ? "detected" : undefined }
+            { label: t("overview.kpi.instruments"), value: counts.total },
+            { label: t("overview.kpi.available"), value: counts.available, tone: "notDetected" },
+            { label: t("overview.kpi.inUse"), value: counts.running, tone: "info" },
+            { label: t("overview.kpi.calPending"), value: counts.calPending, tone: counts.calPending > 0 ? "pending" : undefined },
+            { label: t("overview.kpi.unavailable"), value: counts.unavailable, tone: counts.unavailable > 0 ? "detected" : undefined }
           ]}
         />
       }
@@ -135,7 +137,7 @@ export function IcpWorkspacePage() {
         <FilterBar
           search={search}
           onSearch={setSearch}
-          placeholder="Search by code, name or run..."
+          placeholder={t("overview.searchPlaceholder")}
           resultCount={filteredInstruments.length}
         >
           <Tabs
@@ -143,10 +145,10 @@ export function IcpWorkspacePage() {
             onChange={(_, val) => setStateFilter(val)}
             sx={{ minHeight: 38 }}
           >
-            <Tab value="all" label={`All (${counts.total})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="running" label={`In use (${counts.running})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="available" label={`Available (${counts.available})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
-            <Tab value="unavailable" label={`Unavailable (${counts.unavailable})`} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="all" label={t("overview.tabs.all", { count: counts.total })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="running" label={t("overview.tabs.inUse", { count: counts.running })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="available" label={t("overview.tabs.available", { count: counts.available })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
+            <Tab value="unavailable" label={t("overview.tabs.unavailable", { count: counts.unavailable })} sx={{ textTransform: "none", minHeight: 38, py: 0.5 }} />
           </Tabs>
         </FilterBar>
       }
@@ -167,11 +169,11 @@ export function IcpWorkspacePage() {
       ) : filteredInstruments.length === 0 ? (
         <EmptyState
           icon={<ScienceIcon />}
-          title="No ICP instruments found"
+          title={t("overview.empty.title")}
           description={
             search || stateFilter !== "all"
-              ? "No instruments matched the active search or state filter."
-              : "No ICP-OES equipment is configured for this laboratory section."
+              ? t("overview.empty.filteredDescription")
+              : t("overview.empty.noneConfigured")
           }
         />
       ) : (

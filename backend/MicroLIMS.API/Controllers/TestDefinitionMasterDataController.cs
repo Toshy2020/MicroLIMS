@@ -1,3 +1,4 @@
+using MicroLIMS.API.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,6 +39,11 @@ public class TestDefinitionMasterDataController : ControllerBase
     public async Task<IActionResult> GetTestDefinitions() =>
         Ok(ApiResponse<object>.Ok(await _service.GetTestDefinitionsAsync()));
 
+    // Items that use the test, paged; any signed-in user who can read the Test Master.
+    [HttpGet("test-definitions/{id:int}/items")]
+    public async Task<IActionResult> GetItemsForTest(int id, [FromQuery] string? search = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 25) =>
+        Ok(ApiResponse<object>.Ok(await _service.GetItemsForTestAsync(id, search, page, pageSize, CurrentUserId, Ct)));
+
     [HttpGet("test-definitions/editable-codes")]
     public async Task<IActionResult> GetEditableCodes() =>
         Ok(ApiResponse<object>.Ok(await _service.GetEditableCodesAsync(CurrentUserId)));
@@ -48,19 +54,31 @@ public class TestDefinitionMasterDataController : ControllerBase
         Ok(ApiResponse<object>.Ok(await _service.CreateTestDefinitionAsync(CurrentUserId, request)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("test-definitions/with-steps")]
+    public async Task<IActionResult> CreateTestWithSteps(SaveTestWithStepsRequest request) =>
+        Ok(ApiResponse<object>.Ok(await _service.CreateTestWithStepsAsync(CurrentUserId, request, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
+    [HttpPost("test-definitions/validate")]
+    public async Task<IActionResult> ValidateTestDefinition(
+        ValidateTestDefinitionRequest request,
+        [FromQuery] int? id = null) =>
+        Ok(ApiResponse<IReadOnlyList<FieldError>>.Ok(await _service.ValidateTestDefinitionAsync(CurrentUserId, request, id, Ct)));
+
+    [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}")]
     public async Task<IActionResult> UpdateTestDefinition(int id, UpdateTestDefinitionRequest request) =>
-        Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionAsync(CurrentUserId, id, request)));
+        Ok(ApiResponse<object>.Ok(await _service.UpdateTestDefinitionAsync(CurrentUserId, id, request, ChangeReasonHeader.Read(Request), Ct)));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/freeze")]
     public async Task<IActionResult> FreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
+        Ok(ApiResponse<object>.Ok(await _service.FreezeTestDefinitionAsync(CurrentUserId, id, Ct, ChangeReasonHeader.Read(Request))));
 
     [Authorize(Policy = PermissionConstants.MasterDataManage)]
     [HttpPut("test-definitions/{id}/unfreeze")]
     public async Task<IActionResult> UnfreezeTestDefinition(int id) =>
-        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(CurrentUserId, id, Ct)));
+        Ok(ApiResponse<object>.Ok(await _service.UnfreezeTestDefinitionAsync(CurrentUserId, id, Ct, ChangeReasonHeader.Read(Request))));
 
     // ---- Equation Types (REQ-FP-030/042) ----
     [HttpGet("equation-types")]

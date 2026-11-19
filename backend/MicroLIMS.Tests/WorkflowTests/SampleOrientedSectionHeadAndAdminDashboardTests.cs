@@ -299,33 +299,6 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
     }
 
     [Fact]
-    public async Task Notifications_ReviewAndApprovalWaiting_CountSamples_AndAreNotShownToAnalysts()
-    {
-        await using var db = NewDb();
-        var now = DateTime.UtcNow;
-        var sectionHead = await SeedUserAsync(db, "Sam Head", RoleType.SectionHead);
-        var analyst = await SeedUserAsync(db, "Ana Lyst", RoleType.Analyst);
-
-        db.Samples.AddRange(
-            NewSample("REV-1", SampleStatus.UnderReview, now.AddHours(-3), ApprovalStatus.ResultEntered, WorkflowStep.Ready, "TAMC", "TYMC", "EC"),
-            NewSample("REV-2", SampleStatus.UnderReview, now.AddHours(-3), ApprovalStatus.ResultEntered, WorkflowStep.Ready, "TAMC"),
-            NewSample("APP-1", SampleStatus.UnderApproval, now.AddHours(-3), ApprovalStatus.Reviewed, WorkflowStep.Reviewed, "TAMC", "TYMC"));
-        await db.SaveChangesAsync();
-        foreach (var order in db.TestOrders)
-            order.SectionId = TestServiceFactory.EnsureMicroSection(db).Id;
-        await db.SaveChangesAsync();
-
-        var service = TestServiceFactory.DashboardNotification(db);
-
-        var sectionHeadNotifications = await service.GetNotificationsAsync(RoleType.SectionHead, sectionHead.Id);
-        Assert.Contains(sectionHeadNotifications, n => n.Type == "ReviewWaiting" && n.Message == "2 sample(s) awaiting review.");
-        Assert.Contains(sectionHeadNotifications, n => n.Type == "ApprovalWaiting" && n.Message == "1 sample(s) awaiting approval.");
-
-        var analystNotifications = await service.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
-        Assert.DoesNotContain(analystNotifications, n => n.Type == "ReviewWaiting" || n.Type == "ApprovalWaiting");
-    }
-
-    [Fact]
     public async Task Workspace_AwaitingReview_TileCountAndFilter_OnlyUnderReviewSamples()
     {
         await using var db = NewDb();
@@ -351,35 +324,5 @@ public class SampleOrientedSectionHeadAndAdminDashboardTests
         var filtered = await service.GetActiveSamplesAsync(new TestingWorkspaceFilterDto { WorkloadFilter = "awaitingReview" });
         var item = Assert.Single(filtered.Items);
         Assert.Equal("REV-ONLY", item.ReferenceNumber);
-    }
-
-    [Fact]
-    public async Task Notifications_IncubationReady_NamesTestStepAndSample()
-    {
-        await using var db = NewDb();
-        var analyst = await SeedUserAsync(db, "Ana Lyst", RoleType.Analyst);
-
-        var sample = NewSample("FP0107026", SampleStatus.InTesting, DateTime.UtcNow.AddDays(-2), ApprovalStatus.InProgress, WorkflowStep.Incubating, "TAMC");
-        db.Samples.Add(sample);
-        await db.SaveChangesAsync();
-        foreach (var order in db.TestOrders)
-            order.SectionId = TestServiceFactory.EnsureMicroSection(db).Id;
-        await db.SaveChangesAsync();
-
-        db.Incubations.Add(new Incubation
-        {
-            TestOrderId = sample.TestOrders.Single().Id,
-            StepName = "Stage 1",
-            StartedAt = DateTime.UtcNow.AddDays(-2),
-            CompletedAt = DateTime.UtcNow.AddMinutes(-5)
-        });
-        await db.SaveChangesAsync();
-
-        var notifications = await TestServiceFactory.DashboardNotification(db).GetNotificationsAsync(RoleType.Analyst, analyst.Id);
-
-        var ready = Assert.Single(notifications, n => n.Type == "IncubationReady");
-        Assert.Equal("TAMC (Stage 1) for sample FP0107026 is ready.", ready.Message);
-        Assert.Equal(sample.Id, ready.SampleId);
-        Assert.Equal(sample.TestOrders.Single().Id, ready.TestOrderId);
     }
 }

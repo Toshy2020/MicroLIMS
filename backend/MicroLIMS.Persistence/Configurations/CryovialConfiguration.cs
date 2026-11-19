@@ -15,6 +15,8 @@ public class CryovialConfiguration : IEntityTypeConfiguration<Cryovial>
     {
         builder.HasKey(c => c.Id);
 
+        builder.Property(c => c.Code).IsRequired().HasMaxLength(250);
+
         // A cryovial code is the batch's GMP identifier, cited by every
         // media evaluation that challenges organisms from it - two batches
         // must never share one.

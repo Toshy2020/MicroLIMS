@@ -1,4 +1,5 @@
 import { useState, MouseEvent } from "react";
+import { useTranslation } from "../../../i18n";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -44,6 +45,7 @@ export function DiscussionCard({
   onDelete,
   onOpenHistory
 }: Props) {
+  const { t } = useTranslation("discussions");
   const navigate = useNavigate();
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
@@ -127,7 +129,7 @@ export function DiscussionCard({
             {post.isImportant && (
               <Chip
                 icon={<StarIcon sx={{ fontSize: "14px !important", color: "warning.main" }} />}
-                label="Important"
+                label={t("card.important")}
                 size="small"
                 sx={{
                   fontWeight: 700,
@@ -143,10 +145,10 @@ export function DiscussionCard({
             <DiscussionCategoryBadge category={post.category} categoryName={post.categoryName} />
 
             {post.isEdited && (
-              <Tooltip title={`Version ${post.currentVersion} (Edited). Click to view history.`}>
+              <Tooltip title={t("card.editedTooltip", { version: post.currentVersion })}>
                 <Chip
                   icon={<HistoryIcon sx={{ fontSize: "13px !important" }} />}
-                  label={`v${post.currentVersion} Edited`}
+                  label={t("card.editedChip", { version: post.currentVersion })}
                   size="small"
                   variant="outlined"
                   onClick={(e) => {
@@ -160,7 +162,7 @@ export function DiscussionCard({
 
             {canModify && (
               <>
-                <IconButton aria-label="Post actions" size="small" onClick={handleMenuOpen}>
+                <IconButton aria-label={t("actions.postActions", { title: post.title })} size="small" onClick={handleMenuOpen}>
                   <MoreVertIcon fontSize="small" />
                 </IconButton>
                 <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={handleMenuClose}>
@@ -172,19 +174,19 @@ export function DiscussionCard({
                     <ListItemIcon>
                       <EditIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="View / Edit" />
+                    <ListItemText primary={t("actions.viewEdit")} />
                   </MenuItem>
                   <MenuItem onClick={handleToggleImportant}>
                     <ListItemIcon>
                       {post.isImportant ? <StarBorderIcon fontSize="small" /> : <StarIcon fontSize="small" />}
                     </ListItemIcon>
-                    <ListItemText primary={post.isImportant ? "Unmark Important" : "Mark Important"} />
+                    <ListItemText primary={post.isImportant ? t("actions.unmarkImportant") : t("actions.markImportant")} />
                   </MenuItem>
                   <MenuItem onClick={handleDelete} sx={{ color: "error.main" }}>
                     <ListItemIcon sx={{ color: "error.main" }}>
                       <DeleteOutlineIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText primary="Delete Discussion" />
+                    <ListItemText primary={t("actions.deleteDiscussion")} />
                   </MenuItem>
                 </Menu>
               </>
@@ -244,7 +246,7 @@ export function DiscussionCard({
               }}
             >
               <ChatBubbleOutlineIcon sx={{ fontSize: 16 }} />
-              {post.commentCount} {post.commentCount === 1 ? "comment" : "comments"}
+              {t("card.comment", { count: post.commentCount })}
             </Box>
 
             {post.attachmentCount > 0 && (
@@ -263,7 +265,7 @@ export function DiscussionCard({
                 }}
               >
                 <AttachFileIcon sx={{ fontSize: 16 }} />
-                {post.attachmentCount} {post.attachmentCount === 1 ? "attachment" : "attachments"}
+                {t("card.attachment", { count: post.attachmentCount })}
               </Box>
             )}
           </Box>
@@ -279,15 +281,15 @@ export function DiscussionCard({
               "&:hover": { textDecoration: "underline" }
             }}
           >
-            Open discussion →
+            {t("card.open")}
           </Typography>
         </Box>
       </CardContent>
       <ConfirmationDialog
         open={confirmDeleteOpen}
-        title="Delete Discussion Post"
-        message="Are you sure you want to delete this discussion post? This action cannot be undone."
-        confirmText="Delete Post"
+        title={t("card.deleteTitle")}
+        message={t("card.deleteMessage")}
+        confirmText={t("card.deleteConfirm")}
         destructive
         onConfirm={() => {
           setConfirmDeleteOpen(false);

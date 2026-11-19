@@ -5,6 +5,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Workflows;
 
@@ -22,7 +23,10 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         RequireOrderNotFinalized(order);
         if (order.Status is ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Rejected or ApprovalStatus.Approved or ApprovalStatus.Reviewed or ApprovalStatus.ResultEntered)
-            throw new BusinessRuleException($"Test order {order.Id} is not open (status: {order.Status}).");
+            throw new BusinessRuleException(
+                MessageCodes.TestNotOpen,
+                $"Test order {order.Id} is not open (status: {order.Status}).",
+                new Dictionary<string, string> { ["status"] = order.Status.ToString(), ["testOrderId"] = order.Id.ToString(CultureInfo.InvariantCulture) });
 
         var sampleLocations = await _db.SampleLocations
             .Include(l => l.SamplingConfiguration!).ThenInclude(c => c.WaterSamplingPoint)
@@ -33,7 +37,9 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             .ToListAsync();
 
         if (sampleLocations.Count == 0)
-            throw new BusinessRuleException("No locations are assigned to this test order.");
+            throw new BusinessRuleException(
+                MessageCodes.TestNoLocationsAssigned,
+                "No locations are assigned to this test order.");
 
         foreach (var loc in sampleLocations)
         {
@@ -61,20 +67,31 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
         }
 
         if (inputs is null || inputs.Count == 0)
-            throw new BusinessRuleException("Results are missing for all locations.");
+            throw new BusinessRuleException(
+                MessageCodes.TestAllLocationResultsMissing,
+                "Results are missing for all locations.");
 
         var duplicateInputs = inputs.GroupBy(i => i.SampleLocationId).Where(g => g.Count() > 1).ToList();
         if (duplicateInputs.Count > 0)
-            throw new BusinessRuleException($"Duplicate inputs provided for location ID(s): {string.Join(", ", duplicateInputs.Select(g => g.Key))}.");
+            throw new BusinessRuleException(
+                MessageCodes.TestDuplicateLocationInputs,
+                $"Duplicate inputs provided for location ID(s): {string.Join(", ", duplicateInputs.Select(g => g.Key))}.",
+                new Dictionary<string, string> { ["locationIds"] = string.Join(", ", duplicateInputs.Select(g => g.Key)) });
 
         var submitted = inputs.ToDictionary(i => i.SampleLocationId);
         var missing = sampleLocations.Where(l => !submitted.ContainsKey(l.Id)).ToList();
         if (missing.Count > 0)
-            throw new BusinessRuleException($"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.");
+            throw new BusinessRuleException(
+                MessageCodes.TestLocationResultsMissing,
+                $"Results are missing for: {string.Join(", ", missing.Select(LocationName))}.",
+                new Dictionary<string, string> { ["locations"] = string.Join(", ", missing.Select(LocationName)) });
 
         var extra = inputs.Where(i => !sampleLocations.Any(l => l.Id == i.SampleLocationId)).ToList();
         if (extra.Count > 0)
-            throw new BusinessRuleException($"Input contains location ID(s) that do not belong to this test order: {string.Join(", ", extra.Select(i => i.SampleLocationId))}.");
+            throw new BusinessRuleException(
+                MessageCodes.TestUnknownLocationInputs,
+                $"Input contains location ID(s) that do not belong to this test order: {string.Join(", ", extra.Select(i => i.SampleLocationId))}.",
+                new Dictionary<string, string> { ["locationIds"] = string.Join(", ", extra.Select(i => i.SampleLocationId)) });
 
         var worstStatus = ResultStatus.WithinLimits;
         var conformCount = 0;
@@ -84,7 +101,10 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             var pointName = LocationName(location);
             var limitType = location.SamplingConfiguration?.LimitType ?? location.MachinePartConfiguration?.LimitType;
             if (!limitType.HasValue)
-                throw new BusinessRuleException($"Limits for {order.TestCode} at {pointName} are not configured.");
+                throw new BusinessRuleException(
+                    MessageCodes.TestLocationLimitsNotConfigured,
+                    $"Limits for {order.TestCode} at {pointName} are not configured.",
+                    new Dictionary<string, string> { ["point"] = pointName, ["testCode"] = order.TestCode });
 
             var input = submitted[location.Id];
             decimal? lowerLimit = location.SamplingConfiguration?.LowerLimit ?? location.MachinePartConfiguration?.LowerLimit;
@@ -100,7 +120,10 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             if (limitType.Value == LimitType.Qualitative)
             {
                 if (string.IsNullOrWhiteSpace(input.Text))
-                    throw new BusinessRuleException($"Text result is required for {pointName}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TestLocationTextResultRequired,
+                        $"Text result is required for {pointName}.",
+                        new Dictionary<string, string> { ["point"] = pointName });
 
                 var text = input.Text.Trim();
                 var conforms = string.Equals(text, expectedResultText?.Trim(), StringComparison.OrdinalIgnoreCase);
@@ -113,7 +136,10 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
             else
             {
                 if (!input.Value.HasValue)
-                    throw new BusinessRuleException($"Numeric value is required for {pointName}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TestLocationNumericValueRequired,
+                        $"Numeric value is required for {pointName}.",
+                        new Dictionary<string, string> { ["point"] = pointName });
 
                 var spec = new Specification
                 {

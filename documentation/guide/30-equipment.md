@@ -169,6 +169,13 @@ Requires the *Manage master data* permission (by default: Section Head, System A
 5. Optionally enter **Vendor / Manufacturer**, **Location**, **Connection Settings (optional)**, **Set Point Temp (°C)** and **Calibration Due Date**.
 6. Click **Create Equipment**. The message "Equipment created successfully." appears.
 
+##### Pasting equipment rows from a spreadsheet
+1. On **Laboratory Configuration: Equipment**, click **Paste equipment** and paste up to **200** rows (columns: Equipment name, Equipment code, Equipment type, Vendor / Manufacturer, Laboratory section, Location, Asset register entry, Connection settings, Set point temp (°C), Calibration due date).
+2. Check every row in **Paste preview** and click **Accept** to load them into **Pending equipment** (nothing is saved yet), then click **Save** for an all-or-nothing create.
+3. Only Microbiology equipment types (**Incubator**, **Autoclave**, **LAF Cabinet**, **Biological Safety Cabinet**, **Water Bath**, **Other**) are accepted; physicochemical instrument types (HPLC, ICP-OES, pH Meter, Balance) are refused. **Calibration Due Date** is accepted strictly as `YYYY-MM-DD`. Add set-point changes and autoclave programs after creating the equipment.
+
+> **SOP note:** Pasted data must be checked in the preview before accepting. Use **Paste equipment** for up to 200 rows; use the **Master Data Workbook** (§32.3–§32.4) for initial bulk loads needing second-person password-confirmed verification.
+
 ##### Changing an incubator set point
 1. On the incubator's card, click **Edit Set Point**.
 2. Enter the **New Set Point (°C) \***.

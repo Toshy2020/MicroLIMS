@@ -1,4 +1,5 @@
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Shared.Exceptions;
 using System.Security.Cryptography;
@@ -16,15 +17,17 @@ public record CreateRecoveryResultDto(string RecoveryCode, DateTime ExpiresAt);
 
 public class AdminPasswordRecoveryService
 {
-    private const string AllowedChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 unambiguous chars
+    internal const string AllowedChars = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // 32 unambiguous chars
     private readonly IMicroLimsDbContext _db;
     private readonly TimeProvider _time;
 
     private readonly ISystemSettingsReader? _settings;
+    private readonly ISecurityAuditService? _securityAudit;
 
-    public AdminPasswordRecoveryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
+    public AdminPasswordRecoveryService(IMicroLimsDbContext db, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null, ISecurityAuditService? securityAudit = null)
     {
         _settings = settings;
+        _securityAudit = securityAudit;
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
     }
@@ -238,6 +241,8 @@ public class AdminPasswordRecoveryService
         {
             rt.RevokedAt = _time.GetUtcNow().UtcDateTime;
         }
+
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, user.Id, revokedByUserId: null);
 
         _db.AuditLogs.Add(new AuditLog
         {

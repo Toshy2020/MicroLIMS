@@ -7,4 +7,5 @@ public static class RoleConstants
     public const string Reviewer = "Reviewer";
     public const string Analyst = "Analyst";
     public const string QcManager = "QcManager";
+    public const string Qa = "Qa";
 }

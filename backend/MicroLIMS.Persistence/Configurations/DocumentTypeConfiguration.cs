@@ -20,6 +20,10 @@ public class DocumentTypeConfiguration : IEntityTypeConfiguration<DocumentType>
             .IsRequired()
             .HasMaxLength(200);
 
+        builder.Property(t => t.RequiresQaApprover)
+            .IsRequired()
+            .HasDefaultValue(false);
+
         builder.HasIndex(t => t.Code)
             .IsUnique();
     }

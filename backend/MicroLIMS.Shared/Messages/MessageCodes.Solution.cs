@@ -1,0 +1,106 @@
+namespace MicroLIMS.Shared.Messages;
+
+// Solution.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
+public static partial class MessageCodes
+{
+    public const string SolutionAutoclaveCycleNumberInvalid = "Solution.AutoclaveCycleNumberInvalid";
+    public const string SolutionAutoclaveCycleTimeInvalid = "Solution.AutoclaveCycleTimeInvalid";
+    public const string SolutionAutoclaveLoadTypeTooLong = "Solution.AutoclaveLoadTypeTooLong";
+    public const string SolutionAutoclaveProgramTooLong = "Solution.AutoclaveProgramTooLong";
+    public const string SolutionAutoclaveRecordRequired = "Solution.AutoclaveRecordRequired";
+    public const string SolutionAutoclaveTemperatureInvalid = "Solution.AutoclaveTemperatureInvalid";
+    public const string SolutionCannotReleaseOwnPreparation = "Solution.CannotReleaseOwnPreparation";
+    public const string SolutionCodeClash = "Solution.CodeClash";
+    public const string SolutionComponentLotAndQuantityRequired = "Solution.ComponentLotAndQuantityRequired";
+    public const string SolutionComponentLotUnusable = "Solution.ComponentLotUnusable";
+    public const string SolutionComponentNotFoundOnPreparation = "Solution.ComponentNotFoundOnPreparation";
+    public const string SolutionComponentNotInPreparation = "Solution.ComponentNotInPreparation";
+    public const string SolutionComponentNotPreparedSolution = "Solution.ComponentNotPreparedSolution";
+    public const string SolutionComponentNotStockMaterial = "Solution.ComponentNotStockMaterial";
+    public const string SolutionComponentPreparationUnusable = "Solution.ComponentPreparationUnusable";
+    public const string SolutionComponentPreparedBottleRequired = "Solution.ComponentPreparedBottleRequired";
+    public const string SolutionComponentQuantityInvalid = "Solution.ComponentQuantityInvalid";
+    public const string SolutionComponentRequiresPreparedBottle = "Solution.ComponentRequiresPreparedBottle";
+    public const string SolutionComponentRequiresStockLot = "Solution.ComponentRequiresStockLot";
+    public const string SolutionFinalVolumeInvalid = "Solution.FinalVolumeInvalid";
+    public const string SolutionFinalVolumeRequired = "Solution.FinalVolumeRequired";
+    public const string SolutionHplcMethodDoesNotUseMobilePhase = "Solution.HplcMethodDoesNotUseMobilePhase";
+    public const string SolutionHplcMethodInactive = "Solution.HplcMethodInactive";
+    public const string SolutionHplcMethodNotFound = "Solution.HplcMethodNotFound";
+    public const string SolutionHplcMethodOnlyForMobilePhase = "Solution.HplcMethodOnlyForMobilePhase";
+    public const string SolutionHplcMethodRequired = "Solution.HplcMethodRequired";
+    public const string SolutionHplcMethodWrongLab = "Solution.HplcMethodWrongLab";
+    public const string SolutionLotWrongLab = "Solution.LotWrongLab";
+    public const string SolutionMasterInactive = "Solution.MasterInactive";
+    public const string SolutionMasterNotFound = "Solution.MasterNotFound";
+    public const string SolutionMeasuredPhOutOfRange = "Solution.MeasuredPhOutOfRange";
+    public const string SolutionMeasuredPhOutOfTolerance = "Solution.MeasuredPhOutOfTolerance";
+    public const string SolutionMeasuredPhRequired = "Solution.MeasuredPhRequired";
+    public const string SolutionMethodAbbreviationRequired = "Solution.MethodAbbreviationRequired";
+    public const string SolutionPreparationClosed = "Solution.PreparationClosed";
+    public const string SolutionPreparationNotFound = "Solution.PreparationNotFound";
+    public const string SolutionReasonRequired = "Solution.ReasonRequired";
+    public const string SolutionReasonTooLong = "Solution.ReasonTooLong";
+    public const string SolutionRejectCommentRequired = "Solution.RejectCommentRequired";
+    public const string SolutionRejectCommentTooLong = "Solution.RejectCommentTooLong";
+    public const string SolutionReleaseAlreadyDecided = "Solution.ReleaseAlreadyDecided";
+    public const string SolutionReleaseNotNeeded = "Solution.ReleaseNotNeeded";
+    public const string SolutionSelectedLotMissing = "Solution.SelectedLotMissing";
+    public const string SolutionSelectedPreparationMissing = "Solution.SelectedPreparationMissing";
+    public const string SolutionSnapshotUnreadable = "Solution.SnapshotUnreadable";
+    public const string SolutionSterilizationNotRequired = "Solution.SterilizationNotRequired";
+    public const string SolutionTextLineNothingToPick = "Solution.TextLineNothingToPick";
+    public const string SolutionUnknownType = "Solution.UnknownType";
+
+    private static Dictionary<string, string[]> SolutionParameters() => new()
+    {
+        [SolutionAutoclaveCycleNumberInvalid] = [],
+        [SolutionAutoclaveCycleTimeInvalid] = [],
+        [SolutionAutoclaveLoadTypeTooLong] = [],
+        [SolutionAutoclaveProgramTooLong] = [],
+        [SolutionAutoclaveRecordRequired] = [],
+        [SolutionAutoclaveTemperatureInvalid] = [],
+        [SolutionCannotReleaseOwnPreparation] = [],
+        [SolutionCodeClash] = [],
+        [SolutionComponentLotAndQuantityRequired] = [],
+        [SolutionComponentLotUnusable] = ["entryName", "lotLabel", "reason"],
+        [SolutionComponentNotFoundOnPreparation] = ["componentId"],
+        [SolutionComponentNotInPreparation] = ["componentId"],
+        [SolutionComponentNotPreparedSolution] = ["entryName"],
+        [SolutionComponentNotStockMaterial] = ["entryName"],
+        [SolutionComponentPreparationUnusable] = ["entryName", "code", "reason"],
+        [SolutionComponentPreparedBottleRequired] = [],
+        [SolutionComponentQuantityInvalid] = ["entryName"],
+        [SolutionComponentRequiresPreparedBottle] = ["entryName"],
+        [SolutionComponentRequiresStockLot] = ["entryName"],
+        [SolutionFinalVolumeInvalid] = [],
+        [SolutionFinalVolumeRequired] = [],
+        [SolutionHplcMethodDoesNotUseMobilePhase] = [],
+        [SolutionHplcMethodInactive] = ["name"],
+        [SolutionHplcMethodNotFound] = ["hplcMethodId"],
+        [SolutionHplcMethodOnlyForMobilePhase] = [],
+        [SolutionHplcMethodRequired] = [],
+        [SolutionHplcMethodWrongLab] = [],
+        [SolutionLotWrongLab] = ["lotLabel"],
+        [SolutionMasterInactive] = ["name"],
+        [SolutionMasterNotFound] = ["solutionMasterId"],
+        [SolutionMeasuredPhOutOfRange] = [],
+        [SolutionMeasuredPhOutOfTolerance] = ["measured", "target", "tolerance"],
+        [SolutionMeasuredPhRequired] = [],
+        [SolutionMethodAbbreviationRequired] = [],
+        [SolutionPreparationClosed] = [],
+        [SolutionPreparationNotFound] = ["preparationId"],
+        [SolutionReasonRequired] = [],
+        [SolutionReasonTooLong] = [],
+        [SolutionRejectCommentRequired] = [],
+        [SolutionRejectCommentTooLong] = [],
+        [SolutionReleaseAlreadyDecided] = ["label", "status"],
+        [SolutionReleaseNotNeeded] = ["label"],
+        [SolutionSelectedLotMissing] = ["entryName"],
+        [SolutionSelectedPreparationMissing] = ["entryName"],
+        [SolutionSnapshotUnreadable] = [],
+        [SolutionSterilizationNotRequired] = [],
+        [SolutionTextLineNothingToPick] = [],
+        [SolutionUnknownType] = ["type"],
+    };
+}

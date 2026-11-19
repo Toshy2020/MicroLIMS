@@ -3,6 +3,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using System.Net;
 using System.Text.Json;
@@ -27,6 +28,9 @@ public class ExceptionMiddleware
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
+    // nginx's "client closed request"; there is no registered HTTP status for it.
+    public const int ClientClosedRequestStatusCode = 499;
+
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionMiddleware> _logger;
     private readonly IErrorCaptureService _errorCapture;
@@ -47,11 +51,29 @@ public class ExceptionMiddleware
         {
             await _next(context);
         }
+        catch (Exception ex) when (IsClientCancellation(context, ex))
+        {
+            // The caller closed the connection or navigated away; nobody is
+            // waiting for a response. A normal outcome, not a fault: no error
+            // capture row and no error log (the client has gone, so the status
+            // is only for the access log; 499 is the conventional "client
+            // closed request").
+            _logger.LogDebug("Request cancelled by the client ({CorrelationId})", CorrelationIdMiddleware.GetCorrelationId(context));
+            if (!context.Response.HasStarted) context.Response.StatusCode = ClientClosedRequestStatusCode;
+        }
+        catch (FieldValidationException ex)
+        {
+            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
+            var errors = ex.FieldErrors.Select(e => e.Message).ToList();
+            var fieldErrors = ex.FieldErrors.ToList();
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, errors, fieldErrors, DetailsOf(ex)));
+        }
         catch (BusinessRuleException ex)
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -100,7 +122,7 @@ public class ExceptionMiddleware
             // from.
             context.Response.StatusCode = (int)HttpStatusCode.NotFound;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (InvalidOperationException ex)
         {
@@ -117,7 +139,7 @@ public class ExceptionMiddleware
         {
             context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
         }
         catch (Exception ex)
         {
@@ -126,6 +148,20 @@ public class ExceptionMiddleware
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Critical);
             await WriteResponse(context, ApiResponse<object>.Fail("An unexpected error occurred."));
         }
+    }
+
+    // A cancellation only counts as the client's when the request really was
+    // aborted; a timeout or cancellation raised by the server's own work is still
+    // reported. The cancellation may sit inside a wrapper (a database driver
+    // wraps it), so the whole inner chain is checked.
+    private static bool IsClientCancellation(HttpContext context, Exception exception)
+    {
+        if (!context.RequestAborted.IsCancellationRequested) return false;
+        for (var e = exception; e is not null; e = e.InnerException)
+        {
+            if (e is OperationCanceledException) return true;
+        }
+        return false;
     }
 
     // Never throws - IErrorCaptureService swallows its own failures - so
@@ -169,6 +205,14 @@ public class ExceptionMiddleware
             return null;
         }
     }
+
+    // The code, its parameters and the English sentence of a coded refusal;
+    // null for every other exception, so an uncoded response has no
+    // errorDetails key at all.
+    private static List<ApiError>? DetailsOf(Exception exception) =>
+        exception is ICodedMessage { Code: { } code } coded
+            ? [new ApiError(code, coded.Parameters is { Count: > 0 } ? coded.Parameters : null, exception.Message)]
+            : null;
 
     private static Task WriteResponse(HttpContext context, object payload)
     {

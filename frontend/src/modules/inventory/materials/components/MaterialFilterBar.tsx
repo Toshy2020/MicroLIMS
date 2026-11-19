@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Select, MenuItem, FormControl, InputLabel, Button, Divider } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
+import { useTranslation } from "../../../../i18n";
 import { MaterialItem, MaterialFilterState, MaterialType, MATERIAL_TYPE_LABELS, LEGACY_MATERIAL_TYPES } from "../types/materialTypes";
 import { MaterialService } from "../services/MaterialService";
 import { FilterBar } from "../../../../components/lab";
@@ -36,6 +37,7 @@ interface MaterialFilterBarProps {
 }
 
 export function MaterialFilterBar({ items, filters, onFilterChange, onReset, extraActive, resultCount, onRefresh, refreshing, sectionId }: MaterialFilterBarProps) {
+  const { t } = useTranslation("inventory");
   const [typeOptionsData, setTypeOptionsData] = useState<{
     builtIn: MaterialType[];
     custom: string[];
@@ -72,7 +74,7 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
   // Types the server no longer offers for new lots (supplements, discs, ...) stay filterable
   // while lots received under them are still in stock.
   const legacyTypes = useMemo(
-    () => LEGACY_MATERIAL_TYPES.filter((t) => items.some((i) => i.materialType === t)),
+    () => LEGACY_MATERIAL_TYPES.filter((lt) => items.some((i) => i.materialType === lt)),
     [items]
   );
 
@@ -125,37 +127,37 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
     <FilterBar
       search={filters.search}
       onSearch={(value) => updateField("search", value)}
-      placeholder="Search by name, lot no., code..."
+      placeholder={t("materials.filter.placeholder")}
       resultCount={resultCount}
       onRefresh={onRefresh}
       refreshing={refreshing}
     >
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="material-type-filter-label">Type</InputLabel>
+        <InputLabel id="material-type-filter-label">{t("materials.filter.type")}</InputLabel>
         <Select
           labelId="material-type-filter-label"
-          label="Type"
+          label={t("materials.filter.type")}
           value={filters.materialType}
           onChange={(e) => updateField("materialType", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Types</em>
+            <em>{t("materials.filter.allTypes")}</em>
           </MenuItem>
           {typeOptions.map((opt) => (
             <MenuItem key={opt.value} value={opt.value}>
-              {opt.label}
+              {opt.value === "Other" && typeOptionsData ? t("types.OtherMaterial") : t(`types.${opt.value}`)}
             </MenuItem>
           ))}
           {legacyTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
-          {legacyTypes.map((t) => (
-            <MenuItem key={t} value={t}>
-              {MATERIAL_TYPE_LABELS[t]} (earlier lots)
+          {legacyTypes.map((lt) => (
+            <MenuItem key={lt} value={lt}>
+              {t("materials.filter.earlierLots", { type: t(`types.${lt}`) })}
             </MenuItem>
           ))}
           {categoryOptions.length > 0 && <Divider sx={{ my: 0.5 }} />}
           {categoryOptions.map((c) => (
             <MenuItem key={`category:${c.id}`} value={`category:${c.id}`}>
-              Category: {c.name}
+              {t("materials.filter.category", { name: c.name })}
             </MenuItem>
           ))}
           {customTypes.length > 0 && <Divider sx={{ my: 0.5 }} />}
@@ -168,15 +170,15 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel id="material-mfg-filter-label">Manufacturer</InputLabel>
+        <InputLabel id="material-mfg-filter-label">{t("materials.filter.manufacturer")}</InputLabel>
         <Select
           labelId="material-mfg-filter-label"
-          label="Manufacturer"
+          label={t("materials.filter.manufacturer")}
           value={filters.manufacturer}
           onChange={(e) => updateField("manufacturer", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Manufacturers</em>
+            <em>{t("materials.filter.allManufacturers")}</em>
           </MenuItem>
           {manufacturers.map((mfg) => (
             <MenuItem key={mfg} value={mfg}>
@@ -187,15 +189,15 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id="material-loc-filter-label">Location</InputLabel>
+        <InputLabel id="material-loc-filter-label">{t("materials.filter.location")}</InputLabel>
         <Select
           labelId="material-loc-filter-label"
-          label="Location"
+          label={t("materials.filter.location")}
           value={filters.location}
           onChange={(e) => updateField("location", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Locations</em>
+            <em>{t("materials.filter.allLocations")}</em>
           </MenuItem>
           {locations.map((loc) => (
             <MenuItem key={loc} value={loc}>
@@ -206,38 +208,38 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 130 }}>
-        <InputLabel id="material-status-filter-label">Status</InputLabel>
+        <InputLabel id="material-status-filter-label">{t("materials.filter.status")}</InputLabel>
         <Select
           labelId="material-status-filter-label"
-          label="Status"
+          label={t("materials.filter.status")}
           value={filters.status}
           onChange={(e) => updateField("status", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Statuses</em>
+            <em>{t("materials.filter.allStatuses")}</em>
           </MenuItem>
-          <MenuItem value="InStock">In Stock</MenuItem>
-          <MenuItem value="LowStock">Low Stock</MenuItem>
-          <MenuItem value="Depleted">Depleted</MenuItem>
-          <MenuItem value="Expired">Expired</MenuItem>
+          <MenuItem value="InStock">{t("status.InStock")}</MenuItem>
+          <MenuItem value="LowStock">{t("status.LowStock")}</MenuItem>
+          <MenuItem value="Depleted">{t("status.Depleted")}</MenuItem>
+          <MenuItem value="Expired">{t("status.Expired")}</MenuItem>
         </Select>
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="material-expiry-filter-label">Expiry</InputLabel>
+        <InputLabel id="material-expiry-filter-label">{t("materials.filter.expiry")}</InputLabel>
         <Select
           labelId="material-expiry-filter-label"
-          label="Expiry"
+          label={t("materials.filter.expiry")}
           value={filters.expiryRange}
           onChange={(e) => updateField("expiryRange", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Expiry</em>
+            <em>{t("materials.filter.allExpiry")}</em>
           </MenuItem>
-          <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-          <MenuItem value="expiring_60">Expiring in 60 Days</MenuItem>
-          <MenuItem value="expired">Expired</MenuItem>
-          <MenuItem value="valid">Valid / Unexpired</MenuItem>
+          <MenuItem value="expiring_30">{t("materials.filter.expiring30")}</MenuItem>
+          <MenuItem value="expiring_60">{t("materials.filter.expiring60")}</MenuItem>
+          <MenuItem value="expired">{t("status.Expired")}</MenuItem>
+          <MenuItem value="valid">{t("materials.filter.valid")}</MenuItem>
         </Select>
       </FormControl>
 
@@ -249,7 +251,7 @@ export function MaterialFilterBar({ items, filters, onFilterChange, onReset, ext
           startIcon={<RotateLeftIcon fontSize="small" />}
           sx={{ borderColor: "divider", color: "text.secondary" }}
         >
-          Reset
+          {t("materials.filter.reset")}
         </Button>
       )}
     </FilterBar>

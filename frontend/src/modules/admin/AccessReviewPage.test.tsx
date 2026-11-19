@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AccessReviewPage } from "./AccessReviewPage";
 import { AccessReviewDetail, AccessReviewListItem, AccessReviewService, AccessReviewUserEntry } from "./services/AccessReviewService";
@@ -39,12 +40,12 @@ const detail = (over: Partial<AccessReviewDetail> = {}): AccessReviewDetail => (
   reviewerUserId: null, reviewerName: null, signedAt: null, electronicSignatureId: null, conclusion: null,
   snapshotSha256: "a".repeat(64), snapshotIntact: true,
   snapshot: { reportVersion: 1, generatedAt: "2026-10-28T09:00:00Z", periodLabel: "2026 Q4", dormantDays: 90, statusHistoryMonths: 12, summary, users },
-  findings: [], ...over
+  findings: [], canDecide: true, ...over
 });
 
 const listItem: AccessReviewListItem = {
   id: 7, generatedAt: "2026-10-28T09:00:00Z", generatedByUserId: 1, generatedByName: "Ada Admin", periodLabel: "2026 Q4", status: "Draft",
-  reviewerUserId: null, reviewerName: null, signedAt: null, findingCount: 0, summary
+  reviewerUserId: null, reviewerName: null, signedAt: null, findingCount: 0, summary, canDecide: true
 };
 
 async function openReview(d: AccessReviewDetail = detail()) {
@@ -150,5 +151,75 @@ describe("AccessReviewPage", () => {
   it("warns when the stored report no longer matches its checksum", async () => {
     await openReview(detail({ snapshotIntact: false }));
     expect(screen.getByText(/no longer matches its checksum/)).toBeTruthy();
+  });
+
+  it("access review hides sign for an administrator when QA decides", async () => {
+    const user = userEvent.setup();
+    const readOnlyDetail = detail({ canDecide: false });
+    vi.mocked(AccessReviewService.list).mockResolvedValue([{ ...listItem, canDecide: false }]);
+    vi.mocked(AccessReviewService.get).mockResolvedValue(readOnlyDetail);
+
+    render(<PinnedLightTheme><AccessReviewPage /></PinnedLightTheme>);
+
+    await user.click(await screen.findByRole("button", { name: "Open 2026 Q4" }));
+    await screen.findByRole("table", { name: "Accounts in the report" });
+
+    expect(screen.getByText("Access reviews are decided and signed by Quality Assurance.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sign review" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Add finding/i })).toBeNull();
+  });
+
+  it("Access review line shows the second-factor state", async () => {
+    const userWithMfa = detail({
+      snapshot: {
+        reportVersion: 1,
+        generatedAt: "2026-10-28T09:00:00Z",
+        periodLabel: "2026 Q4",
+        dormantDays: 90,
+        statusHistoryMonths: 12,
+        summary,
+        users: [
+          user({ userId: 1, username: "admin", fullName: "Ada Admin", mfaState: "Enrolled" }),
+          user({ userId: 2, username: "dormant", fullName: "Dora Dormant", mfaState: "Overdue" })
+        ]
+      }
+    });
+    await openReview(userWithMfa);
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Second factor")).toBeTruthy();
+    expect(within(table).getByText("Set up")).toBeTruthy();
+    expect(within(table).getByText("Overdue")).toBeTruthy();
+  });
+
+  it("Access review line shows \"Not recorded\" for reviews stored before this field existed", async () => {
+    const legacyDetail = detail({
+      snapshot: {
+        reportVersion: 1,
+        generatedAt: "2026-10-28T09:00:00Z",
+        periodLabel: "2026 Q4",
+        dormantDays: 90,
+        statusHistoryMonths: 12,
+        summary,
+        users: [user({ userId: 1, username: "admin", fullName: "Ada Admin", mfaState: "" })]
+      }
+    });
+    await openReview(legacyDetail);
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Not recorded")).toBeTruthy();
+  });
+
+  it("Access review line shows the sign-in method and the emergency flag", async () => {
+    await openReview(detail({
+      snapshot: {
+        reportVersion: 1, generatedAt: "2026-10-28T09:00:00Z", periodLabel: "2026 Q4", dormantDays: 90, statusHistoryMonths: 12, summary,
+        users: [
+          user({ userId: 1, username: "admin", fullName: "Ada Admin", signInMethod: "Directory", isEmergencyAccount: true }),
+          user({ userId: 2, username: "dormant", fullName: "Dora Dormant", signInMethod: "Local" })
+        ]
+      }
+    }));
+    const table = screen.getByRole("table", { name: "Accounts in the report" });
+    expect(within(table).getByText("Company login, emergency account")).toBeTruthy();
+    expect(within(table).getByText("Laboratory login")).toBeTruthy();
   });
 });

@@ -1,29 +1,17 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { MAINTENANCE_HEADER, notifyMaintenanceRefusal } from "./maintenanceSignal";
+import { notifyNetworkFailure } from "./connectionSignal";
+import { getApiBaseUrl } from "./apiBaseUrl";
+import { isNetworkError } from "./networkError";
+import { translateServerErrorBody } from "../i18n/serverMessages";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
 
 // Single axios instance every module service goes through. No business
 // logic here - it only attaches the auth token and handles 401s
 // (Frozen Principle #3 - Frontend never implements laboratory rules).
-function getApiBaseUrl(): string {
-  const envUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    const trimmed = String(envUrl).trim().replace(/\/+$/, "");
-    return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
-  }
-  // When running online in production (Cloudflare Pages, Workers, or custom domain),
-  // always connect to the production Render backend API.
-  if (
-    typeof window !== "undefined" &&
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1"
-  ) {
-    return "https://microlims.onrender.com/api";
-  }
-  return "http://localhost:5000/api";
-}
-
 const baseURL = getApiBaseUrl();
+
+export { isNetworkError };
 
 export const apiClient = axios.create({ baseURL });
 
@@ -129,6 +117,19 @@ async function decodeBlobErrorBody(error: AxiosError): Promise<void> {
   }
 }
 
+// A refusal the server sent with a message code is shown in the interface language:
+// the sentence screens read (response.data.message) becomes the translated one.
+// Uncoded responses are left exactly as they came.
+// If the templates cannot be loaded the server's English sentence stays: the
+// caller must still receive the original refusal, never a loading error.
+async function translateCodedRefusal(error: AxiosError): Promise<void> {
+  try {
+    await translateServerErrorBody(error.response?.data);
+  } catch (e) {
+    console.warn("Server message templates could not be loaded; showing the server's sentence.", e);
+  }
+}
+
 // What a laboratory user is told when the server gave no message of its own.
 // Screens show `err.response?.data?.message ?? err.message`; without this,
 // err.message was axios's own text - "Request failed with status code 500",
@@ -180,11 +181,17 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     rememberCorrelationId(error);
+    if (isNetworkError(error)) notifyNetworkFailure();
     await decodeBlobErrorBody(error);
+    await translateCodedRefusal(error);
     if (handleMaintenanceRefusal(error)) return Promise.reject(error);
 
     const config = error.config as RetryableRequestConfig | undefined;
-    const isAuthEndpoint = config?.url?.includes("/auth/refresh") || config?.url?.includes("/auth/login");
+    const isAuthEndpoint =
+      config?.url?.includes("/auth/refresh") ||
+      config?.url?.includes("/auth/login") ||
+      config?.url?.includes("/auth/mfa/verify") ||
+      config?.url?.includes("/auth/mfa/enrol/token/");
 
     if (error.response?.status !== 401 || !config || config._retry || isAuthEndpoint) {
       humanizeError(error);
@@ -209,4 +216,25 @@ apiClient.interceptors.response.use(
 // make your change again") if someone else changed the record since.
 export function ifMatch(version: number | null | undefined): { headers?: Record<string, string> } {
   return version == null ? {} : { headers: { "If-Match": `"${version}"` } };
+}
+
+export const CHANGE_REASON_HEADER = "X-Change-Reason";
+
+export function withChangeReason(
+  version?: number | null,
+  reason?: string | null
+): { headers?: Record<string, string> } {
+  const headers: Record<string, string> = {};
+  if (version != null) headers["If-Match"] = `"${version}"`;
+  const trimmed = reason?.trim();
+  if (trimmed) headers[CHANGE_REASON_HEADER] = encodeURIComponent(trimmed);
+  return Object.keys(headers).length === 0 ? {} : { headers };
+}
+
+export function isReasonRequiredError(err: unknown): boolean {
+  const axiosError = err as {
+    response?: { data?: { fieldErrors?: Array<{ field?: string; message?: string }> } };
+  };
+  const fieldErrors = axiosError?.response?.data?.fieldErrors;
+  return Array.isArray(fieldErrors) && fieldErrors.some((f) => f.field?.toLowerCase() === "reason");
 }

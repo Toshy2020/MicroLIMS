@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "../../../../i18n";
 import { MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { LimitFields, ChemistryLimitFields, LimitValues, PanelSection, SidePanel, emptyLimits } from "../../../../components/configHierarchy";
 import { TestCodePicker } from "../../../../components/TestCodePicker";
 import { useEditableTestCodes } from "../../../../hooks/useEditableTestCodes";
 import { useTestDefinitions } from "../../../../hooks/useTestDefinitions";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../../../hooks/useRecordChanged";
+import { useReloadedRecord } from "../../../../hooks/useReloadedRecord";
 import { AfterCleaningConfigService } from "../services/AfterCleaningConfigService";
 import { AC_COUNT_TYPES, Machine, MachinePart, PATHOGEN_TEST_TYPE, PartConfig } from "../acConfigTypes";
 import { cleaningTechniqueOf } from "../cleaningTechniques";
@@ -18,7 +22,11 @@ interface MachineProps {
   onSaved: (message: string, id?: number) => void;
 }
 
-export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps) {
+export function AcMachinePanel({ open, machine: openedMachine, onClose, onSaved }: MachineProps) {
+  const { t } = useTranslation("labConfig");
+  const { current: machine, reload } = useReloadedRecord<Machine>(openedMachine, async (m) =>
+    ((await AfterCleaningConfigService.getMachines()) as Machine[]).find((x) => x.id === m.id)
+  );
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,19 +38,20 @@ export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps
   }, [open, machine]);
 
   const save = async () => {
-    if (!name.trim()) return setError("Name is required.");
+    if (!name.trim()) return setError(t("afterCleaning.machine.nameRequired"));
     setSaving(true);
     setError(null);
     try {
       if (machine) {
         await AfterCleaningConfigService.updateMachine(machine.id, name.trim(), machine.version);
-        onSaved(`"${name.trim()}" updated.`, machine.id);
+        noteOwnSave("machine", machine.id);
+        onSaved(t("afterCleaning.machine.updated", { name: name.trim() }), machine.id);
       } else {
         const created = await AfterCleaningConfigService.createMachine(name.trim());
-        onSaved(`"${name.trim()}" added.`, created?.id);
+        onSaved(t("afterCleaning.machine.added", { name: name.trim() }), created?.id);
       }
     } catch (e) {
-      setError(errorText(e, "Could not save this machine."));
+      setError(errorText(e, t("afterCleaning.machine.saveError")));
     } finally {
       setSaving(false);
     }
@@ -51,15 +60,18 @@ export function AcMachinePanel({ open, machine, onClose, onSaved }: MachineProps
   return (
     <SidePanel
       open={open}
-      overline="Machine"
-      title={machine ? `Rename ${machine.name}` : "Add machine"}
+      overline={t("afterCleaning.machine.overline")}
+      title={machine ? t("afterCleaning.machine.renameTitle", { name: machine.name }) : t("afterCleaning.machine.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={machine ? "Save changes" : "Add machine"}
+      saveLabel={machine ? t("afterCleaning.machine.saveChanges") : t("afterCleaning.machine.addTitle")}
       error={error}
     >
-      <TextField autoFocus size="small" label="Machine name" required placeholder="e.g. Filling line 2" value={name} onChange={(e) => setName(e.target.value)} />
+      {open && machine && (
+        <RecordChangedBanner type="machine" id={machine.id} dirty={name !== machine.name} onReload={() => void reload()} />
+      )}
+      <TextField autoFocus size="small" label={t("afterCleaning.machine.nameLabel")} required placeholder={t("afterCleaning.machine.namePlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
     </SidePanel>
   );
 }
@@ -73,7 +85,13 @@ interface PartProps {
   onSaved: (message: string, machineId?: number) => void;
 }
 
-export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, onSaved }: PartProps) {
+export function AcPartPanel({ open, part: openedPart, defaultMachineId, machines, onClose, onSaved }: PartProps) {
+  const { t } = useTranslation("labConfig");
+  const { current: part, reload } = useReloadedRecord<MachinePart>(openedPart, async (p) =>
+    ((await AfterCleaningConfigService.getMachines()) as Machine[])
+      .flatMap((m) => m.parts)
+      .find((x) => x.id === p.id)
+  );
   const [name, setName] = useState("");
   const [machineId, setMachineId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
@@ -87,15 +105,17 @@ export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, o
   }, [open, part, defaultMachineId]);
 
   const save = async () => {
-    if (!name.trim() || machineId === "") return setError("Part name and machine are required.");
+    if (!name.trim() || machineId === "") return setError(t("afterCleaning.part.required"));
     setSaving(true);
     setError(null);
     try {
-      if (part) await AfterCleaningConfigService.updateMachinePart(part.id, name.trim(), Number(machineId), part.version);
-      else await AfterCleaningConfigService.createMachinePart(name.trim(), Number(machineId));
-      onSaved(part ? `Part "${name.trim()}" updated.` : `Part "${name.trim()}" added.`, Number(machineId));
+      if (part) {
+        await AfterCleaningConfigService.updateMachinePart(part.id, name.trim(), Number(machineId), part.version);
+        noteOwnSave("machinePart", part.id);
+      } else await AfterCleaningConfigService.createMachinePart(name.trim(), Number(machineId));
+      onSaved(part ? t("afterCleaning.part.updated", { name: name.trim() }) : t("afterCleaning.part.added", { name: name.trim() }), Number(machineId));
     } catch (e) {
-      setError(errorText(e, "Could not save this part."));
+      setError(errorText(e, t("afterCleaning.part.saveError")));
     } finally {
       setSaving(false);
     }
@@ -104,17 +124,25 @@ export function AcPartPanel({ open, part, defaultMachineId, machines, onClose, o
   return (
     <SidePanel
       open={open}
-      overline={machines.find((m) => m.id === machineId)?.name ?? "Machine part"}
-      title={part ? `Edit ${part.name}` : "Add machine part"}
+      overline={machines.find((m) => m.id === machineId)?.name ?? t("afterCleaning.part.overline")}
+      title={part ? t("afterCleaning.part.editTitle", { name: part.name }) : t("afterCleaning.part.addTitle")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={part ? "Save changes" : "Add part"}
+      saveLabel={part ? t("afterCleaning.part.saveChanges") : t("afterCleaning.part.addPart")}
       error={error}
     >
       <Stack spacing={1.5}>
-        <TextField autoFocus size="small" label="Part name" required placeholder="e.g. Filling needles" value={name} onChange={(e) => setName(e.target.value)} />
-        <TextField select size="small" label="Machine" required value={machineId} onChange={(e) => setMachineId(Number(e.target.value))}>
+        {open && part && (
+          <RecordChangedBanner
+            type="machinePart"
+            id={part.id}
+            dirty={name !== part.name || machineId !== part.machineId}
+            onReload={() => void reload()}
+          />
+        )}
+        <TextField autoFocus size="small" label={t("afterCleaning.part.partName")} required placeholder={t("afterCleaning.part.partPlaceholder")} value={name} onChange={(e) => setName(e.target.value)} />
+        <TextField select size="small" label={t("afterCleaning.part.machine")} required value={machineId} onChange={(e) => setMachineId(Number(e.target.value))}>
           {machines.map((m) => (
             <MenuItem key={m.id} value={m.id}>
               {m.name}
@@ -136,7 +164,13 @@ interface CountProps {
 }
 
 // A swab or rinse count test or chemistry test for a part, with its limits.
-export function AcCountTestPanel({ open, part, config, onClose, onSaved, editableCodes }: CountProps) {
+export function AcCountTestPanel({ open, part, config: openedConfig, onClose, onSaved, editableCodes }: CountProps) {
+  const { t } = useTranslation("labConfig");
+  const { current: config, reload } = useReloadedRecord<PartConfig>(openedConfig, async (c) =>
+    ((await AfterCleaningConfigService.getPartConfigurations(c.machinePartId)) as PartConfig[]).find((x) => x.id === c.id)
+  );
+  // Set when the user changes a field, cleared whenever the form is (re)loaded from the record.
+  const [touched, setTouched] = useState(false);
   const { editableCodes: hookEditable } = useEditableTestCodes();
   const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
   const { options: testDefinitions } = useTestDefinitions();
@@ -147,7 +181,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const activeDef = testDefinitions.find((t) => t.code === testCode);
+  const activeDef = testDefinitions.find((td) => td.code === testCode);
   const isHplc = activeDef?.workflowType === "HplcMethodAssay";
   const isIcp = activeDef?.workflowType === "IcpMethodAssay";
   const isMethodLimit = isHplc || isIcp;
@@ -162,7 +196,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     setTestType(config?.testType ?? AC_COUNT_TYPES[0].value);
     setTestCode(config?.testCode ?? "");
     if (config) {
-      const def = testDefinitions.find((t) => t.code === config.testCode);
+      const def = testDefinitions.find((td) => td.code === config.testCode);
       const isMethod = def?.workflowType === "HplcMethodAssay" || def?.workflowType === "IcpMethodAssay";
       if (isMethod) {
         setLimits(emptyLimits);
@@ -185,12 +219,14 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
     } else {
       setLimits(emptyLimits);
     }
+    setTouched(false);
     setError(null);
   }, [open, config, testDefinitions]);
 
   const handleTestCodeChange = (newCode: string) => {
+    setTouched(true);
     setTestCode(newCode);
-    const def = testDefinitions.find((t) => t.code === newCode);
+    const def = testDefinitions.find((td) => td.code === newCode);
     const isMethod = def?.workflowType === "HplcMethodAssay" || def?.workflowType === "IcpMethodAssay";
     if (isMethod) {
       setLimits(emptyLimits);
@@ -216,28 +252,28 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
 
   const save = async () => {
     if (!part) return;
-    if (!testCode) return setError("Choose the test to run.");
+    if (!testCode) return setError(t("afterCleaning.count.chooseTest"));
 
     if (isPhyschem && !isMethodLimit) {
       const type = limits.limitType ?? (isUv ? "Qualitative" : "Range");
       if (type === "Range") {
         if (limits.lowerLimit == null && limits.upperLimit == null) {
-          return setError("Range limit requires a lower limit, an upper limit, or both.");
+          return setError(t("afterCleaning.count.rangeNeedsOne"));
         }
         if (limits.lowerLimit != null && limits.upperLimit != null && limits.lowerLimit > limits.upperLimit) {
-          return setError("Lower limit cannot be greater than upper limit.");
+          return setError(t("afterCleaning.count.lowerGtUpper"));
         }
       } else if (type === "NotMoreThan") {
         if (limits.upperLimit == null) {
-          return setError("Upper limit is required for Not More Than.");
+          return setError(t("afterCleaning.count.upperRequired"));
         }
       } else if (type === "NotLessThan") {
         if (limits.lowerLimit == null) {
-          return setError("Lower limit is required for Not Less Than.");
+          return setError(t("afterCleaning.count.lowerRequired"));
         }
       } else if (type === "Qualitative") {
         if (!limits.expectedResultText || limits.expectedResultText.trim() === "") {
-          return setError("Expected result text is required for Qualitative.");
+          return setError(t("afterCleaning.count.expectedRequired"));
         }
       }
     }
@@ -291,6 +327,7 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
           config.version,
           extra
         );
+        noteOwnSave("machinePartConfiguration", config.id);
       } else {
         await AfterCleaningConfigService.createPartConfiguration(
           part.id,
@@ -304,55 +341,58 @@ export function AcCountTestPanel({ open, part, config, onClose, onSaved, editabl
           extra
         );
       }
-      onSaved(config ? `Test updated for ${part.name}.` : `Test added to ${part.name}.`);
+      onSaved(config ? t("afterCleaning.count.updated", { part: part.name }) : t("afterCleaning.count.added", { part: part.name }));
     } catch (e) {
-      setError(errorText(e, "Could not save this test."));
+      setError(errorText(e, t("afterCleaning.count.saveError")));
     } finally {
       setSaving(false);
     }
   };
 
-  const unitHint = AC_COUNT_TYPES.find((t) => t.value === testType)?.unitHint;
+  const unitHint = AC_COUNT_TYPES.find((ct) => ct.value === testType)?.unitHint;
 
   return (
     <SidePanel
       open={open}
       overline={part?.name}
-      title={config ? (isPhyschem ? "Edit test" : "Edit count test") : (isPhyschem ? "Add test" : "Add swab / rinse test")}
+      title={config ? (isPhyschem ? t("afterCleaning.count.editTest") : t("afterCleaning.count.editCount")) : (isPhyschem ? t("afterCleaning.count.addTest") : t("afterCleaning.count.addSwabRinse"))}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel={config ? "Save changes" : "Add test"}
+      saveLabel={config ? t("afterCleaning.count.saveChanges") : t("afterCleaning.count.addTest")}
       error={error}
     >
-      <PanelSection title="1 · What is sampled">
-        <TextField select size="small" label="Sample type" value={testType} onChange={(e) => setTestType(e.target.value)}>
-          {AC_COUNT_TYPES.map((t) => (
-            <MenuItem key={t.value} value={t.value}>
-              {t.label}
+      {open && config && (
+        <RecordChangedBanner type="machinePartConfiguration" id={config.id} dirty={touched} onReload={() => void reload()} />
+      )}
+      <PanelSection title={t("afterCleaning.count.section1")}>
+        <TextField select size="small" label={t("afterCleaning.count.sampleType")} value={testType} onChange={(e) => { setTouched(true); setTestType(e.target.value); }}>
+          {AC_COUNT_TYPES.map((ct) => (
+            <MenuItem key={ct.value} value={ct.value}>
+              {t(`afterCleaning.sampleTypes.${ct.value}`, { defaultValue: ct.label })}
             </MenuItem>
           ))}
         </TextField>
-        <TestCodePicker value={testCode} onChange={handleTestCodeChange} label="Test" editableCodes={effectiveEditable ?? new Set<string>()} />
+        <TestCodePicker value={testCode} onChange={handleTestCodeChange} label={t("afterCleaning.count.test")} editableCodes={effectiveEditable ?? new Set<string>()} />
       </PanelSection>
       <PanelSection
-        title="2 · Limits"
+        title={t("afterCleaning.count.section2")}
         hint={
           isMethodLimit
             ? undefined
             : isPhyschem
-            ? (isUv ? "UV scan limit (defaults to Qualitative: 'No peaks')." : "Chemistry limits for residue testing.")
-            : `Results for ${testType.toLowerCase()} samples are reported in ${unitHint}.`
+            ? (isUv ? t("afterCleaning.count.hintUv") : t("afterCleaning.count.hintChem"))
+            : t("afterCleaning.count.hintCount", { type: t(`afterCleaning.sampleTypes.${testType}`, { defaultValue: testType }).toLowerCase(), unit: unitHint })
         }
       >
         {isMethodLimit ? (
           <Typography variant="body2" sx={{ color: "text.secondary", py: 1 }}>
-            {isHplc ? "Limit from the method" : "Limit from the ICP test"}
+            {isHplc ? t("afterCleaning.count.limitFromMethod") : t("afterCleaning.count.limitFromIcp")}
           </Typography>
         ) : isPhyschem ? (
-          <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder="e.g. ppm, µg/swab" />
+          <ChemistryLimitFields idPrefix="ac-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitPlaceholder={t("afterCleaning.count.unitChem")} />
         ) : (
-          <LimitFields idPrefix="ac-limit" value={limits} onChange={setLimits} unitPlaceholder={unitHint} />
+          <LimitFields idPrefix="ac-limit" value={limits} onChange={(v) => { setTouched(true); setLimits(v); }} unitPlaceholder={unitHint} />
         )}
       </PanelSection>
     </SidePanel>
@@ -373,6 +413,7 @@ interface PathogenProps {
 // pathogens; saving adds the new ones and removes the unticked ones
 // (each is its own configuration row, so each gets its own TestOrder).
 export function AcPathogenPanel({ open, part, configs, onClose, onSaved, editableCodes }: PathogenProps) {
+  const { t } = useTranslation("labConfig");
   const { editableCodes: hookEditable } = useEditableTestCodes();
   const effectiveEditable = editableCodes !== undefined ? editableCodes : hookEditable;
 
@@ -399,7 +440,7 @@ export function AcPathogenPanel({ open, part, configs, onClose, onSaved, editabl
       try {
         await AfterCleaningConfigService.createPartConfiguration(part.id, PATHOGEN_TEST_TYPE, code, "", "", "", true, "");
       } catch (e) {
-        failed.push(`${code}: ${errorText(e, "could not be added")}`);
+        failed.push(`${code}: ${errorText(e, t("afterCleaning.pathogenPanel.couldNotAdd"))}`);
       }
     }
     const safeRemoved = removed.filter((c) => effectiveEditable === undefined || effectiveEditable.has(c.testCode));
@@ -407,36 +448,36 @@ export function AcPathogenPanel({ open, part, configs, onClose, onSaved, editabl
       try {
         await AfterCleaningConfigService.deletePartConfiguration(c.id);
       } catch (e) {
-        failed.push(`${c.testCode}: ${errorText(e, "could not be removed")}`);
+        failed.push(`${c.testCode}: ${errorText(e, t("afterCleaning.pathogenPanel.couldNotRemove"))}`);
       }
     }
     setSaving(false);
     if (failed.length > 0) {
-      setError(`Some changes were not saved. ${failed.join(" ")}`);
+      setError(t("afterCleaning.pathogenPanel.someNotSaved", { failures: failed.join(" ") }));
       return;
     }
-    onSaved(`Pathogen tests updated for ${part.name}.`);
+    onSaved(t("afterCleaning.pathogenPanel.updated", { part: part.name }));
   };
 
   return (
     <SidePanel
       open={open}
       overline={part?.name}
-      title="Pathogen tests"
+      title={t("afterCleaning.pathogenPanel.title")}
       onClose={onClose}
       onSave={save}
       saving={saving}
-      saveLabel="Save pathogen tests"
+      saveLabel={t("afterCleaning.pathogenPanel.save")}
       error={error}
     >
       <PanelSection
-        title="Pathogens tested on this part"
-        hint="Choose as many as needed. Each is a presence/absence test with its own test order - no numeric limits."
+        title={t("afterCleaning.pathogenPanel.sectionTitle")}
+        hint={t("afterCleaning.pathogenPanel.sectionHint")}
       >
         <PathogenPicker value={codes} onChange={setCodes} editableCodes={effectiveEditable ?? new Set<string>()} />
         {(added.length > 0 || removed.length > 0) && (
           <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-            {[added.length > 0 && `${added.length} to add`, removed.length > 0 && `${removed.length} to remove`].filter(Boolean).join(", ")}.
+            {[added.length > 0 && t("afterCleaning.pathogenPanel.toAdd", { count: added.length }), removed.length > 0 && t("afterCleaning.pathogenPanel.toRemove", { count: removed.length })].filter(Boolean).join(", ")}.
           </Typography>
         )}
       </PanelSection>

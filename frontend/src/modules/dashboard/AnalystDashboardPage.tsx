@@ -1,38 +1,35 @@
+import { useTranslation } from "../../i18n";
 import { useEffect, useState } from "react";
-import { Alert, Grid, Box, Button } from "@mui/material";
+import { Alert, Grid, Button, Paper, Stack, Typography } from "@mui/material";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { PageHeader } from "../../components/PageHeader";
-import { TableSkeleton } from "../../components/TableSkeleton";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import { DashboardStateGate } from "./components/DashboardStateGate";
 import { useDashboardSummary } from "./hooks/useDashboardSummary";
-import { useMyTasks } from "./hooks/useMyTasks";
-import { useTodaysWork } from "./hooks/useTodaysWork";
 import { DashboardService } from "./services/DashboardService";
+import { myWorkService } from "../myWork/services/myWorkService";
+import type { MyWorkSummary } from "../myWork/myWorkTypes";
 import { IncubationOverviewRow, AnalystMetrics } from "./types/dashboard";
 import { AnalystWorkSummary } from "./components/AnalystWorkSummary";
-import { ActionRequiredPanel } from "./components/ActionRequiredPanel";
-import { AttentionRequiredPanel } from "./components/AttentionRequiredPanel";
 import { IncubationObservationPanel } from "./components/IncubationObservationPanel";
-import { TodaysWorkTable } from "./components/TodaysWorkTable";
 import { CompletedTodayPanel } from "./components/CompletedTodayPanel";
 import { AnalystPerformancePanel } from "./components/AnalystPerformancePanel";
-import { LAB_LABELS, useDashboardLab } from "./DashboardLabContext";
+import { useDashboardLab } from "./DashboardLabContext";
 
 export function AnalystDashboardPage() {
+  const { t } = useTranslation("dashboard");
   const { username, fullName } = useAuth();
-  const displayName = fullName ?? username ?? "Analyst";
+  const displayName = fullName ?? username ?? t("analyst.fallbackName");
   const lab = useDashboardLab();
 
   // useApi already tracks the error; this page used to destructure only
   // `data` and gate on `!summary`, so a failed request left the screen as a
   // spinner forever.
   const { data: summary, loading: summaryLoading, error: summaryError, reload: reloadSummary } = useDashboardSummary(lab.code);
-  const { data: tasks, loading: tasksLoading, reload: reloadTasks } = useMyTasks(lab.code);
-  const { data: todaysWork, reload: reloadTodaysWork } = useTodaysWork(lab.code);
 
+  const [workSummary, setWorkSummary] = useState<MyWorkSummary | null>(null);
   const [incubations, setIncubations] = useState<IncubationOverviewRow[]>([]);
   const [metrics, setMetrics] = useState<AnalystMetrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,31 +39,35 @@ export function AnalystDashboardPage() {
   const reload = () => {
     setReloadKey((k) => k + 1);
     reloadSummary();
-    reloadTasks();
-    reloadTodaysWork();
   };
 
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     setLoading(true);
 
-    // These two are supplementary, so a failure degrades their panels rather
+    // These are supplementary, so a failure degrades their panels rather
     // than blanking the dashboard - but it is NOT silent. Swallowing them into
     // [] and null made a dead endpoint look like "nothing is incubating",
     // which on a GMP board is worse than an error.
     // Incubations are Microbiology work; a Physicochemical view skips them.
     Promise.allSettled([
       lab.isPhyschem ? Promise.resolve([] as IncubationOverviewRow[]) : DashboardService.getIncubationOverview(true, lab.code),
-      DashboardService.getAnalystMetrics(lab.code)
-    ]).then(([incResult, metResult]) => {
-      if (cancelled) return;
+      DashboardService.getAnalystMetrics(lab.code),
+      myWorkService.summary(controller.signal)
+    ]).then(([incResult, metResult, workResult]) => {
+      if (cancelled || controller.signal.aborted) return;
       setIncubations(incResult.status === "fulfilled" ? incResult.value : []);
       setMetrics(metResult.status === "fulfilled" ? metResult.value : null);
+      setWorkSummary(workResult.status === "fulfilled" ? workResult.value : null);
       setPartialFailure(incResult.status === "rejected" || metResult.status === "rejected");
       setLoading(false);
     });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [reloadKey, lab.code, lab.isPhyschem]);
 
   if (!summary) {
@@ -80,8 +81,8 @@ export function AnalystDashboardPage() {
   return (
     <>
       <PageHeader
-        title={`Welcome back, ${displayName}`}
-        subtitle={lab.code ? `Your prioritized work in the ${LAB_LABELS[lab.code]} for today.` : "Your prioritized work for today."}
+        title={t("analyst.welcome", { name: displayName })}
+        subtitle={lab.code ? t("analyst.subtitleLab", { lab: t(`labName.${lab.code}`) }) : t("analyst.subtitle")}
       >
         <Button
           variant="outlined"
@@ -89,7 +90,7 @@ export function AnalystDashboardPage() {
           disabled={loading}
           startIcon={<RefreshIcon />}
         >
-          Refresh
+          {t("common.refresh")}
         </Button>
         <Button
           component={Link}
@@ -97,7 +98,7 @@ export function AnalystDashboardPage() {
           variant="contained"
           startIcon={<ScienceOutlinedIcon />}
         >
-          Open Testing Workspace
+          {t("analyst.workspace")}
         </Button>
       </PageHeader>
 
@@ -107,49 +108,52 @@ export function AnalystDashboardPage() {
           sx={{ mb: 2, borderRadius: 2 }}
           action={
             <Button size="small" color="inherit" onClick={reload} sx={{ textTransform: "none", fontWeight: 600 }}>
-              Retry
+              {t("common.retry")}
             </Button>
           }
         >
           {lab.isPhyschem
-            ? "Some panels could not be loaded, so the throughput figures below may be incomplete."
-            : "Some panels could not be loaded, so the incubation and throughput figures below may be incomplete."}
+            ? t("analyst.partialPhyschem")
+            : t("analyst.partialMicro")}
         </Alert>
       )}
 
       {/* Tier 1: KPI Work Summary Strip */}
-      {/* No onSelectCategory: each tile always gets a `to`, so its Link
-          branch wins and the onClick branch was unreachable. The tiles
-          navigate to these same routes via CATEGORY_ROUTES, as real links. */}
-      <AnalystWorkSummary tasks={tasks ?? []} readyToReadCount={summary.readyToReadCount} />
+      <AnalystWorkSummary
+        overdueCount={workSummary?.complete ? workSummary.overdue : null}
+        dueNowCount={workSummary?.complete ? workSummary.now : null}
+        readyToReadCount={summary.readyToReadCount}
+      />
 
-      {/* Tier 2: Action Required by Analyst */}
-      <ActionRequiredPanel tasks={tasks} loading={tasksLoading} />
+      {/* Tier 2: Link to My Work queue */}
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, borderRadius: 2 }}>
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={1.5}
+          sx={{ alignItems: { sm: "center" }, justifyContent: "space-between" }}
+        >
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+            Your prioritized tests, reviews, and tasks live in My Work.
+          </Typography>
+          <Button
+            component={Link}
+            to="/my-work"
+            variant="contained"
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            {workSummary?.complete && workSummary.total !== null ? t("analyst.openMyWorkCount", { n: workSummary.total }) : t("analyst.openMyWork")}
+          </Button>
+        </Stack>
+      </Paper>
 
-      {/* Tier 3: My Active Work Table (Elevated above secondary monitoring panels) */}
-      <Box sx={{ mb: 2 }}>
-        {todaysWork ? <TodaysWorkTable items={todaysWork} /> : <TableSkeleton rows={4} cols={5} />}
-      </Box>
-
-      {/* Tier 4: Attention Required & (Microbiology) Incubation Monitoring */}
-      <Grid container spacing={2} sx={{ mb: 2 }}>
-        <Grid
-          size={{
-            xs: 12,
-            md: lab.isPhyschem ? 12 : 6
-          }}>
-          <AttentionRequiredPanel />
-        </Grid>
-        {!lab.isPhyschem && (
-          <Grid
-            size={{
-              xs: 12,
-              md: 6
-            }}>
+      {/* Tier 3: (Microbiology) Incubation Monitoring */}
+      {!lab.isPhyschem && (
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid size={{ xs: 12 }}>
             <IncubationObservationPanel rows={incubations} loading={loading} />
           </Grid>
-        )}
-      </Grid>
+        </Grid>
+      )}
 
       {/* Tier 5: Daily Throughput & Operational Metrics */}
       <Grid container spacing={2} sx={{ mb: 2 }}>

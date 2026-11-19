@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { SolutionPreparationService } from "../services/SolutionPreparationService";
 import type {
@@ -12,6 +13,7 @@ export function useTitrantStandardization(
   preparation: SolutionPreparationResponse | null,
   onRefreshPreparation: (id: number) => Promise<void>
 ) {
+  const { t } = useTranslation("solutionPreparation");
   const { permissions } = useAuth();
   const [standardizations, setStandardizations] = useState<TitrantStandardizationResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,8 +55,8 @@ export function useTitrantStandardization(
         loadStandardizations(prepId)
       ]);
     }
-    toast.success("Titrant standardized successfully.");
-  }, [prepId, onRefreshPreparation, loadStandardizations]);
+    toast.success(t("standardizationDialog.standardizedToast"));
+  }, [prepId, onRefreshPreparation, loadStandardizations, t]);
 
   return {
     standardizations,

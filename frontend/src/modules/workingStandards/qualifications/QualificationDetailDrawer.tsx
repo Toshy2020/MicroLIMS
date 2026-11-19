@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { toast } from "sonner";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useTranslation } from "../../../i18n";
 import { PERMISSIONS } from "../../../routes/routes";
 import { WorkingStandardService } from "../services/WorkingStandardService";
 import type {
@@ -37,6 +38,7 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
   onUpdated
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation("workingStandards");
   const { permissions } = useAuth();
   const [qualification, setQualification] = useState<WorkingStandardQualificationDto | null>(null);
   const [loading, setLoading] = useState(false);
@@ -57,14 +59,14 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
       }
     } catch {
       if (activeIdRef.current === id) {
-        toast.error("Failed to load qualification details");
+        toast.error(t("drawer.loadError"));
       }
     } finally {
       if (activeIdRef.current === id) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (open && qualificationId) {
@@ -122,7 +124,7 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
           </Box>
         ) : !qualification ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
-            <Typography color="text.secondary">No qualification selected.</Typography>
+            <Typography color="text.secondary">{t("drawer.empty")}</Typography>
           </Box>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
@@ -132,7 +134,7 @@ export const QualificationDetailDrawer: React.FC<QualificationDetailDrawerProps>
               <Stack spacing={2.5}>
                 {needsSourceReport && (
                   <Alert severity="info">
-                    Upload the raw material&apos;s first test report before this qualification can be assigned to an HPLC run.
+                    {t("drawer.needsSourceReport")}
                   </Alert>
                 )}
 

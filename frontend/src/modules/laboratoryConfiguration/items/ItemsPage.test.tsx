@@ -1,9 +1,12 @@
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material";
 import { MemoryRouter } from "react-router-dom";
 import { lightTheme } from "../../../theme";
+import { i18n } from "../../../i18n";
 import { ItemsPage } from "./ItemsPage";
+import { ItemService } from "./services/ItemService";
 
 const perms = vi.hoisted(() => ({ list: [] as string[] }));
 vi.mock("../../../contexts/AuthContext", () => ({
@@ -26,6 +29,16 @@ vi.mock("./services/ItemDocumentService", () => ({
 const renderPage = () => render(<MemoryRouter><ThemeProvider theme={lightTheme}><ItemsPage /></ThemeProvider></MemoryRouter>);
 
 describe("ItemsPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(ItemService.getAll).mockResolvedValue([item] as never);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await i18n.changeLanguage("en");
+  });
+
   it("shows no create, edit, freeze or delete control to a user who can only give the final approval", async () => {
     perms.list = ["tests.not-applicable.final-approve"];
     renderPage();
@@ -43,5 +56,44 @@ describe("ItemsPage", () => {
     expect(screen.getAllByText("Add Item").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Edit Riboflavin")).toBeTruthy();
     expect(screen.getByLabelText("Delete Riboflavin")).toBeTruthy();
+  });
+
+  it("opens ChangeReasonDialog for freeze, unfreeze, and delete", async () => {
+    perms.list = ["Items.Manage"];
+    vi.mocked(ItemService.getAll)
+      .mockResolvedValueOnce([item] as never)
+      .mockResolvedValueOnce([{ ...item, isActive: false }] as never)
+      .mockResolvedValueOnce([{ ...item, isActive: true }] as never)
+      .mockResolvedValueOnce([] as never);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Riboflavin")).toBeTruthy());
+    await user.click(screen.getByLabelText("Freeze Riboflavin"));
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Discontinued vendor lot 2026");
+    await user.click(screen.getByRole("button", { name: "Freeze" }));
+    await waitFor(() => expect(ItemService.freeze).toHaveBeenCalledWith(1, "Discontinued vendor lot 2026"));
+
+    await waitFor(() => expect(screen.getByLabelText("Unfreeze Riboflavin")).toBeTruthy());
+    await user.click(screen.getByLabelText("Unfreeze Riboflavin"));
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Supplier requalified batch");
+    await user.click(screen.getByRole("button", { name: "Unfreeze" }));
+    await waitFor(() => expect(ItemService.unfreeze).toHaveBeenCalledWith(1, "Supplier requalified batch"));
+
+    await waitFor(() => expect(screen.getByLabelText("Delete Riboflavin")).toBeTruthy());
+    await user.click(screen.getByLabelText("Delete Riboflavin"));
+    await user.type(await screen.findByLabelText(/Reason for change/i), "Obsolete test item master");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(ItemService.remove).toHaveBeenCalledWith(1, "Obsolete test item master"));
+  });
+
+  it("renders the page heading and action buttons in Arabic when Arabic is active", async () => {
+    perms.list = ["Items.Manage"];
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["labConfig"]);
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Riboflavin")).toBeTruthy());
+    expect(screen.getByRole("heading", { name: "الأصناف" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "إضافة صنف" })).toBeTruthy();
   });
 });

@@ -22,6 +22,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import { ConfirmationDialog } from "../../../components/ConfirmationDialog";
+import { useTranslation } from "../../../i18n";
 import {
   masterDataOptions,
   ProductionStageOption,
@@ -37,6 +38,7 @@ const PRODUCTION_STAGE_ROLES: ProductionStageRole[] = [
 ];
 
 export function ProductionStagesCard() {
+  const { t } = useTranslation("masterData");
   const theme = useTheme();
   const [list, setList] = useState<ProductionStageOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export function ProductionStagesCard() {
       .then(setList)
       .catch(() =>
         setMessage({
-          text: "Could not load production stages. Refresh to try again.",
+          text: t("receivingConfig.productionStages.loadError"),
           ok: false
         })
       )
@@ -62,12 +64,13 @@ export function ProductionStagesCard() {
 
   useEffect(() => {
     reload();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (message?.ok) {
-      const t = setTimeout(() => setMessage(null), 3000);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
     }
   }, [message]);
 
@@ -96,21 +99,22 @@ export function ProductionStagesCard() {
           name: trimmed,
           role
         }, editing.version);
-        setMessage({ text: `Renamed to "${trimmed}".`, ok: true });
+        setMessage({ text: t("receivingConfig.renamedMsg", { name: trimmed }), ok: true });
       } else {
         await masterDataOptions.createProductionStage({
           name: trimmed,
           role
         });
-        setMessage({ text: `"${trimmed}" added.`, ok: true });
+        setMessage({ text: t("receivingConfig.addedMsg", { name: trimmed }), ok: true });
       }
       cancelEdit();
       await reload();
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       setMessage({
         text:
-          e?.response?.data?.message ??
-          `Could not ${editing ? "rename" : "add"} this entry. Check the name and try again.`,
+          err?.response?.data?.message ??
+          (editing ? t("receivingConfig.renameError") : t("receivingConfig.addError")),
         ok: false
       });
     } finally {
@@ -126,11 +130,12 @@ export function ProductionStagesCard() {
     try {
       await masterDataOptions.deleteProductionStage(target.id);
       if (editing?.id === target.id) cancelEdit();
-      setMessage({ text: `"${target.name}" deleted.`, ok: true });
+      setMessage({ text: t("receivingConfig.deletedMsg", { name: target.name }), ok: true });
       await reload();
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       setMessage({
-        text: e?.response?.data?.message ?? "Could not delete this entry.",
+        text: err?.response?.data?.message ?? t("receivingConfig.deleteError"),
         ok: false
       });
     }
@@ -170,11 +175,11 @@ export function ProductionStagesCard() {
             flex: 1
           }}
         >
-          Production Stages
+          {t("receivingConfig.productionStages.title")}
         </Typography>
         <Chip
           size="small"
-          label={loading ? "—" : list.length}
+          label={loading ? t("common.dash") : list.length}
           sx={{ height: 20, fontSize: 12, fontWeight: 600 }}
         />
       </Box>
@@ -194,8 +199,7 @@ export function ProductionStagesCard() {
           variant="caption"
           sx={{ color: "text.secondary", lineHeight: 1.5, minHeight: 36 }}
         >
-          The stage dropdown on Finished Product receiving. Not shown for other
-          categories.
+          {t("receivingConfig.productionStages.subtitle")}
         </Typography>
 
         {/* Add / rename form with role dropdown */}
@@ -212,8 +216,8 @@ export function ProductionStagesCard() {
               inputRef={inputRef}
               size="small"
               sx={{ flex: "1 1 140px", minWidth: 130 }}
-              label={editing ? `Rename "${editing.name}"` : "Production stage"}
-              placeholder="e.g. Coating"
+              label={editing ? t("receivingConfig.renameLabel", { name: editing.name }) : t("receivingConfig.productionStages.inputLabel")}
+              placeholder={t("receivingConfig.productionStages.placeholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
@@ -225,19 +229,19 @@ export function ProductionStagesCard() {
               }}
             />
             <FormControl size="small" sx={{ width: 120, flexShrink: 0 }}>
-              <InputLabel id="stage-role-select-label">Role</InputLabel>
+              <InputLabel id="stage-role-select-label">{t("receivingConfig.productionStages.roleLabel")}</InputLabel>
               <Select<ProductionStageRole | "">
                 labelId="stage-role-select-label"
-                label="Role"
+                label={t("receivingConfig.productionStages.roleLabel")}
                 value={role}
                 onChange={(e) =>
                   setRole(e.target.value as ProductionStageRole)
                 }
-                inputProps={{ "aria-label": "Role" }}
+                inputProps={{ "aria-label": t("receivingConfig.productionStages.roleLabel") }}
               >
                 {PRODUCTION_STAGE_ROLES.map((r) => (
                   <MenuItem key={r} value={r}>
-                    {r}
+                    {t(`receivingConfig.productionStages.roles.${r}`)}
                   </MenuItem>
                 ))}
               </Select>
@@ -258,7 +262,7 @@ export function ProductionStagesCard() {
                   disabled={saving}
                   sx={{ minWidth: 60 }}
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
               )}
               <Button
@@ -269,7 +273,7 @@ export function ProductionStagesCard() {
                 disabled={!name.trim() || !role || saving}
                 sx={{ minWidth: 68, whiteSpace: "nowrap" }}
               >
-                {editing ? "Save" : "Add"}
+                {editing ? t("common.save") : t("receivingConfig.add")}
               </Button>
             </Box>
           </Box>
@@ -296,7 +300,7 @@ export function ProductionStagesCard() {
         >
           {loading ? (
             <Typography sx={{ p: 2, fontSize: 13, color: "text.secondary" }}>
-              Loading…
+              {t("receivingConfig.loading")}
             </Typography>
           ) : list.length === 0 ? (
             <Typography
@@ -307,7 +311,7 @@ export function ProductionStagesCard() {
                 fontStyle: "italic"
               }}
             >
-              None configured yet. Add the first one above.
+              {t("receivingConfig.emptyList")}
             </Typography>
           ) : (
             list.map((o, idx) => {
@@ -350,23 +354,23 @@ export function ProductionStagesCard() {
                   </Typography>
                   <Chip
                     size="small"
-                    label={o.role}
+                    label={t(`receivingConfig.productionStages.roles.${o.role}`, { defaultValue: o.role })}
                     variant="outlined"
                     sx={{ height: 20, fontSize: 12 }}
                   />
-                  <Tooltip title="Rename">
+                  <Tooltip title={t("receivingConfig.renameTooltip")}>
                     <IconButton
                       size="small"
-                      aria-label={`Rename ${o.name}`}
+                      aria-label={t("receivingConfig.renameAria", { name: o.name })}
                       onClick={() => startEdit(o)}
                     >
                       <EditOutlinedIcon sx={{ fontSize: 17 }} />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Delete">
+                  <Tooltip title={t("receivingConfig.deleteTooltip")}>
                     <IconButton
                       size="small"
-                      aria-label={`Delete ${o.name}`}
+                      aria-label={t("receivingConfig.deleteAria", { name: o.name })}
                       onClick={() => setPendingDelete(o)}
                       sx={{
                         color: "text.secondary",
@@ -387,7 +391,7 @@ export function ProductionStagesCard() {
         open={pendingDelete != null}
         message={
           pendingDelete
-            ? `Delete "${pendingDelete.name}" from Production Stages? Samples already recorded with this stage keep it; only the dropdown changes.`
+            ? t("receivingConfig.productionStages.deleteConfirm", { name: pendingDelete.name })
             : ""
         }
         onCancel={() => setPendingDelete(null)}

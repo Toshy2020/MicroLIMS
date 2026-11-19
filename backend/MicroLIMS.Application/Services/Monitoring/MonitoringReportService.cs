@@ -4,6 +4,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -126,7 +127,10 @@ public class MonitoringReportService
     private async Task<(List<MonitoringOccurrence> Occurrences, Dictionary<int, OccurrenceStatusDetail> Details)> LoadYearAsync(
         int year, MonitoringCategory? category)
     {
-        if (year is < 2000 or > 2100) throw new BusinessRuleException("Choose a plan year between 2000 and 2100.");
+        if (year is < 2000 or > 2100)
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringInvalidPlanYear,
+                "Choose a plan year between 2000 and 2100.");
         var first = new DateOnly(year, 1, 1);
         var last = new DateOnly(year, 12, 31);
 

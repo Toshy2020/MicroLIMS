@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Application.Services.SystemSettings;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,8 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Email;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Abstractions.Sso;
+using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Validation;
 using System.Security.Cryptography;
@@ -32,10 +35,18 @@ public class AuthenticationService : IAuthenticationService
     // real reason is in the security audit trail and login history.)
     internal const string LoginFailedMessage = "Invalid username or password.";
 
+    // LoginHistory.Method for a sign-in verified by the company directory.
+    internal const string LdapLoginMethod = "Ldap";
+
+    // A non-emergency user signing in while Active Directory mode is on was verified by
+    // the directory, including after the second factor. Local sign-ins record no method.
+    internal static string? LoginMethodFor(SsoMode mode, User user) =>
+        mode == SsoMode.ActiveDirectory && !user.IsEmergencyAccount ? LdapLoginMethod : null;
+
     // A stored hash BCrypt cannot parse is a password that cannot match -
     // not a server error. Now that locked and disabled accounts are also
     // checked (above), such an account must still get the ordinary refusal.
-    private static bool PasswordMatches(string password, string storedHash)
+    internal static bool PasswordMatches(string password, string storedHash)
     {
         try
         {
@@ -61,8 +72,11 @@ public class AuthenticationService : IAuthenticationService
     private readonly ISecurityAuditService _securityAudit;
     private readonly TimeProvider _time;
     private readonly ISystemSettingsReader? _settings;
+    private readonly MfaPolicyService _mfaPolicy;
+    private readonly SsoModeService _ssoMode;
+    private readonly IDirectoryPasswordSignIn? _directorySignIn;
 
-    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null)
+    public AuthenticationService(IMicroLimsDbContext db, AccessTokenIssuer tokenIssuer, PermissionService permissionService, IEmailSender emailSender, ILogger<AuthenticationService> logger, ISecurityAuditService securityAudit, TimeProvider? timeProvider = null, ISystemSettingsReader? settings = null, MfaPolicyService? mfaPolicy = null, SsoModeService? ssoMode = null, IDirectoryPasswordSignIn? directorySignIn = null)
     {
         _settings = settings;
         _time = timeProvider ?? TimeProvider.System;
@@ -72,14 +86,25 @@ public class AuthenticationService : IAuthenticationService
         _emailSender = emailSender;
         _logger = logger;
         _securityAudit = securityAudit;
+        _mfaPolicy = mfaPolicy ?? new MfaPolicyService(settings);
+        _ssoMode = ssoMode ?? new SsoModeService(db, settings, securityAudit);
+        _directorySignIn = directorySignIn;
     }
 
-    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null) =>
-        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent));
+    public Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null) =>
+        UnitOfWork.RunAsync(_db, () => LoginCoreAsync(username, password, ipAddress, userAgent, deviceToken));
 
-    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null)
+    private async Task<LoginOutcome> LoginCoreAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null)
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Username == username);
+
+        // In Active Directory mode the form is shared and the name typed is the
+        // company username. Only an emergency account (looked up by its MicroLIMS
+        // username) keeps the local path; everyone else goes to the directory,
+        // whether or not a MicroLIMS user with that exact username exists.
+        var ssoMode = await _ssoMode.GetModeAsync();
+        if (ssoMode == SsoMode.ActiveDirectory && _directorySignIn is not null && user is not { IsEmergencyAccount: true })
+            return await _directorySignIn.SignInAsync(username, password, ipAddress, userAgent, deviceToken);
 
         if (user is null)
         {
@@ -96,7 +121,8 @@ public class AuthenticationService : IAuthenticationService
         // to refuse as a wrong password does.
         var passwordMatches = PasswordMatches(password, user.PasswordHash);
 
-        if (user.IsLockedAt(_time.GetUtcNow().UtcDateTime))
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        if (user.IsLockedAt(nowUtc))
         {
             _securityAudit.Record(new SecurityEventRequest(
                 SecurityEventCodes.LoginFailedAccountLocked, SecurityEventOutcome.Failure,
@@ -107,43 +133,100 @@ public class AuthenticationService : IAuthenticationService
 
         if (!user.IsActive || !passwordMatches)
         {
-            user.FailedLoginAttempts++;
-
-            _securityAudit.Record(new SecurityEventRequest(
+            await ApplyFailedLoginAttemptAndLockoutAsync(
+                user,
                 user.IsActive ? SecurityEventCodes.LoginFailedBadCredentials
-                              : SecurityEventCodes.LoginFailedAccountDisabled,
-                SecurityEventOutcome.Failure,
-                TargetUserId: user.Id, TargetUsername: username));
-
-            var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts);
-            if (user.FailedLoginAttempts >= maxFailedAttempts)
-            {
-                var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes);
-                user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
-                // Locking the account has to end the sessions it already
-                // has, or the lockout only blocks the login form while an
-                // existing refresh token keeps minting new access tokens.
-                var revoked = await RevokeAllRefreshTokensAsync(user.Id);
-
-                // The system locked the account, not a person - so there is
-                // no actor user, and ActorIsSystem says why it is absent.
-                _securityAudit.Record(new SecurityEventRequest(
-                    SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
-                    ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: username,
-                    Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
-                    Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
-            }
+                              : SecurityEventCodes.LoginFailedAccountDisabled);
 
             await _db.SaveChangesAsync();
             await RecordLoginAsync(user.Id, username, false, user.IsActive ? "Wrong password" : "Account inactive", ipAddress);
             return new LoginOutcome(false, null, null, LoginFailedMessage);
         }
 
+        if (!_ssoMode.IsLocalLoginAllowed(ssoMode, user))
+        {
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.LocalLoginRefusedSsoOn,
+                SecurityEventOutcome.Failure,
+                TargetUserId: user.Id,
+                TargetUsername: user.Username,
+                Reason: $"Local login refused while SSO mode is {ssoMode}."));
+            await RecordLoginAsync(user.Id, username, false, $"Local login refused while SSO mode is {ssoMode}", ipAddress);
+            return new LoginOutcome(false, null, null, LoginFailedMessage);
+        }
+
+        return await ContinueAfterPrimaryAuthenticationAsync(user, ssoMode, ipAddress, userAgent, deviceToken, loginHistoryMethod: null);
+    }
+
+    // Everything after the first factor has been verified (a MicroLIMS password, or the
+    // company directory's): the second-factor requirement, trusted computer, then login.
+    internal async Task<LoginOutcome> ContinueAfterPrimaryAuthenticationAsync(
+        User user, SsoMode ssoMode, string? ipAddress, string? userAgent, string? deviceToken, string? loginHistoryMethod)
+    {
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        var hasVerifiableCredential = await _db.UserMfaCredentials
+            .AsNoTracking()
+            .AnyAsync(c => c.UserId == user.Id
+                && (c.Status == MfaCredentialStatus.Active
+                    || (c.Status == MfaCredentialStatus.Pending && c.Type == MfaCredentialType.HardwareToken)));
+
+        var roleType = user.Role?.Type.ToString() ?? string.Empty;
+        var requirement = await _mfaPolicy.EvaluateAsync(roleType, hasVerifiableCredential, user.MfaRequiredSince, nowUtc);
+        var isEmergencyLogin = ssoMode != SsoMode.Off && user.IsEmergencyAccount;
+
+        if (isEmergencyLogin && !hasVerifiableCredential)
+        {
+            var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Enrol);
+            await _db.SaveChangesAsync();
+            return new LoginOutcome(true, null, null, null, MfaEnrolmentRequired: true, MfaToken: mfaToken);
+        }
+
+        if (isEmergencyLogin && requirement.Kind != MfaLoginRequirement.Verify)
+            requirement = new MfaRequirement(MfaLoginRequirement.Verify, null);
+
+        if (!isEmergencyLogin
+            && requirement.Kind == MfaLoginRequirement.Verify
+            && await MfaService.IsTrustedDeviceCoreAsync(_db, _time, _mfaPolicy, user.Id, deviceToken))
+        {
+            return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: true, loginHistoryMethod);
+        }
+
+        switch (requirement.Kind)
+        {
+            case MfaLoginRequirement.Verify:
+            {
+                var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Verify);
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(true, null, null, null, MfaRequired: true, MfaToken: mfaToken);
+            }
+
+            case MfaLoginRequirement.EnrolNow:
+            {
+                var mfaToken = MfaService.CreateChallengeCore(_db, _time, _securityAudit, user.Id, MfaChallengePurpose.Enrol);
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(true, null, null, null, MfaEnrolmentRequired: true, MfaToken: mfaToken);
+            }
+
+            case MfaLoginRequirement.EnrolWithinGrace:
+            {
+                user.MfaRequiredSince ??= nowUtc;
+                var outcome = await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false, loginHistoryMethod);
+                return outcome with { MfaEnrolmentDueAt = requirement.EnrolmentDueAtUtc };
+            }
+
+            case MfaLoginRequirement.None:
+            default:
+                return await CompleteLoginAsync(user, ipAddress, userAgent, mfaVerified: false, loginHistoryMethod);
+        }
+    }
+
+    public async Task<LoginOutcome> CompleteLoginAsync(User user, string? ip, string? userAgent, bool mfaVerified, string? loginHistoryMethod = null)
+    {
         user.FailedLoginAttempts = 0;
         user.LockedUntil = null;
         user.LastLoginAt = _time.GetUtcNow().UtcDateTime;
         await _db.SaveChangesAsync();
-        await RecordLoginAsync(user.Id, username, true, null, ipAddress);
+        await RecordLoginAsync(user.Id, user.Username, true, null, ip, loginHistoryMethod);
 
         var token = await IssueAccessTokenAsync(user);
 
@@ -155,9 +238,46 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenIssued, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var refreshToken = await IssueRefreshTokenAsync(user.Id, ipAddress, userAgent);
+        var refreshToken = await IssueRefreshTokenAsync(user.Id, ip, userAgent, usedNow: false, mfaVerified: mfaVerified, sessionStartedAt: _time.GetUtcNow().UtcDateTime);
+        var signingPasswordRequired = user.SignInMethod == SignInMethod.Directory && user.SigningPasswordSetAt is null;
 
-        return new LoginOutcome(true, token, refreshToken, null, user.MustChangePassword, user.Role?.Name);
+        return new LoginOutcome(
+            true,
+            token,
+            refreshToken,
+            null,
+            user.MustChangePassword,
+            user.Role?.Name,
+            SigningPasswordRequired: signingPasswordRequired);
+    }
+
+    internal async Task ApplyFailedLoginAttemptAndLockoutAsync(User user, string failureEventCode, CancellationToken ct = default)
+    {
+        user.FailedLoginAttempts++;
+
+        _securityAudit.Record(new SecurityEventRequest(
+            failureEventCode,
+            SecurityEventOutcome.Failure,
+            TargetUserId: user.Id, TargetUsername: user.Username));
+
+        var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutMaxFailedAttempts, ct);
+        if (user.FailedLoginAttempts >= maxFailedAttempts)
+        {
+            var lockMinutes = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.LockoutDurationMinutes, ct);
+            user.LockedUntil = _time.GetUtcNow().UtcDateTime.AddMinutes(lockMinutes);
+            // Locking the account has to end the sessions it already
+            // has, or the lockout only blocks the login form while an
+            // existing refresh token keeps minting new access tokens.
+            var revoked = await RevokeAllRefreshTokensAsync(user.Id);
+
+            // The system locked the account, not a person - so there is
+            // no actor user, and ActorIsSystem says why it is absent.
+            _securityAudit.Record(new SecurityEventRequest(
+                SecurityEventCodes.AccountLocked, SecurityEventOutcome.Success,
+                ActorIsSystem: true, TargetUserId: user.Id, TargetUsername: user.Username,
+                Reason: $"Automatic lockout after {maxFailedAttempts} failed login attempts.",
+                Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+        }
     }
 
     public Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null) =>
@@ -199,6 +319,33 @@ public class AuthenticationService : IAuthenticationService
             return new LoginOutcome(false, null, null, "Refresh token is invalid or expired.");
         }
 
+        // Company sign-in sessions end at a fixed age. In OpenID Connect mode the provider
+        // never tells MicroLIMS an account was disabled, so the only control is to send the
+        // user back to the provider regularly. Emergency accounts and local users are never
+        // capped; in Active Directory mode the leaver worker checks the directory instead.
+        var nowForCap = _time.GetUtcNow().UtcDateTime;
+        // A row from before the cap existed has no start: its own creation time is the
+        // earliest the session can have begun, and it is carried forward so the cap bites.
+        var sessionStartedAt = stored.SessionStartedAt ?? stored.CreatedAt;
+        if (user.SignInMethod == SignInMethod.Directory
+            && !user.IsEmergencyAccount
+            && await _ssoMode.GetModeAsync() == SsoMode.OpenIdConnect)
+        {
+            var maxHours = Math.Clamp(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SsoSessionMaxHours), 1, 24);
+            if (nowForCap - sessionStartedAt > TimeSpan.FromHours(maxHours))
+            {
+                // This session only: other sessions carry their own start and are capped on their own.
+                stored.RevokedAt = nowForCap;
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.RefreshRejectedInvalidToken, SecurityEventOutcome.Failure,
+                    TargetUserId: user.Id, TargetUsername: user.Username,
+                    Reason: "session_cap",
+                    Metadata: $"{{\"sessionMaxHours\":{maxHours}}}"));
+                await _db.SaveChangesAsync();
+                return new LoginOutcome(false, null, null, "Refresh token is invalid or expired.");
+            }
+        }
+
         // Rotate: revoke the used token and issue a new one. One event,
         // not three - the caller performed a single meaningful action.
         stored.LastUsedAt = _time.GetUtcNow().UtcDateTime;
@@ -207,7 +354,7 @@ public class AuthenticationService : IAuthenticationService
             SecurityEventCodes.RefreshTokenRotated, SecurityEventOutcome.Success,
             ActorUserId: user.Id, TargetUserId: user.Id, TargetUsername: user.Username));
 
-        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true);
+        var newRefreshToken = await IssueRefreshTokenAsync(stored.UserId, ipAddress, userAgent, usedNow: true, mfaVerified: stored.MfaVerified, sessionStartedAt: sessionStartedAt);
         await _db.SaveChangesAsync();
 
         var token = await IssueAccessTokenAsync(user);
@@ -248,6 +395,8 @@ public class AuthenticationService : IAuthenticationService
         }
 
         await ValidateAndApplyNewPasswordAsync(user, newPassword);
+        user.SigningPasswordSetAt = _time.GetUtcNow().UtcDateTime;
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, user.Id, revokedByUserId: user.Id);
 
         // Self-service change: actor and target are the same person.
         _securityAudit.Record(new SecurityEventRequest(
@@ -256,6 +405,35 @@ public class AuthenticationService : IAuthenticationService
 
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task SetInitialSigningPasswordAsync(int userId, string newPassword, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct)
+            ?? throw new NotFoundException($"User {userId} not found.");
+
+        if (user.SignInMethod != SignInMethod.Directory)
+            throw new BusinessRuleException("Only directory accounts can set an initial signing password.");
+
+        if (user.SigningPasswordSetAt is not null)
+            throw new BusinessRuleException("A signing password has already been set. Use change password instead.");
+
+        await ValidateAndApplyNewPasswordAsync(user, newPassword, revokeExistingSessions: false);
+
+        var nowUtc = _time.GetUtcNow().UtcDateTime;
+        user.SigningPasswordSetAt = nowUtc;
+        _db.CurrentUserId = userId;
+        _db.CurrentReason = "Initial signing password set.";
+
+        _securityAudit.Record(new SecurityEventRequest(
+            SecurityEventCodes.PasswordChanged,
+            SecurityEventOutcome.Success,
+            ActorUserId: userId,
+            TargetUserId: user.Id,
+            TargetUsername: user.Username,
+            Reason: "Initial signing password set."));
+
+        await _db.SaveChangesAsync(ct);
     }
 
     // Delivers the raw (unhashed) reset token to the user's email - never
@@ -299,6 +477,7 @@ public class AuthenticationService : IAuthenticationService
 
         await ValidateAndApplyNewPasswordAsync(record.User!, newPassword);
         record.UsedAt = _time.GetUtcNow().UtcDateTime;
+        await MfaService.RevokeTrustedDevicesCoreAsync(_db, _time, _securityAudit, record.User!.Id, revokedByUserId: null);
 
         // Reset is performed by whoever held the reset token, so there is
         // no authenticated actor - only the account it was applied to.
@@ -315,16 +494,25 @@ public class AuthenticationService : IAuthenticationService
     {
         var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
         if (user is null) return null;
-        return new CurrentUserInfo(user.Id, user.Username, user.FullName, user.Role?.Type.ToString() ?? "Analyst",
-            user.JobTitle, user.LastLoginAt, user.PasswordChangedAt, user.MustChangePassword, user.Role?.Name ?? string.Empty);
+        return new CurrentUserInfo(
+            user.Id,
+            user.Username,
+            user.FullName,
+            user.Role?.Type.ToString() ?? "Analyst",
+            user.JobTitle,
+            user.LastLoginAt,
+            user.PasswordChangedAt,
+            user.MustChangePassword,
+            user.Role?.Name ?? string.Empty,
+            user.SignInMethod.ToString(),
+            user.SigningPasswordSetAt is not null);
     }
 
-    // Shared by ChangePasswordAsync and ConfirmPasswordResetAsync: enforces
-    // the password policy, rejects reuse of the last N hashes, then applies
+    // Shared by ChangePasswordAsync, SetInitialSigningPasswordAsync, and ConfirmPasswordResetAsync:
+    // enforces the password policy, rejects reuse of the last N hashes, then applies
     // the new hash and records/prunes history. Caller is responsible for
-    // SaveChangesAsync so it can be combined with its own changes (e.g.
-    // marking a reset token used) in one transaction.
-    private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword)
+    // SaveChangesAsync so it can be combined with its own changes in one transaction.
+    private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword, bool revokeExistingSessions = true)
     {
         var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
@@ -341,25 +529,29 @@ public class AuthenticationService : IAuthenticationService
 
         var newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
         user.PasswordHash = newHash;
-        user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
+        if (revokeExistingSessions)
+            user.PasswordChangedAt = _time.GetUtcNow().UtcDateTime;
         user.MustChangePassword = false;
 
         _db.PasswordHistories.Add(new PasswordHistory { UserId = user.Id, PasswordHash = newHash });
         if (existingHistory.Count >= historyLimit)
             _db.PasswordHistories.RemoveRange(existingHistory.Skip(historyLimit - 1));
 
-        // Changing or resetting the password ends every existing session:
-        // whoever knew the old password must not keep a refresh token that
-        // still mints access tokens. Both callers save, so this commits in
-        // the same transaction as the new hash.
-        var revoked = await RevokeAllRefreshTokensAsync(user.Id);
-        if (revoked > 0)
+        if (revokeExistingSessions)
         {
-            _securityAudit.Record(new SecurityEventRequest(
-                SecurityEventCodes.SessionRevoked, SecurityEventOutcome.Success,
-                TargetUserId: user.Id, TargetUsername: user.Username,
-                Reason: "All sessions ended because the password changed.",
-                Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+            // Changing or resetting the password ends every existing session:
+            // whoever knew the old password must not keep a refresh token that
+            // still mints access tokens. Both callers save, so this commits in
+            // the same transaction as the new hash.
+            var revoked = await RevokeAllRefreshTokensAsync(user.Id);
+            if (revoked > 0)
+            {
+                _securityAudit.Record(new SecurityEventRequest(
+                    SecurityEventCodes.SessionRevoked, SecurityEventOutcome.Success,
+                    TargetUserId: user.Id, TargetUsername: user.Username,
+                    Reason: "All sessions ended because the password changed.",
+                    Metadata: $"{{\"revokedSessionCount\":{revoked}}}"));
+            }
         }
     }
 
@@ -415,14 +607,14 @@ public class AuthenticationService : IAuthenticationService
         return active.Count;
     }
 
-    private static string? Truncate(string? value, int max)
+    internal static string? Truncate(string? value, int max)
     {
         if (string.IsNullOrWhiteSpace(value)) return null;
         value = value.Trim();
         return value.Length <= max ? value : value[..max];
     }
 
-    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false)
+    private async Task<string> IssueRefreshTokenAsync(int userId, string? ipAddress = null, string? userAgent = null, bool usedNow = false, bool mfaVerified = false, DateTime? sessionStartedAt = null)
     {
         var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _db.RefreshTokens.Add(new RefreshToken
@@ -432,13 +624,15 @@ public class AuthenticationService : IAuthenticationService
             ExpiresAt = _time.GetUtcNow().UtcDateTime.AddDays(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.RefreshTokenLifetimeDays)),
             CreatedIp = Truncate(ipAddress, RefreshToken.MaxIpLength),
             UserAgent = Truncate(userAgent, RefreshToken.MaxUserAgentLength),
-            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null
+            LastUsedAt = usedNow ? _time.GetUtcNow().UtcDateTime : null,
+            MfaVerified = mfaVerified,
+            SessionStartedAt = sessionStartedAt
         });
         await _db.SaveChangesAsync();
         return rawToken;
     }
 
-    private async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress)
+    internal async Task RecordLoginAsync(int? userId, string username, bool success, string? reason, string? ipAddress, string? method = null)
     {
         _db.LoginHistories.Add(new LoginHistory
         {
@@ -446,12 +640,13 @@ public class AuthenticationService : IAuthenticationService
             Username = username,
             Success = success,
             FailureReason = reason,
-            IpAddress = ipAddress
+            IpAddress = ipAddress,
+            Method = method
         });
         await _db.SaveChangesAsync();
     }
 
-    private static string Hash(string value)
+    internal static string Hash(string value)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
         return Convert.ToHexString(bytes);

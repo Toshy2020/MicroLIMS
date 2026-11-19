@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { Box, MenuItem, Select, TextField, Typography } from "@mui/material";
+import { Box, FormControl, FormHelperText, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
 import {
   EquipmentConfigurationService,
   type AutoclaveProgram
 } from "../../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { masterDataOptions } from "../../../services/masterDataOptions";
+import { ScanField } from "../../../components/labels/ScanField";
+import { LastChoiceField } from "../../../components/entry/LastChoiceField";
+import { NumericEntryField } from "../../../components/bench/NumericEntryField";
+import { useTranslation } from "../../../i18n";
 
 // What the analyst records for a recipe that needs sterilization. Program, load type,
 // temperature and cycle time come from the configured autoclave program (as in Media
@@ -39,9 +43,20 @@ interface Props {
   value: AutoclaveFormState;
   onChange: (next: AutoclaveFormState) => void;
   disabled?: boolean;
+  fieldErrors?: Partial<Record<"autoclaveEquipmentId" | "autoclaveProgram" | "autoclaveCycleNumber", string>>;
+  equipmentIsDefault?: boolean;
+  onEquipmentChangedByUser?: () => void;
 }
 
-export function AutoclaveSection({ value, onChange, disabled = false }: Props) {
+export function AutoclaveSection({
+  value,
+  onChange,
+  disabled = false,
+  fieldErrors,
+  equipmentIsDefault = false,
+  onEquipmentChangedByUser
+}: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const [autoclaves, setAutoclaves] = useState<AutoclaveOption[]>([]);
   const [programs, setPrograms] = useState<AutoclaveProgram[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,12 +69,12 @@ export function AutoclaveSection({ value, onChange, disabled = false }: Props) {
         if (active) setAutoclaves(Array.isArray(list) ? list : []);
       })
       .catch(() => {
-        if (active) setLoadError("Could not load the autoclave list.");
+        if (active) setLoadError(t("autoclave.loadError"));
       });
     return () => {
       active = false;
     };
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let active = true;
@@ -82,6 +97,7 @@ export function AutoclaveSection({ value, onChange, disabled = false }: Props) {
   const selectedProgramId = programs.find((p) => programLabel(p) === value.program)?.id ?? "";
 
   const handleEquipment = (id: number | "") => {
+    onEquipmentChangedByUser?.();
     onChange({ ...EMPTY_AUTOCLAVE, cycleNumber: value.cycleNumber, equipmentId: id });
   };
 
@@ -105,79 +121,97 @@ export function AutoclaveSection({ value, onChange, disabled = false }: Props) {
   return (
     <Box data-testid="autoclave-section">
       <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-        Autoclave
+        {t("autoclave.heading")}
       </Typography>
       <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 1.5 }}>
-        This recipe is sterilized. Select the autoclave and its configured program; load type, temperature and
-        cycle time come from Laboratory Configuration.
+        {t("autoclave.description")}
       </Typography>
       {loadError && (
         <Typography variant="caption" color="error" sx={{ display: "block", mb: 1 }}>
           {loadError}
         </Typography>
       )}
-      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-        <Select<number | "">
-          size="small"
-          displayEmpty
-          disabled={disabled}
-          value={value.equipmentId}
-          onChange={(e) => handleEquipment(e.target.value === "" ? "" : Number(e.target.value))}
-          inputProps={{ "aria-label": "Autoclave" }}
-        >
-          <MenuItem value="">
-            <em>Select Autoclave *</em>
-          </MenuItem>
-          {autoclaves.map((a) => (
-            <MenuItem key={a.id} value={a.id}>
-              {a.code ? `${a.code}: ` : ""}
-              {a.name}
-            </MenuItem>
-          ))}
-        </Select>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, alignItems: "start" }}>
+        <Stack spacing={1}>
+          <ScanField
+            label={t("autoclave.scanLabel")}
+            expectedType="EquipmentAsset"
+            offeredIds={autoclaves.map((a) => a.id)}
+            onSelect={(id) => handleEquipment(id)}
+            disabled={disabled}
+          />
+          <LastChoiceField kind="equipment" isDefault={equipmentIsDefault}>
+            <FormControl fullWidth size="small" error={Boolean(fieldErrors?.autoclaveEquipmentId)}>
+              <Select<number | "">
+                size="small"
+                displayEmpty
+                disabled={disabled}
+                value={value.equipmentId}
+                onChange={(e) => handleEquipment(e.target.value === "" ? "" : Number(e.target.value))}
+                inputProps={{ "aria-label": t("autoclave.ariaAutoclave") }}
+              >
+                <MenuItem value="">
+                  <em>{t("autoclave.selectAutoclave")}</em>
+                </MenuItem>
+                {autoclaves.map((a) => (
+                  <MenuItem key={a.id} value={a.id}>
+                    {a.code ? `${a.code}: ` : ""}
+                    {a.name}
+                  </MenuItem>
+                ))}
+              </Select>
+              {fieldErrors?.autoclaveEquipmentId && <FormHelperText>{fieldErrors.autoclaveEquipmentId}</FormHelperText>}
+            </FormControl>
+          </LastChoiceField>
+        </Stack>
 
-        <Select<number | "">
-          size="small"
-          displayEmpty
-          disabled={disabled || !value.equipmentId || programs.length === 0}
-          value={selectedProgramId}
-          onChange={(e) => handleProgram(e.target.value === "" ? "" : Number(e.target.value))}
-          inputProps={{ "aria-label": "Autoclave program" }}
-        >
-          <MenuItem value="">
-            <em>{programs.length === 0 ? "No active programs for autoclave" : "Select Program / Load *"}</em>
-          </MenuItem>
-          {programs.map((p) => (
-            <MenuItem key={p.id} value={p.id}>
-              {programLabel(p)} ({p.temperature}°C, {p.cycleTimeMinutes} min)
+        <FormControl fullWidth size="small" error={Boolean(fieldErrors?.autoclaveProgram)}>
+          <Select<number | "">
+            size="small"
+            displayEmpty
+            disabled={disabled || !value.equipmentId || programs.length === 0}
+            value={selectedProgramId}
+            onChange={(e) => handleProgram(e.target.value === "" ? "" : Number(e.target.value))}
+            inputProps={{ "aria-label": t("autoclave.ariaProgram") }}
+          >
+            <MenuItem value="">
+              <em>{programs.length === 0 ? t("autoclave.noPrograms") : t("autoclave.selectProgram")}</em>
             </MenuItem>
-          ))}
-        </Select>
+            {programs.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {t("autoclave.programOption", { label: programLabel(p), temp: p.temperature, time: p.cycleTimeMinutes })}
+              </MenuItem>
+            ))}
+          </Select>
+          {fieldErrors?.autoclaveProgram && <FormHelperText>{fieldErrors.autoclaveProgram}</FormHelperText>}
+        </FormControl>
 
-        <TextField size="small" label="Load Type" value={value.loadType} slotProps={readOnly} />
-        <TextField
-          size="small"
-          label="Temperature (°C)"
-          value={value.temperature === "" ? "" : `${value.temperature} °C`}
-          slotProps={readOnly}
+        <TextField size="small" label={t("autoclave.loadType")} value={value.loadType} slotProps={readOnly} />
+        <NumericEntryField
+          label={t("autoclave.temperature")}
+          kind="decimal"
+          value={value.temperature === "" ? "" : String(value.temperature)}
+          onChange={() => {}}
+          readOnly
+          unit="°C"
         />
-        <TextField
-          size="small"
-          label="Cycle Time (min)"
-          value={value.cycleTime === "" ? "" : `${value.cycleTime} min`}
-          slotProps={readOnly}
+        <NumericEntryField
+          label={t("autoclave.cycleTime")}
+          kind="decimal"
+          value={value.cycleTime === "" ? "" : String(value.cycleTime)}
+          onChange={() => {}}
+          readOnly
+          unit="min"
         />
-        <TextField
-          size="small"
-          label="Cycle Number *"
-          type="number"
-          placeholder="e.g. 1"
+        <NumericEntryField
+          label={t("autoclave.cycleNumber")}
+          kind="count"
           disabled={disabled}
-          value={value.cycleNumber}
-          onChange={(e) => {
-            const v = e.target.value;
+          value={value.cycleNumber === "" ? "" : String(value.cycleNumber)}
+          onChange={(v) => {
             onChange({ ...value, cycleNumber: v === "" ? "" : parseInt(v, 10) });
           }}
+          error={fieldErrors?.autoclaveCycleNumber}
         />
       </Box>
     </Box>

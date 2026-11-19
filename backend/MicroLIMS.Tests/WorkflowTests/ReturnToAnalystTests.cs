@@ -396,7 +396,7 @@ public class ReturnToAnalystTests
         // Fetch notifications for the assigned analyst
         var notifications = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
 
-        var returnNotification = notifications.FirstOrDefault(n => n.Type == "TestReturnedForRevision");
+        var returnNotification = notifications.FirstOrDefault(n => n.Type == "TestReturned");
         Assert.NotNull(returnNotification);
         Assert.Equal("warning", returnNotification.Severity);
         Assert.Equal("Test TAMC for sample FP0107026 was returned for revision: Plate count recount requested due to bubble artifact", returnNotification.Message);
@@ -405,7 +405,7 @@ public class ReturnToAnalystTests
 
         // Other analyst should not receive the notification
         var otherNotifications = await notificationService.GetNotificationsAsync(RoleType.Analyst, 999);
-        Assert.DoesNotContain(otherNotifications, n => n.Type == "TestReturnedForRevision");
+        Assert.DoesNotContain(otherNotifications, n => n.Type == "TestReturned");
     }
 
     [Fact]
@@ -424,7 +424,7 @@ public class ReturnToAnalystTests
         var notificationService = TestServiceFactory.DashboardNotification(db);
 
         var notifications = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
-        var returnNotification = notifications.FirstOrDefault(n => n.Type == "TestReturnedForRevision");
+        var returnNotification = notifications.FirstOrDefault(n => n.Type == "TestReturned");
         Assert.NotNull(returnNotification);
         Assert.Equal("warning", returnNotification.Severity);
         Assert.Equal("Test TAMC for sample WP2608001 was returned for revision.", returnNotification.Message);
@@ -443,24 +443,19 @@ public class ReturnToAnalystTests
         var reviewService = TestServiceFactory.SampleReview(db);
         await reviewService.ReturnToAnalystAsync(order.Id, reviewer.Id, "Recount required");
 
-        var spyPush = new SpyNotificationService();
-        var notificationService = TestServiceFactory.DashboardNotification(db, spyPush);
+        var notificationService = TestServiceFactory.DashboardNotification(db);
 
         // First poll
         var poll1 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
-        Assert.Contains(poll1, n => n.Type == "TestReturnedForRevision");
-        Assert.Single(spyPush.Sent, s => s.UserId == analyst.Id);
+        Assert.Contains(poll1, n => n.Type == "TestReturned");
 
         // Second poll immediately after (simulating periodic 60s polling)
         var poll2 = await notificationService.GetNotificationsAsync(RoleType.Analyst, analyst.Id);
-        Assert.Contains(poll2, n => n.Type == "TestReturnedForRevision");
-
-        // Assert no duplicate push notification was sent
-        Assert.Single(spyPush.Sent, s => s.UserId == analyst.Id);
+        Assert.Contains(poll2, n => n.Type == "TestReturned");
 
         // Assert exactly one NotificationLog row exists in DB for this user and event
         var persistedLogs = await db.NotificationLogs
-            .Where(n => n.UserId == analyst.Id && n.Type == "TestReturnedForRevision")
+            .Where(n => n.UserId == analyst.Id && n.Type == "TestReturned")
             .ToListAsync();
         Assert.Single(persistedLogs);
     }

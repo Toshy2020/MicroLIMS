@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
 import {
   Dialog,
   DialogTitle,
@@ -16,6 +17,8 @@ import { discussionService } from "../services/discussionService";
 import { DiscussionVersion } from "../types/discussionTypes";
 import { DiscussionCategoryBadge } from "./DiscussionCategoryBadge";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   open: boolean;
@@ -25,6 +28,7 @@ interface Props {
 }
 
 export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Props) {
+  const { t } = useTranslation("discussions");
   const [history, setHistory] = useState<DiscussionVersion[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   // A failed load used to read "No prior edits recorded".
@@ -50,7 +54,7 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700, pb: 1 }}>
         <HistoryIcon color="primary" />
-        Version History: {postTitle}
+        {t("history.title", { title: postTitle })}
       </DialogTitle>
       <Divider />
       <DialogContent sx={{ py: 2 }}>
@@ -60,17 +64,17 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
           </Box>
         ) : loadFailed ? (
           <LoadErrorAlert
-            message="The version history of this post could not be loaded."
+            message={t("history.loadError")}
             onRetry={() => setReloadKey((k) => k + 1)}
           />
         ) : history.length === 0 ? (
           <Typography sx={{ color: "text.secondary", textAlign: "center", py: 4 }}>
-            No prior edits recorded. This post is on its initial version.
+            {t("history.empty")}
           </Typography>
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Showing {history.length} previous snapshot{history.length > 1 ? "s" : ""} archived before subsequent edits.
+              {t("history.showing", { count: history.length })}
             </Typography>
             {history.map((ver) => (
               <Paper
@@ -85,12 +89,12 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Typography sx={{ fontWeight: 700, fontSize: 13, bgcolor: "primary.main", color: "common.white", px: 1, py: 0.25, borderRadius: 1 }}>
-                      v{ver.versionNumber}
+                      {t("history.versionLabel", { n: ver.versionNumber })}
                     </Typography>
                     <DiscussionCategoryBadge category={ver.category} categoryName={ver.categoryName} />
                   </Box>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                    Archived on {new Date(ver.changedAt).toLocaleString()} by <strong>{ver.changedByName}</strong>
+                    <Trans ns="discussions" i18nKey="history.archivedBy" values={{ date: formatDateTimeWithTimeZone(ver.changedAt), name: ver.changedByName }} components={{ strong: <strong /> }} />
                   </Typography>
                 </Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
@@ -116,7 +120,7 @@ export function DiscussionHistoryDialog({ open, postId, postTitle, onClose }: Pr
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 1.5 }}>
         <Button onClick={onClose} variant="outlined" color="inherit">
-          Close
+          {t("actions.close")}
         </Button>
       </DialogActions>
     </Dialog>

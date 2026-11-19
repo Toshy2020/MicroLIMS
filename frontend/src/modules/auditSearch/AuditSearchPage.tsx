@@ -14,10 +14,15 @@ import { AuditResultsTable } from "./components/AuditResultsTable";
 import { AuditEventDrawer } from "./components/AuditEventDrawer";
 import { SecurityTrailPanel } from "./components/SecurityTrailPanel";
 import { INITIAL_AUDIT_FILTERS, buildAuditPayload } from "./utils/auditPayload";
+import { i18n, useTranslation } from "../../i18n";
+
+const tl = (key: string): string => i18n.t(key, { ns: "auditSearch" });
+
 
 type TabKey = "audit" | "security-events" | "login-history";
 
 export function AuditSearchPage() {
+  const { t } = useTranslation("auditSearch");
   const { permissions } = useAuth();
   const canViewSecurityAudit = permissions.includes(SECURITY_AUDIT_PERMISSION);
 
@@ -52,7 +57,7 @@ export function AuditSearchPage() {
       setHasMore(res.hasMore);
       return true;
     } catch {
-      setError("Failed to fetch audit records from the server.");
+      setError(tl("page.fetchError"));
       return false;
     } finally {
       setLoading(false);
@@ -101,7 +106,7 @@ export function AuditSearchPage() {
     try {
       await AuditSearchService.exportCsv(buildAuditPayload(appliedRef.current));
     } catch {
-      setError("Failed to export the audit trail.");
+      setError(t("page.exportError"));
     } finally {
       setExporting(false);
     }
@@ -110,15 +115,15 @@ export function AuditSearchPage() {
   return (
     <>
       <PageHeader
-        title="Audit Trail"
-        subtitle="Search and trace immutable change events, actor identities, and laboratory records across MicroLIMS."
+        title={t("page.title")}
+        subtitle={t("page.subtitle")}
       />
 
       {canViewSecurityAudit && (
         <Tabs value={tab} onChange={(_, v: TabKey) => setTab(v)} sx={{ mb: 2 }}>
-          <Tab value="audit" label="Audit Trail" />
-          <Tab value="security-events" label="Security Events" />
-          <Tab value="login-history" label="Login History" />
+          <Tab value="audit" label={t("page.title")} />
+          <Tab value="security-events" label={t("page.tabSecurity")} />
+          <Tab value="login-history" label={t("page.tabLogin")} />
         </Tabs>
       )}
 
@@ -141,7 +146,7 @@ export function AuditSearchPage() {
           />
 
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <SectionTitle>Audit Events</SectionTitle>
+            <SectionTitle>{t("page.events")}</SectionTitle>
             <Button
               size="small"
               variant="outlined"
@@ -150,7 +155,7 @@ export function AuditSearchPage() {
               disabled={exporting || loading}
               sx={{ textTransform: "none" }}
             >
-              {exporting ? "Exporting..." : "Export CSV (max 50,000 rows)"}
+              {exporting ? t("page.exporting") : t("page.exportCsv")}
             </Button>
           </Box>
 

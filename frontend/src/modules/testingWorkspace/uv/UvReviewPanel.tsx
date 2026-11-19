@@ -10,8 +10,11 @@ import {
   Typography,
   useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { HplcStatusBadge } from "../../hplcWorkspace/components/HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import type { ParameterResultDetail } from "../types/sampleSummaryTypes";
 
 export interface UvReplicateData {
@@ -81,6 +84,7 @@ export const UV_MODE_LABELS: Record<string, string> = {
 };
 
 export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
+  const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const calc = parseUvCalc(parameter.calculationJson);
 
@@ -88,7 +92,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
     return null;
   }
 
-  const modeLabel = UV_MODE_LABELS[calc.mode] ?? calc.mode ?? "—";
+  const modeLabel = t(`uvReview.modes.${calc.mode}`, { defaultValue: UV_MODE_LABELS[calc.mode] ?? calc.mode ?? "—" });
   const isLimitMode = calc.mode === "AbsorbanceLimit";
   const isStandardMode = calc.mode === "StandardComparison";
   const hasWeights = !isLimitMode && (calc.replicates ?? []).some((r) => r.weightG != null);
@@ -105,7 +109,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-          UV Review · {parameter.parameterName}
+          {t("uvReview.title", { name: parameter.parameterName })}
         </Typography>
         <HplcStatusBadge status={parameter.comparisonStatus} />
       </Box>
@@ -119,7 +123,7 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
       >
         <Box>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-            Mode
+            {t("uvReview.mode")}
           </Typography>
           <Typography variant="body2" sx={{ fontWeight: 600 }}>
             {modeLabel}
@@ -129,10 +133,10 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {calc.wavelengthNm != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Wavelength
+              {t("uvReview.wavelength")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.wavelengthNm} nm
+              <Ltr>{calc.wavelengthNm} nm</Ltr>
             </Typography>
           </Box>
         )}
@@ -140,10 +144,10 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {calc.totalVolumeMl != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Volume
+              {t("uvReview.volume")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.totalVolumeMl} mL
+              <Ltr>{calc.totalVolumeMl} mL</Ltr>
             </Typography>
           </Box>
         )}
@@ -151,10 +155,10 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {calc.specificAbsorbance != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              A1%
+              {t("uvReview.a1Percent")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.specificAbsorbance}
+              <Ltr>{calc.specificAbsorbance}</Ltr>
             </Typography>
           </Box>
         )}
@@ -162,10 +166,10 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {!isLimitMode && calc.asIsValue != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              As-is Value
+              {t("uvReview.asIsValue")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {typeof calc.asIsValue === "number" ? calc.asIsValue.toFixed(2) : String(calc.asIsValue)}
+              <Ltr>{typeof calc.asIsValue === "number" ? calc.asIsValue.toFixed(2) : String(calc.asIsValue)}</Ltr>
             </Typography>
           </Box>
         )}
@@ -173,10 +177,10 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {calc.moisturePercent != null && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Moisture
+              {t("uvReview.moisture")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.moisturePercent} %
+              <Ltr>{calc.moisturePercent} %</Ltr>
             </Typography>
           </Box>
         )}
@@ -185,59 +189,59 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
           <>
             <Box>
               <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                Standard Lot
+                {t("uvReview.standardLot")}
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {calc.standard.code || "—"}
+                <Ltr>{calc.standard.code || "—"}</Ltr>
               </Typography>
             </Box>
             {calc.standard.purityPercent != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Std Purity
+                  {t("uvReview.stdPurity")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {calc.standard.purityPercent} %
+                  <Ltr>{calc.standard.purityPercent} %</Ltr>
                 </Typography>
               </Box>
             )}
             {calc.standard.moisturePercent != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Std Moisture
+                  {t("uvReview.stdMoisture")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {calc.standard.moisturePercent} %
+                  <Ltr>{calc.standard.moisturePercent} %</Ltr>
                 </Typography>
               </Box>
             )}
             {calc.standard.volumeMl != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Std Volume
+                  {t("uvReview.stdVolume")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {calc.standard.volumeMl} mL
+                  <Ltr>{calc.standard.volumeMl} mL</Ltr>
                 </Typography>
               </Box>
             )}
             {calc.standard.weightG != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Std Weight
+                  {t("uvReview.stdWeight")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {calc.standard.weightG} g
+                  <Ltr>{calc.standard.weightG} g</Ltr>
                 </Typography>
               </Box>
             )}
             {calc.standard.absorbance != null && (
               <Box>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-                  Std Absorbance
+                  {t("uvReview.stdAbsorbance")}
                 </Typography>
                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  {calc.standard.absorbance}
+                  <Ltr>{calc.standard.absorbance}</Ltr>
                 </Typography>
               </Box>
             )}
@@ -247,14 +251,16 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
         {isLimitMode && (
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Reference Absorbance
+              {t("uvReview.referenceAbsorbance")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.referenceAbsorbance != null
-                ? (typeof calc.referenceAbsorbance === "number"
-                    ? calc.referenceAbsorbance.toFixed(6).replace(/(\.\d{3}\d*?)0+$/, "$1")
-                    : String(calc.referenceAbsorbance))
-                : "—"}
+              <Ltr>
+                {calc.referenceAbsorbance != null
+                  ? (typeof calc.referenceAbsorbance === "number"
+                      ? calc.referenceAbsorbance.toFixed(6).replace(/(\.\d{3}\d*?)0+$/, "$1")
+                      : String(calc.referenceAbsorbance))
+                  : "—"}
+              </Ltr>
             </Typography>
           </Box>
         )}
@@ -266,18 +272,18 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("uvReview.colReplicate")}</TableCell>
                 {hasWeights && (
                   <TableCell align="right" sx={{ fontSize: 12 }}>
-                    Sample Weight (g)
+                    {t("uvReview.colSampleWeight")}
                   </TableCell>
                 )}
                 <TableCell align="right" sx={{ fontSize: 12 }}>
-                  Absorbance
+                  {t("uvReview.colAbsorbance")}
                 </TableCell>
                 {!isLimitMode && (
                   <TableCell align="right" sx={{ fontSize: 12 }}>
-                    {calc.moisturePercent != null ? "Result (as is)" : "Result"}
+                    {calc.moisturePercent != null ? t("uvReview.colResultAsIs") : t("uvReview.colResult")}
                   </TableCell>
                 )}
               </TableRow>
@@ -286,21 +292,23 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
               {calc.replicates.map((r) => (
                 <TableRow key={r.replicateNo} hover>
                   <TableCell sx={{ fontSize: 12, fontWeight: 600 }}>
-                    Rep {r.replicateNo}
+                    {t("uvReview.repLabel", { index: r.replicateNo })}
                   </TableCell>
                   {hasWeights && (
                     <TableCell align="right" sx={{ fontSize: 12 }}>
-                      {r.weightG != null ? r.weightG : "—"}
+                      <Ltr>{r.weightG != null ? r.weightG : "—"}</Ltr>
                     </TableCell>
                   )}
                   <TableCell align="right" sx={{ fontSize: 12 }}>
-                    {typeof r.absorbance === "number" ? r.absorbance.toFixed(3) : String(r.absorbance ?? "—")}
+                    <Ltr>{typeof r.absorbance === "number" ? r.absorbance.toFixed(3) : String(r.absorbance ?? "—")}</Ltr>
                   </TableCell>
                   {!isLimitMode && (
                     <TableCell align="right" sx={{ fontSize: 12, fontWeight: 600 }}>
-                      {typeof r.value === "number"
-                        ? r.value.toFixed(2)
-                        : String(r.value ?? "—")}
+                      <Ltr>
+                        {typeof r.value === "number"
+                          ? r.value.toFixed(2)
+                          : String(r.value ?? "—")}
+                      </Ltr>
                     </TableCell>
                   )}
                 </TableRow>
@@ -314,11 +322,16 @@ export function UvReviewPanel({ parameter }: UvReviewPanelProps) {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12 }}>
-            Reported Result: <strong>{parameter.reportedDisplay || "—"}</strong>
+            {t("uvReview.reportedResult")} <strong><Ltr>{parameter.reportedDisplay || "—"}</Ltr></strong>
           </Typography>
           {parameter.specLimit && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              (Spec: {parameter.specLimit})
+              <Trans
+                i18nKey="uvReview.specParens"
+                ns="testingWorkspace"
+                values={{ spec: parameter.specLimit }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           )}
         </Box>

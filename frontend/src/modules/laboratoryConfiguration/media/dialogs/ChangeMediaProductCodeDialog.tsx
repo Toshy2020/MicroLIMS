@@ -3,6 +3,7 @@ import { Button, TextField, Stack } from "@mui/material";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { masterDataOptions, MediaProductOption } from "../../../../services/masterDataOptions";
+import { i18n, useTranslation } from "../../../../i18n";
 
 interface ChangeMediaProductCodeDialogProps {
   open: boolean;
@@ -12,6 +13,8 @@ interface ChangeMediaProductCodeDialogProps {
 }
 
 export function ChangeMediaProductCodeDialog({ open, product, onClose, onSuccess }: ChangeMediaProductCodeDialogProps) {
+  const { t } = useTranslation("labConfig");
+  const enT = i18n.getFixedT("en", "labConfig");
   const [newCode, setNewCode] = useState("");
   const [reason, setReason] = useState("");
   const [signatureOpen, setSignatureOpen] = useState(false);
@@ -30,7 +33,20 @@ export function ChangeMediaProductCodeDialog({ open, product, onClose, onSuccess
   const trimmedNewCode = newCode.trim();
   const trimmedReason = reason.trim();
 
-  const meaningStatement = `I am changing the code of media product "${product.name}" from ${product.code} to ${trimmedNewCode}. Lots prepared from now on will be numbered ${trimmedNewCode}/01/${yy} onwards. Reason: ${trimmedReason}`;
+  const meaningStatement = enT("media.changeCodeDialog.meaningStatement", {
+    name: product.name,
+    oldCode: product.code,
+    newCode: trimmedNewCode,
+    yy,
+    reason: trimmedReason
+  });
+  const meaningStatementTranslation = t("media.changeCodeDialog.meaningStatement", {
+    name: product.name,
+    oldCode: product.code,
+    newCode: trimmedNewCode,
+    yy,
+    reason: trimmedReason
+  });
 
   const handleConfirmSignature = async (password: string) => {
     await masterDataOptions.changeMediaProductCode(
@@ -48,47 +64,47 @@ export function ChangeMediaProductCodeDialog({ open, product, onClose, onSuccess
     <>
       <FloatingDialog
         open={open && !signatureOpen}
-        title={`Change Code: ${product.name}`}
+        title={t("media.changeCodeDialog.title", { name: product.name })}
         onClose={onClose}
         maxWidth="xs"
         actions={
           <>
-            <Button onClick={onClose}>Cancel</Button>
+            <Button onClick={onClose}>{t("media.changeCodeDialog.cancel")}</Button>
             <Button
               variant="contained"
               disabled={!trimmedNewCode || !trimmedReason}
               onClick={() => setSignatureOpen(true)}
             >
-              Continue to sign
+              {t("media.changeCodeDialog.continueToSign")}
             </Button>
           </>
         }
       >
         <Stack spacing={2} sx={{ mt: 1 }}>
           <TextField
-            label="Current Code"
+            label={t("media.changeCodeDialog.currentCodeLabel")}
             value={product.code}
             slotProps={{ input: { readOnly: true } }}
             size="small"
           />
           <TextField
-            label="New Code"
+            label={t("media.changeCodeDialog.newCodeLabel")}
             required
             value={newCode}
             onChange={(e) => setNewCode(e.target.value)}
-            placeholder="e.g. TSA2"
-            helperText="2-10 letters, digits, dot or hyphen"
+            placeholder={t("media.changeCodeDialog.newCodePlaceholder")}
+            helperText={t("media.changeCodeDialog.newCodeHelper")}
             size="small"
             autoFocus
           />
           <TextField
-            label="Reason"
+            label={t("media.changeCodeDialog.reasonLabel")}
             required
             multiline
             rows={3}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Enter the justification for changing this product code..."
+            placeholder={t("media.changeCodeDialog.reasonPlaceholder")}
             size="small"
           />
         </Stack>
@@ -97,6 +113,7 @@ export function ChangeMediaProductCodeDialog({ open, product, onClose, onSuccess
       <SignatureDialog
         open={open && signatureOpen}
         meaningStatement={meaningStatement}
+        meaningStatementTranslation={meaningStatementTranslation}
         onCancel={() => setSignatureOpen(false)}
         onConfirm={handleConfirmSignature}
       />

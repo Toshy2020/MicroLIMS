@@ -19,6 +19,9 @@ import { CategoryBadge } from "../../../components/StatusBadge";
 import { ReceiveService } from "../services/ReceiveService";
 import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage } from "../../../utils/errorMessage";
 
 interface Props {
   open: boolean;
@@ -36,6 +39,7 @@ const MEANING_STATEMENT = "I add this laboratory to the sample; it creates that 
 // labs already have a TestOrder on this sample.
 export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
   const [options, setOptions] = useState<ReceiptLabOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,12 +61,12 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
     }
 
     setLoading(true);
-    const existingSectionIds = new Set(sample.assignedTests.map((t) => t.sectionId));
+    const existingSectionIds = new Set(sample.assignedTests.map((assigned) => assigned.sectionId));
     ReceiveService.receiptLabs(sample.itemId)
       .then((labs) => setOptions(labs.filter((l) => l.testCount > 0 && !existingSectionIds.has(l.sectionId))))
-      .catch((err) => setLoadError(err?.response?.data?.message || "Unable to load available laboratories."))
+      .catch((err) => setLoadError(getErrorMessage(err, t("addLab.loadFailed"))))
       .finally(() => setLoading(false));
-  }, [open, sample]);
+  }, [open, sample, t]);
 
   if (!sample) return null;
 
@@ -118,10 +122,10 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
             </Box>
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-                Add Laboratory
+                {t("addLab.title")}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-                Creates that lab's test orders on this sample - signed with your password
+                {t("addLab.subtitle")}
               </Typography>
             </Box>
           </>
@@ -129,7 +133,7 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
         actions={
           <>
             <Button onClick={handleCancel} color="inherit">
-              Cancel
+              {t("addLab.cancel")}
             </Button>
             <Button
               onClick={handleConfirm}
@@ -139,7 +143,7 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
               startIcon={<LibraryAddOutlinedIcon />}
               sx={{ fontWeight: 700, textTransform: "none", px: 2.5 }}
             >
-              Sign &amp; Add
+              {t("addLab.confirm")}
             </Button>
           </>
         }
@@ -163,15 +167,15 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
           <Stack spacing={1}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                Sample Reference:
+                {t("addLab.sampleReference")}
               </Typography>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: theme.palette.primary.main }}>
-                {sample.referenceNumber} (#{sample.sampleId})
+                <Ltr>{sample.referenceNumber}</Ltr> (<Ltr>#{sample.sampleId}</Ltr>)
               </Typography>
             </Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
-                Item / Type:
+                {t("addLab.itemType")}
               </Typography>
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>
@@ -189,20 +193,20 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
           </Box>
         ) : options.length === 0 ? (
           <Alert severity="info" sx={{ mb: 2 }}>
-            No other laboratory has assigned tests for this item, or every laboratory with tests is already on this sample.
+            {t("addLab.noneAvailable")}
           </Alert>
         ) : (
           <FormControl fullWidth size="small" sx={{ mb: 2.5 }}>
-            <InputLabel id="add-lab-select-label">Laboratory</InputLabel>
+            <InputLabel id="add-lab-select-label">{t("addLab.laboratory")}</InputLabel>
             <Select
               labelId="add-lab-select-label"
-              label="Laboratory"
+              label={t("addLab.laboratory")}
               value={sectionId}
               onChange={(e) => setSectionId(e.target.value as number)}
             >
               {options.map((o) => (
                 <MenuItem key={o.sectionId} value={o.sectionId}>
-                  {o.sectionName} ({o.testCount} test{o.testCount === 1 ? "" : "s"})
+                  {t("addLab.testCount", { name: o.sectionName, count: o.testCount })}
                 </MenuItem>
               ))}
             </Select>
@@ -210,8 +214,8 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
         )}
 
         <TextField
-          label="Reason *"
-          placeholder="Why this laboratory is being added now..."
+          label={t("addLab.reasonLabel")}
+          placeholder={t("addLab.reasonPlaceholder")}
           multiline
           rows={2}
           fullWidth
@@ -222,13 +226,14 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
             if (reasonError) setReasonError(false);
           }}
           error={reasonError}
-          helperText={reasonError ? "A reason is required." : "Recorded with your electronic signature and in the sample's audit trail."}
+          helperText={reasonError ? t("addLab.reasonRequired") : t("addLab.reasonHelper")}
         />
       </FloatingDialog>
 
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("addLab.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

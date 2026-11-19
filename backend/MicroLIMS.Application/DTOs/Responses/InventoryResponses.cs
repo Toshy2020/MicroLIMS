@@ -180,9 +180,10 @@ public class EquipmentInventoryResponse
     public int? PmIntervalValue { get; init; }
     public IntervalUnit? PmIntervalUnit { get; init; }
     public DateOnly? LastPmOn { get; init; }
+    public bool CodeLocked { get; init; }
 
     // nowUtc: from the caller's injected clock, for the time-dependent fields (CLAUDE.md Rule 5.6).
-    public static EquipmentInventoryResponse From(EquipmentInventory e, DateTime nowUtc) => new()
+    public static EquipmentInventoryResponse From(EquipmentInventory e, DateTime nowUtc, bool codeLocked = false) => new()
     {
         Id = e.Id,
         Version = e.Version,
@@ -207,5 +208,6 @@ public class EquipmentInventoryResponse
         PmIntervalValue = e.PmIntervalValue,
         PmIntervalUnit = e.PmIntervalUnit,
         LastPmOn = e.LastPmOn,
+        CodeLocked = codeLocked,
     };
 }

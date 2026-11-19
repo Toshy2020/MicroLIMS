@@ -32,6 +32,12 @@ public interface IMicroLimsDbContext
     // for every row the save produces. Set per operation, never from JSON.
     string? CurrentReason { get; set; }
 
+    // Where the change came from, when the request says so (today: the start
+    // time a bench tablet reports for its local draft). The automatic audit
+    // capture copies it into AuditLog.SourceContext for rows that have none.
+    // Set per request by DraftContextMiddleware; never from JSON.
+    string? CurrentSourceContext { get; set; }
+
     DbSet<User> Users { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }
@@ -42,6 +48,16 @@ public interface IMicroLimsDbContext
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
     DbSet<PasswordHistory> PasswordHistories { get; }
     DbSet<AdminPasswordRecovery> AdminPasswordRecoveries { get; }
+    DbSet<UserMfaCredential> UserMfaCredentials { get; }
+    DbSet<MfaRecoveryCode> MfaRecoveryCodes { get; }
+    DbSet<MfaChallenge> MfaChallenges { get; }
+    DbSet<UserUiState> UserUiStates { get; }
+    DbSet<RecentRecord> RecentRecords { get; }
+    DbSet<TableView> TableViews { get; }
+    DbSet<UserTableDefault> UserTableDefaults { get; }
+    DbSet<TrustedDevice> TrustedDevices { get; }
+    DbSet<SsoPendingRequest> SsoPendingRequests { get; }
+    DbSet<SsoExchangeCode> SsoExchangeCodes { get; }
     DbSet<ElectronicSignature> ElectronicSignatures { get; }
     DbSet<Item> Items { get; }
     DbSet<Specification> Specifications { get; }
@@ -58,6 +74,12 @@ public interface IMicroLimsDbContext
     DbSet<BiologicalWasteDestruction> BiologicalWasteDestructions { get; }
     DbSet<BiologicalWasteDestructionItem> BiologicalWasteDestructionItems { get; }
     DbSet<NotificationLog> NotificationLogs { get; }
+    DbSet<EmailOutbox> EmailOutbox { get; }
+    DbSet<UserNotificationPreference> UserNotificationPreferences { get; }
+    DbSet<MandatoryNotificationType> MandatoryNotificationTypes { get; }
+    DbSet<EscalationRule> EscalationRules { get; }
+    DbSet<EscalationEvent> EscalationEvents { get; }
+    DbSet<LabWorkingHours> LabWorkingHours { get; }
     DbSet<Sample> Samples { get; }
     DbSet<SampleSectionSignoff> SampleSectionSignoffs { get; }
     DbSet<SampleTest> SampleTests { get; }
@@ -206,6 +228,7 @@ public interface IMicroLimsDbContext
     DbSet<DocumentType> DocumentTypes { get; }
     DbSet<DocumentDepartment> DocumentDepartments { get; }
     DbSet<DocumentSection> DocumentSections { get; }
+    DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings { get; }
     DbSet<UserOrgMembership> UserOrgMemberships { get; }
     DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations { get; }
     DbSet<ConfigurationSetting> ConfigurationSettings { get; }
@@ -213,6 +236,8 @@ public interface IMicroLimsDbContext
     DbSet<SystemSettingVersion> SystemSettingVersions { get; }
     DbSet<AccessReview> AccessReviews { get; }
     DbSet<AccessReviewFinding> AccessReviewFindings { get; }
+    DbSet<AuditTrailReview> AuditTrailReviews { get; }
+    DbSet<AuditTrailReviewFinding> AuditTrailReviewFindings { get; }
     DbSet<DocumentReviewTask> DocumentReviewTasks { get; }
     DbSet<DocumentReviewFinding> DocumentReviewFindings { get; }
     DbSet<RevisionChangeItem> RevisionChangeItems { get; }
@@ -231,6 +256,8 @@ public interface IMicroLimsDbContext
     DbSet<NotApplicableTest> NotApplicableTests { get; }
     DbSet<BackgroundJobRun> BackgroundJobRuns { get; }
     DbSet<BackupRun> BackupRuns { get; }
+    DbSet<LabelPrintLog> LabelPrintLogs { get; }
+    DbSet<LabelFormat> LabelFormats { get; }
 
     DbSet<TEntity> Set<TEntity>() where TEntity : class;
     DatabaseFacade Database { get; }
@@ -254,4 +281,12 @@ public interface IMicroLimsDbContext
     // unique index(es) (see UniqueIndexNames). False when another user took the
     // same identifier first, so the caller can pick a fresh one and retry.
     Task<bool> TrySaveChangesAsync(params string[] uniqueIndexNames);
+
+    // Queues a live invalidation signal for the current unit of work.
+    // Signals are deduplicated per DbContext, flushed once after the outermost
+    // transaction commits, and discarded on rollback.
+    void QueueSignal(string kind, string key);
+    void QueueSignal(string kind, string key, int? actorUserId);
+    Task FlushSignalsAsync(CancellationToken cancellationToken = default);
+    void DiscardSignals();
 }

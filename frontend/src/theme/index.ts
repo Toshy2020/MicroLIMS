@@ -1,6 +1,7 @@
 import { createTheme, Theme } from "@mui/material/styles";
 import { deepmerge } from "@mui/utils";
 import { baseThemeOptions, lightThemeOptions, darkThemeOptions } from "./palette";
+import { benchThemeOptions } from "./benchTheme";
 
 // Design system extracted from the provided Sample Receiving mockup:
 // purple-gradient brand header, dark-purple subnav, card-based content,
@@ -49,7 +50,16 @@ export const tableHeadSx = (theme: Theme) => ({
 export const lightTheme = createTheme(deepmerge(baseThemeOptions, lightThemeOptions));
 const darkTheme = createTheme(deepmerge(baseThemeOptions, darkThemeOptions));
 
-export function getTheme(mode: "light" | "dark") {
+// The bench variants are built once: same palette and custom tokens, plus the
+// touch-target sizing from benchThemeOptions and the custom.bench flag, which
+// is the only thing components may read to know the mode.
+const lightBenchTheme = createTheme(deepmerge(deepmerge(baseThemeOptions, lightThemeOptions), benchThemeOptions));
+const darkBenchTheme = createTheme(deepmerge(deepmerge(baseThemeOptions, darkThemeOptions), benchThemeOptions));
+lightBenchTheme.custom = { ...lightBenchTheme.custom, bench: true };
+darkBenchTheme.custom = { ...darkBenchTheme.custom, bench: true };
+
+export function getTheme(mode: "light" | "dark", bench = false) {
+  if (bench) return mode === "dark" ? darkBenchTheme : lightBenchTheme;
   return mode === "dark" ? darkTheme : lightTheme;
 }
 

@@ -1,0 +1,201 @@
+{
+  "page": {
+    "title": "Working Standards",
+    "subtitle": "Working standard lots, qualifications, moisture verification and sign-off",
+    "loadError": "Failed to load working standards data"
+  },
+  "actions": {
+    "refresh": "Refresh",
+    "newQualification": "New qualification",
+    "newQualificationTooltip": "Create initial qualification",
+    "permissionRequired": "Permission required: {{permission}}",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "close": "Close",
+    "upload": "Upload",
+    "uploading": "Uploading...",
+    "chooseFile": "Choose File",
+    "requalify": "Requalify",
+    "processing": "Processing..."
+  },
+  "kpis": {
+    "activeLots": "Active Lots",
+    "valid": "Valid",
+    "dueSoon": "Due Soon",
+    "expiredDepleted": "Expired / Depleted",
+    "pendingQuals": "Pending Quals"
+  },
+  "tabs": {
+    "lots": "Lots (<ltr>{{count}}</ltr>)",
+    "qualifications": "Qualifications (<ltr>{{count}}</ltr>)"
+  },
+  "units": {
+    "percent": "{{value}} %",
+    "grams": "{{value}} g"
+  },
+  "lotStatuses": {
+    "Valid": "Valid",
+    "DueSoon": "Due Soon",
+    "Expired": "Expired",
+    "Depleted": "Depleted"
+  },
+  "qualificationStatuses": {
+    "Draft": "Draft",
+    "Assayed": "Assayed",
+    "Reviewed": "Reviewed",
+    "Approved": "Approved",
+    "Rejected": "Rejected"
+  },
+  "qualificationKinds": {
+    "Initial": "Initial",
+    "Requalification": "Requalification"
+  },
+  "documentKinds": {
+    "SourceReport": "Source Report",
+    "MoistureReport": "Moisture Report"
+  },
+  "lotsTable": {
+    "empty": "No working standard lots found.",
+    "columns": {
+      "code": "Code",
+      "material": "Material",
+      "batch": "Batch",
+      "potency": "Potency %",
+      "moisture": "MC %",
+      "remaining": "Remaining (g)",
+      "expiry": "Expiry",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "requalifyInProgress": "Qualification already in progress (#{{id}})",
+    "initiateRequalification": "Initiate requalification"
+  },
+  "qualificationsTable": {
+    "empty": "No qualifications found.",
+    "columns": {
+      "code": "Code",
+      "kind": "Kind",
+      "material": "Material",
+      "batch": "Batch",
+      "status": "Status",
+      "run": "Run",
+      "created": "Created"
+    },
+    "lotCode": "Lot: <ltr>{{code}}</ltr>",
+    "byUser": "by {{user}}"
+  },
+  "newDialog": {
+    "titleRequalify": "Requalify Working Standard",
+    "titleNew": "New Working Standard Qualification",
+    "requalifyingLot": "Requalifying Lot: <ltr>{{code}}</ltr>",
+    "materialLine": "Material: {{name}} (<ltr>{{code}}</ltr>)",
+    "batchLine": "Batch: <ltr>{{batch}}</ltr>",
+    "sourceOption": "Source Option",
+    "sourceModeManual": "Manual",
+    "sourceModeReceived": "Received sample",
+    "sourceSampleLabel": "Source Sample",
+    "sourceSamplePlaceholder": "Search received samples...",
+    "noBatch": "No batch",
+    "nameLabel": "Name",
+    "batchLabel": "Batch",
+    "masterEntryLabel": "Master Entry",
+    "quantityLabel": "Quantity (g)",
+    "locationLabel": "Location",
+    "moistureLabel": "Moisture %",
+    "moistureHelperRequalify": "Enter moisture content % for requalification",
+    "moistureHelperInitial": "Optional initial moisture content %",
+    "toastRequalified": "Requalification initiated",
+    "toastCreated": "Qualification created",
+    "createFailed": "Failed to create qualification"
+  },
+  "drawer": {
+    "loadError": "Failed to load qualification details",
+    "empty": "No qualification selected.",
+    "needsSourceReport": "Upload the raw material's first test report before this qualification can be assigned to an HPLC run.",
+    "createdOn": "Created on <ltr>{{date}}</ltr>",
+    "createdOnBy": "Created on <ltr>{{date}}</ltr> by {{user}}"
+  },
+  "source": {
+    "heading": "SOURCE & SPECIFICATIONS",
+    "masterEntry": "Master Entry",
+    "sourceMaterialBatch": "Source Material & Batch",
+    "batchLine": "Batch: <ltr>{{batch}}</ltr>",
+    "sourceSampleReference": "Source Sample Reference",
+    "workingStandardLot": "Working Standard Lot",
+    "quantity": "Quantity",
+    "location": "Location",
+    "moistureContent": "Moisture Content",
+    "returnReason": "Return Reason:",
+    "rejectionReason": "Rejection Reason:"
+  },
+  "results": {
+    "heading": "HPLC RUN & ASSAY RESULTS",
+    "runButton": "Run <ltr>{{runCode}}</ltr> (Sample <ltr>#{{sampleId}}</ltr>)",
+    "awaitingRun": "Awaiting HPLC workspace run assignment and execution.",
+    "passed": "Passed analytical acceptance criteria.",
+    "failed": "Failed acceptance criteria: {{reasons}}",
+    "criteriaNotMet": "Criteria not met.",
+    "meanAssay": "Mean Assay %",
+    "rsd": "RSD %",
+    "potency": "Potency %",
+    "replicateAssays": "Replicate Assays (<ltr>{{count}}</ltr>)",
+    "replicateChip": "R{{index}}: {{value}} %",
+    "evidenceHeading": "HPLC RUN EVIDENCE",
+    "evidenceButton": "Evidence <ltr>#{{id}}</ltr>",
+    "noEvidence": "No HPLC run evidence files available.",
+    "openEvidenceError": "Failed to open evidence #{{id}}"
+  },
+  "documents": {
+    "heading": "DOCUMENTS & EVIDENCE",
+    "empty": "No documents uploaded yet.",
+    "viewDocument": "View document",
+    "uploadedOn": "Uploaded on <ltr>{{date}}</ltr>",
+    "uploadedOnBy": "Uploaded on <ltr>{{date}}</ltr> by {{user}}",
+    "uploadSectionTitle": "Upload Supporting Report (Draft only)",
+    "typeLabel": "Type",
+    "uploadSuccess": "Document {{fileName}} uploaded",
+    "uploadError": "Failed to upload document",
+    "openError": "Failed to open document"
+  },
+  "signOffSection": {
+    "heading": "WORKFLOW & SIGN-OFF",
+    "preparedBy": "Prepared by:",
+    "reviewedBy": "Reviewed by:",
+    "approvedBy": "Approved by:",
+    "rejectedBy": "Rejected by:",
+    "userAt": "{{user}}",
+    "userAtDate": "{{user}} on <ltr>{{date}}</ltr>",
+    "reviewActionsTitle": "Review Actions ({{permission}} required)",
+    "approvalActionsTitle": "Approval Actions ({{permission}} required)",
+    "review": "Review",
+    "returnToDraft": "Return to Draft",
+    "reject": "Reject",
+    "approve": "Approve"
+  },
+  "signOffDialog": {
+    "defaultTitle": "Electronic Signature",
+    "defaultConfirm": "Sign",
+    "reviewTitle": "Review Qualification {{code}}",
+    "reviewMeaning": "I confirm that I have reviewed this working standard qualification record and verified the analytical results.",
+    "reviewConfirm": "Sign & Review",
+    "approveTitle": "Approve Qualification {{code}}",
+    "approveMeaning": "I approve this working standard qualification and release the standard for analytical testing use.",
+    "approveConfirm": "Sign & Approve",
+    "rejectTitle": "Reject Qualification {{code}}",
+    "rejectMeaning": "I am rejecting this working standard qualification. A detailed justification is required.",
+    "rejectConfirm": "Sign & Reject",
+    "returnTitle": "Return Qualification {{code}}",
+    "returnMeaning": "Return qualification to Draft status for correction. Please provide a reason.",
+    "returnConfirm": "Return to Draft",
+    "reasonLabel": "Reason / Justification",
+    "reasonPlaceholder": "Enter reason...",
+    "commentLabel": "Comment (optional)",
+    "passwordLabel": "Password",
+    "toastReviewed": "Qualification {{code}} reviewed successfully",
+    "toastApproved": "Qualification {{code}} approved successfully",
+    "toastRejected": "Qualification {{code}} rejected",
+    "toastReturned": "Qualification {{code}} returned to Draft",
+    "actionFailed": "Action failed. Please check your credentials and try again."
+  }
+}

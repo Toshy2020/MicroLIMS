@@ -1,4 +1,5 @@
 import { StatusBadge } from "../../../components/StatusBadge";
+import { useTranslation } from "../../../i18n";
 
 export interface HplcStatusBadgeProps {
   status: string;
@@ -8,30 +9,31 @@ export interface HplcStatusBadgeProps {
   variant?: "filled" | "outlined";
 }
 
-// Raw API value (case-insensitive) -> canonical STATUS_TONE key + display label.
-const STATUS_MAP: Record<string, { key: string; label: string }> = {
+// Raw API value (case-insensitive) -> canonical STATUS_TONE key + i18n label key.
+const STATUS_MAP: Record<string, { key: string; labelKey: string }> = {
   // A run in progress, not an issue to act on - shares the InProgress (info)
   // tone rather than STATUS_TONE.Open, which is the action tone for findings.
-  open: { key: "InProgress", label: "Open" },
-  completed: { key: "Completed", label: "Completed" },
-  abandoned: { key: "Abandoned", label: "Abandoned" },
-  pending: { key: "Pending", label: "Pending" },
-  passed: { key: "Passed", label: "Passed" },
-  failed: { key: "Failed", label: "Failed" },
-  available: { key: "Available", label: "Available" },
-  running: { key: "Running", label: "Running" },
-  unavailable: { key: "Unavailable", label: "Unavailable" },
-  assigned: { key: "Assigned", label: "Assigned" },
-  removed: { key: "Removed", label: "Removed" },
-  withinlimits: { key: "WithinLimits", label: "Within Limits" },
-  outofspecification: { key: "OutOfSpecification", label: "OOS" },
-  actionlimitexceeded: { key: "ActionLimitExceeded", label: "Action Limit Exceeded" },
-  alertlimitexceeded: { key: "AlertLimitExceeded", label: "Alert Limit Exceeded" },
-  requiresreview: { key: "RequiresReview", label: "Requires Review" }
+  open: { key: "InProgress", labelKey: "status.open" },
+  completed: { key: "Completed", labelKey: "status.completed" },
+  abandoned: { key: "Abandoned", labelKey: "status.abandoned" },
+  pending: { key: "Pending", labelKey: "status.pending" },
+  passed: { key: "Passed", labelKey: "status.passed" },
+  failed: { key: "Failed", labelKey: "status.failed" },
+  available: { key: "Available", labelKey: "status.available" },
+  running: { key: "Running", labelKey: "status.running" },
+  unavailable: { key: "Unavailable", labelKey: "status.unavailable" },
+  assigned: { key: "Assigned", labelKey: "status.assigned" },
+  removed: { key: "Removed", labelKey: "status.removed" },
+  withinlimits: { key: "WithinLimits", labelKey: "status.withinLimits" },
+  outofspecification: { key: "OutOfSpecification", labelKey: "status.oos" },
+  actionlimitexceeded: { key: "ActionLimitExceeded", labelKey: "status.actionLimitExceeded" },
+  alertlimitexceeded: { key: "AlertLimitExceeded", labelKey: "status.alertLimitExceeded" },
+  requiresreview: { key: "RequiresReview", labelKey: "status.requiresReview" }
 };
 
 export function HplcStatusBadge({ status, label }: HplcStatusBadgeProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const mapped = STATUS_MAP[status.trim().toLowerCase()];
   if (!mapped) return <StatusBadge status={status} label={label} />;
-  return <StatusBadge status={mapped.key} label={label ?? mapped.label} />;
+  return <StatusBadge status={mapped.key} label={label ?? t(mapped.labelKey)} />;
 }

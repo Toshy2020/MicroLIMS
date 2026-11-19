@@ -1,19 +1,19 @@
 import { useState } from "react";
 import {
-  Box, Paper, Typography, Chip, IconButton, Tooltip, Button, Alert, Stack,
-  FormControl, Select, MenuItem, useTheme
+  Box, Paper, Typography, Chip, IconButton, Tooltip, Button, Alert, Stack, useTheme
 } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { ReferenceStrainDetail, ReferenceStrainListItem, ReferenceStrainSearchParams, ReferenceStrainSearchResponse } from "../types/referenceStrainTypes";
 import { ReferenceStrainReportService } from "../services/ReferenceStrainReportService";
 import { ReferenceStrainDetailDialog } from "./ReferenceStrainDetailDialog";
 import { exportReferenceStrainPdf } from "../utils/exportReferenceStrainPdf";
 import { useAuth } from "../../../contexts/AuthContext";
-import { DataTable, Column } from "../../../components/DataTable";
+import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
+import { useRowSelection } from "../../../components/lab/table/useRowSelection";
+import { useTranslation } from "../../../i18n";
+import { formatCount } from "../../../utils/formatCount";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -45,48 +45,37 @@ export function ReferenceStrainResultsTable({
   onPageSizeChange,
   onClearFilters
 }: ReferenceStrainResultsTableProps) {
+  const { t } = useTranslation("reports");
   const theme = useTheme();
   const { fullName } = useAuth();
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const resetKey = JSON.stringify({
+    search: appliedParams.search,
+    organismId: appliedParams.organismId,
+    approvalStatus: appliedParams.approvalStatus,
+    isDestroyed: appliedParams.isDestroyed,
+    receiptFromDate: appliedParams.receiptFromDate,
+    receiptToDate: appliedParams.receiptToDate,
+    usageFromDate: appliedParams.usageFromDate,
+    usageToDate: appliedParams.usageToDate
+  });
+  const selection = useRowSelection<string | number>(resetKey);
   const [detailBatch, setDetailBatch] = useState<ReferenceStrainDetail | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const items = results?.items ?? [];
   const totalCount = results?.totalCount ?? 0;
-  const page = results?.page ?? 1;
-  const pageSize = results?.pageSize ?? 25;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-
-  const allSelected = items.length > 0 && items.every((r) => selectedIds.includes(r.id));
-  const someSelected = items.some((r) => selectedIds.includes(r.id)) && !allSelected;
-
-  const handleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(items.map((r) => r.id));
-    }
-  };
-
-  const handleToggleRow = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
+  const page = results?.page ?? appliedParams.page ?? 1;
+  const pageSize = results?.pageSize ?? appliedParams.pageSize ?? 25;
 
   const handleViewDetail = async (id: number) => {
-    setDetailLoading(true);
     try {
       const detail = await ReferenceStrainReportService.getById(id);
       setDetailBatch(detail);
       setDetailOpen(true);
     } catch {
       // Error loading detail
-    } finally {
-      setDetailLoading(false);
     }
   };
 
@@ -95,28 +84,28 @@ export function ReferenceStrainResultsTable({
     setExportError(null);
     try {
       await ReferenceStrainReportService.exportCsv(appliedParams);
-    } catch (err: any) {
-      setExportError(err.message || "Export failed.");
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : t("referenceStrain.errors.exportFailed"));
     } finally {
       setExportingCsv(false);
     }
   };
 
   const handleExportPdf = () => {
-    const recordsToExport = selectedIds.length > 0
-      ? items.filter((r) => selectedIds.includes(r.id))
+    const recordsToExport = selection.count > 0
+      ? items.filter((r) => selection.isSelected(r.id))
       : items;
 
     exportReferenceStrainPdf(recordsToExport, {
       title: "Reference Microorganism Strains Report",
       criteriaSummary: `Filters: ${appliedParams.search ? `Search: "${appliedParams.search}"` : "All Strains"} • ${appliedParams.approvalStatus || "All Statuses"}`,
       generatedBy: fullName || "Authorized User",
-      isSelection: selectedIds.length > 0
+      isSelection: selection.count > 0
     });
   };
 
-  const columns: Column<ReferenceStrainListItem>[] = [
-    { key: "strainName", label: "Strain / ATCC", render: (r) => (
+  const columns: RegisterColumn<ReferenceStrainListItem>[] = [
+    { key: "strainName", label: t("referenceStrain.table.columns.strainAtcc"), render: (r) => (
       <Box>
         <Typography sx={{ fontWeight: 700, fontSize: 12.5, color: theme.palette.primary.main }}>
           {r.strainName}
@@ -133,21 +122,21 @@ export function ReferenceStrainResultsTable({
         )}
       </Box>
     ) },
-    { key: "cryovialCode", label: "Cryovial Code", render: (r) => <Box sx={{ fontWeight: 700 }}>{r.cryovialCode}</Box> },
-    { key: "manufacturerName", label: "Manufacturer", render: (r) => (
+    { key: "cryovialCode", label: t("referenceStrain.table.columns.cryovialCode"), render: (r) => <Box sx={{ fontWeight: 700 }}>{r.cryovialCode}</Box> },
+    { key: "manufacturerName", label: t("referenceStrain.table.columns.manufacturer"), render: (r) => (
       <Box sx={{ fontSize: 12 }}>
         {r.manufacturerName || "—"}
         {r.sourceMaterialBatchNumber && (
           <Typography variant="caption" sx={{ display: "block", color: "text.secondary", fontSize: 12 }}>
-            Batch: {r.sourceMaterialBatchNumber}
+            {t("referenceStrain.table.batchPrefix", { batch: r.sourceMaterialBatchNumber })}
           </Typography>
         )}
       </Box>
     ) },
-    { key: "receiptDate", label: "Receipt Date", render: (r) => formatDate(r.receiptDate) },
-    { key: "preparedAt", label: "Prep Date", render: (r) => formatDate(r.preparedAt) },
-    { key: "expiryDate", label: "Expiry Date", render: (r) => formatDate(r.expiryDate) },
-    { key: "vialsRemaining", label: "Vials Remaining", align: "center", render: (r) => (
+    { key: "receiptDate", label: t("referenceStrain.table.columns.receiptDate"), render: (r) => formatDate(r.receiptDate) },
+    { key: "preparedAt", label: t("referenceStrain.table.columns.prepDate"), render: (r) => formatDate(r.preparedAt) },
+    { key: "expiryDate", label: t("referenceStrain.table.columns.expiryDate"), render: (r) => formatDate(r.expiryDate) },
+    { key: "vialsRemaining", label: t("referenceStrain.table.columns.vialsRemaining"), align: "center", render: (r) => (
       <Chip
         size="small"
         label={`${r.vialsRemaining} / ${r.numberOfVialsPrepared}`}
@@ -155,8 +144,8 @@ export function ReferenceStrainResultsTable({
         sx={{ fontSize: 12, height: 20, fontWeight: 700 }}
       />
     ) },
-    { key: "storageCondition", label: "Storage", render: (r) => <Box sx={{ fontSize: 12 }}>{r.storageCondition || "—"}</Box> },
-    { key: "approvalStatus", label: "Approval Status", render: (r) => (
+    { key: "storageCondition", label: t("referenceStrain.table.columns.storage"), render: (r) => <Box sx={{ fontSize: 12 }}>{r.storageCondition || "—"}</Box> },
+    { key: "approvalStatus", label: t("referenceStrain.table.columns.approvalStatus"), render: (r) => (
       <>
         <Chip
           size="small"
@@ -166,13 +155,13 @@ export function ReferenceStrainResultsTable({
         />
         {r.isDestroyed && (
           <Typography variant="caption" sx={{ display: "block", color: "error.main", fontWeight: 700, fontSize: 12 }}>
-            Destroyed
+            {t("referenceStrain.table.destroyed")}
           </Typography>
         )}
       </>
     ) },
-    { key: "preparedByName", label: "Prepared By", render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
-    { key: "approvedByName", label: "Approved By", render: (r) => (
+    { key: "preparedByName", label: t("referenceStrain.table.columns.preparedBy"), render: (r) => <Box sx={{ fontSize: 12 }}>{r.preparedByName}</Box> },
+    { key: "approvedByName", label: t("referenceStrain.table.columns.approvedBy"), render: (r) => (
       <Box sx={{ fontSize: 12 }}>
         {r.approvedByName || "—"}
         {r.approvedAt && (
@@ -182,16 +171,16 @@ export function ReferenceStrainResultsTable({
         )}
       </Box>
     ) },
-    { key: "directUsageCount", label: "GPT Usage", align: "center", render: (r) => (
+    { key: "directUsageCount", label: t("referenceStrain.table.columns.gptUsage"), align: "center", render: (r) => (
       <Chip
         size="small"
-        label={`${r.directUsageCount} GPT`}
+        label={t("referenceStrain.table.gptChip", { count: r.directUsageCount })}
         sx={{ fontSize: 12, height: 20, bgcolor: theme.custom.status.purple.bg, color: theme.custom.status.purple.text, fontWeight: 700 }}
       />
     ) },
-    { key: "id", label: "Actions", align: "center", render: (r) => (
+    { key: "id", label: t("referenceStrain.table.columns.actions"), align: "center", render: (r) => (
       <Box onClick={(e) => e.stopPropagation()}>
-        <Tooltip title="View Batch Traceability">
+        <Tooltip title={t("referenceStrain.table.viewTooltip")}>
           <IconButton size="small" onClick={() => handleViewDetail(r.id)} color="primary">
             <VisibilityIcon fontSize="small" />
           </IconButton>
@@ -206,10 +195,14 @@ export function ReferenceStrainResultsTable({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
           <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main }}>
-            Reference Strains & Working Culture Batches
+            {t("referenceStrain.table.title")}
           </Typography>
           <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Showing {totalCount === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalCount)} of {totalCount.toLocaleString()} batches
+            {t("referenceStrain.table.showing", {
+              from: totalCount === 0 ? 0 : (page - 1) * pageSize + 1,
+              to: Math.min(page * pageSize, totalCount),
+              total: formatCount(totalCount)
+            })}
           </Typography>
         </Box>
 
@@ -224,7 +217,7 @@ export function ReferenceStrainResultsTable({
             disabled={exportingCsv || totalCount === 0}
             sx={{ fontWeight: 600 }}
           >
-            {exportingCsv ? "Exporting..." : "Export CSV"}
+            {exportingCsv ? t("referenceStrain.table.exporting") : t("referenceStrain.table.exportCsv")}
           </Button>
           <Button
             size="small"
@@ -235,7 +228,7 @@ export function ReferenceStrainResultsTable({
             disabled={items.length === 0}
             sx={{ fontWeight: 600 }}
           >
-            Print / PDF View {selectedIds.length > 0 ? `(${selectedIds.length})` : ""}
+            {selection.count > 0 ? t("referenceStrain.table.printPdfSelected", { count: selection.count }) : t("referenceStrain.table.printPdf")}
           </Button>
         </Stack>
       </Box>
@@ -253,71 +246,30 @@ export function ReferenceStrainResultsTable({
       )}
 
       {/* Table */}
-      <DataTable
+      <RegisterTable
         columns={columns}
         rows={items}
         getRowId={(r) => r.id}
-        onRowClick={(r) => handleViewDetail(r.id)}
+        onRowClick={(r) => void handleViewDetail(r.id)}
         loading={loading}
-        emptyMessage={
-          <>
-            <Typography sx={{ color: "text.secondary", fontSize: 13, mb: 1 }}>
-              No reference strain batches matched your filters.
-            </Typography>
+        empty={{
+          title: t("referenceStrain.table.emptyTitle"),
+          action: (
             <Button size="small" variant="text" onClick={onClearFilters}>
-              Clear Filters
+              {t("referenceStrain.table.clearFilters")}
             </Button>
-          </>
-        }
-        selection={{
-          isSelected: (r) => selectedIds.includes(r.id),
-          onToggle: (r) => handleToggleRow(r.id),
-          headerChecked: allSelected,
-          headerIndeterminate: someSelected,
-          onToggleAll: handleSelectAll
+          )
+        }}
+        selection={selection}
+        serverPaged={{
+          totalCount,
+          page: Math.max(0, page - 1),
+          onPageChange: (nextZeroBasedPage) => onPageChange(nextZeroBasedPage + 1),
+          pageSize,
+          onPageSizeChange,
+          pageSizeOptions: ROWS_PER_PAGE_OPTIONS
         }}
       />
-
-      {/* Pagination Footer */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, flexWrap: "wrap", gap: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Rows per page:</Typography>
-          <FormControl size="small">
-            <Select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(Number(e.target.value))}
-              sx={{ fontSize: 12, height: 32 }}
-              inputProps={{ "aria-label": "Rows per page" }}
-            >
-              {ROWS_PER_PAGE_OPTIONS.map((opt) => (
-                <MenuItem key={opt} value={opt} sx={{ fontSize: 12 }}>{opt}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
-
-        <Stack direction="row" spacing={1} sx={{
-          alignItems: "center"
-        }}>
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Page {page} of {totalPages}
-          </Typography>
-          <IconButton aria-label="Previous page"
-            size="small"
-            disabled={page <= 1 || loading}
-            onClick={() => onPageChange(page - 1)}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
-          <IconButton aria-label="Next page"
-            size="small"
-            disabled={page >= totalPages || loading}
-            onClick={() => onPageChange(page + 1)}
-          >
-            <ChevronRightIcon />
-          </IconButton>
-        </Stack>
-      </Box>
 
       {/* Detail Dialog */}
       <ReferenceStrainDetailDialog

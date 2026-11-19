@@ -24,12 +24,12 @@ import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { EquipmentPlanService } from "../services/EquipmentPlanService";
 import { AddLogEntryDialog } from "./AddLogEntryDialog";
-import { formatLabDate, formatLabDateTime } from "../../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../../utils/formatDate";
 import type {
   MaintenanceEntryType,
   MaintenanceLogEntryResponse
 } from "../types/equipmentTypes";
-import { MAINTENANCE_ENTRY_TYPE_LABELS } from "../types/equipmentTypes";
+import { useTranslation } from "../../../../i18n";
 
 interface Props {
   equipmentId: number;
@@ -44,6 +44,7 @@ const TYPE_COLORS: Record<MaintenanceEntryType, "primary" | "warning" | "default
 };
 
 export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogChanged }: Props) {
+  const { t, i18n } = useTranslation("inventory");
   const [entries, setEntries] = useState<MaintenanceLogEntryResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
       const data = await EquipmentPlanService.getMaintenanceLog(equipmentId);
       setEntries(data);
     } catch {
-      setError("Failed to load maintenance log entries.");
+      setError(t("equipment.maintenance.loadError"));
     } finally {
       setLoading(false);
     }
@@ -97,10 +98,10 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Box>
           <Typography variant="h6" sx={{ fontSize: 16, fontWeight: 700, color: "text.primary" }}>
-            Equipment Maintenance Logbook
+            {t("equipment.maintenance.title")}
           </Typography>
           <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.25 }}>
-            Every entry is signed and kept. A wrong entry is voided with a reason, never deleted.
+            {t("equipment.maintenance.subtitle")}
           </Typography>
         </Box>
         <Button
@@ -111,7 +112,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
           onClick={() => setIsAddOpen(true)}
           sx={{ textTransform: "none", fontSize: 12 }}
         >
-          Add Log Entry
+          {t("equipment.maintenance.addButton")}
         </Button>
       </Box>
 
@@ -136,7 +137,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
           }}
         >
           <Typography sx={{ fontSize: 13, fontStyle: "italic" }}>
-            No maintenance log entries recorded yet. Click &quot;Add Log Entry&quot; to log servicing or repairs.
+            {t("equipment.maintenance.empty")}
           </Typography>
         </Paper>
       ) : (
@@ -144,14 +145,14 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
           <Table size="small">
             <TableHead sx={{ bgcolor: "background.default" }}>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Date</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Type</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Work Done</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Parts Replaced</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Findings</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Performed By</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>Actions</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.date")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.type")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.workDone")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.partsReplaced")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.findings")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.performedBy")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12 }}>{t("equipment.maintenance.columns.status")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, fontSize: 12, textAlign: "right" }}>{t("equipment.maintenance.columns.actions")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -166,11 +167,11 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                     }}
                   >
                     <TableCell sx={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                      {formatLabDate(entry.performedOn)}
+                      {formatLabCalendarDate(entry.performedOn)}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>
                       <Chip
-                        label={MAINTENANCE_ENTRY_TYPE_LABELS[entry.entryType] ?? entry.entryType}
+                        label={t(`equipment.maintenance.entryTypes.${entry.entryType}`)}
                         color={TYPE_COLORS[entry.entryType] ?? "default"}
                         size="small"
                         sx={{ fontSize: 11, height: 20 }}
@@ -188,17 +189,19 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                       {entry.findings || "—"}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12, color: "text.secondary" }}>
-                      {entry.performedByUserName || `User #${entry.performedByUserId}`}
+                      {entry.performedByUserName || t("equipment.maintenance.userFallback", { id: entry.performedByUserId })}
                     </TableCell>
                     <TableCell sx={{ fontSize: 12 }}>
                       {isVoided ? (
                         <Tooltip
-                          title={`Voided by user #${entry.voidedByUserId}: "${entry.voidReason}" at ${
-                            entry.voidedAt ? formatLabDateTime(entry.voidedAt) : ""
-                          }`}
+                          title={t("equipment.maintenance.voidedTooltip", {
+                            userId: entry.voidedByUserId,
+                            reason: entry.voidReason,
+                            at: entry.voidedAt ? formatDateTimeWithTimeZone(entry.voidedAt) : ""
+                          })}
                         >
                           <Chip
-                            label="Voided"
+                            label={t("equipment.maintenance.voided")}
                             color="error"
                             size="small"
                             sx={{ fontSize: 11, height: 20 }}
@@ -206,7 +209,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                         </Tooltip>
                       ) : (
                         <Chip
-                          label="Recorded"
+                          label={t("equipment.maintenance.recorded")}
                           color="success"
                           variant="outlined"
                           size="small"
@@ -216,7 +219,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
                     </TableCell>
                     <TableCell sx={{ textAlign: "right", whiteSpace: "nowrap" }}>
                       {!isVoided && (
-                        <Tooltip title="Void this entry (requires reason & electronic signature)">
+                        <Tooltip title={t("equipment.maintenance.voidActionTooltip")}>
                           <IconButton
                             size="small"
                             color="error"
@@ -256,7 +259,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
       {/* Void Entry Dialog */}
       <FloatingDialog
         open={Boolean(voidTarget) && !voidSigning}
-        title="Void Maintenance Log Entry"
+        title={t("equipment.maintenance.voidDialogTitle")}
         onClose={handleVoidCancel}
         maxWidth="xs"
         actions={
@@ -265,27 +268,27 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
               onClick={handleVoidCancel}
               color="inherit"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="contained"
               color="error"
               onClick={() => {
                 if (!voidReason.trim()) {
-                  setVoidError("Void reason is required.");
+                  setVoidError(t("equipment.maintenance.voidReasonRequired"));
                   return;
                 }
                 setVoidSigning(true);
               }}
               disabled={!voidReason.trim()}
             >
-              Continue to sign
+              {t("equipment.maintenance.continueToSign")}
             </Button>
           </>
         }
       >
         <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>
-          Voiding removes the effect of this entry while preserving it in the audit trail. A valid reason and password signature are required.
+          {t("equipment.maintenance.voidDialogBody")}
         </Typography>
 
         {voidError && (
@@ -297,7 +300,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
         {voidTarget && (
           <Box sx={{ mb: 2, p: 1.5, bgcolor: "background.default", borderRadius: 1 }}>
             <Typography sx={{ fontSize: 12, fontWeight: 600 }}>
-              {formatLabDate(voidTarget.performedOn)} · {MAINTENANCE_ENTRY_TYPE_LABELS[voidTarget.entryType]}
+              {formatLabCalendarDate(voidTarget.performedOn)} · {t(`equipment.maintenance.entryTypes.${voidTarget.entryType}`)}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary", mt: 0.5 }}>
               {voidTarget.workDone}
@@ -308,7 +311,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
         <Stack spacing={2}>
           <TextField
             id="void-log-reason"
-            label="Reason for Voiding"
+            label={t("equipment.maintenance.voidReasonLabel")}
             multiline
             rows={2}
             size="small"
@@ -316,7 +319,7 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
             fullWidth
             value={voidReason}
             onChange={(e) => setVoidReason(e.target.value)}
-            placeholder="Explain why this entry is being voided"
+            placeholder={t("equipment.maintenance.voidReasonPlaceholder")}
           />
         </Stack>
       </FloatingDialog>
@@ -324,7 +327,16 @@ export function MaintenanceLogSection({ equipmentId, equipmentCode = "", onLogCh
       {voidTarget && (
         <SignatureDialog
           open={voidSigning}
-          meaningStatement={`I am voiding logbook entry #${voidTarget.id} for ${equipmentCode}. Reason: ${voidReason.trim()}.`}
+          meaningStatement={i18n.getFixedT("en", "inventory")("equipment.maintenance.voidMeaningStatement", {
+            id: voidTarget.id,
+            code: equipmentCode,
+            reason: voidReason.trim()
+          })}
+          meaningStatementTranslation={t("equipment.maintenance.voidMeaningStatement", {
+            id: voidTarget.id,
+            code: equipmentCode,
+            reason: voidReason.trim()
+          })}
           onCancel={() => setVoidSigning(false)}
           onConfirm={handleVoidSign}
         />

@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,6 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
-using MicroLIMS.Application.Abstractions.Notifications;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
 
@@ -26,19 +26,22 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null)
     {
         if (payload.MediumVolumeMl <= 0m)
-            throw new BusinessRuleException("Medium volume must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionMediumVolumePositive, "Medium volume must be greater than zero.");
         if (payload.DilutionFactor.HasValue && payload.DilutionFactor.Value <= 0m)
-            throw new BusinessRuleException("Dilution factor must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionDilutionFactorPositive, "Dilution factor must be greater than zero.");
         if (payload.VesselAreas == null || payload.VesselAreas.Count != 6)
-            throw new BusinessRuleException("Stage 1 dissolution requires exactly 6 vessel areas.");
+            throw new BusinessRuleException(MessageCodes.DissolutionStage1VesselCount, "Stage 1 dissolution requires exactly 6 vessel areas.");
         if (payload.VesselAreas.Any(a => a <= 0m))
-            throw new BusinessRuleException("Vessel area must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionVesselAreaPositive, "Vessel area must be greater than zero.");
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
 
         var resolved = await HplcDissolutionStandard.ResolveAsync(_db, order.Id);
-        var std = resolved.Standard ?? throw new BusinessRuleException(resolved.Problem);
+        var std = resolved.Standard ?? throw new BusinessRuleException(
+            MessageCodes.DissolutionStandardProblem,
+            resolved.Problem!,
+            new Dictionary<string, string> { ["message"] = resolved.Problem ?? string.Empty });
 
         var configuredLabels = string.IsNullOrWhiteSpace(definition.ConditionFields)
             ? Array.Empty<string>()
@@ -50,27 +53,40 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         if (configuredLabels.Length > 0)
         {
             if (payload.Conditions == null)
-                throw new BusinessRuleException("Conditions are required.");
+                throw new BusinessRuleException(MessageCodes.DissolutionConditionsRequired, "Conditions are required.");
 
             if (payload.Conditions.Count != configuredLabels.Length)
-                throw new BusinessRuleException($"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.");
+                throw new BusinessRuleException(
+                    MessageCodes.DissolutionConditionCountMismatch,
+                    $"Expected {configuredLabels.Length} condition fields, but received {payload.Conditions.Count}.",
+                    new Dictionary<string, string>
+                    {
+                        ["expected"] = configuredLabels.Length.ToString(CultureInfo.InvariantCulture),
+                        ["received"] = payload.Conditions.Count.ToString(CultureInfo.InvariantCulture),
+                    });
 
             foreach (var label in configuredLabels)
             {
                 if (!payload.Conditions.TryGetValue(label, out var val) || string.IsNullOrWhiteSpace(val))
-                    throw new BusinessRuleException($"Condition field \"{label}\" is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.DissolutionConditionFieldRequired,
+                        $"Condition field \"{label}\" is required.",
+                        new Dictionary<string, string> { ["field"] = label });
             }
 
             foreach (var key in payload.Conditions.Keys)
             {
                 if (!configuredLabels.Contains(key))
-                    throw new BusinessRuleException($"Unexpected condition field \"{key}\".");
+                    throw new BusinessRuleException(
+                        MessageCodes.DissolutionUnexpectedConditionField,
+                        $"Unexpected condition field \"{key}\".",
+                        new Dictionary<string, string> { ["field"] = key });
             }
         }
         else
         {
             if (payload.Conditions != null && payload.Conditions.Count > 0)
-                throw new BusinessRuleException("No condition fields are configured for this test.");
+                throw new BusinessRuleException(MessageCodes.DissolutionNoConditionFieldsConfigured, "No condition fields are configured for this test.");
         }
 
         string? conditionsJson = payload.Conditions != null && payload.Conditions.Count > 0
@@ -180,6 +196,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         };
 
         _db.TestAnalyses.Add(entry);
+        await _publisher.ResolveAsync($"TestReturned:test:{order.Id}");
         await _db.SaveChangesAsync();
 
         var outcomeSummary = $"{paramResult.ParameterName}: {paramResult.ReportedDisplay}";
@@ -221,29 +238,38 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
-            throw new BusinessRuleException("Password is required to sign the result.");
+            throw new BusinessRuleException(MessageCodes.DissolutionPasswordRequired, "Password is required to sign the result.");
         if (payload.VesselAreas == null || payload.VesselAreas.Count == 0)
-            throw new BusinessRuleException("Vessel areas are required.");
+            throw new BusinessRuleException(MessageCodes.DissolutionVesselAreasRequired, "Vessel areas are required.");
         if (payload.VesselAreas.Any(a => a <= 0m))
-            throw new BusinessRuleException("Vessel area must be greater than zero.");
+            throw new BusinessRuleException(MessageCodes.DissolutionVesselAreaPositive, "Vessel area must be greater than zero.");
 
         var order = await _db.TestOrders
             .Include(t => t.Results)
             .Include(t => t.Sample)
             .FirstOrDefaultAsync(t => t.Id == testOrderId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         RequireOrderNotFinalized(order);
 
         if (order.IsSuperseded)
-            throw new BusinessRuleException("Cannot record result for a superseded test order.");
+            throw new BusinessRuleException(MessageCodes.DissolutionSupersededOrder, "Cannot record result for a superseded test order.");
 
         var definition = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == order.TestCode)
-            ?? throw new BusinessRuleException($"Test definition \"{order.TestCode}\" not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.DissolutionTestDefinitionNotFound,
+                $"Test definition \"{order.TestCode}\" not found.",
+                new Dictionary<string, string> { ["testCode"] = order.TestCode });
 
         if (definition.WorkflowType != WorkflowType.Dissolution)
-            throw new BusinessRuleException($"Test order {testOrderId} is not a Dissolution workflow.");
+            throw new BusinessRuleException(
+                MessageCodes.DissolutionWrongWorkflow,
+                $"Test order {testOrderId} is not a Dissolution workflow.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
@@ -251,38 +277,41 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
             .Include(e => e.ParameterResults)
                 .ThenInclude(pr => pr.Readings)
             .FirstOrDefaultAsync(e => e.TestOrderId == testOrderId && e.IsActive)
-            ?? throw new BusinessRuleException("No active dissolution entry found for this test order.");
+            ?? throw new BusinessRuleException(MessageCodes.DissolutionNoActiveEntry, "No active dissolution entry found for this test order.");
 
         var paramResult = entry.ParameterResults.FirstOrDefault(pr => pr.IsActive)
-            ?? throw new BusinessRuleException("No active dissolution parameter result found.");
+            ?? throw new BusinessRuleException(MessageCodes.DissolutionNoActiveParameterResult, "No active dissolution parameter result found.");
 
         if (paramResult.ComparisonStatus != ResultStatus.NextStageRequired)
-            throw new BusinessRuleException("Active dissolution analysis does not require a next stage.");
+            throw new BusinessRuleException(MessageCodes.DissolutionNextStageNotRequired, "Active dissolution analysis does not require a next stage.");
 
         int existingVesselCount = paramResult.Readings.Count;
         int nextStage;
         if (existingVesselCount == 6)
         {
             if (payload.VesselAreas.Count != 6)
-                throw new BusinessRuleException("Stage 2 dissolution requires exactly 6 vessel areas.");
+                throw new BusinessRuleException(MessageCodes.DissolutionStage2VesselCount, "Stage 2 dissolution requires exactly 6 vessel areas.");
             nextStage = 2;
         }
         else if (existingVesselCount == 12)
         {
             if (payload.VesselAreas.Count != 12)
-                throw new BusinessRuleException("Stage 3 dissolution requires exactly 12 vessel areas.");
+                throw new BusinessRuleException(MessageCodes.DissolutionStage3VesselCount, "Stage 3 dissolution requires exactly 12 vessel areas.");
             nextStage = 3;
         }
         else
         {
-            throw new BusinessRuleException($"Invalid existing vessel count ({existingVesselCount}) for next stage.");
+            throw new BusinessRuleException(
+                MessageCodes.DissolutionInvalidExistingVesselCount,
+                $"Invalid existing vessel count ({existingVesselCount}) for next stage.",
+                new Dictionary<string, string> { ["count"] = existingVesselCount.ToString(CultureInfo.InvariantCulture) });
         }
 
         if (string.IsNullOrWhiteSpace(paramResult.CalculationJson))
-            throw new BusinessRuleException("Active dissolution parameter result lacks calculation data.");
+            throw new BusinessRuleException(MessageCodes.DissolutionMissingCalculationData, "Active dissolution parameter result lacks calculation data.");
 
         var prevCalc = JsonSerializer.Deserialize<DissolutionCalculationData>(paramResult.CalculationJson, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase })
-            ?? throw new BusinessRuleException("Failed to deserialize dissolution calculation data.");
+            ?? throw new BusinessRuleException(MessageCodes.DissolutionCalculationDataDeserializationFailed, "Failed to deserialize dissolution calculation data.");
 
         var allVesselInputs = new List<(int Stage, int VesselIndex, decimal Area)>();
         foreach (var r in paramResult.Readings.OrderBy(r => r.Index))

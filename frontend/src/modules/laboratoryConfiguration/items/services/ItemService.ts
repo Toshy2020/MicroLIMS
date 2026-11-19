@@ -1,4 +1,4 @@
-import { apiClient, ifMatch } from "../../../../services/apiClient";
+import { apiClient, withChangeReason } from "../../../../services/apiClient";
 
 export interface Item {
   id: number;
@@ -16,6 +16,12 @@ export interface Item {
   minSampleQuantityUnit?: string | null;
 }
 
+export interface CopyItemOptions {
+  sourceItemId: number;
+  specifications: boolean;
+  autoAssignedTests: boolean;
+}
+
 export interface ItemSaveRequest {
   name: string;
   code: string;
@@ -25,6 +31,7 @@ export interface ItemSaveRequest {
   minSampleQuantity?: number | null;
   minRetestSampleQuantity?: number | null;
   minSampleQuantityUnit?: string | null;
+  copyFrom?: CopyItemOptions | null;
 }
 
 export const ItemService = {
@@ -34,16 +41,16 @@ export const ItemService = {
   async create(item: ItemSaveRequest): Promise<Item> {
     return (await apiClient.post("/items", item)).data.data;
   },
-  async update(id: number, item: ItemSaveRequest, version?: number): Promise<void> {
-    await apiClient.put(`/items/${id}`, item, ifMatch(version));
+  async update(id: number, item: ItemSaveRequest, version?: number, reason?: string): Promise<void> {
+    await apiClient.put(`/items/${id}`, item, withChangeReason(version, reason));
   },
-  async remove(id: number): Promise<void> {
-    await apiClient.delete(`/items/${id}`);
+  async remove(id: number, reason?: string): Promise<void> {
+    await apiClient.delete(`/items/${id}`, withChangeReason(undefined, reason));
   },
-  async freeze(id: number): Promise<void> {
-    await apiClient.put(`/items/${id}/freeze`);
+  async freeze(id: number, reason?: string): Promise<void> {
+    await apiClient.put(`/items/${id}/freeze`, undefined, withChangeReason(undefined, reason));
   },
-  async unfreeze(id: number): Promise<void> {
-    await apiClient.put(`/items/${id}/unfreeze`);
+  async unfreeze(id: number, reason?: string): Promise<void> {
+    await apiClient.put(`/items/${id}/unfreeze`, undefined, withChangeReason(undefined, reason));
   }
 };

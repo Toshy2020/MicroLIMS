@@ -22,35 +22,60 @@ public class SegregationOfDutiesGuard
     // CountTestReading, PathogenObservation, WorkflowStepResult,
     // TestAnalysis and ConfirmatoryPlateObservation are the only
     // result-bearing tables tied to a TestOrder
-    public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId)
+    public async Task<bool> DidUserPerformTestAsync(int testOrderId, int userId, CancellationToken ct = default) =>
+        (await GetTestOrderIdsPerformedByAsync(userId, new[] { testOrderId }, ct)).Contains(testOrderId);
+
+    // The single source of the eight "performed" conditions, set-based: which of the given test orders did the
+    // user perform? One query per condition however many orders are asked about; ids that do not exist are
+    // simply absent. DidUserPerformTestAsync is this method with one id, so the two cannot drift.
+    public async Task<IReadOnlySet<int>> GetTestOrderIdsPerformedByAsync(
+        int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken ct = default)
     {
-        var orderInfo = await _db.TestOrders
-            .Where(t => t.Id == testOrderId)
-            .Select(t => new { t.AssignedAnalystId, t.SampleId })
-            .FirstOrDefaultAsync();
+        var performed = new HashSet<int>();
+        if (testOrderIds.Count == 0) return performed;
+        var ids = testOrderIds.Distinct().ToArray();
 
-        if (orderInfo == null) return false;
-        if (orderInfo.AssignedAnalystId == userId) return true;
+        // 1. Assigned as the analyst.
+        performed.UnionWith(await _db.TestOrders.AsNoTracking()
+            .Where(t => ids.Contains(t.Id) && t.AssignedAnalystId == userId)
+            .Select(t => t.Id).ToListAsync(ct));
 
-        if (await _db.SamplePreparations.AnyAsync(p => p.SampleId == orderInfo.SampleId && p.PreparedByUserId == userId)) return true;
+        // 2. Prepared the sample the test belongs to.
+        performed.UnionWith(await _db.TestOrders.AsNoTracking()
+            .Where(t => ids.Contains(t.Id)
+                && _db.SamplePreparations.Any(p => p.SampleId == t.SampleId && p.PreparedByUserId == userId))
+            .Select(t => t.Id).ToListAsync(ct));
 
-        if (await _db.Results.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
-        if (await _db.CountTestReadings.AnyAsync(r => r.TestOrderId == testOrderId && r.EnteredByUserId == userId)) return true;
-        if (await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId && p.ObservedByUserId == userId)) return true;
-        if (await _db.WorkflowStepResults.AnyAsync(r => r.TestOrderId == testOrderId && r.SubmittedByUserId == userId)) return true;
-        // Physicochemical workspaces (HPLC, dissolution, titration...) record here.
-        if (await _db.TestAnalyses.AnyAsync(a => a.TestOrderId == testOrderId && a.EnteredByUserId == userId)) return true;
+        // 3-6. Entered or observed a raw result.
+        performed.UnionWith(await _db.Results.AsNoTracking()
+            .Where(r => ids.Contains(r.TestOrderId) && r.EnteredByUserId == userId)
+            .Select(r => r.TestOrderId).ToListAsync(ct));
+        performed.UnionWith(await _db.CountTestReadings.AsNoTracking()
+            .Where(r => ids.Contains(r.TestOrderId) && r.EnteredByUserId == userId)
+            .Select(r => r.TestOrderId).ToListAsync(ct));
+        performed.UnionWith(await _db.PathogenObservations.AsNoTracking()
+            .Where(p => ids.Contains(p.TestOrderId) && p.ObservedByUserId == userId)
+            .Select(p => p.TestOrderId).ToListAsync(ct));
+        performed.UnionWith(await _db.WorkflowStepResults.AsNoTracking()
+            .Where(r => ids.Contains(r.TestOrderId) && r.SubmittedByUserId == userId)
+            .Select(r => r.TestOrderId).ToListAsync(ct));
 
-        // Confirmatory plate readings are APPENDED to a result row that
+        // 7. Physicochemical workspaces (HPLC, dissolution, titration...) record here.
+        performed.UnionWith(await _db.TestAnalyses.AsNoTracking()
+            .Where(a => ids.Contains(a.TestOrderId) && a.EnteredByUserId == userId)
+            .Select(a => a.TestOrderId).ToListAsync(ct));
+
+        // 8. Confirmatory plate readings are APPENDED to a result row that
         // whoever ran the setup submitted, so the WorkflowStepResult
         // check above never sees the second analyst who actually read the
         // plates - without this they could review and approve their own
         // reading. Joined through the parent row, since the observation
         // carries no TestOrderId of its own.
-        if (await _db.ConfirmatoryPlateObservations
-            .AnyAsync(o => o.RecordedByUserId == userId && o.WorkflowStepResult!.TestOrderId == testOrderId)) return true;
+        performed.UnionWith(await _db.ConfirmatoryPlateObservations.AsNoTracking()
+            .Where(o => o.RecordedByUserId == userId && ids.Contains(o.WorkflowStepResult!.TestOrderId))
+            .Select(o => o.WorkflowStepResult!.TestOrderId).ToListAsync(ct));
 
-        return false;
+        return performed;
     }
 
     // "Performed" for a Media lot = prepared it, or read any challenge

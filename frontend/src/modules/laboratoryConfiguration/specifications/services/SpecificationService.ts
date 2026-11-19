@@ -1,4 +1,5 @@
-import { apiClient, ifMatch } from "../../../../services/apiClient";
+import { apiClient, withChangeReason } from "../../../../services/apiClient";
+import type { FieldError } from "../../../../services/apiTypes";
 
 export type LimitType =
   | "Range"
@@ -99,6 +100,14 @@ export interface SpecificationDto {
   icpTestElementId?: number | null;
   productionStageRole?: ProductionStageRole | string | null;
   grade?: string | null;
+  isRetired?: boolean;
+  retiredAt?: string | null;
+  retiredByUserId?: number | null;
+}
+
+export interface SpecificationDeleteOutcome {
+  outcome: "retired" | "deleted" | string;
+  id: number;
 }
 
 export interface CreateSpecificationPayload {
@@ -139,6 +148,22 @@ export interface CreateSpecificationPayload {
 
 export type UpdateSpecificationPayload = Omit<CreateSpecificationPayload, "itemId">;
 
+export interface CopySpecificationsRequest {
+  sourceItemId: number;
+  targetItemId: number;
+  specificationIds: number[];
+}
+
+export type CopySpecificationsPreviewStatus = "Ok" | "AlreadyPresent" | "Invalid";
+
+export interface CopySpecificationsPreviewRow {
+  sourceSpecificationId: number;
+  testCode: string;
+  parameterName: string;
+  status: CopySpecificationsPreviewStatus;
+  message: string | null;
+}
+
 export const SpecificationService = {
   getForItem: (itemId: number): Promise<SpecificationDto[]> =>
     apiClient.get(`/masterdata/specifications?itemId=${itemId}`).then((r) => r.data.data),
@@ -148,9 +173,30 @@ export const SpecificationService = {
     apiClient.get(`/masterdata/specifications/for-test-order/${testOrderId}`).then((r) => r.data.data),
   create: (payload: CreateSpecificationPayload): Promise<SpecificationDto> =>
     apiClient.post("/masterdata/specifications", payload).then((r) => r.data.data),
-  update: (id: number, payload: UpdateSpecificationPayload, version?: number): Promise<SpecificationDto> =>
-    apiClient.put(`/masterdata/specifications/${id}`, payload, ifMatch(version)).then((r) => r.data.data),
-  remove: (id: number) => apiClient.delete(`/masterdata/specifications/${id}`),
-  delete: (id: number) => apiClient.delete(`/masterdata/specifications/${id}`)
+  createSpecificationsBatch: (payload: CreateSpecificationPayload[]): Promise<SpecificationDto[]> =>
+    apiClient.post("/masterdata/specifications/batch", payload).then((r) => r.data.data),
+  update: (id: number, payload: UpdateSpecificationPayload, version?: number, reason?: string): Promise<SpecificationDto> =>
+    apiClient.put(`/masterdata/specifications/${id}`, payload, withChangeReason(version, reason)).then((r) => r.data.data),
+  remove: async (id: number, reason?: string): Promise<SpecificationDeleteOutcome> => {
+    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeReason(undefined, reason));
+    return (res?.data?.data ?? { outcome: "deleted", id }) as SpecificationDeleteOutcome;
+  },
+  delete: async (id: number, reason?: string): Promise<SpecificationDeleteOutcome> => {
+    const res = await apiClient.delete(`/masterdata/specifications/${id}`, withChangeReason(undefined, reason));
+    return (res?.data?.data ?? { outcome: "deleted", id }) as SpecificationDeleteOutcome;
+  },
+  reinstate: (id: number, reason: string): Promise<SpecificationDto> =>
+    apiClient.post(`/masterdata/specifications/${id}/reinstate`, undefined, withChangeReason(undefined, reason)).then((r) => r.data.data),
+  validate: (
+    payload: (CreateSpecificationPayload | (UpdateSpecificationPayload & { itemId?: number })) & { id?: number },
+    id?: number
+  ): Promise<FieldError[]> =>
+    apiClient
+      .post(id != null ? `/masterdata/specifications/validate?id=${id}` : "/masterdata/specifications/validate", payload)
+      .then((r) => r.data.data ?? []),
+  previewCopy: (request: CopySpecificationsRequest): Promise<CopySpecificationsPreviewRow[]> =>
+    apiClient.post("/masterdata/specifications/copy/preview", request).then((r) => r.data.data ?? []),
+  copySpecifications: (request: CopySpecificationsRequest): Promise<number> =>
+    apiClient.post("/masterdata/specifications/copy", request).then((r) => r.data.data)
 };
 

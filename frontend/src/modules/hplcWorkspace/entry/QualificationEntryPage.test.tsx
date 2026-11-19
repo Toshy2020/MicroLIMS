@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { i18n } from "../../../i18n";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { QualificationEntryPage } from "./QualificationEntryPage";
@@ -70,5 +72,36 @@ describe("QualificationEntryPage - internal standard methods", () => {
     await waitFor(() => expect(HplcWorkspaceService.saveQualificationReplicates).toHaveBeenCalled());
     const [, request] = vi.mocked(HplcWorkspaceService.saveQualificationReplicates).mock.calls[0];
     expect(request.replicates[0].internalStandardResponse).toBe(500);
+  });
+});
+
+describe("QualificationEntryPage language change", () => {
+  it("keeps typed replicate values when the interface language changes", async () => {
+    vi.mocked(HplcWorkspaceService.getQualificationEntry).mockReset().mockResolvedValue(entry);
+    const user = userEvent.setup();
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter initialEntries={["/hplc/1/run/10/qualification/100"]}>
+          <Routes>
+            <Route path="/hplc/:instrumentId/run/:runId/qualification/:runSampleId" element={<QualificationEntryPage />} />
+          </Routes>
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+
+    const weight = (await screen.findByLabelText("Replicate 1 actual weight (mg)")) as HTMLInputElement;
+    await user.clear(weight);
+    await user.type(weight, "50.2");
+    try {
+      await act(async () => {
+        await i18n.changeLanguage("ar");
+      });
+      expect(HplcWorkspaceService.getQualificationEntry).toHaveBeenCalledTimes(1);
+      expect(weight.value).toBe("50.2");
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("en");
+      });
+    }
   });
 });

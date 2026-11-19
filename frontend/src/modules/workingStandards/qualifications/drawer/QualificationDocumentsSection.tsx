@@ -21,8 +21,11 @@ import {
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { Trans } from "react-i18next";
 import { toast } from "sonner";
-import { formatLabDateTime } from "../../../../utils/formatDate";
+import { Ltr } from "../../../../components/Ltr";
+import { useTranslation } from "../../../../i18n";
+import { formatDateTimeWithTimeZone } from "../../../../utils/formatDate";
 import { WorkingStandardService } from "../../services/WorkingStandardService";
 import type {
   WorkingStandardDocumentDto,
@@ -44,6 +47,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
   canQualify,
   onDocumentUploaded
 }) => {
+  const { t } = useTranslation("workingStandards");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [docKind, setDocKind] = useState<WorkingStandardDocumentKind>("SourceReport");
   const [uploading, setUploading] = useState(false);
@@ -60,14 +64,14 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
     setUploading(true);
     try {
       const doc = await WorkingStandardService.uploadDocument(qualificationId, selectedFile, docKind);
-      toast.success(`Document ${selectedFile.name} uploaded`);
+      toast.success(t("documents.uploadSuccess", { fileName: selectedFile.name }));
       setSelectedFile(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
       onDocumentUploaded(doc);
     } catch {
-      toast.error("Failed to upload document");
+      toast.error(t("documents.uploadError"));
     } finally {
       setUploading(false);
     }
@@ -77,7 +81,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
     try {
       await WorkingStandardService.openDocumentInNewTab(id);
     } catch {
-      toast.error("Failed to open document");
+      toast.error(t("documents.openError"));
     }
   };
 
@@ -85,60 +89,80 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
     <Card variant="outlined" sx={{ borderRadius: 2 }}>
       <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: "text.secondary" }}>
-          DOCUMENTS & EVIDENCE
+          {t("documents.heading")}
         </Typography>
 
         {documents.length === 0 ? (
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic", mb: 1.5 }}>
-            No documents uploaded yet.
+            {t("documents.empty")}
           </Typography>
         ) : (
           <List dense disablePadding sx={{ mb: 1.5 }}>
-            {documents.map((doc) => (
-              <ListItem
-                key={doc.id}
-                disableGutters
-                sx={{ py: 0.75, borderBottom: 1, borderColor: "divider" }}
-                secondaryAction={
-                  <Tooltip title="View document">
-                    <IconButton size="small" onClick={() => handleOpenDoc(doc.id)}>
-                      <OpenInNewIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                }
-              >
-                <ListItemIcon sx={{ minWidth: 32 }}>
-                  <AttachFileIcon fontSize="small" color="action" />
-                </ListItemIcon>
-                <ListItemText
-                  primary={
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {doc.fileName}
-                      </Typography>
-                      <Chip
+            {documents.map((doc) => {
+              const dateText = formatDateTimeWithTimeZone(doc.uploadedAt);
+              return (
+                <ListItem
+                  key={doc.id}
+                  disableGutters
+                  sx={{ py: 0.75, borderBottom: 1, borderColor: "divider" }}
+                  secondaryAction={
+                    <Tooltip title={t("documents.viewDocument")}>
+                      <IconButton
                         size="small"
-                        label={doc.kind === "SourceReport" ? "Source Report" : "Moisture Report"}
-                        sx={{ fontSize: 12, height: 18 }}
-                      />
-                    </Stack>
+                        aria-label={t("documents.viewDocument")}
+                        onClick={() => handleOpenDoc(doc.id)}
+                      >
+                        <OpenInNewIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   }
-                  secondary={
-                    <Typography variant="caption" color="text.secondary">
-                      Uploaded on {formatLabDateTime(doc.uploadedAt)}
-                      {doc.uploadedByUserName && ` by ${doc.uploadedByUserName}`}
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            ))}
+                >
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <AttachFileIcon fontSize="small" color="action" />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={
+                      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          <Ltr>{doc.fileName}</Ltr>
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={t(`documentKinds.${doc.kind}`, { defaultValue: doc.kind })}
+                          sx={{ fontSize: 12, height: 18 }}
+                        />
+                      </Stack>
+                    }
+                    secondary={
+                      <Typography variant="caption" color="text.secondary">
+                        {doc.uploadedByUserName ? (
+                          <Trans
+                            i18nKey="documents.uploadedOnBy"
+                            ns="workingStandards"
+                            values={{ date: dateText, user: doc.uploadedByUserName }}
+                            components={{ ltr: <Ltr>{null}</Ltr> }}
+                          />
+                        ) : (
+                          <Trans
+                            i18nKey="documents.uploadedOn"
+                            ns="workingStandards"
+                            values={{ date: dateText }}
+                            components={{ ltr: <Ltr>{null}</Ltr> }}
+                          />
+                        )}
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              );
+            })}
           </List>
         )}
 
         {isDraft && canQualify && (
           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: 1, borderColor: "divider" }}>
             <Typography variant="caption" sx={{ fontWeight: 600, display: "block", mb: 1 }}>
-              Upload Supporting Report (Draft only)
+              {t("documents.uploadSectionTitle")}
             </Typography>
             <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} sx={{ alignItems: "center" }}>
               <Button
@@ -148,20 +172,20 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
                 startIcon={<AttachFileIcon fontSize="small" />}
                 sx={{ whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden", maxWidth: 180 }}
               >
-                {selectedFile ? selectedFile.name : "Choose File"}
+                {selectedFile ? selectedFile.name : t("actions.chooseFile")}
                 <input ref={fileInputRef} type="file" hidden onChange={handleFileChange} />
               </Button>
 
               <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel id="doc-kind-label">Type</InputLabel>
+                <InputLabel id="doc-kind-label">{t("documents.typeLabel")}</InputLabel>
                 <Select
                   labelId="doc-kind-label"
-                  label="Type"
+                  label={t("documents.typeLabel")}
                   value={docKind}
                   onChange={(e) => setDocKind(e.target.value as WorkingStandardDocumentKind)}
                 >
-                  <MenuItem value="SourceReport">Source Report</MenuItem>
-                  <MenuItem value="MoistureReport">Moisture Report</MenuItem>
+                  <MenuItem value="SourceReport">{t("documentKinds.SourceReport")}</MenuItem>
+                  <MenuItem value="MoistureReport">{t("documentKinds.MoistureReport")}</MenuItem>
                 </Select>
               </FormControl>
 
@@ -172,7 +196,7 @@ export const QualificationDocumentsSection: React.FC<QualificationDocumentsSecti
                 disabled={!selectedFile || uploading}
                 onClick={handleUpload}
               >
-                {uploading ? "Uploading..." : "Upload"}
+                {uploading ? t("actions.uploading") : t("actions.upload")}
               </Button>
             </Stack>
           </Box>

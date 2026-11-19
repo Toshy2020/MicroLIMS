@@ -3,6 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    <meta name="theme-color" content="#7b2d8e" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MicroLIMS</title>
     <style>
@@ -30,6 +33,12 @@
         }
         .no-print { display: none !important; }
         .print-only { display: block !important; }
+        /* A page with a .print-only block prints only that block: headers, banners
+           (MFA grace, system status) and live regions outside it are hidden. Pages
+           without .print-only (e.g. /samples/:id/report) are not affected. */
+        body:has(.print-only) :is(header, [role="banner"], [role="status"], [role="alert"]):not(.print-only *) {
+          display: none !important;
+        }
         body { background: #fff !important; }
         table {
           width: 100% !important;

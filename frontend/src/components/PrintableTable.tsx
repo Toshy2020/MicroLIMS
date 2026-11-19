@@ -1,5 +1,7 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
+import { EnglishScope } from "../i18n/EnglishOnly";
+import { formatDateTimeWithTimeZone } from "../utils/formatDate";
 
 export interface PrintColumn<T> {
   label: string;
@@ -14,14 +16,17 @@ interface PrintableTableProps<T> {
   getRowId: (row: T) => string | number;
 }
 
+// Printed records are English and left-to-right for every user, whatever the interface language
+// (the app stays as it is; only this block is English). Column renders that format dates must
+// pass { english: true } to the date helpers.
 // Invisible on screen (see .print-only in index.html), rendered only
 // inside the browser print dialog. Kept separate from the interactive
 // on-screen table so the printed page always reflects the full dataset
 // even while the screen shows a paginated/scrollable view.
 export function PrintableTable<T>({ title, subtitle, columns, rows, getRowId }: PrintableTableProps<T>) {
   return (
+    <EnglishScope className="print-only">
     <Box
-      className="print-only"
       sx={{
         p: 0,
         m: 0,
@@ -37,7 +42,7 @@ export function PrintableTable<T>({ title, subtitle, columns, rows, getRowId }: 
             MicroLIMS
           </Typography>
           <Typography sx={{ fontSize: "9pt", color: "#6b7280" }}>
-            Printed: {new Date().toLocaleString()}
+            Printed: {formatDateTimeWithTimeZone(new Date(), { english: true })}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: "13pt", fontWeight: 700, color: "#1f2937", mb: 0.25 }}>
@@ -116,6 +121,6 @@ export function PrintableTable<T>({ title, subtitle, columns, rows, getRowId }: 
         </tbody>
       </table>
     </Box>
+    </EnglishScope>
   );
 }
-

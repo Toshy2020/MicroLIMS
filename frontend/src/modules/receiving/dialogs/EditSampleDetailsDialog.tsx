@@ -6,6 +6,7 @@ import {
   Button,
   InputAdornment,
   MenuItem,
+  Stack,
   TextField,
   Typography,
   useTheme
@@ -17,6 +18,11 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { SignatureDialog } from "../../../components/SignatureDialog";
 import { DateField } from "../../../components/DateField";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { Trans } from "react-i18next";
+import { FieldHint, describedByWithHint, hintDescribedBy } from "../../../components/FieldHint";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
+import { getReceivingHints } from "../hints";
 
 interface Props {
   open: boolean;
@@ -54,11 +60,11 @@ const PRODUCT_LIKE = ["FinishedProduct", "RawMaterial", "PackagingMaterial"];
 const MEANING_STATEMENT = "I confirm these corrections to the sample record are accurate and justified.";
 
 // The item / location field for each category - it decides the sample's tests.
-function locationFieldFor(category: string): { label: string; load: () => Promise<LookupOption[]> } | null {
-  if (PRODUCT_LIKE.includes(category)) return { label: "Item", load: () => masterDataOptions.getItems(category) };
-  if (category === "Water") return { label: "Water Department", load: masterDataOptions.getWaterDepartments };
-  if (category === "EnvironmentalMonitoring") return { label: "Department", load: masterDataOptions.getDepartments };
-  if (category === "AfterCleaning") return { label: "Machine", load: masterDataOptions.getMachines };
+function locationFieldFor(category: string): { key: "item" | "waterDepartment" | "department" | "machine"; load: () => Promise<LookupOption[]> } | null {
+  if (PRODUCT_LIKE.includes(category)) return { key: "item", load: () => masterDataOptions.getItems(category) };
+  if (category === "Water") return { key: "waterDepartment", load: masterDataOptions.getWaterDepartments };
+  if (category === "EnvironmentalMonitoring") return { key: "department", load: masterDataOptions.getDepartments };
+  if (category === "AfterCleaning") return { key: "machine", load: masterDataOptions.getMachines };
   return null;
 }
 
@@ -98,6 +104,8 @@ function initialForm(s: SampleRecord): FormState {
 // writes each field's old and new value to the sample's audit trail.
 export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("receiving");
+  const hints = getReceivingHints(t);
   const [form, setForm] = useState<FormState | null>(null);
   const [reason, setReason] = useState("");
   const [signing, setSigning] = useState(false);
@@ -137,12 +145,12 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
         setLocations(locationList);
       })
       .catch(() => {
-        if (!cancelled) setLoadError("Failed to load the lookup lists. Close the dialog and try again.");
+        if (!cancelled) setLoadError(t("editSample.loadFailed"));
       });
     return () => {
       cancelled = true;
     };
-  }, [open, category]);
+  }, [open, category, t]);
 
   // The grades of the item the sample will have: the chosen one when the item is being changed.
   const gradeItemId = PRODUCT_LIKE.includes(category)
@@ -207,9 +215,9 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   const signHint = !canEdit
     ? null
     : missingRequired
-      ? "Complete the required fields to sign."
+      ? t("editSample.completeRequired")
       : !reason.trim()
-        ? "Enter a reason for correction to sign."
+        ? t("editSample.enterReason")
         : null;
 
   // A failure (wrong password, locked record, validation) is thrown back to
@@ -253,10 +261,15 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
         title={
           <Box>
             <Typography sx={{ fontSize: 18, fontWeight: 700, color: theme.palette.primary.main }}>
-              Edit Sample Details
+              {t("editSample.title")}
             </Typography>
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              Sample #{sample.sampleId}: {sample.displayName} ({sample.referenceNumber})
+              <Trans
+                i18nKey="editSample.subtitle"
+                ns="receiving"
+                values={{ sampleId: sample.sampleId, displayName: sample.displayName, referenceNumber: sample.referenceNumber }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           </Box>
         }
@@ -268,7 +281,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               </Typography>
             )}
             <Button onClick={onClose} color="inherit">
-              Cancel
+              {t("editSample.cancel")}
             </Button>
             <Button
               variant="contained"
@@ -277,14 +290,14 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               disabled={!canSave}
               sx={{ fontWeight: 600 }}
             >
-              Sign &amp; Save
+              {t("editSample.signAndSave")}
             </Button>
           </>
         }
       >
         {!canEdit && (
           <Alert severity="info" sx={{ mb: 2, fontSize: 13 }}>
-            This sample has been submitted for review, so its details are locked.
+            {t("editSample.lockedForReview")}
           </Alert>
         )}
         {loadError && (
@@ -298,18 +311,18 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             // Locked: shown as a read-only value with a lock, not a disabled
             // dropdown whose chevron still suggests it can be opened.
             <TextField
-              label={locationField.label}
+              label={t(`editSample.locationFields.${locationField.key}`)}
               size="small"
               fullWidth
               value={locationOptions.find((o) => o.id === form.locationId)?.name ?? ""}
-              helperText={canChangeLocation ? undefined : "Locked: testing has started for this sample"}
+              helperText={canChangeLocation ? undefined : t("editSample.lockedTestingStarted")}
               sx={{ gridColumn: "1 / -1" }}
               slotProps={{
                 input: {
                   readOnly: true,
                   endAdornment: (
                     <InputAdornment position="end">
-                      <LockOutlinedIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess="Locked" />
+                      <LockOutlinedIcon fontSize="small" sx={{ color: "text.disabled" }} titleAccess={t("editSample.lockedAccess")} />
                     </InputAdornment>
                   )
                 },
@@ -320,7 +333,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           {locationField && canEdit && canChangeLocation && (
             <TextField
               select
-              label={locationField.label}
+              label={t(`editSample.locationFields.${locationField.key}`)}
               size="small"
               fullWidth
               value={locationValue}
@@ -340,27 +353,30 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
 
           {locationChanged && locationField && (
             <Alert severity="warning" sx={{ gridColumn: "1 / -1", fontSize: 12.5 }}>
-              Changing the {locationField.label.toLowerCase()} rebuilds the sample's tests and resets its
-              preparation - the sample has to be prepared again.
+              {t("editSample.locationChangedWarning", { location: t(`editSample.locationFieldsLower.${locationField.key}`) })}
             </Alert>
           )}
 
           {isProductLike && (
-            <TextField
-              label="Batch Number"
-              required
-              size="small"
-              fullWidth
-              value={form.batchNumber}
-              onChange={(e) => set("batchNumber", e.target.value)}
-              disabled={!canEdit}
-            />
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+              <TextField
+                slotProps={{ input: { "aria-describedby": hintDescribedBy("receiving-batch-number") } }}
+                label={t("editSample.batchNumber")}
+                required
+                size="small"
+                fullWidth
+                value={form.batchNumber}
+                onChange={(e) => set("batchNumber", e.target.value)}
+                disabled={!canEdit}
+              />
+              <FieldHint id="receiving-batch-number" label={t("editSample.batchNumber")} hint={hints.batchNumber} />
+            </Stack>
           )}
 
           {showGrade && (
             <TextField
               select
-              label="Grade"
+              label={t("editSample.grade")}
               required
               size="small"
               fullWidth
@@ -369,9 +385,9 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
               disabled={!canChangeGrade}
               helperText={
                 canChangeGrade
-                  ? "Changing the grade re-derives the sample's tests"
+                  ? t("editSample.gradeHelper")
                   : canEdit
-                    ? "Locked: testing has started for this sample"
+                    ? t("editSample.lockedTestingStarted")
                     : undefined
               }
             >
@@ -383,26 +399,30 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             </TextField>
           )}
 
-          <TextField
-            label="Control Number"
-            required
-            size="small"
-            fullWidth
-            value={form.controlNumber}
-            onChange={(e) => set("controlNumber", e.target.value)}
-            disabled={!canEdit}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              slotProps={{ input: { "aria-describedby": hintDescribedBy("receiving-control-number") } }}
+              label={t("editSample.controlNumber")}
+              required
+              size="small"
+              fullWidth
+              value={form.controlNumber}
+              onChange={(e) => set("controlNumber", e.target.value)}
+              disabled={!canEdit}
+            />
+            <FieldHint id="receiving-control-number" label={t("editSample.controlNumber")} hint={hints.controlNumber} />
+          </Stack>
 
           <TextField
             select
-            label="Cause of Testing"
+            label={t("editSample.causeOfTesting")}
             required
             size="small"
             fullWidth
             value={causeValue}
             onChange={(e) => set("causeOfTestingId", Number(e.target.value))}
             disabled={!canEdit || causeIsRetest}
-            helperText={causeIsRetest ? "Assigned by the system to retest samples" : undefined}
+            helperText={causeIsRetest ? t("editSample.causeRetestHelper") : undefined}
           >
             {causeOptions.map((c) => (
               <MenuItem key={c.id} value={c.id}>
@@ -417,12 +437,12 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             inputValue={form.sampledBy}
             onInputChange={(_, value) => set("sampledBy", value)}
             disabled={!canEdit}
-            renderInput={(params) => <TextField {...params} label="Sampled By" required size="small" />}
+            renderInput={(params) => <TextField {...params} label={t("editSample.sampledBy")} required size="small" />}
           />
 
           {(isProductLike || isWater) && (
             <TextField
-              label="Sample Quantity"
+              label={t("editSample.sampleQuantity")}
               size="small"
               fullWidth
               value={form.sampleQuantity}
@@ -434,7 +454,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           {category === "FinishedProduct" && (
             <TextField
               select
-              label="Production Stage"
+              label={t("editSample.productionStage")}
               required
               size="small"
               fullWidth
@@ -453,14 +473,14 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           {isProductLike && (
             <>
               <DateField
-                label="Mfg Date"
+                label={t("editSample.mfgDate")}
                 fullWidth
                 value={form.mfgDate}
                 onChange={(v) => set("mfgDate", v)}
                 disabled={!canEdit}
               />
               <DateField
-                label="Exp Date"
+                label={t("editSample.expDate")}
                 fullWidth
                 value={form.expDate}
                 onChange={(v) => set("expDate", v)}
@@ -472,7 +492,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
           {isAfterCleaning && (
             <>
               <TextField
-                label="Previous Product"
+                label={t("editSample.previousProduct")}
                 required
                 size="small"
                 fullWidth
@@ -481,7 +501,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
                 disabled={!canEdit}
               />
               <TextField
-                label="Previous Product Batch Number"
+                label={t("editSample.previousProductBatchNumber")}
                 required
                 size="small"
                 fullWidth
@@ -496,7 +516,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
             <>
               <TextField
                 select
-                label="Storage Condition"
+                label={t("editSample.storageCondition")}
                 required
                 size="small"
                 fullWidth
@@ -504,43 +524,59 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
                 onChange={(e) => set("storageCondition", e.target.value)}
                 disabled={!canEdit}
               >
-                <MenuItem value="RoomTemperature">Room Temperature</MenuItem>
-                <MenuItem value="Refrigerator">Refrigerator</MenuItem>
+                <MenuItem value="RoomTemperature">{t("editSample.roomTemperature")}</MenuItem>
+                <MenuItem value="Refrigerator">{t("editSample.refrigerator")}</MenuItem>
               </TextField>
               {form.storageCondition === "Refrigerator" && (
-                <TextField
-                  label="Storage Time (hours)"
-                  type="number"
-                  required
-                  size="small"
-                  fullWidth
-                  value={form.storageTimeHours}
-                  onChange={(e) => set("storageTimeHours", e.target.value)}
-                  disabled={!canEdit}
-                  slotProps={{ htmlInput: { min: 0 } }}
-                />
+                <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+                  <TextField
+                    label={t("editSample.storageTimeHours")}
+                    type="number"
+                    required
+                    size="small"
+                    fullWidth
+                    value={form.storageTimeHours}
+                    onChange={(e) => set("storageTimeHours", e.target.value)}
+                    disabled={!canEdit}
+                    slotProps={{
+                      htmlInput: { min: 0 },
+                      input: { "aria-describedby": hintDescribedBy("receiving-storage-time") }
+                    }}
+                  />
+                  <FieldHint id="receiving-storage-time" label={t("editSample.storageTimeHours")} hint={hints.storageTime} />
+                </Stack>
               )}
             </>
           )}
 
-          <TextField
-            label="Reason for Correction"
-            required
-            multiline
-            rows={2}
-            fullWidth
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            disabled={!canEdit}
-            helperText="Recorded with your electronic signature and in the sample's audit trail."
-            sx={{ gridColumn: "1 / -1" }}
-          />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "flex-start", minWidth: 0 }}>
+            <TextField
+              id="receiving-reason-for-correction"
+              slotProps={{
+                input: {
+                  "aria-describedby": describedByWithHint("receiving-reason-for-correction", "receiving-reason-for-correction")
+                }
+              }}
+              label={t("editSample.reasonForCorrection")}
+              required
+              multiline
+              rows={2}
+              fullWidth
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={!canEdit}
+              helperText={t("editSample.reasonHelper")}
+              sx={{ gridColumn: "1 / -1" }}
+            />
+            <FieldHint id="receiving-reason-for-correction" label={t("editSample.reasonForCorrection")} hint={hints.reasonForCorrection} />
+          </Stack>
         </Box>
       </FloatingDialog>
 
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("editSample.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

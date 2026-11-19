@@ -5,15 +5,18 @@
  * Do not invent routes or use deprecated paths.
  */
 
-const APP_ROUTES = {
+export const APP_ROUTES = {
   // Public
   LOGIN: "/login",
+  SSO_COMPLETE: "/sso-complete",
+  MFA_ENROL: "/mfa-enrol",
 
   // Core & Authenticated
   ROOT: "/",
   DASHBOARD: "/dashboard",
   PROFILE: "/profile",
   CHANGE_PASSWORD: "/change-password",
+  SET_SIGNING_PASSWORD: "/set-signing-password",
   REPORTS: "/reports",
 
   // Core Laboratory Workflows
@@ -58,6 +61,9 @@ const APP_ROUTES = {
   SOLUTION_MASTER: "/laboratory-configuration/solution-master",
   HPLC_METHODS: "/laboratory-configuration/hplc-methods",
   FP_INSTRUMENTS: "/laboratory-configuration/fp-instruments",
+  LABEL_FORMATS: "/laboratory-configuration/label-formats",
+  WORKING_HOURS: "/laboratory-configuration/working-hours",
+  ESCALATION_RULES: "/laboratory-configuration/escalation-rules",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",
@@ -76,6 +82,8 @@ const APP_ROUTES = {
 
   // Audit
   AUDIT_SEARCH: "/admin/audit",
+  AUDIT_TRAIL_REVIEWS: "/audit-trail-reviews",
+  AUDIT_TRAIL_REVIEW_DETAIL: (id: number | string) => `/audit-trail-reviews/${id}`,
   ERROR_MONITORING: "/admin/error-log",
   OOS_TRACKING: "/oos-tracking",
 
@@ -228,6 +236,7 @@ export const PERMISSIONS = {
   USERS_MANAGE: "Users.Manage",
   ROLES_MANAGE: "Roles.Manage",
   AUDIT_VIEW: "Audit.View",
+  AUDIT_REVIEW: "Audit.Review",
   SAMPLES_REVIEW: "Samples.Review",
   SAMPLES_APPROVE: "Samples.Approve",
   SAMPLES_RECEIVE: "Samples.Receive",
@@ -253,6 +262,7 @@ export const PERMISSIONS = {
   SYSTEM_CONFIGURE_SETTINGS: "System.ConfigureSettings",
   SYSTEM_MANAGE_JOBS: "System.ManageJobs",
   ACCESS_REVIEW: "Access.Review",
+  ACCESS_REVIEW_SIGN: "Access.Review.Sign",
   DOCUMENTS_REGISTER: "Documents.Register",
   DOCUMENTS_CONFIG_MANAGE: "Documents.ConfigManage",
   DOCUMENTS_REASSIGN: "Documents.Reassign",
@@ -274,7 +284,12 @@ export const PERMISSIONS = {
   NOT_APPLICABLE_TESTS_MANAGE: "tests.not-applicable.manage",
   NOT_APPLICABLE_TESTS_FINAL_APPROVE: "tests.not-applicable.final-approve",
   TESTS_OUTSOURCE: "tests.outsource",
-  SAMPLES_PREPARE: "samples.prepare"
+  SAMPLES_PREPARE: "samples.prepare",
+  LABELS_REPRINT: "Labels.Reprint",
+  LABELS_CONFIGURE: "Labels.Configure",
+  TABLE_VIEWS_SHARE: "TableViews.Share",
+  DATA_EXPORT: "Data.Export",
+  NOTIFICATIONS_CONFIGURE: "Notifications.Configure"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

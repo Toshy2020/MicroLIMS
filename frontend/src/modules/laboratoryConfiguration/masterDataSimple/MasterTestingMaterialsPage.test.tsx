@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { i18n } from "../../../i18n";
 import { MasterTestingMaterialsPage } from "./MasterTestingMaterialsPage";
 
 vi.mock("./MaterialMasterPage", () => ({
@@ -89,5 +90,17 @@ describe("MasterTestingMaterialsPage", () => {
   it("the Other Materials tab limits the master to the Other category", () => {
     renderAt("/x?tab=other");
     expect(screen.getByTestId("material-master").textContent).toBe("Other");
+  });
+
+  it("renders title and tabs in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["common", "masterData"]);
+    try {
+      renderAt("/x");
+      expect(await screen.findByRole("heading", { name: "مواد الاختبار الرئيسية" })).toBeTruthy();
+      expect(screen.getByRole("tab", { name: "الكواشف والمؤشرات" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
   });
 });

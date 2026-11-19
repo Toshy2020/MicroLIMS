@@ -8,9 +8,16 @@ import {
   Typography,
   Autocomplete,
   AutocompleteInputChangeReason,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { TestCodePickerMulti } from "../../../../components/TestCodePickerMulti";
-import { Item } from "../services/ItemService";
+import { FieldHint, hintDescribedBy } from "../../../../components/FieldHint";
+import { toast } from "sonner";
+import { useTranslation } from "../../../../i18n";
+import { RecordChangedBanner } from "../../../../components/RecordChangedBanner";
+import { getItemHints } from "../hints";
+import { CopyItemOptions, Item, ItemService } from "../services/ItemService";
 import { FormDialog } from "../../../../components/lab";
 import { documentControlService } from "../../../documentControl/services/documentControlService";
 import type { DocumentMasterSummaryDto } from "../../../documentControl/types/documentControlTypes";
@@ -18,7 +25,12 @@ import type { DocumentMasterSummaryDto } from "../../../documentControl/types/do
 interface AddItemDialogProps {
   open: boolean;
   itemToEdit: Item | null;
+  existingItems?: Item[];
+  startFromExisting?: boolean;
   onClose: () => void;
+  // Called with the freshly loaded item when the user reloads from the "changed by someone else"
+  // banner, so the caller's copy (and the row version its save sends) is replaced.
+  onItemReloaded?: (item: Item) => void;
   onSave: (itemData: {
     name: string;
     code: string;
@@ -28,16 +40,24 @@ interface AddItemDialogProps {
     minSampleQuantity?: number | null;
     minRetestSampleQuantity?: number | null;
     minSampleQuantityUnit?: string | null;
+    copyFrom?: CopyItemOptions | null;
   }) => Promise<void>;
 }
 
-const CATEGORIES = [
-  { value: "FinishedProduct", label: "Product" },
-  { value: "RawMaterial", label: "Raw Material" },
-  { value: "PackagingMaterial", label: "Packaging Material" },
-];
+const CATEGORY_VALUES = ["FinishedProduct", "RawMaterial", "PackagingMaterial"] as const;
 
-export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDialogProps) {
+export function AddItemDialog({
+  open,
+  itemToEdit,
+  existingItems,
+  startFromExisting = false,
+  onClose,
+  onItemReloaded,
+  onSave,
+}: AddItemDialogProps) {
+  const { t } = useTranslation("labConfig");
+  const hints = getItemHints(t);
+  const categories = CATEGORY_VALUES.map((value) => ({ value, label: t(`items.categories.${value}`) }));
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [sopNumber, setSopNumber] = useState("");
@@ -48,6 +68,12 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
   const [minSampleQuantityUnit, setMinSampleQuantityUnit] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const [sourceItem, setSourceItem] = useState<Item | null>(null);
+  const [copySpecifications, setCopySpecifications] = useState(true);
+  const [copyAutoAssignedTests, setCopyAutoAssignedTests] = useState(true);
+  const [fetchedItems, setFetchedItems] = useState<Item[] | null>(null);
+  const [loadingSourceItems, setLoadingSourceItems] = useState(false);
 
   const [options, setOptions] = useState<DocumentMasterSummaryDto[]>([]);
   const [searchingDocs, setSearchingDocs] = useState(false);
@@ -73,10 +99,41 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       setMinRetestSampleQuantity(null);
       setMinSampleQuantityUnit("");
     }
+    setSourceItem(null);
+    setCopySpecifications(true);
+    setCopyAutoAssignedTests(true);
     setOptions([]);
     setSearchingDocs(false);
     setError(null);
   }, [itemToEdit, open]);
+
+  useEffect(() => {
+    if (!open || itemToEdit || existingItems !== undefined || !startFromExisting) return;
+    let cancelled = false;
+    setLoadingSourceItems(true);
+    ItemService.getAll()
+      .then((all) => {
+        if (!cancelled) setFetchedItems(all);
+      })
+      .catch(() => {
+        if (!cancelled) setFetchedItems([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSourceItems(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, itemToEdit, existingItems, startFromExisting]);
+
+  const ensureSourceItemsLoaded = () => {
+    if (existingItems !== undefined || fetchedItems !== null || loadingSourceItems) return;
+    setLoadingSourceItems(true);
+    ItemService.getAll()
+      .then((all) => setFetchedItems(all))
+      .catch(() => setFetchedItems([]))
+      .finally(() => setLoadingSourceItems(false));
+  };
 
   useEffect(() => {
     return () => {
@@ -85,6 +142,18 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       }
     };
   }, []);
+
+  const handlePickSource = (picked: Item | null) => {
+    setSourceItem(picked);
+    if (!picked) return;
+    // Code, name, SOP number and documents are never copied from the source item.
+    if (categories.some((c) => c.value === picked.category)) {
+      setCategory(picked.category);
+    }
+    setMinSampleQuantity(picked.minSampleQuantity ?? null);
+    setMinRetestSampleQuantity(picked.minRetestSampleQuantity ?? null);
+    setMinSampleQuantityUnit(picked.minSampleQuantityUnit ?? "");
+  };
 
   const handleSopInputChange = (
     _event: React.SyntheticEvent,
@@ -148,8 +217,13 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
 
   const handleSubmit = async () => {
     setError(null);
-    if (!name.trim() || !code.trim() || testCodes.length === 0) {
-      setError("Item Name, Item Code, and at least one assigned test are required.");
+    if (!itemToEdit && startFromExisting && !sourceItem) {
+      setError(t("items.addDialog.errors.selectSourceItem"));
+      return;
+    }
+    const copiesTestsFromSource = Boolean(!itemToEdit && sourceItem && copyAutoAssignedTests);
+    if (!name.trim() || !code.trim() || (testCodes.length === 0 && !copiesTestsFromSource)) {
+      setError(t("items.addDialog.errors.requiredFields"));
       return;
     }
 
@@ -164,6 +238,7 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         minSampleQuantity?: number | null;
         minRetestSampleQuantity?: number | null;
         minSampleQuantityUnit?: string | null;
+        copyFrom?: CopyItemOptions | null;
       } = {
         name: name.trim(),
         code: code.trim(),
@@ -176,6 +251,13 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         if (minRetestSampleQuantity !== null) payload.minRetestSampleQuantity = minRetestSampleQuantity;
         if (minSampleQuantityUnit.trim()) payload.minSampleQuantityUnit = minSampleQuantityUnit.trim();
       }
+      if (!itemToEdit && sourceItem) {
+        payload.copyFrom = {
+          sourceItemId: sourceItem.id,
+          specifications: copySpecifications,
+          autoAssignedTests: copyAutoAssignedTests,
+        };
+      }
       await onSave(payload);
       onClose();
     } catch (err: unknown) {
@@ -184,12 +266,43 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
           ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
           : err instanceof Error
           ? err.message
-          : "Failed to save item.";
-      setError(msg || "Failed to save item.");
+          : t("items.addDialog.errors.saveFailed");
+      setError(msg || t("items.addDialog.errors.saveFailed"));
     } finally {
       setSaving(false);
     }
   };
+
+  const editFormIsDirty = itemToEdit
+    ? JSON.stringify([name, code, sopNumber, category, testCodes, minSampleQuantity, minRetestSampleQuantity, minSampleQuantityUnit]) !==
+      JSON.stringify([
+        itemToEdit.name,
+        itemToEdit.code,
+        itemToEdit.sopNumber || "",
+        itemToEdit.category,
+        itemToEdit.assignedTests?.map((t) => t.testCode) || [],
+        itemToEdit.minSampleQuantity ?? null,
+        itemToEdit.minRetestSampleQuantity ?? null,
+        itemToEdit.minSampleQuantityUnit ?? "",
+      ])
+    : false;
+
+  const reloadItem = async () => {
+    if (!itemToEdit) return;
+    try {
+      const fresh = (await ItemService.getAll()).find((i) => i.id === itemToEdit.id);
+      if (!fresh) {
+        toast.error(t("items.addDialog.errors.reloadFailed"));
+        return;
+      }
+      onItemReloaded?.(fresh);
+    } catch {
+      toast.error(t("items.addDialog.errors.reloadFailed"));
+    }
+  };
+
+  const sourceOptions = existingItems ?? fetchedItems ?? [];
+  const showCopySection = !itemToEdit && (startFromExisting || sourceItem !== null);
 
   return (
     // A form, so Enter in a text field saves the item.
@@ -198,15 +311,76 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
       onClose={onClose}
       onSubmit={handleSubmit}
       maxWidth="sm"
-      title={itemToEdit ? `Edit Item: ${itemToEdit.name}` : "Add New Item"}
-      submitLabel={itemToEdit ? "Save Changes" : "Save Item"}
+      title={
+        itemToEdit
+          ? t("items.addDialog.editTitle", { name: itemToEdit.name })
+          : startFromExisting
+          ? t("items.addDialog.newFromExistingTitle")
+          : t("items.addDialog.addTitle")
+      }
+      submitLabel={itemToEdit ? t("items.addDialog.saveChanges") : t("items.addDialog.saveItem")}
       submitting={saving}
       error={error}
     >
       <Stack spacing={2}>
+        {open && itemToEdit && (
+          <RecordChangedBanner type="item" id={itemToEdit.id} dirty={editFormIsDirty} onReload={() => void reloadItem()} />
+        )}
+        {!itemToEdit && (
+          <Box sx={{ p: showCopySection ? 1.5 : 0, border: showCopySection ? "1px solid" : "none", borderColor: "divider", borderRadius: 1 }}>
+            <Autocomplete
+              size="small"
+              options={sourceOptions}
+              value={sourceItem}
+              loading={loadingSourceItems}
+              onOpen={ensureSourceItemsLoaded}
+              onChange={(_, value) => handlePickSource(value)}
+              getOptionLabel={(o) => `${o.name} (${o.code})`}
+              isOptionEqualToValue={(a, b) => a.id === b.id}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  size="small"
+                  label={t("items.addDialog.copyFromLabel")}
+                  placeholder={t("items.addDialog.copyFromPlaceholder")}
+                />
+              )}
+            />
+            {showCopySection && (
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={copySpecifications}
+                      onChange={(e) => setCopySpecifications(e.target.checked)}
+                    />
+                  }
+                  label={t("items.addDialog.copySpecifications")}
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={copyAutoAssignedTests}
+                      onChange={(e) => setCopyAutoAssignedTests(e.target.checked)}
+                    />
+                  }
+                  label={t("items.addDialog.copyAutoAssignedTests")}
+                />
+              </Stack>
+            )}
+            {showCopySection && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+                {t("items.addDialog.copyNote")}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         <TextField
           size="small"
-          label="Item Name"
+          label={t("items.addDialog.itemNameLabel")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -216,12 +390,14 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         <Stack direction="row" spacing={2}>
           <TextField
             size="small"
-            label="Item Code"
+            label={t("items.addDialog.itemCodeLabel")}
             value={code}
             onChange={(e) => setCode(e.target.value)}
             required
             sx={{ flex: 1 }}
+            slotProps={{ input: { "aria-describedby": hintDescribedBy("items-item-code") } }}
           />
+          <FieldHint id="items-item-code" label={t("items.addDialog.itemCodeHintLabel")} hint={hints.itemCode} />
           <Autocomplete<DocumentMasterSummaryDto, false, false, true>
             freeSolo
             size="small"
@@ -257,19 +433,29 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
               <TextField
                 {...params}
                 size="small"
-                label="SOP Number"
+                label={t("items.addDialog.sopNumberLabel")}
               />
             )}
             sx={{ flex: 1 }}
           />
+          <FieldHint id="items-sop-number" label={t("items.addDialog.sopNumberHintLabel")} hint={hints.sopNumber} />
         </Stack>
 
         <Box>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-            Category
-          </Typography>
-          <Select size="small" value={category} onChange={(e) => setCategory(e.target.value)} fullWidth inputProps={{ "aria-label": "Category" }}>
-            {CATEGORIES.map((c) => (
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block" }}>
+              {t("items.addDialog.categoryLabel")}
+            </Typography>
+            <FieldHint id="items-category" label={t("items.addDialog.categoryLabel")} hint={hints.category} />
+          </Stack>
+          <Select
+            size="small"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            fullWidth
+            inputProps={{ "aria-label": t("items.addDialog.categoryLabel"), "aria-describedby": hintDescribedBy("items-category") }}
+          >
+            {categories.map((c) => (
               <MenuItem key={c.value} value={c.value}>
                 {c.label}
               </MenuItem>
@@ -280,7 +466,7 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         {category === "RawMaterial" && (
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" }, gap: 1.5 }}>
             <TextField
-              label="Min Sample Qty"
+              label={t("items.addDialog.minSampleQtyLabel")}
               size="small"
               type="number"
               value={minSampleQuantity ?? ""}
@@ -288,7 +474,7 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
               slotProps={{ htmlInput: { step: "any" } }}
             />
             <TextField
-              label="Min Retest Qty"
+              label={t("items.addDialog.minRetestQtyLabel")}
               size="small"
               type="number"
               value={minRetestSampleQuantity ?? ""}
@@ -296,9 +482,9 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
               slotProps={{ htmlInput: { step: "any" } }}
             />
             <TextField
-              label="Quantity Unit"
+              label={t("items.addDialog.quantityUnitLabel")}
               size="small"
-              placeholder="e.g. g, mL"
+              placeholder={t("items.addDialog.quantityUnitPlaceholder")}
               value={minSampleQuantityUnit}
               onChange={(e) => setMinSampleQuantityUnit(e.target.value)}
             />
@@ -306,10 +492,23 @@ export function AddItemDialog({ open, itemToEdit, onClose, onSave }: AddItemDial
         )}
 
         <Box>
-          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block", mb: 0.5 }}>
-            Assigned Tests (Auto-assigned on sample receipt)
-          </Typography>
-          <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label="Assigned Tests" />
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600, display: "block" }}>
+              {t("items.addDialog.assignedTestsHeading")}
+            </Typography>
+            <FieldHint id="items-assigned-tests" label={t("items.addDialog.assignedTestsLabel")} hint={hints.assignedTests} />
+          </Stack>
+          <TestCodePickerMulti value={testCodes} onChange={setTestCodes} label={t("items.addDialog.assignedTestsLabel")} />
+          {!itemToEdit && sourceItem && copyAutoAssignedTests && (
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
+              {sourceItem.assignedTests?.length
+                ? t("items.addDialog.copyTestsWithCodes", {
+                    name: sourceItem.name,
+                    codes: sourceItem.assignedTests.map((x) => x.testCode).join(", "),
+                  })
+                : t("items.addDialog.copyTestsNoCodes", { name: sourceItem.name })}
+            </Typography>
+          )}
         </Box>
       </Stack>
     </FormDialog>

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Button, TextField, Alert, LinearProgress } from "@mui/material";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../../i18n";
+import { Ltr } from "../../../../components/Ltr";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
 import { MaterialService } from "../services/MaterialService";
 import type { MaterialDocument } from "../types/materialTypes";
@@ -13,6 +16,7 @@ interface Props {
 }
 
 export function VoidMaterialDocumentDialog({ open, document, materialId, onClose, onSuccess }: Props) {
+  const { t } = useTranslation("inventory");
   const [reason, setReason] = useState("");
   const [reasonError, setReasonError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -27,8 +31,9 @@ export function VoidMaterialDocumentDialog({ open, document, materialId, onClose
     try {
       await MaterialService.voidDocument(document.id, materialId, reason.trim());
       onSuccess();
-    } catch (err: any) {
-      setError(err?.response?.data?.message ?? "Void operation failed. Please try again.");
+    } catch (caught: unknown) {
+      const err = caught as { response?: { data?: { message?: string } } };
+      setError(err?.response?.data?.message ?? t("materials.void.failed"));
     } finally {
       setSubmitting(false);
     }
@@ -43,11 +48,11 @@ export function VoidMaterialDocumentDialog({ open, document, materialId, onClose
   return (
     <FloatingDialog
       open={open}
-      title="Void Document"
+      title={t("materials.void.title")}
       onClose={handleClose}
       actions={
         <>
-          <Button onClick={handleClose} disabled={submitting}>Cancel</Button>
+          <Button onClick={handleClose} disabled={submitting}>{t("common.cancel")}</Button>
           <Button
             id="void-doc-submit"
             variant="contained"
@@ -55,7 +60,7 @@ export function VoidMaterialDocumentDialog({ open, document, materialId, onClose
             onClick={handleSubmit}
             disabled={submitting || !reason.trim()}
           >
-            {submitting ? "Voiding…" : "Void Document"}
+            {submitting ? t("materials.void.submitting") : t("materials.void.title")}
           </Button>
         </>
       }
@@ -64,14 +69,12 @@ export function VoidMaterialDocumentDialog({ open, document, materialId, onClose
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Alert severity="warning" sx={{ mb: 2, fontSize: 12 }}>
-        The document <strong>{document.originalFileName}</strong> will be marked <strong>Voided</strong>.
-        The file and metadata are retained for audit purposes but this document will no longer
-        satisfy any COA requirement.
+        <Trans i18nKey="materials.void.info" ns="inventory" values={{ name: document.originalFileName }} components={{ b: <strong />, ltr: <Ltr>{null}</Ltr> }} />
       </Alert>
 
       <TextField
         id="void-reason"
-        label="Reason for Voiding *"
+        label={t("materials.void.reason")}
         fullWidth
         size="small"
         multiline
@@ -79,7 +82,7 @@ export function VoidMaterialDocumentDialog({ open, document, materialId, onClose
         value={reason}
         onChange={(e) => { setReason(e.target.value); setReasonError(false); }}
         error={reasonError}
-        helperText={reasonError ? "A reason is required." : undefined}
+        helperText={reasonError ? t("materials.supersede.reasonRequired") : undefined}
       />
     </FloatingDialog>
   );

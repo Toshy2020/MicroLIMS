@@ -20,6 +20,9 @@ import type {
   RevisionImpactAssessmentDto,
   SaveImpactAssessmentRequest
 } from "../types/documentControlTypes";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface RevisionImpactAssessmentDialogProps {
   open: boolean;
@@ -45,6 +48,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
   isEditable,
   onSaved
 }) => {
+  const { t } = useTranslation("documentControl");
   const [loading, setLoading] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,15 +56,15 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
   const [existingAssessment, setExistingAssessment] = useState<RevisionImpactAssessmentDto | null>(null);
 
   const [categories, setCategories] = useState<CategoryState[]>([
-    { key: "procedure", label: "1. Procedure or Method Impact", hasImpact: false, details: "" },
-    { key: "training", label: "2. Training Impact", hasImpact: false, details: "" },
-    { key: "forms", label: "3. Forms or Templates Impact", hasImpact: false, details: "" },
-    { key: "specifications", label: "4. Specifications Impact", hasImpact: false, details: "" },
-    { key: "equipment", label: "5. Equipment Impact", hasImpact: false, details: "" },
-    { key: "materials", label: "6. Materials or Media Impact", hasImpact: false, details: "" },
-    { key: "validation", label: "7. Validation Impact", hasImpact: false, details: "" },
-    { key: "regulatory", label: "8. Regulatory Commitment Impact", hasImpact: false, details: "" },
-    { key: "relatedDocs", label: "9. Related Documents Impact", hasImpact: false, details: "" }
+    { key: "procedure", label: "impactAssessment.categories.procedure", hasImpact: false, details: "" },
+    { key: "training", label: "impactAssessment.categories.training", hasImpact: false, details: "" },
+    { key: "forms", label: "impactAssessment.categories.forms", hasImpact: false, details: "" },
+    { key: "specifications", label: "impactAssessment.categories.specifications", hasImpact: false, details: "" },
+    { key: "equipment", label: "impactAssessment.categories.equipment", hasImpact: false, details: "" },
+    { key: "materials", label: "impactAssessment.categories.materials", hasImpact: false, details: "" },
+    { key: "validation", label: "impactAssessment.categories.validation", hasImpact: false, details: "" },
+    { key: "regulatory", label: "impactAssessment.categories.regulatory", hasImpact: false, details: "" },
+    { key: "relatedDocs", label: "impactAssessment.categories.relatedDocs", hasImpact: false, details: "" }
   ]);
 
   useEffect(() => {
@@ -78,32 +82,32 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
       setExistingAssessment(data);
       if (data) {
         setCategories([
-          { key: "procedure", label: "1. Procedure or Method Impact", hasImpact: data.procedureOrMethodImpact, details: data.procedureOrMethodDetails || "" },
-          { key: "training", label: "2. Training Impact", hasImpact: data.trainingImpact, details: data.trainingDetails || "" },
-          { key: "forms", label: "3. Forms or Templates Impact", hasImpact: data.formsOrTemplatesImpact, details: data.formsOrTemplatesDetails || "" },
-          { key: "specifications", label: "4. Specifications Impact", hasImpact: data.specificationsImpact, details: data.specificationsDetails || "" },
-          { key: "equipment", label: "5. Equipment Impact", hasImpact: data.equipmentImpact, details: data.equipmentDetails || "" },
-          { key: "materials", label: "6. Materials or Media Impact", hasImpact: data.materialsOrMediaImpact, details: data.materialsOrMediaDetails || "" },
-          { key: "validation", label: "7. Validation Impact", hasImpact: data.validationImpact, details: data.validationDetails || "" },
-          { key: "regulatory", label: "8. Regulatory Commitment Impact", hasImpact: data.regulatoryCommitmentImpact, details: data.regulatoryCommitmentDetails || "" },
-          { key: "relatedDocs", label: "9. Related Documents Impact", hasImpact: data.relatedDocumentsImpact, details: data.relatedDocumentsDetails || "" }
+          { key: "procedure", label: "impactAssessment.categories.procedure", hasImpact: data.procedureOrMethodImpact, details: data.procedureOrMethodDetails || "" },
+          { key: "training", label: "impactAssessment.categories.training", hasImpact: data.trainingImpact, details: data.trainingDetails || "" },
+          { key: "forms", label: "impactAssessment.categories.forms", hasImpact: data.formsOrTemplatesImpact, details: data.formsOrTemplatesDetails || "" },
+          { key: "specifications", label: "impactAssessment.categories.specifications", hasImpact: data.specificationsImpact, details: data.specificationsDetails || "" },
+          { key: "equipment", label: "impactAssessment.categories.equipment", hasImpact: data.equipmentImpact, details: data.equipmentDetails || "" },
+          { key: "materials", label: "impactAssessment.categories.materials", hasImpact: data.materialsOrMediaImpact, details: data.materialsOrMediaDetails || "" },
+          { key: "validation", label: "impactAssessment.categories.validation", hasImpact: data.validationImpact, details: data.validationDetails || "" },
+          { key: "regulatory", label: "impactAssessment.categories.regulatory", hasImpact: data.regulatoryCommitmentImpact, details: data.regulatoryCommitmentDetails || "" },
+          { key: "relatedDocs", label: "impactAssessment.categories.relatedDocs", hasImpact: data.relatedDocumentsImpact, details: data.relatedDocumentsDetails || "" }
         ]);
       } else {
         // Reset
         setCategories([
-          { key: "procedure", label: "1. Procedure or Method Impact", hasImpact: false, details: "" },
-          { key: "training", label: "2. Training Impact", hasImpact: false, details: "" },
-          { key: "forms", label: "3. Forms or Templates Impact", hasImpact: false, details: "" },
-          { key: "specifications", label: "4. Specifications Impact", hasImpact: false, details: "" },
-          { key: "equipment", label: "5. Equipment Impact", hasImpact: false, details: "" },
-          { key: "materials", label: "6. Materials or Media Impact", hasImpact: false, details: "" },
-          { key: "validation", label: "7. Validation Impact", hasImpact: false, details: "" },
-          { key: "regulatory", label: "8. Regulatory Commitment Impact", hasImpact: false, details: "" },
-          { key: "relatedDocs", label: "9. Related Documents Impact", hasImpact: false, details: "" }
+          { key: "procedure", label: "impactAssessment.categories.procedure", hasImpact: false, details: "" },
+          { key: "training", label: "impactAssessment.categories.training", hasImpact: false, details: "" },
+          { key: "forms", label: "impactAssessment.categories.forms", hasImpact: false, details: "" },
+          { key: "specifications", label: "impactAssessment.categories.specifications", hasImpact: false, details: "" },
+          { key: "equipment", label: "impactAssessment.categories.equipment", hasImpact: false, details: "" },
+          { key: "materials", label: "impactAssessment.categories.materials", hasImpact: false, details: "" },
+          { key: "validation", label: "impactAssessment.categories.validation", hasImpact: false, details: "" },
+          { key: "regulatory", label: "impactAssessment.categories.regulatory", hasImpact: false, details: "" },
+          { key: "relatedDocs", label: "impactAssessment.categories.relatedDocs", hasImpact: false, details: "" }
         ]);
       }
-    } catch (err: any) {
-      setError("Failed to load impact assessment.");
+    } catch (_err: unknown) {
+      setError(t("impactAssessment.loadError"));
     } finally {
       setLoading(false);
     }
@@ -130,7 +134,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
 
   const handleSave = async () => {
     if (!allDetailsValid) {
-      setError("For every category marked as having an impact, details must contain at least 5 characters.");
+      setError(t("impactAssessment.detailsRequiredError"));
       return;
     }
 
@@ -162,10 +166,10 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
     try {
       const res = await documentRevisionService.saveImpactAssessment(revisionId, req);
       setExistingAssessment(res);
-      setSuccess("Revision impact assessment successfully saved and baselined.");
+      setSuccess(t("impactAssessment.savedSuccess"));
       if (onSaved) onSaved();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to save impact assessment.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("impactAssessment.saveError")));
     } finally {
       setSaving(false);
     }
@@ -174,7 +178,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ fontWeight: 600 }}>
-        Revision Impact Assessment: Rev {revisionNumber}
+        {t("impactAssessment.title", { rev: revisionNumber })}
       </DialogTitle>
       <DialogContent dividers>
         {loading ? (
@@ -184,7 +188,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Alert severity="info" sx={{ fontSize: "0.85rem" }}>
-              Every new document revision must undergo a structured impact assessment across all 9 GMP categories. Technical review submission is strictly blocked until this assessment is completed.
+              {t("impactAssessment.info")}
             </Alert>
 
             {error && <Alert severity="error">{error}</Alert>}
@@ -199,7 +203,11 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                 borderRadius: 1
               }}>
                 <Typography variant="caption" sx={{ color: (t) => t.palette.mode === "dark" ? "success.light" : "success.dark", fontWeight: 600 }}>
-                  Assessment Status: COMPLETE &bull; Last Completed by: {existingAssessment.completedByFullName} ({existingAssessment.completedByUsername}) on {new Date(existingAssessment.completedAt).toLocaleString()}
+                  {t("impactAssessment.completeBanner", {
+                    name: existingAssessment.completedByFullName,
+                    username: existingAssessment.completedByUsername,
+                    date: formatDateTimeWithTimeZone(existingAssessment.completedAt)
+                  })}
                 </Typography>
               </Box>
             )}
@@ -210,7 +218,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
               <Paper key={cat.key} variant="outlined" sx={{ p: 2, bgcolor: cat.hasImpact ? "action.hover" : "background.paper" }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                    {cat.label}
+                    {t(cat.label)}
                   </Typography>
                   <FormControlLabel
                     control={
@@ -221,7 +229,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                         color="warning"
                       />
                     }
-                    label={cat.hasImpact ? "Impact Identified" : "No Impact"}
+                    label={cat.hasImpact ? t("impactAssessment.impactIdentified") : t("impactAssessment.noImpact")}
                     labelPlacement="start"
                   />
                 </Box>
@@ -229,7 +237,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                 {cat.hasImpact && (
                   <Box sx={{ mt: 1.5 }}>
                     <TextField
-                      label="Impact Details & Mitigation *"
+                      label={t("impactAssessment.detailsLabel")}
                       multiline
                       rows={2}
                       fullWidth
@@ -237,9 +245,9 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
                       value={cat.details}
                       onChange={(e) => handleDetailsChange(idx, e.target.value)}
                       disabled={!isEditable || saving}
-                      placeholder={`Document specific changes, required actions, or mitigations for ${cat.label}...`}
+                      placeholder={t("impactAssessment.detailsPlaceholder", { category: t(cat.label) })}
                       error={cat.details.trim().length < 5}
-                      helperText={cat.details.trim().length < 5 ? "Minimum 5 characters required" : ""}
+                      helperText={cat.details.trim().length < 5 ? t("impactAssessment.minCharsError") : ""}
                     />
                   </Box>
                 )}
@@ -250,7 +258,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={saving}>
-          Close
+          {t("impactAssessment.close")}
         </Button>
         {isEditable && (
           <Button
@@ -258,7 +266,7 @@ export const RevisionImpactAssessmentDialog: React.FC<RevisionImpactAssessmentDi
             variant="contained"
             disabled={saving || !allDetailsValid}
           >
-            {saving ? <CircularProgress size={24} /> : "Save & Complete Assessment"}
+            {saving ? <CircularProgress size={24} /> : t("impactAssessment.submit")}
           </Button>
         )}
       </DialogActions>

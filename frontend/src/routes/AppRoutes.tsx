@@ -6,7 +6,9 @@ import { PermissionRoute } from "./PermissionRoute";
 import { PERMISSIONS } from "./routes";
 import { MainLayout } from "../layouts/MainLayout";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { AppErrorBoundary } from "../components/AppErrorBoundary";
 import { AdminLayout, AdminIndexRedirect } from "../modules/admin/AdminLayout";
+import { EnglishOnly } from "../i18n/EnglishOnly";
 import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirects";
 
 // Every page-level route component below is lazy-loaded so the initial
@@ -14,12 +16,17 @@ import { LEGACY_ADMIN_REDIRECTS, LegacyPathRedirect } from "./legacyAdminRedirec
 // user actually lands on) instead of every module in the app - see the
 // bundle-size analysis in docs/superpowers if this changes again.
 const LoginPage = lazy(() => import("../pages/Login").then((m) => ({ default: m.LoginPage })));
+const SsoCompletePage = lazy(() => import("../pages/SsoComplete").then((m) => ({ default: m.SsoCompletePage })));
+const MfaEnrolmentPage = lazy(() => import("../pages/MfaEnrolment").then((m) => ({ default: m.MfaEnrolmentPage })));
 const AdminPasswordRecovery = lazy(() => import("../pages/AdminPasswordRecovery").then((m) => ({ default: m.AdminPasswordRecovery })));
 const DashboardPage = lazy(() => import("../modules/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const MyWorkPage = lazy(() => import("../modules/myWork/MyWorkPage").then((m) => ({ default: m.MyWorkPage })));
+const NotificationsPage = lazy(() => import("../modules/notifications/NotificationsPage").then((m) => ({ default: m.NotificationsPage })));
 const SectionPage = lazy(() => import("../pages/Section").then((m) => ({ default: m.SectionPage })));
 const NotFoundPage = lazy(() => import("../pages/NotFound").then((m) => ({ default: m.NotFoundPage })));
 const ProfilePage = lazy(() => import("../pages/Profile").then((m) => ({ default: m.ProfilePage })));
 const ChangePasswordPage = lazy(() => import("../pages/ChangePassword").then((m) => ({ default: m.ChangePasswordPage })));
+const SetSigningPasswordPage = lazy(() => import("../pages/SetSigningPassword").then((m) => ({ default: m.SetSigningPasswordPage })));
 const ReportsPage = lazy(() => import("../pages/Reports").then((m) => ({ default: m.ReportsPage })));
 const DiscussionsFeedPage = lazy(() => import("../modules/discussions/DiscussionsFeedPage").then((m) => ({ default: m.DiscussionsFeedPage })));
 const DiscussionDetailPage = lazy(() => import("../modules/discussions/DiscussionDetailPage").then((m) => ({ default: m.DiscussionDetailPage })));
@@ -55,6 +62,9 @@ const FpInstrumentsPage = lazy(() => import("../modules/laboratoryConfiguration/
 const ChromatographyColumnsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/ChromatographyColumnsPage").then((m) => ({ default: m.ChromatographyColumnsPage })));
 const SolutionMasterPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/SolutionMasterPage").then((m) => ({ default: m.SolutionMasterPage })));
 const HplcMethodsPage = lazy(() => import("../modules/laboratoryConfiguration/masterDataSimple/HplcMethodsPage").then((m) => ({ default: m.HplcMethodsPage })));
+const LabelFormatsPage = lazy(() => import("../modules/laboratoryConfiguration/labelFormats/LabelFormatsPage").then((m) => ({ default: m.LabelFormatsPage })));
+const WorkingHoursPage = lazy(() => import("../modules/laboratoryConfiguration/escalation/WorkingHoursPage").then((m) => ({ default: m.WorkingHoursPage })));
+const EscalationRulesPage = lazy(() => import("../modules/laboratoryConfiguration/escalation/EscalationRulesPage").then((m) => ({ default: m.EscalationRulesPage })));
 const PreparationListPage = lazy(() => import("../modules/solutionPreparation/PreparationListPage").then((m) => ({ default: m.PreparationListPage })));
 const PreparationWizardPage = lazy(() => import("../modules/solutionPreparation/PreparationWizardPage").then((m) => ({ default: m.PreparationWizardPage })));
 const PreparationRecordPage = lazy(() => import("../modules/solutionPreparation/PreparationRecordPage").then((m) => ({ default: m.PreparationRecordPage })));
@@ -68,10 +78,13 @@ const IcpSampleEntryPage = lazy(() => import("../modules/icpWorkspace/entry/IcpS
 const WorkingStandardsPage = lazy(() => import("../modules/workingStandards/WorkingStandardsPage").then((m) => ({ default: m.WorkingStandardsPage })));
 const QualificationEntryPage = lazy(() => import("../modules/hplcWorkspace/entry/QualificationEntryPage").then((m) => ({ default: m.QualificationEntryPage })));
 const UsersPage = lazy(() => import("../modules/users/UsersPage").then((m) => ({ default: m.UsersPage })));
+const CompanySignInPage = lazy(() => import("../modules/admin/CompanySignInPage").then((m) => ({ default: m.CompanySignInPage })));
 const RolesPage = lazy(() => import("../modules/roles/RolesPage").then((m) => ({ default: m.RolesPage })));
 const RoleDetailPage = lazy(() => import("../modules/roles/RoleDetailPage").then((m) => ({ default: m.RoleDetailPage })));
 const CreateRolePage = lazy(() => import("../modules/roles/CreateRolePage").then((m) => ({ default: m.CreateRolePage })));
 const AuditSearchPage = lazy(() => import("../modules/auditSearch/AuditSearchPage").then((m) => ({ default: m.AuditSearchPage })));
+const AuditTrailReviewsPage = lazy(() => import("../modules/auditReview/AuditTrailReviewsPage").then((m) => ({ default: m.AuditTrailReviewsPage })));
+const AuditTrailReviewDetailPage = lazy(() => import("../modules/auditReview/AuditTrailReviewDetailPage").then((m) => ({ default: m.AuditTrailReviewDetailPage })));
 const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/MonitoringPlanPage").then((m) => ({ default: m.MonitoringPlanPage })));
 const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
@@ -93,6 +106,8 @@ const ReassignmentsPage = lazy(() => import("../modules/documentControl/pages/Re
 const JobsPage = lazy(() => import("../modules/admin/JobsPage").then((m) => ({ default: m.JobsPage })));
 const DocumentAuditPage = lazy(() => import("../modules/documentControl/pages/DocumentAuditPage").then((m) => ({ default: m.DocumentAuditPage })));
 
+const HelpPage = lazy(() => import("../modules/help/HelpPage").then((m) => ({ default: m.HelpPage })));
+
 function LegacyRedirect({ to }: { to: string }) {
   const location = useLocation();
   return <Navigate to={`${to}${location.search}`} replace />;
@@ -104,20 +119,48 @@ export function AppRoutes() {
       <Routes>
         <Route element={<PublicRoutes />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/sso-complete" element={<SsoCompletePage />} />
           <Route path="/admin-recovery" element={<AdminPasswordRecovery />} />
         </Route>
 
+        {/* Reachable both before full sign-in (forced enrolment via router state) and when signed in. */}
+        <Route path="/mfa-enrol" element={<MfaEnrolmentPage />} />
+
         <Route element={<AuthenticatedRoutes />}>
-          <Route path="/samples/:id/report" element={<SampleReportPage />} />
-          <Route path="/samples/:id/coa" element={<SampleCoaPage />} />
-          <Route path="/media/:id/report" element={<MediaReportPage />} />
-          <Route path="/cryovials/:id/report" element={<CryovialReportPage />} />
+          {/* Printable records are English and left-to-right for every user, whatever their interface language. */}
+          <Route path="/samples/:id/report" element={<EnglishOnly><SampleReportPage /></EnglishOnly>} />
+          <Route path="/samples/:id/coa" element={<EnglishOnly><SampleCoaPage /></EnglishOnly>} />
+          <Route path="/media/:id/report" element={<EnglishOnly><MediaReportPage /></EnglishOnly>} />
+          <Route path="/cryovials/:id/report" element={<EnglishOnly><CryovialReportPage /></EnglishOnly>} />
 
           <Route element={<MainLayout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/my-work" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route
+              path="/my-work"
+              element={
+                <AppErrorBoundary inline>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <MyWorkPage />
+                  </Suspense>
+                </AppErrorBoundary>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <AppErrorBoundary inline>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <NotificationsPage />
+                  </Suspense>
+                </AppErrorBoundary>
+              }
+            />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/help/:chapterId" element={<HelpPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
+            <Route path="/set-signing-password" element={<SetSigningPasswordPage />} />
             <Route path="/discussions" element={<DiscussionsFeedPage />} />
             <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
             <Route path="/messages" element={<MessagesPage />} />
@@ -222,6 +265,10 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
             </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
+              <Route path="/audit-trail-reviews" element={<AuditTrailReviewsPage />} />
+              <Route path="/audit-trail-reviews/:id" element={<AuditTrailReviewDetailPage />} />
+            </Route>
             <Route element={<PermissionRoute code={[PERMISSIONS.ITEMS_MANAGE, PERMISSIONS.NOT_APPLICABLE_TESTS_FINAL_APPROVE]} />}>
               <Route path="/laboratory-configuration/items" element={<ItemsPage />} />
             </Route>
@@ -247,6 +294,13 @@ export function AppRoutes() {
               <Route path="/laboratory-configuration/material-master" element={<Navigate to="/laboratory-configuration/master-testing-materials?tab=reagents" replace />} />
               <Route path="/laboratory-configuration/solution-master" element={<SolutionMasterPage />} />
               <Route path="/laboratory-configuration/hplc-methods" element={<HplcMethodsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.LABELS_CONFIGURE} />}>
+              <Route path="/laboratory-configuration/label-formats" element={<LabelFormatsPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.NOTIFICATIONS_CONFIGURE} />}>
+              <Route path="/laboratory-configuration/working-hours" element={<WorkingHoursPage />} />
+              <Route path="/laboratory-configuration/escalation-rules" element={<EscalationRulesPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}
@@ -286,6 +340,7 @@ export function AppRoutes() {
               <Route index element={<AdminIndexRedirect />} />
               <Route element={<PermissionRoute code={PERMISSIONS.USERS_MANAGE} />}>
                 <Route path="users" element={<UsersPage />} />
+                <Route path="company-sign-in" element={<CompanySignInPage />} />
               </Route>
               <Route element={<PermissionRoute code={PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS} />}>
                 <Route path="settings" element={<SettingsPage />} />

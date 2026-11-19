@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { i18n } from "../../../i18n";
 import { ReferenceOrganismDialog } from "./ReferenceOrganismDialog";
 import { ChangeReferenceOrganismCodeDialog } from "./ChangeReferenceOrganismCodeDialog";
 import { ReferenceOrganismService, ReferenceOrganism } from "./services/ReferenceOrganismService";
@@ -125,4 +126,20 @@ describe("ChangeReferenceOrganismCodeDialog", () => {
     await waitFor(() => expect(ReferenceOrganismService.changeCode).toHaveBeenCalledWith(11, "ORG-010", "Renumbered after audit", "secret"));
     await waitFor(() => expect(onSuccess).toHaveBeenCalled());
   }, 20000);
+
+  it("renders dialog title and button in Arabic when Arabic is active", async () => {
+    await i18n.changeLanguage("ar");
+    await i18n.loadNamespaces(["common", "masterData"]);
+    try {
+      render(
+        <PinnedLightTheme>
+          <ReferenceOrganismDialog open strain={null} species={species} sections={sections} onClose={vi.fn()} onSaved={vi.fn()} />
+        </PinnedLightTheme>
+      );
+      expect(await screen.findByText("إضافة كائن مرجعي")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "إنشاء سلالة" })).toBeTruthy();
+    } finally {
+      await i18n.changeLanguage("en");
+    }
+  });
 });

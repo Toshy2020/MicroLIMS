@@ -12,6 +12,7 @@ import BugReportOutlinedIcon from "@mui/icons-material/BugReportOutlined";
 import ManageSearchOutlinedIcon from "@mui/icons-material/ManageSearchOutlined";
 import PolicyOutlinedIcon from "@mui/icons-material/PolicyOutlined";
 import ScheduleOutlinedIcon from "@mui/icons-material/ScheduleOutlined";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import AdminPanelSettingsOutlinedIcon from "@mui/icons-material/AdminPanelSettingsOutlined";
 import BiotechOutlinedIcon from "@mui/icons-material/BiotechOutlined";
@@ -44,6 +45,7 @@ import WaterDropOutlinedIcon from "@mui/icons-material/WaterDropOutlined";
 import WaterOutlinedIcon from "@mui/icons-material/WaterOutlined";
 import WhatshotOutlinedIcon from "@mui/icons-material/WhatshotOutlined";
 import WorkspacePremiumOutlinedIcon from "@mui/icons-material/WorkspacePremiumOutlined";
+import QrCode2OutlinedIcon from "@mui/icons-material/QrCode2Outlined";
 import { Role } from "../modules/authentication/types/authTypes";
 import { PERMISSIONS } from "./routes";
 import type { CounterSource } from "../services/sectionCountersService";
@@ -69,6 +71,8 @@ export interface MenuItem {
   // On a page inside such a section: which of those figures its card shows
   // (SectionCardKeys on the server).
   counterKey?: string;
+  // Live badge source rendered beside the label in the sidebar.
+  badge?: "myWork";
 }
 
 export interface MenuGroup {
@@ -84,6 +88,7 @@ export interface MenuContext {
 }
 
 // Menu Items
+const myWorkItem: MenuItem = { label: "My Work", path: "/my-work", description: "Tests, reviews, approvals, and tasks waiting for your action.", icon: ListAltOutlinedIcon, group: "OVERVIEW", badge: "myWork" };
 const dashboardItem: MenuItem = { label: "Dashboard", path: "/dashboard", description: "Your work and the laboratory's queues at a glance.", icon: SpaceDashboardOutlinedIcon, group: "OVERVIEW" };
 const QUALITY_COMPLIANCE_GROUP = "QUALITY & COMPLIANCE";
 const reportsItem: MenuItem = { label: "Reports", path: "/reports", description: "Laboratory KPIs, trends and exportable reports.", icon: DescriptionOutlinedIcon, group: QUALITY_COMPLIANCE_GROUP };
@@ -112,6 +117,7 @@ const adminItems: MenuItem[] = [
   { label: "Users", path: "/admin/users", description: "Create accounts, lock or unlock them, reset passwords.", icon: PeopleAltOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.USERS_MANAGE },
   { label: "Roles", path: "/admin/roles", description: "Roles, permissions and segregation of duties.", icon: AdminPanelSettingsOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.ROLES_MANAGE },
   { label: "Audit Trail", path: "/admin/audit", description: "Search the audit trail of every record and signature.", icon: ManageSearchOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
+  { label: "Audit Trail Reviews", path: "/audit-trail-reviews", description: "Periodic signed reviews of the audit trail.", icon: FactCheckOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.AUDIT_VIEW },
   { label: "Error Log", path: "/admin/error-log", description: "Application errors reported by the system.", icon: BugReportOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_VIEW_ERROR_LOG },
   { label: "Settings", path: "/admin/settings", description: "Password, lockout, session, e-signature, retention and monitoring settings.", icon: PolicyOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.SYSTEM_CONFIGURE_SETTINGS },
   { label: "Organization", path: "/admin/organization", description: "Departments, sections and who belongs to them.", icon: AccountTreeOutlinedIcon, group: ADMIN_GROUP, permission: PERMISSIONS.DOCUMENTS_CONFIG_MANAGE },
@@ -169,18 +175,26 @@ const microArea: MenuItem = {
   ]
 };
 
+const labelFormatsMenuItem: MenuItem = {
+  label: "Label Formats",
+  path: "/laboratory-configuration/label-formats",
+  icon: QrCode2OutlinedIcon,
+  permission: PERMISSIONS.LABELS_CONFIGURE,
+  description: "Barcode label dimensions, layouts and default copy counts."
+};
+
 const microConfigArea: MenuItem = {
   label: "Microbiology Configuration",
   description: "Tests, organisms, media and sampling-point master data.",
   path: "/sections/microbiology-configuration",
   icon: BiotechOutlinedIcon,
   group: "LABORATORIES",
-  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, description: "Microbiology test definitions, steps, media and limits." },
-    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, description: "EM locations, sampling methods and alert/action limits." },
-    { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, description: "Diluent, reagent and neutralizer recipes." },
-    { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, description: "Equipment types and settings used by microbiology tests." }
+    { label: "Test Master", path: "/laboratory-configuration/test-master", icon: ListAltOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Microbiology test definitions, steps, media and limits." },
+    { label: "Environmental Monitoring", path: "/laboratory-configuration/environmental-monitoring", icon: AirOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "EM locations, sampling methods and alert/action limits." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master?lab=MICRO", icon: WaterOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Diluent, reagent and neutralizer recipes." },
+    { label: "Equipment", path: "/laboratory-configuration/equipment", icon: SettingsOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Equipment types and settings used by microbiology tests." },
+    labelFormatsMenuItem
   ]
 };
 
@@ -219,15 +233,15 @@ const physchemConfigArea: MenuItem = {
   path: "/sections/physicochemical-configuration",
   icon: MedicationOutlinedIcon,
   group: "LABORATORIES",
-  permission: PERMISSIONS.MASTER_DATA_MANAGE,
   children: [
-    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master", icon: ListAltOutlinedIcon, description: "Finished product test definitions and specifications." },
-    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master", icon: FactCheckOutlinedIcon, description: "Raw material and packaging test definitions." },
-    { label: "Equation Types", path: "/laboratory-configuration/equation-types", icon: FunctionsOutlinedIcon, description: "Calculation equations used by physicochemical tests." },
-    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, description: "Instrument types available to physicochemical tests." },
-    { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, description: "Chromatography columns and their usage history." },
-    { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, description: "Solution recipes and standardization rules." },
-    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, description: "HPLC methods: conditions, analytes and suitability criteria." }
+    { label: "FP Test Master", path: "/laboratory-configuration/fp-test-master", icon: ListAltOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Finished product test definitions and specifications." },
+    { label: "RM & PM Test Master", path: "/laboratory-configuration/rm-pm-test-master", icon: FactCheckOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Raw material and packaging test definitions." },
+    { label: "Equation Types", path: "/laboratory-configuration/equation-types", icon: FunctionsOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Calculation equations used by physicochemical tests." },
+    { label: "Physicochemical Instruments", path: "/laboratory-configuration/fp-instruments", icon: MemoryOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Instrument types available to physicochemical tests." },
+    { label: "Chromatography Columns", path: "/laboratory-configuration/columns", icon: ViewColumnOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Chromatography columns and their usage history." },
+    { label: "Solutions", path: "/laboratory-configuration/solution-master", icon: WaterOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "Solution recipes and standardization rules." },
+    { label: "HPLC Methods", path: "/laboratory-configuration/hplc-methods", icon: BubbleChartOutlinedIcon, permission: PERMISSIONS.MASTER_DATA_MANAGE, description: "HPLC methods: conditions, analytes and suitability criteria." },
+    labelFormatsMenuItem
   ]
 };
 
@@ -238,6 +252,8 @@ const receivingConfigItem: MenuItem = { label: "Receiving Configuration", descri
 const masterDataWorkbookItem: MenuItem = { label: "Master Data Workbook", description: "Load master data and specifications from one Excel workbook.", path: "/laboratory-configuration/master-data-workbook", icon: TableViewOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const waterItem: MenuItem = { label: "Water", path: "/laboratory-configuration/water", description: "Water systems, sampling points and each lab's tests and limits.", icon: WaterDropOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
 const afterCleaningItem: MenuItem = { label: "After Cleaning", path: "/laboratory-configuration/after-cleaning", description: "Machines, parts and each lab's after-cleaning tests and limits.", icon: CleaningServicesOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.MASTER_DATA_MANAGE };
+const workingHoursItem: MenuItem = { label: "Working Hours", path: "/laboratory-configuration/working-hours", description: "Weekly working days and hours used to count escalation thresholds.", icon: ScheduleOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
+const escalationRulesItem: MenuItem = { label: "Escalation Rules", path: "/laboratory-configuration/escalation-rules", description: "Per-section working-hours rules for overdue reviews, tests, and documents.", icon: NotificationsActiveOutlinedIcon, group: "GENERAL LABORATORY CONFIGURATION", permission: PERMISSIONS.NOTIFICATIONS_CONFIGURE };
 
 // Drops every item whose permission the user lacks, then any parent left
 // with no children.
@@ -279,14 +295,14 @@ function groupItems(items: MenuItem[]): MenuGroup[] {
 // laboratory area also needs membership in that lab (useMyLabs), or the
 // Sections.ViewAll permission for the read-only view of every lab.
 export function getGroupedMenu({ role, permissions, labCodes, physchemAreas }: MenuContext): MenuGroup[] {
-  const items: MenuItem[] = [dashboardItem, receiveSampleItem, trackingBoardItem];
+  const items: MenuItem[] = [myWorkItem, dashboardItem, receiveSampleItem, trackingBoardItem];
   if (labCodes.includes("MICRO")) items.push(microArea, microConfigArea);
   if (labCodes.includes("FP")) {
     const areas = physchemAreas ?? ["fp", "rmpm"];
     items.push(buildPhyschemArea(areas), physchemConfigArea);
   }
   items.push(
-    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem,
+    itemsItem, masterTestingMaterialsItem, receivingConfigItem, masterDataWorkbookItem, waterItem, afterCleaningItem, workingHoursItem, escalationRulesItem,
     documentControlItem(role, permissions), reportsItem, monitoringPlanItem, oosTrackingItem,
     ...adminItems
   );

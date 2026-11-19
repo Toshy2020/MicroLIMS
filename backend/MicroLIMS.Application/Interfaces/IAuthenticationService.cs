@@ -2,9 +2,34 @@ namespace MicroLIMS.Application.Interfaces;
 
 // RoleName is the role's display name (Role.Name), as opposed to the base
 // type carried in the token's role claim.
-public record LoginOutcome(bool Success, string? Token, string? RefreshToken, string? FailureReason, bool MustChangePassword = false, string? RoleName = null);
+public record LoginOutcome(
+    bool Success,
+    string? Token,
+    string? RefreshToken,
+    string? FailureReason,
+    bool MustChangePassword = false,
+    string? RoleName = null,
+    bool MfaRequired = false,
+    bool MfaEnrolmentRequired = false,
+    string? MfaToken = null,
+    DateTime? MfaEnrolmentDueAt = null,
+    string? DeviceToken = null,
+    int? RecoveryCodesRemaining = null,
+    IReadOnlyList<string>? RecoveryCodes = null,
+    bool SigningPasswordRequired = false);
 
-public record CurrentUserInfo(int UserId, string Username, string FullName, string Role, string? JobTitle, DateTime? LastLoginAt, DateTime? PasswordChangedAt, bool MustChangePassword, string RoleName);
+public record CurrentUserInfo(
+    int UserId,
+    string Username,
+    string FullName,
+    string Role,
+    string? JobTitle,
+    DateTime? LastLoginAt,
+    DateTime? PasswordChangedAt,
+    bool MustChangePassword,
+    string RoleName,
+    string SignInMethod = nameof(Domain.Enums.SignInMethod.Local),
+    bool SigningPasswordSet = false);
 
 // What an access token is issued for. RoleId and PermissionVersion are signed
 // into the token so the API can tell, on every request, whether the user's
@@ -17,7 +42,7 @@ public delegate string AccessTokenIssuer(AccessTokenSubject subject);
 
 public interface IAuthenticationService
 {
-    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null);
+    Task<LoginOutcome> LoginAsync(string username, string password, string? ipAddress = null, string? userAgent = null, string? deviceToken = null);
     Task<LoginOutcome> RefreshAsync(string refreshToken, string? ipAddress = null, string? userAgent = null);
 
     // Ends the caller's session. When refreshToken identifies one of this
@@ -32,6 +57,7 @@ public interface IAuthenticationService
     // disabled, locked, password changed). Returns how many were revoked.
     Task<int> RevokeAllRefreshTokensAsync(int userId);
     Task<bool> ChangePasswordAsync(int userId, string currentPassword, string newPassword);
+    Task SetInitialSigningPasswordAsync(int userId, string newPassword, CancellationToken ct = default);
     Task RequestPasswordResetAsync(string username);
     Task<bool> ConfirmPasswordResetAsync(string resetToken, string newPassword);
     Task<CurrentUserInfo?> GetCurrentUserAsync(int userId);

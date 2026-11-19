@@ -7,7 +7,9 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Interfaces.DocumentControl;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.DocumentControl;
@@ -21,17 +23,20 @@ public class TrainingAssignmentService : ITrainingAssignmentService
     public const string SystemProcessName = "DocumentEffectiveDateWorker";
     public const int DefaultFallbackGracePeriodDays = 14;
     private readonly TimeProvider _time;
+    private readonly INotificationPublisher _publisher;
 
     public TrainingAssignmentService(
         IMicroLimsDbContext db,
         IAuditEventService audit,
         ILogger<TrainingAssignmentService> logger,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _audit = audit;
         _logger = logger;
+        _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
     public Task<TrainingAssignmentGenerationResultDto> ProcessEffectiveRevisionCascadeAsync(
@@ -252,9 +257,26 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         if (addedAssignments.Count > 0)
         {
+            _db.QueueSignal(LiveSignalKinds.Record, $"document:{master.Id}");
+            foreach (var assignment in addedAssignments)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignment.AssignedUserId}");
+
             _db.CurrentUserId = null;
             await _db.SaveChangesAsync(cancellationToken);
             createdIds = addedAssignments.Select(a => a.Id).ToList();
+
+            foreach (var assignment in addedAssignments)
+            {
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "TrainingAssigned",
+                    UserIds: new[] { assignment.AssignedUserId },
+                    Message: $"Training assigned for document {master.MicroLimsDocumentId} (Rev {revision.RevisionNumber}).",
+                    TargetType: "training-assignment",
+                    TargetId: assignment.Id,
+                    SectionId: master.SectionId,
+                    DedupeKey: $"TrainingAssigned:{assignment.Id}",
+                    DueAtUtc: assignment.DueDateUtc), cancellationToken);
+            }
 
             await _audit.RecordSystemEventAsync(
                 systemProcessName: SystemProcessName,
@@ -362,9 +384,26 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         if (addedAssignments.Count > 0)
         {
+            _db.QueueSignal(LiveSignalKinds.Record, $"document:{master.Id}");
+            foreach (var assignment in addedAssignments)
+                _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{assignment.AssignedUserId}");
+
             _db.CurrentUserId = actingUserId;
             await _db.SaveChangesAsync(cancellationToken);
             createdIds = addedAssignments.Select(a => a.Id).ToList();
+
+            foreach (var assignment in addedAssignments)
+            {
+                await _publisher.PublishAsync(new NotificationRequest(
+                    Type: "TrainingAssigned",
+                    UserIds: new[] { assignment.AssignedUserId },
+                    Message: $"Training assigned for document {master.MicroLimsDocumentId} (Rev {revision.RevisionNumber}).",
+                    TargetType: "training-assignment",
+                    TargetId: assignment.Id,
+                    SectionId: master.SectionId,
+                    DedupeKey: $"TrainingAssigned:{assignment.Id}",
+                    DueAtUtc: assignment.DueDateUtc), cancellationToken);
+            }
 
             await _audit.RecordUserEventAsync(
                 actionCode: "ManualTrainingAssignmentsCreated",
@@ -464,6 +503,7 @@ public class TrainingAssignmentService : ITrainingAssignmentService
             assignment.SupersededAtUtc = nowUtc;
             assignment.ModifiedAtUtc = nowUtc;
             assignment.ModifiedByUserId = actingUserId;
+            await _publisher.ResolveAsync($"TrainingAssigned:{assignment.Id}", cancellationToken);
         }
 
         _db.CurrentUserId = actingUserId;

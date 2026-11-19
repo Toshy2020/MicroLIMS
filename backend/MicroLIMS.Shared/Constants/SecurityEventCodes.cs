@@ -30,6 +30,35 @@ public static class SecurityEventCodes
     public const string PasswordChangeFailed = "AUTH_PASSWORD_CHANGE_FAILED";
     public const string PasswordReset = "AUTH_PASSWORD_RESET";
 
+    // ---- Multi-factor authentication ----
+    public const string MfaEnrolmentStarted = "AUTH_MFA_ENROLMENT_STARTED";
+    public const string MfaEnrolled = "AUTH_MFA_ENROLLED";
+    public const string MfaTokenAssigned = "AUTH_MFA_TOKEN_ASSIGNED";
+    public const string MfaVerified = "AUTH_MFA_VERIFIED";
+    public const string MfaFailed = "AUTH_MFA_FAILED";
+    public const string MfaChallengeIssued = "AUTH_MFA_CHALLENGE_ISSUED";
+    public const string MfaRecoveryCodeUsed = "AUTH_MFA_RECOVERY_CODE_USED";
+    public const string MfaRecoveryCodesRegenerated = "AUTH_MFA_RECOVERY_CODES_REGENERATED";
+    public const string MfaRemovedByUser = "AUTH_MFA_REMOVED_BY_USER";
+    public const string MfaResetByAdmin = "AUTH_MFA_RESET_BY_ADMIN";
+    public const string TrustedDeviceAdded = "AUTH_TRUSTED_DEVICE_ADDED";
+    public const string TrustedDeviceRevoked = "AUTH_TRUSTED_DEVICE_REVOKED";
+
+    // ---- Single sign-on ----
+    public const string SsoLoginSuccess = "AUTH_SSO_LOGIN_SUCCESS";
+    public const string SsoLoginFailedNotLinked = "AUTH_SSO_LOGIN_FAILED_NOT_LINKED";
+    public const string SsoLoginFailedTokenInvalid = "AUTH_SSO_LOGIN_FAILED_TOKEN_INVALID";
+    public const string SsoLoginFailedSubjectMismatch = "AUTH_SSO_LOGIN_FAILED_SUBJECT_MISMATCH";
+    public const string SsoLoginFailedMfaClaimMissing = "AUTH_SSO_LOGIN_FAILED_MFA_CLAIM_MISSING";
+    public const string DirectoryUnavailable = "AUTH_DIRECTORY_UNAVAILABLE";
+    public const string EmergencyLogin = "AUTH_EMERGENCY_LOGIN";
+    public const string LocalLoginRefusedSsoOn = "AUTH_LOCAL_LOGIN_REFUSED_SSO_ON";
+    public const string UserDirectoryLinked = "USER_DIRECTORY_LINKED";
+    public const string UserDirectoryRelinked = "USER_DIRECTORY_RELINKED";
+    public const string UserDeactivatedByDirectory = "USER_DEACTIVATED_BY_DIRECTORY";
+    public const string SsoConnectionTestPassed = "SSO_CONNECTION_TEST_PASSED";
+    public const string SsoConnectionTestFailed = "SSO_CONNECTION_TEST_FAILED";
+
     // ---- Account state ----
     public const string AccountDisabled = "AUTH_ACCOUNT_DISABLED";
     public const string AccountEnabled = "AUTH_ACCOUNT_ENABLED";

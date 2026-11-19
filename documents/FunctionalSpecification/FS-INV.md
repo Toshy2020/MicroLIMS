@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-INV |
 | Title | Inventory materials and equipment register functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-16 | AI coding agent, draft from code | Added Add Material wizard specification (FS-INV-012). |
 
 ## Scope and reading notes
 
@@ -93,3 +94,9 @@
 **Code:** `backend/MicroLIMS.Application/Services/EquipmentInventoryService.cs` — `GetActiveEquipmentAsync`, `GetActiveActivitiesForEquipmentAsync`, `GetHistoricalActivitiesForEquipmentAsync`, `WhereIsItAsync`, `ClassifyEquipmentCategory`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-127
+
+### FS-INV-012
+**Satisfies:** URS-INV-011
+**Function:** Add Material wizard (`MaterialWizard`, `materialFormModel`). Receiving a stock lot, and editing one, opens a wizard on the shared wizard frame of FS-MDM-043 with the steps "Material", "Batch and storage" and "Dates" and a review step. It replaces the former Add Material dialog. The wizard sends the same payload to the same endpoints as the dialog (`POST api/materials`, `PUT api/materials/{id}`, permission `Materials.Manage`, FS-INV-002 and FS-INV-003), so every rule of the server (material type offered, purity and moisture checks, reference organism, unit, duplicate checks) is unchanged; the step checks in the browser carry the dialog's messages and are a convenience only. The review shows quantities with their unit; receipt and expiry dates are calendar dates. Documents are still added on the lot details page after receipt. The "Print labels" offer after a receipt is unchanged. The entries are kept as a device draft until saved or discarded (`material-create` or `material-edit-{id}`). Where-used and change-reason rules (FS-MDM-038, FS-MDM-039) are not applied to material lots.
+**Code:** `frontend/src/modules/inventory/materials/materialWizard/MaterialWizard.tsx`; `frontend/src/modules/inventory/materials/materialWizard/materialFormModel.ts`; `frontend/src/modules/inventory/materials/materialWizard/MaterialStep.tsx`; `frontend/src/modules/inventory/materials/materialWizard/LotStep.tsx`; `frontend/src/modules/inventory/materials/materialWizard/DatesStep.tsx`; `frontend/src/modules/inventory/materials/MaterialsPage.tsx`
+**Verified by:** reading (not run); tests present: `MaterialWizard.test.tsx`, `materialFormModel.test.ts`

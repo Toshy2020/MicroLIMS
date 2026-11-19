@@ -12,9 +12,12 @@ import {
   Box,
   useTheme
 } from "@mui/material";
+import { Trans } from "react-i18next";
 import { tableHeadSx } from "../../../theme";
+import { Ltr } from "../../../components/Ltr";
 import { StatusBadge } from "../../../components/StatusBadge";
-import { formatLabDateTime } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import type { WorkingStandardQualificationDto } from "../types";
 
 interface QualificationsTableProps {
@@ -27,11 +30,12 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
   onSelectQualification
 }) => {
   const theme = useTheme();
+  const { t } = useTranslation("workingStandards");
 
   if (qualifications.length === 0) {
     return (
       <Paper sx={{ p: 4, textAlign: "center" }}>
-        <Typography color="text.secondary">No qualifications found.</Typography>
+        <Typography color="text.secondary">{t("qualificationsTable.empty")}</Typography>
       </Paper>
     );
   }
@@ -41,13 +45,13 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
       <Table size="small">
         <TableHead sx={tableHeadSx(theme)}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700 }}>Code</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Kind</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Material</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Batch</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Run</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Created</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.code")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.kind")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.material")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.batch")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.status")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.run")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("qualificationsTable.columns.created")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -60,18 +64,23 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
             >
               <TableCell>
                 <Typography sx={{ fontFamily: "monospace", fontWeight: 600, fontSize: 13, color: "primary.main" }}>
-                  {q.code}
+                  <Ltr>{q.code}</Ltr>
                 </Typography>
                 {q.workingStandardCode && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                    Lot: {q.workingStandardCode}
+                    <Trans
+                      i18nKey="qualificationsTable.lotCode"
+                      ns="workingStandards"
+                      values={{ code: q.workingStandardCode }}
+                      components={{ ltr: <Ltr>{null}</Ltr> }}
+                    />
                   </Typography>
                 )}
               </TableCell>
               <TableCell>
                 <Chip
                   size="small"
-                  label={q.kind}
+                  label={t(`qualificationKinds.${q.kind}`, { defaultValue: q.kind })}
                   color={q.kind === "Initial" ? "primary" : "secondary"}
                   variant="outlined"
                   sx={{ fontSize: 12, height: 22 }}
@@ -82,18 +91,21 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
                   {q.materialMasterName || q.sourceMaterialName}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  {q.materialMasterCode}
+                  <Ltr>{q.materialMasterCode}</Ltr>
                 </Typography>
               </TableCell>
-              <TableCell sx={{ fontSize: 13 }}>{q.sourceBatchNumber}</TableCell>
+              <TableCell sx={{ fontSize: 13 }}><Ltr>{q.sourceBatchNumber}</Ltr></TableCell>
               <TableCell>
-                <StatusBadge status={q.status} />
+                <StatusBadge
+                  status={q.status}
+                  label={t(`qualificationStatuses.${q.status}`, { defaultValue: q.status })}
+                />
               </TableCell>
               <TableCell>
                 {q.run ? (
                   <Box>
                     <Typography sx={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600 }}>
-                      {q.run.runCode}
+                      <Ltr>{q.run.runCode}</Ltr>
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {q.run.status}
@@ -107,11 +119,11 @@ export const QualificationsTable: React.FC<QualificationsTableProps> = ({
               </TableCell>
               <TableCell>
                 <Typography sx={{ fontSize: 12 }}>
-                  {formatLabDateTime(q.createdAt)}
+                  <Ltr>{formatDateTimeWithTimeZone(q.createdAt)}</Ltr>
                 </Typography>
                 {q.createdByUserName && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                    by {q.createdByUserName}
+                    {t("qualificationsTable.byUser", { user: q.createdByUserName })}
                   </Typography>
                 )}
               </TableCell>

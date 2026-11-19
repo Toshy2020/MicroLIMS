@@ -1,4 +1,5 @@
 import React from "react";
+import { Trans } from "react-i18next";
 import {
   Box,
   Typography,
@@ -14,9 +15,12 @@ import {
 } from "@mui/material";
 import LinkIcon from "@mui/icons-material/Link";
 import { StatusBadge } from "../../../components/StatusBadge";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { HplcStatusBadge } from "./HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { ResultStatus } from "../types";
+import { formatNumber } from "../../../utils/formatCount";
 
 export interface ResidualSolventReplicateData {
   replicateNo: number;
@@ -59,10 +63,11 @@ export function ResidualSolventCalculationView({
   status,
   reportsSection
 }: ResidualSolventCalculationViewProps) {
+  const { t } = useTranslation("hplcWorkspace");
   const theme = useTheme();
 
   const formattedReportedResult = calc.notDetected
-    ? "Not detected"
+    ? t("residualSolvent.notDetected")
     : reportedDisplay
       ? (reportedDisplay.toLowerCase().includes("ppm") ? reportedDisplay : `${reportedDisplay} ppm`)
       : `${calc.reportedValue} ppm`;
@@ -81,14 +86,24 @@ export function ResidualSolventCalculationView({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
-            Residual Solvent Review · {calc.analyte}
+            <Trans
+              i18nKey="residualSolvent.title"
+              ns="hplcWorkspace"
+              values={{ analyte: calc.analyte }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
-          <StatusBadge status="Prepared" label={`Basis: ${calc.basis || "Mean"}`} />
-          <StatusBadge status="Draft" label="Residual solvent (ppm)" />
+          <StatusBadge status="Prepared" label={t("residualSolvent.basis", { basis: calc.basis || t("residualSolvent.basisMean") })} />
+          <StatusBadge status="Draft" label={t("residualSolvent.badge")} />
         </Box>
 
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          Run: <strong>{calc.runCode}</strong> · SST: <strong>{calc.sstCode}</strong>
+          <Trans
+            i18nKey="residualSolvent.runSstMeta"
+            ns="hplcWorkspace"
+            values={{ runCode: calc.runCode, sstCode: calc.sstCode }}
+            components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+          />
         </Typography>
       </Box>
 
@@ -104,37 +119,41 @@ export function ResidualSolventCalculationView({
         }}
       >
         <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 0.5, textTransform: "uppercase" }}>
-          Method Snapshot & Standard Calibration
+          {t("residualSolvent.methodSnapshotTitle")}
         </Typography>
         <Stack useFlexGap direction="row" spacing={3} sx={{ fontSize: 12, flexWrap: "wrap", mb: 1 }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Standard Concentration (C_std)
+              {t("residualSolvent.standardConc")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.standardConcentrationUgPerMl} µg/mL
+              <Ltr>{`${calc.standardConcentrationUgPerMl} µg/mL`}</Ltr>
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Sample Solution Volume (V)
+              {t("residualSolvent.sampleSolutionVolume")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {calc.sampleSolutionVolumeMl} mL
+              <Ltr>{`${calc.sampleSolutionVolumeMl} mL`}</Ltr>
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
-              Standard Mean Response (r̄_std)
+              {t("residualSolvent.standardMeanResponse")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              {calc.standardMeanResponse.toLocaleString(undefined, { maximumFractionDigits: 2, useGrouping: false })}
+              <Ltr>{formatNumber(calc.standardMeanResponse, { maximumFractionDigits: 2, useGrouping: false })}</Ltr>
             </Typography>
           </Box>
         </Stack>
         <Box sx={{ pt: 0.5, borderTop: `1px dashed ${theme.palette.divider}` }}>
           <Typography variant="caption" sx={{ color: "text.secondary", display: "block", fontStyle: "italic" }}>
-            Formula: ppm = (C_std × V / W) × (r_u / r̄_std)
+            <Trans
+              i18nKey="residualSolvent.formula"
+              ns="hplcWorkspace"
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
           </Typography>
         </Box>
       </Paper>
@@ -145,24 +164,24 @@ export function ResidualSolventCalculationView({
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ fontSize: 12 }}>Replicate</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Sample Weight (mg)</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Area</TableCell>
-                <TableCell align="right" sx={{ fontSize: 12 }}>Calculated (ppm)</TableCell>
+                <TableCell sx={{ fontSize: 12 }}>{t("residualSolvent.columns.replicate")}</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("residualSolvent.columns.sampleWeight")}</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("residualSolvent.columns.area")}</TableCell>
+                <TableCell align="right" sx={{ fontSize: 12 }}>{t("residualSolvent.columns.calculated")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {calc.replicates.map((r) => (
                 <TableRow key={r.replicateNo} hover>
-                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}>#{r.replicateNo}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, fontSize: 12 }}><Ltr>#{r.replicateNo}</Ltr></TableCell>
                   <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.sampleWeightMg}
+                    <Ltr>{r.sampleWeightMg}</Ltr>
                   </TableCell>
                   <TableCell align="right" sx={{ fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.response}
+                    <Ltr>{r.response}</Ltr>
                   </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700, fontSize: 12, fontVariantNumeric: "tabular-nums" }}>
-                    {r.ppmDisplay || `${r.ppm} ppm`}
+                    <Ltr>{r.ppmDisplay || `${r.ppm} ppm`}</Ltr>
                   </TableCell>
                 </TableRow>
               ))}
@@ -178,11 +197,16 @@ export function ResidualSolventCalculationView({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12 }}>
-            Reported Result: <strong>{formattedReportedResult}</strong>
+            {t("residualSolvent.reportedResult")} <strong>{calc.notDetected ? formattedReportedResult : <Ltr>{formattedReportedResult}</Ltr>}</strong>
           </Typography>
           {specLimit && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-              (Spec: {specLimit})
+              <Trans
+                i18nKey="residualSolvent.spec"
+                ns="hplcWorkspace"
+                values={{ specLimit }}
+                components={{ ltr: <Ltr>{null}</Ltr> }}
+              />
             </Typography>
           )}
           {status && <HplcStatusBadge status={status} />}
@@ -191,7 +215,12 @@ export function ResidualSolventCalculationView({
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
           <LinkIcon fontSize="small" sx={{ fontSize: 14, color: "text.secondary" }} />
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Chromatograms and raw evidence stored under GC Run <strong>{calc.runCode}</strong>
+            <Trans
+              i18nKey="residualSolvent.evidenceLink"
+              ns="hplcWorkspace"
+              values={{ runCode: calc.runCode }}
+              components={{ ltr: <Ltr>{null}</Ltr>, strong: <strong /> }}
+            />
           </Typography>
         </Box>
       </Box>

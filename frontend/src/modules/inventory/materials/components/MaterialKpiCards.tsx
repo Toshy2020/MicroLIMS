@@ -1,3 +1,4 @@
+import { useTranslation } from "../../../../i18n";
 import { KpiStrip } from "../../../../components/lab";
 import type { SummaryTile } from "../../../../components/configHierarchy/SummaryTiles";
 import { MaterialItem, MaterialKpiFilter } from "../types/materialTypes";
@@ -41,16 +42,17 @@ export function isMaterialInStock(item: MaterialItem): boolean {
 }
 
 export function MaterialKpiCards({ items, activeFilter, onFilterSelect, loading }: MaterialKpiCardsProps) {
+  const { t } = useTranslation("inventory");
   // Clicking the active tile again clears the shortcut (except "all").
   const pick = (key: MaterialKpiFilter) => () => onFilterSelect(activeFilter === key && key !== "all" ? "all" : key);
-  const label = (text: string, key: MaterialKpiFilter) => (activeFilter === key && key !== "all" ? `${text} (filtered)` : text);
+  const label = (text: string, key: MaterialKpiFilter) => (activeFilter === key && key !== "all" ? t("materials.kpi.filtered", { label: text }) : text);
 
   const tiles: SummaryTile[] = [
-    { label: label("Total Items", "all"), value: items.length, tone: "purple", onClick: pick("all") },
-    { label: label("In Stock", "in_stock"), value: items.filter(isMaterialInStock).length, tone: "notDetected", onClick: pick("in_stock") },
-    { label: label("Low Stock", "low_stock"), value: items.filter(isMaterialLowStock).length, tone: "inconclusive", onClick: pick("low_stock") },
-    { label: label("Out of Stock", "out_of_stock"), value: items.filter(isMaterialOutOfStock).length, tone: "detected", onClick: pick("out_of_stock") },
-    { label: label("Expiring Soon", "expiring_soon"), value: items.filter((m) => isMaterialExpiringSoon(m.expiryDate)).length, tone: "action", onClick: pick("expiring_soon") }
+    { label: label(t("materials.kpi.total"), "all"), value: items.length, tone: "purple", onClick: pick("all") },
+    { label: label(t("status.InStock"), "in_stock"), value: items.filter(isMaterialInStock).length, tone: "notDetected", onClick: pick("in_stock") },
+    { label: label(t("status.LowStock"), "low_stock"), value: items.filter(isMaterialLowStock).length, tone: "inconclusive", onClick: pick("low_stock") },
+    { label: label(t("materials.kpi.outOfStock"), "out_of_stock"), value: items.filter(isMaterialOutOfStock).length, tone: "detected", onClick: pick("out_of_stock") },
+    { label: label(t("materials.kpi.expiringSoon"), "expiring_soon"), value: items.filter((m) => isMaterialExpiringSoon(m.expiryDate)).length, tone: "action", onClick: pick("expiring_soon") }
   ];
 
   return <KpiStrip tiles={tiles} loading={loading} />;

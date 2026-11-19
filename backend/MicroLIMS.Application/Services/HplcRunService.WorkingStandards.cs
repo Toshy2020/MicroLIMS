@@ -1,6 +1,8 @@
+using System.Globalization;
 using MicroLIMS.Application.Interfaces;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
@@ -72,27 +74,40 @@ public partial class HplcRunService
         await EnsureAccessAsync(run, userId, ct);
 
         if (run.Status != HplcRunStatus.Open)
-            throw new BusinessRuleException("The run is closed.");
+            throw new BusinessRuleException(MessageCodes.HplcRunClosed, "The run is closed.");
         if (run.Sst?.Status != HplcSstStatus.Passed)
-            throw new BusinessRuleException("Sample assignment is locked until system suitability passes.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcSampleAssignmentLockedUntilSst,
+                "Sample assignment is locked until system suitability passes.");
         if (SstUsedWorkingStandard(run))
             throw new BusinessRuleException(
+                MessageCodes.HplcQualificationNeedsPrimaryReferenceStandard,
                 "A working standard can only be qualified against a primary reference standard - this run's system suitability used a working standard.");
 
         var ids = (qualificationIds ?? new List<int>()).Distinct().ToList();
         if (ids.Count == 0)
-            throw new BusinessRuleException("Select at least one qualification.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcSelectAtLeastOneQualification,
+                "Select at least one qualification.");
 
         var eligible = await EligibleQualificationsAsync(run, ids, ct);
         foreach (var id in ids.Where(id => eligible.All(e => e.Q.Id != id)))
         {
-            var code = await _db.WorkingStandardQualifications.Where(q => q.Id == id).Select(q => q.Code).FirstOrDefaultAsync(ct) ?? id.ToString();
+            var qualCode = await _db.WorkingStandardQualifications.Where(q => q.Id == id).Select(q => q.Code).FirstOrDefaultAsync(ct) ?? id.ToString(CultureInfo.InvariantCulture);
             var busyRun = await _db.HplcRunSamples
                 .Where(s => s.WorkingStandardQualificationId == id && s.Status == HplcRunSampleStatus.Assigned && s.HplcRun!.Status != HplcRunStatus.Abandoned)
                 .Select(s => s.HplcRun!.Code).FirstOrDefaultAsync(ct);
-            throw new BusinessRuleException(busyRun != null
-                ? $"Qualification {code} is already assigned to run {busyRun}."
-                : $"Qualification {code} is not eligible for this run.");
+            if (busyRun != null)
+            {
+                throw new BusinessRuleException(
+                    MessageCodes.HplcQualificationAlreadyAssignedToRun,
+                    $"Qualification {qualCode} is already assigned to run {busyRun}.",
+                    new Dictionary<string, string> { ["code"] = qualCode, ["runCode"] = busyRun });
+            }
+            throw new BusinessRuleException(
+                MessageCodes.HplcQualificationNotEligibleForRun,
+                $"Qualification {qualCode} is not eligible for this run.",
+                new Dictionary<string, string> { ["code"] = qualCode });
         }
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
@@ -124,29 +139,54 @@ public partial class HplcRunService
         var c = await LoadQualificationSampleAsync(runSampleId, ct);
         await EnsureAccessAsync(c.Run, userId, ct);
 
-        var problem = QualificationEditableProblem(c.Run, c.RunSample, c.Q);
+        var problem = QualificationEditableProblemWithCode(c.Run, c.RunSample, c.Q);
         if (problem != null)
-            throw new BusinessRuleException(problem);
+        {
+            var (code, message) = problem.Value;
+            throw new BusinessRuleException(code, message);
+        }
 
         var inputs = r.Replicates ?? new List<HplcReplicateInput>();
         var hasIs = !string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName);
         if (!hasIs && inputs.Any(x => x.InternalStandardResponse.HasValue))
-            throw new BusinessRuleException("This method has no internal standard.");
+            throw new BusinessRuleException(MessageCodes.HplcMethodHasNoInternalStandard, "This method has no internal standard.");
         if (inputs.Any(x => x.Peaks is { Count: > 0 }))
-            throw new BusinessRuleException("Peaks are not used for working-standard qualification.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcPeaksNotUsedForQualification,
+                "Peaks are not used for working-standard qualification.");
 
         for (var i = 0; i < inputs.Count; i++)
         {
             if (inputs[i].ActualWeightMg <= 0)
-                throw new BusinessRuleException($"Replicate {i + 1}: the sample weight must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateSampleWeightMustBePositive,
+                    $"Replicate {i + 1}: the sample weight must be greater than zero.",
+                    new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             if (hasIs && inputs[i].InternalStandardResponse is null or <= 0)
-                throw new BusinessRuleException($"Replicate {i + 1}: the internal standard response is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateInternalStandardRequired,
+                    $"Replicate {i + 1}: the internal standard response is required.",
+                    new Dictionary<string, string> { ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture) });
             var responses = inputs[i].Responses ?? new List<HplcReplicateResponseInput>();
             var matches = responses.Where(x => x.HplcMethodAnalyteId == c.Analyte.Id).ToList();
             if (matches.Count != 1 || responses.Count != 1)
-                throw new BusinessRuleException($"Replicate {i + 1}: exactly one response for {c.Analyte.Name} is required.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateSingleResponseRequired,
+                    $"Replicate {i + 1}: exactly one response for {c.Analyte.Name} is required.",
+                    new Dictionary<string, string>
+                    {
+                        ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture),
+                        ["analyte"] = c.Analyte.Name
+                    });
             if (matches[0].Response <= 0)
-                throw new BusinessRuleException($"Replicate {i + 1}: the response for {c.Analyte.Name} must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcReplicateResponseMustBePositive,
+                    $"Replicate {i + 1}: the response for {c.Analyte.Name} must be greater than zero.",
+                    new Dictionary<string, string>
+                    {
+                        ["replicate"] = (i + 1).ToString(CultureInfo.InvariantCulture),
+                        ["analyte"] = c.Analyte.Name
+                    });
         }
 
         await ReplaceReplicatesAsync(c.RunSample, inputs, ct);
@@ -158,9 +198,12 @@ public partial class HplcRunService
         var c = await LoadQualificationSampleAsync(runSampleId, ct);
         await EnsureAccessAsync(c.Run, userId, ct);
 
-        var problem = QualificationSubmitProblem(c);
+        var problem = QualificationSubmitProblemWithCode(c);
         if (problem != null)
-            throw new BusinessRuleException(problem);
+        {
+            var (code, message, parameters) = problem.Value;
+            throw new BusinessRuleException(code, message, parameters);
+        }
 
         // Pure calculation first, then sign (a failed password saves its own
         // audit row), then mutate - same order as ConfirmSstAsync.
@@ -193,64 +236,98 @@ public partial class HplcRunService
 
     private HplcMethodResponse ReadSnapshot(HplcRun run) =>
         JsonSerializer.Deserialize<HplcMethodResponse>(run.MethodSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The run's method snapshot could not be read.");
+            ?? throw new BusinessRuleException(MessageCodes.HplcMethodSnapshotUnreadable, "The run's method snapshot could not be read.");
 
     private async Task<QualificationSampleContext> LoadQualificationSampleAsync(int runSampleId, CancellationToken ct)
     {
         var runSample = await _db.HplcRunSamples.Include(s => s.Replicates).ThenInclude(r => r.Responses)
             .FirstOrDefaultAsync(s => s.Id == runSampleId, ct)
-            ?? throw new NotFoundException($"Run sample {runSampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.HplcRunSampleRecordNotFound,
+                $"Run sample {runSampleId} not found.",
+                new Dictionary<string, string> { ["runSampleId"] = runSampleId.ToString(CultureInfo.InvariantCulture) });
         if (runSample.WorkingStandardQualificationId is not int qId)
-            throw new BusinessRuleException("This run sample is a test order - open it from the sample entry.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcRunSampleIsTestOrder,
+                "This run sample is a test order - open it from the sample entry.");
         var run = await LoadRunAsync(runSample.HplcRunId, ct);
         var q = await _db.WorkingStandardQualifications.Include(x => x.Documents).FirstAsync(x => x.Id == qId, ct);
         var snapshot = ReadSnapshot(run);
         var analyte = snapshot.Analytes.FirstOrDefault(a => a.Id == q.HplcMethodAnalyteId)
-            ?? throw new BusinessRuleException("This qualification is no longer measured on this run's method analyte.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.HplcQualificationAnalyteNotInMethod,
+                "This qualification is no longer measured on this run's method analyte.");
         return new QualificationSampleContext(run, runSample, q, snapshot, analyte);
     }
 
-    private static string? QualificationEditableProblem(HplcRun run, HplcRunSample runSample, WorkingStandardQualification q)
+    private static string? QualificationEditableProblem(HplcRun run, HplcRunSample runSample, WorkingStandardQualification q) =>
+        QualificationEditableProblemWithCode(run, runSample, q)?.Message;
+
+    private static (string Code, string Message)? QualificationEditableProblemWithCode(HplcRun run, HplcRunSample runSample, WorkingStandardQualification q)
     {
-        if (runSample.Status != HplcRunSampleStatus.Assigned) return "This sample was removed from the run.";
-        if (q.Status != WorkingStandardQualificationStatus.Draft) return "The qualification has already been submitted.";
+        if (runSample.Status != HplcRunSampleStatus.Assigned)
+            return (MessageCodes.HplcRunSampleRemoved, "This sample was removed from the run.");
+        if (q.Status != WorkingStandardQualificationStatus.Draft)
+            return (MessageCodes.HplcQualificationAlreadySubmitted, "The qualification has already been submitted.");
         if (run.Status == HplcRunStatus.Open) return null;
         if (run.Status == HplcRunStatus.Completed && q.ReturnReason != null) return null;
-        return "The run is closed.";
+        return (MessageCodes.HplcRunClosed, "The run is closed.");
     }
 
     // Everything the calculation needs except the sample report.
-    private static string? QualificationEntryProblem(QualificationSampleContext c)
+    private static string? QualificationEntryProblem(QualificationSampleContext c) =>
+        QualificationEntryProblemWithCode(c)?.Message;
+
+    private static (string Code, string Message, Dictionary<string, string>? Params)? QualificationEntryProblemWithCode(QualificationSampleContext c)
     {
-        var editable = QualificationEditableProblem(c.Run, c.RunSample, c.Q);
-        if (editable != null) return editable;
-        if (c.Run.Sst?.Status != HplcSstStatus.Passed) return "System suitability has not passed.";
+        var editable = QualificationEditableProblemWithCode(c.Run, c.RunSample, c.Q);
+        if (editable != null) return (editable.Value.Code, editable.Value.Message, null);
+        if (c.Run.Sst?.Status != HplcSstStatus.Passed)
+            return (MessageCodes.HplcSstNotPassed, "System suitability has not passed.", null);
 
         var entered = c.RunSample.Replicates.Count;
         if (entered != WorkingStandardRules.Replicates)
-            return $"Exactly {WorkingStandardRules.Replicates} replicates are required ({entered} entered).";
+        {
+            return (MessageCodes.HplcQualificationExactReplicatesRequired,
+                $"Exactly {WorkingStandardRules.Replicates} replicates are required ({entered} entered).",
+                new Dictionary<string, string>
+                {
+                    ["required"] = WorkingStandardRules.Replicates.ToString(CultureInfo.InvariantCulture),
+                    ["entered"] = entered.ToString(CultureInfo.InvariantCulture)
+                });
+        }
 
         var sstRow = c.Run.Sst.Analytes.FirstOrDefault(a => a.HplcMethodAnalyteId == c.Analyte.Id);
         if (sstRow?.MeanResponse is null or <= 0 || sstRow.StandardWeightMg is null or <= 0
             || sstRow.StandardPurityPercent is null or <= 0 || sstRow.StandardMoisturePercent is null)
-            return $"{c.Analyte.Name}: the system suitability standard values are incomplete.";
+        {
+            return (MessageCodes.HplcSstStandardValuesIncomplete,
+                $"{c.Analyte.Name}: the system suitability standard values are incomplete.",
+                new Dictionary<string, string> { ["analyte"] = c.Analyte.Name });
+        }
         if (!string.IsNullOrWhiteSpace(c.Snapshot.InternalStandardName))
         {
             foreach (var rep in c.RunSample.Replicates.OrderBy(r => r.ReplicateNo))
                 if (rep.InternalStandardResponse is null or <= 0)
-                    return $"Replicate {rep.ReplicateNo}: the internal standard response is required.";
+                    return (MessageCodes.HplcReplicateInternalStandardRequired,
+                        $"Replicate {rep.ReplicateNo}: the internal standard response is required.",
+                        new Dictionary<string, string> { ["replicate"] = rep.ReplicateNo.ToString(CultureInfo.InvariantCulture) });
         }
-        if (c.Q.MoisturePercent == null) return "Enter the moisture content first.";
+        if (c.Q.MoisturePercent == null)
+            return (MessageCodes.HplcQualificationMoistureRequired, "Enter the moisture content first.", null);
         return null;
     }
 
-    private static string? QualificationSubmitProblem(QualificationSampleContext c)
+    private static string? QualificationSubmitProblem(QualificationSampleContext c) =>
+        QualificationSubmitProblemWithCode(c)?.Message;
+
+    private static (string Code, string Message, Dictionary<string, string>? Params)? QualificationSubmitProblemWithCode(QualificationSampleContext c)
     {
-        var problem = QualificationEntryProblem(c);
+        var problem = QualificationEntryProblemWithCode(c);
         if (problem != null) return problem;
         var hasReport = c.Run.Evidence.Any(e => e.HplcRunSampleId == c.RunSample.Id
             && e.Kind == HplcEvidenceKind.SampleReport && e.SupersededByEvidenceId == null);
-        return hasReport ? null : "Upload the sample report before submitting.";
+        return hasReport ? null : (MessageCodes.HplcQualificationSampleReportRequired, "Upload the sample report before submitting.", null);
     }
 
     // Only called when QualificationEntryProblem is null.

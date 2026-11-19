@@ -29,7 +29,6 @@ public class DocumentReassignmentTests
 
     private readonly MicroLimsDbContext _db;
     private readonly Clock _clock = new();
-    private readonly SpyNotificationService _push = new();
     private readonly DocumentReassignmentService _svc;
     private readonly DocumentAuthorizationService _auth;
     private readonly AuditEventService _audit;
@@ -55,7 +54,7 @@ public class DocumentReassignmentTests
     }
 
     private DocumentReassignmentService NewService(ISystemSettingsReader? settings = null) =>
-        new(_db, _audit, _auth, _push, settings, _clock);
+        new(_db, _audit, _auth, settings, _clock);
 
     private User U(string name, Role role, bool active = true, DateTime? deactivatedAt = null) =>
         new() { Username = name, FullName = name, Email = $"{name}@lims.local", PasswordHash = "x", RoleId = role.Id, IsActive = active, DeactivatedAt = deactivatedAt };
@@ -424,7 +423,6 @@ public class DocumentReassignmentTests
         var note = await _db.NotificationLogs.AsNoTracking().SingleAsync();
         Assert.Equal((_candA.Id, DocumentReassignmentService.NotificationType), (note.UserId, note.Type));
         Assert.Contains("SOP-001", note.Message);
-        Assert.Equal(_candA.Id, Assert.Single(_push.Sent).UserId);
 
         Assert.DoesNotContain((await QueueAsync(_headA, _deptA)).Items, i => i.ItemType == ReassignmentItemTypes.Custodian);
     }

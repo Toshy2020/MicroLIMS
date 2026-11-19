@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "../../../../i18n";
 import { Select, MenuItem, FormControl, InputLabel, Button } from "@mui/material";
 import RotateLeftIcon from "@mui/icons-material/RotateLeft";
 import { CryovialItem, CryovialFilterState } from "../types/cryovialTypes";
@@ -15,6 +16,7 @@ interface CryovialFilterBarProps {
 }
 
 export function CryovialFilterBar({ items, filters, onFilterChange, onReset, resultCount, onRefresh, refreshing }: CryovialFilterBarProps) {
+  const { t } = useTranslation("labConfig");
   // Extract unique organisms from current dataset
   const organisms = useMemo(() => {
     const set = new Set<string>();
@@ -30,26 +32,27 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset, res
   };
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "");
+  const organismSelectValue = organisms.includes(filters.organism) ? filters.organism : "";
 
   return (
     <FilterBar
       search={filters.search}
       onSearch={(value) => updateField("search", value)}
-      placeholder="Search by code, organism, material..."
+      placeholder={t("cryovials.filters.searchPlaceholder")}
       resultCount={resultCount}
       onRefresh={onRefresh}
       refreshing={refreshing}
     >
       <FormControl size="small" sx={{ minWidth: 170 }}>
-        <InputLabel id="cryovial-organism-filter-label">Organism</InputLabel>
+        <InputLabel id="cryovial-organism-filter-label">{t("cryovials.filters.organism")}</InputLabel>
         <Select
           labelId="cryovial-organism-filter-label"
-          label="Organism"
-          value={filters.organism}
+          label={t("cryovials.filters.organism")}
+          value={organismSelectValue}
           onChange={(e) => updateField("organism", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Organisms</em>
+            <em>{t("cryovials.filters.allOrganisms")}</em>
           </MenuItem>
           {organisms.map((org) => (
             <MenuItem key={org} value={org}>
@@ -60,38 +63,38 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset, res
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel id="cryovial-status-filter-label">Status</InputLabel>
+        <InputLabel id="cryovial-status-filter-label">{t("cryovials.filters.status")}</InputLabel>
         <Select
           labelId="cryovial-status-filter-label"
-          label="Status"
+          label={t("cryovials.filters.status")}
           value={filters.status}
           onChange={(e) => updateField("status", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Statuses</em>
+            <em>{t("cryovials.filters.allStatuses")}</em>
           </MenuItem>
-          <MenuItem value="Approved">Approved</MenuItem>
-          <MenuItem value="PendingReview">Pending Review</MenuItem>
-          <MenuItem value="Rejected">Rejected</MenuItem>
-          <MenuItem value="Destroyed">Destroyed</MenuItem>
-          <MenuItem value="Depleted">Depleted (0 Vials)</MenuItem>
+          <MenuItem value="Approved">{t("cryovials.filters.statuses.Approved")}</MenuItem>
+          <MenuItem value="PendingReview">{t("cryovials.filters.statuses.PendingReview")}</MenuItem>
+          <MenuItem value="Rejected">{t("cryovials.filters.statuses.Rejected")}</MenuItem>
+          <MenuItem value="Destroyed">{t("cryovials.filters.statuses.Destroyed")}</MenuItem>
+          <MenuItem value="Depleted">{t("cryovials.filters.statuses.Depleted")}</MenuItem>
         </Select>
       </FormControl>
 
       <FormControl size="small" sx={{ minWidth: 160 }}>
-        <InputLabel id="cryovial-expiry-filter-label">Expiry</InputLabel>
+        <InputLabel id="cryovial-expiry-filter-label">{t("cryovials.filters.expiry")}</InputLabel>
         <Select
           labelId="cryovial-expiry-filter-label"
-          label="Expiry"
+          label={t("cryovials.filters.expiry")}
           value={filters.expiryRange}
           onChange={(e) => updateField("expiryRange", e.target.value)}
         >
           <MenuItem value="">
-            <em>All Expiry</em>
+            <em>{t("cryovials.filters.allExpiry")}</em>
           </MenuItem>
-          <MenuItem value="expiring_30">Expiring in 30 Days</MenuItem>
-          <MenuItem value="expired">Expired</MenuItem>
-          <MenuItem value="valid">Valid / Unexpired</MenuItem>
+          <MenuItem value="expiring_30">{t("cryovials.filters.expiryOptions.expiring_30")}</MenuItem>
+          <MenuItem value="expired">{t("cryovials.filters.expiryOptions.expired")}</MenuItem>
+          <MenuItem value="valid">{t("cryovials.filters.expiryOptions.valid")}</MenuItem>
         </Select>
       </FormControl>
 
@@ -103,7 +106,7 @@ export function CryovialFilterBar({ items, filters, onFilterChange, onReset, res
           startIcon={<RotateLeftIcon fontSize="small" />}
           sx={{ borderColor: "divider", color: "text.secondary" }}
         >
-          Reset
+          {t("cryovials.filters.reset")}
         </Button>
       )}
     </FilterBar>

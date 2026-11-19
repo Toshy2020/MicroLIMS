@@ -1,5 +1,7 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
@@ -42,7 +44,10 @@ public class MediaEvaluationService
             .Include(e => e.Challenges).ThenInclude(c => c.ReferenceMedia)
             .Include(e => e.Challenges).ThenInclude(c => c.LyophilizedDisk)
             .FirstOrDefaultAsync(e => e.Id == id)
-        ?? throw new NotFoundException($"Media evaluation {id} not found."), _time.GetUtcNow().UtcDateTime);
+        ?? throw new NotFoundException(
+            MessageCodes.MediaEvaluationNotFound,
+            $"Media evaluation {id} not found.",
+            new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) }), _time.GetUtcNow().UtcDateTime);
 
     // Every vial thawed in the last 24 hours (and not destroyed) out of an
     // approved, unexpired batch of the challenge's organism in the
@@ -55,7 +60,10 @@ public class MediaEvaluationService
             .Where(c => c.Id == challengeId)
             .Select(c => new { c.OrganismId, SectionId = c.MediaEvaluation!.Media!.Material!.SectionId })
             .FirstOrDefaultAsync()
-            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaChallengeNotFound,
+                $"Challenge {challengeId} not found.",
+                new Dictionary<string, string> { ["challengeId"] = challengeId.ToString(CultureInfo.InvariantCulture) });
 
         var now = _time.GetUtcNow().UtcDateTime;
         var today = now.Date;

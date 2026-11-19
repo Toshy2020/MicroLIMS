@@ -22,6 +22,9 @@ import MenuBookIcon from "@mui/icons-material/MenuBook";
 import InfoIcon from "@mui/icons-material/Info";
 import type { AcknowledgementPresentationDto } from "../types/acknowledgementTypes";
 import { monospaceFontFamily } from "../../../theme/palette";
+import { formatLabCalendarDate } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface DocumentAcknowledgementDialogProps {
   open: boolean;
@@ -35,11 +38,12 @@ interface DocumentAcknowledgementDialogProps {
 export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDialogProps> = ({
   open,
   context,
-  loading,
+  loading: _loading,
   readingProgress = 100,
   onClose,
   onConfirmAcknowledgement
 }) => {
+  const { t } = useTranslation("documentControl");
   const [confirmedStatement, setConfirmedStatement] = useState(false);
   const [comments, setComments] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +52,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!confirmedStatement) {
-      setError("You must explicitly verify and accept the legal acknowledgement statement.");
+      setError(t("acknowledgement.mustConfirmError"));
       return;
     }
 
@@ -59,8 +63,8 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
       setConfirmedStatement(false);
       setComments("");
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || "Failed to submit acknowledgement.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("acknowledgement.submitError")));
     } finally {
       setSubmitting(false);
     }
@@ -77,7 +81,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
         <Typography variant="h6" component="span" sx={{
           fontWeight: "bold"
         }}>
-          Controlled Document Training Acknowledgement
+          {t("acknowledgement.title")}
         </Typography>
       </DialogTitle>
 
@@ -87,7 +91,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
 
           {!context.canAcknowledge && (
             <Alert severity="warning">
-              {context.validationMessage || "This document assignment cannot currently be acknowledged."}
+              {context.validationMessage || t("acknowledgement.cannotAcknowledgeDefault")}
             </Alert>
           )}
 
@@ -98,12 +102,12 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                 <Typography variant="subtitle2" sx={{
                   color: "text.secondary"
                 }}>
-                  Document Code & Revision
+                  {t("acknowledgement.codeAndRevision")}
                 </Typography>
                 <Typography variant="h6" sx={{
                   fontWeight: "bold"
                 }}>
-                  {context.companyDocumentCode} (Rev {context.revisionNumber})
+                  {t("acknowledgement.codeAndRevValue", { code: context.companyDocumentCode, rev: context.revisionNumber })}
                 </Typography>
                 <Typography variant="body2" sx={{
                   color: "text.secondary"
@@ -112,7 +116,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                 </Typography>
               </div>
               <Chip
-                label={`Status: ${context.assignmentStatus}`}
+                label={t("acknowledgement.statusChip", { status: context.assignmentStatus })}
                 color={context.assignmentStatus === "Acknowledged" ? "success" : "primary"}
                 size="small"
               />
@@ -124,7 +128,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               <div>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Assigned User</Typography>
+                }}>{t("acknowledgement.assignedUser")}</Typography>
                 <Typography variant="body2" sx={{
                   fontWeight: "medium"
                 }}>{context.assignedUserName}</Typography>
@@ -132,16 +136,16 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               <div>
                 <Typography variant="caption" sx={{
                   color: "text.secondary"
-                }}>Due Date (UTC)</Typography>
+                }}>{t("acknowledgement.dueDate")}</Typography>
                 <Typography variant="body2">
-                  {context.dueDateUtc ? new Date(context.dueDateUtc).toLocaleDateString() : "No fixed due date"}
+                  {context.dueDateUtc ? formatLabCalendarDate(context.dueDateUtc) : t("acknowledgement.noDueDate")}
                 </Typography>
               </div>
               {context.controlledFileName && (
                 <div style={{ gridColumn: "span 2" }}>
                   <Typography variant="caption" sx={{
                     color: "text.secondary"
-                  }}>Controlled File Artifact</Typography>
+                  }}>{t("acknowledgement.controlledFileArtifact")}</Typography>
                   <Typography variant="body2" sx={{ fontFamily: monospaceFontFamily, fontSize: "0.8rem" }}>
                     {context.controlledFileName}
                   </Typography>
@@ -157,7 +161,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               <Typography variant="subtitle2" sx={{
                 fontWeight: "bold"
               }}>
-                Reading Verification Progress
+                {t("acknowledgement.readingProgressTitle")}
               </Typography>
               <Typography
                 variant="caption"
@@ -165,7 +169,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                   color: "text.secondary",
                   ml: "auto"
                 }}>
-                {readingProgress}% viewed
+                {t("acknowledgement.viewedPercent", { percent: readingProgress })}
               </Typography>
             </Box>
             {/* Mandated label (ML-DC-FRS-1C-001 §2:133). Must sit on the
@@ -177,7 +181,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                   fontWeight: "bold",
                   color: "text.secondary"
                 }}>
-                Informational Only. Formal Acknowledgement Required
+                {t("acknowledgement.informationalOnly")}
               </Typography>
             </Box>
             <LinearProgress
@@ -191,7 +195,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
               <Typography variant="caption" sx={{
                 color: "text.secondary"
               }}>
-                Progress tracks viewport/scroll interaction. Legal acknowledgement requires the explicit confirmation below.
+                {t("acknowledgement.progressHelper")}
               </Typography>
             </Box>
           </Paper>
@@ -209,7 +213,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
             <Typography variant="subtitle2" color="primary" gutterBottom sx={{
               fontWeight: "bold"
             }}>
-              Legal & Regulatory Evidentiary Statement (GMP / 21 CFR Part 11)
+              {t("acknowledgement.legalTitle")}
             </Typography>
             <Typography
               variant="body2"
@@ -237,14 +241,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
                 <Typography variant="body2" sx={{
                   fontWeight: "bold"
                 }}>
-                  {/* Must attest to the statement rendered above, which comes
-                      from context.legalStatementText and is the text frozen onto
-                      the record as legalStatementFrozen (DC-URS-191: the
-                      statement is configurable and the exact text presented is
-                      retained with the acknowledgement). A second hardcoded
-                      sentence here would mean the wording the user actually
-                      ticked was not the wording retained as evidence. */}
-                  I confirm the evidentiary statement above.
+                  {t("acknowledgement.confirmCheckbox")}
                 </Typography>
               }
             />
@@ -252,7 +249,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
 
           {/* Optional Comments */}
           <TextField
-            label="Acknowledgement Remarks (Optional)"
+            label={t("acknowledgement.remarksLabel")}
             multiline
             rows={2}
             fullWidth
@@ -260,14 +257,14 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
             value={comments}
             onChange={(e) => setComments(e.target.value)}
             disabled={!context.canAcknowledge || submitting}
-            placeholder="Enter any relevant training or understanding notes (will be recorded in audit log)..."
+            placeholder={t("acknowledgement.remarksPlaceholder")}
           />
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={submitting} color="inherit">
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={() => handleSubmit()}
@@ -276,7 +273,7 @@ export const DocumentAcknowledgementDialog: React.FC<DocumentAcknowledgementDial
           disabled={!context.canAcknowledge || !confirmedStatement || submitting}
           startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : <VerifiedUserIcon />}
         >
-          {submitting ? "Submitting acknowledgement…" : "Submit acknowledgement"}
+          {submitting ? t("acknowledgement.submitting") : t("acknowledgement.submit")}
         </Button>
       </DialogActions>
     </Dialog>

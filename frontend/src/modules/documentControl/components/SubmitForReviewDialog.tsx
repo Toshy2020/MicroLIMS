@@ -17,6 +17,9 @@ import {
 import { documentReviewService } from "../services/documentReviewService";
 import { apiClient } from "../../../services/apiClient";
 import { DateField } from "../../../components/DateField";
+import { Trans } from "react-i18next";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 interface SubmitForReviewDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ interface UserOption {
   id: number;
   fullName: string;
   username: string;
+  isActive?: boolean;
 }
 
 export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
@@ -41,6 +45,7 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
   authorUserId,
   currentUserId
 }) => {
+  const { t } = useTranslation("documentControl");
   const [reviewerUserId, setReviewerUserId] = useState<number | "">("");
   const [submissionNotes, setSubmissionNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -64,14 +69,14 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
     try {
       // /users is SystemAdministrator-only; the directory is open to any authenticated user.
       const res = await apiClient.get("/users/directory", { params: { permission: "Documents.Review" } });
-      const allUsers = res.data?.data || res.data || [];
+      const allUsers: UserOption[] = res.data?.data || res.data || [];
       // Segregation of Duties filter: author cannot be reviewer!
       const eligible = allUsers.filter(
-        (u: any) => u.isActive && u.id !== authorUserId && u.id !== currentUserId
+        (u) => u.isActive && u.id !== authorUserId && u.id !== currentUserId
       );
       setUsers(eligible);
-    } catch (err: any) {
-      setError("Failed to load eligible reviewers.");
+    } catch (_err: unknown) {
+      setError(t("submitForReview.loadError"));
     } finally {
       setLoading(false);
     }
@@ -79,12 +84,12 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
 
   const handleSubmit = async () => {
     if (!reviewerUserId) {
-      setError("Please select a technical reviewer.");
+      setError(t("submitForReview.selectError"));
       return;
     }
 
     if (reviewerUserId === authorUserId) {
-      setError("Segregation of Duties: Author cannot be assigned as technical reviewer.");
+      setError(t("submitForReview.sodError"));
       return;
     }
 
@@ -99,8 +104,8 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
       });
       onSubmitted();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to submit for review.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("submitForReview.submitError")));
     } finally {
       setSubmitting(false);
     }
@@ -108,11 +113,15 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 600 }}>Submit for Technical Review</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 600 }}>{t("submitForReview.title")}</DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5, mt: 1 }}>
           <Alert severity="info" sx={{ fontSize: "0.85rem" }}>
-            <strong>Segregation of Duties Enforcement:</strong> In accordance with GMP regulations, the author of this revision cannot be assigned as its technical reviewer.
+            <Trans
+              i18nKey="submitForReview.sodInfo"
+              ns="documentControl"
+              components={{ strong: <strong /> }}
+            />
           </Alert>
 
           {error && <Alert severity="error">{error}</Alert>}
@@ -123,11 +132,11 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
             </Box>
           ) : (
             <FormControl fullWidth required>
-              <InputLabel id="reviewer-select-label">Technical Reviewer</InputLabel>
+              <InputLabel id="reviewer-select-label">{t("submitForReview.reviewerLabel")}</InputLabel>
               <Select
                 labelId="reviewer-select-label"
                 value={reviewerUserId}
-                label="Technical Reviewer"
+                label={t("submitForReview.reviewerLabel")}
                 onChange={(e) => setReviewerUserId(e.target.value as number)}
               >
                 {users.map((u) => (
@@ -140,7 +149,7 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
           )}
 
           <DateField
-            label="Review Due Date"
+            label={t("submitForReview.dueDateLabel")}
             value={dueDate}
             onChange={(v) => setDueDate(v)}
             fullWidth
@@ -148,26 +157,26 @@ export const SubmitForReviewDialog: React.FC<SubmitForReviewDialogProps> = ({
           />
 
           <TextField
-            label="Submission Notes"
+            label={t("submitForReview.notesLabel")}
             multiline
             rows={3}
             value={submissionNotes}
             onChange={(e) => setSubmissionNotes(e.target.value)}
-            placeholder="Provide context or highlight key changes for the technical reviewer..."
+            placeholder={t("submitForReview.notesPlaceholder")}
             fullWidth
           />
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={submitting}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={submitting || loading || !reviewerUserId}
         >
-          {submitting ? <CircularProgress size={24} /> : "Submit for Review"}
+          {submitting ? <CircularProgress size={24} /> : t("submitForReview.submit")}
         </Button>
       </DialogActions>
     </Dialog>

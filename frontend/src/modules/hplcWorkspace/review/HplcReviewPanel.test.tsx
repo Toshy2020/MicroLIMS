@@ -33,9 +33,13 @@ describe("HplcReviewPanel", () => {
 
   it("shows related substances peaks, not the assay layout", () => {
     show(rs);
-    expect(screen.getByText("Related Substances Review · Principal")).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "Related Substances Review · Principal")
+    ).toBeTruthy();
     expect(screen.getByText("Reference: 0.1%")).toBeTruthy();
-    expect(screen.getByText("0.03 (disregarded)")).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "TD" && el.textContent === "0.03 (disregarded)")
+    ).toBeTruthy();
     expect(screen.queryByText(/undefined/)).toBeNull();
     expect(screen.queryByText(/Theoretical Weights/)).toBeNull();
   });
@@ -50,7 +54,9 @@ describe("HplcReviewPanel", () => {
     expect(screen.getByText("Standard Mean Ratio")).toBeTruthy();
     expect(screen.getByText("p-hydroxybenzoic acid")).toBeTruthy();
     expect(screen.getByText("1.9659")).toBeTruthy();
-    expect(screen.getByText("As is: 98.00 % · Moisture: 0.5 %")).toBeTruthy();
+    expect(
+      screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "As is: 98.00 % · Moisture: 0.5 %")
+    ).toBeTruthy();
   });
 
   it("reads a stored moisture condition in words", () => {

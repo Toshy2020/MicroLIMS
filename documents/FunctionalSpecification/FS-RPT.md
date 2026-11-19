@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-RPT |
 | Title | Reporting, Certificate of Analysis and trending functional specification |
-| Version | 0.1 |
+| Version | 0.2 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -16,6 +16,7 @@
 | Version | Date | Author | Change |
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
+| 0.2 | 2026-11-17 | AI coding agent, draft from code | Added row selection and audited CSV export specification (FS-RPT-009). |
 
 ## Scope and reading notes
 
@@ -82,3 +83,10 @@
 **Code:** `backend/MicroLIMS.Application/Services/Spc/ControlChartService.cs` — `ApplyLimitsAsync`, `ApplyLimitsCoreAsync`; `backend/MicroLIMS.API/Controllers/ControlChartController.cs` — `ApplyLimits`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-164
+
+### FS-RPT-009
+**Satisfies:** URS-RPT-010
+**Function:** Row selection and audited CSV export. `useRowSelection` keeps selected identifiers across pages, and clears them when filters or search change. `BulkActionBar` shows the count, "Select all {n} that match" (all matching rows, not only the page) and Clear. The Export CSV action in `RegisterTable` first sends `POST api/exports/log` with the table key, filter JSON, visible columns, row count and the identifiers of the rows, and uses the server's reply (export identifier, server time with its zone, exporting user) in the file. The browser refuses more than 5,000 rows (`MAX_EXPORT_ROWS`) before logging. If the log call fails, no file is made and the error is shown. `buildCsv` then writes UTF-8 with a byte-order mark, CRLF line ends, the visible columns in order, and a single quote in front of any cell that begins with `=`, `+`, `-`, `@`, a tab or a carriage return; quotes and line breaks in cells are escaped. The file starts with the lines "Exported by", "Exported at" (server time and zone), "List", "Filters", "Rows" and "Export ID", followed by the column header row and the data rows. Backend `ExportsController` (policy `Data.Export`, request limit 256 KB) refuses an unknown table key, more than 5,000 rows, and a row count that differs from the identifiers sent.
+**Code:** `frontend/src/components/lab/table/useRowSelection.ts`; `frontend/src/components/lab/table/BulkActionBar.tsx`; `frontend/src/components/lab/table/exportCsv.ts`; `frontend/src/components/lab/table/services/`; `frontend/src/components/lab/RegisterTable.tsx`; `frontend/src/modules/reports/components/ReportResultsTable.tsx`; `backend/MicroLIMS.API/Controllers/ExportsController.cs`; `backend/MicroLIMS.Application/Services/DataExportAuditService.cs`
+**Verified by:** reading (not run); tests present: `useRowSelection.test.tsx`, `exportCsv.test.ts`, `RegisterTableSelectionExport.test.tsx`, `ReportResultsTable.test.tsx`; backend `ListExportPostgresTests.cs` (5 PostgresFact tests)
+**Not verified:** that the CSV opens in a spreadsheet with the protected cells shown as text (not run); the Reports results' own server-side export (not changed here, not read).

@@ -74,7 +74,7 @@ public class ReportImageAndWordRenderingTests
         Assert.True(pdf.NumberOfPages >= 4);
         foreach (var page in pdf.GetPages())
             foreach (var image in page.GetImages())
-                Assert.True(image.Bounds.Bottom >= 0 && image.Bounds.Top <= page.Height);
+                Assert.True(image.BoundingBox.Bottom >= 0 && image.BoundingBox.Top <= page.Height);
     }
 
     [Fact]

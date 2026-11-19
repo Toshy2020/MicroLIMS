@@ -1,4 +1,5 @@
 import { Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography, useTheme, TableContainer } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { tableHeadSx } from "../../theme";
 
 export interface CriteriaRow {
@@ -12,18 +13,19 @@ export interface CriteriaRow {
 // Acceptance criteria stay visible above result entry so the analyst sees
 // the governing limit before typing a value.
 export function CriteriaCard({ rows }: { rows: CriteriaRow[] }) {
+  const { t } = useTranslation();
   const theme = useTheme();
   return (
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-      <Typography sx={{ fontWeight: 700, fontSize: 13, px: 1.5, py: 1 }}>Acceptance criteria</Typography>
+      <Typography sx={{ fontWeight: 700, fontSize: 13, px: 1.5, py: 1 }}>{t("components.criteriaCard.title")}</Typography>
       <TableContainer>
         <Table size="small">
           <TableHead>
             <TableRow sx={tableHeadSx(theme)}>
-              <TableCell>Parameter</TableCell>
-              <TableCell>Acceptance criterion</TableCell>
-              <TableCell>Unit</TableCell>
-              <TableCell>Source</TableCell>
+              <TableCell>{t("components.criteriaCard.parameter")}</TableCell>
+              <TableCell>{t("components.criteriaCard.criterion")}</TableCell>
+              <TableCell>{t("components.criteriaCard.unit")}</TableCell>
+              <TableCell>{t("components.criteriaCard.source")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

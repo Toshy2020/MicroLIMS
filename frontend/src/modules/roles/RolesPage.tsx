@@ -13,8 +13,10 @@ import { UserService, UserRecord } from "../users/services/UserService";
 import { LoadFailuresAlert } from "../../components/LoadErrorAlert";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { MetaBadge, StatusBadge, ToneBadge } from "../../components/StatusBadge";
+import { useTranslation } from "../../i18n";
 
 export function RolesPage() {
+  const { t } = useTranslation("roles");
   const navigate = useNavigate();
   const location = useLocation();
   const [roles, setRoles] = useState<RoleRecord[]>([]);
@@ -44,23 +46,23 @@ export function RolesPage() {
 
   return (
     <>
-      <PageHeader title="Roles" subtitle="System Administrator, Section Head, Reviewer, Analyst, QC Manager, and any custom roles." />
+      <PageHeader title={t("list.title")} subtitle={t("list.subtitle")} />
       {message && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setMessage(null)}>{message}</Alert>}
-      <LoadFailuresAlert failed={failedLists} retryHint="Reload the page to try again." sx={{ mb: 2 }} />
+      <LoadFailuresAlert failed={failedLists} retryHint={t("common.retryHint")} sx={{ mb: 2 }} />
 
       <Paper sx={{ p: 2, mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <TextField
           size="small"
-          placeholder="Search by role name..."
+          placeholder={t("list.searchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           sx={{ minWidth: 260 }}
-          slotProps={{ htmlInput: { "aria-label": "Search by role name" },
+          slotProps={{ htmlInput: { "aria-label": t("list.searchLabel") },
             input: { startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment> }
           }}
         />
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/roles/new")}>
-          Create Role
+          {t("list.create")}
         </Button>
       </Paper>
 
@@ -68,11 +70,11 @@ export function RolesPage() {
         <Table size="small">
           <TableHead>
             <TableRow sx={{ backgroundColor: "action.hover" }}>
-              <TableCell>Role</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Users</TableCell>
-              <TableCell align="right" sx={{ width: 64 }}>Actions</TableCell>
+              <TableCell>{t("list.columns.role")}</TableCell>
+              <TableCell>{t("list.columns.type")}</TableCell>
+              <TableCell>{t("list.columns.status")}</TableCell>
+              <TableCell align="right">{t("list.columns.users")}</TableCell>
+              <TableCell align="right" sx={{ width: 64 }}>{t("list.columns.actions")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -82,16 +84,16 @@ export function RolesPage() {
                   <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{r.name}</Typography>
                   {r.description && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{r.description}</Typography>}
                   {r.sodConflicts && r.sodConflicts.length > 0 && (
-                    <Tooltip title={`Holds administration together with GxP execution or approval: ${r.sodConflicts.join("; ")}`}>
+                    <Tooltip title={t("list.sodTooltip", { conflicts: r.sodConflicts.join("; ") })}>
                       {/* Span wrapper: Tooltip needs a child that holds a ref. */}
                       <Box component="span" sx={{ display: "inline-block", mt: 0.5 }}>
-                        <ToneBadge tone="action" label="Segregation conflict" />
+                        <ToneBadge tone="action" label={t("list.sodBadge")} />
                       </Box>
                     </Tooltip>
                   )}
                 </TableCell>
                 <TableCell>
-                  <MetaBadge label={r.isSystemRole ? "System" : "Custom"} locked={r.isSystemRole} />
+                  <MetaBadge label={r.isSystemRole ? t("list.typeSystem") : t("list.typeCustom")} locked={r.isSystemRole} />
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={r.isActive ? "Active" : "Inactive"} />
@@ -100,10 +102,10 @@ export function RolesPage() {
                 <TableCell align="right">
                   {/* The whole row opens the role too; this makes the action
                       visible and gives keyboard users a real target. */}
-                  <Tooltip title="Edit role">
+                  <Tooltip title={t("list.editRole")}>
                     <IconButton
                       size="small"
-                      aria-label={`Edit ${r.name}`}
+                      aria-label={t("list.editAria", { name: r.name })}
                       onClick={(e) => { e.stopPropagation(); navigate(`/roles/${r.id}`); }}
                     >
                       <EditOutlinedIcon fontSize="small" />
@@ -116,7 +118,7 @@ export function RolesPage() {
               <TableRow>
                 <TableCell colSpan={5}>
                   <Typography sx={{ fontSize: 13, color: "text.secondary", textAlign: "center", py: 2 }}>
-                    No roles match "{search}".
+                    {t("list.noMatch", { search })}
                   </Typography>
                 </TableCell>
               </TableRow>

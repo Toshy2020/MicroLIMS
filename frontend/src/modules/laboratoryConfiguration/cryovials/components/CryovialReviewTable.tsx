@@ -1,8 +1,12 @@
+import type { TFunction } from "i18next";
 import { Box, Typography } from "@mui/material";
+import { useTranslation } from "../../../../i18n";
 import { RegisterTable } from "../../../../components/lab";
 import type { RegisterColumn, RegisterRowAction } from "../../../../components/lab";
+import { TableToolbar } from "../../../../components/lab/table/TableToolbar";
+import type { UseTableState } from "../../../../components/lab/table/useTableState";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { formatLabDate } from "../../../../utils/formatDate";
+import { formatLabDate, formatLabCalendarDate } from "../../../../utils/formatDate";
 import { CryovialItem } from "../types/cryovialTypes";
 import { isMaterialExpiringSoon } from "../../../inventory/materials/components/MaterialKpiCards";
 import { monospaceFontFamily } from "../../../../theme/palette";
@@ -11,6 +15,8 @@ interface CryovialReviewTableProps {
   items: CryovialItem[];
   loading?: boolean;
   isFiltered?: boolean;
+  tableKey?: string;
+  tableState?: UseTableState;
   onApproveClick: (cryovial: CryovialItem, approved: boolean) => void;
   onThawClick: (cryovial: CryovialItem) => void;
   onDestroyClick: (cryovial: CryovialItem) => void;
@@ -27,9 +33,10 @@ const isExpired = (expiryDateStr: string) => {
 
 const organismOf = (c: CryovialItem) => c.organism?.scientificName ?? c.organismNameSnapshot;
 
-const COLUMNS: RegisterColumn<CryovialItem>[] = [
+function getColumns(t: TFunction<"labConfig">): RegisterColumn<CryovialItem>[] {
+  return [
   {
-    key: "code", label: "Code", sortable: true,
+    key: "code", label: t("cryovials.table.columns.code"), sortable: true,
     render: (c) => (
       <>
         <Typography sx={{ fontSize: 13, fontWeight: 700, fontFamily: monospaceFontFamily, color: "primary.main" }}>{c.code}</Typography>
@@ -40,9 +47,9 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
     )
   },
   {
-    key: "organism", label: "Organism & Source", sortable: true, sortValue: organismOf,
+    key: "organism", label: t("cryovials.table.columns.organismSource"), sortable: true, sortValue: organismOf,
     render: (c) => {
-      const atcc = c.organism?.atccNumber ? ` (ATCC ${c.organism.atccNumber})` : "";
+      const atcc = c.organism?.atccNumber ? t("cryovials.table.atcc", { number: c.organism.atccNumber }) : "";
       return (
         <>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
@@ -53,12 +60,16 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
           </Typography>
           {c.referenceOrganismCode && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-              Strain {c.referenceOrganismCode} · {c.cultureCollection}{c.strainNumber ? ` ${c.strainNumber}` : ""}
+              {t("cryovials.table.strain", {
+                code: c.referenceOrganismCode,
+                collection: c.cultureCollection,
+                number: c.strainNumber ? ` ${c.strainNumber}` : ""
+              })}
             </Typography>
           )}
           {c.material && (
             <Typography sx={{ fontSize: 12, color: "text.secondary" }} noWrap>
-              {c.material.materialName} · Batch {c.material.batchNumber}
+              {t("cryovials.table.materialBatch", { name: c.material.materialName, batch: c.material.batchNumber })}
             </Typography>
           )}
         </>
@@ -66,22 +77,22 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
     }
   },
   {
-    key: "approvalStatus", label: "Status", sortable: true,
+    key: "approvalStatus", label: t("cryovials.table.columns.status"), sortable: true,
     sortValue: (c) => (c.isDestroyed ? "Destroyed" : c.approvalStatus),
-    render: (c) => (c.isDestroyed ? <StatusBadge status="Destroyed" label="Destroyed" /> : <StatusBadge status={c.approvalStatus} />)
+    render: (c) => (c.isDestroyed ? <StatusBadge status="Destroyed" label={t("cryovials.table.destroyed")} /> : <StatusBadge status={c.approvalStatus} />)
   },
   {
-    key: "vialsRemaining", label: "Vials Stock", sortable: true,
+    key: "vialsRemaining", label: t("cryovials.table.columns.vialsStock"), sortable: true,
     render: (c) => {
       const depleted = c.vialsRemaining === 0;
       return (
         <>
           <Typography sx={{ fontSize: 13, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: depleted ? "error.main" : "text.primary" }}>
-            {c.vialsRemaining} of {c.numberOfVialsPrepared} vials
+            {t("cryovials.table.vialsOf", { remaining: c.vialsRemaining, prepared: c.numberOfVialsPrepared })}
           </Typography>
           {depleted && !c.isDestroyed && (
             <Box sx={{ mt: 0.25 }}>
-              <StatusBadge status="Depleted" label="Depleted" />
+              <StatusBadge status="Depleted" label={t("cryovials.table.depleted")} />
             </Box>
           )}
         </>
@@ -89,7 +100,7 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
     }
   },
   {
-    key: "preparedAt", label: "Prepared", sortable: true,
+    key: "preparedAt", label: t("cryovials.table.columns.prepared"), sortable: true,
     render: (c) => (
       <>
         <Typography sx={{ fontSize: 12, fontWeight: 600, color: "text.primary" }}>{formatLabDate(c.preparedAt)}</Typography>
@@ -100,51 +111,72 @@ const COLUMNS: RegisterColumn<CryovialItem>[] = [
     )
   },
   {
-    key: "expiryDate", label: "Expiry", sortable: true,
+    key: "expiryDate", label: t("cryovials.table.columns.expiry"), sortable: true,
     render: (c) => {
       const expired = isExpired(c.expiryDate);
       const expiringSoon = !expired && isMaterialExpiringSoon(c.expiryDate, 30);
       return (
         <>
           <Typography sx={{ fontSize: 12, fontWeight: expired || expiringSoon ? 700 : 500, whiteSpace: "nowrap" }}>
-            {formatLabDate(c.expiryDate)}
+            {formatLabCalendarDate(c.expiryDate)}
           </Typography>
-          {expired && <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 700 }}>Expired</Typography>}
-          {expiringSoon && <Typography sx={{ fontSize: 12, color: "warning.main", fontWeight: 600 }}>Expiring soon</Typography>}
+          {expired && <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 700 }}>{t("cryovials.table.expired")}</Typography>}
+          {expiringSoon && <Typography sx={{ fontSize: 12, color: "warning.main", fontWeight: 600 }}>{t("cryovials.table.expiringSoon")}</Typography>}
         </>
       );
     }
   }
-];
+  ];
+}
 
-export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick, onThawClick, onDestroyClick, onMoveStorageClick, canMoveStorage = false }: CryovialReviewTableProps) {
+export function CryovialReviewTable({
+  items,
+  loading,
+  isFiltered,
+  tableKey,
+  tableState,
+  onApproveClick,
+  onThawClick,
+  onDestroyClick,
+  onMoveStorageClick,
+  canMoveStorage = false
+}: CryovialReviewTableProps) {
+  const { t } = useTranslation("labConfig");
+  const columns = getColumns(t);
   // Same availability rules as the former inline buttons.
   const rowActions = (c: CryovialItem): RegisterRowAction[] => {
     const actions: RegisterRowAction[] = [];
     const pending = c.approvalStatus === "PendingReview" && !c.isDestroyed;
     if (pending) {
-      actions.push({ label: "Approve batch", onClick: () => onApproveClick(c, true) });
-      actions.push({ label: "Reject batch", danger: true, onClick: () => onApproveClick(c, false) });
+      actions.push({ label: t("cryovials.table.actions.approve"), onClick: () => onApproveClick(c, true) });
+      actions.push({ label: t("cryovials.table.actions.reject"), danger: true, onClick: () => onApproveClick(c, false) });
     } else {
       if (c.approvalStatus === "Approved" && !c.isDestroyed && !isExpired(c.expiryDate) && c.vialsRemaining > 0) {
-        actions.push({ label: "Thaw vial", onClick: () => onThawClick(c) });
+        actions.push({ label: t("cryovials.table.actions.thaw"), onClick: () => onThawClick(c) });
       }
       if (canMoveStorage && c.approvalStatus === "Approved" && !c.isDestroyed) {
-        actions.push({ label: "Change storage location", onClick: () => onMoveStorageClick(c) });
+        actions.push({ label: t("cryovials.table.actions.moveStorage"), onClick: () => onMoveStorageClick(c) });
       }
       if (!c.isDestroyed) {
-        actions.push({ label: "Destroy (decommission batch)", danger: true, onClick: () => onDestroyClick(c) });
+        actions.push({ label: t("cryovials.table.actions.destroy"), danger: true, onClick: () => onDestroyClick(c) });
       }
     }
-    actions.push({ label: "View laboratory report record", onClick: () => window.open(`/cryovials/${c.id}/report`, "_blank", "noopener") });
+    actions.push({ label: t("cryovials.table.actions.viewReport"), onClick: () => window.open(`/cryovials/${c.id}/report`, "_blank", "noopener") });
     return actions;
   };
 
   return (
     <RegisterTable
-      columns={COLUMNS}
+      columns={columns}
       rows={items}
       getRowId={(c) => c.id}
+      tableKey={tableKey}
+      tableState={tableState}
+      toolbar={
+        tableKey && tableState ? (
+          <TableToolbar tableKey={tableKey} tableState={tableState} showSearch={false} />
+        ) : undefined
+      }
       loading={loading}
       rowActions={rowActions}
       rowTone={(c) => {
@@ -155,8 +187,8 @@ export function CryovialReviewTable({ items, loading, isFiltered, onApproveClick
       }}
       empty={
         isFiltered
-          ? { title: "No cryovials matching the filter criteria", description: "Reset the filters to see all batches." }
-          : { title: "No cryovial batches yet", description: "Prepare the first working cryovial batch." }
+          ? { title: t("cryovials.table.emptyFilteredTitle"), description: t("cryovials.table.emptyFilteredDesc") }
+          : { title: t("cryovials.table.emptyTitle"), description: t("cryovials.table.emptyDesc") }
       }
     />
   );

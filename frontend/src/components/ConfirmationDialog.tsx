@@ -1,7 +1,8 @@
-import { useId } from "react";
+import { useId, useRef } from "react";
 import type { ReactNode } from "react";
 import { Box, Dialog, DialogTitle, DialogContent, DialogActions, Button, CircularProgress, Typography } from "@mui/material";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
+import { useTranslation } from "../i18n";
 
 interface ConfirmationDialogProps {
   open: boolean;
@@ -15,6 +16,8 @@ interface ConfirmationDialogProps {
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  // Runs once the dialog has finished closing, so a caller can move focus after the modal has let go of it.
+  onClosed?: () => void;
 }
 
 // The one confirmation dialog for the app. Destructive confirmations put the
@@ -22,15 +25,18 @@ interface ConfirmationDialogProps {
 export function ConfirmationDialog({
   open,
   message,
-  title = "Confirm",
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  title,
+  confirmText,
+  cancelText,
   destructive = false,
   loading = false,
   onConfirm,
-  onCancel
+  onCancel,
+  onClosed
 }: ConfirmationDialogProps) {
+  const { t } = useTranslation();
   const messageId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
   return (
     <Dialog
       open={open}
@@ -39,10 +45,13 @@ export function ConfirmationDialog({
       fullWidth
       aria-describedby={messageId}
       role={destructive ? "alertdialog" : "dialog"}
+      // autoFocus alone can lose to the dialog's own focus handling while it fades in, which left
+      // focus on the container in a real browser. Once the dialog is in place, put it on Cancel.
+      slotProps={{ transition: { onEntered: () => cancelRef.current?.focus(), onExited: onClosed } }}
     >
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         {destructive && <WarningAmberRoundedIcon color="error" aria-hidden />}
-        {title}
+        {title ?? t("dialog.confirmTitle")}
       </DialogTitle>
       <DialogContent>
         {typeof message === "string" ? (
@@ -52,7 +61,7 @@ export function ConfirmationDialog({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel} disabled={loading} autoFocus>{cancelText}</Button>
+        <Button ref={cancelRef} onClick={onCancel} disabled={loading} autoFocus>{cancelText ?? t("actions.cancel")}</Button>
         <Button
           onClick={onConfirm}
           variant="contained"
@@ -60,7 +69,7 @@ export function ConfirmationDialog({
           disabled={loading}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {confirmText}
+          {confirmText ?? t("actions.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

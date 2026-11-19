@@ -16,18 +16,16 @@ public class DashboardController : ControllerBase
     private readonly DashboardService _dashboardService;
     private readonly DashboardNotificationService _notificationService;
     private readonly RecentActivityService _activityService;
-    private readonly MyTasksService _myTasksService;
 
     private readonly DashboardLabScopeService _labScope;
 
-    public DashboardController(DashboardService dashboardService, DashboardNotificationService notificationService, RecentActivityService activityService, MyTasksService myTasksService,
+    public DashboardController(DashboardService dashboardService, DashboardNotificationService notificationService, RecentActivityService activityService,
         DashboardLabScopeService labScope)
     {
         _labScope = labScope;
         _dashboardService = dashboardService;
         _notificationService = notificationService;
         _activityService = activityService;
-        _myTasksService = myTasksService;
     }
 
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
@@ -77,18 +75,6 @@ public class DashboardController : ControllerBase
 
     [HttpGet("recent-activity")]
     public async Task<IActionResult> GetRecentActivity([FromQuery] int take = 25, [FromQuery] string? lab = null) => Ok(ApiResponse<object>.Ok(await _activityService.GetRecentAsync(take, await Scope(lab))));
-
-    // Analyst-only personal task list - not meaningful for lab-wide roles,
-    // so it's rejected server-side rather than just hidden client-side.
-    [HttpGet("my-tasks")]
-    public async Task<IActionResult> GetMyTasks([FromQuery] string? lab = null)
-    {
-        if (CurrentRole != RoleType.Analyst) return Forbid();
-        return Ok(ApiResponse<object>.Ok(await _myTasksService.GetMyTasksAsync(CurrentUserId, await LabScope(lab))));
-    }
-
-    [HttpGet("todays-work")]
-    public async Task<IActionResult> GetTodaysWork([FromQuery] string? lab = null) => Ok(ApiResponse<object>.Ok(await _dashboardService.GetTodaysWorkAsync(CurrentRole, CurrentUserId, await Scope(lab))));
 
     [HttpGet("incubation-overview")]
     public async Task<IActionResult> GetIncubationOverview([FromQuery] bool myIncubationsOnly = false, [FromQuery] string? lab = null) =>

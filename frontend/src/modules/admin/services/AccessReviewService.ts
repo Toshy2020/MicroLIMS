@@ -35,6 +35,9 @@ export interface AccessReviewUserEntry {
   daysSinceLastActivity: number | null;
   statusHistory: AccessReviewStatusChange[];
   sodConflicts: string[];
+  mfaState?: string;
+  signInMethod?: "Local" | "Directory";
+  isEmergencyAccount?: boolean;
 }
 
 export interface AccessReviewSummary {
@@ -73,6 +76,7 @@ export interface AccessReviewListItem {
   signedAt: string | null;
   findingCount: number;
   summary: AccessReviewSummary;
+  canDecide: boolean;
 }
 
 export interface AccessReviewFinding {
@@ -104,6 +108,7 @@ export interface AccessReviewDetail {
   snapshotIntact: boolean;
   snapshot: AccessReviewSnapshot;
   findings: AccessReviewFinding[];
+  canDecide: boolean;
 }
 
 export interface SaveFindingRequest {

@@ -18,8 +18,11 @@ import {
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
-import { formatLabDate, formatLabDateTime } from "../../../utils/formatDate";
+import { formatDateTimeWithTimeZone, formatLabCalendarDate } from "../../../utils/formatDate";
 import type {
   TitrantStandardizationResponse,
   TitrantStandardizationReplicateResponse
@@ -37,6 +40,7 @@ function ReplicatesSubTable({
   replicates: TitrantStandardizationReplicateResponse[];
   isPrimary: boolean;
 }) {
+  const { t } = useTranslation("solutionPreparation");
   const theme = useTheme();
 
   return (
@@ -44,52 +48,52 @@ function ReplicatesSubTable({
       <Table size="small">
         <TableHead sx={tableHeadSx(theme)}>
           <TableRow>
-            <TableCell sx={{ fontWeight: 700, width: 60 }}>Rep #</TableCell>
+            <TableCell sx={{ fontWeight: 700, width: 60 }}>{t("standardizationHistory.subColumns.rep")}</TableCell>
             {isPrimary ? (
               <>
-                <TableCell sx={{ fontWeight: 700 }}>Standard Lot</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Weight (mg)</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Purity (%)</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.standardLot")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.weightMg")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.purityPercent")}</TableCell>
               </>
             ) : (
               <>
-                <TableCell sx={{ fontWeight: 700 }}>Reference Solution</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Ref Volume (mL)</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Ref Factor</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.referenceSolution")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.refVolumeMl")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.refFactor")}</TableCell>
               </>
             )}
-            <TableCell sx={{ fontWeight: 700 }}>Titrant Vol (mL)</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Blank (mL)</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Calculated Factor</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.titrantVolMl")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.blankMl")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.subColumns.calculatedFactor")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {replicates.map((r) => (
             <TableRow key={r.id || r.replicateNo}>
-              <TableCell sx={{ fontWeight: 600 }}>{r.replicateNo}</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}><Ltr>{r.replicateNo}</Ltr></TableCell>
               {isPrimary ? (
                 <>
                   <TableCell sx={{ fontFamily: "monospace" }}>
-                    {r.standardLotBatchNumber || "—"}
+                    {r.standardLotBatchNumber ? <Ltr>{r.standardLotBatchNumber}</Ltr> : "—"}
                   </TableCell>
-                  <TableCell>{r.standardWeightMg != null ? r.standardWeightMg : "—"}</TableCell>
-                  <TableCell>{r.standardPurityPercent != null ? `${r.standardPurityPercent}%` : "100%"}</TableCell>
+                  <TableCell>{r.standardWeightMg != null ? <Ltr>{r.standardWeightMg}</Ltr> : "—"}</TableCell>
+                  <TableCell><Ltr>{t("units.percent", { value: r.standardPurityPercent != null ? r.standardPurityPercent : 100 })}</Ltr></TableCell>
                 </>
               ) : (
                 <>
                   <TableCell sx={{ fontFamily: "monospace" }}>
-                    {r.referencePreparationCode || `Prep #${r.referencePreparationId}`}
+                    <Ltr>{r.referencePreparationCode || t("standardizationHistory.prepFallback", { id: r.referencePreparationId })}</Ltr>
                   </TableCell>
-                  <TableCell>{r.referenceVolumeMl != null ? r.referenceVolumeMl : "—"}</TableCell>
+                  <TableCell>{r.referenceVolumeMl != null ? <Ltr>{r.referenceVolumeMl}</Ltr> : "—"}</TableCell>
                   <TableCell sx={{ fontFamily: "monospace" }}>
-                    {r.referenceFactor != null ? r.referenceFactor.toFixed(4) : "—"}
+                    {r.referenceFactor != null ? <Ltr>{r.referenceFactor.toFixed(4)}</Ltr> : "—"}
                   </TableCell>
                 </>
               )}
-              <TableCell>{r.titrantVolumeMl}</TableCell>
-              <TableCell>{r.blankMl != null ? r.blankMl : "—"}</TableCell>
+              <TableCell><Ltr>{r.titrantVolumeMl}</Ltr></TableCell>
+              <TableCell>{r.blankMl != null ? <Ltr>{r.blankMl}</Ltr> : "—"}</TableCell>
               <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                {r.factor != null ? r.factor.toFixed(4) : "—"}
+                {r.factor != null ? <Ltr>{r.factor.toFixed(4)}</Ltr> : "—"}
               </TableCell>
             </TableRow>
           ))}
@@ -100,12 +104,13 @@ function ReplicatesSubTable({
 }
 
 function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
+  const { t } = useTranslation("solutionPreparation");
   const [open, setOpen] = useState(false);
   const isPrimary = record.mode === "PrimaryStandard";
 
   const validUntilText = (() => {
-    if (record.validUntil) return formatLabDate(record.validUntil);
-    if (record.passed) return "Before each use";
+    if (record.validUntil) return <Ltr>{formatLabCalendarDate(record.validUntil)}</Ltr>;
+    if (record.passed) return t("standardizationHistory.beforeEachUse");
     return "—";
   })();
 
@@ -113,26 +118,26 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
     <>
       <TableRow hover sx={{ "& > *": { borderBottom: "unset" } }}>
         <TableCell sx={{ width: 48, p: 0.5 }}>
-          <IconButton size="small" onClick={() => setOpen(!open)} aria-label="expand row">
+          <IconButton size="small" onClick={() => setOpen(!open)} aria-label={t("standardizationHistory.expandRow")}>
             {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
           </IconButton>
         </TableCell>
-        <TableCell sx={{ fontWeight: 600 }}>{formatLabDateTime(record.standardizedAt)}</TableCell>
+        <TableCell sx={{ fontWeight: 600 }}><Ltr>{formatDateTimeWithTimeZone(record.standardizedAt)}</Ltr></TableCell>
         <TableCell>{record.standardizedByUserName || "—"}</TableCell>
         <TableCell>
           <Typography variant="body2" sx={{ fontSize: 13 }}>
-            {isPrimary ? "Primary Standard" : "Against Reference VS"}
+            {isPrimary ? t("standardizationHistory.modePrimary") : t("standardizationHistory.modeReference")}
           </Typography>
         </TableCell>
         <TableCell sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-          {record.meanFactor.toFixed(4)}
+          <Ltr>{record.meanFactor.toFixed(4)}</Ltr>
         </TableCell>
         <TableCell>
-          {record.rsdPercent != null ? `${record.rsdPercent.toFixed(2)}%` : "—"}
+          {record.rsdPercent != null ? <Ltr>{t("units.percent", { value: record.rsdPercent.toFixed(2) })}</Ltr> : "—"}
         </TableCell>
         <TableCell>
           <Chip
-            label={record.passed ? "Passed" : "Failed"}
+            label={record.passed ? t("standardizationHistory.passed") : t("standardizationHistory.failed")}
             color={record.passed ? "success" : "error"}
             size="small"
             variant="outlined"
@@ -140,7 +145,7 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
           />
         </TableCell>
         <TableCell>{validUntilText}</TableCell>
-        <TableCell>{record.temperatureC != null ? record.temperatureC : "—"}</TableCell>
+        <TableCell>{record.temperatureC != null ? <Ltr>{record.temperatureC}</Ltr> : "—"}</TableCell>
       </TableRow>
 
       <TableRow>
@@ -150,7 +155,7 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
               {!record.passed && record.failureReasons && (
                 <Alert severity="error" sx={{ mb: 1.5 }}>
                   <Typography variant="caption" sx={{ fontWeight: 700, display: "block" }}>
-                    Failure Reasons:
+                    {t("standardizationHistory.failureReasons")}
                   </Typography>
                   <Typography variant="body2" sx={{ whiteSpace: "pre-line" }}>
                     {record.failureReasons}
@@ -158,7 +163,12 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
                 </Alert>
               )}
               <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", mb: 1, display: "block" }}>
-                Replicate Titrations ({record.replicates.length})
+                <Trans
+                  i18nKey="standardizationHistory.replicateTitrations"
+                  ns="solutionPreparation"
+                  values={{ count: record.replicates.length }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
               </Typography>
               <Paper variant="outlined">
                 <ReplicatesSubTable replicates={record.replicates} isPrimary={isPrimary} />
@@ -172,6 +182,7 @@ function HistoryRow({ record }: { record: TitrantStandardizationResponse }) {
 }
 
 export function StandardizationHistoryTable({ standardizations, loading }: Props) {
+  const { t } = useTranslation("solutionPreparation");
   const theme = useTheme();
 
   if (loading) {
@@ -185,7 +196,7 @@ export function StandardizationHistoryTable({ standardizations, loading }: Props
   if (standardizations.length === 0) {
     return (
       <Typography variant="body2" sx={{ color: "text.secondary", py: 2, textAlign: "center" }}>
-        No standardization history recorded yet.
+        {t("standardizationHistory.empty")}
       </Typography>
     );
   }
@@ -196,14 +207,14 @@ export function StandardizationHistoryTable({ standardizations, loading }: Props
         <TableHead sx={tableHeadSx(theme)}>
           <TableRow>
             <TableCell sx={{ width: 48 }} />
-            <TableCell sx={{ fontWeight: 700 }}>Date & Time</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Analyst</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Mode</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Mean Factor</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>RSD (%)</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Valid Until</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Temp (°C)</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.dateTime")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.analyst")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.mode")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.meanFactor")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.rsd")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.status")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.validUntil")}</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>{t("standardizationHistory.columns.temp")}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>

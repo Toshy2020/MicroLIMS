@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import { RecordChangedBanner } from "../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../hooks/useRecordChanged";
 import {
   Box,
   Button,
@@ -29,9 +31,18 @@ import { AuditHistoryDialog } from "../../components/AuditHistoryDialog";
 import { useAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
+import { getTable } from "../../components/lab/table/tableRegistry";
+import { decodeState, encodeState, isOwnedParam, type TableState } from "../../components/lab/table/tableUrlCodec";
+import { useRowSelection } from "../../components/lab/table/useRowSelection";
+import { useTableState } from "../../components/lab/table/useTableState";
+import type { BulkAction } from "../../components/lab/table/BulkActionBar";
+import { clientSettingsService } from "../../services/clientSettingsService";
+import { fetchAllPages } from "../../services/fetchAllPages";
+import type { LabelTarget } from "../../services/labelService";
+import { getErrorMessage, serverMessage } from "../../utils/errorMessage";
 
 // Receiving Components & Dialogs
-import { SampleRecord, SampleCategoryKey, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
+import { CreatedSampleRef, SampleRecord, SampleCategoryKey, TestOrderSummary as ReceivingTestOrderSummary } from "../receiving/types/receivingTypes";
 import { ReceiveService, TestingWorkspaceFilter, WorkspaceTileCounts } from "../receiving/services/ReceiveService";
 import {
   SampleStatusKpiCards,
@@ -40,10 +51,15 @@ import {
 } from "../receiving/components/SampleStatusKpiCards";
 import { SelectionSummaryBar } from "../receiving/components/SelectionSummaryBar";
 import { SampleFilterBar } from "../receiving/components/SampleFilterBar";
-import { SampleRegisterTable } from "../receiving/components/SampleRegisterTable";
+import { SampleRegisterTable, WORKSPACE_REGISTER_DEFAULTS, sampleExportColumns } from "../receiving/components/SampleRegisterTable";
+import { exportRegisterRows } from "../../components/lab/table/exportRows";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../components/Ltr";
+import { i18n, useTranslation } from "../../i18n";
 import { NewSampleDialog } from "../receiving/dialogs/NewSampleDialog";
 import { EditSampleDetailsDialog } from "../receiving/dialogs/EditSampleDetailsDialog";
 import { AssignAnalystDialog } from "../receiving/dialogs/AssignAnalystDialog";
+import { BulkAssignDialog, bulkAssignAction } from "../receiving/dialogs/BulkAssignDialog";
 import { assignedAnalystNames } from "../receiving/utils/assignedAnalysts";
 
 // Testing Workspace Components & Dialogs
@@ -57,51 +73,21 @@ import { TestWorkflowDialogRouter } from "../testingWorkspace/FloatingDialogs";
 import { SampleSummaryDialog } from "../testingWorkspace/SampleSummaryDialog";
 import { PreparationDialog } from "../testPreparation/PreparationDialog";
 import { VoidSampleConfirmationDialog } from "../receiving/dialogs/VoidSampleConfirmationDialog";
+import { PrintLabelsDialog } from "../../components/labels/PrintLabelsDialog";
+import { usePostCreateLabelPrint } from "../../components/labels/usePostCreateLabelPrint";
 import { toast } from "sonner";
+import { useTrackRecent } from "../navigation/useTrackRecent";
+import {
+  LEGACY_FILTER_PARAMS,
+  WORKSPACE_SERVER_SORTABLE_COLUMNS,
+  isWhitelistedWorkload,
+  legacyDisplayMode,
+  readLegacyWorkspaceLink
+} from "./workspaceTableState";
+
+const MAX_BULK_ASSIGN = 200;
 
 export type WorkspaceDisplayView = "table" | "card" | "kanban";
-
-// Workload filters a URL may set via ?workload= - the tile keys plus the
-// deep-link-only ones dashboards link to (no tile of their own).
-const WHITELISTED_WORKLOADS: readonly AllWorkloadFilterKey[] = [
-  "needsPreparation",
-  "readyToRead",
-  "awaitingReview",
-  "overdue",
-  "mine",
-  "unassigned",
-  "retestInProgress",
-  "reviewOverdue",
-  "approvalOverdue"
-];
-
-function isWhitelistedWorkload(key: string | null): key is AllWorkloadFilterKey {
-  return key !== null && (WHITELISTED_WORKLOADS as readonly string[]).includes(key);
-}
-
-function exportSamplesToCsv(samples: SampleRecord[]) {
-  const headers = ["Sample ID", "Reference", "Item / Display Name", "Category", "Batch No", "Control No", "Cause of Testing", "Sampled By", "Received At", "Status"];
-  const rows = samples.map((s) => [
-    s.sampleId,
-    s.referenceNumber,
-    s.displayName,
-    s.category,
-    s.batchNumber ?? "",
-    s.controlNumber,
-    s.causeOfTesting,
-    s.sampledBy ?? "",
-    new Date(s.receivedAt).toLocaleString(),
-    s.status
-  ]);
-  const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `receiving-testing-workspace-${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
 
 export interface WorkspaceLab {
   sectionId: number;
@@ -135,36 +121,210 @@ interface Props {
 // nothing selected and no explanation. Both lookups below can fail for the
 // same sample, so the toast id keeps it to one message.
 function notifySampleLoadFailed(sampleId: number) {
-  toast.error(`Sample #${sampleId} could not be opened. It may not belong to this laboratory, or the server could not be reached.`, {
+  toast.error(i18n.t("workspace.sampleOpenFailed", { ns: "receiving", sampleId }), {
     id: `workspace-sample-${sampleId}`
   });
+}
+
+type WorkspaceDeepLinkOpen = "step" | "incubation" | "review" | "approval" | "assign";
+
+function isWorkspaceDeepLinkOpen(value: string): value is WorkspaceDeepLinkOpen {
+  return (
+    value === "step" ||
+    value === "incubation" ||
+    value === "review" ||
+    value === "approval" ||
+    value === "assign"
+  );
+}
+
+const CLOSED_SAMPLE_STATUSES = new Set(["Approved", "Rejected", "Voided", "Cancelled"]);
+const POST_STEP_TEST_STATUSES = new Set([
+  "UnderReview",
+  "Reviewed",
+  "Approved",
+  "Rejected",
+  "Voided",
+  "Cancelled",
+  "Superseded",
+  "OnHold",
+  "Completed"
+]);
+const POST_STEP_WORKFLOW_STATES = new Set([
+  "APPROVED",
+  "REVIEWED",
+  "RESULTS_RECORDED",
+  "REJECTED",
+  "VOIDED",
+  "CANCELLED",
+  "SUPERSEDED",
+  "ON_HOLD"
+]);
+
+type DeepLinkEvaluation =
+  | { eligible: true; action: WorkspaceDeepLinkOpen; test?: ReceivingTestOrderSummary }
+  | { eligible: false; reason: string };
+
+function isTestPastStep(test: ReceivingTestOrderSummary): boolean {
+  if (POST_STEP_TEST_STATUSES.has(test.status)) return true;
+  if (test.workflowStatus && POST_STEP_TEST_STATUSES.has(test.workflowStatus)) return true;
+  if (test.workflowState && POST_STEP_WORKFLOW_STATES.has(test.workflowState)) return true;
+  return false;
+}
+
+function evaluateWorkspaceDeepLinkOpen(
+  action: WorkspaceDeepLinkOpen,
+  sample: SampleRecord,
+  testOrderId: number | null,
+  permissions: string[],
+  t: (key: string) => string
+): DeepLinkEvaluation {
+  if (action === "step" || action === "incubation") {
+    const foundTest = testOrderId
+      ? sample.assignedTests?.find((test) => test.testOrderId === testOrderId)
+      : undefined;
+    if (!foundTest) {
+      return { eligible: false, reason: t("workspace.deepLink.testOrderNotFound") };
+    }
+    if (CLOSED_SAMPLE_STATUSES.has(sample.status) || isTestPastStep(foundTest)) {
+      return {
+        eligible: false,
+        reason:
+          action === "incubation"
+            ? t("workspace.deepLink.notWaitingIncubation")
+            : t("workspace.deepLink.notWaitingStep")
+      };
+    }
+    if (
+      action === "incubation" &&
+      foundTest.status === "Pending" &&
+      (!foundTest.workflowStatus || foundTest.workflowStatus === "Pending")
+    ) {
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingIncubation") };
+    }
+    if (sample.preparationStatus === "NeedsPreparation" && !foundTest.skipsPreparation) {
+      return {
+        eligible: false,
+        reason:
+          action === "incubation"
+            ? t("workspace.deepLink.prepBeforeIncubation")
+            : t("workspace.deepLink.prepBeforeStep")
+      };
+    }
+    return { eligible: true, action, test: foundTest };
+  }
+
+  if (action === "review") {
+    if (!permissions.includes(PERMISSIONS.SAMPLES_REVIEW)) {
+      return { eligible: false, reason: t("workspace.deepLink.noReviewPermission") };
+    }
+    if (sample.status !== "UnderReview") {
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingReview") };
+    }
+    return { eligible: true, action };
+  }
+
+  if (action === "approval") {
+    if (!permissions.includes(PERMISSIONS.SAMPLES_APPROVE)) {
+      return { eligible: false, reason: t("workspace.deepLink.noApprovePermission") };
+    }
+    if (sample.status !== "UnderApproval") {
+      return { eligible: false, reason: t("workspace.deepLink.notWaitingApproval") };
+    }
+    return { eligible: true, action };
+  }
+
+  if (!permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)) {
+    return { eligible: false, reason: t("workspace.deepLink.noAssignPermission") };
+  }
+  if (CLOSED_SAMPLE_STATUSES.has(sample.status)) {
+    return { eligible: false, reason: t("workspace.deepLink.cannotAssignClosed") };
+  }
+  if (testOrderId) {
+    const foundTest = sample.assignedTests?.find((test) => test.testOrderId === testOrderId);
+    if (foundTest && CLOSED_SAMPLE_STATUSES.has(foundTest.status)) {
+      return { eligible: false, reason: t("workspace.deepLink.testClosedCannotAssign") };
+    }
+  }
+  return { eligible: true, action };
 }
 
 export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const theme = useTheme();
   const { permissions } = useAuth();
-  const [searchParams] = useSearchParams();
+  const { t } = useTranslation("receiving");
+  const { t: tCommon } = useTranslation("common");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Core Data State
+  const tableKey = lab.code === "MICRO" ? "samples.workspace.micro" : "samples.workspace.fp";
+  const tableState = useTableState(tableKey, WORKSPACE_REGISTER_DEFAULTS);
   const [records, setRecords] = useState<SampleRecord[] | null>(null);
   const [totalCount, setTotalCount] = useState(0);
-  const [page, setPage] = useState(() => {
-    const p = searchParams.get("page");
-    return p ? Math.max(1, parseInt(p, 10)) : 1;
-  });
-  const [pageSize, setPageSize] = useState(() => {
-    const ps = searchParams.get("pageSize");
-    return ps ? Math.min(200, Math.max(1, parseInt(ps, 10))) : 50;
-  });
   const [workloadCounts, setWorkloadCounts] = useState<WorkspaceTileCounts | null>(null);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState<{ text: string; severity: "success" | "error" | "info" | "warning" } | null>(null);
+  const [notification, setNotification] = useState<{ text: ReactNode; severity: "success" | "error" | "info" | "warning" } | null>(null);
+
+  // The address holds the filters, sort and page. Links that still use the
+  // old parameters are rewritten once, before the first list request, so the
+  // list is never fetched with the wrong filters.
+  const [legacyReady, setLegacyReady] = useState(() => readLegacyWorkspaceLink(searchParams) === null && legacyDisplayMode(searchParams) === null);
+  const legacyHandledRef = useRef(false);
+  useEffect(() => {
+    if (legacyHandledRef.current) return;
+    legacyHandledRef.current = true;
+    const legacy = readLegacyWorkspaceLink(searchParams);
+    if (legacy || legacyDisplayMode(searchParams) !== null) {
+      const def = getTable(tableKey);
+      const legacyKeys: readonly string[] = LEGACY_FILTER_PARAMS;
+      setSearchParams(
+        (prev) => {
+          const decoded = decodeState(def, prev);
+          const nextState: TableState = {
+            filters: { ...(decoded.state.filters ?? {}), ...(legacy?.filters ?? {}) },
+            search: legacy?.search ?? decoded.state.search ?? "",
+            sort: decoded.state.sort ?? null,
+            pageSize: legacy?.pageSize ?? decoded.state.pageSize ?? 50,
+            columns: [],
+            density: "compact"
+          };
+          const next = new URLSearchParams();
+          prev.forEach((value, key) => {
+            if (!isOwnedParam(key) && !legacyKeys.includes(key)) next.append(key, value);
+          });
+          encodeState(def, nextState, decoded.page, decoded.viewId, { defaults: WORKSPACE_REGISTER_DEFAULTS }).forEach((value, key) => {
+            next.append(key, value);
+          });
+          return next;
+        },
+        { replace: true }
+      );
+    }
+    setLegacyReady(true);
+  }, [searchParams, setSearchParams, tableKey]);
+
+  // Filter, search, page and page size come from the table state.
+  const filterValue = (name: string): string => {
+    const v = tableState.state.filters[name];
+    return typeof v === "string" ? v : "";
+  };
+  const page = tableState.page;
+  const pageSize = tableState.state.pageSize === "all" ? 100 : tableState.state.pageSize;
+  const debouncedSearch = tableState.state.search;
+  const categoryFilter = filterValue("category") || "ALL";
+  const sampleStatusFilter = filterValue("sampleStatus") || "ALL";
+  const testStatusFilter = filterValue("testStatus") || "ALL";
+  const analystIdValue = Number(filterValue("analystId"));
+  const analystIdFilter: number | null = filterValue("analystId") && !Number.isNaN(analystIdValue) ? analystIdValue : null;
+  const urgencyFilter = filterValue("urgency");
+  const fromDate = filterValue("fromDate");
+  const toDate = filterValue("toDate");
+  const workloadValue = filterValue("workload");
+  const workloadFilter: AllWorkloadFilterKey | null = isWhitelistedWorkload(workloadValue) ? workloadValue : null;
+  const setFilter = tableState.setFilter;
 
   // Display View State
-  const [viewMode, setViewMode] = useState<WorkspaceDisplayView>(() => {
-    const v = searchParams.get("view");
-    return v === "table" || v === "card" || v === "kanban" ? v : "table";
-  });
+  const [viewMode, setViewMode] = useState<WorkspaceDisplayView>(() => legacyDisplayMode(searchParams) ?? "table");
 
   // Selection for Master-Detail Split Pane
   const [selectedSampleId, setSelectedSampleId] = useState<number | null>(() => {
@@ -173,119 +333,139 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   });
   const [extraSelectedSample, setExtraSelectedSample] = useState<SampleRecord | null>(null);
 
-  // Multi-select Sample Checkboxes for Grouped Actions
-  const [checkedSampleIds, setCheckedSampleIds] = useState<Set<number>>(() => {
-    const paramSampleIds = searchParams.get("sampleIds");
-    if (paramSampleIds) {
-      const ids = paramSampleIds.split(",").map(Number).filter((id) => !isNaN(id) && id > 0);
-      if (ids.length >= 2) return new Set(ids);
-    }
-    return new Set();
-  });
+  // Multi-select Sample Checkboxes for Grouped Actions. Selection survives page and sort
+  // changes. When the applied filters or search change, "all that match" is cleared (its
+  // meaning changed), while samples ticked one by one stay ticked and are reported as hidden.
+  const selectionResetKey = useMemo(
+    () =>
+      JSON.stringify({
+        sectionId: lab.sectionId,
+        area: lab.area,
+        search: debouncedSearch,
+        category: categoryFilter,
+        sampleStatus: sampleStatusFilter,
+        testStatus: testStatusFilter,
+        analystId: analystIdFilter,
+        urgency: urgencyFilter,
+        fromDate,
+        toDate,
+        workloadFilter
+      }),
+    [
+      lab.sectionId,
+      lab.area,
+      debouncedSearch,
+      categoryFilter,
+      sampleStatusFilter,
+      testStatusFilter,
+      analystIdFilter,
+      urgencyFilter,
+      fromDate,
+      toDate,
+      workloadFilter
+    ]
+  );
+  const selection = useRowSelection<number>(selectionResetKey, { keepPicksOnReset: true });
+  const checkedSampleIds = selection.selected;
   const checkedSamplesCache = useRef<Map<number, SampleRecord>>(new Map());
+  const requestedCheckedRef = useRef<Set<number>>(new Set());
 
   // Reveals every checked sample regardless of the active filters, so nobody
   // signs a grouped action over a set they cannot see in full.
   const [showSelectedOnly, setShowSelectedOnly] = useState(false);
 
+  // Whatever way the selection is emptied (Deselect All, Clear, a finished
+  // bulk assignment), the selected-only view ends with it.
+  useEffect(() => {
+    if (checkedSampleIds.size === 0 && !selection.allMatching && showSelectedOnly) {
+      setShowSelectedOnly(false);
+    }
+  }, [checkedSampleIds, selection.allMatching, showSelectedOnly]);
+
+  // Keeps the full sample of every checked row, even after a filter or page
+  // change takes it off the list, and drops the ones no longer checked.
+  useEffect(() => {
+    const cache = checkedSamplesCache.current;
+    for (const id of [...cache.keys()]) {
+      if (!checkedSampleIds.has(id)) cache.delete(id);
+    }
+    for (const id of [...requestedCheckedRef.current]) {
+      if (!checkedSampleIds.has(id)) requestedCheckedRef.current.delete(id);
+    }
+    for (const id of checkedSampleIds) {
+      if (cache.has(id)) continue;
+      const known = records?.find((r) => r.sampleId === id) ||
+        (extraSelectedSample?.sampleId === id ? extraSelectedSample : null);
+      if (known) {
+        cache.set(id, known);
+      } else if (!requestedCheckedRef.current.has(id)) {
+        requestedCheckedRef.current.add(id);
+        ReceiveService.getSample(id, lab.sectionId, lab.area).then((fetched) => {
+          if (fetched) cache.set(id, fetched);
+        // Cache warm-up only; the selection itself is already recorded.
+        }).catch(() => {});
+      }
+    }
+  }, [checkedSampleIds, records, extraSelectedSample, lab.sectionId, lab.area]);
+
+  // A compact-register checkbox (the grouped-actions layout) ticks or unticks one sample.
   const handleToggleCheckSample = (sampleId: number, checked: boolean) => {
-    setCheckedSampleIds((prev) => {
-      const next = new Set(prev);
-      if (checked) {
-        next.add(sampleId);
-        const s = records?.find((r) => r.sampleId === sampleId) ||
-          (extraSelectedSample?.sampleId === sampleId ? extraSelectedSample : null);
-        if (s) {
-          checkedSamplesCache.current.set(sampleId, s);
-        } else {
-          ReceiveService.getSample(sampleId, lab.sectionId, lab.area).then((fetched) => {
-            if (fetched) checkedSamplesCache.current.set(sampleId, fetched);
-          // Cache warm-up only; the selection itself is already recorded.
-          }).catch(() => {});
-        }
-      } else {
-        next.delete(sampleId);
-        checkedSamplesCache.current.delete(sampleId);
-      }
-      return next;
-    });
+    if (checked !== selection.selected.has(sampleId)) selection.toggle(sampleId);
   };
 
-  // Select/deselect every row the register is currently showing on this page.
-  const handleToggleCheckMany = (sampleIds: number[], checked: boolean) => {
-    setCheckedSampleIds((prev) => {
-      const next = new Set(prev);
-      for (const id of sampleIds) {
-        if (checked) {
-          next.add(id);
-          const s = records?.find((r) => r.sampleId === id) ||
-            (extraSelectedSample?.sampleId === id ? extraSelectedSample : null);
-          if (s) checkedSamplesCache.current.set(id, s);
-        } else {
-          next.delete(id);
-          checkedSamplesCache.current.delete(id);
-        }
-      }
-      return next;
-    });
-  };
+  // Selects exactly these samples (the ?sampleIds= link).
+  const { clear: clearSelection, togglePage: toggleSelectionPage } = selection;
+  const selectExactly = useCallback((ids: number[]) => {
+    clearSelection();
+    toggleSelectionPage(ids);
+  }, [clearSelection, toggleSelectionPage]);
 
-  const handleDeselectAllChecked = () => {
-    setCheckedSampleIds(new Set());
-    checkedSamplesCache.current.clear();
-    setShowSelectedOnly(false);
-  };
-
-  // Filter State initialized from URL query params
-  const [workloadFilter, setWorkloadFilter] = useState<AllWorkloadFilterKey | null>(() => {
-    const status = searchParams.get("status");
-    if (status === "Active") return null;
-    const scope = searchParams.get("scope");
-    if (scope === "mine") return "mine";
-    const workload = searchParams.get("workload");
-    if (isWhitelistedWorkload(workload)) return workload;
-    return null;
-  });
-
-  const [search, setSearch] = useState(() => searchParams.get("search") || "");
-  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get("search") || "");
-  const [categoryFilter, setCategoryFilter] = useState(() => searchParams.get("category") || "ALL");
-  const [sampleStatusFilter, setSampleStatusFilter] = useState(() => {
-    const status = searchParams.get("status");
-    if (status && status !== "Active") return status;
-    return searchParams.get("sampleStatus") || "ALL";
-  });
-  const [testStatusFilter, setTestStatusFilter] = useState(() => searchParams.get("testStatus") || "ALL");
-  const [analystIdFilter, setAnalystIdFilter] = useState<number | null>(() => {
-    const a = searchParams.get("analystId");
-    return a ? Number(a) : null;
-  });
-  const [urgencyFilter, setUrgencyFilter] = useState<string>(() => searchParams.get("urgency") || "");
-  const [fromDate, setFromDate] = useState(() => searchParams.get("fromDate") || "");
-  const [toDate, setToDate] = useState(() => searchParams.get("toDate") || "");
-
-  // Debounce search input by 300 ms while keeping input responsive
+  // The search box keeps what is typed; the table state (and the address) get it 300 ms after typing stops.
+  const [search, setSearch] = useState(debouncedSearch);
+  useEffect(() => {
+    setSearch(debouncedSearch);
+  }, [debouncedSearch]);
+  const setTableSearch = tableState.setSearch;
   useEffect(() => {
     if (search === debouncedSearch) return;
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-      setPage(1);
-    }, 300);
+    const timer = setTimeout(() => setTableSearch(search), 300);
     return () => clearTimeout(timer);
-  }, [search, debouncedSearch]);
+  }, [search, debouncedSearch, setTableSearch]);
 
   // Dialogs State
   const [newSampleDialogOpen, setNewSampleDialogOpen] = useState(false);
   const [editSample, setEditSample] = useState<SampleRecord | null>(null);
   const [assigningSample, setAssigningSample] = useState<SampleRecord | null>(null);
+  const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+  const [bulkAssignIds, setBulkAssignIds] = useState<number[]>([]);
+  const [labelTargets, setLabelTargets] = useState<LabelTarget[]>([]);
+  const [labelsDialogOpen, setLabelsDialogOpen] = useState(false);
+  const [labelsEnabled, setLabelsEnabled] = useState(false);
   const [summarySampleId, setSummarySampleId] = useState<number | null>(null);
   const [activeTest, setActiveTest] = useState<WorkspaceTestOrderSummary | null>(null);
   const [activeSampleForTest, setActiveSampleForTest] = useState<WorkspaceSampleCard | null>(null);
   const [preparingSample, setPreparingSample] = useState<SampleRecord | null>(null);
   const [auditSampleId, setAuditSampleId] = useState<number | null>(null);
   const [voidingSample, setVoidingSample] = useState<SampleRecord | null>(null);
+  const postCreatePrint = usePostCreateLabelPrint();
 
   const processedDeepLinkKeyRef = useRef<string | null>(null);
+  const processedOpenKeyRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const activeSort =
+    tableState.state.sort && WORKSPACE_SERVER_SORTABLE_COLUMNS.has(tableState.state.sort.key)
+      ? tableState.state.sort
+      : null;
+  const sortBy = activeSort?.key;
+  const sortDir = activeSort?.direction;
 
   const filterRef = useRef<TestingWorkspaceFilter>({});
   filterRef.current = {
@@ -301,7 +481,8 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     toDate,
     workloadFilter,
     labSectionId: lab.sectionId,
-    area: lab.area
+    area: lab.area,
+    ...(sortBy && sortDir ? { sortBy, sortDir } : {})
   };
 
   // The workload tile counts don't depend on the filters or page, so filter
@@ -326,9 +507,9 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           setExtraSelectedSample(matching);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setNotification({
-        text: err?.response?.data?.message || "Failed to load laboratory sample records.",
+        text: serverMessage(err) || t("workspace.loadFailed"),
         severity: "error"
       });
     } finally {
@@ -338,8 +519,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
 
   // Re-fetch whenever page, pageSize, or any filter changes
   useEffect(() => {
+    if (!legacyReady) return;
     loadRecords(false, workloadCounts === null);
   }, [
+    legacyReady,
     page,
     pageSize,
     debouncedSearch,
@@ -350,53 +533,147 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     analystIdFilter,
     urgencyFilter,
     fromDate,
-    toDate
+    toDate,
+    sortBy,
+    sortDir
   ]);
+
+  const handleTestClick = useCallback((test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
+    setActiveTest(test as unknown as WorkspaceTestOrderSummary);
+    setActiveSampleForTest(sample as unknown as WorkspaceSampleCard);
+  }, []);
+
+  const handleViewSummary = useCallback((sample: SampleRecord | WorkspaceSampleCard) => {
+    setSummarySampleId(sample.sampleId);
+  }, []);
+
+  const handleAssignAnalyst = useCallback((sample: SampleRecord) => {
+    setAssigningSample(sample);
+  }, []);
+
+  const clearOpenParams = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.has("open") && !prev.has("incubationId") && !prev.has("testOrderId")) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete("open");
+        next.delete("incubationId");
+        next.delete("testOrderId");
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const applyWorkspaceOpenAction = useCallback((
+    action: WorkspaceDeepLinkOpen,
+    sample: SampleRecord,
+    testOrderId: number | null
+  ) => {
+    const result = evaluateWorkspaceDeepLinkOpen(action, sample, testOrderId, permissions, t);
+    if (!result.eligible) {
+      setNotification({ text: result.reason, severity: "warning" });
+      return;
+    }
+
+    if (result.action === "step" || result.action === "incubation") {
+      if (result.test) {
+        handleTestClick(result.test, sample);
+      }
+      return;
+    }
+
+    if (result.action === "review" || result.action === "approval") {
+      handleViewSummary(sample);
+      return;
+    }
+
+    handleAssignAnalyst(sample);
+  }, [permissions, t, handleTestClick, handleViewSummary, handleAssignAnalyst]);
 
   // Deep-Link URL Parameter Processing (Strict Backward Compatibility)
   useEffect(() => {
     const paramSampleId = searchParams.get("sampleId");
     const paramTestOrderId = searchParams.get("testOrderId");
     const paramOpenSummary = searchParams.get("openSummary");
-    const paramStatus = searchParams.get("status");
-    const paramTestStatus = searchParams.get("testStatus");
-    const paramAnalystId = searchParams.get("analystId");
-    const paramUrgency = searchParams.get("urgency");
-    const paramScope = searchParams.get("scope");
-    const paramView = searchParams.get("view");
-    const paramSearch = searchParams.get("search");
+    const paramOpen = searchParams.get("open");
+    const paramIncubationId = searchParams.get("incubationId");
 
-    if (paramStatus) {
-      if (paramStatus === "Active") {
-        setWorkloadFilter(null);
-        setSampleStatusFilter("ALL");
-      } else {
-        setSampleStatusFilter(paramStatus);
-      }
-    }
-    if (paramTestStatus) setTestStatusFilter(paramTestStatus);
-    if (paramAnalystId) setAnalystIdFilter(Number(paramAnalystId));
-    if (paramUrgency) setUrgencyFilter(paramUrgency);
-    const paramWorkload = searchParams.get("workload");
-    if (paramScope === "mine") {
-      setWorkloadFilter("mine");
-    } else if (isWhitelistedWorkload(paramWorkload)) {
-      setWorkloadFilter(paramWorkload);
-    }
-    if (paramView === "table" || paramView === "card" || paramView === "kanban") setViewMode(paramView);
-    if (paramSearch && paramSearch !== search) {
-      setSearch(paramSearch);
-      setDebouncedSearch(paramSearch);
-    }
-
+    const sId = paramSampleId ? Number(paramSampleId) : null;
+    const tId = paramTestOrderId ? Number(paramTestOrderId) : null;
     const currentDeepLinkKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpenSummary ?? ""}`;
+    const clearedDeepLinkKey = `${paramSampleId ?? ""}::${paramOpenSummary ?? ""}`;
+
+    if (paramOpen !== null) {
+      if (!isWorkspaceDeepLinkOpen(paramOpen)) {
+        processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+        if (sId) setSelectedSampleId(sId);
+        clearOpenParams();
+        return;
+      }
+
+      const openKey = `${paramSampleId ?? ""}:${paramTestOrderId ?? ""}:${paramOpen}:${paramIncubationId ?? ""}`;
+      if (processedOpenKeyRef.current !== openKey) {
+        if (!sId) {
+          if (tId && records === null) {
+            return;
+          }
+          processedOpenKeyRef.current = openKey;
+          processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+          const byTest = tId
+            ? records?.find((sample) => sample.assignedTests?.some((t) => t.testOrderId === tId))
+            : undefined;
+          if (byTest) {
+            setSelectedSampleId(byTest.sampleId);
+            setExtraSelectedSample(byTest);
+            applyWorkspaceOpenAction(paramOpen, byTest, tId);
+          } else {
+            setNotification({ text: t("workspace.sampleNotFound"), severity: "warning" });
+          }
+          clearOpenParams();
+          return;
+        }
+
+        processedOpenKeyRef.current = openKey;
+        processedDeepLinkKeyRef.current = clearedDeepLinkKey;
+        setSelectedSampleId(sId);
+
+        const foundInRecords = records?.find((s) => s.sampleId === sId);
+        const resolvedSample =
+          foundInRecords ?? (extraSelectedSample?.sampleId === sId ? extraSelectedSample : null);
+
+        if (resolvedSample) {
+          setExtraSelectedSample(resolvedSample);
+          applyWorkspaceOpenAction(paramOpen, resolvedSample, tId);
+          clearOpenParams();
+        } else {
+          ReceiveService.getSample(sId, lab.sectionId, lab.area)
+            .then((fetched) => {
+              if (!mountedRef.current) return;
+              if (fetched) {
+                setExtraSelectedSample(fetched);
+                applyWorkspaceOpenAction(paramOpen, fetched, tId);
+              } else {
+                notifySampleLoadFailed(sId);
+              }
+              clearOpenParams();
+            })
+            .catch(() => {
+              if (!mountedRef.current) return;
+              notifySampleLoadFailed(sId);
+              clearOpenParams();
+            });
+        }
+      }
+      return;
+    }
+
+    processedOpenKeyRef.current = null;
+
     if (processedDeepLinkKeyRef.current === currentDeepLinkKey) {
       return;
     }
     processedDeepLinkKeyRef.current = currentDeepLinkKey;
-
-    const sId = paramSampleId ? Number(paramSampleId) : null;
-    const tId = paramTestOrderId ? Number(paramTestOrderId) : null;
 
     if (sId) {
       setSelectedSampleId(sId);
@@ -444,20 +721,19 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     if (paramSampleIds) {
       const ids = paramSampleIds.split(",").map(Number).filter((id) => !isNaN(id) && id > 0);
       if (ids.length >= 2) {
-        setCheckedSampleIds(new Set(ids));
-        ids.forEach(async (id) => {
-          if (!checkedSamplesCache.current.has(id)) {
-            try {
-              const s = await ReceiveService.getSample(id, lab.sectionId, lab.area);
-              if (s) checkedSamplesCache.current.set(id, s);
-            } catch {
-              // ignore
-            }
-          }
-        });
+        selectExactly(ids);
       }
     }
-  }, [records, searchParams, search, lab.sectionId, lab.area]);
+  }, [
+    records,
+    extraSelectedSample,
+    searchParams,
+    lab.sectionId,
+    lab.area,
+    clearOpenParams,
+    applyWorkspaceOpenAction,
+    selectExactly
+  ]);
 
   // Ensure selectedSampleId always resolves to a full sample even if not on page 1
   useEffect(() => {
@@ -475,48 +751,37 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
 
   // Workload tiles are a toggle: clicking the active one clears it.
   const handleSelectWorkload = (key: WorkloadFilterKey) => {
-    setWorkloadFilter((prev) => (prev === key ? null : key));
-    setPage(1);
+    setFilter("workload", workloadFilter === key ? null : key);
   };
 
   const handleCategoryFilterChange = (cat: string) => {
-    setCategoryFilter(cat);
-    setPage(1);
+    setFilter("category", cat === "ALL" ? null : cat);
   };
 
   const handleSampleStatusFilterChange = (status: string) => {
-    setSampleStatusFilter(status);
-    setPage(1);
+    setFilter("sampleStatus", status === "ALL" ? null : status);
   };
 
   const handleTestStatusFilterChange = (ts: string) => {
-    setTestStatusFilter(ts);
-    setPage(1);
+    setFilter("testStatus", ts === "ALL" ? null : ts);
   };
 
   const handleFromDateChange = (from: string) => {
-    setFromDate(from);
-    setPage(1);
+    setFilter("fromDate", from || null);
   };
 
   const handleToDateChange = (to: string) => {
-    setToDate(to);
-    setPage(1);
+    setFilter("toDate", to || null);
   };
 
+  const applyTableState = tableState.applyState;
   const handleResetFilters = () => {
     setSearch("");
-    setDebouncedSearch("");
     setShowSelectedOnly(false);
-    setWorkloadFilter(null);
-    setCategoryFilter("ALL");
-    setSampleStatusFilter("ALL");
-    setTestStatusFilter("ALL");
-    setAnalystIdFilter(null);
-    setUrgencyFilter("");
-    setFromDate("");
-    setToDate("");
-    setPage(1);
+    applyTableState(
+      { filters: {}, search: "", sort: tableState.state.sort, pageSize: tableState.state.pageSize },
+      tableState.viewId
+    );
   };
 
   const hasActiveFilters = Boolean(
@@ -581,14 +846,113 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     }
     return null;
   }, [selectedSampleId, records, extraSelectedSample]);
+  // The selected sample and the open test are shown only once loaded, so this is after a successful load.
+  useTrackRecent("sample", selectedSample?.sampleId);
+  useTrackRecent("testOrder", activeTest?.testOrderId);
 
-  const handlePageChange = (_: unknown, newPage: number) => {
-    setPage(newPage + 1);
+  // Every sample matching the current filters, for "select all that match".
+  const loadAllMatching = useCallback(
+    () => fetchAllPages((p, size) => ReceiveService.getRecordsPaged({ ...filterRef.current, page: p, pageSize: size })),
+    []
+  );
+
+  // Whether labels can be printed comes from the server's client settings.
+  useEffect(() => {
+    const controller = new AbortController();
+    clientSettingsService.get(controller.signal).then((settings) => {
+      if (!controller.signal.aborted) setLabelsEnabled(settings.features.includes("labels"));
+    // Without the setting the label action simply stays off.
+    }).catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  const openBulkAssign = (ids: number[]) => {
+    setBulkAssignIds(ids);
+    setBulkAssignOpen(true);
   };
 
+  // The samples a bulk action acts on: the checked ones, or every match when
+  // "select all that match" was used.
+  const samplesForBulk = async (ids: number[]): Promise<SampleRecord[]> => {
+    if (selection.allMatching) return loadAllMatching();
+    const found: SampleRecord[] = [];
+    for (const id of ids) {
+      const known = records?.find((r) => r.sampleId === id) ?? checkedSamplesCache.current.get(id);
+      const sample = known ?? (await ReceiveService.getSample(id, lab.sectionId, lab.area));
+      if (sample) found.push(sample);
+    }
+    return found;
+  };
+
+  const bulkActions: BulkAction<string | number>[] = [
+    bulkAssignAction((ids) => {
+      void (async () => {
+        try {
+          const resolved = selection.allMatching ? (await loadAllMatching()).map((sample) => sample.sampleId) : ids;
+          if (resolved.length > MAX_BULK_ASSIGN) {
+            toast.error(t("workspace.bulkAssignLimit", { max: MAX_BULK_ASSIGN }));
+            return;
+          }
+          openBulkAssign(resolved);
+        } catch (err) {
+          toast.error(getErrorMessage(err, t("workspace.bulkAssignLoadFailed")));
+        }
+      })();
+    }, t("bulkAssign.actionLabel")),
+    ...(labelsEnabled
+      ? [{
+          key: "print-labels",
+          label: t("workspace.printLabels"),
+          run: async (ids: Array<string | number>) => {
+            try {
+              const samples = await samplesForBulk(ids.map(Number));
+              setLabelTargets(samples.map((sample) => ({
+                entityType: "Sample" as const,
+                entityId: sample.sampleId,
+                code: sample.referenceNumber,
+                displayName: sample.displayName
+              })));
+              setLabelsDialogOpen(true);
+            } catch (err) {
+              toast.error(getErrorMessage(err, t("workspace.printLabelsLoadFailed")));
+            }
+          }
+        }]
+      : [])
+  ];
+
+  // Exports the checked samples with the columns the register shows, logged with the server like the table's own export.
+  const exportSelected = async () => {
+    try {
+      const samples = await samplesForBulk([...checkedSampleIds]);
+      await exportRegisterRows({
+        tableKey,
+        rows: samples,
+        columns: sampleExportColumns(tableState.state.columns, {
+          canSelectTests: false, // the workspace register offers no test-selection action
+          canAssign: permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)
+        }),
+        getRowId: (sample) => sample.sampleId,
+        filters: tableState.state.filters,
+        search: tableState.state.search,
+        t: tCommon
+      });
+    } catch (err) {
+      toast.error(getErrorMessage(err, t("workspace.exportLoadFailed")));
+    }
+  };
+
+  // The full-width table, with its own bulk bar, is what is on screen.
+  const tableBulkBarVisible = Boolean(records) && viewMode === "table" && checkedSampleIds.size < 2 && !selectedSample;
+
+  const handlePageChange = (_: unknown, newPage: number) => {
+    tableState.setPage(newPage + 1);
+  };
+
+  // The table state holds 25, 50 or 100 rows a page (the server never returns more than 100).
   const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(1);
+    const n = parseInt(event.target.value, 10);
+    tableState.setPageSize(n >= 100 ? 100 : n >= 50 ? 50 : 25);
   };
 
   // Event Handlers
@@ -600,15 +964,6 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   const handleDeselectSample = () => {
     setSelectedSampleId(null);
     setExtraSelectedSample(null);
-  };
-
-  const handleTestClick = (test: ReceivingTestOrderSummary | WorkspaceTestOrderSummary, sample: SampleRecord | WorkspaceSampleCard) => {
-    setActiveTest(test as unknown as WorkspaceTestOrderSummary);
-    setActiveSampleForTest(sample as unknown as WorkspaceSampleCard);
-  };
-
-  const handleViewSummary = (sample: SampleRecord | WorkspaceSampleCard) => {
-    setSummarySampleId(sample.sampleId);
   };
 
   const handleEdit = (sample: SampleRecord) => {
@@ -627,17 +982,34 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     setPreparingSample(sample as SampleRecord);
   };
 
-  const handleReceiveSuccess = (count: number) => {
+  const handleReceiveSuccess = (created: CreatedSampleRef[]) => {
+    const count = created.length;
     setNotification({
-      text: `Successfully received ${count} sample${count > 1 ? "s" : ""}. Test orders generated automatically.`,
+      text: (
+        <Trans
+          i18nKey="toast.received"
+          ns="receiving"
+          count={count}
+          values={{ count }}
+          components={{ ltr: <Ltr>{null}</Ltr> }}
+        />
+      ),
       severity: "success"
     });
     loadRecords();
+    postCreatePrint.offerPrint(
+      created.map((sample) => ({
+        entityType: "Sample",
+        entityId: sample.id,
+        code: sample.referenceNumber,
+        displayName: "Sample"
+      }))
+    );
   };
 
   const handleEditSuccess = () => {
     setNotification({
-      text: "Sample details corrected and signed.",
+      text: t("toast.corrected"),
       severity: "success"
     });
     loadRecords();
@@ -660,8 +1032,21 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
     >
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography sx={{ fontSize: 14, fontWeight: 700, color: theme.palette.primary.main }}>
-          Laboratory Register ({displayRecords.length}
-          {!showSelectedOnly && totalCount > displayRecords.length ? ` of ${totalCount}` : ""})
+          {!showSelectedOnly && totalCount > displayRecords.length ? (
+            <Trans
+              i18nKey="workspace.compact.titleOfTotal"
+              ns="receiving"
+              values={{ shown: displayRecords.length, total: totalCount }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            <Trans
+              i18nKey="workspace.compact.title"
+              ns="receiving"
+              values={{ shown: displayRecords.length }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          )}
         </Typography>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           {headerNote}
@@ -683,10 +1068,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={[tableHeadSx, { "& th": { fontWeight: 700, fontSize: 12, py: 1 } }]}>
-                <TableCell>Item / Reference</TableCell>
-                <TableCell sx={{ width: 65 }}>Type</TableCell>
-                <TableCell sx={{ width: 95 }}>Batch/Ctrl</TableCell>
-                <TableCell sx={{ width: 85 }}>Status</TableCell>
+                <TableCell>{t("workspace.compact.columns.item")}</TableCell>
+                <TableCell sx={{ width: 65 }}>{t("workspace.compact.columns.type")}</TableCell>
+                <TableCell sx={{ width: 95 }}>{t("workspace.compact.columns.batchCtrl")}</TableCell>
+                <TableCell sx={{ width: 85 }}>{t("workspace.compact.columns.status")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -707,7 +1092,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               {displayRecords.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} align="center" sx={{ py: 3, color: "text.secondary", fontSize: 12 }}>
-                    No matching samples found.
+                    {t("workspace.compact.empty")}
                   </TableCell>
                 </TableRow>
               )}
@@ -748,11 +1133,11 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           title={
             lab.code === "FP"
               ? lab.area === "rmpm"
-                ? "RM & PM Workspace"
-                : "FP Workspace"
-              : `${lab.name} Workspace`
+                ? t("workspace.titleRmPm")
+                : t("workspace.titleFp")
+              : t("workspace.titleLab", { labName: lab.name })
           }
-          subtitle="Manage incoming samples, assignments, testing progress, review, and laboratory workflow execution from one workspace."
+          subtitle={t("workspace.subtitle")}
         />
 
         <Box sx={{ display: "flex", gap: 1.5, mt: 0.5 }}>
@@ -770,7 +1155,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               "&:hover": { bgcolor: "background.default", borderColor: "text.secondary" }
             }}
           >
-            Refresh
+            {t("workspace.refresh")}
           </Button>
 
           <Button
@@ -784,7 +1169,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               px: 2.5
             }}
           >
-            + New Sample
+            {t("workspace.newSample")}
           </Button>
         </Box>
       </Box>
@@ -794,10 +1179,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         counts={workloadCounts}
         activeKey={workloadFilter}
         onSelect={handleSelectWorkload}
-        onClear={() => {
-          setWorkloadFilter(null);
-          setPage(1);
-        }}
+        onClear={() => setFilter("workload", null)}
         allCount={workloadFilter || hasActiveFilters ? null : totalCount}
         canAssignAnalyst={permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST)}
       />
@@ -806,29 +1188,20 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       {workloadFilter && (workloadFilter === "retestInProgress" || workloadFilter === "reviewOverdue" || workloadFilter === "approvalOverdue") && (
         <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
           <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            Active Workload Filter:
+            {t("workspace.activeWorkloadFilter")}
           </Typography>
           <Chip
-            label={
-              workloadFilter === "retestInProgress"
-                ? "Retests in Progress"
-                : workloadFilter === "reviewOverdue"
-                ? "Overdue Review (>24h)"
-                : "Overdue Approval (>24h)"
-            }
+            label={t(`workspace.workloadChips.${workloadFilter}`)}
             color="primary"
             variant="outlined"
             size="small"
-            onDelete={() => {
-              setWorkloadFilter(null);
-              setPage(1);
-            }}
+            onDelete={() => setFilter("workload", null)}
             sx={{ fontWeight: 600 }}
           />
         </Box>
       )}
 
-      {/* Unified Filter Bar - search, display-mode toggle, and export all live here */}
+      {/* Unified Filter Bar - search and display-mode toggle. Export is the audited table action. */}
       <SampleFilterBar
         search={search}
         onSearchChange={setSearch}
@@ -851,7 +1224,6 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             handleDeselectSample();
           }
         }}
-        onExport={() => exportSamplesToCsv(displayRecords)}
       />
 
       {/* Selection summary - rendered above the layout branch so it survives
@@ -862,7 +1234,18 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           hiddenCount={hiddenCheckedCount}
           showingSelectedOnly={showSelectedOnly}
           onToggleShowSelectedOnly={() => setShowSelectedOnly((prev) => !prev)}
-          onClear={handleDeselectAllChecked}
+          onClear={selection.clear}
+          onBulkAssign={
+            // The table's own bulk bar offers this while the full-width table is showing.
+            permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST) && !tableBulkBarVisible
+              ? () => openBulkAssign(Array.from(checkedSampleIds))
+              : undefined
+          }
+          onExport={
+            // The table's own bulk bar offers "Export selected" while the full-width table is showing; the
+            // grouped-actions and single-sample layouts have no table, so the summary bar offers it there.
+            permissions.includes(PERMISSIONS.DATA_EXPORT) && !tableBulkBarVisible ? () => void exportSelected() : undefined
+          }
         />
       )}
 
@@ -885,8 +1268,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           {/* Left Panel: Compact Sample Register with Checkboxes */}
           {renderCompactRegister(
             <>
-              {checkedSampleIds.size} checked
-              {hiddenCheckedCount > 0 ? ` · ${hiddenCheckedCount} hidden` : ""}
+              <Trans i18nKey="workspace.compact.checked" ns="receiving" values={{ count: checkedSampleIds.size }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              {hiddenCheckedCount > 0 && (
+                <Trans i18nKey="workspace.compact.hidden" ns="receiving" values={{ count: hiddenCheckedCount }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              )}
             </>
           )}
 
@@ -900,26 +1285,30 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             }}
           >
             <GroupedActionsPanel
-              selectedSampleIds={Array.from(checkedSampleIds)}
-              onDeselectAll={handleDeselectAllChecked}
+              selectedSampleIds={[...selection.selected]}
+              onDeselectAll={selection.clear}
               onOpenWorkflow={(sampleId, testOrderId) => {
                 const sample = displayRecords.find((r) => r.sampleId === sampleId) ||
                   (extraSelectedSample?.sampleId === sampleId ? extraSelectedSample : null);
-                const test = sample?.assignedTests?.find((t) => t.testOrderId === testOrderId);
+                const test = sample?.assignedTests?.find((assigned) => assigned.testOrderId === testOrderId);
                 if (sample && test) {
                   handleTestClick(test as unknown as WorkspaceTestOrderSummary, sample as unknown as WorkspaceSampleCard);
                 }
               }}
               onActionComplete={(result) => {
                 setNotification({
-                  text: `${result.succeededCount} test${result.succeededCount === 1 ? "" : "s"} started in incubation.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  text:
+                    t("workspace.incubationStarted", { count: result.succeededCount }) +
+                    (result.skippedCount > 0 ? t("workspace.skippedSuffix", { count: result.skippedCount }) : ""),
                   severity: result.skippedCount > 0 ? "warning" : "success"
                 });
                 loadRecords(true);
               }}
               onPreparationComplete={(result) => {
                 setNotification({
-                  text: `${result.succeededCount} sample${result.succeededCount === 1 ? "" : "s"} prepared and signed.${result.skippedCount > 0 ? ` (${result.skippedCount} skipped)` : ""}`,
+                  text:
+                    t("workspace.samplesPrepared", { count: result.succeededCount }) +
+                    (result.skippedCount > 0 ? t("workspace.skippedSuffix", { count: result.skippedCount }) : ""),
                   severity: result.skippedCount > 0 ? "warning" : "success"
                 });
                 loadRecords(true);
@@ -938,7 +1327,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           }}
         >
           {/* Left Panel: Compact Sample Register */}
-          {renderCompactRegister("Click a sample to switch")}
+          {renderCompactRegister(t("workspace.compact.clickToSwitch"))}
 
           {/* Right Panel: Selected Sample & Analytical Workflows Panel */}
           <Box
@@ -949,13 +1338,22 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               flexDirection: "column"
             }}
           >
+            <RecordChangedBanner
+              type="sample"
+              id={selectedSample.sampleId}
+              dirty={false}
+              onReload={() => void loadRecords(true)}
+            />
             <SelectedSampleTestingPanel
               sample={selectedSample as unknown as WorkspaceSampleCard}
               onTestClick={(test, sample) => handleTestClick(test, sample)}
               onClose={handleDeselectSample}
               onNeedsPreparationClick={(sample) => handlePrepareSample(sample)}
               onLifecycleBadgeClick={setSummarySampleId}
-              onCorrected={() => loadRecords(true)}
+              onCorrected={() => {
+                noteOwnSave("sample", selectedSample.sampleId);
+                void loadRecords(true);
+              }}
               onViewAuditHistory={(sampleId) => setAuditSampleId(sampleId)}
               onEdit={(sample) => setEditSample(sample as unknown as SampleRecord)}
               onVoid={(sample) => setVoidingSample(sample as unknown as SampleRecord)}
@@ -967,10 +1365,19 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         <>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
             <Typography sx={{ fontSize: 16, fontWeight: 700, color: theme.palette.primary.main }}>
-              Laboratory Register {records ? `(${showSelectedOnly ? displayRecords.length : totalCount} ${totalCount === 1 ? "sample" : "samples"})` : ""}
+              {t("workspace.registerTitle")}{" "}
+              {records && (
+                <Trans
+                  i18nKey="workspace.registerCount"
+                  ns="receiving"
+                  count={totalCount}
+                  values={{ count: showSelectedOnly ? displayRecords.length : totalCount }}
+                  components={{ ltr: <Ltr>{null}</Ltr> }}
+                />
+              )}
             </Typography>
 
-            {!showSelectedOnly && totalCount > 0 && (
+            {viewMode !== "table" && !showSelectedOnly && totalCount > 0 && (
               <TablePagination
                 component="div"
                 count={totalCount}
@@ -978,7 +1385,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
                 onPageChange={handlePageChange}
                 rowsPerPage={pageSize}
                 onRowsPerPageChange={handleRowsPerPageChange}
-                rowsPerPageOptions={[25, 50, 100, 200]}
+                rowsPerPageOptions={[25, 50, 100]}
                 sx={{
                   "& .MuiTablePagination-toolbar": { minHeight: 36, px: 0 },
                   "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": { fontSize: 12 }
@@ -990,10 +1397,17 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
           {viewMode === "table" && (
             <SampleRegisterTable
               samples={displayRecords}
+              tableKey={tableKey}
+              tableState={tableState}
+              legacyColumnsKey="microlims.sampleRegister.columns"
               selectedSampleId={selectedSampleId}
-              checkedSampleIds={checkedSampleIds}
-              onToggleCheck={handleToggleCheckSample}
-              onToggleCheckMany={handleToggleCheckMany}
+              selection={selection}
+              bulkActions={bulkActions}
+              serverTotal={showSelectedOnly ? displayRecords.length : totalCount}
+              serverSortableColumns={WORKSPACE_SERVER_SORTABLE_COLUMNS}
+              onServerSortChange={tableState.setSort}
+              serverSort={activeSort}
+              loadAllMatching={loadAllMatching}
               onSelectSample={handleSelectSample}
               onTestClick={(test, sample) => {
                 handleTestClick(test, sample);
@@ -1005,7 +1419,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
               onViewReport={handleViewReport}
               onViewAuditHistory={handleViewAuditHistory}
               onPrepareSample={handlePrepareSample}
-              onAssignAnalyst={(s) => setAssigningSample(s)}
+              onAssignAnalyst={handleAssignAnalyst}
               onVoid={(sample) => setVoidingSample(sample)}
             />
           )}
@@ -1029,7 +1443,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
             />
           )}
 
-          {!showSelectedOnly && totalCount > pageSize && (
+          {viewMode !== "table" && !showSelectedOnly && totalCount > pageSize && (
             <Paper
               elevation={0}
               sx={{
@@ -1047,7 +1461,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
                 onPageChange={handlePageChange}
                 rowsPerPage={pageSize}
                 onRowsPerPageChange={handleRowsPerPageChange}
-                rowsPerPageOptions={[25, 50, 100, 200]}
+                rowsPerPageOptions={[25, 50, 100]}
                 sx={{
                   "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
                     fontSize: 12
@@ -1084,8 +1498,18 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         sample={assigningSample}
         onClose={() => setAssigningSample(null)}
         onAssigned={() => {
-          setNotification({ text: "Analyst assignment updated successfully.", severity: "success" });
+          setNotification({ text: t("workspace.analystUpdated"), severity: "success" });
           loadRecords();
+        }}
+      />
+
+      <BulkAssignDialog
+        open={bulkAssignOpen}
+        sampleIds={bulkAssignIds}
+        selection={selection}
+        onClose={() => setBulkAssignOpen(false)}
+        onAssigned={() => {
+          loadRecords(true);
         }}
       />
 
@@ -1105,6 +1529,10 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         test={activeTest}
         sample={activeSampleForTest}
         onClose={() => {
+          // Closing the workflow dialog follows this tab's own save: mark it so the banner
+          // does not announce our own change (a signal from another tab still does).
+          if (activeSampleForTest) noteOwnSave("sample", activeSampleForTest.sampleId);
+          if (activeTest) noteOwnSave("testOrder", activeTest.testOrderId);
           setActiveTest(null);
           setActiveSampleForTest(null);
           loadRecords(true);
@@ -1149,12 +1577,27 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
         onClose={() => setVoidingSample(null)}
         onSuccess={() => {
           setNotification({
-            text: `Sample #${voidingSample?.sampleId} (${voidingSample?.displayName}) has been marked as Voided.`,
+            text: t("workspace.voidedNotification", {
+              sampleId: voidingSample?.sampleId,
+              displayName: voidingSample?.displayName
+            }),
             severity: "success"
           });
           setVoidingSample(null);
           loadRecords();
         }}
+      />
+
+      <PrintLabelsDialog
+        open={postCreatePrint.dialogOpen}
+        targets={postCreatePrint.targets}
+        onClose={postCreatePrint.closeDialog}
+      />
+
+      <PrintLabelsDialog
+        open={labelsDialogOpen}
+        targets={labelTargets}
+        onClose={() => setLabelsDialogOpen(false)}
       />
 
       {/* Toast Notification Snackbar */}

@@ -8,6 +8,7 @@ import { CATEGORY_LABELS } from "../../reports/services/OverviewService";
 import { filtersError } from "../utils/kpiFilters";
 import type { KpiFiltersValue } from "../utils/kpiFilters";
 import { DateField } from "../../../components/DateField";
+import { useTranslation } from "../../../i18n";
 
 interface KpiFiltersProps {
   value: KpiFiltersValue;
@@ -19,6 +20,7 @@ interface KpiFiltersProps {
 }
 
 export function KpiFilters({ value, onChange, onOpenDefinitions, onOpenProfiles, onExport, exportDisabled }: KpiFiltersProps) {
+  const { t } = useTranslation("kpi");
   const [options, setOptions] = useState<{ categories: string[]; locations: string[]; testCodes: string[] }>({
     categories: [], locations: [], testCodes: []
   });
@@ -54,44 +56,44 @@ export function KpiFilters({ value, onChange, onOpenDefinitions, onOpenProfiles,
   return (
     <Paper sx={{ p: 2, mb: 2.5 }}>
       <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} useFlexGap sx={{ flexWrap: "wrap", alignItems: { md: "flex-start" } }}>
-        <DateField label="From" value={from} onChange={(v) => changeDates(v, to)} error={!!dateError} />
+        <DateField label={t("filters.from")} value={from} onChange={(v) => changeDates(v, to)} error={!!dateError} />
         <DateField
-          label="To" value={to} onChange={(v) => changeDates(from, v)}
+          label={t("filters.to")} value={to} onChange={(v) => changeDates(from, v)}
           error={!!dateError} helperText={dateError ?? undefined}
         />
         <TextField
-          select size="small" label="Category" value={value.category ?? ""} sx={{ minWidth: 180 }}
+          select size="small" label={t("filters.category")} value={value.category ?? ""} sx={{ minWidth: 180 }}
           onChange={(e) => onChange({ ...value, category: e.target.value || null })}
         >
-          <MenuItem value="">All categories</MenuItem>
+          <MenuItem value="">{t("filters.allCategories")}</MenuItem>
           {options.categories.map((c) => <MenuItem key={c} value={c}>{CATEGORY_LABELS[c] ?? c}</MenuItem>)}
         </TextField>
         <TextField
-          select size="small" label="Location / subject" value={value.location ?? ""} sx={{ minWidth: 180 }}
+          select size="small" label={t("filters.location")} value={value.location ?? ""} sx={{ minWidth: 180 }}
           onChange={(e) => onChange({ ...value, location: e.target.value || null })}
         >
-          <MenuItem value="">All locations</MenuItem>
+          <MenuItem value="">{t("filters.allLocations")}</MenuItem>
           {options.locations.map((l) => <MenuItem key={l} value={l}>{l}</MenuItem>)}
         </TextField>
         <TextField
-          select size="small" label="Test" value={value.testCode ?? ""} sx={{ minWidth: 140 }}
+          select size="small" label={t("filters.test")} value={value.testCode ?? ""} sx={{ minWidth: 140 }}
           onChange={(e) => onChange({ ...value, testCode: e.target.value || null })}
         >
-          <MenuItem value="">All tests</MenuItem>
+          <MenuItem value="">{t("filters.allTests")}</MenuItem>
           {options.testCodes.map((t) => <MenuItem key={t} value={t}>{t}</MenuItem>)}
         </TextField>
 
         <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: "wrap", ml: { md: "auto" } }}>
-          <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={onOpenDefinitions}>Definitions</Button>
+          <Button size="small" variant="outlined" startIcon={<InfoOutlinedIcon />} onClick={onOpenDefinitions}>{t("filters.definitions")}</Button>
           {onOpenProfiles && (
-            <Button size="small" variant="outlined" startIcon={<TuneIcon />} onClick={onOpenProfiles}>Workflow Profiles</Button>
+            <Button size="small" variant="outlined" startIcon={<TuneIcon />} onClick={onOpenProfiles}>{t("filters.profiles")}</Button>
           )}
-          <Button size="small" variant="contained" startIcon={<PictureAsPdfIcon />} onClick={onExport} disabled={exportDisabled}>Export PDF</Button>
+          <Button size="small" variant="contained" startIcon={<PictureAsPdfIcon />} onClick={onExport} disabled={exportDisabled}>{t("filters.exportPdf")}</Button>
         </Stack>
       </Stack>
       {optionsFailed && (
         <Alert severity="error" sx={{ mt: 1.5 }}>
-          The category, location and test lists could not be loaded. Reload the page to try again.
+          {t("filters.optionsFailed")}
         </Alert>
       )}
     </Paper>

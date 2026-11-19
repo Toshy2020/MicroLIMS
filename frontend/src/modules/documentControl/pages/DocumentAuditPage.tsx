@@ -33,8 +33,12 @@ import type {
   AuditActionCategory
 } from "../types/documentControlTypes";
 import { DateField } from "../../../components/DateField";
+import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { useTranslation } from "../../../i18n";
+import { getErrorMessage, serverMessage } from "../../../utils/errorMessage";
 
 export function DocumentAuditPage() {
+  const { t } = useTranslation("documentControl");
   const theme = useTheme();
   const [logs, setLogs] = useState<DocumentAuditItemDto[]>([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -65,12 +69,12 @@ export function DocumentAuditPage() {
       });
       setLogs(res.items);
       setTotalCount(res.totalCount);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to load audit trail.");
+    } catch (err: unknown) {
+      setError(serverMessage(err) ?? getErrorMessage(err, t("audit.loadError")));
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, actionCategory, dateFrom, dateTo, page, pageSize]);
+  }, [searchTerm, actionCategory, dateFrom, dateTo, page, pageSize, t]);
 
   useEffect(() => {
     fetchLogs();
@@ -94,10 +98,10 @@ export function DocumentAuditPage() {
         dateFrom: dateFrom ? new Date(dateFrom).toISOString() : undefined,
         dateTo: dateTo ? new Date(dateTo).toISOString() : undefined
       });
-      setExportSuccessMsg("Audit trail exported successfully. (The export operation has been logged in the audit trail per 21 CFR Part 11).");
+      setExportSuccessMsg(t("audit.exportSuccess"));
       fetchLogs(); // refresh to show the export audit event
-    } catch (err: any) {
-      toast.error("Failed to export audit trail: " + (err.response?.data?.message || err.message));
+    } catch (err: unknown) {
+      toast.error(t("audit.exportError", { error: serverMessage(err) ?? getErrorMessage(err, t("common.unknownError")) }));
     } finally {
       setExporting(false);
     }
@@ -107,8 +111,8 @@ export function DocumentAuditPage() {
     <Box sx={{ pb: 4 }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
         <PageHeader
-          title="Document Control Audit Trail"
-          subtitle="Chronological, append-only regulatory audit log of document life-cycle actions and configuration changes"
+          title={t("audit.title")}
+          subtitle={t("audit.subtitle")}
         />
         <Button
           variant="outlined"
@@ -116,7 +120,7 @@ export function DocumentAuditPage() {
           onClick={handleExport}
           disabled={exporting || loading}
         >
-          {exporting ? "Exporting CSV..." : "Export Audit Trail (CSV)"}
+          {exporting ? t("audit.exporting") : t("audit.exportCsv")}
         </Button>
       </Box>
 
@@ -128,20 +132,20 @@ export function DocumentAuditPage() {
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, alignItems: "center" }}>
           <TextField
             size="small"
-            placeholder="Search Event UID, Action, Reason, Entity..."
+            placeholder={t("audit.filters.searchPlaceholder")}
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setPage(0);
             }}
             sx={{ minWidth: 260, flexGrow: 1 }}
-            slotProps={{ htmlInput: { "aria-label": "Search Event UID, Action, Reason, Entity" } }}
+            slotProps={{ htmlInput: { "aria-label": t("audit.filters.searchAria") } }}
           />
 
           <TextField
             select
             size="small"
-            label="Action Category"
+            label={t("audit.filters.actionCategory")}
             value={actionCategory}
             onChange={(e) => {
               setActionCategory(e.target.value as AuditActionCategory | "");
@@ -149,16 +153,16 @@ export function DocumentAuditPage() {
             }}
             sx={{ minWidth: 160 }}
           >
-            <MenuItem value="">All Categories</MenuItem>
-            <MenuItem value="Document">Document</MenuItem>
-            <MenuItem value="Workflow">Workflow</MenuItem>
-            <MenuItem value="Security">Security</MenuItem>
-            <MenuItem value="Configuration">Configuration</MenuItem>
-            <MenuItem value="System">System</MenuItem>
+            <MenuItem value="">{t("audit.filters.allCategories")}</MenuItem>
+            <MenuItem value="Document">{t("audit.filters.categories.Document")}</MenuItem>
+            <MenuItem value="Workflow">{t("audit.filters.categories.Workflow")}</MenuItem>
+            <MenuItem value="Security">{t("audit.filters.categories.Security")}</MenuItem>
+            <MenuItem value="Configuration">{t("audit.filters.categories.Configuration")}</MenuItem>
+            <MenuItem value="System">{t("audit.filters.categories.System")}</MenuItem>
           </TextField>
 
           <DateField
-            label="Date From"
+            label={t("audit.filters.dateFrom")}
             value={dateFrom}
             onChange={(v) => {
               setDateFrom(v);
@@ -168,7 +172,7 @@ export function DocumentAuditPage() {
           />
 
           <DateField
-            label="Date To"
+            label={t("audit.filters.dateTo")}
             value={dateTo}
             onChange={(v) => {
               setDateTo(v);
@@ -184,7 +188,7 @@ export function DocumentAuditPage() {
             onClick={handleClear}
             disabled={!searchTerm && actionCategory === "" && !dateFrom && !dateTo}
           >
-            Reset
+            {t("audit.filters.reset")}
           </Button>
         </Box>
       </Paper>
@@ -194,14 +198,14 @@ export function DocumentAuditPage() {
         <Table stickyHeader size="small">
           <TableHead sx={tableHeadSx(theme)}>
             <TableRow>
-              <TableCell sx={{ fontWeight: 700 }}>Timestamp (UTC)</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Event UID</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Actor</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Action Code</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Category</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Record Type</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Reason / Description</TableCell>
-              <TableCell sx={{ fontWeight: 700 }}>Field Changes</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.timestamp")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.eventUid")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.actor")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.actionCode")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.category")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.recordType")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.reason")}</TableCell>
+              <TableCell sx={{ fontWeight: 700 }}>{t("audit.columns.fieldChanges")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -215,7 +219,7 @@ export function DocumentAuditPage() {
                       color: "text.secondary",
                       mt: 1
                     }}>
-                    Loading audit trail records...
+                    {t("audit.loading")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -224,7 +228,7 @@ export function DocumentAuditPage() {
                 <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <FilterAltOutlinedIcon sx={{ fontSize: 40, color: "text.disabled", mb: 1 }} />
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                    No audit records match the selected criteria
+                    {t("audit.empty")}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -238,13 +242,13 @@ export function DocumentAuditPage() {
                   }}
                 >
                   <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {new Date(log.timestamp).toLocaleString()}
+                    {formatDateTimeWithTimeZone(log.timestamp)}
                   </TableCell>
                   <TableCell sx={documentCodeSx}>
                     {log.eventUid ? log.eventUid.substring(0, 16) : `#${log.id}`}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>
-                    {log.userName || log.systemProcessName || "System"}
+                    {log.userName || log.systemProcessName || t("common.system")}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>

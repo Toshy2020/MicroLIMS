@@ -5,6 +5,7 @@ import {
   ReferenceLine, ResponsiveContainer, Tooltip as RechartsTooltip, TooltipContentProps, XAxis, YAxis
 } from "recharts";
 import { withUnit } from "../../../../utils/reportedValue";
+import { useTranslation } from "../../../../i18n";
 import { ChartKind, ControlChartPoint, ControlChartResult, HistogramBin, MonthlyBox } from "../../types/controlChartTypes";
 
 // Draws the server-computed control chart, capability and distribution
@@ -90,19 +91,20 @@ function limitLine(y: number | null | undefined, color: string, text: string, op
 // Recharts injects the tooltip's own props (active, payload, ...) into an
 // element passed as `content`; `unit` and `mrMode` are the ones we pass.
 function PointTooltip({ active, payload, unit, mrMode }: Partial<TooltipContentProps> & { unit: string | null; mrMode: boolean }) {
+  const { t } = useTranslation("reports");
   if (!active || !payload?.length) return null;
   const p = payload[0].payload as Row;
   return (
     <Paper sx={{ p: 1.25, fontSize: 12 }}>
       <Typography sx={{ fontWeight: 700, fontSize: 12 }}>{dateLabel(p.date)} · {p.referenceNumber}</Typography>
       <Typography sx={{ fontSize: 12 }}>
-        Result: <strong>{withUnit(p.reportedValue, unit)}</strong>{p.isImputed ? ` (plotted at ${fmt(p.value)})` : ""}
+        {t("controlChart.spc.resultLabel")} <strong>{withUnit(p.reportedValue, unit)}</strong>{p.isImputed ? t("controlChart.spc.plottedAt", { value: fmt(p.value) }) : ""}
       </Typography>
-      {mrMode && <Typography sx={{ fontSize: 12 }}>Moving range: <strong>{fmt(p.movingRange)}</strong></Typography>}
-      <Typography sx={{ fontSize: 12 }}>Level: {p.resultLevel}</Typography>
-      {!p.inCalculation && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>Outside the limit calculation window</Typography>}
+      {mrMode && <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.movingRangeLabel")} <strong>{fmt(p.movingRange)}</strong></Typography>}
+      <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.levelLabel")} {p.resultLevel}</Typography>
+      {!p.inCalculation && <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("controlChart.spc.outsideWindow")}</Typography>}
       {p.rules.length > 0 && (
-        <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 600 }}>Failed test(s): {p.rules.join(", ")}</Typography>
+        <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 600 }}>{t("controlChart.spc.failedTests", { rules: p.rules.join(", ") })}</Typography>
       )}
     </Paper>
   );
@@ -143,6 +145,7 @@ function ChartFrame({ children, height, width }: { children: React.ReactElement<
 }
 
 export function SpcChart({ kind, result, options, height = 360, width, onPointClick }: SpcChartProps) {
+  const { t } = useTranslation("reports");
   const c = useSpcColors();
   const rows: Row[] = useMemo(
     () => result.points.map((p, index) => ({ ...p, index, label: dateLabel(p.date), flagged: p.rules.length > 0 })),
@@ -168,23 +171,23 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
   if (rows.length === 0) {
     return (
       <Box sx={{ height, display: "flex", alignItems: "center", justifyContent: "center", color: "text.secondary", fontSize: 13 }}>
-        No numeric results for {result.testDisplayName} at {result.subjectName} in this period.
+        {t("controlChart.spc.noNumericResults", { test: result.testDisplayName, subject: result.subjectName })}
       </Box>
     );
   }
 
   const configuredLines = options.showConfiguredLimits
     ? [
-        <Line key="cfgAlert" type="stepAfter" dataKey="alertLimit" name="Configured alert" stroke={c.configuredAlert} strokeDasharray="6 4" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />,
-        <Line key="cfgAction" type="stepAfter" dataKey="actionLimit" name="Configured action" stroke={c.configuredAction} strokeDasharray="6 4" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />,
-        <Line key="cfgSpec" type="stepAfter" dataKey="specLimit" name="Specification" stroke={c.spec} strokeDasharray="2 3" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
+        <Line key="cfgAlert" type="stepAfter" dataKey="alertLimit" name={t("controlChart.spc.configuredAlert")} stroke={c.configuredAlert} strokeDasharray="6 4" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />,
+        <Line key="cfgAction" type="stepAfter" dataKey="actionLimit" name={t("controlChart.spc.configuredAction")} stroke={c.configuredAction} strokeDasharray="6 4" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />,
+        <Line key="cfgSpec" type="stepAfter" dataKey="specLimit" name={t("controlChart.spc.specification")} stroke={c.spec} strokeDasharray="2 3" strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls />
       ]
     : [];
 
   const calcLimitLines = (sigmaLabels: boolean) => [
-    limitLine(stats.mean, c.mean, sigmaLabels ? "X̄" : "Mean", { showLabel }),
-    limitLine(L.actionUpper, c.action, sigmaLabels ? "UCL" : "Action", { showLabel }),
-    limitLine(L.alertUpper, c.alert, sigmaLabels ? "+2SL" : "Alert", { showLabel }),
+    limitLine(stats.mean, c.mean, sigmaLabels ? "X̄" : t("controlChart.spc.mean"), { showLabel }),
+    limitLine(L.actionUpper, c.action, sigmaLabels ? "UCL" : t("controlChart.spc.action"), { showLabel }),
+    limitLine(L.alertUpper, c.alert, sigmaLabels ? "+2SL" : t("controlChart.spc.alert"), { showLabel }),
     limitLine(L.alertLower, c.alert, "-2SL", { showLabel, show: options.showLowerLimits }),
     limitLine(L.actionLower, c.action, "LCL", { showLabel, show: options.showLowerLimits })
   ];
@@ -204,7 +207,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
             {legend}
             {calcLimitLines(true)}
             {configuredLines}
-            <Line type="linear" dataKey="value" name="Result" stroke={c.result} strokeWidth={1.5}
+            <Line type="linear" dataKey="value" name={t("controlChart.spc.result")} stroke={c.result} strokeWidth={1.5}
               dot={makeDot(c, options, onPointClick)} activeDot={false} isAnimationActive={false} />
           </ComposedChart>
         </ChartFrame>
@@ -216,13 +219,13 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
           <ComposedChart data={rows} margin={margin}>
             <CartesianGrid vertical={false} stroke={c.grid} />
             <XAxis {...xAxisProps} />
-            <YAxis tick={axisTick} label={{ ...yLabel, value: "Moving range" }} />
+            <YAxis tick={axisTick} label={{ ...yLabel, value: t("controlChart.spc.movingRange") }} />
             {tooltip}
             {legend}
             {limitLine(stats.movingRangeMean, c.mean, "MR̄", { showLabel })}
             {limitLine(stats.movingRangeUcl, c.action, "UCL", { showLabel })}
             {limitLine(stats.movingRangeLcl && stats.movingRangeLcl > 0 ? stats.movingRangeLcl : null, c.action, "LCL", { showLabel })}
-            <Line type="linear" dataKey="movingRange" name="Moving range" stroke={c.result} strokeWidth={1.5}
+            <Line type="linear" dataKey="movingRange" name={t("controlChart.spc.movingRange")} stroke={c.result} strokeWidth={1.5}
               dot={makeDot(c, options, onPointClick, "movingRange")} activeDot={false} isAnimationActive={false} />
           </ComposedChart>
         </ChartFrame>
@@ -239,13 +242,13 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}
-            {limitLine(stats.mean, c.mean, "Mean", { showLabel })}
+            {limitLine(stats.mean, c.mean, t("controlChart.spc.mean"), { showLabel })}
             {configuredLines}
             {kind === "area" ? (
-              <Area type="monotone" dataKey="value" name="Result" stroke={c.result} fill={c.result} fillOpacity={0.18}
+              <Area type="monotone" dataKey="value" name={t("controlChart.spc.result")} stroke={c.result} fill={c.result} fillOpacity={0.18}
                 dot={makeDot(c, options, onPointClick)} isAnimationActive={false} />
             ) : (
-              <Line type={kind === "run" ? "monotone" : "linear"} dataKey="value" name="Result"
+              <Line type={kind === "run" ? "monotone" : "linear"} dataKey="value" name={t("controlChart.spc.result")}
                 stroke={kind === "scatter" ? "none" : c.result} strokeWidth={kind === "scatter" ? 0 : 2}
                 dot={makeDot(c, options, onPointClick)} activeDot={false} isAnimationActive={false} />
             )}
@@ -262,9 +265,9 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
             <YAxis tick={axisTick} label={yLabel} domain={[0, "auto"]} />
             {tooltip}
             {legend}
-            {limitLine(stats.mean, c.mean, "Mean", { showLabel })}
+            {limitLine(stats.mean, c.mean, t("controlChart.spc.mean"), { showLabel })}
             {configuredLines}
-            <Bar dataKey="value" name="Result" isAnimationActive={false} onClick={(d: BarRectangleItem) => onPointClick?.(d.payload as ControlChartPoint)}>
+            <Bar dataKey="value" name={t("controlChart.spc.result")} isAnimationActive={false} onClick={(d: BarRectangleItem) => onPointClick?.(d.payload as ControlChartPoint)}>
               {rows.map((r) => (
                 <Cell key={r.recordId} fill={r.flagged ? c.flagged : c.level[r.resultLevel] ?? c.result} cursor={onPointClick ? "pointer" : undefined} />
               ))}
@@ -287,6 +290,7 @@ export function SpcChart({ kind, result, options, height = 360, width, onPointCl
 // ---- Capability histogram ------------------------------------------------
 
 function HistogramChart({ result, colors: c, height, width, showLabel }: { result: ControlChartResult; colors: Colors; height: number; width?: number; showLabel: boolean }) {
+  const { t } = useTranslation("reports");
   const bins = result.statistics.histogram;
   const cap = result.statistics.capability;
   const data = bins.map((b) => ({ ...b, mid: (b.from + b.to) / 2, range: `${fmt(b.from)} – ${fmt(b.to)}` }));
@@ -306,7 +310,7 @@ function HistogramChart({ result, colors: c, height, width, showLabel }: { resul
           <CartesianGrid vertical={false} stroke={c.grid} />
           <XAxis dataKey="mid" type="number" domain={[lo - binWidth / 2, hi + binWidth / 2]} tick={{ fontSize: 11, fill: c.muted }}
             tickFormatter={(v) => fmt(v, 1)} label={{ value: result.unit ?? "", position: "insideBottom", offset: -2, fontSize: 12, fill: c.muted }} />
-          <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: c.muted }} label={{ value: "Frequency", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
+          <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: c.muted }} label={{ value: t("controlChart.spc.frequency"), angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
           <RechartsTooltip
             content={({ active, payload }: TooltipContentProps) => {
               if (!active || !payload?.length) return null;
@@ -314,18 +318,18 @@ function HistogramChart({ result, colors: c, height, width, showLabel }: { resul
               return (
                 <Paper sx={{ p: 1.25, fontSize: 12 }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{b.range}</Typography>
-                  <Typography sx={{ fontSize: 12 }}>Results: <strong>{b.count}</strong></Typography>
-                  {b.expectedCount != null && <Typography sx={{ fontSize: 12 }}>Normal fit: {fmt(b.expectedCount, 1)}</Typography>}
+                  <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.resultsLabel")} <strong>{b.count}</strong></Typography>
+                  {b.expectedCount != null && <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.normalFit")} {fmt(b.expectedCount, 1)}</Typography>}
                 </Paper>
               );
             }}
           />
           <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="count" name="Results" fill={c.result} fillOpacity={0.75} isAnimationActive={false} />
-          <Line type="monotone" dataKey="expectedCount" name="Normal curve" stroke={c.mean} strokeWidth={2} dot={false} isAnimationActive={false} />
+          <Bar dataKey="count" name={t("controlChart.spc.results")} fill={c.result} fillOpacity={0.75} isAnimationActive={false} />
+          <Line type="monotone" dataKey="expectedCount" name={t("controlChart.spc.normalCurve")} stroke={c.mean} strokeWidth={2} dot={false} isAnimationActive={false} />
           {ref(cap.lsl, c.spec, "LSL")}
           {ref(cap.usl, c.spec, "USL")}
-          {ref(result.statistics.mean, c.mean, "Mean", true)}
+          {ref(result.statistics.mean, c.mean, t("controlChart.spc.mean"), true)}
         </ComposedChart>
     </ChartFrame>
   );
@@ -334,6 +338,7 @@ function HistogramChart({ result, colors: c, height, width, showLabel }: { resul
 // ---- Box plot by month -----------------------------------------------------
 
 function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result: ControlChartResult; colors: Colors; height: number; width?: number; options: SpcChartOptions }) {
+  const { t } = useTranslation("reports");
   // The bar spans min..max of the month; the shape maps quartiles into it
   // with the same linear scale, so whiskers, box and outliers line up.
   const data = result.monthly.map((m) => ({ ...m, span: [m.box.min, m.box.max] as [number, number] }));
@@ -374,16 +379,16 @@ function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result:
               return (
                 <Paper sx={{ p: 1.25, fontSize: 12 }}>
                   <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{m.month} · n={m.count}</Typography>
-                  <Typography sx={{ fontSize: 12 }}>Median {fmt(m.box.median)} · Q1 {fmt(m.box.q1)} · Q3 {fmt(m.box.q3)}</Typography>
-                  <Typography sx={{ fontSize: 12 }}>Min {fmt(m.box.min)} · Max {fmt(m.box.max)} · Mean {fmt(m.mean)}</Typography>
-                  {m.box.outliers.length > 0 && <Typography sx={{ fontSize: 12, color: "error.main" }}>Outliers: {m.box.outliers.map((o) => fmt(o)).join(", ")}</Typography>}
+                  <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.boxTooltipSummary", { median: fmt(m.box.median), q1: fmt(m.box.q1), q3: fmt(m.box.q3) })}</Typography>
+                  <Typography sx={{ fontSize: 12 }}>{t("controlChart.spc.boxTooltipRange", { min: fmt(m.box.min), max: fmt(m.box.max), mean: fmt(m.mean) })}</Typography>
+                  {m.box.outliers.length > 0 && <Typography sx={{ fontSize: 12, color: "error.main" }}>{t("controlChart.spc.outliers", { outliers: m.box.outliers.map((o) => fmt(o)).join(", ") })}</Typography>}
                 </Paper>
               );
             }}
           />
-          {options.showConfiguredLimits && limitLine(result.currentLimits.alert, c.configuredAlert, "Alert", { dashed: true, showLabel })}
-          {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, "Action", { dashed: true, showLabel })}
-          <Bar dataKey="span" name="Monthly distribution" shape={shape} isAnimationActive={false} />
+          {options.showConfiguredLimits && limitLine(result.currentLimits.alert, c.configuredAlert, t("controlChart.spc.alert"), { dashed: true, showLabel })}
+          {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, t("controlChart.spc.action"), { dashed: true, showLabel })}
+          <Bar dataKey="span" name={t("controlChart.spc.monthlyDistribution")} shape={shape} isAnimationActive={false} />
         </ComposedChart>
     </ChartFrame>
   );
@@ -392,6 +397,7 @@ function MonthlyBoxPlot({ result, colors: c, height, width, options }: { result:
 // ---- Monthly summary -------------------------------------------------------
 
 function MonthlySummaryChart({ result, colors: c, height, width, options }: { result: ControlChartResult; colors: Colors; height: number; width?: number; options: SpcChartOptions }) {
+  const { t } = useTranslation("reports");
   const data = result.monthly.map((m) => ({ month: m.month, mean: m.mean, max: m.box.max, median: m.box.median, count: m.count }));
   const showLabel = options.showValueLabels;
   return (
@@ -402,11 +408,11 @@ function MonthlySummaryChart({ result, colors: c, height, width, options }: { re
           <YAxis tick={{ fontSize: 11, fill: c.muted }} domain={[0, "auto"]} label={{ value: result.unit ?? "", angle: -90, position: "insideLeft", fontSize: 12, fill: c.muted }} />
           <RechartsTooltip formatter={(v) => fmt(Number(v))} />
           <Legend verticalAlign="top" height={28} wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="mean" name="Monthly mean" fill={c.result} fillOpacity={0.75} isAnimationActive={false} />
-          <Line type="monotone" dataKey="max" name="Monthly maximum" stroke={c.action} strokeWidth={2} isAnimationActive={false} />
-          <Line type="monotone" dataKey="median" name="Monthly median" stroke={c.mean} strokeWidth={1.5} strokeDasharray="4 3" isAnimationActive={false} />
-          {options.showConfiguredLimits && limitLine(result.currentLimits.alert, c.configuredAlert, "Alert", { dashed: true, showLabel })}
-          {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, "Action", { dashed: true, showLabel })}
+          <Bar dataKey="mean" name={t("controlChart.spc.monthlyMean")} fill={c.result} fillOpacity={0.75} isAnimationActive={false} />
+          <Line type="monotone" dataKey="max" name={t("controlChart.spc.monthlyMaximum")} stroke={c.action} strokeWidth={2} isAnimationActive={false} />
+          <Line type="monotone" dataKey="median" name={t("controlChart.spc.monthlyMedian")} stroke={c.mean} strokeWidth={1.5} strokeDasharray="4 3" isAnimationActive={false} />
+          {options.showConfiguredLimits && limitLine(result.currentLimits.alert, c.configuredAlert, t("controlChart.spc.alert"), { dashed: true, showLabel })}
+          {options.showConfiguredLimits && limitLine(result.currentLimits.action, c.configuredAction, t("controlChart.spc.action"), { dashed: true, showLabel })}
         </ComposedChart>
     </ChartFrame>
   );

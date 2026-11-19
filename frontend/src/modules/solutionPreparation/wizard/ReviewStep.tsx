@@ -20,6 +20,9 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
 import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined";
+import { Trans } from "react-i18next";
+import { Ltr } from "../../../components/Ltr";
+import { useTranslation } from "../../../i18n";
 import { tableHeadSx } from "../../../theme";
 import type {
   SolutionPreparationResponse,
@@ -41,6 +44,7 @@ export function ReviewStep({
   signing = false
 }: Props) {
   const theme = useTheme();
+  const { t } = useTranslation("solutionPreparation");
 
   const recipe = useMemo<RecipeSnapshot | null>(() => {
     try {
@@ -59,38 +63,42 @@ export function ReviewStep({
       if (c.kind === "Text") continue;
       if (c.kind === "PreparedSolution") {
         if (!c.sourcePreparationId) {
-          errors.push(`Component "${c.entryName}" does not have a prepared solution selected.`);
+          errors.push(t("wizard.reviewStep.validation.missingPreparedSolution", { name: c.entryName }));
         }
         continue;
       }
       if (!c.materialId || !c.lotBatchNumber) {
-        errors.push(`Component "${c.entryName}" does not have a stock lot selected.`);
+        errors.push(t("wizard.reviewStep.validation.missingStockLot", { name: c.entryName }));
       } else if (!c.quantityUsed || c.quantityUsed <= 0) {
-        errors.push(`Component "${c.entryName}" requires a quantity used greater than 0.`);
+        errors.push(t("wizard.reviewStep.validation.missingQuantity", { name: c.entryName }));
       }
     }
 
     // Final volume required
     if (!preparation.finalVolumeMl || preparation.finalVolumeMl <= 0) {
-      errors.push("Final volume is required and must be greater than 0.");
+      errors.push(t("wizard.reviewStep.validation.finalVolumeRequired"));
     }
 
     // pH check
     if (recipe?.phTarget != null) {
       if (preparation.measuredPh == null) {
-        errors.push("Measured pH is required before completion.");
+        errors.push(t("wizard.reviewStep.validation.measuredPhRequired"));
       } else if (recipe.phTolerance != null) {
         const diff = Math.abs(preparation.measuredPh - recipe.phTarget);
         if (diff > recipe.phTolerance) {
           errors.push(
-            `Measured pH ${preparation.measuredPh} is outside target ${recipe.phTarget} ± ${recipe.phTolerance}.`
+            t("wizard.reviewStep.validation.phOutOfTolerance", {
+              value: preparation.measuredPh,
+              target: recipe.phTarget,
+              tolerance: recipe.phTolerance
+            })
           );
         }
       }
     }
 
     return errors;
-  }, [preparation, recipe]);
+  }, [preparation, recipe, t]);
 
   const canProceed = validationErrors.length === 0 && !signing;
 
@@ -98,16 +106,16 @@ export function ReviewStep({
     <Stack spacing={3}>
       <Paper variant="outlined" sx={{ p: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-          Step 3: Review Preparation
+          {t("wizard.reviewStep.heading")}
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 3 }}>
-          Review the preparation parameters, components, and consumed lot quantities before electronic signature.
+          {t("wizard.reviewStep.subtitle")}
         </Typography>
 
         {validationErrors.length > 0 ? (
           <Alert severity="error" icon={<ErrorOutlinedIcon />} sx={{ mb: 3 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
-              Cannot complete preparation. Please correct the following:
+              {t("wizard.reviewStep.cannotComplete")}
             </Typography>
             <Stack spacing={0.5} component="ul" sx={{ pl: 2, m: 0 }}>
               {validationErrors.map((err, idx) => (
@@ -119,7 +127,7 @@ export function ReviewStep({
           </Alert>
         ) : (
           <Alert severity="success" icon={<CheckCircleOutlinedIcon />} sx={{ mb: 3 }}>
-            All requirements satisfied. Ready for electronic signature and stock deduction.
+            {t("wizard.reviewStep.ready")}
           </Alert>
         )}
 
@@ -127,7 +135,7 @@ export function ReviewStep({
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Solution Recipe
+              {t("wizard.reviewStep.meta.solutionRecipe")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>
               {preparation.solutionMasterName}
@@ -135,23 +143,23 @@ export function ReviewStep({
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Type
+              {t("wizard.reviewStep.meta.type")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {solutionTypeLabel(preparation.type)}
+              {solutionTypeLabel(preparation.type, t)}
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              HPLC Method
+              {t("wizard.reviewStep.meta.hplcMethod")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {preparation.hplcMethodAbbreviation || "—"}
+              {preparation.hplcMethodAbbreviation ? <Ltr>{preparation.hplcMethodAbbreviation}</Ltr> : "—"}
             </Typography>
           </Box>
           <Box>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              Laboratory Section
+              {t("wizard.reviewStep.meta.laboratorySection")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {preparation.sectionName || "—"}
@@ -164,25 +172,33 @@ export function ReviewStep({
         {/* Quantities & Parameters */}
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", mb: 3 }}>
           <Chip
-            label={`Final Volume: ${preparation.finalVolumeMl ?? "—"} mL`}
+            label={
+              <Trans i18nKey="wizard.reviewStep.finalVolumeChip" ns="solutionPreparation" values={{ value: preparation.finalVolumeMl ?? "—" }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+            }
             color="primary"
             variant="outlined"
             sx={{ fontWeight: 600 }}
           />
           {preparation.measuredPh != null && (
             <Chip
-              label={`Measured pH: ${preparation.measuredPh}${recipe?.phTarget != null ? ` (Target: ${recipe.phTarget} ± ${recipe.phTolerance ?? 0})` : ""}`}
+              label={
+                recipe?.phTarget != null
+                  ? <Trans i18nKey="wizard.reviewStep.measuredPhTargetChip" ns="solutionPreparation" values={{ value: preparation.measuredPh, target: recipe.phTarget, tolerance: recipe.phTolerance ?? 0 }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+                  : <Trans i18nKey="wizard.reviewStep.measuredPhChip" ns="solutionPreparation" values={{ value: preparation.measuredPh }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              }
               color={recipe?.phTarget != null && recipe.phTolerance != null && Math.abs(preparation.measuredPh - recipe.phTarget) > recipe.phTolerance ? "error" : "default"}
               variant="outlined"
               sx={{ fontWeight: 600 }}
             />
           )}
           {recipe?.releaseRequired && (
-            <Chip label="Release required before use" variant="outlined" color="warning" sx={{ fontWeight: 600 }} />
+            <Chip label={t("wizard.reviewStep.releaseRequired")} variant="outlined" color="warning" sx={{ fontWeight: 600 }} />
           )}
           {recipe?.shelfLifeValue != null && (
             <Chip
-              label={`Shelf Life: ${recipe.shelfLifeValue} ${recipe.shelfLifeUnit}`}
+              label={
+                <Trans i18nKey="wizard.reviewStep.shelfLifeChip" ns="solutionPreparation" values={{ value: recipe.shelfLifeValue, unit: recipe.shelfLifeUnit }} components={{ ltr: <Ltr>{null}</Ltr> }} />
+              }
               variant="outlined"
               sx={{ fontWeight: 600 }}
             />
@@ -192,20 +208,20 @@ export function ReviewStep({
         {recipe?.sterilizationRequired && (
           <Box sx={{ mb: 3 }} data-testid="review-autoclave">
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-              Autoclave
+              {t("wizard.reviewStep.autoclaveHeading")}
             </Typography>
             {preparation.autoclaveEquipmentId ? (
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                <Chip variant="outlined" label={`Autoclave: ${preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}`}`} />
-                <Chip variant="outlined" label={`Program: ${preparation.autoclaveProgram ?? "—"}`} />
-                <Chip variant="outlined" label={`Load: ${preparation.loadType ?? "—"}`} />
-                <Chip variant="outlined" label={`Temperature: ${preparation.autoclaveTemperature ?? "—"} °C`} />
-                <Chip variant="outlined" label={`Cycle time: ${preparation.autoclaveCycleTime ?? "—"} min`} />
-                <Chip variant="outlined" label={`Cycle no.: ${preparation.autoclaveCycleNumber ?? "—"}`} />
+                <Chip variant="outlined" label={t("wizard.reviewStep.autoclaveChip", { value: preparation.autoclaveEquipmentName ?? `#${preparation.autoclaveEquipmentId}` })} />
+                <Chip variant="outlined" label={t("wizard.reviewStep.programChip", { value: preparation.autoclaveProgram ?? "—" })} />
+                <Chip variant="outlined" label={t("wizard.reviewStep.loadChip", { value: preparation.loadType ?? "—" })} />
+                <Chip variant="outlined" label={<Trans i18nKey="wizard.reviewStep.temperatureChip" ns="solutionPreparation" values={{ value: preparation.autoclaveTemperature ?? "—" }} components={{ ltr: <Ltr>{null}</Ltr> }} />} />
+                <Chip variant="outlined" label={<Trans i18nKey="wizard.reviewStep.cycleTimeChip" ns="solutionPreparation" values={{ value: preparation.autoclaveCycleTime ?? "—" }} components={{ ltr: <Ltr>{null}</Ltr> }} />} />
+                <Chip variant="outlined" label={<Trans i18nKey="wizard.reviewStep.cycleNoChip" ns="solutionPreparation" values={{ value: preparation.autoclaveCycleNumber ?? "—" }} components={{ ltr: <Ltr>{null}</Ltr> }} />} />
               </Box>
             ) : (
               <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
-                (Autoclave record not entered; the server will not accept completion without it)
+                {t("wizard.reviewStep.autoclaveMissing")}
               </Typography>
             )}
           </Box>
@@ -213,65 +229,65 @@ export function ReviewStep({
 
         {/* Components Table */}
         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
-          Components, Lots & Prepared Solutions
+          {t("wizard.reviewStep.componentsHeading")}
         </Typography>
 
         <TableContainer component={Paper} variant="outlined" sx={{ mb: 3 }}>
           <Table size="small">
             <TableHead sx={tableHeadSx(theme)}>
               <TableRow>
-                <TableCell sx={{ width: 40, fontWeight: 700 }}>#</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Reagent / Material</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Recipe Target</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Chosen Stock Lot / Prepared Solution</TableCell>
-                <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>Quantity Used</TableCell>
+                <TableCell sx={{ width: 40, fontWeight: 700 }}>{t("wizard.reviewStep.columns.order")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("wizard.reviewStep.columns.reagentMaterial")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("wizard.reviewStep.columns.recipeTarget")}</TableCell>
+                <TableCell sx={{ fontWeight: 700 }}>{t("wizard.reviewStep.columns.chosenLot")}</TableCell>
+                <TableCell sx={{ fontWeight: 700, textAlign: "right" }}>{t("wizard.reviewStep.columns.quantityUsed")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {preparation.components.map((c) =>
                 c.kind === "Text" ? (
                   <TableRow key={c.id}>
-                    <TableCell>{c.order}</TableCell>
+                    <TableCell><Ltr>{c.order}</Ltr></TableCell>
                     <TableCell colSpan={4}>
                       <Typography variant="body2" sx={{ fontStyle: "italic" }}>{c.text}</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
                   <TableRow key={c.id}>
-                    <TableCell>{c.order}</TableCell>
+                    <TableCell><Ltr>{c.order}</Ltr></TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {c.entryName}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {c.kind === "PreparedSolution" ? "Prepared solution" : c.entryCode}
+                        {c.kind === "PreparedSolution" ? t("wizard.reviewStep.preparedSolution") : <Ltr>{c.entryCode}</Ltr>}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      {c.recipeQuantity} {c.recipeUnit}
+                      <Ltr>{c.recipeQuantity} {c.recipeUnit}</Ltr>
                     </TableCell>
                     <TableCell>
                       {(c.kind === "PreparedSolution" ? c.sourcePreparationCode : c.lotBatchNumber) ? (
                         <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 700 }}>
-                          {c.kind === "PreparedSolution" ? c.sourcePreparationCode : c.lotBatchNumber}
+                          <Ltr>{c.kind === "PreparedSolution" ? c.sourcePreparationCode : c.lotBatchNumber}</Ltr>
                         </Typography>
                       ) : (
                         <Typography variant="caption" sx={{ color: "error.main", fontStyle: "italic" }}>
-                          (None selected)
+                          {t("wizard.reviewStep.noneSelected")}
                         </Typography>
                       )}
                     </TableCell>
                     <TableCell sx={{ textAlign: "right" }}>
                       {c.quantityUsed != null ? (
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          {c.quantityUsed} {c.kind === "PreparedSolution" ? c.recipeUnit ?? "" : c.lotUnit ?? ""}
+                          <Ltr>{c.quantityUsed} {c.kind === "PreparedSolution" ? c.recipeUnit ?? "" : c.lotUnit ?? ""}</Ltr>
                         </Typography>
                       ) : (
                         <Typography
                           variant="caption"
                           sx={{ color: c.kind === "PreparedSolution" ? "text.secondary" : "error.main", fontStyle: "italic" }}
                         >
-                          {c.kind === "PreparedSolution" ? "(Not recorded)" : "(None entered)"}
+                          {c.kind === "PreparedSolution" ? t("wizard.reviewStep.notRecorded") : t("wizard.reviewStep.noneEntered")}
                         </Typography>
                       )}
                     </TableCell>
@@ -288,7 +304,7 @@ export function ReviewStep({
             onClick={onBack}
             startIcon={<ArrowBackIcon />}
           >
-            Back to Edit
+            {t("wizard.reviewStep.backToEdit")}
           </Button>
 
           <Button
@@ -299,7 +315,7 @@ export function ReviewStep({
             startIcon={<LockOutlinedIcon />}
             sx={{ textTransform: "none", fontWeight: 700, px: 3 }}
           >
-            Sign & Complete Preparation
+            {t("wizard.reviewStep.signAndComplete")}
           </Button>
         </Box>
       </Paper>

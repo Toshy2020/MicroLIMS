@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 
@@ -35,8 +36,11 @@ public static class TestSectionLookup
         var missing = codeList.Where(c => !map.ContainsKey(c)).ToList();
         if (missing.Count > 0)
         {
+            var missingCodes = string.Join(", ", missing.Select(c => $"'{c}'"));
             throw new BusinessRuleException(
-                $"Test code(s) {string.Join(", ", missing.Select(c => $"'{c}'"))} are not in the Test Master. Add them to the Test Master with a laboratory section before creating this test.");
+                MessageCodes.TestDefinitionTestCodesNotInMaster,
+                $"Test code(s) {missingCodes} are not in the Test Master. Add them to the Test Master with a laboratory section before creating this test.",
+                new Dictionary<string, string> { ["testCodes"] = missingCodes });
         }
 
         return map;

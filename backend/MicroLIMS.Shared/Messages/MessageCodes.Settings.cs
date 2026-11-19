@@ -6,6 +6,8 @@ public static partial class MessageCodes
     public const string SettingsAlreadyHasValue = "Settings.AlreadyHasValue";
     public const string SettingsBackgroundJobNoImplementation = "Settings.BackgroundJobNoImplementation";
     public const string SettingsBackgroundJobNotFound = "Settings.BackgroundJobNotFound";
+    public const string SettingsEmailListInvalidAddress = "Settings.EmailListInvalidAddress";
+    public const string SettingsEmailListTooManyAddresses = "Settings.EmailListTooManyAddresses";
     public const string SettingsLabTimeZoneNotFound = "Settings.LabTimeZoneNotFound";
     public const string SettingsMfaRequiresTwoAdmins = "Settings.MfaRequiresTwoAdmins";
     public const string SettingsMustBeAtLeast = "Settings.MustBeAtLeast";
@@ -24,6 +26,8 @@ public static partial class MessageCodes
         [SettingsAlreadyHasValue] = ["key", "value"],
         [SettingsBackgroundJobNoImplementation] = ["jobName"],
         [SettingsBackgroundJobNotFound] = [],
+        [SettingsEmailListInvalidAddress] = ["key", "addresses"],
+        [SettingsEmailListTooManyAddresses] = ["key", "maxAddresses"],
         [SettingsLabTimeZoneNotFound] = ["timeZoneId"],
         [SettingsMfaRequiresTwoAdmins] = [],
         [SettingsMustBeAtLeast] = ["key", "min", "unitSuffix"],

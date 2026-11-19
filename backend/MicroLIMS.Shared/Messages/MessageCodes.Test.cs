@@ -39,6 +39,7 @@ public static partial class MessageCodes
     public const string TestMoistureBasisConflict = "Test.MoistureBasisConflict";
     public const string TestNoConditionFieldsConfigured = "Test.NoConditionFieldsConfigured";
     public const string TestNoLocationsAssigned = "Test.NoLocationsAssigned";
+    public const string TestNoResultEntered = "Test.NoResultEntered";
     public const string TestNoSpecifications = "Test.NoSpecifications";
     public const string TestNoWorkflowSteps = "Test.NoWorkflowSteps";
     public const string TestNoWorkflowTemplate = "Test.NoWorkflowTemplate";
@@ -58,6 +59,9 @@ public static partial class MessageCodes
     public const string TestParameterResultCountMismatch = "Test.ParameterResultCountMismatch";
     public const string TestParameterResultRequired = "Test.ParameterResultRequired";
     public const string TestPhyschemAreaRequired = "Test.PhyschemAreaRequired";
+    public const string TestPreparationLocationsMissing = "Test.PreparationLocationsMissing";
+    public const string TestPreparationNotConfirmed = "Test.PreparationNotConfirmed";
+    public const string TestPreparationNotConfirmedToStart = "Test.PreparationNotConfirmedToStart";
     public const string TestReadingsCountMismatch = "Test.ReadingsCountMismatch";
     public const string TestReplacedByRetest = "Test.ReplacedByRetest";
     public const string TestReplicateCountInvalid = "Test.ReplicateCountInvalid";
@@ -73,6 +77,7 @@ public static partial class MessageCodes
     public const string TestWeightVariationNeedsOneSpec = "Test.WeightVariationNeedsOneSpec";
     public const string TestWorkflowAlreadyAtStep = "Test.WorkflowAlreadyAtStep";
     public const string TestWorkflowLockedByStatus = "Test.WorkflowLockedByStatus";
+    public const string TestWorkflowStepsIncomplete = "Test.WorkflowStepsIncomplete";
     public const string TestWrongWorkflowType = "Test.WrongWorkflowType";
 
     private static Dictionary<string, string[]> TestParameters() => new()
@@ -113,6 +118,7 @@ public static partial class MessageCodes
         [TestMoistureBasisConflict] = ["test"],
         [TestNoConditionFieldsConfigured] = [],
         [TestNoLocationsAssigned] = [],
+        [TestNoResultEntered] = [],
         [TestNoSpecifications] = [],
         [TestNoWorkflowSteps] = ["testCode"],
         [TestNoWorkflowTemplate] = ["testCode"],
@@ -132,6 +138,9 @@ public static partial class MessageCodes
         [TestParameterResultCountMismatch] = ["expected", "received"],
         [TestParameterResultRequired] = [],
         [TestPhyschemAreaRequired] = [],
+        [TestPreparationLocationsMissing] = [],
+        [TestPreparationNotConfirmed] = ["sampleReference"],
+        [TestPreparationNotConfirmedToStart] = ["sampleReference"],
         [TestReadingsCountMismatch] = ["replicateCount"],
         [TestReplacedByRetest] = ["testCode"],
         [TestReplicateCountInvalid] = [],
@@ -147,6 +156,7 @@ public static partial class MessageCodes
         [TestWeightVariationNeedsOneSpec] = [],
         [TestWorkflowAlreadyAtStep] = ["step", "testOrderId"],
         [TestWorkflowLockedByStatus] = ["status", "testCode"],
+        [TestWorkflowStepsIncomplete] = [],
         [TestWrongWorkflowType] = ["testOrderId", "workflowType"],
     };
 }

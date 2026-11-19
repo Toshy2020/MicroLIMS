@@ -3,6 +3,8 @@ namespace MicroLIMS.Shared.Messages;
 // MasterData.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string MasterDataCoaOrderOutOfRange = "MasterData.CoaOrderOutOfRange";
+    public const string MasterDataCoaOrderOutOfRangeAllowClear = "MasterData.CoaOrderOutOfRangeAllowClear";
     public const string MasterDataCommentTooLong = "MasterData.CommentTooLong";
     public const string MasterDataFileEmpty = "MasterData.FileEmpty";
     public const string MasterDataFileNameTooLong = "MasterData.FileNameTooLong";
@@ -18,9 +20,12 @@ public static partial class MessageCodes
     public const string MasterDataTestDefinitionNotFound = "MasterData.TestDefinitionNotFound";
     public const string MasterDataVerifierMustBeSecondPerson = "MasterData.VerifierMustBeSecondPerson";
     public const string MasterDataWorkbookFormatError = "MasterData.WorkbookFormatError";
+    public const string MasterDataWorkbookTransactionRequired = "MasterData.WorkbookTransactionRequired";
 
     private static Dictionary<string, string[]> MasterDataParameters() => new()
     {
+        [MasterDataCoaOrderOutOfRange] = ["max"],
+        [MasterDataCoaOrderOutOfRangeAllowClear] = ["max"],
         [MasterDataCommentTooLong] = ["maxCommentLength"],
         [MasterDataFileEmpty] = [],
         [MasterDataFileNameTooLong] = ["maxFileNameLength"],
@@ -36,5 +41,6 @@ public static partial class MessageCodes
         [MasterDataTestDefinitionNotFound] = ["id"],
         [MasterDataVerifierMustBeSecondPerson] = [],
         [MasterDataWorkbookFormatError] = ["message"],
+        [MasterDataWorkbookTransactionRequired] = [],
     };
 }

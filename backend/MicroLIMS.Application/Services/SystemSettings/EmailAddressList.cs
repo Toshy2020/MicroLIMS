@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Net.Mail;
 
 namespace MicroLIMS.Application.Services.SystemSettings;
@@ -34,10 +36,27 @@ public static class EmailAddressList
     {
         var addresses = Parse(raw);
         if (addresses.Count > maxAddresses)
-            throw new BusinessRuleException($"'{key}' accepts at most {maxAddresses} addresses.");
+            throw new BusinessRuleException(
+                MessageCodes.SettingsEmailListTooManyAddresses,
+                $"'{key}' accepts at most {maxAddresses} addresses.",
+                new Dictionary<string, string>
+                {
+                    ["key"] = key,
+                    ["maxAddresses"] = maxAddresses.ToString(CultureInfo.InvariantCulture)
+                });
         var invalid = addresses.Where(a => !IsValidAddress(a)).ToList();
         if (invalid.Count > 0)
-            throw new BusinessRuleException($"'{key}' contains an invalid email address: {string.Join(", ", invalid.Take(3))}.");
+        {
+            var invalidPreview = string.Join(", ", invalid.Take(3));
+            throw new BusinessRuleException(
+                MessageCodes.SettingsEmailListInvalidAddress,
+                $"'{key}' contains an invalid email address: {invalidPreview}.",
+                new Dictionary<string, string>
+                {
+                    ["key"] = key,
+                    ["addresses"] = invalidPreview
+                });
+        }
         return string.Join(",", addresses);
     }
 }

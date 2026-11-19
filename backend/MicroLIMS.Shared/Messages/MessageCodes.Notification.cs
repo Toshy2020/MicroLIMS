@@ -6,6 +6,8 @@ public static partial class MessageCodes
     public const string NotificationEscalationRuleDuplicate = "Notification.EscalationRuleDuplicate";
     public const string NotificationEscalationRuleNotFound = "Notification.EscalationRuleNotFound";
     public const string NotificationEscalationRuleRetiredCannotReplace = "Notification.EscalationRuleRetiredCannotReplace";
+    public const string NotificationInvalidStateFilter = "Notification.InvalidStateFilter";
+    public const string NotificationNotFound = "Notification.NotFound";
     public const string NotificationSectionNotFound = "Notification.SectionNotFound";
     public const string NotificationWorkingHoursRequired = "Notification.WorkingHoursRequired";
 
@@ -14,6 +16,8 @@ public static partial class MessageCodes
         [NotificationEscalationRuleDuplicate] = [],
         [NotificationEscalationRuleNotFound] = ["ruleId"],
         [NotificationEscalationRuleRetiredCannotReplace] = [],
+        [NotificationInvalidStateFilter] = [],
+        [NotificationNotFound] = ["notificationId"],
         [NotificationSectionNotFound] = ["sectionId"],
         [NotificationWorkingHoursRequired] = [],
     };

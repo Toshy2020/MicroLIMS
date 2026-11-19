@@ -241,7 +241,7 @@ export function Tour({ steps, onFinish }: TourProps) {
       placement="bottom-start"
       modifiers={[
         { name: "offset", options: { offset: [0, 10] } },
-        { name: "preventOverflow", options: { padding: 12 } }
+        { name: "preventOverflow", options: { padding: 12, altBoundary: true, rootBoundary: "viewport" } }
       ]}
       sx={{ zIndex: theme.zIndex.modal - 1 }}
     >

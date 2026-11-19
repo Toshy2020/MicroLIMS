@@ -317,28 +317,30 @@ export function EquipmentInventoryPage() {
           )}
 
           {activeTab === 0 ? (
-            <RegisterTable
-              columns={columns}
-              rows={filteredItems}
-              getRowId={(eq) => eq.id}
-              tableKey={TABLE_KEY}
-              tableState={tableState}
-              toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
-              loading={loading || !items}
-              pageSize={25}
-              onRowClick={(eq) => setDetailsItem(eq)}
-              rowTone={(eq) => (isEquipmentCalibrationOverdue(eq) ? "detected" : isEquipmentCalibrationDueSoon(eq, 30) ? "inconclusive" : undefined)}
-              rowActions={(eq) => [
-                { label: t("equipment.page.actions.detailsAndDocs"), onClick: () => setDetailsItem(eq) },
-                { label: t("equipment.page.actions.edit"), onClick: () => openEdit(eq) },
-                ...(canSeeHistory ? [{ label: t("equipment.page.actions.auditHistory"), onClick: () => setHistoryFor(eq.id) }] : [])
-              ]}
-              empty={
-                isFiltered
-                  ? { title: t("equipment.page.emptyFiltered.title"), description: t("equipment.page.emptyFiltered.description") }
-                  : { title: t("equipment.page.empty.title"), description: t("equipment.page.empty.description"), action: registerButton }
-              }
-            />
+            <Box sx={{ "& .MuiTableCell-root": { px: 1.25 } }}>
+              <RegisterTable
+                columns={columns}
+                rows={filteredItems}
+                getRowId={(eq) => eq.id}
+                tableKey={TABLE_KEY}
+                tableState={tableState}
+                toolbar={<TableToolbar tableKey={TABLE_KEY} tableState={tableState} showSearch={false} />}
+                loading={loading || !items}
+                pageSize={25}
+                onRowClick={(eq) => setDetailsItem(eq)}
+                rowTone={(eq) => (isEquipmentCalibrationOverdue(eq) ? "detected" : isEquipmentCalibrationDueSoon(eq, 30) ? "inconclusive" : undefined)}
+                rowActions={(eq) => [
+                  { label: t("equipment.page.actions.detailsAndDocs"), onClick: () => setDetailsItem(eq) },
+                  { label: t("equipment.page.actions.edit"), onClick: () => openEdit(eq) },
+                  ...(canSeeHistory ? [{ label: t("equipment.page.actions.auditHistory"), onClick: () => setHistoryFor(eq.id) }] : [])
+                ]}
+                empty={
+                  isFiltered
+                    ? { title: t("equipment.page.emptyFiltered.title"), description: t("equipment.page.emptyFiltered.description") }
+                    : { title: t("equipment.page.empty.title"), description: t("equipment.page.empty.description"), action: registerButton }
+                }
+              />
+            </Box>
           ) : loading || !items ? (
             <TableSkeleton rows={8} cols={7} hasContainer={false} />
           ) : (

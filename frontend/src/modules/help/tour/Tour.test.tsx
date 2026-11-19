@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { ThemeProvider, type Theme } from "@mui/material/styles";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
 import { BenchModeProvider } from "../../../theme/BenchModeContext";
 import { ThemeModeProvider } from "../../../theme/ThemeModeContext";
@@ -588,5 +589,27 @@ describe("First-login tour", () => {
     } finally {
       Reflect.deleteProperty(HTMLElement.prototype, "scrollIntoView");
     }
+  });
+
+  it("uses bottom-end placement in RTL so the popover stays on screen", async () => {
+    const onFinish = vi.fn();
+    render(
+      <PinnedLightTheme>
+        <ThemeProvider theme={(outer: Theme): Theme => ({ ...outer, direction: "rtl" })}>
+          <MemoryRouter>
+            <main id="main-content" tabIndex={-1}>
+              <button type="button" data-tour="alpha">Alpha target</button>
+            </main>
+            <Tour steps={SAMPLE_STEPS} onFinish={onFinish} />
+          </MemoryRouter>
+        </ThemeProvider>
+      </PinnedLightTheme>
+    );
+
+    const dialog = await screen.findByRole("dialog", { name: "Alpha area" });
+    const popper = dialog.closest("[data-popper-placement]");
+    await waitFor(() => {
+      expect(popper?.getAttribute("data-popper-placement")).toBe("bottom-end");
+    });
   });
 });

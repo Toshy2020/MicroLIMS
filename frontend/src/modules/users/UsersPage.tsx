@@ -364,7 +364,7 @@ export function UsersPage() {
               xs: "1fr",
               sm: "1fr 1fr",
               md: "repeat(3, 1fr)",
-              lg: "1.2fr 1fr 1.2fr 1fr 1.2fr 1.2fr 1.2fr auto"
+              lg: "repeat(4, minmax(180px, 1fr))"
             },
             gap: 2,
             alignItems: "start"

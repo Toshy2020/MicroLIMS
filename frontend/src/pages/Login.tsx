@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Box, TextField, Button, Typography, Alert, Link, Stack, useTheme,
-  IconButton, InputAdornment, CircularProgress, Checkbox, FormControlLabel
-} from "@mui/material";
+import { Box, TextField, Button, Typography, Alert, Link, Stack, useTheme, IconButton, InputAdornment, CircularProgress, Checkbox, FormControlLabel } from "@mui/material";
+import { visuallyHidden } from "@mui/utils";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
@@ -68,14 +66,6 @@ function clearStoredDeviceToken(): void {
   }
 }
 
-const visuallyHiddenSx = {
-  position: "absolute",
-  width: 1,
-  height: 1,
-  overflow: "hidden",
-  clipPath: "inset(50%)",
-  whiteSpace: "nowrap"
-} as const;
 
 export interface LoginPageProps {
   /** Clock function used for client-side MFA challenge expiry tracking; defaults to `Date.now`. */
@@ -437,7 +427,7 @@ export function LoginPage({ now = Date.now }: LoginPageProps) {
 
       <Box sx={{ display: "flex", alignItems: { xs: "flex-start", md: "center" }, justifyContent: "center", px: { xs: 2.5, md: 3 }, py: { xs: 3.5, md: 5 } }}>
         <Box sx={{ width: "100%", maxWidth: 400 }}>
-          <Box role="status" aria-live="polite" sx={visuallyHiddenSx}>
+          <Box role="status" aria-live="polite" sx={visuallyHidden}>
             {stepAnnouncement}
           </Box>
 

@@ -22,12 +22,12 @@ import { HelpPanelProvider, useHelpPanel } from "../modules/help/HelpPanelContex
 import { MenuGroupsProvider } from "../modules/navigation/MenuGroupsContext";
 import { HelpPanelSlot } from "../modules/help/HelpPanelSlot";
 import { Tour } from "../modules/help/tour/Tour";
-import { TOUR_STEPS, tourStateKey, type RoleType } from "../modules/help/tour/tourSteps";
+import { getTourSteps, TOUR_STEPS, tourStateKey, type RoleType } from "../modules/help/tour/tourSteps";
 import { WhatsNewDialog } from "../modules/help/whatsNew/WhatsNewDialog";
 import {
+  getReleaseNotes,
   isNewerVersion,
   itemsForRole,
-  RELEASE_NOTES,
   WHATS_NEW_STATE_KEY,
   type ReleaseNote
 } from "../modules/help/whatsNew/releaseNotes";
@@ -75,6 +75,7 @@ function FirstLoginTour({
   onActiveChange?: (active: boolean) => void;
 }) {
   const { t } = useTranslation();
+  const { t: tHelp } = useTranslation("help");
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
   const location = useLocation();
@@ -108,7 +109,7 @@ function FirstLoginTour({
   return (
     <Tour
       key={isReplayActive ? `replay-${tourReplaySeq}` : `auto-${tourKey}`}
-      steps={TOUR_STEPS[validRole]}
+      steps={getTourSteps(tHelp)[validRole]}
       onFinish={(result) => {
         setDismissedKey(tourKey);
         if (isReplayActive) {
@@ -180,13 +181,14 @@ function BenchOffer({ tourActive }: { tourActive: boolean }) {
 function WhatsNewPrompt({
   mfaStatus,
   mfaLoaded,
-  notes = RELEASE_NOTES
+  notes
 }: {
   mfaStatus: MfaStatus | null;
   mfaLoaded: boolean;
   notes?: readonly ReleaseNote[];
 }) {
   const { t } = useTranslation();
+  const { t: tHelp } = useTranslation("help");
   const { role, mustChangePassword, signingPasswordRequired } = useAuth();
   const { tourReplaySeq } = useHelpPanel();
   const location = useLocation();
@@ -220,7 +222,8 @@ function WhatsNewPrompt({
   }, [tourDueNow, tourBlockedSession]);
 
   const tourBlocking = tourBlockedSession || tourDueNow;
-  const latestNote = notes[0];
+  const resolvedNotes = notes ?? getReleaseNotes(tHelp);
+  const latestNote = resolvedNotes[0];
   const isNewer = latestNote !== undefined && isNewerVersion(__APP_VERSION__, whatsNewState.value);
   const visibleItems = useMemo(
     () => (latestNote && validRole ? itemsForRole(latestNote, validRole) : []),

@@ -1,5 +1,7 @@
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using System.Globalization;
+using MicroLIMS.Shared.Messages;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -101,7 +103,8 @@ public class MaterialDocumentService
         // Verify material exists and record a View access event.
         var materialExists = await _db.Materials.AnyAsync(m => m.Id == materialId);
         if (!materialExists)
-            throw new NotFoundException($"Material {materialId} not found.");
+            throw new NotFoundException(MessageCodes.MaterialMaterialNotFound, $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
 
         var docs = await _db.MaterialDocuments
             .Where(d => d.MaterialId == materialId)
@@ -130,13 +133,15 @@ public class MaterialDocumentService
 
         // Verify material.
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new NotFoundException($"Material {materialId} not found.");
+            ?? throw new NotFoundException(MessageCodes.MaterialMaterialNotFound, $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
 
         // Server-side file validation.
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(MessageCodes.MaterialDocumentValidationFailed, error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -194,7 +199,12 @@ public class MaterialDocumentService
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException(MessageCodes.MaterialDocumentNotFoundForMaterial, $"Document {documentId} not found for material {materialId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture)
+                });
 
         byte[] content;
         try
@@ -204,7 +214,7 @@ public class MaterialDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for MaterialDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new BusinessRuleException("The document file could not be retrieved.");
+            throw new BusinessRuleException(MessageCodes.MaterialDocumentFileReadFailed, "The document file could not be retrieved.");
         }
 
         // Integrity verification.
@@ -215,7 +225,7 @@ public class MaterialDocumentService
                 "INTEGRITY FAILURE: MaterialDocument {Id} (material {MaterialId}) stored hash {Stored} does not match computed hash {Computed}.",
                 document.Id, document.MaterialId, document.ContentSha256, computedHash);
             await RecordAccessAsync(document.Id, materialId, requestingUserId, MaterialDocumentAccessAction.Download);
-            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException(MessageCodes.MaterialDocumentIntegrityCheckFailed, "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         await RecordAccessAsync(document.Id, materialId, requestingUserId, MaterialDocumentAccessAction.Download);
@@ -240,20 +250,26 @@ public class MaterialDocumentService
         await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
 
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A supersession reason is required.");
+            throw new BusinessRuleException(MessageCodes.MaterialSupersessionReasonRequired, "A supersession reason is required.");
 
         var old = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException(MessageCodes.MaterialDocumentNotFoundForMaterial, $"Document {documentId} not found for material {materialId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (old.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("A voided document cannot be superseded. Upload a new document instead.");
+            throw new BusinessRuleException(MessageCodes.MaterialVoidedDocumentCannotBeSuperseded, "A voided document cannot be superseded. Upload a new document instead.");
 
         // Validate the replacement file.
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(MessageCodes.MaterialDocumentValidationFailed, error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -327,14 +343,19 @@ public class MaterialDocumentService
         await _scope.EnsureMaterialAccessAsync(actingUserId, materialId);
 
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A void reason is required.");
+            throw new BusinessRuleException(MessageCodes.MaterialVoidReasonRequired, "A void reason is required.");
 
         var document = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.MaterialId == materialId)
-            ?? throw new NotFoundException($"Document {documentId} not found for material {materialId}.");
+            ?? throw new NotFoundException(MessageCodes.MaterialDocumentNotFoundForMaterial, $"Document {documentId} not found for material {materialId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (document.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("This document is already voided.");
+            throw new BusinessRuleException(MessageCodes.MaterialDocumentAlreadyVoided, "This document is already voided.");
 
         document.Status = MaterialDocumentStatus.Voided;
         document.VoidedAt = _time.GetUtcNow().UtcDateTime;
@@ -363,7 +384,8 @@ public class MaterialDocumentService
     public async Task<CoeEligibilityResult> GetCOAEligibilityAsync(int materialId)
     {
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new NotFoundException($"Material {materialId} not found.");
+            ?? throw new NotFoundException(MessageCodes.MaterialMaterialNotFound, $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
 
         var required = MaterialCategoryRules.IsCoaRequired(material.MaterialType, await MaterialCategoryRules.CategoryOfAsync(_db, material));
         if (!required)
@@ -403,7 +425,8 @@ public class MaterialDocumentService
     {
         var doc = await _db.MaterialDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new NotFoundException($"Document {documentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.MaterialDocumentNotFound, $"Document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture) });
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

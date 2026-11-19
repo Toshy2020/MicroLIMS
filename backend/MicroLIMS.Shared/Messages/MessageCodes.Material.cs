@@ -4,16 +4,31 @@ namespace MicroLIMS.Shared.Messages;
 public static partial class MessageCodes
 {
     public const string MaterialCategoryCannotChangeOnUpdate = "Material.CategoryCannotChangeOnUpdate";
+    public const string MaterialCategoryCodePrefixFormat = "Material.CategoryCodePrefixFormat";
+    public const string MaterialCategoryCodePrefixLockedByEntries = "Material.CategoryCodePrefixLockedByEntries";
     public const string MaterialCategoryInactive = "Material.CategoryInactive";
+    public const string MaterialCategoryNameExists = "Material.CategoryNameExists";
+    public const string MaterialCategoryNameRequired = "Material.CategoryNameRequired";
+    public const string MaterialCategoryNameTooLong = "Material.CategoryNameTooLong";
     public const string MaterialCategoryNotFound = "Material.CategoryNotFound";
     public const string MaterialCategoryNotInLab = "Material.CategoryNotInLab";
     public const string MaterialCategoryNotInOwnerLab = "Material.CategoryNotInOwnerLab";
     public const string MaterialCategoryOnlyForOther = "Material.CategoryOnlyForOther";
+    public const string MaterialCategoryPrefixExists = "Material.CategoryPrefixExists";
+    public const string MaterialCategoryPrefixReserved = "Material.CategoryPrefixReserved";
     public const string MaterialCategoryRequiredForOther = "Material.CategoryRequiredForOther";
+    public const string MaterialCategorySectionsInvalid = "Material.CategorySectionsInvalid";
+    public const string MaterialChangeReasonRequired = "Material.ChangeReasonRequired";
     public const string MaterialCodeChangeReasonRequired = "Material.CodeChangeReasonRequired";
     public const string MaterialCurrentCoaRequired = "Material.CurrentCoaRequired";
     public const string MaterialCustomTypeNotAcceptedOnCreate = "Material.CustomTypeNotAcceptedOnCreate";
     public const string MaterialCustomTypeNotAcceptedOnUpdate = "Material.CustomTypeNotAcceptedOnUpdate";
+    public const string MaterialDocumentAlreadyVoided = "Material.DocumentAlreadyVoided";
+    public const string MaterialDocumentFileReadFailed = "Material.DocumentFileReadFailed";
+    public const string MaterialDocumentIntegrityCheckFailed = "Material.DocumentIntegrityCheckFailed";
+    public const string MaterialDocumentNotFound = "Material.DocumentNotFound";
+    public const string MaterialDocumentNotFoundForMaterial = "Material.DocumentNotFoundForMaterial";
+    public const string MaterialDocumentValidationFailed = "Material.DocumentValidationFailed";
     public const string MaterialExpiryDateRequiredForCategory = "Material.ExpiryDateRequiredForCategory";
     public const string MaterialIndicatorFieldsOnlyForIndicators = "Material.IndicatorFieldsOnlyForIndicators";
     public const string MaterialInsufficientStock = "Material.InsufficientStock";
@@ -34,6 +49,7 @@ public static partial class MessageCodes
     public const string MaterialMasterEntryWrongCategory = "Material.MasterEntryWrongCategory";
     public const string MaterialMasterMaterialCategoryLockedByStock = "Material.MasterMaterialCategoryLockedByStock";
     public const string MaterialMasterOwnerLabOnly = "Material.MasterOwnerLabOnly";
+    public const string MaterialMaterialNotFound = "Material.MaterialNotFound";
     public const string MaterialMediaProductInactive = "Material.MediaProductInactive";
     public const string MaterialMediaProductLockedByLots = "Material.MediaProductLockedByLots";
     public const string MaterialMediaProductRequired = "Material.MediaProductRequired";
@@ -41,6 +57,7 @@ public static partial class MessageCodes
     public const string MaterialMoistureOutOfRange = "Material.MoistureOutOfRange";
     public const string MaterialNewCodeMustDiffer = "Material.NewCodeMustDiffer";
     public const string MaterialOrganismMismatch = "Material.OrganismMismatch";
+    public const string MaterialPasswordRequiredToSignChange = "Material.PasswordRequiredToSignChange";
     public const string MaterialPurityOnlyForStandards = "Material.PurityOnlyForStandards";
     public const string MaterialPurityOutOfRange = "Material.PurityOutOfRange";
     public const string MaterialPurityRequiredPrimaryStandard = "Material.PurityRequiredPrimaryStandard";
@@ -51,25 +68,43 @@ public static partial class MessageCodes
     public const string MaterialReferenceOrganismOnlyForLyophilized = "Material.ReferenceOrganismOnlyForLyophilized";
     public const string MaterialReferenceOrganismRequired = "Material.ReferenceOrganismRequired";
     public const string MaterialStorageConditionTooLong = "Material.StorageConditionTooLong";
+    public const string MaterialSupersessionReasonRequired = "Material.SupersessionReasonRequired";
     public const string MaterialTransitionRangeInvalid = "Material.TransitionRangeInvalid";
     public const string MaterialTypeNotOfferedInLab = "Material.TypeNotOfferedInLab";
     public const string MaterialUnexpectedType = "Material.UnexpectedType";
+    public const string MaterialVoidReasonRequired = "Material.VoidReasonRequired";
+    public const string MaterialVoidedDocumentCannotBeSuperseded = "Material.VoidedDocumentCannotBeSuperseded";
     public const string MaterialWorkingStandardCreatedByQualification = "Material.WorkingStandardCreatedByQualification";
     public const string MaterialWorkingStandardUpdateBlocked = "Material.WorkingStandardUpdateBlocked";
 
     private static Dictionary<string, string[]> MaterialParameters() => new()
     {
         [MaterialCategoryCannotChangeOnUpdate] = [],
+        [MaterialCategoryCodePrefixFormat] = [],
+        [MaterialCategoryCodePrefixLockedByEntries] = [],
         [MaterialCategoryInactive] = ["name"],
+        [MaterialCategoryNameExists] = ["name"],
+        [MaterialCategoryNameRequired] = [],
+        [MaterialCategoryNameTooLong] = [],
         [MaterialCategoryNotFound] = ["categoryId"],
         [MaterialCategoryNotInLab] = ["name"],
         [MaterialCategoryNotInOwnerLab] = ["name"],
         [MaterialCategoryOnlyForOther] = [],
+        [MaterialCategoryPrefixExists] = ["prefix"],
+        [MaterialCategoryPrefixReserved] = ["prefix"],
         [MaterialCategoryRequiredForOther] = [],
+        [MaterialCategorySectionsInvalid] = [],
+        [MaterialChangeReasonRequired] = [],
         [MaterialCodeChangeReasonRequired] = [],
         [MaterialCurrentCoaRequired] = ["materialName", "batchNumber"],
         [MaterialCustomTypeNotAcceptedOnCreate] = [],
         [MaterialCustomTypeNotAcceptedOnUpdate] = [],
+        [MaterialDocumentAlreadyVoided] = [],
+        [MaterialDocumentFileReadFailed] = [],
+        [MaterialDocumentIntegrityCheckFailed] = [],
+        [MaterialDocumentNotFound] = ["documentId"],
+        [MaterialDocumentNotFoundForMaterial] = ["documentId", "materialId"],
+        [MaterialDocumentValidationFailed] = ["message"],
         [MaterialExpiryDateRequiredForCategory] = ["category"],
         [MaterialIndicatorFieldsOnlyForIndicators] = [],
         [MaterialInsufficientStock] = ["materialName", "batchNumber", "remaining", "unit", "requested"],
@@ -90,6 +125,7 @@ public static partial class MessageCodes
         [MaterialMasterEntryWrongCategory] = ["code", "actual", "expected"],
         [MaterialMasterMaterialCategoryLockedByStock] = [],
         [MaterialMasterOwnerLabOnly] = [],
+        [MaterialMaterialNotFound] = ["materialId"],
         [MaterialMediaProductInactive] = ["name"],
         [MaterialMediaProductLockedByLots] = ["batchNumber"],
         [MaterialMediaProductRequired] = [],
@@ -97,6 +133,7 @@ public static partial class MessageCodes
         [MaterialMoistureOutOfRange] = [],
         [MaterialNewCodeMustDiffer] = [],
         [MaterialOrganismMismatch] = [],
+        [MaterialPasswordRequiredToSignChange] = [],
         [MaterialPurityOnlyForStandards] = [],
         [MaterialPurityOutOfRange] = [],
         [MaterialPurityRequiredPrimaryStandard] = [],
@@ -107,9 +144,12 @@ public static partial class MessageCodes
         [MaterialReferenceOrganismOnlyForLyophilized] = [],
         [MaterialReferenceOrganismRequired] = [],
         [MaterialStorageConditionTooLong] = [],
+        [MaterialSupersessionReasonRequired] = [],
         [MaterialTransitionRangeInvalid] = [],
         [MaterialTypeNotOfferedInLab] = ["typeLabel"],
         [MaterialUnexpectedType] = ["materialName", "expectedType"],
+        [MaterialVoidReasonRequired] = [],
+        [MaterialVoidedDocumentCannotBeSuperseded] = [],
         [MaterialWorkingStandardCreatedByQualification] = [],
         [MaterialWorkingStandardUpdateBlocked] = [],
     };

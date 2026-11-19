@@ -34,6 +34,7 @@ public static partial class MessageCodes
         SampleParameters(),
         SolutionParameters(),
         SpecificationParameters(),
+        TestDefinitionParameters(),
         TestParameters(),
         TitrantParameters(),
         TitrationParameters(),

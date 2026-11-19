@@ -27,6 +27,8 @@ import { VirtualBody } from "./table/VirtualBody";
 export interface RegisterColumn<T> {
   key: keyof T | string;
   label: string;
+  // English column title for the CSV export (the file is English whatever the interface language).
+  exportLabel?: string;
   render?: (row: T) => ReactNode;
   align?: "left" | "right" | "center";
   sortable?: boolean;
@@ -292,7 +294,7 @@ function RegisterTableInner<T>({
           await exportRegisterRows({
             tableKey,
             rows: exportRows,
-            columns: displayedColumns.map((c) => ({ key: String(c.key), label: c.label, sortValue: c.sortValue, exportValue: c.exportValue })),
+            columns: displayedColumns.map((c) => ({ key: String(c.key), label: c.label, exportLabel: c.exportLabel, sortValue: c.sortValue, exportValue: c.exportValue })),
             getRowId,
             filters: tableState?.state.filters ?? {},
             search: tableState?.state.search ?? "",

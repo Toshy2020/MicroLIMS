@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -38,13 +39,17 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Document Master {documentMasterId} not found.");
 
         if (master.RecordStatus == DocumentRecordStatus.Void)
-            throw new BusinessRuleException("Cannot propose revision for a voided document.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentVoidedCannotProposeRevision,
+                "Cannot propose revision for a voided document.");
 
         var effectiveRev = master.Revisions.FirstOrDefault(r =>
             r.Id == master.CurrentEffectiveRevisionId || r.RevisionStatus == DocumentRevisionStatus.Effective);
 
         if (effectiveRev == null)
-            throw new BusinessRuleException("Cannot propose a revision: Document Master has no currently effective revision.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentNoEffectiveRevisionCannotPropose,
+                "Cannot propose a revision: Document Master has no currently effective revision.");
 
         var proposed = ComputeNextRevisionNumber(effectiveRev.RevisionNumber, revisionType);
 
@@ -67,14 +72,18 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Document Master {documentMasterId} not found.");
 
         if (master.RecordStatus == DocumentRecordStatus.Void)
-            throw new BusinessRuleException("Cannot create a revision for a voided document.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentVoidedCannotCreateRevision,
+                "Cannot create a revision for a voided document.");
 
         // 2. Precondition: Master must have an effective revision
         var effectiveRev = master.Revisions.FirstOrDefault(r =>
             r.Id == master.CurrentEffectiveRevisionId || r.RevisionStatus == DocumentRevisionStatus.Effective);
 
         if (effectiveRev == null)
-            throw new BusinessRuleException("Cannot create a new revision from an effective document because this document has no effective revision.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentNoEffectiveRevisionCannotCreate,
+                "Cannot create a new revision from an effective document because this document has no effective revision.");
 
         // 3. Precondition: No revision currently in Draft, InReview, or AwaitingApproval
         var hasActiveWorkflowRevision = master.Revisions.Any(r =>
@@ -83,7 +92,9 @@ public class DocumentRevisionService : IDocumentRevisionService
             r.RevisionStatus == DocumentRevisionStatus.AwaitingApproval);
 
         if (hasActiveWorkflowRevision)
-            throw new BusinessRuleException("Cannot create a new revision while another revision is currently in draft or review/approval workflow.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentActiveWorkflowRevisionExists,
+                "Cannot create a new revision while another revision is currently in draft or review/approval workflow.");
 
         // 4. Mandatory Change Reason validation (>= 10 chars)
         if (string.IsNullOrWhiteSpace(request.ReasonForRevision) || request.ReasonForRevision.Trim().Length < 10)
@@ -127,7 +138,10 @@ public class DocumentRevisionService : IDocumentRevisionService
             string.Equals(r.RevisionNumber, finalRevisionNumber, StringComparison.OrdinalIgnoreCase));
 
         if (duplicateExists)
-            throw new BusinessRuleException($"Revision number '{finalRevisionNumber}' already exists for this document.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentRevisionNumberAlreadyExists,
+                $"Revision number '{finalRevisionNumber}' already exists for this document.",
+                new Dictionary<string, string> { ["revisionNumber"] = finalRevisionNumber });
 
         // 7. Sequence Allocation
         var maxSequence = master.Revisions.Any() ? master.Revisions.Max(r => r.RevisionSequence) : 0;
@@ -212,7 +226,9 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Document Revision {revisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new BusinessRuleException("Change items can only be added while the revision is in Draft status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentChangeItemsOnlyAddInDraft,
+                "Change items can only be added while the revision is in Draft status.");
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)
@@ -285,7 +301,9 @@ public class DocumentRevisionService : IDocumentRevisionService
         RecordVersion.EnsureCurrent(_db, item);
 
         if (item.DocumentRevision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new BusinessRuleException("Change items can only be modified while the revision is in Draft status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentChangeItemsOnlyModifyInDraft,
+                "Change items can only be modified while the revision is in Draft status.");
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(item.DocumentRevision.DocumentMasterId, userId);
         if (!canEdit)
@@ -338,14 +356,18 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Revision Change Item {changeItemId} not found.");
 
         if (item.DocumentRevision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new BusinessRuleException("Change items can only be removed while the revision is in Draft status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentChangeItemsOnlyRemoveInDraft,
+                "Change items can only be removed while the revision is in Draft status.");
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(item.DocumentRevision.DocumentMasterId, userId);
         if (!canEdit)
             throw new UnauthorizedAccessException("You do not have permission to remove change items for this draft.");
 
         if (!item.IsActive)
-            throw new BusinessRuleException("Change item has already been removed.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentChangeItemAlreadyRemoved,
+                "Change item has already been removed.");
 
         item.IsActive = false;
         item.ModifiedAt = _time.GetUtcNow().UtcDateTime;
@@ -388,7 +410,9 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Document Revision {revisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new BusinessRuleException("Cannot transfer findings to a revision that is not in Draft status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentFindingsOnlyTransferInDraft,
+                "Cannot transfer findings to a revision that is not in Draft status.");
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)
@@ -447,7 +471,9 @@ public class DocumentRevisionService : IDocumentRevisionService
             ?? throw new KeyNotFoundException($"Document Revision {revisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Draft)
-            throw new BusinessRuleException("Impact assessment can only be saved or modified while the revision is in Draft status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentImpactAssessmentOnlyInDraft,
+                "Impact assessment can only be saved or modified while the revision is in Draft status.");
 
         var canEdit = await _authService.CanEditDraftMetadataAsync(revision.DocumentMasterId, userId);
         if (!canEdit)

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.MasterData;
 
@@ -27,7 +29,10 @@ public class TestWorkflowStepMasterDataService
     public async Task<TestDefinitionResponse> UpdateWorkflowTypeAsync(int currentUserId, int id, UpdateWorkflowTypeRequest request, CancellationToken cancellationToken = default)
     {
         var entity = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Test {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.WorkflowStepTestNotFound,
+                $"Test {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
         // Only the step-driven workflows (CountTest <-> Observation) can be
@@ -40,7 +45,9 @@ public class TestWorkflowStepMasterDataService
             or EquationType.GravimetricLoss or EquationType.GravimetricResidue
             or EquationType.UvSpectrophotometry;
         if (!StepDriven(entity.WorkflowType) || !StepDriven(request.WorkflowType) || dedicatedEquation)
-            throw new BusinessRuleException("The workflow type of this test is set by its test type; change it in the test settings.");
+            throw new BusinessRuleException(
+                MessageCodes.WorkflowStepTestWorkflowTypeLocked,
+                "The workflow type of this test is set by its test type; change it in the test settings.");
         entity.WorkflowType = request.WorkflowType;
         await _db.SaveChangesAsync(cancellationToken);
         return TestDefinitionResponse.From(entity);
@@ -82,10 +89,16 @@ public class TestWorkflowStepMasterDataService
     public async Task<object> CreateTestWorkflowStepAsync(int currentUserId, int id, CreateTestWorkflowStepRequest request, CancellationToken cancellationToken = default)
     {
         var test = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
-            ?? throw new NotFoundException($"Test {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.WorkflowStepTestNotFound,
+                $"Test {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, test.SectionId, cancellationToken);
         if (AnalysisWorkflows.UsesTestAnalysis(test.WorkflowType))
-            throw new BusinessRuleException($"{test.WorkflowType} tests have no workflow steps.");
+            throw new BusinessRuleException(
+                MessageCodes.WorkflowStepWorkflowTypeHasNoSteps,
+                $"{test.WorkflowType} tests have no workflow steps.",
+                new Dictionary<string, string> { ["workflowType"] = test.WorkflowType.ToString() });
 
         var nextOrder = 1 + await _db.TestWorkflowSteps.Where(s => s.TestDefinitionId == id)
             .Select(s => (int?)s.StepOrder).MaxAsync(cancellationToken) ?? 1;
@@ -134,7 +147,10 @@ public class TestWorkflowStepMasterDataService
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).Include(s => s.StepMedia).Include(s => s.IncubationStages).Include(s => s.PhenotypicTests)
             .FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
-            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.WorkflowStepStepNotFound,
+                $"Workflow step {stepId} not found.",
+                new Dictionary<string, string> { ["stepId"] = stepId.ToString(CultureInfo.InvariantCulture) });
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
 
@@ -209,7 +225,10 @@ public class TestWorkflowStepMasterDataService
     private async Task<object> MoveTestWorkflowStepCoreAsync(int currentUserId, int stepId, MoveTestWorkflowStepRequest request, CancellationToken cancellationToken)
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
-            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.WorkflowStepStepNotFound,
+                $"Workflow step {stepId} not found.",
+                new Dictionary<string, string> { ["stepId"] = stepId.ToString(CultureInfo.InvariantCulture) });
         // Scope and the moved step's version are checked before the neighbour is even loaded,
         // so nothing tracked has been changed when either refusal is thrown.
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
@@ -218,7 +237,9 @@ public class TestWorkflowStepMasterDataService
         var neighborOrder = request.Direction == "up" ? step.StepOrder - 1 : step.StepOrder + 1;
         var neighbor = await _db.TestWorkflowSteps.FirstOrDefaultAsync(s => s.TestDefinitionId == step.TestDefinitionId && s.StepOrder == neighborOrder, cancellationToken);
         if (neighbor is null)
-            throw new BusinessRuleException("This step is already at that end of the sequence.");
+            throw new BusinessRuleException(
+                MessageCodes.WorkflowStepStepAlreadyAtEnd,
+                "This step is already at that end of the sequence.");
 
         var stepOrder = step.StepOrder;
         var neighborStepOrder = neighbor.StepOrder;
@@ -240,14 +261,20 @@ public class TestWorkflowStepMasterDataService
     public async Task<object> DeleteTestWorkflowStepAsync(int currentUserId, int stepId, CancellationToken cancellationToken = default)
     {
         var step = await _db.TestWorkflowSteps.Include(s => s.TestDefinition).FirstOrDefaultAsync(s => s.Id == stepId, cancellationToken)
-            ?? throw new NotFoundException($"Workflow step {stepId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.WorkflowStepStepNotFound,
+                $"Workflow step {stepId} not found.",
+                new Dictionary<string, string> { ["stepId"] = stepId.ToString(CultureInfo.InvariantCulture) });
         await EnsureCanConfigureStepAsync(currentUserId, step, cancellationToken);
         RecordVersion.EnsureCurrent(_db, step);
 
         var inUse = await _db.Incubations.Include(i => i.TestOrder)
             .AnyAsync(i => i.StepName == step.StepName && i.TestOrder!.TestCode == step.TestDefinition!.Code, cancellationToken);
         if (inUse)
-            throw new BusinessRuleException($"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.");
+            throw new BusinessRuleException(
+                MessageCodes.WorkflowStepStepCannotDeleteUsed,
+                $"Cannot delete step \"{step.StepName}\" - it has already been used by a test order.",
+                new Dictionary<string, string> { ["stepName"] = step.StepName });
 
         _db.TestWorkflowSteps.Remove(step);
 
@@ -268,7 +295,10 @@ public class TestWorkflowStepMasterDataService
     private Task EnsureCanConfigureStepAsync(int currentUserId, TestWorkflowStep step, CancellationToken cancellationToken) =>
         step.TestDefinition is { } test
             ? TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, test.SectionId, cancellationToken)
-            : throw new NotFoundException($"Test {step.TestDefinitionId} not found.");
+            : throw new NotFoundException(
+                MessageCodes.WorkflowStepTestNotFound,
+                $"Test {step.TestDefinitionId} not found.",
+                new Dictionary<string, string> { ["id"] = step.TestDefinitionId.ToString(CultureInfo.InvariantCulture) });
 
     // TempMin/Max and IncubationMinHours/MaxHours are copied from the chosen
     // MediaIncubationCondition at save time - single source of truth,
@@ -292,19 +322,34 @@ public class TestWorkflowStepMasterDataService
         foreach (var m in requests)
         {
             if (!products.TryGetValue(m.MediaProductId, out var product))
-                throw new BusinessRuleException($"Media product {m.MediaProductId} not found.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepMediaProductNotFound,
+                $"Media product {m.MediaProductId} not found.",
+                new Dictionary<string, string> { ["mediaProductId"] = m.MediaProductId.ToString(CultureInfo.InvariantCulture) });
 
             if (!product.IsActive && alreadyOnStep?.Contains(product.Id) != true)
-                throw new BusinessRuleException($"Media product '{product.Name}' is inactive and can't be added to a test step.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepMediaProductInactive,
+                $"Media product '{product.Name}' is inactive and can't be added to a test step.",
+                new Dictionary<string, string> { ["name"] = product.Name });
 
             if (!m.MediaIncubationConditionId.HasValue)
-                throw new BusinessRuleException($"Choose an incubation condition for medium '{product.Name}'.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepIncubationConditionMissingForMedium,
+                $"Choose an incubation condition for medium '{product.Name}'.",
+                new Dictionary<string, string> { ["name"] = product.Name });
 
             if (!conditions.TryGetValue(m.MediaIncubationConditionId.Value, out var condition))
-                throw new BusinessRuleException($"Incubation condition {m.MediaIncubationConditionId.Value} not found.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepIncubationConditionNotFound,
+                $"Incubation condition {m.MediaIncubationConditionId.Value} not found.",
+                new Dictionary<string, string> { ["id"] = m.MediaIncubationConditionId.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (condition.MediaProductId != product.Id)
-                throw new BusinessRuleException($"The incubation condition chosen for '{product.Name}' belongs to a different media product.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepIncubationConditionChosenWrongProduct,
+                $"The incubation condition chosen for '{product.Name}' belongs to a different media product.",
+                new Dictionary<string, string> { ["name"] = product.Name });
 
             var entity = new TestWorkflowStepMedia
             {
@@ -328,15 +373,24 @@ public class TestWorkflowStepMasterDataService
     {
         var errors = WorkflowTemplateValidator.Validate(candidate);
         if (errors.Count > 0)
-            throw new BusinessRuleException(string.Join(" ",
-                errors.Select(e => $"Rule {e.RuleNumber} ({e.StepName}): {e.Message}")));
+            throw new BusinessRuleException(
+                MessageCodes.WorkflowStepTemplateValidationFailed,
+                string.Join(" ",
+                    errors.Select(e => $"Rule {e.RuleNumber} ({e.StepName}): {e.Message}")),
+                new Dictionary<string, string>
+                {
+                    ["message"] = string.Join(" ",
+                        errors.Select(e => $"Rule {e.RuleNumber} ({e.StepName}): {e.Message}"))
+                });
 
         if (candidate.IsFinalStep)
         {
             var otherFinalExists = await _db.TestWorkflowSteps
                 .AnyAsync(s => s.TestDefinitionId == testDefinitionId && s.IsFinalStep && s.Id != (excludeStepId ?? -1), cancellationToken);
             if (otherFinalExists)
-                throw new BusinessRuleException("Only one step per test can be marked as the final step.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepFinalStepAlreadyExists,
+                "Only one step per test can be marked as the final step.");
         }
     }
 
@@ -351,7 +405,9 @@ public class TestWorkflowStepMasterDataService
         for (var i = 0; i < orders.Count; i++)
         {
             if (orders[i] != i + 1)
-                throw new BusinessRuleException("Workflow steps must have contiguous step numbers starting from 1.");
+                throw new BusinessRuleException(
+                MessageCodes.WorkflowStepContiguousStepNumbers,
+                "Workflow steps must have contiguous step numbers starting from 1.");
         }
     }
 }

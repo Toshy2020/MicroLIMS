@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Entities;
@@ -20,34 +22,50 @@ public static class IcpTestDefinitionRules
         if (!isIcpTest)
         {
             if (mode.HasValue || form.HasValue || theoreticalAmount.HasValue || specificGravity.HasValue || elements is { Count: > 0 })
-                throw new BusinessRuleException("ICP settings are only allowed for ICP method assay tests.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpSettingsOnlyForIcpTests,
+                    "ICP settings are only allowed for ICP method assay tests.");
             entity.IcpMode = null; entity.IcpSampleForm = null; entity.IcpTheoreticalAmount = null; entity.IcpSpecificGravity = null;
             return;
         }
 
         var effectiveMode = mode ?? entity.IcpMode
-            ?? throw new BusinessRuleException("The ICP test type (assay or impurity) is required.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.IcpTestTypeRequired,
+                "The ICP test type (assay or impurity) is required.");
 
         if (entity.Id != 0 && entity.IcpMode.HasValue && effectiveMode != entity.IcpMode
             && await db.Specifications.AnyAsync(s => s.TestCode == entity.Code && s.IcpTestElementId != null))
-            throw new BusinessRuleException("This test has specifications; remove them before changing between assay and impurity.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpSpecificationsBlockModeChange,
+                "This test has specifications; remove them before changing between assay and impurity.");
 
         IcpSampleForm? effectiveForm = null;
         decimal? effectiveAmount = null, effectiveGravity = null;
         if (effectiveMode == IcpTestMode.Assay)
         {
             effectiveForm = form ?? entity.IcpSampleForm
-                ?? throw new BusinessRuleException("Choose whether the sample is a solid or a liquid.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.IcpSampleFormRequired,
+                    "Choose whether the sample is a solid or a liquid.");
             effectiveAmount = theoreticalAmount ?? entity.IcpTheoreticalAmount;
             if (effectiveAmount is not > 0m)
-                throw new BusinessRuleException(effectiveForm == IcpSampleForm.Solid
-                    ? "The theoretical weight (g) must be greater than zero."
-                    : "The theoretical volume (mL) must be greater than zero.");
+            {
+                if (effectiveForm == IcpSampleForm.Solid)
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpTheoreticalWeightPositive,
+                        "The theoretical weight (g) must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpTheoreticalVolumePositive,
+                    "The theoretical volume (mL) must be greater than zero.");
+            }
             if (effectiveForm == IcpSampleForm.Liquid)
             {
                 effectiveGravity = specificGravity ?? entity.IcpSpecificGravity;
                 if (effectiveGravity is not > 0m)
-                    throw new BusinessRuleException("The specific gravity must be greater than zero for a liquid sample.");
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpSpecificGravityPositive,
+                        "The specific gravity must be greater than zero for a liquid sample.");
             }
         }
 
@@ -59,7 +77,9 @@ public static class IcpTestDefinitionRules
         var inputs = elements ?? entity.IcpElements.OrderBy(e => e.DisplayOrder)
             .Select(e => new IcpTestElementInput(e.Id, e.Symbol, e.TargetPpm, e.CleaningLimitPpm)).ToList();
         if (inputs.Count == 0)
-            throw new BusinessRuleException("At least one element is required.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpAtLeastOneElementRequired,
+                "At least one element is required.");
 
         var symbols = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenIds = new HashSet<int>();
@@ -68,24 +88,42 @@ public static class IcpTestDefinitionRules
         {
             var symbol = NormalizeSymbol(input.Symbol);
             if (!symbols.Add(symbol))
-                throw new BusinessRuleException($"Element \"{symbol}\" is listed more than once.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpCalibrationDuplicateElement,
+                    $"Element \"{symbol}\" is listed more than once.",
+                    new Dictionary<string, string> { ["symbol"] = symbol });
             if (effectiveMode == IcpTestMode.Assay)
             {
                 if (input.TargetPpm is not > 0m)
-                    throw new BusinessRuleException($"{symbol}: the target concentration (ppm) must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpElementTargetPpmPositive,
+                        $"{symbol}: the target concentration (ppm) must be greater than zero.",
+                        new Dictionary<string, string> { ["symbol"] = symbol });
             }
             else if (input.TargetPpm.HasValue)
-                throw new BusinessRuleException($"{symbol}: impurity tests are judged against the item specification; no target is used.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpImpurityTestNoTarget,
+                    $"{symbol}: impurity tests are judged against the item specification; no target is used.",
+                    new Dictionary<string, string> { ["symbol"] = symbol });
 
             if (input.CleaningLimitPpm is < 0m)
-                throw new BusinessRuleException($"{symbol}: cleaning limit (ppm) cannot be negative.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpElementCleaningLimitNonNegative,
+                    $"{symbol}: cleaning limit (ppm) cannot be negative.",
+                    new Dictionary<string, string> { ["symbol"] = symbol });
 
             if (input.Id.HasValue)
             {
                 if (entity.IcpElements.All(e => e.Id != input.Id.Value))
-                    throw new BusinessRuleException($"Element {input.Id.Value} does not belong to this test.");
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpElementNotInTest,
+                        $"Element {input.Id.Value} does not belong to this test.",
+                        new Dictionary<string, string> { ["elementId"] = input.Id.Value.ToString(CultureInfo.InvariantCulture) });
                 if (!seenIds.Add(input.Id.Value))
-                    throw new BusinessRuleException($"Element {input.Id.Value} is listed more than once.");
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpDuplicateElementId,
+                        $"Element {input.Id.Value} is listed more than once.",
+                        new Dictionary<string, string> { ["elementId"] = input.Id.Value.ToString(CultureInfo.InvariantCulture) });
             }
             normalized.Add((input, symbol));
         }
@@ -93,7 +131,10 @@ public static class IcpTestDefinitionRules
         foreach (var dropped in entity.IcpElements.Where(e => !seenIds.Contains(e.Id)).ToList())
         {
             if (await db.Specifications.AnyAsync(s => s.IcpTestElementId == dropped.Id))
-                throw new BusinessRuleException($"Element \"{dropped.Symbol}\" is used by specifications; it can't be removed.");
+                throw new BusinessRuleException(
+                    MessageCodes.IcpElementUsedBySpecificationsCannotRemove,
+                    $"Element \"{dropped.Symbol}\" is used by specifications; it can't be removed.",
+                    new Dictionary<string, string> { ["symbol"] = dropped.Symbol });
             entity.IcpElements.Remove(dropped);
             if (!dryRun && entity.Id != 0) db.TestDefinitionIcpElements.Remove(dropped);
         }
@@ -106,7 +147,10 @@ public static class IcpTestDefinitionRules
                 var kept = entity.IcpElements.First(e => e.Id == input.Id.Value);
                 if (!string.Equals(kept.Symbol, symbol, StringComparison.Ordinal)
                     && await db.Specifications.AnyAsync(s => s.IcpTestElementId == kept.Id))
-                    throw new BusinessRuleException($"Element \"{kept.Symbol}\" is used by specifications; its symbol can't be changed.");
+                    throw new BusinessRuleException(
+                        MessageCodes.IcpElementUsedBySpecificationsCannotRename,
+                        $"Element \"{kept.Symbol}\" is used by specifications; its symbol can't be changed.",
+                        new Dictionary<string, string> { ["symbol"] = kept.Symbol });
                 kept.Symbol = symbol; kept.TargetPpm = input.TargetPpm; kept.CleaningLimitPpm = input.CleaningLimitPpm; kept.DisplayOrder = i;
             }
             else
@@ -119,7 +163,9 @@ public static class IcpTestDefinitionRules
     {
         var s = (raw ?? string.Empty).Trim();
         if (s.Length is < 1 or > 3 || !s.All(char.IsLetter))
-            throw new BusinessRuleException("Element symbol must be 1-3 letters.");
+            throw new BusinessRuleException(
+                MessageCodes.IcpElementSymbolInvalid,
+                "Element symbol must be 1-3 letters.");
         return char.ToUpperInvariant(s[0]) + s[1..].ToLowerInvariant();
     }
 }

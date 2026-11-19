@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
@@ -9,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.MasterData;
@@ -36,17 +38,30 @@ public class WaterMasterDataService
     public async Task<WaterPointLabFrequencyResponse> GetWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
     {
         var point = await _db.WaterSamplingPoints.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSamplingPointNotFound,
+                $"Sampling point {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var section = await _db.DocumentSections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == sectionId)
-            ?? throw new NotFoundException($"Section {sectionId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringLabSectionNotFound,
+                $"Section {sectionId} not found.",
+                new Dictionary<string, string> { ["sectionId"] = sectionId.ToString(CultureInfo.InvariantCulture) });
 
         var existing = await _db.WaterPointLabFrequencies.AsNoTracking()
             .Include(f => f.Section)
             .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
 
         if (existing is null)
-            throw new NotFoundException($"No frequency override found for point {id} and section {sectionId}.");
+            throw new NotFoundException(
+                MessageCodes.MonitoringWaterPointLabFrequencyNotFound,
+                $"No frequency override found for point {id} and section {sectionId}.",
+                new Dictionary<string, string>
+                {
+                    ["id"] = id.ToString(CultureInfo.InvariantCulture),
+                    ["sectionId"] = sectionId.ToString(CultureInfo.InvariantCulture)
+                });
 
         return WaterPointLabFrequencyResponse.From(existing);
     }
@@ -55,10 +70,16 @@ public class WaterMasterDataService
         int currentUserId, int id, int sectionId, SetWaterPointLabFrequencyRequest request)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSamplingPointNotFound,
+                $"Sampling point {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId)
-            ?? throw new NotFoundException($"Section {sectionId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringLabSectionNotFound,
+                $"Section {sectionId} not found.",
+                new Dictionary<string, string> { ["sectionId"] = sectionId.ToString(CultureInfo.InvariantCulture) });
 
         var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (configurable is not null && !configurable.Contains(sectionId))
@@ -66,7 +87,10 @@ public class WaterMasterDataService
 
         var rule = request.ToRuleDto();
         if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
-            throw new BusinessRuleException(problem);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringFrequencyRuleInvalid,
+                problem,
+                new Dictionary<string, string> { ["message"] = problem });
 
         var existing = await _db.WaterPointLabFrequencies
             .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
@@ -95,7 +119,10 @@ public class WaterMasterDataService
     public async Task<object> DeleteWaterPointLabFrequencyAsync(int currentUserId, int id, int sectionId)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSamplingPointNotFound,
+                $"Sampling point {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var configurable = await _scope.GetConfigurableSectionIdsAsync(currentUserId);
         if (configurable is not null && !configurable.Contains(sectionId))
@@ -117,7 +144,10 @@ public class WaterMasterDataService
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
     {
         if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
-            throw new BusinessRuleException(problem);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringFrequencyRuleInvalid,
+                problem,
+                new Dictionary<string, string> { ["message"] = problem });
         FrequencyRules.Apply(target, rule);
     }
 
@@ -218,7 +248,10 @@ public class WaterMasterDataService
         var point = await _db.WaterSamplingPoints
             .Include(p => p.LabFrequencies).ThenInclude(f => f.Section)
             .FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSamplingPointNotFound,
+                $"Sampling point {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, point);
 
         var storedCodes = new HashSet<string>(point.AssignedTestCodes ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
@@ -249,7 +282,10 @@ public class WaterMasterDataService
     public async Task<object> DeleteWaterSamplingPointAsync(int currentUserId, int id)
     {
         var point = await _db.WaterSamplingPoints.FirstOrDefaultAsync(p => p.Id == id)
-            ?? throw new NotFoundException($"Sampling point {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSamplingPointNotFound,
+                $"Sampling point {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (point.AssignedTestCodes is { Count: > 0 })
         {
@@ -275,7 +311,15 @@ public class WaterMasterDataService
         var locationCount = await _db.SampleLocations.CountAsync(l => l.WaterSamplingPointId == id);
         if (sampleCount > 0 || locationCount > 0 || configCount > 0)
             throw new BusinessRuleException(
-                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s), {locationCount} sample location(s) and {configCount} sampling configuration(s).");
+                MessageCodes.MonitoringSamplingPointInUse,
+                $"Cannot delete '{point.Code}' - it is referenced by {sampleCount} sample(s), {locationCount} sample location(s) and {configCount} sampling configuration(s).",
+                new Dictionary<string, string>
+                {
+                    ["code"] = point.Code,
+                    ["sampleCount"] = sampleCount.ToString(CultureInfo.InvariantCulture),
+                    ["locationCount"] = locationCount.ToString(CultureInfo.InvariantCulture),
+                    ["configCount"] = configCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.WaterSamplingPoints.Remove(point);
         await _db.SaveChangesAsync();
@@ -311,7 +355,10 @@ public class WaterMasterDataService
     public async Task<WaterDepartmentResponse> UpdateWaterDepartmentAsync(int id, UpdateWaterDepartmentRequest request)
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new NotFoundException($"Water department {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringWaterDepartmentNotFound,
+                $"Water department {id} not found.",
+                new Dictionary<string, string> { ["departmentId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, dept);
         if (request.IsActive.HasValue) dept.IsActive = request.IsActive.Value;
         dept.Name = request.Name;
@@ -322,11 +369,21 @@ public class WaterMasterDataService
     public async Task<object> DeleteWaterDepartmentAsync(int id)
     {
         var dept = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == id)
-            ?? throw new NotFoundException($"Water department {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringWaterDepartmentNotFound,
+                $"Water department {id} not found.",
+                new Dictionary<string, string> { ["departmentId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var pointCount = await _db.WaterSamplingPoints.CountAsync(p => p.WaterDepartmentId == id);
         if (pointCount > 0)
-            throw new BusinessRuleException($"Cannot delete '{dept.Name}' - it still has {pointCount} sample location(s). Delete those first.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterDepartmentInUse,
+                $"Cannot delete '{dept.Name}' - it still has {pointCount} sample location(s). Delete those first.",
+                new Dictionary<string, string>
+                {
+                    ["name"] = dept.Name,
+                    ["pointCount"] = pointCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         _db.WaterDepartments.Remove(dept);
         await _db.SaveChangesAsync();
@@ -364,7 +421,10 @@ public class WaterMasterDataService
     public async Task<SamplingConfigurationResponse> UpdateWaterSamplingConfigurationAsync(int currentUserId, int id, UpdateWaterSamplingConfigRequest request)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringWaterSamplingConfigNotFound,
+                $"Water sampling configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, new[] { entity.TestCode, request.TestCode }, "Water sampling configuration");
@@ -388,7 +448,10 @@ public class WaterMasterDataService
     public async Task<object> DeleteWaterSamplingConfigurationAsync(int currentUserId, int id)
     {
         var entity = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.Id == id)
-            ?? throw new NotFoundException($"Water sampling configuration {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringWaterSamplingConfigNotFound,
+                $"Water sampling configuration {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         await TestCodeOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, entity.TestCode, "Water sampling configuration");
 

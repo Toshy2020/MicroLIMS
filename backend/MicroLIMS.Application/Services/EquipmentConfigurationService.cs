@@ -185,7 +185,7 @@ public class EquipmentConfigurationService
 
         var equipment = await _db.Equipment.FirstOrDefaultAsync(e => e.Id == equipmentId)
             ?? throw new NotFoundException(MessageCodes.EquipmentConfigEquipmentNotFound, $"Equipment {equipmentId} not found.",
-                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
+                new Dictionary<string, string> { ["id"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         if (equipment.Type != EquipmentType.Incubator)
             throw new BusinessRuleException(MessageCodes.EquipmentConfigNotAnIncubator, $"Equipment {equipment.Code} is not an incubator.",

@@ -5,7 +5,6 @@ public static partial class MessageCodes
 {
     public const string EquipmentConfigAutoclaveNotFound = "EquipmentConfig.AutoclaveNotFound";
     public const string EquipmentConfigAutoclaveProgramNotFound = "EquipmentConfig.AutoclaveProgramNotFound";
-    public const string EquipmentConfigEquipmentNotFound = "EquipmentConfig.EquipmentNotFound";
     public const string EquipmentConfigInventoryEquipmentNotFound = "EquipmentConfig.InventoryEquipmentNotFound";
     public const string EquipmentConfigMicrobiologySectionMissing = "EquipmentConfig.MicrobiologySectionMissing";
     public const string EquipmentConfigNotAnIncubator = "EquipmentConfig.NotAnIncubator";
@@ -16,11 +15,33 @@ public static partial class MessageCodes
     {
         [EquipmentConfigAutoclaveNotFound] = ["equipmentId"],
         [EquipmentConfigAutoclaveProgramNotFound] = ["id"],
-        [EquipmentConfigEquipmentNotFound] = ["equipmentId"],
         [EquipmentConfigInventoryEquipmentNotFound] = ["inventoryEquipmentId"],
         [EquipmentConfigMicrobiologySectionMissing] = [],
         [EquipmentConfigNotAnIncubator] = ["code"],
         [EquipmentConfigProgramCodeExists] = ["programCode", "code"],
         [EquipmentConfigSetPointReasonRequired] = [],
+    public const string EquipmentConfigAssetAlreadyLinked = "EquipmentConfig.AssetAlreadyLinked";
+    public const string EquipmentConfigCdsSoftwareHplcRequired = "EquipmentConfig.CdsSoftwareHplcRequired";
+    public const string EquipmentConfigCdsSoftwareIcpOesRequired = "EquipmentConfig.CdsSoftwareIcpOesRequired";
+    public const string EquipmentConfigCdsSoftwareOnlyHplcIcpOes = "EquipmentConfig.CdsSoftwareOnlyHplcIcpOes";
+    public const string EquipmentConfigCodeAlreadyExists = "EquipmentConfig.CodeAlreadyExists";
+    public const string EquipmentConfigCodeRequired = "EquipmentConfig.CodeRequired";
+    public const string EquipmentConfigEquipmentInventoryAssetNotFound = "EquipmentConfig.EquipmentInventoryAssetNotFound";
+    public const string EquipmentConfigEquipmentNotFound = "EquipmentConfig.EquipmentNotFound";
+    public const string EquipmentConfigNameRequired = "EquipmentConfig.NameRequired";
+    public const string EquipmentConfigVendorTooLong = "EquipmentConfig.VendorTooLong";
+
+    private static Dictionary<string, string[]> EquipmentConfigParameters() => new()
+    {
+        [EquipmentConfigAssetAlreadyLinked] = [],
+        [EquipmentConfigCdsSoftwareHplcRequired] = [],
+        [EquipmentConfigCdsSoftwareIcpOesRequired] = [],
+        [EquipmentConfigCdsSoftwareOnlyHplcIcpOes] = [],
+        [EquipmentConfigCodeAlreadyExists] = ["code"],
+        [EquipmentConfigCodeRequired] = [],
+        [EquipmentConfigEquipmentInventoryAssetNotFound] = ["assetId"],
+        [EquipmentConfigEquipmentNotFound] = ["id"],
+        [EquipmentConfigNameRequired] = [],
+        [EquipmentConfigVendorTooLong] = [],
     };
 }

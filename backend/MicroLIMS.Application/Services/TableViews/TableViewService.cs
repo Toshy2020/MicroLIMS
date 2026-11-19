@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.TableViews;
 
@@ -69,27 +71,40 @@ public sealed class TableViewService
         if (scope == TableViewScope.Section)
         {
             if (sectionId is null)
-                throw new BusinessRuleException("Choose the section to share the view with.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewSectionRequired,
+                    "Choose the section to share the view with.");
             if (!await _permissions.UserHasPermissionAsync(userId, PermissionConstants.TableViewsShare, ct))
                 throw new UnauthorizedAccessException("Sharing a view with a section needs the permission to share table views.");
             if (!(await _scope.GetMemberSectionIdsAsync(userId, ct)).Contains(sectionId.Value))
                 throw new UnauthorizedAccessException("A view can only be shared with a section you belong to.");
             if (await _db.TableViews.AnyAsync(v => v.Scope == TableViewScope.Section && v.SectionId == sectionId
                     && v.TableKey == tableKey && v.Name == cleanName, ct))
-                throw new BusinessRuleException($"A view named '{cleanName}' is already shared with this section.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewNameAlreadySharedWithSection,
+                    $"A view named '{cleanName}' is already shared with this section.",
+                    new Dictionary<string, string> { ["name"] = cleanName });
         }
         else
         {
             if (sectionId is not null)
-                throw new BusinessRuleException("A personal view does not belong to a section.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewPersonalViewNoSection,
+                    "A personal view does not belong to a section.");
             var existing = await _db.TableViews.AsNoTracking()
                 .Where(v => v.Scope == TableViewScope.Personal && v.OwnerUserId == userId && v.TableKey == tableKey)
                 .Select(v => v.Name)
                 .ToListAsync(ct);
             if (existing.Contains(cleanName))
-                throw new BusinessRuleException($"You already have a view named '{cleanName}' for this table.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewPersonalNameExists,
+                    $"You already have a view named '{cleanName}' for this table.",
+                    new Dictionary<string, string> { ["name"] = cleanName });
             if (existing.Count >= MaxPersonalViewsPerTable)
-                throw new BusinessRuleException($"You can keep at most {MaxPersonalViewsPerTable} personal views per table. Delete one to save another.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewMaxPersonalViewsReached,
+                    $"You can keep at most {MaxPersonalViewsPerTable} personal views per table. Delete one to save another.",
+                    new Dictionary<string, string> { ["max"] = MaxPersonalViewsPerTable.ToString(CultureInfo.InvariantCulture) });
         }
 
         var now = _time.GetUtcNow().UtcDateTime;
@@ -114,7 +129,9 @@ public sealed class TableViewService
     public async Task<TableViewDto> UpdateAsync(int userId, int viewId, string? name, string? stateJson, CancellationToken ct = default)
     {
         if (name is null && stateJson is null)
-            throw new BusinessRuleException("Give a new name or new settings to save.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewUpdateEmpty,
+                "Give a new name or new settings to save.");
 
         var view = await LoadVisibleAsync(userId, viewId, ct);
         await EnsureCanEditAsync(userId, view, ct);
@@ -128,7 +145,10 @@ public sealed class TableViewService
                     ? _db.TableViews.Where(v => v.Scope == TableViewScope.Section && v.SectionId == view.SectionId)
                     : _db.TableViews.Where(v => v.Scope == TableViewScope.Personal && v.OwnerUserId == view.OwnerUserId);
                 if (await clash.AnyAsync(v => v.TableKey == view.TableKey && v.Name == cleanName && v.Id != view.Id, ct))
-                    throw new BusinessRuleException($"A view named '{cleanName}' already exists here.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TableViewNameAlreadyExistsHere,
+                        $"A view named '{cleanName}' already exists here.",
+                        new Dictionary<string, string> { ["name"] = cleanName });
                 view.Name = cleanName;
             }
         }
@@ -172,7 +192,9 @@ public sealed class TableViewService
 
         var view = await LoadVisibleAsync(userId, viewId.Value, ct);
         if (view.TableKey != tableKey)
-            throw new BusinessRuleException("That view belongs to a different table.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewWrongTable,
+                "That view belongs to a different table.");
 
         if (current is null)
             _db.UserTableDefaults.Add(new UserTableDefault { UserId = userId, TableKey = tableKey, TableViewId = view.Id });
@@ -202,7 +224,10 @@ public sealed class TableViewService
                 && (await _scope.GetMemberSectionIdsAsync(userId, ct)).Contains(sectionId))
                 return view;
         }
-        throw new NotFoundException($"Table view {viewId} was not found.");
+        throw new NotFoundException(
+            MessageCodes.TableViewNotFound,
+            $"Table view {viewId} was not found.",
+            new Dictionary<string, string> { ["viewId"] = viewId.ToString(CultureInfo.InvariantCulture) });
     }
 
     // The view is already visible to the caller. A personal view is changed only by its owner. A section view
@@ -233,7 +258,10 @@ public sealed class TableViewService
         }
         catch (DbUpdateException ex) when (IsNameIndexViolation(ex))
         {
-            throw new BusinessRuleException($"A view named '{name}' already exists here. Choose another name.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewNameClashOnSave,
+                $"A view named '{name}' already exists here. Choose another name.",
+                new Dictionary<string, string> { ["name"] = name });
         }
     }
 
@@ -252,16 +280,23 @@ public sealed class TableViewService
     private static void EnsureKnownTable(string tableKey)
     {
         if (!TableKeyRegistry.IsKnown(tableKey))
-            throw new BusinessRuleException("This table does not support saved views.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewTableNotSupported,
+                "This table does not support saved views.");
     }
 
     private static string CleanName(string? name)
     {
         var clean = name?.Trim() ?? string.Empty;
         if (clean.Length == 0)
-            throw new BusinessRuleException("A view needs a name.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewNameRequired,
+                "A view needs a name.");
         if (clean.Length > MaxNameLength)
-            throw new BusinessRuleException($"A view name can be at most {MaxNameLength} characters.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewNameTooLong,
+                $"A view name can be at most {MaxNameLength} characters.",
+                new Dictionary<string, string> { ["max"] = MaxNameLength.ToString(CultureInfo.InvariantCulture) });
         return clean;
     }
 
@@ -269,9 +304,14 @@ public sealed class TableViewService
     private static void ValidateState(string? stateJson)
     {
         if (string.IsNullOrWhiteSpace(stateJson))
-            throw new BusinessRuleException("The view settings are missing.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewSettingsMissing,
+                "The view settings are missing.");
         if (Encoding.UTF8.GetByteCount(stateJson) > MaxStateBytes)
-            throw new BusinessRuleException($"The view settings are too large (at most {MaxStateBytes / 1024} KB).");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewSettingsTooLarge,
+                $"The view settings are too large (at most {MaxStateBytes / 1024} KB).",
+                new Dictionary<string, string> { ["maxKb"] = (MaxStateBytes / 1024).ToString(CultureInfo.InvariantCulture) });
 
         JsonDocument doc;
         try
@@ -280,7 +320,9 @@ public sealed class TableViewService
         }
         catch (JsonException)
         {
-            throw new BusinessRuleException("The view settings are not valid JSON.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewSettingsInvalidJson,
+                "The view settings are not valid JSON.");
         }
 
         using (doc)
@@ -290,7 +332,9 @@ public sealed class TableViewService
                 || !root.TryGetProperty("v", out var version)
                 || version.ValueKind != JsonValueKind.Number
                 || !version.TryGetInt32(out _))
-                throw new BusinessRuleException("The view settings must be a JSON object with an integer property 'v'.");
+                throw new BusinessRuleException(
+                    MessageCodes.TableViewSettingsMissingVersion,
+                    "The view settings must be a JSON object with an integer property 'v'.");
         }
     }
 

@@ -708,7 +708,7 @@ function SampleRegisterTableInner({
           <CauseBadge
             label={
               sample.causeOfTesting?.trim()
-                ? tCommon(`causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
+                ? t(`common:causeOfTesting.${sample.causeOfTesting}`, { defaultValue: sample.causeOfTesting })
                 : "—"
             }
           />

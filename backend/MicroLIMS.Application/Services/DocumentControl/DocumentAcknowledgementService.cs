@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -128,6 +130,7 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
         if (!request.ConfirmedLegalStatement)
         {
             throw new BusinessRuleException(
+                MessageCodes.DocumentAcknowledgeExplicitConfirmationRequired,
                 "Explicit confirmation of the legal acknowledgement statement is required. Reading or viewing alone does not constitute legal acknowledgement.");
         }
 
@@ -183,20 +186,38 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
                     cancellationToken: cancellationToken);
 
                 throw new BusinessRuleException(
-                    $"Revision mismatch: Assignment is for Revision ID {assignment.DocumentRevisionId}, but Revision ID {request.DocumentRevisionId} was submitted.");
+                    MessageCodes.DocumentAcknowledgeRevisionMismatch,
+                    $"Revision mismatch: Assignment is for Revision ID {assignment.DocumentRevisionId}, but Revision ID {request.DocumentRevisionId} was submitted.",
+                    new Dictionary<string, string>
+                    {
+                        ["assignedRevisionId"] = assignment.DocumentRevisionId.ToString(CultureInfo.InvariantCulture),
+                        ["submittedRevisionId"] = request.DocumentRevisionId.ToString(CultureInfo.InvariantCulture)
+                    });
             }
 
             // 5. Document Master and Revision state validation
             if (master.RecordStatus != DocumentRecordStatus.Active)
             {
                 throw new BusinessRuleException(
-                    $"Cannot acknowledge assignment because Document {master.CompanyDocumentCode} is in {master.RecordStatus} status.");
+                    MessageCodes.DocumentAcknowledgeMasterNotActive,
+                    $"Cannot acknowledge assignment because Document {master.CompanyDocumentCode} is in {master.RecordStatus} status.",
+                    new Dictionary<string, string>
+                    {
+                        ["companyDocumentCode"] = master.CompanyDocumentCode,
+                        ["status"] = master.RecordStatus.ToString()
+                    });
             }
 
             if (revision.RevisionStatus != DocumentRevisionStatus.Effective)
             {
                 throw new BusinessRuleException(
-                    $"Cannot acknowledge assignment because Revision {revision.RevisionNumber} is in {revision.RevisionStatus} state (must be Effective).");
+                    MessageCodes.DocumentAcknowledgeRevisionNotEffective,
+                    $"Cannot acknowledge assignment because Revision {revision.RevisionNumber} is in {revision.RevisionStatus} state (must be Effective).",
+                    new Dictionary<string, string>
+                    {
+                        ["revisionNumber"] = revision.RevisionNumber,
+                        ["status"] = revision.RevisionStatus.ToString()
+                    });
             }
 
             // 6. State machine and idempotency validation
@@ -241,12 +262,14 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
             if (assignment.Status == TrainingAssignmentStatus.SupersededIncomplete)
             {
                 throw new BusinessRuleException(
+                    MessageCodes.DocumentAcknowledgeAssignmentSupersededIncomplete,
                     "Cannot acknowledge an assignment that has been terminally closed as SupersededIncomplete.");
             }
 
             if (assignment.Status == TrainingAssignmentStatus.Cancelled)
             {
                 throw new BusinessRuleException(
+                    MessageCodes.DocumentAcknowledgeAssignmentCancelled,
                     "Cannot acknowledge an assignment that has been terminally closed as Cancelled due to document obsolescence.");
             }
 
@@ -256,7 +279,9 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
                 && assignment.Status != TrainingAssignmentStatus.Overdue)
             {
                 throw new BusinessRuleException(
-                    $"Assignment is in an invalid state for acknowledgement: {assignment.Status}.");
+                    MessageCodes.DocumentAcknowledgeAssignmentInvalidStatus,
+                    $"Assignment is in an invalid state for acknowledgement: {assignment.Status}.",
+                    new Dictionary<string, string> { ["status"] = assignment.Status.ToString() });
             }
 
             // 7. Controlled PDF verification
@@ -399,7 +424,9 @@ public class DocumentAcknowledgementService : IDocumentAcknowledgementService
             throw new UnauthorizedAccessException("You cannot record reading progress for another user's assignment.");
 
         if (assignment.DocumentRevisionId != request.DocumentRevisionId)
-            throw new BusinessRuleException("Revision ID does not match assigned revision ID.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReadingRevisionMismatch,
+                "Revision ID does not match assigned revision ID.");
 
         var nowUtc = utcNowOverride ?? _time.GetUtcNow().UtcDateTime;
 

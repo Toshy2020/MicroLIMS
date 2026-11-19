@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -144,7 +146,10 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
 
         if (freshRevision == null)
         {
-            throw new BusinessRuleException($"DocumentRevision {targetRevision.Id} not found in database.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentRevisionNotFoundInDatabase,
+                $"DocumentRevision {targetRevision.Id} not found in database.",
+                new Dictionary<string, string> { ["revisionId"] = targetRevision.Id.ToString(CultureInfo.InvariantCulture) });
         }
 
         // Idempotency check: if status has already changed (e.g. concurrent execution or manual intervention), skip harmlessly
@@ -159,12 +164,23 @@ public class DocumentEffectiveDateService : IDocumentEffectiveDateService
         var master = freshRevision.DocumentMaster;
         if (master == null)
         {
-            throw new BusinessRuleException($"DocumentMaster missing for Revision {freshRevision.Id}.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentMasterMissingForRevision,
+                $"DocumentMaster missing for Revision {freshRevision.Id}.",
+                new Dictionary<string, string> { ["revisionId"] = freshRevision.Id.ToString(CultureInfo.InvariantCulture) });
         }
 
         if (master.RecordStatus != DocumentRecordStatus.Active)
         {
-            throw new BusinessRuleException($"Cannot activate Revision {freshRevision.Id} because DocumentMaster {master.Id} is in {master.RecordStatus} status.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentActivateRevisionMasterNotActive,
+                $"Cannot activate Revision {freshRevision.Id} because DocumentMaster {master.Id} is in {master.RecordStatus} status.",
+                new Dictionary<string, string>
+                {
+                    ["revisionId"] = freshRevision.Id.ToString(CultureInfo.InvariantCulture),
+                    ["masterId"] = master.Id.ToString(CultureInfo.InvariantCulture),
+                    ["status"] = master.RecordStatus.ToString()
+                });
         }
 
         // Query DocumentType separately so a missing/corrupt DocumentType does not inner-join away the revision.

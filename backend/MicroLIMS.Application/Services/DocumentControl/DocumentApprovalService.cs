@@ -1,3 +1,4 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
@@ -78,7 +79,13 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (revision.RevisionStatus != DocumentRevisionStatus.AwaitingApproval)
         {
             throw new BusinessRuleException(
-                $"Cannot create an approval task for revision in status '{revision.RevisionStatus}'. Status must be '{DocumentRevisionStatus.AwaitingApproval}'.");
+                MessageCodes.DocumentApprovalCreateRequiresAwaitingApproval,
+                $"Cannot create an approval task for revision in status '{revision.RevisionStatus}'. Status must be '{DocumentRevisionStatus.AwaitingApproval}'.",
+                new Dictionary<string, string>
+                {
+                    ["status"] = revision.RevisionStatus.ToString(),
+                    ["requiredStatus"] = DocumentRevisionStatus.AwaitingApproval.ToString()
+                });
         }
 
         // Precondition 2: Technical review must be completed
@@ -86,6 +93,7 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (completedReview == null)
         {
             throw new BusinessRuleException(
+                MessageCodes.DocumentApprovalCreateRequiresCompletedReview,
                 "Cannot create an approval task: Revision has not completed technical review.");
         }
 
@@ -94,7 +102,9 @@ public class DocumentApprovalService : IDocumentApprovalService
         if (existingPending != null)
         {
             throw new BusinessRuleException(
-                $"An active approval task (ID: {existingPending.Id}) is already pending for this revision.");
+                MessageCodes.DocumentApprovalTaskAlreadyPending,
+                $"An active approval task (ID: {existingPending.Id}) is already pending for this revision.",
+                new Dictionary<string, string> { ["taskId"] = existingPending.Id.ToString(CultureInfo.InvariantCulture) });
         }
 
         // Authorization: Assigning user must be Owner, assigned Author, or SectionHead
@@ -108,19 +118,36 @@ public class DocumentApprovalService : IDocumentApprovalService
             .FirstOrDefaultAsync(u => u.Id == request.ApproverUserId);
 
         if (approver == null || !approver.IsActive)
-            throw new BusinessRuleException($"Target approver user {request.ApproverUserId} is invalid or inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentApproverUserInvalidOrInactive,
+                $"Target approver user {request.ApproverUserId} is invalid or inactive.",
+                new Dictionary<string, string> { ["userId"] = request.ApproverUserId.ToString(CultureInfo.InvariantCulture) });
 
         // Approver role eligibility: Reviewer, SectionHead, or Qa. A System Administrator
         // controls the system, never approves GxP data (21 CFR Part 11 §11.10(d)(g)).
         if (approver.Role is null ||
             approver.Role.Type is not (RoleType.Reviewer or RoleType.SectionHead or RoleType.Qa))
         {
-            throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentApproverRoleNotEligible,
+                $"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver.",
+                new Dictionary<string, string>
+                {
+                    ["fullName"] = approver.FullName,
+                    ["roleName"] = approver.Role?.Name ?? "None"
+                });
         }
 
         // ...and the role must hold Documents.Approve, or the approver could never act on the task.
         if (!await _auth.CanExecuteApprovalAsync(request.ApproverUserId))
-            throw new BusinessRuleException($"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentApproverMissingPermission,
+                $"User '{approver.FullName}' with role '{approver.Role?.Name ?? "None"}' is not eligible to be assigned as an approver: the role does not hold the Documents.Approve permission.",
+                new Dictionary<string, string>
+                {
+                    ["fullName"] = approver.FullName,
+                    ["roleName"] = approver.Role?.Name ?? "None"
+                });
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Approver, Reviewer != Approver. SystemAdministrator is NOT exempt!
@@ -643,7 +670,9 @@ public class DocumentApprovalService : IDocumentApprovalService
         // An approval decision strictly requires authenticated password re-entry.
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            throw new BusinessRuleException("Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentApprovalPasswordRequired,
+                "Password re-authentication is required to apply an electronic signature for approval (21 CFR Part 11).");
         }
 
         (await CheckApprovePrerequisitesAsync(task, userId, actorRole)).ThrowIfRefused();

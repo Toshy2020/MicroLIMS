@@ -3,9 +3,24 @@ namespace MicroLIMS.Shared.Messages;
 // Document.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string DocumentAcknowledgeAssignmentCancelled = "Document.AcknowledgeAssignmentCancelled";
+    public const string DocumentAcknowledgeAssignmentInvalidStatus = "Document.AcknowledgeAssignmentInvalidStatus";
+    public const string DocumentAcknowledgeAssignmentSupersededIncomplete = "Document.AcknowledgeAssignmentSupersededIncomplete";
+    public const string DocumentAcknowledgeExplicitConfirmationRequired = "Document.AcknowledgeExplicitConfirmationRequired";
+    public const string DocumentAcknowledgeMasterNotActive = "Document.AcknowledgeMasterNotActive";
+    public const string DocumentAcknowledgeRevisionMismatch = "Document.AcknowledgeRevisionMismatch";
+    public const string DocumentAcknowledgeRevisionNotEffective = "Document.AcknowledgeRevisionNotEffective";
+    public const string DocumentActivateRevisionMasterNotActive = "Document.ActivateRevisionMasterNotActive";
     public const string DocumentActiveWorkflowRevisionExists = "Document.ActiveWorkflowRevisionExists";
     public const string DocumentAlreadyVoided = "Document.AlreadyVoided";
+    public const string DocumentApprovalCreateRequiresAwaitingApproval = "Document.ApprovalCreateRequiresAwaitingApproval";
+    public const string DocumentApprovalCreateRequiresCompletedReview = "Document.ApprovalCreateRequiresCompletedReview";
+    public const string DocumentApprovalPasswordRequired = "Document.ApprovalPasswordRequired";
+    public const string DocumentApprovalTaskAlreadyPending = "Document.ApprovalTaskAlreadyPending";
     public const string DocumentApprovePermissionRequired = "Document.ApprovePermissionRequired";
+    public const string DocumentApproverMissingPermission = "Document.ApproverMissingPermission";
+    public const string DocumentApproverRoleNotEligible = "Document.ApproverRoleNotEligible";
+    public const string DocumentApproverUserInvalidOrInactive = "Document.ApproverUserInvalidOrInactive";
     public const string DocumentAssignedReviewerInactive = "Document.AssignedReviewerInactive";
     public const string DocumentAssignedReviewerMissingPermission = "Document.AssignedReviewerMissingPermission";
     public const string DocumentAssigneeInactive = "Document.AssigneeInactive";
@@ -16,10 +31,13 @@ public static partial class MessageCodes
     public const string DocumentChangeItemsOnlyRemoveInDraft = "Document.ChangeItemsOnlyRemoveInDraft";
     public const string DocumentCompanyCodeAlreadyExists = "Document.CompanyCodeAlreadyExists";
     public const string DocumentCompanyCodeInUse = "Document.CompanyCodeInUse";
+    public const string DocumentDeactivationConfirmationRequired = "Document.DeactivationConfirmationRequired";
+    public const string DocumentDepartmentCodeAlreadyExists = "Document.DepartmentCodeAlreadyExists";
     public const string DocumentDepartmentDeactivated = "Document.DepartmentDeactivated";
     public const string DocumentDepartmentNotFound = "Document.DepartmentNotFound";
     public const string DocumentDraftRevisionOnlyCanCancel = "Document.DraftRevisionOnlyCanCancel";
     public const string DocumentEffectiveMetadataCannotEditDirectly = "Document.EffectiveMetadataCannotEditDirectly";
+    public const string DocumentEscalationResolutionReasonRequired = "Document.EscalationResolutionReasonRequired";
     public const string DocumentExternalReportHasRecordedResult = "Document.ExternalReportHasRecordedResult";
     public const string DocumentExternalReportMustUploadFromTest = "Document.ExternalReportMustUploadFromTest";
     public const string DocumentFileReadFailed = "Document.FileReadFailed";
@@ -29,12 +47,14 @@ public static partial class MessageCodes
     public const string DocumentInvalidReviewDecision = "Document.InvalidReviewDecision";
     public const string DocumentMasterAlreadyVoided = "Document.MasterAlreadyVoided";
     public const string DocumentMasterEffectiveCannotVoid = "Document.MasterEffectiveCannotVoid";
+    public const string DocumentMasterMissingForRevision = "Document.MasterMissingForRevision";
     public const string DocumentNoEffectiveRevisionCannotCreate = "Document.NoEffectiveRevisionCannotCreate";
     public const string DocumentNoEffectiveRevisionCannotPropose = "Document.NoEffectiveRevisionCannotPropose";
     public const string DocumentNotFound = "Document.NotFound";
     public const string DocumentOnlyAssignedApprover = "Document.OnlyAssignedApprover";
     public const string DocumentOwnerUserInactive = "Document.OwnerUserInactive";
     public const string DocumentOwnerUserNotFound = "Document.OwnerUserNotFound";
+    public const string DocumentReadingRevisionMismatch = "Document.ReadingRevisionMismatch";
     public const string DocumentReviewCompleteHasUnresolvedMandatoryFindings = "Document.ReviewCompleteHasUnresolvedMandatoryFindings";
     public const string DocumentReviewFindingCannotAddInStatus = "Document.ReviewFindingCannotAddInStatus";
     public const string DocumentReviewFindingCannotRespondInStatus = "Document.ReviewFindingCannotRespondInStatus";
@@ -45,10 +65,13 @@ public static partial class MessageCodes
     public const string DocumentReviewSubmitRequiresSourceFile = "Document.ReviewSubmitRequiresSourceFile";
     public const string DocumentReviewTaskAlreadyActive = "Document.ReviewTaskAlreadyActive";
     public const string DocumentReviewTaskCannotDecideInStatus = "Document.ReviewTaskCannotDecideInStatus";
+    public const string DocumentRevisionNotFoundInDatabase = "Document.RevisionNotFoundInDatabase";
     public const string DocumentRevisionNumberAlreadyExists = "Document.RevisionNumberAlreadyExists";
+    public const string DocumentSectionAlreadyExistsInDepartment = "Document.SectionAlreadyExistsInDepartment";
     public const string DocumentSectionDeactivated = "Document.SectionDeactivated";
     public const string DocumentSectionNotFound = "Document.SectionNotFound";
     public const string DocumentSectionWrongDepartment = "Document.SectionWrongDepartment";
+    public const string DocumentTypeCodeAlreadyExists = "Document.TypeCodeAlreadyExists";
     public const string DocumentTypeDeactivated = "Document.TypeDeactivated";
     public const string DocumentTypeNotFound = "Document.TypeNotFound";
     public const string DocumentUnsupportedSortColumn = "Document.UnsupportedSortColumn";
@@ -60,9 +83,24 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> DocumentParameters() => new()
     {
+        [DocumentAcknowledgeAssignmentCancelled] = [],
+        [DocumentAcknowledgeAssignmentInvalidStatus] = ["status"],
+        [DocumentAcknowledgeAssignmentSupersededIncomplete] = [],
+        [DocumentAcknowledgeExplicitConfirmationRequired] = [],
+        [DocumentAcknowledgeMasterNotActive] = ["companyDocumentCode", "status"],
+        [DocumentAcknowledgeRevisionMismatch] = ["assignedRevisionId", "submittedRevisionId"],
+        [DocumentAcknowledgeRevisionNotEffective] = ["revisionNumber", "status"],
+        [DocumentActivateRevisionMasterNotActive] = ["revisionId", "masterId", "status"],
         [DocumentActiveWorkflowRevisionExists] = [],
         [DocumentAlreadyVoided] = [],
+        [DocumentApprovalCreateRequiresAwaitingApproval] = ["status", "requiredStatus"],
+        [DocumentApprovalCreateRequiresCompletedReview] = [],
+        [DocumentApprovalPasswordRequired] = [],
+        [DocumentApprovalTaskAlreadyPending] = ["taskId"],
         [DocumentApprovePermissionRequired] = [],
+        [DocumentApproverMissingPermission] = ["fullName", "roleName"],
+        [DocumentApproverRoleNotEligible] = ["fullName", "roleName"],
+        [DocumentApproverUserInvalidOrInactive] = ["userId"],
         [DocumentAssignedReviewerInactive] = [],
         [DocumentAssignedReviewerMissingPermission] = [],
         [DocumentAssigneeInactive] = ["fullName"],
@@ -73,10 +111,13 @@ public static partial class MessageCodes
         [DocumentChangeItemsOnlyRemoveInDraft] = [],
         [DocumentCompanyCodeAlreadyExists] = ["companyDocumentCode"],
         [DocumentCompanyCodeInUse] = ["companyDocumentCode"],
+        [DocumentDeactivationConfirmationRequired] = ["kind", "name", "activeDocuments", "activeMemberships", "openWork"],
+        [DocumentDepartmentCodeAlreadyExists] = ["code"],
         [DocumentDepartmentDeactivated] = ["name"],
         [DocumentDepartmentNotFound] = ["departmentId"],
         [DocumentDraftRevisionOnlyCanCancel] = ["status"],
         [DocumentEffectiveMetadataCannotEditDirectly] = [],
+        [DocumentEscalationResolutionReasonRequired] = [],
         [DocumentExternalReportHasRecordedResult] = [],
         [DocumentExternalReportMustUploadFromTest] = [],
         [DocumentFileReadFailed] = [],
@@ -86,12 +127,14 @@ public static partial class MessageCodes
         [DocumentInvalidReviewDecision] = [],
         [DocumentMasterAlreadyVoided] = [],
         [DocumentMasterEffectiveCannotVoid] = [],
+        [DocumentMasterMissingForRevision] = ["revisionId"],
         [DocumentNoEffectiveRevisionCannotCreate] = [],
         [DocumentNoEffectiveRevisionCannotPropose] = [],
         [DocumentNotFound] = ["documentId"],
         [DocumentOnlyAssignedApprover] = [],
         [DocumentOwnerUserInactive] = ["fullName"],
         [DocumentOwnerUserNotFound] = ["userId"],
+        [DocumentReadingRevisionMismatch] = [],
         [DocumentReviewCompleteHasUnresolvedMandatoryFindings] = ["count"],
         [DocumentReviewFindingCannotAddInStatus] = ["status"],
         [DocumentReviewFindingCannotRespondInStatus] = ["status"],
@@ -102,10 +145,13 @@ public static partial class MessageCodes
         [DocumentReviewSubmitRequiresSourceFile] = [],
         [DocumentReviewTaskAlreadyActive] = [],
         [DocumentReviewTaskCannotDecideInStatus] = ["status"],
+        [DocumentRevisionNotFoundInDatabase] = ["revisionId"],
         [DocumentRevisionNumberAlreadyExists] = ["revisionNumber"],
+        [DocumentSectionAlreadyExistsInDepartment] = ["sectionName", "departmentName"],
         [DocumentSectionDeactivated] = ["name"],
         [DocumentSectionNotFound] = ["sectionId"],
         [DocumentSectionWrongDepartment] = ["sectionName", "departmentName"],
+        [DocumentTypeCodeAlreadyExists] = ["code"],
         [DocumentTypeDeactivated] = ["name"],
         [DocumentTypeNotFound] = ["documentTypeId"],
         [DocumentUnsupportedSortColumn] = ["column"],

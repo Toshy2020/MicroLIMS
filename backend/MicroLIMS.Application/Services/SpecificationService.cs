@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -77,102 +78,161 @@ public class SpecificationService
         ArgumentNullException.ThrowIfNull(spec);
 
         if (string.IsNullOrWhiteSpace(spec.ParameterName))
-            throw new BusinessRuleException("Parameter name is required.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationParameterNameRequired,
+                "Parameter name is required.");
 
         if (spec.ResultBasis == ResultBasis.Ppm && !spec.HplcMethodAnalyteId.HasValue)
-            throw new BusinessRuleException("ppm is only used for residual-solvent specifications.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationPpmOnlyResidualSolvent,
+                "ppm is only used for residual-solvent specifications.");
 
         if (spec.LimitType != LimitType.CountTiered && spec.DilutionFactor.HasValue)
-            throw new BusinessRuleException("Dilution factor is only allowed for Count-Tiered specifications.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationDilutionFactorOnlyCountTiered,
+                "Dilution factor is only allowed for Count-Tiered specifications.");
 
         if (spec.LimitType != LimitType.WeightVariation && spec.DosageForm.HasValue)
-            throw new BusinessRuleException("Dosage form is only allowed for WeightVariation specifications.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationDosageFormOnlyWeightVariation,
+                "Dosage form is only allowed for WeightVariation specifications.");
 
         switch (spec.LimitType)
         {
             case LimitType.Range:
                 if (!spec.LowerLimit.HasValue || !spec.UpperLimit.HasValue)
-                    throw new BusinessRuleException("Lower limit and upper limit are required for Range specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationRangeLimitsRequired,
+                        "Lower limit and upper limit are required for Range specifications.");
                 if (spec.LowerLimit.Value > spec.UpperLimit.Value)
-                    throw new BusinessRuleException("Lower limit cannot be greater than upper limit.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationLowerLimitCannotExceedUpper,
+                        "Lower limit cannot be greater than upper limit.");
                 break;
 
             case LimitType.NotMoreThan:
                 if (!spec.UpperLimit.HasValue)
-                    throw new BusinessRuleException("Upper limit is required for Not More Than specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationUpperLimitRequiredForNotMoreThan,
+                        "Upper limit is required for Not More Than specifications.");
                 break;
 
             case LimitType.NotLessThan:
                 if (!spec.LowerLimit.HasValue)
-                    throw new BusinessRuleException("Lower limit is required for Not Less Than specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationLowerLimitRequiredForNotLessThan,
+                        "Lower limit is required for Not Less Than specifications.");
                 break;
 
             case LimitType.TargetWithTolerance:
                 if (!spec.Target.HasValue || !spec.Tolerance.HasValue)
-                    throw new BusinessRuleException("Target and tolerance are required for Target With Tolerance specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationTargetAndToleranceRequired,
+                        "Target and tolerance are required for Target With Tolerance specifications.");
                 if (!spec.ToleranceMode.HasValue)
-                    throw new BusinessRuleException("Tolerance mode is required for Target With Tolerance specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationToleranceModeRequired,
+                        "Tolerance mode is required for Target With Tolerance specifications.");
                 if (spec.Tolerance.Value <= 0)
-                    throw new BusinessRuleException("Tolerance must be greater than zero.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationToleranceMustBePositive,
+                        "Tolerance must be greater than zero.");
                 break;
 
             case LimitType.Qualitative:
                 if (string.IsNullOrWhiteSpace(spec.ExpectedResultText))
-                    throw new BusinessRuleException("Expected result text is required for Qualitative specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationExpectedResultTextRequiredForQualitative,
+                        "Expected result text is required for Qualitative specifications.");
                 break;
 
             case LimitType.PresenceAbsence:
                 if (!spec.ExpectedState.HasValue)
-                    throw new BusinessRuleException("Expected state is required for Presence/Absence specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationExpectedStateRequiredForPresenceAbsence,
+                        "Expected state is required for Presence/Absence specifications.");
                 break;
 
             case LimitType.MultiStage:
                 if (spec.Stages == null || spec.Stages.Count == 0)
-                    throw new BusinessRuleException("At least one stage is required for Multi-Stage specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationMultiStageAtLeastOneStage,
+                        "At least one stage is required for Multi-Stage specifications.");
                 if (spec.Stages.Any(s => string.IsNullOrWhiteSpace(s.StageLabel)))
-                    throw new BusinessRuleException("Stage label is required for every stage.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationStageLabelRequiredForStages,
+                        "Stage label is required for every stage.");
                 if (spec.Stages.Any(s => string.IsNullOrWhiteSpace(s.AcceptanceCriteriaText)))
-                    throw new BusinessRuleException("Acceptance criteria text is required for every stage.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationAcceptanceCriteriaRequiredForStages,
+                        "Acceptance criteria text is required for every stage.");
                 break;
 
             case LimitType.DissolutionQ:
                 if (!spec.LowerLimit.HasValue || spec.LowerLimit.Value <= 0 || spec.LowerLimit.Value > 100)
-                    throw new BusinessRuleException("Lower limit (Q) must be between 0 and 100 (exclusive of 0, inclusive of 100) for DissolutionQ specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDissolutionQRange,
+                        "Lower limit (Q) must be between 0 and 100 (exclusive of 0, inclusive of 100) for DissolutionQ specifications.");
                 if (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0)
-                    throw new BusinessRuleException("Label claim must be greater than zero for DissolutionQ specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDissolutionLabelClaimPositive,
+                        "Label claim must be greater than zero for DissolutionQ specifications.");
                 if (string.IsNullOrWhiteSpace(spec.LabelClaimUnit) || spec.LabelClaimUnit.Trim() != "mg")
-                    throw new BusinessRuleException("Label claim unit must be \"mg\" for DissolutionQ specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDissolutionLabelClaimUnitMg,
+                        "Label claim unit must be \"mg\" for DissolutionQ specifications.");
                 break;
 
             case LimitType.DisintegrationTime:
                 if (!spec.UpperLimit.HasValue || spec.UpperLimit.Value <= 0)
-                    throw new BusinessRuleException("Upper limit (time in minutes) must be greater than zero for DisintegrationTime specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDisintegrationTimePositive,
+                        "Upper limit (time in minutes) must be greater than zero for DisintegrationTime specifications.");
                 if (string.IsNullOrWhiteSpace(spec.Unit) || spec.Unit.Trim() != "min")
-                    throw new BusinessRuleException("Unit must be \"min\" for DisintegrationTime specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDisintegrationUnitMin,
+                        "Unit must be \"min\" for DisintegrationTime specifications.");
                 if (spec.LabelClaim.HasValue)
-                    throw new BusinessRuleException("Label claim is not allowed for DisintegrationTime specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDisintegrationLabelClaimNotAllowed,
+                        "Label claim is not allowed for DisintegrationTime specifications.");
                 if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                    throw new BusinessRuleException("Label claim unit is not allowed for DisintegrationTime specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDisintegrationLabelClaimUnitNotAllowed,
+                        "Label claim unit is not allowed for DisintegrationTime specifications.");
                 break;
 
             case LimitType.WeightVariation:
                 if (!spec.DosageForm.HasValue)
-                    throw new BusinessRuleException("Dosage form is required for WeightVariation specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationDosageFormRequiredForWeightVariation,
+                        "Dosage form is required for WeightVariation specifications.");
                 if (string.IsNullOrWhiteSpace(spec.Unit) || spec.Unit.Trim() != "mg")
-                    throw new BusinessRuleException("Unit must be \"mg\" for WeightVariation specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationWeightVariationUnitMg,
+                        "Unit must be \"mg\" for WeightVariation specifications.");
                 if (spec.LowerLimit.HasValue || spec.UpperLimit.HasValue || spec.Target.HasValue || spec.Tolerance.HasValue)
-                    throw new BusinessRuleException("Limits are not allowed for WeightVariation specifications (configured on Test Master).");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationWeightVariationLimitsNotAllowed,
+                        "Limits are not allowed for WeightVariation specifications (configured on Test Master).");
                 if (spec.LabelClaim.HasValue)
-                    throw new BusinessRuleException("Label claim is not allowed for WeightVariation specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationWeightVariationLabelClaimNotAllowed,
+                        "Label claim is not allowed for WeightVariation specifications.");
                 if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                    throw new BusinessRuleException("Label claim unit is not allowed for WeightVariation specifications.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationWeightVariationLabelClaimUnitNotAllowed,
+                        "Label claim unit is not allowed for WeightVariation specifications.");
                 break;
 
             case LimitType.CountTiered:
                 break;
 
             default:
-                throw new BusinessRuleException($"Unsupported limit type '{spec.LimitType}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationUnsupportedLimitType,
+                    $"Unsupported limit type '{spec.LimitType}'.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
         }
     }
 
@@ -182,7 +242,10 @@ public class SpecificationService
     {
         if (string.IsNullOrWhiteSpace(grade)) return null;
         var g = string.Join(' ', grade.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        if (g.Length > 20) throw new BusinessRuleException("Grade must be 20 characters or fewer.");
+        if (g.Length > 20)
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationGradeMaxLength,
+                "Grade must be 20 characters or fewer.");
         return g.ToUpperInvariant() is "BP" or "USP" ? g.ToUpperInvariant() : g;
     }
 
@@ -206,32 +269,48 @@ public class SpecificationService
     private async Task ValidateRelatedSubstanceRowAsync(Specification spec, int? methodId, CancellationToken cancellationToken)
     {
         if (spec.RelatedSubstanceRow is not RelatedSubstanceRow kind || !Enum.IsDefined(kind))
-            throw new BusinessRuleException("Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceRowRequired,
+                "Choose the related-substance row: named impurity, any unspecified impurity, total, or total of others.");
 
         if (kind == RelatedSubstanceRow.Named)
         {
             if (!spec.HplcMethodImpurityId.HasValue)
-                throw new BusinessRuleException("Choose the impurity for this row.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationRelatedSubstanceImpurityRequired,
+                    "Choose the impurity for this row.");
             var impurityMethodId = await _db.HplcMethodImpurities.Where(i => i.Id == spec.HplcMethodImpurityId.Value)
                 .Select(i => (int?)i.HplcMethodId).FirstOrDefaultAsync(cancellationToken);
             if (impurityMethodId != methodId)
-                throw new BusinessRuleException("The impurity does not belong to this test's HPLC method.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationRelatedSubstanceImpurityNotInMethod,
+                    "The impurity does not belong to this test's HPLC method.");
         }
         else if (spec.HplcMethodImpurityId.HasValue)
-            throw new BusinessRuleException("Only a named-impurity row names an impurity.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceOnlyNamedHasImpurity,
+                "Only a named-impurity row names an impurity.");
 
         if (spec.LimitType != LimitType.NotMoreThan)
-            throw new BusinessRuleException("Related-substance limits are 'not more than' limits.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceMustBeNotMoreThan,
+                "Related-substance limits are 'not more than' limits.");
         if (spec.ResultBasis != ResultBasis.PercentAsIs)
-            throw new BusinessRuleException("Related-substance rows report % (as is).");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceMustBePercentAsIs,
+                "Related-substance rows report % (as is).");
         if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-            throw new BusinessRuleException("Related-substance rows have no label claim.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceNoLabelClaim,
+                "Related-substance rows have no label claim.");
     }
 
     public async Task ValidateAsync(Specification spec, CancellationToken cancellationToken = default)
     {
         if (spec.RelatedSubstanceRow.HasValue && spec.LimitType == LimitType.NotMoreThan && !(spec.UpperLimit > 0m))
-            throw new BusinessRuleException("Enter the limit (above 0 %).");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceLimitPositive,
+                "Enter the limit (above 0 %).");
         Validate(spec);
         spec.Grade = NormalizeGrade(spec.Grade);
         // Grades match case-insensitively ("In-house" = "in-house"); reuse the item's

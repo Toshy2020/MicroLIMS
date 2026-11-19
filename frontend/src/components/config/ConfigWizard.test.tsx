@@ -499,7 +499,15 @@ describe("ConfigWizard", () => {
     await user.type(nameInput, "Draft Name");
     await new Promise((r) => setTimeout(r, 500));
     const stored = await rawStoredDrafts();
-    expect(stored.some((d) => d.recordVersion === 3)).toBe(true);
+    expect(
+      stored.some(
+        (d) =>
+          typeof d === "object" &&
+          d !== null &&
+          "recordVersion" in d &&
+          (d as { recordVersion?: unknown }).recordVersion === 3
+      )
+    ).toBe(true);
     first.unmount();
 
     const serverV6: SampleModel = {

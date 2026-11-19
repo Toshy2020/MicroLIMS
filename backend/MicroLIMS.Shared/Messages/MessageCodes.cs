@@ -53,7 +53,6 @@ public static partial class MessageCodes
         UserParameters(),
         UvParameters(),
         WasteParameters(),
-        WeightVariationParameters());
         WeightVariationParameters(),
         WorkflowStepParameters());
 

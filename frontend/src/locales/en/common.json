@@ -796,5 +796,9 @@
     "clear": "Clear",
     "chooseDate": "Choose date",
     "chooseDateSelected": "Choose date, selected date is {{date}}"
+  },
+  "dateTime": {
+    "time": "Time",
+    "timeOf": "{{label}} (time)"
   }
 }

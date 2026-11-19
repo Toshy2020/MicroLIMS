@@ -19,10 +19,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography
 } from "@mui/material";
 import { toast } from "sonner";
+import { TimeField24 } from "../../../components/TimeField24";
 import { LabPage } from "../../../components/lab";
 import { LoadErrorAlert } from "../../../components/LoadErrorAlert";
 import { SectionTitle } from "../../../components/SectionTitle";
@@ -297,38 +297,24 @@ export function WorkingHoursPage() {
                             </Stack>
                           </TableCell>
                           <TableCell sx={{ verticalAlign: "top" }}>
-                            <TextField
-                              type="time"
-                              size="small"
+                            <TimeField24
                               value={row.startTime}
                               disabled={!row.isWorkingDay || saving}
                               error={Boolean(err?.startMinute)}
                               helperText={err?.startMinute}
-                              onChange={(e) => updateRow(index, { startTime: e.target.value })}
-                              slotProps={{
-                                htmlInput: {
-                                  "aria-label": t("escalation.workingHours.startAria", { day: dayName(row.dayOfWeek) }),
-                                  step: 60
-                                }
-                              }}
+                              onChange={(value) => updateRow(index, { startTime: value })}
+                              ariaLabel={t("escalation.workingHours.startAria", { day: dayName(row.dayOfWeek) })}
                               sx={{ minWidth: 140, fontVariantNumeric: "tabular-nums" }}
                             />
                           </TableCell>
                           <TableCell sx={{ verticalAlign: "top" }}>
-                            <TextField
-                              type="time"
-                              size="small"
+                            <TimeField24
                               value={row.endTime}
                               disabled={!row.isWorkingDay || saving}
                               error={Boolean(err?.endMinute)}
                               helperText={err?.endMinute}
-                              onChange={(e) => updateRow(index, { endTime: e.target.value })}
-                              slotProps={{
-                                htmlInput: {
-                                  "aria-label": t("escalation.workingHours.endAria", { day: dayName(row.dayOfWeek) }),
-                                  step: 60
-                                }
-                              }}
+                              onChange={(value) => updateRow(index, { endTime: value })}
+                              ariaLabel={t("escalation.workingHours.endAria", { day: dayName(row.dayOfWeek) })}
                               sx={{ minWidth: 140, fontVariantNumeric: "tabular-nums" }}
                             />
                           </TableCell>

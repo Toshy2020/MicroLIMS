@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -406,7 +408,9 @@ public class DocumentReassignmentService : IDocumentReassignmentService
                             .FirstOrDefaultAsync(x => x.Id == itemId && (x.Status == PeriodicReviewTaskStatus.Pending || x.Status == PeriodicReviewTaskStatus.InProgress))
                         ?? throw new KeyNotFoundException($"Periodic review {itemId} was not found or is no longer open.");
                 if (t.AssignedReviewerUser is null)
-                    throw new BusinessRuleException("This periodic review has no reviewer to replace.");
+                    throw new BusinessRuleException(
+                        MessageCodes.DocumentReassignmentPeriodicReviewNoReviewer,
+                        "This periodic review has no reviewer to replace.");
                 EnsureHolderInactive(t.AssignedReviewerUser);
                 return new Target
                 {
@@ -425,14 +429,23 @@ public class DocumentReassignmentService : IDocumentReassignmentService
                 };
             }
             default:
-                throw new BusinessRuleException($"Unknown item type '{itemType}'. Expected one of: {string.Join(", ", ReassignmentItemTypes.All)}.");
+                throw new BusinessRuleException(
+                    MessageCodes.DocumentReassignmentUnknownItemType,
+                    $"Unknown item type '{itemType}'. Expected one of: {string.Join(", ", ReassignmentItemTypes.All)}.",
+                    new Dictionary<string, string>
+                    {
+                        ["itemType"] = itemType,
+                        ["allowed"] = string.Join(", ", ReassignmentItemTypes.All)
+                    });
         }
     }
 
     private static void EnsureHolderInactive(User? holder)
     {
         if (holder is { IsActive: true })
-            throw new BusinessRuleException("This responsibility is held by an active user. Only responsibilities held by deactivated users are reassigned here.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentHolderStillActive,
+                "This responsibility is held by an active user. Only responsibilities held by deactivated users are reassigned here.");
     }
 
     // Reactivates or creates the (document, user, role) assignment.
@@ -496,15 +509,38 @@ public class DocumentReassignmentService : IDocumentReassignmentService
         EnsureCovers(scope, target.DepartmentId);
 
         var newUser = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == request.NewUserId)
-            ?? throw new BusinessRuleException($"User {request.NewUserId} was not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentUserNotFound,
+                $"User {request.NewUserId} was not found.",
+                new Dictionary<string, string> { ["userId"] = request.NewUserId.ToString(CultureInfo.InvariantCulture) });
         if (!newUser.IsActive)
-            throw new BusinessRuleException($"User '{newUser.FullName}' is inactive and cannot take over a responsibility.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentUserInactive,
+                $"User '{newUser.FullName}' is inactive and cannot take over a responsibility.",
+                new Dictionary<string, string> { ["fullName"] = newUser.FullName });
         if (newUser.Id == target.HolderUserId)
-            throw new BusinessRuleException("The new holder must be a different user.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentMustBeDifferentUser,
+                "The new holder must be a different user.");
         if (!await _db.UserOrgMemberships.AnyAsync(m => m.UserId == newUser.Id && m.DepartmentId == target.DepartmentId))
-            throw new BusinessRuleException($"User '{newUser.FullName}' is not a member of the department '{target.DepartmentName}' that owns this document.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentUserNotInDepartment,
+                $"User '{newUser.FullName}' is not a member of the department '{target.DepartmentName}' that owns this document.",
+                new Dictionary<string, string>
+                {
+                    ["fullName"] = newUser.FullName,
+                    ["departmentName"] = target.DepartmentName
+                });
         if (!await _auth.HoldsPermissionAsync(newUser.Id, target.Permission))
-            throw new BusinessRuleException($"User '{newUser.FullName}' cannot take over as {target.Role}: their role does not hold the {target.Permission} permission.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentReassignmentUserMissingPermission,
+                $"User '{newUser.FullName}' cannot take over as {target.Role}: their role does not hold the {target.Permission} permission.",
+                new Dictionary<string, string>
+                {
+                    ["fullName"] = newUser.FullName,
+                    ["role"] = target.Role,
+                    ["permission"] = target.Permission
+                });
         if (target.Excluded.Contains(newUser.Id))
             throw new UnauthorizedAccessException($"Segregation of Duties Violation: '{newUser.FullName}' took part in this revision as its author or technical reviewer and cannot take over as {target.Role}.");
 

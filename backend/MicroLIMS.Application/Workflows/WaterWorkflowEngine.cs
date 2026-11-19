@@ -1,8 +1,10 @@
+using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
@@ -62,9 +64,15 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     private async Task<Sample> ReceiveCoreAsync(WaterReceiveRequest request)
     {
         var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == request.WaterDepartmentId)
-            ?? throw new BusinessRuleException($"Water department {request.WaterDepartmentId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterDepartmentNotFound,
+                $"Water department {request.WaterDepartmentId} not found.",
+                new Dictionary<string, string> { ["departmentId"] = request.WaterDepartmentId.ToString(CultureInfo.InvariantCulture) });
         if (!department.IsActive)
-            throw new BusinessRuleException($"Water department '{department.Name}' is inactive and cannot receive samples.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterDepartmentInactive,
+                $"Water department '{department.Name}' is inactive and cannot receive samples.",
+                new Dictionary<string, string> { ["department"] = department.Name });
 
         int? labSectionId;
         if (_scope != null)
@@ -117,7 +125,9 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         };
 
         if (sample.SampledAt > sample.ReceivedAt)
-            throw new BusinessRuleException("The sampling time cannot be after the time of receipt.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringSamplingTimeAfterReceipt,
+                "The sampling time cannot be after the time of receipt.");
 
         _db.Samples.Add(sample);
 
@@ -130,7 +140,9 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
             sample.ReferenceNumber = await _refNumbers.GenerateAsync(SampleCategory.Water);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.SampleReferenceNumber))
                 throw new BusinessRuleException(
-                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.");
+                    MessageCodes.ReceivingReferenceNumberClash,
+                    $"Reference number {sample.ReferenceNumber} was taken by another receipt at the same moment. Nothing was saved - receive the sample again.",
+                    new Dictionary<string, string> { ["referenceNumber"] = sample.ReferenceNumber });
         }
 
         return sample;
@@ -144,20 +156,31 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds)
     {
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException($"Sample {sampleId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleNotFound,
+                $"Sample {sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         if (sample.PreparationStatus != SamplePreparationStatus.NeedsPreparation)
-            throw new BusinessRuleException("This sample has already been prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleAlreadyPrepared,
+                "This sample has already been prepared.");
 
         if (waterSamplingPointIds.Count == 0)
-            throw new BusinessRuleException("At least one sampling point must be selected.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterPointRequired,
+                "At least one sampling point must be selected.");
 
         // Refrigerated water has a hold-time limit, so the duration has to be
         // recorded alongside the condition.
         if (string.IsNullOrWhiteSpace(storageCondition))
-            throw new BusinessRuleException("Storage condition is required for water samples.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterStorageConditionRequired,
+                "Storage condition is required for water samples.");
         if (storageCondition == "Refrigerator" && storageTimeHours is null)
-            throw new BusinessRuleException("Storage time is required when a water sample was refrigerated.");
+            throw new BusinessRuleException(
+                MessageCodes.SampleStorageTimeRequired,
+                "Storage time is required when a water sample was refrigerated.");
 
         var points = await _db.WaterSamplingPoints
             .Where(p => waterSamplingPointIds.Contains(p.Id))
@@ -165,17 +188,33 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         var missing = waterSamplingPointIds.Except(points.Select(p => p.Id)).ToList();
         if (missing.Count > 0)
-            throw new BusinessRuleException($"Sampling point(s) not found: {string.Join(", ", missing)}.");
+        {
+            var ids = string.Join(", ", missing);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterPointsNotFound,
+                $"Sampling point(s) not found: {ids}.",
+                new Dictionary<string, string> { ["ids"] = ids });
+        }
 
         var inactive = points.Where(p => !p.IsActive).ToList();
         if (inactive.Count > 0)
+        {
+            var pointCodes = string.Join(", ", inactive.Select(p => p.Code));
             throw new BusinessRuleException(
-                $"Sampling point(s) {string.Join(", ", inactive.Select(p => p.Code))} are inactive and cannot be prepared.");
+                MessageCodes.MonitoringWaterPointsInactiveCannotPrepare,
+                $"Sampling point(s) {pointCodes} are inactive and cannot be prepared.",
+                new Dictionary<string, string> { ["points"] = pointCodes });
+        }
 
         var wrongDepartment = points.Where(p => p.WaterDepartmentId != sample.WaterDepartmentId).ToList();
         if (wrongDepartment.Count > 0)
+        {
+            var pointCodes = string.Join(", ", wrongDepartment.Select(p => p.Code));
             throw new BusinessRuleException(
-                $"Sampling point(s) {string.Join(", ", wrongDepartment.Select(p => p.Code))} do not belong to this sample's department.");
+                MessageCodes.MonitoringWaterPointsWrongDepartment,
+                $"Sampling point(s) {pointCodes} do not belong to this sample's department.",
+                new Dictionary<string, string> { ["points"] = pointCodes });
+        }
 
         var microSection = await _db.DocumentSections
             .FirstOrDefaultAsync(s => s.Code == LaboratoryCodes.Microbiology);
@@ -197,7 +236,10 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         var allowedCodes = allowedDefs.Select(t => t.Code).ToHashSet(StringComparer.Ordinal);
 
         if (allowedCodes.Count == 0)
-            throw new BusinessRuleException($"None of the selected sampling points has {labName} tests assigned.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterPointsNoLabTests,
+                $"None of the selected sampling points has {labName} tests assigned.",
+                new Dictionary<string, string> { ["labName"] = labName });
 
         var countTestCodeSet = allowedDefs
             .Where(t => t.WorkflowType == WorkflowType.CountTest)
@@ -256,7 +298,9 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         if (monitoringOccurrenceIds is { Count: > 0 })
         {
             if (_monitoring is null)
-                throw new BusinessRuleException("Monitoring plan linking is not available.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringPlanLinkingNotAvailable,
+                    "Monitoring plan linking is not available.");
             await _monitoring.LinkAsync(sample, monitoringOccurrenceIds, userId);
         }
 
@@ -268,7 +312,9 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     public async Task<WaterComparisonResult> CalculateAndCompareAsync(int testOrderId, List<decimal> readings)
     {
         if (readings.Count == 0)
-            throw new BusinessRuleException("At least one reading is required to calculate an average.");
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringReadingRequiredForAverage,
+                "At least one reading is required to calculate an average.");
 
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
 
@@ -280,10 +326,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         var isBatchPrepared = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
         if (isBatchPrepared)
             throw new BusinessRuleException(
+                MessageCodes.MonitoringWaterBatchPerLocationNotAvailable,
                 "This water test was prepared across multiple sampling points; per-location result entry is not available yet.");
 
         var sample = await _db.Samples.Include(s => s.TestOrders).FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new NotFoundException("Sample not found for this test order.");
+            ?? throw new NotFoundException(
+                MessageCodes.MonitoringSampleNotFoundForTestOrder,
+                "Sample not found for this test order.");
 
         var config = sample.WaterSamplingPointId is null
             ? null
@@ -336,7 +385,14 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        if (errors.Count > 0)
+        {
+            var message = string.Join(" ", errors);
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringAdvanceValidationFailed,
+                message,
+                new Dictionary<string, string> { ["message"] = message });
+        }
 
         var next = order.CurrentStep switch
         {

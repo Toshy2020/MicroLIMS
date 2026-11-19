@@ -77,6 +77,27 @@ public sealed class MasterDataUsageService
         };
     }
 
+    public async Task<int> GetUnscopedOpenWorkCountAsync(
+        MasterRecordType type,
+        int id,
+        CancellationToken ct = default)
+    {
+        if (!Enum.IsDefined(type))
+            throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown master record type.");
+
+        var summary = type switch
+        {
+            MasterRecordType.TestDefinition => await GetForTestDefinitionAsync(id, readableSections: null, ct),
+            MasterRecordType.Specification => await GetForSpecificationAsync(id, readableSections: null, ct),
+            MasterRecordType.Item => await GetForItemAsync(id, readableSections: null, ct),
+            MasterRecordType.Equipment => await GetForEquipmentAsync(id, readableSections: null, ct),
+            MasterRecordType.MaterialMaster => await GetForMaterialMasterAsync(id, readableSections: null, ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown master record type.")
+        };
+
+        return summary.OpenWorkCount;
+    }
+
     private async Task<UsageSummary> GetForTestDefinitionAsync(
         int id,
         IReadOnlyList<int>? readableSections,

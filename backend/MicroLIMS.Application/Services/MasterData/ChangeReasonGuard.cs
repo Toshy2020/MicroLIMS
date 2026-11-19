@@ -45,8 +45,8 @@ public sealed class ChangeReasonGuard
 
         if (!required)
         {
-            var usage = await _usage.GetAsync(type, id, userId, ct);
-            openWorkCount = usage.OpenWorkCount;
+            // Every section counts here: the rule must not depend on which sections the editor can read.
+            openWorkCount = await _usage.GetUnscopedOpenWorkCountAsync(type, id, ct);
             required = openWorkCount > 0;
         }
 

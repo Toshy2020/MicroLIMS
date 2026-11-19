@@ -1331,5 +1331,19 @@
   "WeightVariation.TabletsNoStage2": "Tablets do not support Stage 2 evaluation.",
   "WeightVariation.UnitCountMinOne": "Weight variation unit count and extra units must be greater than or equal to 1.",
   "WeightVariation.UnitsRequired": "Units are required.",
-  "WeightVariation.WrongWorkflow": "Test order {{testOrderId}} is not a WeightVariation workflow."
+  "WeightVariation.WrongWorkflow": "Test order {{testOrderId}} is not a WeightVariation workflow.",
+  "WorkflowStep.ContiguousStepNumbers": "Workflow steps must have contiguous step numbers starting from 1.",
+  "WorkflowStep.FinalStepAlreadyExists": "Only one step per test can be marked as the final step.",
+  "WorkflowStep.IncubationConditionChosenWrongProduct": "The incubation condition chosen for '{{name}}' belongs to a different media product.",
+  "WorkflowStep.IncubationConditionMissingForMedium": "Choose an incubation condition for medium '{{name}}'.",
+  "WorkflowStep.IncubationConditionNotFound": "Incubation condition {{id}} not found.",
+  "WorkflowStep.MediaProductInactive": "Media product '{{name}}' is inactive and can't be added to a test step.",
+  "WorkflowStep.MediaProductNotFound": "Media product {{mediaProductId}} not found.",
+  "WorkflowStep.StepAlreadyAtEnd": "This step is already at that end of the sequence.",
+  "WorkflowStep.StepCannotDeleteUsed": "Cannot delete step \"{{stepName}}\" - it has already been used by a test order.",
+  "WorkflowStep.StepNotFound": "Workflow step {{stepId}} not found.",
+  "WorkflowStep.TemplateValidationFailed": "{{message}}",
+  "WorkflowStep.TestNotFound": "Test {{id}} not found.",
+  "WorkflowStep.TestWorkflowTypeLocked": "The workflow type of this test is set by its test type; change it in the test settings.",
+  "WorkflowStep.WorkflowTypeHasNoSteps": "{{workflowType}} tests have no workflow steps."
 }

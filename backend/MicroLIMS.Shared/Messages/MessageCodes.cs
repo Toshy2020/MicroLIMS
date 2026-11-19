@@ -44,7 +44,8 @@ public static partial class MessageCodes
         TitrantParameters(),
         TitrationParameters(),
         UvParameters(),
-        WeightVariationParameters());
+        WeightVariationParameters(),
+        WorkflowStepParameters());
 
     private static Dictionary<string, string[]> Combine(params Dictionary<string, string[]>[] parts)
     {

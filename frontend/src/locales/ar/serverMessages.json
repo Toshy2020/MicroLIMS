@@ -1331,5 +1331,19 @@
   "WeightVariation.TabletsNoStage2": "لا تدعم الأقراص تقييم المرحلة 2.",
   "WeightVariation.UnitCountMinOne": "يجب أن يكون عدد الوحدات والوحدات الإضافية في تفاوت الوزن أكبر من أو يساوي 1.",
   "WeightVariation.UnitsRequired": "الوحدات مطلوبة.",
-  "WeightVariation.WrongWorkflow": "طلب الاختبار {{testOrderId}} ليس سير عمل تفاوت الوزن."
+  "WeightVariation.WrongWorkflow": "طلب الاختبار {{testOrderId}} ليس سير عمل تفاوت الوزن.",
+  "WorkflowStep.ContiguousStepNumbers": "يجب أن تكون أرقام خطوات سير العمل متتالية تبدأ من 1.",
+  "WorkflowStep.FinalStepAlreadyExists": "يمكن لخطوة واحدة فقط لكل اختبار أن تُعيَّن كخطوة نهائية.",
+  "WorkflowStep.IncubationConditionChosenWrongProduct": "شرط الحضانة المختار لـ '{{name}}' ينتمي إلى منتج أوساط زرعية آخر.",
+  "WorkflowStep.IncubationConditionMissingForMedium": "اختر شرط حضانة لوسط زرعي '{{name}}'.",
+  "WorkflowStep.IncubationConditionNotFound": "شرط الحضانة {{id}} غير موجود.",
+  "WorkflowStep.MediaProductInactive": "منتج أوساط زرعية '{{name}}' غير نشط ولا يمكن إضافته إلى خطوة اختبار.",
+  "WorkflowStep.MediaProductNotFound": "منتج أوساط زرعية {{mediaProductId}} غير موجود.",
+  "WorkflowStep.StepAlreadyAtEnd": "هذه الخطوة تقع بالفعل في نهاية التسلسل.",
+  "WorkflowStep.StepCannotDeleteUsed": "لا يمكن حذف الخطوة \"{{stepName}}\" - لقد استخدمها أمر اختبار بالفعل.",
+  "WorkflowStep.StepNotFound": "خطوة سير العمل {{stepId}} غير موجودة.",
+  "WorkflowStep.TemplateValidationFailed": "{{message}}",
+  "WorkflowStep.TestNotFound": "الاختبار {{id}} غير موجود.",
+  "WorkflowStep.TestWorkflowTypeLocked": "نوع سير عمل هذا الاختبار يحدده نوع الاختبار؛ غيّره في إعدادات الاختبار.",
+  "WorkflowStep.WorkflowTypeHasNoSteps": "اختبارات {{workflowType}} لا تحتوي على خطوات سير عمل."
 }

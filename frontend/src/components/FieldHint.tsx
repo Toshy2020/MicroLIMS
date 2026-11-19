@@ -3,7 +3,7 @@ import type { MouseEvent } from "react";
 import { Box, Button, IconButton, Popover, Typography } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutlined";
 import { useTranslation } from "../i18n";
-import { HELP_GUIDANCE, useHelpPanel } from "../modules/help/HelpPanelContext";
+import { useHelpPanel } from "../modules/help/HelpPanelContext";
 import type { HelpTarget } from "../modules/help/HelpPanelContext";
 import { useBenchMode } from "../theme/BenchModeContext";
 import { BENCH_MIN_TARGET } from "../theme/benchTheme";
@@ -113,7 +113,7 @@ export function FieldHint({ id, label, hint }: FieldHintProps) {
           {hint.text}
         </Typography>
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          {HELP_GUIDANCE}
+          {t("shared.guidance", { ns: "help" })}
         </Typography>
         {guide && (
           <Box sx={{ mt: 1 }}>

@@ -1,0 +1,68 @@
+{
+  "shared": {
+    "guidance": "للاسترشاد فقط. تسري إجراءات التشغيل القياسية (SOP) المعتمدة لديك في حال التعارض.",
+    "retry": "إعادة المحاولة",
+    "close": "إغلاق",
+    "chapterLoadFailed": "تعذّر تحميل هذا الفصل."
+  },
+  "about": {
+    "loadFailed": "تعذّر تحميل إصدار الخادم.",
+    "title": "حول MicroLIMS",
+    "applicationVersion": "إصدار التطبيق",
+    "serverVersion": "إصدار الخادم",
+    "environment": "البيئة",
+    "loading": "جارٍ التحميل…",
+    "unavailable": "غير متاح",
+    "loadingServerVersion": "جارٍ تحميل إصدار الخادم…"
+  },
+  "menu": {
+    "help": "المساعدة",
+    "pageHelp": "مساعدة لهذه الصفحة",
+    "fullGuide": "الدليل الكامل",
+    "shortcuts": "اختصارات لوحة المفاتيح",
+    "whatsNew": "الجديد",
+    "replayTour": "إعادة الجولة التعريفية",
+    "about": "حول"
+  },
+  "panel": {
+    "loadingChapterAria": "جارٍ تحميل الفصل",
+    "searchResultsAria": "نتائج البحث",
+    "searching": "جارٍ البحث",
+    "searchFailed": "فشل البحث. حاول مرة أخرى.",
+    "noResults": "لا توجد نتائج لـ \"{{query}}\"",
+    "results_zero": "لا توجد نتائج لـ \"{{query}}\"",
+    "results_one": "نتيجة واحدة لـ \"{{query}}\"",
+    "results_two": "نتائج البحث عن \"{{query}}\": نتيجتان",
+    "results_few": "{{count}} نتائج لـ \"{{query}}\"",
+    "results_many": "نتائج البحث عن \"{{query}}\": {{count}} نتيجة",
+    "results_other": "نتائج البحث عن \"{{query}}\": {{count}} نتيجة",
+    "title": "المساعدة",
+    "closeAria": "إغلاق المساعدة",
+    "version": "الإصدار {{version}}",
+    "search": "البحث في الدليل",
+    "openFullGuide": "فتح الدليل الكامل"
+  },
+  "page": {
+    "userGuide": "دليل المستخدم",
+    "allChapters": "جميع الفصول",
+    "loadingAria": "جارٍ تحميل {{title}}",
+    "chaptersAria": "فصول الدليل",
+    "notFoundTitle": "الفصل غير موجود",
+    "notFoundMessage": "لا يوجد فصل في الدليل باسم \"{{id}}\".",
+    "backToChapters": "العودة إلى جميع الفصول"
+  },
+  "whatsNew": {
+    "title": "الجديد",
+    "none": "لا توجد ملاحظات إصدار متاحة لدورك.",
+    "version": "الإصدار {{version}}",
+    "readGuideAria": "قراءة الدليل: {{text}}",
+    "readGuide": "قراءة الدليل"
+  },
+  "tour": {
+    "step": "الخطوة {{current}} من {{total}}",
+    "skip": "تخطي",
+    "back": "السابق",
+    "finish": "إنهاء",
+    "next": "التالي"
+  }
+}

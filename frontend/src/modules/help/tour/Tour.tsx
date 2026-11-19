@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Box, Button, Paper, Popper, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { HELP_GUIDANCE, useHelpPanel } from "../HelpPanelContext";
+import { useTranslation } from "../../../i18n";
+import { useHelpPanel } from "../HelpPanelContext";
 import type { TourStep } from "./tourSteps";
 
 export interface TourProps {
@@ -48,6 +49,7 @@ export function findTourTarget(target: string): HTMLElement | null {
 }
 
 export function Tour({ steps, onFinish }: TourProps) {
+  const { t } = useTranslation("help");
   const theme = useTheme();
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const { helpButtonRef } = useHelpPanel();
@@ -269,7 +271,7 @@ export function Tour({ steps, onFinish }: TourProps) {
             color="text.secondary"
             sx={{ fontVariantNumeric: "tabular-nums", flexShrink: 0, fontWeight: 600 }}
           >
-            {`Step ${clampedIndex + 1} of ${availableSteps.length}`}
+            {t("tour.step", { current: clampedIndex + 1, total: availableSteps.length })}
           </Typography>
         </Box>
 
@@ -278,7 +280,7 @@ export function Tour({ steps, onFinish }: TourProps) {
         </Typography>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-          {HELP_GUIDANCE}
+          {t("shared.guidance")}
         </Typography>
 
         <Stack
@@ -287,11 +289,11 @@ export function Tour({ steps, onFinish }: TourProps) {
           sx={{ mt: 2, alignItems: "center", justifyContent: "space-between" }}
         >
           <Button size="small" color="inherit" onClick={handleSkip}>
-            Skip
+            {t("tour.skip")}
           </Button>
           <Stack direction="row" spacing={1}>
             <Button size="small" variant="outlined" onClick={handleBack} disabled={clampedIndex === 0}>
-              Back
+              {t("tour.back")}
             </Button>
             <Button
               ref={primaryButtonRef}
@@ -299,7 +301,7 @@ export function Tour({ steps, onFinish }: TourProps) {
               variant="contained"
               onClick={handleNext}
             >
-              {isLastStep ? "Finish" : "Next"}
+              {isLastStep ? t("tour.finish") : t("tour.next")}
             </Button>
           </Stack>
         </Stack>

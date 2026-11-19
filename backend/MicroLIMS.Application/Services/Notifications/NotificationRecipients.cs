@@ -118,6 +118,40 @@ public sealed class NotificationRecipients
         ).Distinct().ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyCollection<int>> PermissionHoldersInSectionAsync(
+        string permissionCode,
+        int? sectionId,
+        CancellationToken ct = default)
+    {
+        var section = sectionId is int secId
+            ? await _db.DocumentSections.AsNoTracking()
+                .Where(s => s.Id == secId && s.IsActive)
+                .Select(s => new { s.Id, s.DepartmentId, DepartmentActive = s.Department.IsActive })
+                .FirstOrDefaultAsync(ct)
+            : null;
+
+        if (sectionId is not null && section is null)
+            return Array.Empty<int>();
+
+        return await (
+            from u in _db.Users.AsNoTracking()
+            join rp in _db.RolePermissions.AsNoTracking() on u.RoleId equals rp.RoleId
+            join p in _db.Permissions.AsNoTracking() on rp.PermissionId equals p.Id
+            where u.IsActive
+                && u.Role != null
+                && u.Role.IsActive
+                && p.Code == permissionCode
+                && (_db.RolePermissions.Any(vrp =>
+                        vrp.RoleId == u.RoleId
+                        && vrp.Permission!.Code == PermissionConstants.SectionsViewAll)
+                    || (section != null && _db.UserOrgMemberships.Any(m =>
+                        m.UserId == u.Id
+                        && (m.SectionId == section.Id
+                            || (m.SectionId == null && m.DepartmentId == section.DepartmentId && section.DepartmentActive)))))
+            select u.Id
+        ).Distinct().ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyCollection<int>> SectionHeadOrPermissionHoldersAsync(
         string permissionCode,
         CancellationToken ct = default)

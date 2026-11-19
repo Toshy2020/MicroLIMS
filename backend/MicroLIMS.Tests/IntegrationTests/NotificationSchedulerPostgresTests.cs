@@ -305,6 +305,79 @@ public class NotificationSchedulerPostgresTests
     }
 
     [PostgresFact]
+    public async Task CalibrationDue_NotifiesPermissionHolderInEquipmentSection_ExcludesOtherSection()
+    {
+        var now = new DateTimeOffset(2026, 11, 15, 10, 0, 0, TimeSpan.Zero);
+        var clock = new MutableTimeProvider(now);
+
+        int inSectionUserId;
+        int otherSectionUserId;
+        int equipmentId;
+        int otherEquipmentId;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var eqSection = await CreateSectionAsync(arrangeDb, "CALA");
+            var otherSection = await CreateSectionAsync(arrangeDb, "CALB");
+            var eqRole = await CreateRoleWithPermissionsAsync(arrangeDb, RoleType.Analyst, PermissionConstants.EquipmentWorkRecord);
+
+            var inSectionUser = await CreateUserInSectionAsync(arrangeDb, eqRole.Id, eqSection.Id, "calin", "calin@lab.test");
+            var otherSectionUser = await CreateUserInSectionAsync(arrangeDb, eqRole.Id, otherSection.Id, "calout", "calout@lab.test");
+            inSectionUserId = inSectionUser.Id;
+            otherSectionUserId = otherSectionUser.Id;
+
+            var equipment = new EquipmentInventory
+            {
+                Code = UniqueCode("BAL-SECA-"),
+                InstrumentType = "Analytical Balance",
+                ManufacturerName = "Mettler",
+                Location = "Room 1",
+                Status = EquipmentOperationalStatus.InService,
+                SectionId = eqSection.Id,
+                CalibrationDueDate = now.UtcDateTime.AddDays(3),
+                CreatedByUserId = inSectionUserId,
+                LastModifiedByUserId = inSectionUserId
+            };
+            var otherEquipment = new EquipmentInventory
+            {
+                Code = UniqueCode("BAL-SECB-"),
+                InstrumentType = "Microbalance",
+                ManufacturerName = "Sartorius",
+                Location = "Room 2",
+                Status = EquipmentOperationalStatus.InService,
+                SectionId = otherSection.Id,
+                CalibrationDueDate = now.UtcDateTime.AddDays(2),
+                CreatedByUserId = otherSectionUserId,
+                LastModifiedByUserId = otherSectionUserId
+            };
+            arrangeDb.EquipmentInventories.AddRange(equipment, otherEquipment);
+            await arrangeDb.SaveChangesAsync();
+            equipmentId = equipment.Id;
+            otherEquipmentId = otherEquipment.Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var scheduler = CreateScheduler(actDb, clock);
+            await scheduler.RunAsync();
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var calKey = $"CalibrationDue:equipment:{equipmentId}";
+            var otherCalKey = $"CalibrationDue:equipment:{otherEquipmentId}";
+            var logs = await assertDb.NotificationLogs.AsNoTracking()
+                .Where(n => n.DedupeKey == calKey || n.DedupeKey == otherCalKey)
+                .ToListAsync();
+
+            Assert.Contains(logs, n => n.DedupeKey == calKey && n.UserId == inSectionUserId && n.Type == "CalibrationDue");
+            Assert.DoesNotContain(logs, n => n.DedupeKey == calKey && n.UserId == otherSectionUserId);
+            Assert.Contains(logs, n => n.DedupeKey == otherCalKey && n.UserId == otherSectionUserId && n.Type == "CalibrationDue");
+            Assert.DoesNotContain(logs, n => n.DedupeKey == otherCalKey && n.UserId == inSectionUserId);
+        }
+    }
+
+    [PostgresFact]
     public async Task Run_Twice_NoDuplicates()
     {
         var now = new DateTimeOffset(2026, 11, 15, 10, 0, 0, TimeSpan.Zero);

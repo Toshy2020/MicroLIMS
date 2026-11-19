@@ -142,26 +142,30 @@ public class PathogenResetInvalidationPostgresTests
         Assert.Equal(ResetAt.AddDays(1), rows[secondId].InvalidatedAt);
     }
 
-    [PostgresTheory]
-    [InlineData(null)]
-    [InlineData("   ")]
-    [InlineData("too short")]
-    public async Task Reset_WithoutAReasonOfTenCharacters_Refused_NothingChanged(string? reason)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task Reset_WithoutAReasonOfTenCharacters_Refused_NothingChanged()
     {
-        var (sampleId, orderId, resultId) = await SeedAsync();
+        var cases = new string?[] { null, "   ", "too short" };
 
-        await using (var actDb = _fixture.CreateDbContext())
+        await PostgresCases.RunAsync(cases, async reason =>
         {
-            var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
-                Service(actDb, ResetAt).ResetSessionAsync(sampleId, reason, _fixture.SeededUserId));
-            Assert.Equal(PathogenSessionService.ResetReasonRequiredMessage, ex.Message);
-        }
+            var (sampleId, orderId, resultId) = await SeedAsync();
 
-        await using var assertDb = _fixture.CreateDbContext();
-        var result = await assertDb.Results.AsNoTracking().SingleAsync(r => r.Id == resultId);
-        Assert.Null(result.InvalidatedAt);
-        var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == orderId);
-        Assert.Equal(WorkflowStep.Running, order.CurrentStep);
-        Assert.Equal(SampleStatus.InTesting, (await assertDb.Samples.AsNoTracking().SingleAsync(s => s.Id == sampleId)).Status);
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                var ex = await Assert.ThrowsAsync<FieldValidationException>(() =>
+                    Service(actDb, ResetAt).ResetSessionAsync(sampleId, reason, _fixture.SeededUserId));
+                Assert.Equal(PathogenSessionService.ResetReasonRequiredMessage, ex.Message);
+            }
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var result = await assertDb.Results.AsNoTracking().SingleAsync(r => r.Id == resultId);
+            Assert.Null(result.InvalidatedAt);
+            var order = await assertDb.TestOrders.AsNoTracking().SingleAsync(o => o.Id == orderId);
+            Assert.Equal(WorkflowStep.Running, order.CurrentStep);
+            Assert.Equal(SampleStatus.InTesting, (await assertDb.Samples.AsNoTracking().SingleAsync(s => s.Id == sampleId)).Status);
+        });
     }
 }

@@ -192,16 +192,20 @@ public class DraftContextPostgresTests
             audit.SourceContext);
     }
 
-    [PostgresTheory]
-    [InlineData("not-a-date")]
-    [InlineData("2026-11-13")]
-    [InlineData("2026-11-13T09:15:42")]            // no offset: the device did not say which clock
-    [InlineData("   ")]
-    public async Task HeaderMalformed_Ignored_RequestSucceeds(string header)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task HeaderMalformed_Ignored_RequestSucceeds()
     {
-        var audit = await PostOrganismAndGetAuditAsync(header);
+        // "2026-11-13T09:15:42" has no offset: the device did not say which clock.
+        var cases = new[] { "not-a-date", "2026-11-13", "2026-11-13T09:15:42", "   " };
 
-        Assert.Null(audit.SourceContext);
+        await PostgresCases.RunAsync(cases, async header =>
+        {
+            var audit = await PostOrganismAndGetAuditAsync(header);
+
+            Assert.Null(audit.SourceContext);
+        });
     }
 
     [PostgresFact]

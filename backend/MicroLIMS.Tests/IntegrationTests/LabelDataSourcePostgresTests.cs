@@ -1054,43 +1054,48 @@ public class LabelDataSourcePostgresTests
         Assert.Contains("WidthMm", audit.NewValue);
     }
 
-    [PostgresTheory]
-    [InlineData(9.99, 25, LabelLayout.Standard, 1)]
-    [InlineData(150.01, 25, LabelLayout.Standard, 1)]
-    [InlineData(50, 9.99, LabelLayout.Standard, 1)]
-    [InlineData(50, 150.01, LabelLayout.Standard, 1)]
-    [InlineData(50, 25, LabelLayout.Standard, 0)]
-    [InlineData(50, 25, LabelLayout.Standard, 51)]
-    [InlineData(50, 25, (LabelLayout)999, 1)]
-    public async Task Format_update_out_of_range_is_rejected_and_nothing_changes(
-        decimal widthMm,
-        decimal heightMm,
-        LabelLayout layout,
-        int defaultCopies)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task Format_update_out_of_range_is_rejected_and_nothing_changes()
     {
-        LabelFormat before;
-        await using (var arrangeDb = _fixture.CreateDbContext())
+        var cases = new (decimal WidthMm, decimal HeightMm, LabelLayout Layout, int DefaultCopies)[]
         {
-            before = await arrangeDb.LabelFormats.AsNoTracking()
-                .SingleAsync(f => f.EntityType == LabelEntityType.Cryovial);
-        }
+            (9.99m, 25m, LabelLayout.Standard, 1),
+            (150.01m, 25m, LabelLayout.Standard, 1),
+            (50m, 9.99m, LabelLayout.Standard, 1),
+            (50m, 150.01m, LabelLayout.Standard, 1),
+            (50m, 25m, LabelLayout.Standard, 0),
+            (50m, 25m, LabelLayout.Standard, 51),
+            (50m, 25m, (LabelLayout)999, 1)
+        };
 
-        await using (var actDb = _fixture.CreateDbContext())
+        await PostgresCases.RunAsync(cases, async c =>
         {
-            var service = CreateFormatService(actDb);
-            await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(
-                before.Id,
-                new UpdateLabelFormatRequest(widthMm, heightMm, layout, defaultCopies),
-                before.Version,
-                CancellationToken.None));
-        }
+            LabelFormat before;
+            await using (var arrangeDb = _fixture.CreateDbContext())
+            {
+                before = await arrangeDb.LabelFormats.AsNoTracking()
+                    .SingleAsync(f => f.EntityType == LabelEntityType.Cryovial);
+            }
 
-        await using var assertDb = _fixture.CreateDbContext();
-        var after = await assertDb.LabelFormats.AsNoTracking().SingleAsync(f => f.Id == before.Id);
-        Assert.Equal(before.WidthMm, after.WidthMm);
-        Assert.Equal(before.HeightMm, after.HeightMm);
-        Assert.Equal(before.Layout, after.Layout);
-        Assert.Equal(before.DefaultCopies, after.DefaultCopies);
-        Assert.Equal(before.Version, after.Version);
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                var service = CreateFormatService(actDb);
+                await Assert.ThrowsAsync<BusinessRuleException>(() => service.UpdateAsync(
+                    before.Id,
+                    new UpdateLabelFormatRequest(c.WidthMm, c.HeightMm, c.Layout, c.DefaultCopies),
+                    before.Version,
+                    CancellationToken.None));
+            }
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var after = await assertDb.LabelFormats.AsNoTracking().SingleAsync(f => f.Id == before.Id);
+            Assert.Equal(before.WidthMm, after.WidthMm);
+            Assert.Equal(before.HeightMm, after.HeightMm);
+            Assert.Equal(before.Layout, after.Layout);
+            Assert.Equal(before.DefaultCopies, after.DefaultCopies);
+            Assert.Equal(before.Version, after.Version);
+        });
     }
 }

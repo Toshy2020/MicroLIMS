@@ -470,21 +470,26 @@ public class DirectoryLeaverPostgresTests
         Assert.False((await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == leaver.Id)).IsActive);
     }
 
-    [PostgresTheory]
-    [InlineData(SsoMode.Off)]
-    [InlineData(SsoMode.OpenIdConnect)]
-    public async Task Worker_ModeOidcOrOff_DoesNothing(SsoMode mode)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task Worker_ModeOidcOrOff_DoesNothing()
     {
-        var subject = $"sub-{Guid.NewGuid():N}";
-        var user = await SeedUserAsync(subject: subject);
-        var directory = NewDirectory().WithAccount("gone", "x", subject, disabled: true);
+        var cases = new[] { SsoMode.Off, SsoMode.OpenIdConnect };
 
-        var result = await RunLeaverAsync(mode, directory);
+        await PostgresCases.RunAsync(cases, async mode =>
+        {
+            var subject = $"sub-{Guid.NewGuid():N}";
+            var user = await SeedUserAsync(subject: subject);
+            var directory = NewDirectory().WithAccount("gone", "x", subject, disabled: true);
 
-        Assert.Equal(new LeaverRunResult(0, 0, false), result);
-        Assert.Empty(directory.FindManyCalls);
-        await using var assertDb = _fixture.CreateDbContext();
-        Assert.True((await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id)).IsActive);
+            var result = await RunLeaverAsync(mode, directory);
+
+            Assert.Equal(new LeaverRunResult(0, 0, false), result);
+            Assert.Empty(directory.FindManyCalls);
+            await using var assertDb = _fixture.CreateDbContext();
+            Assert.True((await assertDb.Users.AsNoTracking().SingleAsync(u => u.Id == user.Id)).IsActive);
+        });
     }
 
     [PostgresFact]

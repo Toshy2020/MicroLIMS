@@ -805,52 +805,62 @@ public class SampleBatchReceivePostgresTests
         Assert.Equal(auditBefore, await assertDb.AuditLogs.AsNoTracking().CountAsync(a => a.EntityName == nameof(Sample)));
     }
 
-    [PostgresTheory]
-    [InlineData(SampleStatus.Cancelled)]
-    [InlineData(SampleStatus.Voided)]
-    public async Task SingleReceive_ExistingCancelledOrVoided_Allowed_WritesSampleAndAudit(SampleStatus status)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task SingleReceive_ExistingCancelledOrVoided_Allowed_WritesSampleAndAudit()
     {
-        var suffix = Guid.NewGuid().ToString("N")[..8];
-        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
-        var stage = $"Bulk-{suffix}";
-        var batch = $"BC-{suffix}";
-        var control = $"CC-{suffix}";
-        var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
-        await SetStatusAsync(firstId, status);
+        var cases = new[] { SampleStatus.Cancelled, SampleStatus.Voided };
 
-        var newId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+        await PostgresCases.RunAsync(cases, async status =>
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+            var stage = $"Bulk-{suffix}";
+            var batch = $"BC-{suffix}";
+            var control = $"CC-{suffix}";
+            var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+            await SetStatusAsync(firstId, status);
 
-        await using var assertDb = _fixture.CreateDbContext();
-        var persisted = await assertDb.Samples.AsNoTracking().SingleAsync(x => x.Id == newId);
-        Assert.NotEqual(firstId, newId);
-        Assert.Equal(SampleStatus.Received, persisted.Status);
-        Assert.Equal(userId, persisted.ReceivedByUserId);
-        Assert.Equal(batch, persisted.BatchNumber);
-        Assert.Equal(control, persisted.ControlNumber);
-        var audit = await assertDb.AuditLogs.AsNoTracking()
-            .SingleAsync(a => a.EntityName == nameof(Sample) && a.Action == "Create" && a.EntityId == newId.ToString());
-        Assert.NotNull(audit);
-        Assert.Equal(2, await CountSamplesAsync(control, batch));
+            var newId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+
+            await using var assertDb = _fixture.CreateDbContext();
+            var persisted = await assertDb.Samples.AsNoTracking().SingleAsync(x => x.Id == newId);
+            Assert.NotEqual(firstId, newId);
+            Assert.Equal(SampleStatus.Received, persisted.Status);
+            Assert.Equal(userId, persisted.ReceivedByUserId);
+            Assert.Equal(batch, persisted.BatchNumber);
+            Assert.Equal(control, persisted.ControlNumber);
+            var audit = await assertDb.AuditLogs.AsNoTracking()
+                .SingleAsync(a => a.EntityName == nameof(Sample) && a.Action == "Create" && a.EntityId == newId.ToString());
+            Assert.NotNull(audit);
+            Assert.Equal(2, await CountSamplesAsync(control, batch));
+        });
     }
 
-    [PostgresTheory]
-    [InlineData(SampleStatus.Received)]
-    [InlineData(SampleStatus.InTesting)]
-    public async Task SingleReceive_DuplicateOfOtherActiveStatuses_Refused(SampleStatus status)
+    // [PostgresFact] looping the cases, not a multi-row [PostgresTheory]: skipped without a database a
+    // theory counts as one test, and CI's verify_test_results.py then sees different totals for its two runs.
+    [PostgresFact]
+    public async Task SingleReceive_DuplicateOfOtherActiveStatuses_Refused()
     {
-        var suffix = Guid.NewGuid().ToString("N")[..8];
-        var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
-        var stage = $"Bulk-{suffix}";
-        var batch = $"BS-{suffix}";
-        var control = $"CS-{suffix}";
-        var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
-        await SetStatusAsync(firstId, status);
+        var cases = new[] { SampleStatus.Received, SampleStatus.InTesting };
 
-        await using var actDb = _fixture.CreateDbContext();
-        var receiving = NewReceiving(actDb);
-        await Assert.ThrowsAsync<FieldValidationException>(() =>
-            receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control)));
-        Assert.Equal(1, await CountSamplesAsync(control, batch));
+        await PostgresCases.RunAsync(cases, async status =>
+        {
+            var suffix = Guid.NewGuid().ToString("N")[..8];
+            var (userId, microId, _, causeId, itemId, _, _) = await SeedProductAndWaterAsync(suffix);
+            var stage = $"Bulk-{suffix}";
+            var batch = $"BS-{suffix}";
+            var control = $"CS-{suffix}";
+            var firstId = await ReceiveSingleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control));
+            await SetStatusAsync(firstId, status);
+
+            await using var actDb = _fixture.CreateDbContext();
+            var receiving = NewReceiving(actDb);
+            await Assert.ThrowsAsync<FieldValidationException>(() =>
+                receiving.ReceiveSampleAsync(SingleRequest(userId, itemId, causeId, microId, stage, batch, control)));
+            Assert.Equal(1, await CountSamplesAsync(control, batch));
+        });
     }
 
     [PostgresFact]

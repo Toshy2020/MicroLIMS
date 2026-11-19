@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -81,15 +83,26 @@ public class MaterialService
         if (type is MaterialType.ReferenceStandard or MaterialType.PrimaryStandard)
         {
             if (!purity.HasValue)
-                throw new BusinessRuleException(type == MaterialType.PrimaryStandard
-                    ? "Purity is required for primary standards." : "Purity is required for reference standards.");
+            {
+                if (type == MaterialType.PrimaryStandard)
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialPurityRequiredPrimaryStandard,
+                        "Purity is required for primary standards.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialPurityRequiredReferenceStandard,
+                    "Purity is required for reference standards.");
+            }
             if (purity.Value <= 0m || purity.Value > 100m)
-                throw new BusinessRuleException("Purity must be greater than 0 and less than or equal to 100.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialPurityOutOfRange,
+                    "Purity must be greater than 0 and less than or equal to 100.");
         }
         else
         {
             if (purity.HasValue)
-                throw new BusinessRuleException("Purity is only allowed for reference and primary standards.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialPurityOnlyForStandards,
+                    "Purity is only allowed for reference and primary standards.");
         }
     }
 
@@ -116,18 +129,43 @@ public class MaterialService
     {
         var entry = await _db.MaterialMasterEntries.Include(e => e.MaterialCategory).ThenInclude(c => c!.Sections)
             .FirstOrDefaultAsync(e => e.Id == entryId)
-            ?? throw new BusinessRuleException($"Material master entry {entryId} not found.");
-        if (!entry.IsActive && !allowInactive) throw new BusinessRuleException($"Master entry \"{entry.Code}\" is inactive.");
-        if (entry.Category != CategoryFor(type)) throw new BusinessRuleException($"Master entry \"{entry.Code}\" is a {entry.Category}, not a {CategoryFor(type)}.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SolutionMaterialMasterEntryNotFound,
+                $"Material master entry {entryId} not found.",
+                new Dictionary<string, string> { ["entryId"] = entryId.ToString(CultureInfo.InvariantCulture) });
+        if (!entry.IsActive && !allowInactive)
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterEntryInactive,
+                $"Master entry \"{entry.Code}\" is inactive.",
+                new Dictionary<string, string> { ["code"] = entry.Code });
+        if (entry.Category != CategoryFor(type))
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterEntryWrongCategory,
+                $"Master entry \"{entry.Code}\" is a {entry.Category}, not a {CategoryFor(type)}.",
+                new Dictionary<string, string>
+                {
+                    ["code"] = entry.Code,
+                    ["actual"] = entry.Category.ToString(),
+                    ["expected"] = CategoryFor(type).ToString()
+                });
 
         if (entry.Category == MaterialMasterCategory.Other && !allowInactive)
         {
             var category = entry.MaterialCategory
-                ?? throw new BusinessRuleException($"Master entry \"{entry.Code}\" has no material category.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.MaterialMasterEntryMissingCategory,
+                    $"Master entry \"{entry.Code}\" has no material category.",
+                    new Dictionary<string, string> { ["code"] = entry.Code });
             if (!category.IsActive)
-                throw new BusinessRuleException($"Material category \"{category.Name}\" is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialCategoryInactive,
+                    $"Material category \"{category.Name}\" is inactive.",
+                    new Dictionary<string, string> { ["name"] = category.Name });
             if (category.Sections.Count > 0 && category.Sections.All(s => s.SectionId != sectionId))
-                throw new BusinessRuleException($"Material category \"{category.Name}\" is not available in this laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialCategoryNotInLab,
+                    $"Material category \"{category.Name}\" is not available in this laboratory.",
+                    new Dictionary<string, string> { ["name"] = category.Name });
         }
         return entry;
     }
@@ -136,17 +174,32 @@ public class MaterialService
     private async Task<ReferenceOrganism> ResolveReferenceOrganismAsync(int id, bool allowInactive)
     {
         var strain = await _db.ReferenceOrganisms.Include(r => r.Organism).FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new BusinessRuleException($"Reference organism {id} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MaterialReferenceOrganismNotFound,
+                $"Reference organism {id} not found.",
+                new Dictionary<string, string> { ["referenceOrganismId"] = id.ToString(CultureInfo.InvariantCulture) });
         if (!strain.IsActive && !allowInactive)
-            throw new BusinessRuleException($"Reference organism \"{strain.Code}\" ({ReferenceOrganismNaming.NameOf(strain)}) is inactive.");
+        {
+            var name = ReferenceOrganismNaming.NameOf(strain);
+            throw new BusinessRuleException(
+                MessageCodes.MaterialReferenceOrganismInactive,
+                $"Reference organism \"{strain.Code}\" ({name}) is inactive.",
+                new Dictionary<string, string> { ["code"] = strain.Code, ["name"] = name });
+        }
         return strain;
     }
 
     public static void ValidateMoisture(MaterialType type, decimal? moisture)
     {
         if (!moisture.HasValue) return;
-        if (type != MaterialType.ReferenceStandard) throw new BusinessRuleException("Moisture content is only allowed for reference standards.");
-        if (moisture.Value < 0m || moisture.Value >= 100m) throw new BusinessRuleException("Moisture content must be at least 0 and below 100.");
+        if (type != MaterialType.ReferenceStandard)
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMoistureOnlyForReferenceStandards,
+                "Moisture content is only allowed for reference standards.");
+        if (moisture.Value < 0m || moisture.Value >= 100m)
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMoistureOutOfRange,
+                "Moisture content must be at least 0 and below 100.");
     }
 
     public async Task<List<MaterialResponse>> GetAllAsync(int currentUserId, MaterialType? type = null)
@@ -172,11 +225,17 @@ public class MaterialService
     public async Task<MaterialResponse> CreateAsync(SaveMaterialRequest r, int currentUserId)
     {
         if (r.MaterialType == MaterialType.WorkingStandard)
-            throw new BusinessRuleException("Working standards are created by approving a qualification, not received here.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialWorkingStandardCreatedByQualification,
+                "Working standards are created by approving a qualification, not received here.");
         if (MaterialTypeRules.IsLegacyNamedType(r.MaterialType))
-            throw new BusinessRuleException("Receive this as an Other material: choose its master entry.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLegacyTypeRetired,
+                "Receive this as an Other material: choose its master entry.");
         if (MaterialTypeRules.NormalizeCustomType(r.CustomType) != null)
-            throw new BusinessRuleException("A free-text material type is no longer accepted: receive it as an Other material and choose its master entry.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCustomTypeNotAcceptedOnCreate,
+                "A free-text material type is no longer accepted: receive it as an Other material and choose its master entry.");
 
         int? mediaProductId = null;
         string materialName = r.MaterialName;
@@ -185,12 +244,20 @@ public class MaterialService
         if (r.MaterialType == MaterialType.DehydratedMedia)
         {
             if (!r.MediaProductId.HasValue)
-                throw new BusinessRuleException("Choose the configured media product for this dehydrated media.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMediaProductRequired,
+                    "Choose the configured media product for this dehydrated media.");
 
             var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
-                ?? throw new BusinessRuleException($"Media product with ID {r.MediaProductId.Value} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.MediaProductNotFound,
+                    $"Media product with ID {r.MediaProductId.Value} not found.",
+                    new Dictionary<string, string> { ["mediaProductId"] = r.MediaProductId.Value.ToString(CultureInfo.InvariantCulture) });
             if (!product.IsActive)
-                throw new BusinessRuleException($"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMediaProductInactive,
+                    $"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.",
+                    new Dictionary<string, string> { ["name"] = product.Name });
 
             mediaProductId = product.Id;
             materialName = product.Name;
@@ -205,10 +272,14 @@ public class MaterialService
         if (r.MaterialType == MaterialType.LyophilizedMicroorganism)
         {
             if (!r.ReferenceOrganismId.HasValue)
-                throw new BusinessRuleException("Choose the reference organism (strain) for this lyophilized microorganism.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialReferenceOrganismRequired,
+                    "Choose the reference organism (strain) for this lyophilized microorganism.");
             strain = await ResolveReferenceOrganismAsync(r.ReferenceOrganismId.Value, allowInactive: false);
             if (r.OrganismId.HasValue && r.OrganismId.Value != strain.OrganismId)
-                throw new BusinessRuleException("The organism does not match the chosen reference organism.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialOrganismMismatch,
+                    "The organism does not match the chosen reference organism.");
             organismId = strain.OrganismId;
             atccNumber = ReferenceOrganismNaming.AtccNumberOf(strain);
             materialName = ReferenceOrganismNaming.NameOf(strain);
@@ -216,7 +287,9 @@ public class MaterialService
         }
         else if (r.ReferenceOrganismId.HasValue)
         {
-            throw new BusinessRuleException("A reference organism can only be chosen for lyophilized microorganisms.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialReferenceOrganismOnlyForLyophilized,
+                "A reference organism can only be chosen for lyophilized microorganisms.");
         }
 
         ValidatePurity(r.MaterialType, r.Purity);
@@ -230,7 +303,9 @@ public class MaterialService
         if (RequiresMasterEntry(r.MaterialType))
         {
             if (!r.MaterialMasterEntryId.HasValue)
-                throw new BusinessRuleException("Choose the material master entry for this lot.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMasterEntryRequired,
+                    "Choose the material master entry for this lot.");
 
             var entry = await ResolveMasterEntryAsync(r.MaterialMasterEntryId.Value, r.MaterialType, sectionId, allowInactive: false);
             masterEntryId = entry.Id;
@@ -240,7 +315,10 @@ public class MaterialService
         }
 
         if (category is { ExpiryRequired: true } && !r.ExpiryDate.HasValue)
-            throw new BusinessRuleException($"An expiry date is required for {category.Name} materials.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialExpiryDateRequiredForCategory,
+                $"An expiry date is required for {category.Name} materials.",
+                new Dictionary<string, string> { ["category"] = category.Name });
 
         var storageCondition = NormalizeStorage(r.StorageCondition) ?? category?.DefaultStorageCondition;
 
@@ -286,7 +364,10 @@ public class MaterialService
     private static string? NormalizeStorage(string? value)
     {
         var trimmed = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-        if (trimmed is { Length: > 100 }) throw new BusinessRuleException("Storage condition can be at most 100 characters.");
+        if (trimmed is { Length: > 100 })
+            throw new BusinessRuleException(
+                MessageCodes.MaterialStorageConditionTooLong,
+                "Storage condition can be at most 100 characters.");
         return trimmed;
     }
 
@@ -300,14 +381,21 @@ public class MaterialService
         await _scope.EnsureMaterialAccessAsync(currentUserId, id);
 
         var entity = await _db.Materials.FindAsync(id)
-            ?? throw new NotFoundException($"Material {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaAdditiveMaterialNotFound,
+                $"Material {id} not found.",
+                new Dictionary<string, string> { ["materialId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (entity.MaterialType == MaterialType.WorkingStandard || r.MaterialType == MaterialType.WorkingStandard)
-            throw new BusinessRuleException("Working standards change only through their qualifications.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialWorkingStandardUpdateBlocked,
+                "Working standards change only through their qualifications.");
         // A lot already received under a legacy named type keeps it (stored type kept); no lot moves onto one.
         if (r.MaterialType != entity.MaterialType && MaterialTypeRules.IsLegacyNamedType(r.MaterialType))
-            throw new BusinessRuleException("Receive this as an Other material: choose its master entry.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLegacyTypeRetired,
+                "Receive this as an Other material: choose its master entry.");
 
         int? mediaProductId = null;
         string materialName = r.MaterialName;
@@ -316,7 +404,9 @@ public class MaterialService
         if (r.MaterialType == MaterialType.DehydratedMedia)
         {
             if (!r.MediaProductId.HasValue)
-                throw new BusinessRuleException("Choose the configured media product for this dehydrated media.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialMediaProductRequired,
+                    "Choose the configured media product for this dehydrated media.");
 
             if (r.MediaProductId.Value != entity.MediaProductId)
             {
@@ -325,12 +415,21 @@ public class MaterialService
                 // that already has lots must still be linkable. Moving a linked
                 // batch to a different product is not, once lots cite it.
                 if (entity.MediaProductId != null && await _db.Media.AnyAsync(m => m.MaterialId == entity.Id))
-                    throw new BusinessRuleException($"Lots have already been prepared from batch {entity.BatchNumber} - its media product can't be changed.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMediaProductLockedByLots,
+                        $"Lots have already been prepared from batch {entity.BatchNumber} - its media product can't be changed.",
+                        new Dictionary<string, string> { ["batchNumber"] = entity.BatchNumber });
 
                 var product = await _db.MediaProducts.FirstOrDefaultAsync(p => p.Id == r.MediaProductId.Value)
-                    ?? throw new BusinessRuleException($"Media product with ID {r.MediaProductId.Value} not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.MediaProductNotFound,
+                        $"Media product with ID {r.MediaProductId.Value} not found.",
+                        new Dictionary<string, string> { ["mediaProductId"] = r.MediaProductId.Value.ToString(CultureInfo.InvariantCulture) });
                 if (!product.IsActive)
-                    throw new BusinessRuleException($"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialMediaProductInactive,
+                        $"Media product \"{product.Name}\" is inactive and can't be chosen for new lots.",
+                        new Dictionary<string, string> { ["name"] = product.Name });
 
                 mediaProductId = product.Id;
                 materialName = product.Name;
@@ -358,9 +457,14 @@ public class MaterialService
                 var sameStrain = requestedStrainId == entity.ReferenceOrganismId;
                 var strain = await ResolveReferenceOrganismAsync(requestedStrainId.Value, allowInactive: sameStrain);
                 if (!sameStrain && entity.ReferenceOrganismId.HasValue && await _db.Cryovials.AnyAsync(c => c.MaterialId == entity.Id))
-                    throw new BusinessRuleException($"Cryovials have already been prepared from lot {entity.BatchNumber} - its reference organism can't be changed.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialReferenceOrganismLockedByCryovials,
+                        $"Cryovials have already been prepared from lot {entity.BatchNumber} - its reference organism can't be changed.",
+                        new Dictionary<string, string> { ["batchNumber"] = entity.BatchNumber });
                 if (r.OrganismId.HasValue && r.OrganismId.Value != strain.OrganismId)
-                    throw new BusinessRuleException("The organism does not match the chosen reference organism.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialOrganismMismatch,
+                        "The organism does not match the chosen reference organism.");
 
                 referenceOrganismId = strain.Id;
                 organismId = strain.OrganismId;
@@ -379,7 +483,9 @@ public class MaterialService
         }
         else if (r.ReferenceOrganismId.HasValue)
         {
-            throw new BusinessRuleException("A reference organism can only be chosen for lyophilized microorganisms.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialReferenceOrganismOnlyForLyophilized,
+                "A reference organism can only be chosen for lyophilized microorganisms.");
         }
         else
         {
@@ -397,7 +503,9 @@ public class MaterialService
         // The stored custom type of an old lot stays as it is; no new one is accepted.
         var requestedCustom = MaterialTypeRules.NormalizeCustomType(r.CustomType);
         if (requestedCustom != null && !string.Equals(requestedCustom, entity.CustomType, StringComparison.OrdinalIgnoreCase))
-            throw new BusinessRuleException("A free-text material type is no longer accepted: choose a master entry of an Other category.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialCustomTypeNotAcceptedOnUpdate,
+                "A free-text material type is no longer accepted: choose a master entry of an Other category.");
         var customType = typeChanged ? null : entity.CustomType;
 
         var masterEntryId = entity.MaterialMasterEntryId;
@@ -413,7 +521,9 @@ public class MaterialService
                 var currentCategoryId = await _db.MaterialMasterEntries.Where(e => e.Id == entity.MaterialMasterEntryId.Value)
                     .Select(e => e.MaterialCategoryId).FirstOrDefaultAsync();
                 if (currentCategoryId != entry.MaterialCategoryId)
-                    throw new BusinessRuleException("A lot can only move to another entry of the same material category.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MaterialCategoryCannotChangeOnUpdate,
+                        "A lot can only move to another entry of the same material category.");
             }
 
             masterEntryId = entry.Id;
@@ -430,11 +540,16 @@ public class MaterialService
             }
 
             if (category is { ExpiryRequired: true } && !r.ExpiryDate.HasValue && (entity.ExpiryDate.HasValue || !sameEntry))
-                throw new BusinessRuleException($"An expiry date is required for {category.Name} materials.");
+                throw new BusinessRuleException(
+                    MessageCodes.MaterialExpiryDateRequiredForCategory,
+                    $"An expiry date is required for {category.Name} materials.",
+                    new Dictionary<string, string> { ["category"] = category.Name });
         }
         else if (r.MaterialType == MaterialType.Other && typeChanged)
         {
-            throw new BusinessRuleException("Choose the material master entry for this lot.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialMasterEntryRequired,
+                "Choose the material master entry for this lot.");
         }
         // else: no entry on the request - keep the lot's existing link (or
         // none, for a legacy row created before S1). Never cleared here.
@@ -488,7 +603,13 @@ public class MaterialService
     {
         var code = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync();
         if (!MaterialTypeRules.BuiltInTypesFor(code).Contains(type))
-            throw new BusinessRuleException($"{MaterialTypeRules.LabelOf(type)} is not a material type of this laboratory.");
+        {
+            var typeLabel = MaterialTypeRules.LabelOf(type);
+            throw new BusinessRuleException(
+                MessageCodes.MaterialTypeNotOfferedInLab,
+                $"{typeLabel} is not a material type of this laboratory.",
+                new Dictionary<string, string> { ["typeLabel"] = typeLabel });
+        }
     }
 
     // SST picker: usable primary and working standards (in stock, not expired) in the caller's sections.
@@ -519,18 +640,49 @@ public class MaterialService
         await _scope.EnsureMaterialAccessAsync(currentUserId, materialId);
 
         var material = await _db.Materials.FindAsync(materialId)
-            ?? throw new NotFoundException($"Material {materialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaAdditiveMaterialNotFound,
+                $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
 
         if (expectedType.HasValue && material.MaterialType != expectedType.Value)
-            throw new BusinessRuleException($"Material {material.MaterialName} is not a {expectedType} item.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialUnexpectedType,
+                $"Material {material.MaterialName} is not a {expectedType} item.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["expectedType"] = expectedType.Value.ToString()
+                });
 
         if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _time.GetUtcNow().UtcDateTime.Date)
-            throw new BusinessRuleException($"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskExpired,
+                $"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["batchNumber"] = material.BatchNumber
+                });
 
         if (material.IsAwaitingRelease)
-            throw new BusinessRuleException($"Lot {material.BatchNumber} of {material.MaterialName} is awaiting release.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLotAwaitingRelease,
+                $"Lot {material.BatchNumber} of {material.MaterialName} is awaiting release.",
+                new Dictionary<string, string>
+                {
+                    ["batchNumber"] = material.BatchNumber,
+                    ["materialName"] = material.MaterialName
+                });
         if (material.IsRejected)
-            throw new BusinessRuleException($"Lot {material.BatchNumber} of {material.MaterialName} was rejected.");
+            throw new BusinessRuleException(
+                MessageCodes.MaterialLotRejected,
+                $"Lot {material.BatchNumber} of {material.MaterialName} was rejected.",
+                new Dictionary<string, string>
+                {
+                    ["batchNumber"] = material.BatchNumber,
+                    ["materialName"] = material.MaterialName
+                });
 
         var category = await MaterialCategoryRules.CategoryOfAsync(_db, material);
 
@@ -546,8 +698,14 @@ public class MaterialService
 
             if (!hasCurrentCoa)
                 throw new BusinessRuleException(
+                    MessageCodes.MaterialCurrentCoaRequired,
                     $"A current Certificate of Analysis (COA) is required before {material.MaterialName} " +
-                    $"(batch {material.BatchNumber}) can be used. Please upload a valid COA in the Inventory module first.");
+                    $"(batch {material.BatchNumber}) can be used. Please upload a valid COA in the Inventory module first.",
+                    new Dictionary<string, string>
+                    {
+                        ["materialName"] = material.MaterialName,
+                        ["batchNumber"] = material.BatchNumber
+                    });
         }
 
         // Quantity-tracked is on by default; a category (e.g. disposable tools) can switch it off.
@@ -556,7 +714,16 @@ public class MaterialService
 
         if (material.QuantityRemaining < quantityUsed)
             throw new BusinessRuleException(
-                $"Insufficient stock: {material.MaterialName} (batch {material.BatchNumber}) has {material.QuantityRemaining} {material.Unit} remaining, {quantityUsed} requested.");
+                MessageCodes.MaterialInsufficientStock,
+                $"Insufficient stock: {material.MaterialName} (batch {material.BatchNumber}) has {material.QuantityRemaining} {material.Unit} remaining, {quantityUsed} requested.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["batchNumber"] = material.BatchNumber,
+                    ["remaining"] = material.QuantityRemaining.ToString(CultureInfo.InvariantCulture),
+                    ["unit"] = material.Unit.ToString(),
+                    ["requested"] = quantityUsed.ToString(CultureInfo.InvariantCulture)
+                });
 
         material.QuantityRemaining -= quantityUsed;
         material.LastModifiedByUserId = currentUserId;

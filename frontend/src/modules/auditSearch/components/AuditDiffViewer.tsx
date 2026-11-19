@@ -25,7 +25,7 @@ export function AuditDiffViewer({
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation("auditSearch");
-  const changes = computeAuditDiff(action, previousValue, newValue, entityName);
+  const changes = computeAuditDiff(action, previousValue, newValue, entityName, t);
 
   if (action === "Create") {
     if (compact) {

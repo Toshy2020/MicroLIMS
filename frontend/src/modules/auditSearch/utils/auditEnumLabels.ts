@@ -1,3 +1,6 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../i18n";
+
 // Human-readable labels for enum fields stored as raw integers in audit
 // JSON snapshots (System.Text.Json serializes C# enums as their ordinal by
 // default). Arrays are index-aligned to the backend enum definition - do
@@ -130,8 +133,77 @@ export const AUDIT_ENUM_LABELS: Record<string, string[]> = {
   "WorkloadWeight.Category": SampleCategory
 };
 
-export function lookupEnumLabel(entityName: string, fieldKey: string, value: number): string | null {
-  const labels = AUDIT_ENUM_LABELS[`${entityName}.${fieldKey}`];
+const AUDIT_ENUM_KEYS: Record<string, string> = {
+  "AdminPasswordRecovery.Status": "AdminPasswordRecoveryStatus",
+  "Cryovial.ApprovalStatus": "ApprovalGateStatus",
+  "ConfirmatoryPlateObservation.Observation": "GrowthObservation",
+  "ElectronicSignature.MeaningOfSignature": "SignatureMeaning",
+  "Equipment.Type": "EquipmentType",
+  "Equipment.CdsSoftware": "CdsSoftware",
+  "EquipmentInventory.Status": "EquipmentOperationalStatus",
+  "EquipmentDocument.DocumentType": "EquipmentDocumentType",
+  "EquipmentDocument.Status": "MaterialDocumentStatus",
+  "EquipmentStatusHistory.PreviousStatus": "EquipmentOperationalStatus",
+  "EquipmentStatusHistory.NewStatus": "EquipmentOperationalStatus",
+  "Item.Category": "SampleCategory",
+  "ItemDocument.DocumentType": "ItemDocumentType",
+  "ItemDocument.Status": "MaterialDocumentStatus",
+  "ItemDocumentAccessLog.Action": "MaterialDocumentAccessAction",
+  "ItemPreparationConfiguration.ApprovalStatus": "ApprovalGateStatus",
+  "LocationPathogenObservation.GrowthObservation": "GrowthObservation",
+  "Material.MaterialType": "MaterialType",
+  "Material.Unit": "MaterialUnit",
+  "MaterialDocument.DocumentType": "MaterialDocumentType",
+  "MaterialDocument.Status": "MaterialDocumentStatus",
+  "Media.Status": "MediaStatus",
+  "Media.ApprovalStatus": "ApprovalGateStatus",
+  "MediaConfiguration.EvaluationType": "EvaluationType",
+  "MediaConfigurationChallenge.ChallengeRole": "ChallengeRole",
+  "MediaEvaluation.EvaluationType": "EvaluationType",
+  "MediaEvaluation.Status": "MediaEvaluationStatus",
+  "MediaEvaluation.Outcome": "EvaluationOutcome",
+  "MediaEvaluationChallenge.ChallengeRole": "ChallengeRole",
+  "MediaEvaluationChallenge.Outcome": "EvaluationOutcome",
+  "OosInvestigationDocument.Status": "MaterialDocumentStatus",
+  "PathogenObservation.Observation": "GrowthObservation",
+  "Report.Category": "SampleCategory",
+  "ReportSnapshot.Category": "SampleCategory",
+  "Result.Type": "ResultType",
+  "ResultRecord.Category": "SampleCategory",
+  "ResultRecord.ResultKind": "ResultKind",
+  "ResultRecord.ResultLevel": "ResultLevel",
+  "ResultRecord.SampleStatus": "SampleStatus",
+  "ReviewWorkflowEvent.EventType": "ReviewWorkflowEventType",
+  "ReviewWorkflowEvent.Decision": "ApprovalDecision",
+  "Role.Type": "RoleType",
+  "Sample.Category": "SampleCategory",
+  "Sample.Status": "SampleStatus",
+  "Sample.PreparationStatus": "SamplePreparationStatus",
+  "Sample.ApprovalDecision": "ApprovalDecision",
+  "SampleLocation.LocationType": "LocationType",
+  "TestDefinition.WorkflowType": "WorkflowType",
+  "TestOrder.Status": "ApprovalStatus",
+  "TestOrder.CurrentStep": "WorkflowStep",
+  "TestWorkflowStep.PhenotypicTestType": "PhenotypicTestType",
+  "TestWorkflowStep.StepType": "StepType",
+  "TestWorkflowStepPhenotypicTest.PhenotypicTestType": "PhenotypicTestType",
+  "WorkflowHistory.FromStep": "WorkflowStep",
+  "WorkflowHistory.ToStep": "WorkflowStep",
+  "WorkflowStepResult.StepType": "StepType",
+  "WorkflowStepResult.SelectivePlatingObservation": "GrowthObservation",
+  "WorkflowStepResult.ConfirmatoryResult": "ConfirmatoryResult",
+  "WorkflowStepResult.AnalystDecision": "AnalystDecision",
+  "WorkloadWeight.Category": "SampleCategory"
+};
+
+export function lookupEnumLabel(entityName: string, fieldKey: string, value: number, t?: TFunction): string | null {
+  const fullKey = `${entityName}.${fieldKey}`;
+  const labels = AUDIT_ENUM_LABELS[fullKey];
   if (!labels) return null;
-  return labels[value] ?? `Unknown (${value})`;
+  const translate = t ?? i18n.getFixedT("en", "auditSearch");
+  const enumName = AUDIT_ENUM_KEYS[fullKey];
+  if (enumName && value >= 0 && value < labels.length) {
+    return translate(`enumLabels.${enumName}.${value}`, { ns: "auditSearch", defaultValue: labels[value] });
+  }
+  return labels[value] ?? translate("unknownEnum", { ns: "auditSearch", value });
 }

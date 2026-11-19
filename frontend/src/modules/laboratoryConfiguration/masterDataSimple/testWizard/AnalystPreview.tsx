@@ -107,7 +107,7 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
           stages,
           analystEnters: describeWorkflowAnalystEnters({
             workflowType: model.workflowType
-          })
+          }, t)
         }
       ];
     }
@@ -126,7 +126,7 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
           phenotypicTestType: step.phenotypicTestType,
           phenotypicTestTypes: step.phenotypicTestTypes
         }
-      })
+      }, t)
     }));
   }
 
@@ -159,7 +159,7 @@ export function previewModel(model: TestFormModel, lookups?: PreviewLookups): Pr
         disintegrationStage1Units: parseIntOrNull(model.disintegrationStage1Units),
         disintegrationStage2Units: parseIntOrNull(model.disintegrationStage2Units),
         wvUnitCount: parseIntOrNull(model.wvUnitCount)
-      })
+      }, t)
     }
   ];
 }
@@ -199,7 +199,7 @@ function formatIncubationWindow(incubation: PreviewStep["incubation"], t: TFunct
 }
 
 export function AnalystPreview({ steps }: { steps: PreviewStep[] }) {
-  const { t } = useTranslation("masterData");
+  const { t } = useTranslation(["masterData", "testingWorkspace"]);
   const orderedSteps = steps.slice().sort((a, b) => a.order - b.order);
   const previewCurrent = buildPreviewStripResponse(orderedSteps, t("testWizard.preview.previewContextName"));
 

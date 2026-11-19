@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { i18n, useTranslation } from "../../../i18n";
 import { TestWorkflowService } from "../services/TestWorkflowService";
 import { lookupCache, ReleasedMediaItem, IncubatorEquipmentItem } from "../../../services/lookupCache";
 import { CurrentStepResponse, TestWorkflowStepDto } from "../types/testWorkflowTypes";
@@ -35,6 +36,7 @@ export function useTestStepQuickAction({
   refreshKey,
   onSuccess
 }: UseTestStepQuickActionOptions) {
+  const { t } = useTranslation("testingWorkspace");
   const [stepLoading, setStepLoading] = useState(false);
   const [lookupsLoading, setLookupsLoading] = useState(false);
   const loading = (enabled && stepLoading) || lookupsLoading;
@@ -68,7 +70,7 @@ export function useTestStepQuickAction({
       stepCache.set(testOrderId, { data, timestamp: Date.now() });
       setCurrentStepData(data);
     } catch (err: any) {
-      setError(err?.response?.data?.message || `Could not load step details for ${testCode}.`);
+      setError(err?.response?.data?.message || i18n.t("quickAction.loadError", { ns: "testingWorkspace", testCode }));
     } finally {
       setStepLoading(false);
     }
@@ -88,7 +90,7 @@ export function useTestStepQuickAction({
       setReleasedMedia(mediaList);
       setIncubators(incubatorList);
     } catch (err: any) {
-      setError(err?.response?.data?.message || `Could not load step details for ${testCode}.`);
+      setError(err?.response?.data?.message || i18n.t("quickAction.loadError", { ns: "testingWorkspace", testCode }));
     } finally {
       setLookupsLoading(false);
     }
@@ -127,8 +129,8 @@ export function useTestStepQuickAction({
   }, [releasedMedia, permittedProductIds]);
 
   const permittedMaterialNames = useMemo(() => {
-    return (step?.stepMedia ?? []).map((m) => m.mediaProductName).filter(Boolean).join(" or ");
-  }, [step]);
+    return (step?.stepMedia ?? []).map((m) => m.mediaProductName).filter(Boolean).join(t("quickAction.orJoiner"));
+  }, [step, t]);
 
   // Derive temperature and duration constraints based on selected media or step media
   const selectedMediaLot = useMemo(() => {
@@ -244,17 +246,17 @@ export function useTestStepQuickAction({
 
   // Dynamic CTA label
   const ctaLabel = useMemo(() => {
-    if (!step) return "Start Incubation";
-    if (step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth") return "Start Broth Incubation";
-    if (step.stepType === "SelectivePlating") return "Start Plating Incubation";
-    if (step.stepType === "PlateCount") return "Start Incubation";
-    return "Start Incubation";
-  }, [step]);
+    if (!step) return t("quickAction.startIncubation");
+    if (step.stepType === "BrothEnrichment" || step.stepType === "SelectiveBroth") return t("quickAction.startBrothIncubation");
+    if (step.stepType === "SelectivePlating") return t("quickAction.startPlatingIncubation");
+    if (step.stepType === "PlateCount") return t("quickAction.startIncubation");
+    return t("quickAction.startIncubation");
+  }, [step, t]);
 
   // Execute start incubation
   const handleStartIncubation = async () => {
     if (!step || !selectedMediaId || !selectedIncubatorId) {
-      setError("Please select both a media lot and an incubator.");
+      setError(t("quickAction.selectMediaAndIncubator"));
       return;
     }
     setError(null);
@@ -287,7 +289,7 @@ export function useTestStepQuickAction({
       }
       return startedIncubation;
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to start incubation.");
+      setError(err?.response?.data?.message || t("quickAction.startFailed"));
       // Rethrow. Swallowing this returned undefined instead of failing, so a
       // caller that had already flipped to an optimistic "incubating" state
       // never learned the server had refused and left a countdown on screen

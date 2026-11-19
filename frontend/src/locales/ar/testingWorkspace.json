@@ -1708,5 +1708,68 @@
   "externalLab": {
     "badge": "مختبر خارجي: {{lab}}",
     "report": "التقرير الخارجي"
+  },
+  "workflowMapping": {
+    "phenotypic": {
+      "Gram": "صبغة غرام",
+      "Catalase": "كاتالاز",
+      "Oxidase": "أوكسيداز",
+      "Coagulase": "كواغيولاز",
+      "Antibiogram": "اختبار الحساسية للمضادات",
+      "IdentificationKit": "طقم تعريف"
+    },
+    "mediaLot": "تشغيلة أوساط زرعية",
+    "incubator": "حاضنة",
+    "stage2Incubator": "حاضنة المرحلة 2",
+    "dilutionFactor": "معامل التخفيف",
+    "plateCounts": "عدّ الأطباق (مستعمرة أو TNTC أو غير قابل للعد)",
+    "growthObservation": "ملاحظة النمو",
+    "appearanceNoteOptional": "ملاحظة المظهر (اختياري)",
+    "permittedMediaAndIncubator": "تشغيلة أوساط زرعية المسموح بها والحاضنة (الحاضنات)",
+    "growthObservationPerPlate": "ملاحظة النمو لكل طبق",
+    "phenotypicTests": "الاختبارات الظاهرية ({{tests}})",
+    "phenotypicTestResult": "نتيجة الاختبار الظاهري",
+    "targetOrganismDecision": "قرار الكائن المستهدف (مكتشف / غير مكتشف)",
+    "equipment": "معدات",
+    "replicates_zero": "لا توجد تكرارات",
+    "replicates_one": "تكرار واحد",
+    "replicates_two": "تكراران",
+    "replicates_few": "{{count}} تكرارات",
+    "replicates_many": "{{count}} تكرارًا",
+    "replicates_other": "{{count}} تكرار",
+    "measurementReadings": "قراءات القياس ({{replicates}})",
+    "containerTareWeight": "وزن الوعاء الفارغ ({{count}} تكرار)",
+    "initialFinalWeights": "أوزان العينة الأولية والنهائية ({{replicates}})",
+    "titrantLot": "تشغيلة المعاير",
+    "indicatorLot": "تشغيلة المؤشر",
+    "blankTitrationVolume": "حجم المعايرة الشاهدة (مل)",
+    "excessTitrantLotVolume": "تشغيلة وحجم المعاير الفائض (مل)",
+    "sampleWeightsTitrantVolumes": "أوزان العينة وأحجام المعاير ({{replicates}})",
+    "refStandardLotWeightAbsorbance": "تشغيلة المادة القياسية المرجعية والوزن والامتصاص",
+    "sampleWeightAbsorbance": "وزن العينة والامتصاص ({{replicates}})",
+    "perContainerCompliance": "ملاحظات المطابقة لكل عبوة",
+    "complianceObservation": "ملاحظة المطابقة",
+    "observationRemarkOptional": "ملاحظة إضافية (اختياري)",
+    "stagedDissolutionHplc": "نتائج الذوبان المرحلية عبر HPLC (S1–S3)",
+    "disintegrationTimePerUnit": "زمن التفكك لكل وحدة (S1: {{s1}}، S2: +{{s2}})",
+    "individualUnitWeights": "أوزان الوحدات الفردية ({{units}} وحدة)",
+    "hplcBatchInjections": "حقن دفعة HPLC وأوزان العينة (تشغيل HPLC)",
+    "icpImpurity": "أوزان تحضير عينة ICP (جزء في المليون لكل عنصر)",
+    "icpTarget": "أوزان تحضير عينة ICP (% من الهدف لكل عنصر)",
+    "configuredMicroWorkflowSteps": "خطوات سير عمل الأحياء الدقيقة المهيأة"
+  },
+  "pathogenObservation": {
+    "NoGrowth": "لا يوجد نمو",
+    "GrowthNonConforming": "لوحظ نمو — لا يطابق الكائن المستهدف",
+    "GrowthConforming": "لوحظ نمو — يطابق الكائن المستهدف"
+  },
+  "quickAction": {
+    "loadError": "تعذّر تحميل تفاصيل الخطوة للاختبار {{testCode}}.",
+    "orJoiner": " أو ",
+    "startIncubation": "بدء الحضانة",
+    "startBrothIncubation": "بدء حضانة المرق",
+    "startPlatingIncubation": "بدء حضانة الأطباق",
+    "selectMediaAndIncubator": "يرجى اختيار تشغيلة أوساط زرعية وحاضنة.",
+    "startFailed": "تعذّر بدء الحضانة."
   }
 }

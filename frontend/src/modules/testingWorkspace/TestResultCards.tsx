@@ -424,6 +424,7 @@ function CardFooter({ enteredBy, enteredAt }: { enteredBy: string | null | undef
 // single Result with neither - covers every non-quantitative shape the
 // original TestCard handled.
 function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
+  const { t } = useTranslation("testingWorkspace");
   const incubation = test.incubations[test.incubations.length - 1];
   const lastResult = test.results[test.results.length - 1];
   const hasLocations = test.locations.length > 0;
@@ -479,7 +480,7 @@ function DetectionTestCard({ test }: { test: TestOrderSummaryDetail }) {
               <div key={i} style={{ fontSize: 12, display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
                 <span style={{ color: "var(--color-text-tertiary)" }}>{p.stepName}</span>
                 <span>
-                  <strong>{pathogenObservationLabel(p.observation)}</strong>
+                  <strong>{pathogenObservationLabel(p.observation, t)}</strong>
                   <span style={{ color: "var(--color-text-quaternary)" }}> · {p.observedByName} · {dt(p.observedAt)}</span>
                 </span>
               </div>

@@ -1696,5 +1696,64 @@
   "externalLab": {
     "badge": "External lab: {{lab}}",
     "report": "External report"
+  },
+  "workflowMapping": {
+    "phenotypic": {
+      "Gram": "Gram Stain",
+      "Catalase": "Catalase",
+      "Oxidase": "Oxidase",
+      "Coagulase": "Coagulase",
+      "Antibiogram": "Antibiogram",
+      "IdentificationKit": "Identification Kit"
+    },
+    "mediaLot": "Media lot",
+    "incubator": "Incubator",
+    "stage2Incubator": "Stage 2 incubator",
+    "dilutionFactor": "Dilution factor",
+    "plateCounts": "Plate counts (colonies, TNTC, or Uncountable)",
+    "growthObservation": "Growth observation",
+    "appearanceNoteOptional": "Appearance note (optional)",
+    "permittedMediaAndIncubator": "Permitted media lot(s) & incubator(s)",
+    "growthObservationPerPlate": "Growth observation per plate",
+    "phenotypicTests": "Phenotypic tests ({{tests}})",
+    "phenotypicTestResult": "Phenotypic test result",
+    "targetOrganismDecision": "Target organism decision (Detected / Not Detected)",
+    "equipment": "Equipment",
+    "replicates_one": "{{count}} replicate",
+    "replicates_other": "{{count}} replicates",
+    "measurementReadings": "Measurement readings ({{replicates}})",
+    "containerTareWeight": "Container tare weight ({{count}} replicates)",
+    "initialFinalWeights": "Initial & final sample weights ({{replicates}})",
+    "titrantLot": "Titrant lot",
+    "indicatorLot": "Indicator lot",
+    "blankTitrationVolume": "Blank titration volume (mL)",
+    "excessTitrantLotVolume": "Excess titrant lot & volume (mL)",
+    "sampleWeightsTitrantVolumes": "Sample weights & titrant volumes ({{replicates}})",
+    "refStandardLotWeightAbsorbance": "Reference standard lot, weight & absorbance",
+    "sampleWeightAbsorbance": "Sample weight & absorbance ({{replicates}})",
+    "perContainerCompliance": "Per-container compliance observations",
+    "complianceObservation": "Compliance observation",
+    "observationRemarkOptional": "Observation remark (optional)",
+    "stagedDissolutionHplc": "Staged dissolution results via HPLC (S1–S3)",
+    "disintegrationTimePerUnit": "Disintegration time per unit (S1: {{s1}}, S2: +{{s2}})",
+    "individualUnitWeights": "Individual unit weights ({{units}} units)",
+    "hplcBatchInjections": "HPLC batch injections & sample weights (HPLC Run)",
+    "icpImpurity": "ICP sample preparation weights (ppm per element)",
+    "icpTarget": "ICP sample preparation weights (% of target per element)",
+    "configuredMicroWorkflowSteps": "Configured microbiology workflow steps"
+  },
+  "pathogenObservation": {
+    "NoGrowth": "No growth",
+    "GrowthNonConforming": "Growth observed - does not match target organism",
+    "GrowthConforming": "Growth observed - matches target organism"
+  },
+  "quickAction": {
+    "loadError": "Could not load step details for {{testCode}}.",
+    "orJoiner": " or ",
+    "startIncubation": "Start Incubation",
+    "startBrothIncubation": "Start Broth Incubation",
+    "startPlatingIncubation": "Start Plating Incubation",
+    "selectMediaAndIncubator": "Please select both a media lot and an incubator.",
+    "startFailed": "Failed to start incubation."
   }
 }

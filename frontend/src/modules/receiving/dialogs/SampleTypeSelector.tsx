@@ -7,7 +7,7 @@ import NatureOutlinedIcon from "@mui/icons-material/NatureOutlined";
 import CleaningServicesOutlinedIcon from "@mui/icons-material/CleaningServicesOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { SampleCategoryKey } from "../types/receivingTypes";
-import { RECEIVING_CATEGORIES } from "../constants/receivingConstants";
+import { getReceivingCategories } from "../constants/receivingConstants";
 import { brandColors } from "../../../theme";
 import { clickable } from "../../../utils/clickable";
 import { useTranslation } from "../../../i18n";
@@ -32,7 +32,7 @@ const CATEGORY_ICONS: Record<SampleCategoryKey, React.ReactNode> = {
 export function SampleTypeSelector({ selectedCategory, onSelectCategory, allowedCategories }: Props) {
   const theme = useTheme();
   const { t } = useTranslation("receiving");
-  const availableCategories = RECEIVING_CATEGORIES.filter((c) => allowedCategories.includes(c.key));
+  const availableCategories = getReceivingCategories(t).filter((c) => allowedCategories.includes(c.key));
   return (
     <Box sx={{ py: 1 }}>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mb: 2 }}>

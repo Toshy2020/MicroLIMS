@@ -1,3 +1,6 @@
+import type { TFunction } from "i18next";
+import { i18n } from "../../../i18n";
+
 // Canonical pure mapping from Test Master workflowType and step configuration
 // to the active result-entry panel and the inputs an analyst enters there.
 // Shared by TestWorkflowDialog, PathogenStepDialog, and Test Master AnalystPreview.
@@ -25,13 +28,13 @@ export type PathogenStepPanelKind =
   | "BiochemicalTest"
   | "Unsupported";
 
-const PHENOTYPIC_LABELS: Record<string, string> = {
-  Gram: "Gram Stain",
-  Catalase: "Catalase",
-  Oxidase: "Oxidase",
-  Coagulase: "Coagulase",
-  Antibiogram: "Antibiogram",
-  IdentificationKit: "Identification Kit"
+const PHENOTYPIC_LABEL_KEYS: Record<string, string> = {
+  Gram: "workflowMapping.phenotypic.Gram",
+  Catalase: "workflowMapping.phenotypic.Catalase",
+  Oxidase: "workflowMapping.phenotypic.Oxidase",
+  Coagulase: "workflowMapping.phenotypic.Coagulase",
+  Antibiogram: "workflowMapping.phenotypic.Antibiogram",
+  IdentificationKit: "workflowMapping.phenotypic.IdentificationKit"
 };
 
 export interface WorkflowPanelResolutionOptions {
@@ -86,25 +89,38 @@ export interface StepInputDescriptorOptions {
 
 export function describeStepAnalystEnters(
   stepType: string,
-  opts: StepInputDescriptorOptions = {}
+  opts: StepInputDescriptorOptions = {},
+  t?: TFunction
 ): string[] {
+  const translate = t ?? i18n.getFixedT("en", "testingWorkspace");
+  const tr = (key: string, values?: Record<string, unknown>) =>
+    translate(key, { ns: "testingWorkspace", ...values });
+
   if (stepType === "PlateCount") {
     return [
-      "Media lot",
-      "Incubator",
-      ...(opts.requiresIncubationTransfer ? ["Stage 2 incubator"] : []),
-      "Dilution factor",
-      "Plate counts (colonies, TNTC, or Uncountable)"
+      tr("workflowMapping.mediaLot"),
+      tr("workflowMapping.incubator"),
+      ...(opts.requiresIncubationTransfer ? [tr("workflowMapping.stage2Incubator")] : []),
+      tr("workflowMapping.dilutionFactor"),
+      tr("workflowMapping.plateCounts")
     ];
   }
 
   switch (resolvePathogenStepPanelKind(stepType)) {
     case "Broth":
-      return ["Media lot", "Incubator"];
+      return [tr("workflowMapping.mediaLot"), tr("workflowMapping.incubator")];
     case "SelectivePlating":
-      return ["Media lot", "Incubator", "Growth observation", "Appearance note (optional)"];
+      return [
+        tr("workflowMapping.mediaLot"),
+        tr("workflowMapping.incubator"),
+        tr("workflowMapping.growthObservation"),
+        tr("workflowMapping.appearanceNoteOptional")
+      ];
     case "ConfirmatoryPlating":
-      return ["Permitted media lot(s) & incubator(s)", "Growth observation per plate"];
+      return [
+        tr("workflowMapping.permittedMediaAndIncubator"),
+        tr("workflowMapping.growthObservationPerPlate")
+      ];
     case "BiochemicalTest": {
       const tests =
         opts.phenotypicTestTypes && opts.phenotypicTestTypes.length > 0
@@ -112,12 +128,14 @@ export function describeStepAnalystEnters(
           : opts.phenotypicTestType
             ? [opts.phenotypicTestType]
             : [];
-      const testLabels = tests.map((t) => PHENOTYPIC_LABELS[t] ?? t);
+      const testLabels = tests.map((pt) =>
+        PHENOTYPIC_LABEL_KEYS[pt] ? tr(PHENOTYPIC_LABEL_KEYS[pt]) : pt
+      );
       return [
         testLabels.length > 0
-          ? `Phenotypic tests (${testLabels.join(", ")})`
-          : "Phenotypic test result",
-        "Target organism decision (Detected / Not Detected)"
+          ? tr("workflowMapping.phenotypicTests", { tests: testLabels.join(", ") })
+          : tr("workflowMapping.phenotypicTestResult"),
+        tr("workflowMapping.targetOrganismDecision")
       ];
     }
     case "Unsupported":
@@ -151,74 +169,81 @@ function parseConditionFields(conditionFields?: string | null): string[] {
     .filter(Boolean);
 }
 
-export function describeWorkflowAnalystEnters(input: WorkflowAnalystInputOptions): string[] {
+export function describeWorkflowAnalystEnters(input: WorkflowAnalystInputOptions, t?: TFunction): string[] {
+  const translate = t ?? i18n.getFixedT("en", "testingWorkspace");
+  const tr = (key: string, values?: Record<string, unknown>) =>
+    translate(key, { ns: "testingWorkspace", ...values });
   const panelKind = resolveWorkflowPanelKind(input.workflowType);
   const conditions = parseConditionFields(input.conditionFields);
 
   switch (panelKind) {
     case "Measurement": {
       const reps = input.replicateCount && input.replicateCount > 0 ? input.replicateCount : 1;
-      return [`Equipment`, `Measurement readings (${reps} replicate${reps === 1 ? "" : "s"})`];
+      const replicates = tr("workflowMapping.replicates", { count: reps });
+      return [tr("workflowMapping.equipment"), tr("workflowMapping.measurementReadings", { replicates })];
     }
     case "Gravimetric": {
       const reps = input.replicateCount && input.replicateCount > 0 ? input.replicateCount : 1;
+      const replicates = tr("workflowMapping.replicates", { count: reps });
       return [
-        "Equipment",
-        ...(input.usesTare ? [`Container tare weight (${reps} replicates)`] : []),
-        `Initial & final sample weights (${reps} replicate${reps === 1 ? "" : "s"})`,
+        tr("workflowMapping.equipment"),
+        ...(input.usesTare ? [tr("workflowMapping.containerTareWeight", { count: reps })] : []),
+        tr("workflowMapping.initialFinalWeights", { replicates }),
         ...conditions
       ];
     }
     case "Titration": {
       const reps = input.replicateCount && input.replicateCount > 0 ? input.replicateCount : 3;
+      const replicates = tr("workflowMapping.replicates", { count: reps });
       return [
-        "Titrant lot",
-        ...(input.titrationEndpoint === "Visual" ? ["Indicator lot"] : []),
-        ...(input.titrationBlankRequired ? ["Blank titration volume (mL)"] : []),
-        ...(input.titrationMode === "Residual" ? ["Excess titrant lot & volume (mL)"] : []),
-        `Sample weights & titrant volumes (${reps} replicate${reps === 1 ? "" : "s"})`
+        tr("workflowMapping.titrantLot"),
+        ...(input.titrationEndpoint === "Visual" ? [tr("workflowMapping.indicatorLot")] : []),
+        ...(input.titrationBlankRequired ? [tr("workflowMapping.blankTitrationVolume")] : []),
+        ...(input.titrationMode === "Residual" ? [tr("workflowMapping.excessTitrantLotVolume")] : []),
+        tr("workflowMapping.sampleWeightsTitrantVolumes", { replicates })
       ];
     }
     case "UvSpectrophotometry": {
       const reps = input.replicateCount && input.replicateCount > 0 ? input.replicateCount : 1;
+      const replicates = tr("workflowMapping.replicates", { count: reps });
       return [
-        "Equipment",
+        tr("workflowMapping.equipment"),
         ...(input.uvCalculationMode === "StandardComparison"
-          ? ["Reference standard lot, weight & absorbance"]
+          ? [tr("workflowMapping.refStandardLotWeightAbsorbance")]
           : []),
-        `Sample weight & absorbance (${reps} replicate${reps === 1 ? "" : "s"})`
+        tr("workflowMapping.sampleWeightAbsorbance", { replicates })
       ];
     }
     case "Qualitative":
       return [
-        input.perContainer ? "Per-container compliance observations" : "Compliance observation",
-        "Observation remark (optional)"
+        input.perContainer ? tr("workflowMapping.perContainerCompliance") : tr("workflowMapping.complianceObservation"),
+        tr("workflowMapping.observationRemarkOptional")
       ];
     case "Dissolution":
-      return ["Equipment", "Staged dissolution results via HPLC (S1–S3)", ...conditions];
+      return [tr("workflowMapping.equipment"), tr("workflowMapping.stagedDissolutionHplc"), ...conditions];
     case "Disintegration": {
       const s1 = input.disintegrationStage1Units ?? 6;
       const s2 = input.disintegrationStage2Units ?? 12;
-      return ["Equipment", `Disintegration time per unit (S1: ${s1}, S2: +${s2})`, ...conditions];
+      return [tr("workflowMapping.equipment"), tr("workflowMapping.disintegrationTimePerUnit", { s1, s2 }), ...conditions];
     }
     case "WeightVariation": {
       const units = input.wvUnitCount ?? 20;
-      return ["Equipment", `Individual unit weights (${units} units)`, ...conditions];
+      return [tr("workflowMapping.equipment"), tr("workflowMapping.individualUnitWeights", { units }), ...conditions];
     }
     case "HplcMethodAssay":
-      return ["HPLC batch injections & sample weights (HPLC Run)"];
+      return [tr("workflowMapping.hplcBatchInjections")];
     case "IcpMethodAssay":
       return [
         input.icpMode === "Impurity"
-          ? "ICP sample preparation weights (ppm per element)"
-          : "ICP sample preparation weights (% of target per element)"
+          ? tr("workflowMapping.icpImpurity")
+          : tr("workflowMapping.icpTarget")
       ];
     case "Count":
-      return describeStepAnalystEnters(input.stepType ?? "PlateCount", input.stepOptions);
+      return describeStepAnalystEnters(input.stepType ?? "PlateCount", input.stepOptions, translate);
     case "PathogenChain":
       return input.stepType
-        ? describeStepAnalystEnters(input.stepType, input.stepOptions)
-        : ["Configured microbiology workflow steps"];
+        ? describeStepAnalystEnters(input.stepType, input.stepOptions, translate)
+        : [tr("workflowMapping.configuredMicroWorkflowSteps")];
     case "Outsourced":
     case "LocationResults":
       return [];

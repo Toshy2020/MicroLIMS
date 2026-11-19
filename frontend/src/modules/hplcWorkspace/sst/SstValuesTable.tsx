@@ -10,6 +10,7 @@ import type {
   HplcMethodResponse,
   HplcMethodAnalyteResponse
 } from "../../laboratoryConfiguration/masterDataSimple/services/HplcMethodService";
+import { formatNumber } from "../../../utils/formatCount";
 
 export interface SstValuesTableProps {
   analytes: HplcSstAnalyteDto[];
@@ -101,7 +102,7 @@ export function SstValuesTable({ analytes, method }: SstValuesTableProps) {
       render: (a) => (
         <Box>
           <Box component="span" sx={{ fontVariantNumeric: "tabular-nums" }}>
-            <Ltr>{a.meanResponse != null ? a.meanResponse.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "—"}</Ltr>
+            <Ltr>{a.meanResponse != null ? formatNumber(a.meanResponse, { maximumFractionDigits: 2 }) : "—"}</Ltr>
           </Box>
           {a.meanResponse != null && !a.passed && !a.failureReasons && (
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: 12, display: "block" }}>

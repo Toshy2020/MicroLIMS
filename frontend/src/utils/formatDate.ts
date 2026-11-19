@@ -10,15 +10,28 @@ function localeTag(): string {
 
 const CLOCK = { hourCycle: "h23" } as const;
 
-export function formatLabDate(date: string | Date): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleDateString(localeTag(), { day: "2-digit", month: "short", year: "numeric" });
+// In Arabic every date text is wrapped in a right-to-left isolate (U+2067 ... U+2069), so its
+// words keep their order whether it is shown inside an LTR isolate (<Ltr>) or outside one.
+// English output is never wrapped.
+const RLI = "⁧";
+const PDI = "⁩";
+function mark(text: string, english: boolean | undefined): string {
+  return !english && activeLanguage() === "ar" ? `${RLI}${text}${PDI}` : text;
+}
+function tagFor(english: boolean | undefined): string {
+  return english ? "en-GB" : localeTag();
 }
 
-export function formatLabDateTime(date: string | Date): string {
+export function formatLabDate(date: string | Date, options: { english?: boolean } = {}): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  const tag = localeTag();
-  return `${d.toLocaleDateString(tag, { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit", ...CLOCK })}`;
+  return mark(d.toLocaleDateString(tagFor(options.english), { day: "2-digit", month: "short", year: "numeric" }), options.english);
+}
+
+export function formatLabDateTime(date: string | Date, options: { english?: boolean } = {}): string {
+  const d = typeof date === "string" ? new Date(date) : date;
+  const tag = tagFor(options.english);
+  const text = `${d.toLocaleDateString(tag, { day: "2-digit", month: "short", year: "numeric" })} ${d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit", ...CLOCK })}`;
+  return mark(text, options.english);
 }
 
 /**
@@ -27,7 +40,7 @@ export function formatLabDateTime(date: string | Date): string {
  */
 export function formatDateTimeWithTimeZone(date: string | Date, options: { seconds?: boolean; english?: boolean } = {}): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleString(options.english ? "en-GB" : localeTag(), {
+  const text = d.toLocaleString(tagFor(options.english), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -37,6 +50,7 @@ export function formatDateTimeWithTimeZone(date: string | Date, options: { secon
     ...CLOCK,
     timeZoneName: "short"
   });
+  return mark(text, options.english);
 }
 
 /**
@@ -44,9 +58,9 @@ export function formatDateTimeWithTimeZone(date: string | Date, options: { secon
  * The API sends these as a date at midnight, so the date part is read as written and formatted
  * in UTC; the browser's time zone must never move it to the neighbouring day or add a clock time.
  */
-export function formatLabCalendarDate(value: string): string {
+export function formatLabCalendarDate(value: string, options: { english?: boolean } = {}): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (!match) return formatLabDate(value);
+  if (!match) return formatLabDate(value, options);
   const d = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
-  return d.toLocaleDateString(localeTag(), { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  return mark(d.toLocaleDateString(tagFor(options.english), { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }), options.english);
 }

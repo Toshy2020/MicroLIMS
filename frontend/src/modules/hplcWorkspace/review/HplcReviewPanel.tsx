@@ -30,6 +30,7 @@ import {
   isRelatedSubstanceCalculation,
   type RelatedSubstanceCalculationData
 } from "./RelatedSubstancesReview";
+import { formatNumber } from "../../../utils/formatCount";
 
 export interface HplcMethodAssayReplicateData {
   replicateNo: number;
@@ -92,7 +93,7 @@ function formatReplicateAssay(r: HplcMethodAssayReplicateData): string {
     return r.assayPercentDisplay;
   }
   if (typeof r.assayPercent === "number") {
-    return `${r.assayPercent.toLocaleString(undefined, { maximumFractionDigits: 2 })} %`;
+    return `${formatNumber(r.assayPercent, { maximumFractionDigits: 2 })} %`;
   }
   return "—";
 }

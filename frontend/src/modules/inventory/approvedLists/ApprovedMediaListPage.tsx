@@ -265,11 +265,13 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
   }, [media, t]);
 
   // User name resolution helper
-  const getPreparedByName = (m: ReleasedMediaRow) => {
+  const getPreparedByName = (m: ReleasedMediaRow, english = false) => {
     if (m.preparedByName) return m.preparedByName;
     if (m.preparedByUser?.fullName) return m.preparedByUser.fullName;
     if (m.preparedByUserId && userMap[m.preparedByUserId]) return userMap[m.preparedByUserId];
-    return m.preparedByUserId ? t("media.userFallback", { id: m.preparedByUserId }) : "—";
+    if (!m.preparedByUserId) return "—";
+    // The printed register is English whatever the interface language.
+    return english ? `User #${m.preparedByUserId}` : t("media.userFallback", { id: m.preparedByUserId });
   };
 
   const columns: RegisterColumn<ReleasedMediaRow>[] = [
@@ -400,13 +402,13 @@ export function ApprovedMediaListPage({ embedded = false }: { embedded?: boolean
       label: "pH Result",
       render: (m: ReleasedMediaRow) => (m.ph != null ? Number(m.ph).toFixed(2) : "—")
     },
-    { label: "Prepared By", render: (m: ReleasedMediaRow) => getPreparedByName(m) },
+    { label: "Prepared By", render: (m: ReleasedMediaRow) => getPreparedByName(m, true) },
     { label: "Total Volume", render: (m: ReleasedMediaRow) => m.totalVolume || "—" },
     { label: "Total Weight", render: (m: ReleasedMediaRow) => (m.totalWeight != null ? `${m.totalWeight} g` : "—") },
     { label: "Manufacturer Lot", render: (m: ReleasedMediaRow) => m.manufacturerLot || "—" },
     { label: "Manufacturer", render: (m: ReleasedMediaRow) => m.manufacturerName || m.material?.manufacturerName || "—" },
-    { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt) },
-    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabCalendarDate(m.expiryDate) },
+    { label: "Prepared On", render: (m: ReleasedMediaRow) => formatLabDate(m.preparedAt, { english: true }) },
+    { label: "Expiry", render: (m: ReleasedMediaRow) => formatLabCalendarDate(m.expiryDate, { english: true }) },
     {
       label: "Status",
       render: (m: ReleasedMediaRow) => (m.status === "OutOfStock" ? "Out of Stock" : "Released")

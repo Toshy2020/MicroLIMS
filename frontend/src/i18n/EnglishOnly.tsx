@@ -12,6 +12,27 @@ const englishI18n = i18n.cloneInstance({ lng: "en", fallbackLng: "en" });
 const asLtr = (outer: Theme): Theme => ({ ...outer, direction: "ltr" });
 
 /**
+ * @component EnglishScope
+ * @purpose English, left-to-right view of a part of the page (texts, theme direction and style
+ * direction) WITHOUT changing the language of the rest of the app. Used by in-page printed tables.
+ * Dates inside it must be formatted with the `english` option of the date helpers, because the
+ * date helpers follow the app-wide language.
+ */
+export function EnglishScope({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <I18nextProvider i18n={englishI18n}>
+      <CacheProvider value={ltrCache}>
+        <ThemeProvider theme={asLtr}>
+          <div lang="en" dir="ltr" className={className}>
+            {children}
+          </div>
+        </ThemeProvider>
+      </CacheProvider>
+    </I18nextProvider>
+  );
+}
+
+/**
  * @component EnglishOnly
  * @purpose Printable records (reports, certificates of analysis, labels) are English and left-to-right
  * for every user: the printed record is what is audited, and it must not depend on who printed it.
@@ -29,15 +50,5 @@ export function EnglishOnly({ children }: { children: ReactNode }) {
   }, []);
 
   if (!ready) return null;
-  return (
-    <I18nextProvider i18n={englishI18n}>
-      <CacheProvider value={ltrCache}>
-        <ThemeProvider theme={asLtr}>
-          <div lang="en" dir="ltr">
-            {children}
-          </div>
-        </ThemeProvider>
-      </CacheProvider>
-    </I18nextProvider>
-  );
+  return <EnglishScope>{children}</EnglishScope>;
 }

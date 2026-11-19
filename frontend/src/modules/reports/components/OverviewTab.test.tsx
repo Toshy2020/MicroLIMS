@@ -85,4 +85,27 @@ describe("OverviewTab", () => {
       await resetLanguage();
     }
   });
+
+  it("shows the KPI cards in Arabic with Latin digits and the counts kept in order", async () => {
+    vi.mocked(OverviewService.getOverviewData).mockResolvedValue({
+      ...dummyData,
+      totalTests: { ...dummyData.totalTests, value: "2", caption: { key: "liveRecords" } },
+      approvedResults: { ...dummyData.approvedResults, value: "2", caption: { key: "approved", approved: 2, total: 2 } },
+      pendingReview: { ...dummyData.pendingReview, caption: { key: "reviewQueue" } },
+      outOfSpec: { ...dummyData.outOfSpec, caption: { key: "qualitySignal" } }
+    });
+    await renderInArabic(<OverviewTab onNavigateTab={vi.fn()} />, ["common", "reports"]);
+
+    try {
+      expect(await screen.findByText("إجمالي الاختبارات")).toBeTruthy();
+      expect(screen.getByText("النتائج المعتمدة")).toBeTruthy();
+      expect(screen.getAllByText("خارج المواصفات").length).toBeGreaterThan(0);
+      expect(screen.getByText("سجلات قاعدة البيانات الحية")).toBeTruthy();
+      const caption = screen.getByText((_, el) => el?.tagName === "P" && el.textContent === "2 من 2 معتمدة");
+      expect(caption.querySelectorAll("bdi[dir='ltr']").length).toBe(2);
+      expect(document.body.textContent).not.toMatch(/[٠-٩]/);
+    } finally {
+      await resetLanguage();
+    }
+  });
 });

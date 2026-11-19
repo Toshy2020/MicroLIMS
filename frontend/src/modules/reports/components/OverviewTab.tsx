@@ -13,7 +13,10 @@ import { ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
 import { OverviewDashboardData, OverviewKpiCardData } from "../types/reportingTypes";
 import { OverviewService } from "../services/OverviewService";
 import { brandColors } from "../../../theme";
+import { Trans } from "react-i18next";
 import { useTranslation } from "../../../i18n";
+import { Ltr } from "../../../components/Ltr";
+import { formatCount } from "../../../utils/formatCount";
 
 // "Results by Test" y-axis ticks.
 //
@@ -55,8 +58,11 @@ interface OverviewTabProps {
   canViewKpi?: boolean;
 }
 
-function KpiCard({ data }: { data: OverviewKpiCardData }) {
+type KpiSlot = "totalTests" | "approvedResults" | "pendingReview" | "pendingApproval" | "outOfSpec" | "alertActionLevel";
+
+function KpiCard({ data, slot }: { data: OverviewKpiCardData; slot: KpiSlot }) {
   const theme = useTheme();
+  const { t } = useTranslation("reports");
   const isUp = data.deltaDirection === "up";
   const isError = data.variant === "error";
   const isWarning = data.variant === "warning";
@@ -85,7 +91,7 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
       }}
     >
       <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
-        {data.title}
+        {t(`overview.kpi.${slot}`)}
       </Typography>
       <Typography
         sx={{
@@ -111,17 +117,26 @@ function KpiCard({ data }: { data: OverviewKpiCardData }) {
           }}
         >
           {isUp ? <ArrowUpwardIcon sx={{ fontSize: 13 }} /> : <ArrowDownwardIcon sx={{ fontSize: 13 }} />}
-          {Math.abs(data.deltaPercent)}%
+          <Ltr>{Math.abs(data.deltaPercent)}%</Ltr>
         </Box>
         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-          {data.comparisonLabel}
+          {data.caption ? (
+            <Trans
+              i18nKey={`overview.kpi.caption.${data.caption.key}`}
+              ns="reports"
+              values={{ approved: formatCount(data.caption.approved ?? 0), total: formatCount(data.caption.total ?? 0) }}
+              components={{ ltr: <Ltr>{null}</Ltr> }}
+            />
+          ) : (
+            data.comparisonLabel
+          )}
         </Typography>
       </Box>
     </Paper>
   );
 
   return data.tooltip ? (
-    <Tooltip title={data.tooltip} arrow>
+    <Tooltip title={slot === "outOfSpec" ? t("overview.kpi.outOfSpecTooltip") : data.tooltip} arrow>
       {content}
     </Tooltip>
   ) : (
@@ -170,7 +185,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.totalTests} />
+          <KpiCard data={data.totalTests} slot="totalTests" />
         </Grid>
         <Grid
           size={{
@@ -178,7 +193,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.approvedResults} />
+          <KpiCard data={data.approvedResults} slot="approvedResults" />
         </Grid>
         <Grid
           size={{
@@ -186,7 +201,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.pendingReview} />
+          <KpiCard data={data.pendingReview} slot="pendingReview" />
         </Grid>
         <Grid
           size={{
@@ -194,7 +209,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.pendingApproval} />
+          <KpiCard data={data.pendingApproval} slot="pendingApproval" />
         </Grid>
         <Grid
           size={{
@@ -202,7 +217,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.outOfSpec} />
+          <KpiCard data={data.outOfSpec} slot="outOfSpec" />
         </Grid>
         <Grid
           size={{
@@ -210,7 +225,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
             sm: 6,
             md: 2
           }}>
-          <KpiCard data={data.alertActionLevel} />
+          <KpiCard data={data.alertActionLevel} slot="alertActionLevel" />
         </Grid>
       </Grid>
 
@@ -371,7 +386,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                   textAlign: "center", pointerEvents: "none"
                 }}>
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
-                    {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
+                    {formatCount(data.locationDistribution.reduce((acc, x) => acc + x.count, 0))}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("overview.total")}</Typography>
                 </Box>

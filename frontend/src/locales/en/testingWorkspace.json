@@ -748,11 +748,26 @@
     "remainingMinutes": "{{minutes}}m {{seconds}}s remaining",
     "remainingSeconds": "{{seconds}}s remaining",
     "closed": {
-      "REJECTED": { "label": "Rejected", "text": "✗ Rejected" },
-      "VOIDED": { "label": "Voided", "text": "Voided: struck from the record" },
-      "CANCELLED": { "label": "Cancelled", "text": "Cancelled" },
-      "SUPERSEDED": { "label": "Superseded", "text": "Superseded: retested on a new sample" },
-      "ON_HOLD": { "label": "On Hold", "text": "On hold, awaiting retest outcome" }
+      "REJECTED": {
+        "label": "Rejected",
+        "text": "✗ Rejected"
+      },
+      "VOIDED": {
+        "label": "Voided",
+        "text": "Voided: struck from the record"
+      },
+      "CANCELLED": {
+        "label": "Cancelled",
+        "text": "Cancelled"
+      },
+      "SUPERSEDED": {
+        "label": "Superseded",
+        "text": "Superseded: retested on a new sample"
+      },
+      "ON_HOLD": {
+        "label": "On Hold",
+        "text": "On hold, awaiting retest outcome"
+      }
     },
     "unitRooms": "rooms",
     "unitParts": "parts",
@@ -1677,5 +1692,9 @@
       "sessionCompletedStatus": "✓ Completed & Locked",
       "sessionReadyForReviewStatus": "Ready for Technical Review"
     }
+  },
+  "externalLab": {
+    "badge": "External lab: {{lab}}",
+    "report": "External report"
   }
 }

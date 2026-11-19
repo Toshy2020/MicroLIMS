@@ -1,3 +1,4 @@
+import { useTranslation } from "../../i18n";
 import { CollapsibleTestCard, SecondaryToggle } from "./CollapsibleTestCard";
 import { CheckIcon, CrossIcon, DotIcon, dt, humanize, LOCATION_STATUS_COLOR } from "./SampleReportPage";
 import { IncubationDetail, SampleLocationDetail, TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
@@ -23,6 +24,7 @@ export function externalReportId(a: NonNullable<TestOrderSummaryDetail["analysis
 }
 
 export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: number | null }) {
+  const { t } = useTranslation("testingWorkspace");
   const open = async (e: React.MouseEvent) => {
     e.stopPropagation(); // the card header toggles on click
     const url = URL.createObjectURL(await ReceiveService.getSampleDocumentContent(reportId!));
@@ -31,8 +33,8 @@ export function ExternalLabSubtitle({ lab, reportId }: { lab: string; reportId: 
   };
   return (
     <>
-      <span className="location-status-chip" style={{ background: "#6b7280" }}>External lab: {lab}</span>
-      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>External report</a></>}
+      <span className="location-status-chip" style={{ background: "#6b7280" }}>{t("externalLab.badge", { lab })}</span>
+      {reportId != null && <>{" "}<a href="#" onClick={(e) => { e.preventDefault(); void open(e); }}>{t("externalLab.report")}</a></>}
       {" · "}
     </>
   );

@@ -27,7 +27,7 @@ R2 changes how staff use the laboratory application day to day. It adds a My Wor
 
 - Tables keep sort, filter and column state in the URL. A column menu and a density control were added. (fc020c80)
 - Users can save and share views, with a saved views API and UI. (d4b5b5a3, 2e622b80)
-- Users can select rows and export CSV with an audit record. Exports carry what the screen shows and work for a user with Data.Export. (5d51a5d3, 6406fc3f, b34f8024)
+- Users can select rows and export CSV with an audit record. Exports are always English (headers, values and dates) whatever the interface language, and work for a user with Data.Export. (5d51a5d3, 6406fc3f, b34f8024)
 - Analysts can be assigned in bulk. The operation skips tests already on the chosen analyst. (7c991a74, 3c5e9e8f)
 - Large tables use virtual scrolling and expandable rows. The workspace and document library sort on the server. (9fbe2f90, 0df2d788)
 - The sample register, workspaces, reports and other registers moved onto the shared RegisterTable. The old DataTable was removed. (6926da29, e79798d9, 82b6095c, 936e61b2)
@@ -72,7 +72,7 @@ R2 changes how staff use the laboratory application day to day. It adds a My Wor
 - A where-used service and panel show where a specification or item is used. (0a6dd322)
 - Changing a specification asks for a reason when samples are open. Specifications can be retired. (158e0ae8)
 - Specifications and items can be copied, and a new item made from an existing one. (945d495b, 40216dfa)
-- A test can be created with its stages and steps in one call, with an analyst preview in the test master wizard. (3e5be90b, d1e2a3bf)
+- A test can be created with its stages and steps in one call, with an analyst preview in the test master wizard. (3e5be90b, d1d2a3bf)
 - The specification, test master, equipment and add-material wizards were rebuilt with captured form payloads. (94d442ff, fd824989, 78c96e28, ec10636c, a47f196a, 77262b4a)
 - Section Heads can switch self-assignment per section and have a card for taking tests. Session reset keeps results and marks them invalidated. (6956e616, a7939b96, 5d2fcb70)
 - The decision that no-specification results stay refused, and the configuration requirements, were documented. (e121c84a, f5f54392)

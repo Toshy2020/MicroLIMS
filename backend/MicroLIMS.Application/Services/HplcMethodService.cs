@@ -839,52 +839,82 @@ public partial class HplcMethodService
         SaveHplcMethodRequest r, int sectionId, HashSet<int> alreadyUsedSolutionIds, CancellationToken ct)
     {
         if (!(r.ParticleSizeUm > 0m) || !(r.ColumnTemperatureC > 0m))
-            throw new BusinessRuleException("Column and run parameters must be greater than zero.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcColumnAndRunParametersMustBePositive,
+                "Column and run parameters must be greater than zero.");
 
         if (r.DetectorType is not (HplcDetectorType.UV or HplcDetectorType.PDA or HplcDetectorType.FLD
             or HplcDetectorType.RI or HplcDetectorType.ELSD or HplcDetectorType.Other))
-            throw new BusinessRuleException($"Detector {r.DetectorType} is not an HPLC detector.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcDetectorNotHplc,
+                $"Detector {r.DetectorType} is not an HPLC detector.",
+                new Dictionary<string, string> { ["detector"] = r.DetectorType.ToString() });
 
         if (r.ResultMode == HplcResultMode.ResidualSolvents)
-            throw new BusinessRuleException("Residual solvents mode is only available for GC methods.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcResidualSolventsGcOnly,
+                "Residual solvents mode is only available for GC methods.");
         if (r.ResultMode == HplcResultMode.RelatedSubstances)
             ValidateRelatedSubstances(r);
         if (r.ResultMode == HplcResultMode.CleaningResidue)
             await ValidateCleaningResidueAsync(r, ct);
         else if (r.ProductItemId.HasValue || r.SwabAreaCm2.HasValue || r.Analytes.Any(a => a.MacoLimit.HasValue || a.MacoUnit.HasValue))
-            throw new BusinessRuleException("Cleaning residue settings belong to cleaning residue methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcCleaningResidueSettingsOnly,
+                "Cleaning residue settings belong to cleaning residue methods only.");
 
         if (r.FilmThicknessUm.HasValue || r.CarrierGas.HasValue || r.SplitRatio.HasValue || r.InletTemperatureC.HasValue
             || r.DetectorTemperatureC.HasValue || (r.ResultMode != HplcResultMode.CleaningResidue && r.SampleSolutionVolumeMl.HasValue)
             || r.OvenSteps?.Count > 0 || r.HeadspaceEnabled
             || (r.ResultMode != HplcResultMode.CleaningResidue && r.Analytes.Any(a => a.StandardConcentrationUgPerMl.HasValue)))
-            throw new BusinessRuleException("GC settings are not used on an HPLC method.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcGcSettingsNotUsedForHplc,
+                "GC settings are not used on an HPLC method.");
 
         // Mobile phases
         if (r.MobilePhases.Count < 1)
-            throw new BusinessRuleException("At least one mobile phase is required.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcAtLeastOneMobilePhaseRequired,
+                "At least one mobile phase is required.");
 
         var channels = new HashSet<string>();
         foreach (var mp in r.MobilePhases)
         {
             var channel = mp.Channel?.Trim().ToUpperInvariant() ?? string.Empty;
             if (channel.Length != 1 || channel[0] < 'A' || channel[0] > 'D')
-                throw new BusinessRuleException("Mobile phase channel must be A, B, C or D.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseChannelInvalid,
+                    "Mobile phase channel must be A, B, C or D.");
             if (!channels.Add(channel))
-                throw new BusinessRuleException($"Channel \"{channel}\" is used more than once.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseChannelDuplicate,
+                    $"Channel \"{channel}\" is used more than once.",
+                    new Dictionary<string, string> { ["channel"] = channel });
         }
 
         // Review Focus: a mobile phase channel pointing at a Diluent solution is refused.
         foreach (var mp in r.MobilePhases)
         {
             var solution = await _db.SolutionMasters.FirstOrDefaultAsync(s => s.Id == mp.SolutionMasterId, ct)
-                ?? throw new BusinessRuleException($"Solution {mp.SolutionMasterId} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.HplcSolutionNotFound,
+                    $"Solution {mp.SolutionMasterId} not found.",
+                    new Dictionary<string, string> { ["solutionId"] = mp.SolutionMasterId.ToString(CultureInfo.InvariantCulture) });
             if (solution.SectionId != sectionId)
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" belongs to another laboratory.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionWrongLaboratory,
+                    $"Mobile phase solution \"{solution.Name}\" belongs to another laboratory.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
             if (solution.Type != SolutionType.MobilePhase)
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" must be of type MobilePhase.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionWrongType,
+                    $"Mobile phase solution \"{solution.Name}\" must be of type MobilePhase.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
             if (!solution.IsActive && !alreadyUsedSolutionIds.Contains(solution.Id))
-                throw new BusinessRuleException($"Mobile phase solution \"{solution.Name}\" is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseSolutionInactive,
+                    $"Mobile phase solution \"{solution.Name}\" is inactive.",
+                    new Dictionary<string, string> { ["solution"] = solution.Name });
         }
 
         // Ratios: all null, or all given and summing to 100 (isocratic only; must be null for gradient).
@@ -894,61 +924,96 @@ public partial class HplcMethodService
         if (r.ElutionMode == ElutionMode.Gradient)
         {
             if (anyRatio)
-                throw new BusinessRuleException("Ratio percent is not used in gradient mode.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcRatioPercentNotUsedInGradient,
+                    "Ratio percent is not used in gradient mode.");
         }
         else
         {
             if (anyRatio && !allRatio)
-                throw new BusinessRuleException("Provide a ratio percent for every mobile phase channel, or none.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcRatioPercentAllOrNone,
+                    "Provide a ratio percent for every mobile phase channel, or none.");
             if (allRatio && ratios.Sum(x => x!.Value) != 100m)
-                throw new BusinessRuleException("Mobile phase ratios must sum to 100%.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcMobilePhaseRatiosMustSumTo100,
+                    "Mobile phase ratios must sum to 100%.");
         }
 
         // Gradient table
         if (r.ElutionMode == ElutionMode.Gradient)
         {
             if (r.GradientSteps.Count < 2)
-                throw new BusinessRuleException("Gradient elution requires at least 2 steps.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcGradientMinTwoSteps,
+                    "Gradient elution requires at least 2 steps.");
 
             decimal? previousTime = null;
             for (var i = 0; i < r.GradientSteps.Count; i++)
             {
                 var step = r.GradientSteps[i];
                 if (i == 0 && step.TimeMin != 0m)
-                    throw new BusinessRuleException("The first gradient step must start at time 0.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientFirstStepMustStartAtZero,
+                        "The first gradient step must start at time 0.");
                 if (previousTime.HasValue && step.TimeMin <= previousTime.Value)
-                    throw new BusinessRuleException("Gradient step times must strictly increase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepTimesMustIncrease,
+                        "Gradient step times must strictly increase.");
                 previousTime = step.TimeMin;
 
                 if (step.PercentA + step.PercentB + step.PercentC + step.PercentD != 100m)
-                    throw new BusinessRuleException($"Gradient step at {step.TimeMin} min: %A+%B+%C+%D must equal 100.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepSumMustEqual100,
+                        $"Gradient step at {step.TimeMin} min: %A+%B+%C+%D must equal 100.",
+                        new Dictionary<string, string> { ["timeMin"] = step.TimeMin.ToString(CultureInfo.InvariantCulture) });
 
                 if (!channels.Contains("A") && step.PercentA != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel A, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel A, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "A" });
                 if (!channels.Contains("B") && step.PercentB != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel B, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel B, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "B" });
                 if (!channels.Contains("C") && step.PercentC != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel C, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel C, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "C" });
                 if (!channels.Contains("D") && step.PercentD != 0m)
-                    throw new BusinessRuleException("Gradient step uses channel D, which is not a configured mobile phase.");
+                    throw new BusinessRuleException(
+                        MessageCodes.HplcGradientStepChannelNotConfigured,
+                        "Gradient step uses channel D, which is not a configured mobile phase.",
+                        new Dictionary<string, string> { ["channel"] = "D" });
             }
         }
         else if (r.GradientSteps.Count > 0)
         {
-            throw new BusinessRuleException("Isocratic elution must not have gradient steps.");
+            throw new BusinessRuleException(
+                MessageCodes.HplcIsocraticNoGradientSteps,
+                "Isocratic elution must not have gradient steps.");
         }
 
         foreach (var a in r.Analytes)
         {
             if (!(a.WavelengthNm >= 190m && a.WavelengthNm <= 900m))
-                throw new BusinessRuleException("Analyte wavelength must be between 190 and 900 nm.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcAnalyteWavelengthOutOfRange,
+                    "Analyte wavelength must be between 190 and 900 nm.");
 
             if (r.ResultMode is not (HplcResultMode.RelatedSubstances or HplcResultMode.CleaningResidue)
                 && (a.TheoreticalWeightStdMg <= 0m || a.TheoreticalWeightTestMg <= 0m))
-                throw new BusinessRuleException("Theoretical weights must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcTheoreticalWeightsMustBePositive,
+                    "Theoretical weights must be greater than zero.");
 
             if (a.StandardDilution.HasValue && a.StandardDilution.Value <= 0m)
-                throw new BusinessRuleException("Standard dilution must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.HplcStandardDilutionMustBePositive,
+                    "Standard dilution must be greater than zero.");
         }
     }
 }

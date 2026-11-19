@@ -1,7 +1,9 @@
+using System.Globalization;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace MicroLIMS.Application.Labels;
@@ -59,26 +61,50 @@ public sealed class LabelFormatService(IMicroLimsDbContext db) : ILabelFormatSer
 
         if (request.WidthMm < MinDimensionMm || request.WidthMm > MaxDimensionMm)
         {
-            throw new BusinessRuleException($"Label width must be between {MinDimensionMm} and {MaxDimensionMm} mm.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelWidthOutOfRange,
+                $"Label width must be between {MinDimensionMm} and {MaxDimensionMm} mm.",
+                new Dictionary<string, string>
+                {
+                    ["maxMm"] = MaxDimensionMm.ToString(CultureInfo.InvariantCulture),
+                    ["minMm"] = MinDimensionMm.ToString(CultureInfo.InvariantCulture),
+                });
         }
 
         if (request.HeightMm < MinDimensionMm || request.HeightMm > MaxDimensionMm)
         {
-            throw new BusinessRuleException($"Label height must be between {MinDimensionMm} and {MaxDimensionMm} mm.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelHeightOutOfRange,
+                $"Label height must be between {MinDimensionMm} and {MaxDimensionMm} mm.",
+                new Dictionary<string, string>
+                {
+                    ["maxMm"] = MaxDimensionMm.ToString(CultureInfo.InvariantCulture),
+                    ["minMm"] = MinDimensionMm.ToString(CultureInfo.InvariantCulture),
+                });
         }
 
         if (request.DefaultCopies < MinCopies || request.DefaultCopies > MaxCopies)
         {
-            throw new BusinessRuleException($"Default copies must be between {MinCopies} and {MaxCopies}.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelDefaultCopiesOutOfRange,
+                $"Default copies must be between {MinCopies} and {MaxCopies}.",
+                new Dictionary<string, string>
+                {
+                    ["max"] = MaxCopies.ToString(CultureInfo.InvariantCulture),
+                    ["min"] = MinCopies.ToString(CultureInfo.InvariantCulture),
+                });
         }
 
         if (!Enum.IsDefined(request.Layout))
         {
-            throw new BusinessRuleException("Label layout is invalid.");
+            throw new BusinessRuleException(MessageCodes.LabelLayoutInvalid, "Label layout is invalid.");
         }
 
         var format = await _db.LabelFormats.FirstOrDefaultAsync(f => f.Id == id, ct)
-            ?? throw new NotFoundException($"Label format {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.LabelFormatNotFound,
+                $"Label format {id} not found.",
+                new Dictionary<string, string> { ["id"] = id.ToString(CultureInfo.InvariantCulture) });
 
         _db.ExpectedVersion = expectedVersion;
         RecordVersion.EnsureCurrent(_db, format);

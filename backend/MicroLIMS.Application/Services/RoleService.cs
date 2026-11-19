@@ -1,6 +1,7 @@
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Entities;
@@ -8,6 +9,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -85,7 +87,7 @@ public class RoleService
     {
         var reason = AdminActionReason.Require(rawReason, "create a role");
         if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Role name is required.");
+            throw new BusinessRuleException(MessageCodes.UserRoleNameRequired, "Role name is required.");
 
         // A new role copies its base system role's grants (below); refuse
         // before anything is saved if that copy would mix administration with GxP.
@@ -100,7 +102,10 @@ public class RoleService
         // A role based on QA inherits its limits; refuse if the base grants already break them.
         var baseQaConflicts = SegregationOfDutiesRules.FindQaConflicts(baseType == RoleType.Qa, baseCodes);
         if (baseQaConflicts.Count > 0)
-            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(baseQaConflicts));
+            throw new BusinessRuleException(
+                MessageCodes.UserRoleQaCannotHoldPermissions,
+                SegregationOfDutiesRules.DescribeQaConflicts(baseQaConflicts),
+                new Dictionary<string, string> { ["conflicts"] = string.Join(", ", baseQaConflicts) });
 
         _db.CurrentReason = reason;
         var role = new Role { Name = name, Description = description, Type = baseType, IsSystemRole = false, IsActive = true };
@@ -127,10 +132,13 @@ public class RoleService
     {
         var trimmedReason = AdminActionReason.Require(reason, "change a role");
         if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Role name is required.");
+            throw new BusinessRuleException(MessageCodes.UserRoleNameRequired, "Role name is required.");
 
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Role {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserRoleNotFound,
+                $"Role {id} not found.",
+                new Dictionary<string, string> { ["roleId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, role);
 
         _db.CurrentReason = trimmedReason;
@@ -151,14 +159,24 @@ public class RoleService
     {
         var reason = AdminActionReason.Require(rawReason, "delete a role");
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Role {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserRoleNotFound,
+                $"Role {id} not found.",
+                new Dictionary<string, string> { ["roleId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         if (role.IsSystemRole)
-            throw new BusinessRuleException("System roles cannot be deleted.");
+            throw new BusinessRuleException(MessageCodes.UserSystemRoleCannotDelete, "System roles cannot be deleted.");
 
         var inUseCount = await _db.Users.CountAsync(u => u.RoleId == id);
         if (inUseCount > 0)
-            throw new BusinessRuleException($"Role '{role.Name}' is currently assigned to {inUseCount} user(s) and cannot be deleted.");
+            throw new BusinessRuleException(
+                MessageCodes.UserRoleAssignedToUsers,
+                $"Role '{role.Name}' is currently assigned to {inUseCount} user(s) and cannot be deleted.",
+                new Dictionary<string, string>
+                {
+                    ["roleName"] = role.Name,
+                    ["userCount"] = inUseCount.ToString(CultureInfo.InvariantCulture),
+                });
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;
@@ -179,7 +197,10 @@ public class RoleService
     {
         var reason = AdminActionReason.Require(rawReason, "change a role's permissions");
         var role = await _db.Roles.FirstOrDefaultAsync(r => r.Id == id)
-            ?? throw new NotFoundException($"Role {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserRoleNotFound,
+                $"Role {id} not found.",
+                new Dictionary<string, string> { ["roleId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         // Mirrors the self-role-change block in UserService.ChangeRoleAsync.
         var actingUserRoleId = await _db.Users.AsNoTracking()
@@ -187,16 +208,24 @@ public class RoleService
             .Select(u => (int?)u.RoleId)
             .FirstOrDefaultAsync();
         if (actingUserRoleId == id)
-            throw new BusinessRuleException("You cannot change the permissions of your own role.");
+            throw new BusinessRuleException(
+                MessageCodes.UserCannotModifyOwnRolePermissions,
+                "You cannot change the permissions of your own role.");
 
         var hiddenRequested = permissionCodes.Where(PermissionConstants.Hidden.Contains).Distinct().ToList();
         if (hiddenRequested.Count > 0)
-            throw new BusinessRuleException($"Permission code(s) not available for assignment: {string.Join(", ", hiddenRequested)}.");
+            throw new BusinessRuleException(
+                MessageCodes.UserPermissionCodesNotAssignable,
+                $"Permission code(s) not available for assignment: {string.Join(", ", hiddenRequested)}.",
+                new Dictionary<string, string> { ["codes"] = string.Join(", ", hiddenRequested) });
 
         var validCodes = await _db.Permissions.Select(p => p.Code).ToListAsync();
         var unknown = permissionCodes.Except(validCodes).ToList();
         if (unknown.Count > 0)
-            throw new BusinessRuleException($"Unknown permission code(s): {string.Join(", ", unknown)}.");
+            throw new BusinessRuleException(
+                MessageCodes.UserPermissionCodesUnknown,
+                $"Unknown permission code(s): {string.Join(", ", unknown)}.",
+                new Dictionary<string, string> { ["codes"] = string.Join(", ", unknown) });
 
         // Checked before the first grant/revoke, which each save on their own.
         // A save that removes the conflicts of an already-violating role passes.
@@ -214,7 +243,10 @@ public class RoleService
         // they stay on the role. Refused before the signature and before any grant is saved.
         var qaConflicts = SegregationOfDutiesRules.FindQaConflicts(role.Type == RoleType.Qa, permissionCodes.Concat(preservedHidden));
         if (qaConflicts.Count > 0)
-            throw new BusinessRuleException(SegregationOfDutiesRules.DescribeQaConflicts(qaConflicts));
+            throw new BusinessRuleException(
+                MessageCodes.UserRoleQaCannotHoldPermissions,
+                SegregationOfDutiesRules.DescribeQaConflicts(qaConflicts),
+                new Dictionary<string, string> { ["conflicts"] = string.Join(", ", qaConflicts) });
 
         await _continuityGuard.EnsureAdministrableAfterAsync(AdministrationChange.RolePermissionsReplaced(id, permissionCodes.Concat(preservedHidden).ToList()));
 

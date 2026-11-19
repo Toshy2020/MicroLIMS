@@ -9,6 +9,7 @@ using MicroLIMS.Application.Services.Mfa;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 using MicroLIMS.Application.Services.Sso;
 
@@ -103,7 +104,10 @@ public class SystemSettingsService : ISystemSettingsService
     private async Task<bool> UpdateCoreAsync(string key, string? rawValue, string? rawReason, int actingUserId, string? password, string? ipAddress)
     {
         var definition = SystemSettingDefinitions.Find(key)
-            ?? throw new NotFoundException($"System setting '{key}' does not exist.");
+            ?? throw new NotFoundException(
+                MessageCodes.SettingsNotFound,
+                $"System setting '{key}' does not exist.",
+                new Dictionary<string, string> { ["key"] = key });
         var reason = AdminActionReason.Require(rawReason, "change a system setting");
         var newValue = definition.Normalize(rawValue);
 
@@ -115,7 +119,14 @@ public class SystemSettingsService : ISystemSettingsService
             _configuration);
 
         if (string.Equals(previousValue, newValue, StringComparison.Ordinal))
-            throw new BusinessRuleException($"'{key}' already has the value {newValue}. Nothing was changed.");
+            throw new BusinessRuleException(
+                MessageCodes.SettingsAlreadyHasValue,
+                $"'{key}' already has the value {newValue}. Nothing was changed.",
+                new Dictionary<string, string>
+                {
+                    ["key"] = key,
+                    ["value"] = newValue,
+                });
 
         if (key == SystemSettingKeys.MfaPolicy
             && !MfaPolicyService.IsRequiredPolicy(MfaPolicyService.ParsePolicy(previousValue))
@@ -131,13 +142,18 @@ public class SystemSettingsService : ISystemSettingsService
                 .Distinct()
                 .CountAsync();
             if (enrolledAdminsCount < 2)
-                throw new BusinessRuleException("Two System Administrators must set up a second factor before it can be required.");
+                throw new BusinessRuleException(
+                    MessageCodes.SettingsMfaRequiresTwoAdmins,
+                    "Two System Administrators must set up a second factor before it can be required.");
         }
 
         if (key == SystemSettingKeys.SsoMode)
         {
             if (!SsoModeService.TryParseMode(newValue, out var targetMode))
-                throw new BusinessRuleException($"Unsupported SSO mode '{newValue}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.SettingsUnsupportedSsoMode,
+                    $"Unsupported SSO mode '{newValue}'.",
+                    new Dictionary<string, string> { ["mode"] = newValue });
 
             if (targetMode != SsoMode.Off)
             {
@@ -147,7 +163,13 @@ public class SystemSettingsService : ISystemSettingsService
                     _securityAudit ?? new SecurityAuditService(_db, new SystemSecurityRequestContext(), _time));
                 var blockers = await ssoMode.GetSwitchOnBlockersAsync(actingUserId, targetMode);
                 if (blockers.Count > 0)
-                    throw new BusinessRuleException(string.Join(" ", blockers));
+                {
+                    var blockerMessage = string.Join(" ", blockers);
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsSsoSwitchOnBlocked,
+                        blockerMessage,
+                        new Dictionary<string, string> { ["message"] = blockerMessage });
+                }
             }
         }
 
@@ -232,7 +254,10 @@ public class SystemSettingsService : ISystemSettingsService
     public async Task<IReadOnlyList<SystemSettingVersionDto>> GetHistoryAsync(string key, CancellationToken cancellationToken = default)
     {
         if (SystemSettingDefinitions.Find(key) is null)
-            throw new NotFoundException($"System setting '{key}' does not exist.");
+            throw new NotFoundException(
+                MessageCodes.SettingsNotFound,
+                $"System setting '{key}' does not exist.",
+                new Dictionary<string, string> { ["key"] = key });
 
         var versions = await _db.SystemSettingVersions.AsNoTracking()
             .Where(v => v.Setting!.Key == key)

@@ -1,4 +1,6 @@
 using System.Text.RegularExpressions;
+using System.Globalization;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
@@ -129,13 +131,14 @@ public class MaterialCategoryService
     {
         var reason = RequireReason(r);
         var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new NotFoundException($"Material category {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MaterialCategoryNotFound, $"Material category {id} not found.",
+                new Dictionary<string, string> { ["categoryId"] = id.ToString(CultureInfo.InvariantCulture) });
         var (name, prefix, storage) = Validate(r, category.CodePrefix);
         RecordVersion.EnsureCurrent(_db, category);
 
         var hasEntries = await _db.MaterialMasterEntries.AnyAsync(e => e.MaterialCategoryId == id, ct);
         if (prefix != category.CodePrefix && hasEntries)
-            throw new BusinessRuleException("This category has master entries; its code prefix can't change.");
+            throw new BusinessRuleException(MessageCodes.MaterialCategoryCodePrefixLockedByEntries, "This category has master entries; its code prefix can't change.");
         await EnsureUniqueAsync(name, prefix, id, ct);
         var sectionIds = await ResolveSectionsAsync(r.SectionIds, ct);
 
@@ -183,7 +186,8 @@ public class MaterialCategoryService
     public async Task<MaterialCategoryResponse> SetActiveAsync(int id, bool isActive, int currentUserId, CancellationToken ct = default)
     {
         var category = await _db.MaterialCategories.Include(c => c.Sections).FirstOrDefaultAsync(c => c.Id == id, ct)
-            ?? throw new NotFoundException($"Material category {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.MaterialCategoryNotFound, $"Material category {id} not found.",
+                new Dictionary<string, string> { ["categoryId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         category.IsActive = isActive;
         category.LastModifiedByUserId = currentUserId;
@@ -196,9 +200,9 @@ public class MaterialCategoryService
     private static string RequireReason(SaveMaterialCategoryRequest r)
     {
         if (string.IsNullOrWhiteSpace(r.Reason))
-            throw new BusinessRuleException("A reason for the change is required.");
+            throw new BusinessRuleException(MessageCodes.MaterialChangeReasonRequired, "A reason for the change is required.");
         if (string.IsNullOrEmpty(r.Password))
-            throw new BusinessRuleException("Your password is required to sign the change.");
+            throw new BusinessRuleException(MessageCodes.MaterialPasswordRequiredToSignChange, "Your password is required to sign the change.");
         return r.Reason.Trim();
     }
 
@@ -207,20 +211,21 @@ public class MaterialCategoryService
     private static (string Name, string Prefix, string? Storage) Validate(SaveMaterialCategoryRequest r, string? currentPrefix)
     {
         var name = r.Name?.Trim() ?? string.Empty;
-        if (name.Length == 0) throw new BusinessRuleException("Name is required.");
-        if (name.Length > 100) throw new BusinessRuleException("Name can be at most 100 characters.");
+        if (name.Length == 0) throw new BusinessRuleException(MessageCodes.MaterialCategoryNameRequired, "Name is required.");
+        if (name.Length > 100) throw new BusinessRuleException(MessageCodes.MaterialCategoryNameTooLong, "Name can be at most 100 characters.");
 
         var prefix = r.CodePrefix?.Trim().ToUpperInvariant() ?? string.Empty;
         if (prefix != currentPrefix)
         {
             if (!PrefixPattern.IsMatch(prefix))
-                throw new BusinessRuleException("The code prefix must be 2 to 5 letters (A-Z), without a dash.");
+                throw new BusinessRuleException(MessageCodes.MaterialCategoryCodePrefixFormat, "The code prefix must be 2 to 5 letters (A-Z), without a dash.");
             if (ReservedPrefixes.Contains(prefix))
-                throw new BusinessRuleException($"The prefix \"{prefix}-\" belongs to another material group; choose a different one.");
+                throw new BusinessRuleException(MessageCodes.MaterialCategoryPrefixReserved, $"The prefix \"{prefix}-\" belongs to another material group; choose a different one.",
+                    new Dictionary<string, string> { ["prefix"] = prefix });
         }
 
         var storage = string.IsNullOrWhiteSpace(r.DefaultStorageCondition) ? null : r.DefaultStorageCondition.Trim();
-        if (storage is { Length: > 100 }) throw new BusinessRuleException("Storage condition can be at most 100 characters.");
+        if (storage is { Length: > 100 }) throw new BusinessRuleException(MessageCodes.MaterialStorageConditionTooLong, "Storage condition can be at most 100 characters.");
         return (name, prefix, storage);
     }
 
@@ -228,9 +233,11 @@ public class MaterialCategoryService
     {
         var lower = name.ToLower();
         if (await _db.MaterialCategories.AnyAsync(c => c.Id != exceptId && c.Name.ToLower() == lower, ct))
-            throw new BusinessRuleException($"A material category named \"{name}\" already exists.");
+            throw new BusinessRuleException(MessageCodes.MaterialCategoryNameExists, $"A material category named \"{name}\" already exists.",
+                new Dictionary<string, string> { ["name"] = name });
         if (await _db.MaterialCategories.AnyAsync(c => c.Id != exceptId && c.CodePrefix == prefix, ct))
-            throw new BusinessRuleException($"The code prefix \"{prefix}\" is already used by another category.");
+            throw new BusinessRuleException(MessageCodes.MaterialCategoryPrefixExists, $"The code prefix \"{prefix}\" is already used by another category.",
+                new Dictionary<string, string> { ["prefix"] = prefix });
     }
 
     private async Task<HashSet<int>> ResolveSectionsAsync(IReadOnlyList<int>? requested, CancellationToken ct)
@@ -239,7 +246,7 @@ public class MaterialCategoryService
         if (ids.Count == 0) return ids;
         var found = await _db.DocumentSections.Where(s => ids.Contains(s.Id) && s.IsActive).Select(s => s.Id).ToListAsync(ct);
         if (found.Count != ids.Count)
-            throw new BusinessRuleException("One or more of the selected sections do not exist or are inactive.");
+            throw new BusinessRuleException(MessageCodes.MaterialCategorySectionsInvalid, "One or more of the selected sections do not exist or are inactive.");
         return ids;
     }
 

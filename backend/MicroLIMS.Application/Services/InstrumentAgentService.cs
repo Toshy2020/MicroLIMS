@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -43,13 +45,20 @@ public class InstrumentAgentService
     private async Task<(InstrumentAgentDto Agent, string PlainKey)> RegisterCoreAsync(
         int equipmentId, string name, string timeZoneId, int adminUserId, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new BusinessRuleException("Agent name is required.");
+        if (string.IsNullOrWhiteSpace(name))
+            throw new BusinessRuleException(MessageCodes.InstrumentAgentNameRequired, "Agent name is required.");
         RequireKnownTimeZone(timeZoneId);
 
         var equipment = await _db.Equipment.AsNoTracking().FirstOrDefaultAsync(e => e.Id == equipmentId, ct)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.EquipmentPlanEquipmentNotFound,
+                $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
         if (equipment.Type != EquipmentType.Hplc)
-            throw new BusinessRuleException($"Equipment {equipment.Code} is not an HPLC; an agent can only be bound to an HPLC.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentEquipmentNotHplc,
+                $"Equipment {equipment.Code} is not an HPLC; an agent can only be bound to an HPLC.",
+                new Dictionary<string, string> { ["equipmentCode"] = equipment.Code });
         await _scope.EnsureEquipmentAccessAsync(adminUserId, equipmentId, ct);
 
         var existing = await _db.InstrumentAgents.AsNoTracking()
@@ -58,12 +67,27 @@ public class InstrumentAgentService
             .ToListAsync(ct);
         var active = existing.FirstOrDefault(a => a.IsActive);
         if (active is not null)
-            throw new BusinessRuleException($"Equipment {equipment.Code} already has an active agent ({active.Code}). Rotate its key or revoke it first.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentEquipmentAlreadyHasActiveAgent,
+                $"Equipment {equipment.Code} already has an active agent ({active.Code}). Rotate its key or revoke it first.",
+                new Dictionary<string, string>
+                {
+                    ["agentCode"] = active.Code,
+                    ["equipmentCode"] = equipment.Code,
+                });
 
         // A revoked agent keeps its code (deactivate, never delete), so a replacement gets the next suffix.
         var code = existing.Count == 0 ? $"AGT-{equipment.Code}" : $"AGT-{equipment.Code}-{existing.Count + 1}";
         if (code.Length > MaxCodeLength)
-            throw new BusinessRuleException($"Equipment code {equipment.Code} is too long for an agent code ({code.Length} characters, the limit is {MaxCodeLength}). Shorten the equipment code first.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentEquipmentCodeTooLongForAgent,
+                $"Equipment code {equipment.Code} is too long for an agent code ({code.Length} characters, the limit is {MaxCodeLength}). Shorten the equipment code first.",
+                new Dictionary<string, string>
+                {
+                    ["equipmentCode"] = equipment.Code,
+                    ["length"] = code.Length.ToString(CultureInfo.InvariantCulture),
+                    ["maxLength"] = MaxCodeLength.ToString(CultureInfo.InvariantCulture),
+                });
         var (plainKey, keyPrefix) = NewKey(code);
 
         var agent = new InstrumentAgent
@@ -106,7 +130,8 @@ public class InstrumentAgentService
 
     private async Task RevokeCoreAsync(int agentId, string reason, int adminUserId, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(reason)) throw new BusinessRuleException("A reason is required to revoke an agent.");
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new BusinessRuleException(MessageCodes.InstrumentAgentRevokeReasonRequired, "A reason is required to revoke an agent.");
         var agent = await LoadActiveAsync(agentId, adminUserId, ct);
         agent.IsActive = false;
         agent.RevokedAt = _clock.UtcNow.UtcDateTime;
@@ -120,9 +145,16 @@ public class InstrumentAgentService
     private async Task<InstrumentAgent> LoadActiveAsync(int agentId, int adminUserId, CancellationToken ct)
     {
         var agent = await _db.InstrumentAgents.FirstOrDefaultAsync(a => a.Id == agentId, ct)
-            ?? throw new NotFoundException($"Instrument agent {agentId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.InstrumentAgentNotFound,
+                $"Instrument agent {agentId} not found.",
+                new Dictionary<string, string> { ["agentId"] = agentId.ToString(CultureInfo.InvariantCulture) });
         await _scope.EnsureEquipmentAccessAsync(adminUserId, agent.EquipmentId, ct);
-        if (!agent.IsActive) throw new BusinessRuleException($"Agent {agent.Code} is revoked.");
+        if (!agent.IsActive)
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentAgentRevoked,
+                $"Agent {agent.Code} is revoked.",
+                new Dictionary<string, string> { ["agentCode"] = agent.Code });
         return agent;
     }
 
@@ -139,7 +171,10 @@ public class InstrumentAgentService
         try { TimeZoneInfo.FindSystemTimeZoneById(timeZoneId ?? string.Empty); }
         catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException or ArgumentException)
         {
-            throw new BusinessRuleException($"Unknown time zone '{timeZoneId}'. Use an IANA id such as Africa/Cairo.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentUnknownTimeZone,
+                $"Unknown time zone '{timeZoneId}'. Use an IANA id such as Africa/Cairo.",
+                new Dictionary<string, string> { ["timeZoneId"] = timeZoneId });
         }
     }
 

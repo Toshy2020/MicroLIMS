@@ -7,6 +7,7 @@ using MicroLIMS.API.Extensions;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -66,22 +67,36 @@ internal static class IngestForm
     internal static async Task<IngestRequest> ReadAsync(HttpRequest request, CancellationToken ct)
     {
         if (!request.HasFormContentType)
-            throw new BusinessRuleException("The request must be multipart/form-data.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentIngestMultipartRequired,
+                "The request must be multipart/form-data.");
 
         IFormCollection form;
         try { form = await request.ReadFormAsync(ct); }
-        catch (InvalidDataException ex) { throw new BusinessRuleException("The form could not be read: " + ex.Message); }
+        catch (InvalidDataException ex)
+        {
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentIngestFormUnreadable,
+                "The form could not be read: " + ex.Message,
+                new Dictionary<string, string> { ["error"] = ex.Message });
+        }
 
         string Text(string name) => form[name].ToString();
 
         var report = form.Files.GetFile("report");
         if (report is null || report.Length == 0)
-            throw new BusinessRuleException("The report file is required.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentIngestReportFileRequired,
+                "The report file is required.");
         if (!int.TryParse(Text("injectionNumber"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var injection))
-            throw new BusinessRuleException("The injection number is required.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentIngestInjectionNumberRequired,
+                "The injection number is required.");
         if (!DateTime.TryParse(Text("agentClockUtc"), CultureInfo.InvariantCulture,
                 DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var agentClock))
-            throw new BusinessRuleException("The agent clock must be an ISO-8601 UTC time.");
+            throw new BusinessRuleException(
+                MessageCodes.InstrumentIngestAgentClockInvalid,
+                "The agent clock must be an ISO-8601 UTC time.");
 
         using var ms = new MemoryStream();
         await report.CopyToAsync(ms, ct);

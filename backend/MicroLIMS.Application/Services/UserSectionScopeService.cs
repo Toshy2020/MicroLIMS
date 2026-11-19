@@ -5,6 +5,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -146,12 +147,16 @@ public class UserSectionScopeService : IUserSectionScopeService
 
             if (!existsAndActive)
             {
-                throw new BusinessRuleException("Selected laboratory section was not found or is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.UserSelectedSectionNotFoundOrInactive,
+                    "Selected laboratory section was not found or is inactive.");
             }
 
             if (scope is not null && !scope.Contains(sectionId))
             {
-                throw new BusinessRuleException("You are not a member of the selected laboratory section.");
+                throw new BusinessRuleException(
+                    MessageCodes.UserNotMemberOfSelectedSection,
+                    "You are not a member of the selected laboratory section.");
             }
 
             return sectionId;
@@ -159,12 +164,16 @@ public class UserSectionScopeService : IUserSectionScopeService
 
         if (scope is null)
         {
-            throw new BusinessRuleException("Choose a laboratory section.");
+            throw new BusinessRuleException(
+                MessageCodes.UserChooseLaboratorySection,
+                "Choose a laboratory section.");
         }
 
         if (scope.Count == 0)
         {
-            throw new BusinessRuleException("Your account is not assigned to any laboratory section. Ask an administrator to assign one.");
+            throw new BusinessRuleException(
+                MessageCodes.UserNoAssignedLaboratorySection,
+                "Your account is not assigned to any laboratory section. Ask an administrator to assign one.");
         }
 
         if (scope.Count == 1)
@@ -172,7 +181,9 @@ public class UserSectionScopeService : IUserSectionScopeService
             return scope[0];
         }
 
-        throw new BusinessRuleException("Choose a laboratory section - you belong to more than one.");
+        throw new BusinessRuleException(
+            MessageCodes.UserChooseFromMultipleSections,
+            "Choose a laboratory section - you belong to more than one.");
     }
 
     public async Task EnsureTestOrderAccessAsync(int userId, int testOrderId, CancellationToken ct = default, SectionAccess access = SectionAccess.Write)

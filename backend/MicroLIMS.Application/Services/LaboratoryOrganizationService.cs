@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Helpers;
@@ -62,9 +64,14 @@ public class LaboratoryOrganizationService
     {
         reason = AdminActionReason.Require(reason, "change a user's laboratory memberships");
         var memberUser = await _db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new { u.IsActive }).FirstOrDefaultAsync()
-            ?? throw new NotFoundException($"User {userId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.UserNotFound,
+                $"User {userId} not found.",
+                new Dictionary<string, string> { ["userId"] = userId.ToString(CultureInfo.InvariantCulture) });
         if (!memberUser.IsActive)
-            throw new BusinessRuleException("Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
+            throw new BusinessRuleException(
+                MessageCodes.OrganizationInactiveUserCannotAssignToSections,
+                "Inactive users cannot be assigned to laboratory sections. Reactivate the user first.");
 
         // Memberships are keyed by department + section; the last row for a key wins.
         var wanted = memberships.GroupBy(m => (m.DepartmentId, m.SectionId)).Select(g => g.Last()).ToList();
@@ -72,7 +79,9 @@ public class LaboratoryOrganizationService
         var activeDepartments = await _db.DocumentDepartments
             .Where(d => departmentIds.Contains(d.Id) && d.IsActive).Select(d => d.Id).ToListAsync();
         if (activeDepartments.Count != departmentIds.Count)
-            throw new BusinessRuleException("One or more departments were not found or are inactive.");
+            throw new BusinessRuleException(
+                MessageCodes.OrganizationDepartmentsNotFoundOrInactive,
+                "One or more departments were not found or are inactive.");
 
         var sectionIds = wanted.Where(m => m.SectionId.HasValue).Select(m => m.SectionId!.Value).Distinct().ToList();
         var sections = await _db.DocumentSections
@@ -81,12 +90,24 @@ public class LaboratoryOrganizationService
         foreach (var m in wanted.Where(m => m.SectionId.HasValue))
         {
             if (!sections.TryGetValue(m.SectionId!.Value, out var section))
-                throw new BusinessRuleException($"Laboratory section {m.SectionId} was not found or is inactive.");
+                throw new BusinessRuleException(
+                    MessageCodes.OrganizationSectionNotFoundOrInactive,
+                    $"Laboratory section {m.SectionId} was not found or is inactive.",
+                    new Dictionary<string, string> { ["sectionId"] = m.SectionId.Value.ToString(CultureInfo.InvariantCulture) });
             if (section.DepartmentId != m.DepartmentId)
-                throw new BusinessRuleException($"Laboratory section {m.SectionId} does not belong to department {m.DepartmentId}.");
+                throw new BusinessRuleException(
+                    MessageCodes.OrganizationSectionNotInDepartment,
+                    $"Laboratory section {m.SectionId} does not belong to department {m.DepartmentId}.",
+                    new Dictionary<string, string>
+                    {
+                        ["departmentId"] = m.DepartmentId.ToString(CultureInfo.InvariantCulture),
+                        ["sectionId"] = m.SectionId.Value.ToString(CultureInfo.InvariantCulture),
+                    });
         }
         if (wanted.Any(m => m.PhyschemArea.HasValue && (!m.SectionId.HasValue || sections[m.SectionId.Value].Code != PhyschemAreas.SectionCode)))
-            throw new BusinessRuleException("An area can only be set on a Physicochemical Laboratory membership.");
+            throw new BusinessRuleException(
+                MessageCodes.OrganizationAreaOnlyForPhyschemMembership,
+                "An area can only be set on a Physicochemical Laboratory membership.");
 
         _db.CurrentUserId = actingUserId;
         _db.CurrentReason = reason;

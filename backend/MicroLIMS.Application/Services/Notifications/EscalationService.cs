@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
@@ -5,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 using Microsoft.EntityFrameworkCore;
 
@@ -127,7 +129,10 @@ public sealed class EscalationService
             .AsNoTracking()
             .AnyAsync(d => d.Id == sectionId && d.IsActive, ct);
         if (!sectionExists)
-            throw new NotFoundException($"Section {sectionId} was not found.");
+            throw new NotFoundException(
+                MessageCodes.NotificationSectionNotFound,
+                $"Section {sectionId} was not found.",
+                new Dictionary<string, string> { ["sectionId"] = sectionId.ToString(CultureInfo.InvariantCulture) });
 
         var duplicateExists = await _db.EscalationRules
             .AsNoTracking()
@@ -137,7 +142,9 @@ public sealed class EscalationService
                         && r.Trigger == trigger
                         && r.NotifyRoleType == notifyRole, ct);
         if (duplicateExists)
-            throw new BusinessRuleException("An active escalation rule already exists for this section, trigger, and role.");
+            throw new BusinessRuleException(
+                MessageCodes.NotificationEscalationRuleDuplicate,
+                "An active escalation rule already exists for this section, trigger, and role.");
 
         var now = UtcNow();
         var rule = new EscalationRule
@@ -170,12 +177,17 @@ public sealed class EscalationService
 
         var existing = await _db.EscalationRules
             .FirstOrDefaultAsync(r => r.Id == ruleId, ct)
-            ?? throw new NotFoundException($"Escalation rule {ruleId} was not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.NotificationEscalationRuleNotFound,
+                $"Escalation rule {ruleId} was not found.",
+                new Dictionary<string, string> { ["ruleId"] = ruleId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureSectionMemberAsync(userId, existing.SectionId, ct);
 
         if (!existing.IsActive || existing.RetiredAt is not null)
-            throw new BusinessRuleException("A retired escalation rule cannot be replaced.");
+            throw new BusinessRuleException(
+                MessageCodes.NotificationEscalationRuleRetiredCannotReplace,
+                "A retired escalation rule cannot be replaced.");
 
         ValidateRuleInputs(existing.Trigger, thresholdWorkingHours, notifyRole);
 
@@ -188,7 +200,9 @@ public sealed class EscalationService
                         && r.Trigger == existing.Trigger
                         && r.NotifyRoleType == notifyRole, ct);
         if (duplicateExists)
-            throw new BusinessRuleException("An active escalation rule already exists for this section, trigger, and role.");
+            throw new BusinessRuleException(
+                MessageCodes.NotificationEscalationRuleDuplicate,
+                "An active escalation rule already exists for this section, trigger, and role.");
 
         var now = UtcNow();
         existing.IsActive = false;
@@ -220,7 +234,10 @@ public sealed class EscalationService
 
         var existing = await _db.EscalationRules
             .FirstOrDefaultAsync(r => r.Id == ruleId, ct)
-            ?? throw new NotFoundException($"Escalation rule {ruleId} was not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.NotificationEscalationRuleNotFound,
+                $"Escalation rule {ruleId} was not found.",
+                new Dictionary<string, string> { ["ruleId"] = ruleId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureSectionMemberAsync(userId, existing.SectionId, ct);
 
@@ -908,7 +925,9 @@ public sealed class EscalationService
     {
         var week = await LoadWorkingWeekAsync(ct);
         if (!WorkingTimeCalculator.IsConfigured(week))
-            throw new BusinessRuleException("Set the laboratory working hours first.");
+            throw new BusinessRuleException(
+                MessageCodes.NotificationWorkingHoursRequired,
+                "Set the laboratory working hours first.");
     }
 
     private static void ValidateRuleInputs(EscalationTrigger trigger, decimal thresholdWorkingHours, RoleType notifyRole)

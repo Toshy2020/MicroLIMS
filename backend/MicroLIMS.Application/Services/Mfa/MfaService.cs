@@ -13,6 +13,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Mfa;
 
@@ -369,7 +370,7 @@ public sealed class MfaService : IMfaService
             if (recoveryCodes is null)
             {
                 await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
-                throw new BusinessRuleException(VerificationFailedMessage);
+                throw new BusinessRuleException(MessageCodes.AuthMfaVerificationFailed, VerificationFailedMessage);
             }
 
             await _db.SaveChangesAsync(ct);
@@ -416,7 +417,7 @@ public sealed class MfaService : IMfaService
                 if (tx is not null)
                     await tx.CommitAsync(ct);
 
-                throw new BusinessRuleException(VerificationFailedMessage);
+                throw new BusinessRuleException(MessageCodes.AuthMfaVerificationFailed, VerificationFailedMessage);
             }
 
             challenge.ConsumedAt = nowUtc;
@@ -501,13 +502,13 @@ public sealed class MfaService : IMfaService
 
             var credential = await _db.UserMfaCredentials
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
-                ?? throw new BusinessRuleException("Two-factor authentication is not active.");
+                ?? throw new BusinessRuleException(MessageCodes.AuthMfaNotActive, "Two-factor authentication is not active.");
 
             var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
             if (matchedStep is null)
             {
                 await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
-                throw new BusinessRuleException(VerificationFailedMessage);
+                throw new BusinessRuleException(MessageCodes.AuthMfaVerificationFailed, VerificationFailedMessage);
             }
 
             credential.LastAcceptedStep = matchedStep.Value;
@@ -544,17 +545,17 @@ public sealed class MfaService : IMfaService
 
             var credential = await _db.UserMfaCredentials
                 .FirstOrDefaultAsync(c => c.UserId == userId && c.Status == MfaCredentialStatus.Active, ct)
-                ?? throw new BusinessRuleException("Two-factor authentication is not active.");
+                ?? throw new BusinessRuleException(MessageCodes.AuthMfaNotActive, "Two-factor authentication is not active.");
 
             var roleType = user.Role?.Type.ToString() ?? string.Empty;
             if (await _mfaPolicy.IsRequiredForRoleAsync(roleType, ct))
-                throw new BusinessRuleException("Your role requires two-factor authentication, so you cannot remove it.");
+                throw new BusinessRuleException(MessageCodes.AuthMfaRequiredByRole, "Your role requires two-factor authentication, so you cannot remove it.");
 
             var matchedStep = VerifyTotpCodeAgainstCredential(credential, code, nowUtc);
             if (matchedStep is null)
             {
                 await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Code verification failed.", tx, ct);
-                throw new BusinessRuleException(VerificationFailedMessage);
+                throw new BusinessRuleException(MessageCodes.AuthMfaVerificationFailed, VerificationFailedMessage);
             }
 
             credential.LastAcceptedStep = matchedStep.Value;
@@ -595,7 +596,7 @@ public sealed class MfaService : IMfaService
             .AsNoTracking()
             .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Id == userId, ct)
-            ?? throw new NotFoundException("User not found.");
+            ?? throw new NotFoundException(MessageCodes.AuthUserNotFound, "User not found.");
 
         var nowUtc = _time.GetUtcNow().UtcDateTime;
 
@@ -635,7 +636,7 @@ public sealed class MfaService : IMfaService
         {
             var device = await _db.TrustedDevices
                 .FirstOrDefaultAsync(d => d.Id == trustedDeviceId && d.UserId == userId && d.RevokedAt == null, ct)
-                ?? throw new NotFoundException("Trusted device not found.");
+                ?? throw new NotFoundException(MessageCodes.AuthTrustedDeviceNotFound, "Trusted device not found.");
 
             device.RevokedAt = _time.GetUtcNow().UtcDateTime;
             device.RevokedByUserId = userId;
@@ -675,7 +676,7 @@ public sealed class MfaService : IMfaService
 
         var user = await query.FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user is null || !user.IsActive || user.IsLockedAt(nowUtc))
-            throw new BusinessRuleException("Your account is not available.");
+            throw new BusinessRuleException(MessageCodes.AuthAccountNotAvailable, "Your account is not available.");
 
         return user;
     }
@@ -700,7 +701,7 @@ public sealed class MfaService : IMfaService
             || !AuthenticationService.PasswordMatches(password, user.PasswordHash))
         {
             await RecordAuthenticatedMfaFailureAndCommitAsync(userId, user, "Password verification failed.", tx, ct);
-            throw new BusinessRuleException(PasswordFailedMessage);
+            throw new BusinessRuleException(MessageCodes.AuthPasswordIncorrect, PasswordFailedMessage);
         }
 
         return user;
@@ -728,7 +729,7 @@ public sealed class MfaService : IMfaService
     private async Task<MfaChallenge> LoadValidEnrolChallengeAsync(string mfaToken, DateTime nowUtc, bool includeRole, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(mfaToken))
-            throw new BusinessRuleException(EnrolSessionInvalidMessage);
+            throw new BusinessRuleException(MessageCodes.AuthMfaEnrolSessionExpired, EnrolSessionInvalidMessage);
 
         var tokenHash = AuthenticationService.Hash(mfaToken);
         IQueryable<MfaChallenge> query = includeRole
@@ -745,7 +746,7 @@ public sealed class MfaService : IMfaService
             || !challenge.User.IsActive
             || challenge.User.IsLockedAt(nowUtc))
         {
-            throw new BusinessRuleException(EnrolSessionInvalidMessage);
+            throw new BusinessRuleException(MessageCodes.AuthMfaEnrolSessionExpired, EnrolSessionInvalidMessage);
         }
 
         return challenge;
@@ -757,7 +758,9 @@ public sealed class MfaService : IMfaService
             .AsNoTracking()
             .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
         if (hasActive)
-            throw new BusinessRuleException("Two-factor authentication is already active. Remove your existing factor before setting up a new one.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthMfaAlreadyActiveRemoveFirst,
+                "Two-factor authentication is already active. Remove your existing factor before setting up a new one.");
 
         var pending = await _db.UserMfaCredentials
             .Where(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Pending)
@@ -767,7 +770,7 @@ public sealed class MfaService : IMfaService
             // An administrator assigned this token; self-enrolment must not silently delete it.
             await RecordAuthenticatedMfaFailureAndCommitAsync(
                 user.Id, user, "Self-enrolment refused: an administrator-assigned hardware token is pending.", tx, ct);
-            throw new BusinessRuleException(HardwareTokenPendingMessage);
+            throw new BusinessRuleException(MessageCodes.AuthMfaHardwareTokenPending, HardwareTokenPendingMessage);
         }
 
         if (pending.Count > 0)
@@ -817,11 +820,11 @@ public sealed class MfaService : IMfaService
             .AsNoTracking()
             .AnyAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Active, ct);
         if (hasActive)
-            throw new BusinessRuleException("Two-factor authentication is already active.");
+            throw new BusinessRuleException(MessageCodes.AuthMfaAlreadyActive, "Two-factor authentication is already active.");
 
         var pending = await _db.UserMfaCredentials
             .FirstOrDefaultAsync(c => c.UserId == user.Id && c.Status == MfaCredentialStatus.Pending, ct)
-            ?? throw new BusinessRuleException("Start two-factor setup before confirming a code.");
+            ?? throw new BusinessRuleException(MessageCodes.AuthMfaSetupNotStarted, "Start two-factor setup before confirming a code.");
 
         var matchedStep = VerifyTotpCodeAgainstCredential(pending, code, nowUtc);
         if (matchedStep is null)

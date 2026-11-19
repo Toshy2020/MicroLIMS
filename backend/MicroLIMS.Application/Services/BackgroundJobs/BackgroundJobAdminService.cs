@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.BackgroundJobs;
@@ -105,7 +106,8 @@ public sealed class BackgroundJobAdminService : IBackgroundJobAdminService
     public async Task<PagedResult<BackgroundJobRunDto>> GetRunsAsync(
         string jobName, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var job = BackgroundJobCatalog.Find(jobName) ?? throw new NotFoundException("Background job not found.");
+        var job = BackgroundJobCatalog.Find(jobName)
+            ?? throw new NotFoundException(MessageCodes.SettingsBackgroundJobNotFound, "Background job not found.");
         (page, pageSize) = Paging.Normalize(page, pageSize, defaultPageSize: 25);
 
         var query = _db.BackgroundJobRuns.AsNoTracking().Where(r => r.JobName == job.Name);
@@ -125,7 +127,8 @@ public sealed class BackgroundJobAdminService : IBackgroundJobAdminService
     public async Task<ManualJobRunResult> RunManuallyAsync(
         string jobName, int userId, string? rawReason, CancellationToken cancellationToken = default)
     {
-        var job = BackgroundJobCatalog.Find(jobName) ?? throw new NotFoundException("Background job not found.");
+        var job = BackgroundJobCatalog.Find(jobName)
+            ?? throw new NotFoundException(MessageCodes.SettingsBackgroundJobNotFound, "Background job not found.");
         var reason = AdminActionReason.Require(rawReason, "run a background job manually");
 
         if (job.Classification != BackgroundJobClassification.Housekeeping)
@@ -133,7 +136,10 @@ public sealed class BackgroundJobAdminService : IBackgroundJobAdminService
                 $"{job.Name} changes GxP state and runs on its schedule only; it cannot be started manually.", null);
 
         var work = _work.FirstOrDefault(w => string.Equals(w.JobName, job.Name, StringComparison.OrdinalIgnoreCase))
-            ?? throw new BusinessRuleException($"{job.Name} has no runnable implementation.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SettingsBackgroundJobNoImplementation,
+                $"{job.Name} has no runnable implementation.",
+                new Dictionary<string, string> { ["jobName"] = job.Name });
 
         if (_recorder.IsRunning(job.Name))
             return new ManualJobRunResult(ManualJobRunStatus.AlreadyRunning,

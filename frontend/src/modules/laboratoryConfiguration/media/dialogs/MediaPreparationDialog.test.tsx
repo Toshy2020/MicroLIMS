@@ -144,11 +144,11 @@ const sampleProgram = {
   lastModifiedAt: "2026-01-01T00:00:00Z"
 };
 
-function renderDialog(bench = false) {
+function renderDialog(bench = false, onClose: () => void = vi.fn()) {
   return renderWithTheme(
     <AuthProvider>
       <MemoryRouter>
-        <MediaPreparationDialog open={true} onClose={vi.fn()} onSuccess={vi.fn()} />
+        <MediaPreparationDialog open={true} onClose={onClose} onSuccess={vi.fn()} />
       </MemoryRouter>
     </AuthProvider>,
     { bench }
@@ -483,6 +483,30 @@ describe("MediaPreparationDialog", () => {
 
     expect(await screen.findByText("Weight must be greater than zero.")).toBeTruthy();
     expect(screen.getByText("pH is outside allowed range.")).toBeTruthy();
+  });
+
+  it("explicit Cancel in bench mode discards the draft from IndexedDB, while unmounting keeps it", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    const first = renderDialog(true, onClose);
+    await screen.findByLabelText(/^Total Weight/i);
+
+    await user.type(screen.getByLabelText(/^Total Weight/i), "42.5");
+    // Unmount without cancelling (simulates navigation/reload): flush keeps the draft in IndexedDB.
+    first.unmount();
+    await waitFor(async () => expect(await rawStoredDrafts()).toHaveLength(1));
+
+    const second = renderDialog(true, onClose);
+    await user.click(await screen.findByRole("button", { name: "Restore entry" }));
+    expect((screen.getByLabelText(/^Total Weight/i) as HTMLInputElement).value).toBe("42.5");
+
+    // Explicit Cancel -> Discard removes the draft from IndexedDB.
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    await user.click(await screen.findByRole("button", { name: "Discard" }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    await waitFor(async () => expect(await rawStoredDrafts()).toEqual([]));
+    second.unmount();
   });
 
   it("shows the dialog title and field labels in Arabic when Arabic is active", async () => {

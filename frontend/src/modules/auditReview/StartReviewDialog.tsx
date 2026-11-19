@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { MenuItem, TextField } from "@mui/material";
+import { DateTimeField24 } from "../../components/DateTimeField24";
 import { FormDialog } from "../../components/lab";
 import type {
   AuditReviewScopeKind,
@@ -144,30 +145,22 @@ export function StartReviewDialog({ open, onClose, onSubmit }: StartReviewDialog
         slotProps={{ htmlInput: { maxLength: MAX_TITLE_LENGTH } }}
       />
 
-      <TextField
+      <DateTimeField24
         label={t("start.periodFrom")}
-        type="datetime-local"
-        size="small"
         required
-        fullWidth
         value={periodFrom}
-        onChange={(e) => setPeriodFrom(e.target.value)}
+        onChange={setPeriodFrom}
         error={Boolean(fieldErrors.periodFrom)}
         helperText={fieldErrors.periodFrom}
-        slotProps={{ inputLabel: { shrink: true } }}
       />
 
-      <TextField
+      <DateTimeField24
         label={t("start.periodTo")}
-        type="datetime-local"
-        size="small"
         required
-        fullWidth
         value={periodTo}
-        onChange={(e) => setPeriodTo(e.target.value)}
+        onChange={setPeriodTo}
         error={Boolean(fieldErrors.periodTo)}
         helperText={fieldErrors.periodTo}
-        slotProps={{ inputLabel: { shrink: true } }}
       />
 
       <TextField

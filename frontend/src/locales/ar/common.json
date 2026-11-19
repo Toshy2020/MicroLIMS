@@ -844,5 +844,9 @@
     "clear": "مسح",
     "chooseDate": "اختر التاريخ",
     "chooseDateSelected": "اختر التاريخ، التاريخ المحدد هو {{date}}"
+  },
+  "dateTime": {
+    "time": "الوقت",
+    "timeOf": "{{label}} (الوقت)"
   }
 }

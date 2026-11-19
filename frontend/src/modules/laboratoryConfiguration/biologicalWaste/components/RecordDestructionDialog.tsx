@@ -7,6 +7,7 @@ import {
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import { FloatingDialog } from "../../../../components/FloatingDialog";
+import { DateTimeField24 } from "../../../../components/DateTimeField24";
 import { SignatureDialog } from "../../../../components/SignatureDialog";
 import { masterDataOptions } from "../../../../services/masterDataOptions";
 import { EquipmentConfigurationService, type AutoclaveProgram } from "../../masterDataSimple/services/EquipmentConfigurationService";
@@ -155,8 +156,11 @@ export function RecordDestructionDialog({ open, onClose, onRecorded }: Props) {
               ))}
             </Select>
             <TextField size="small" label={t("biologicalWaste.dialog.cycleNumber")} value={cycleNumber} onChange={(e) => setCycleNumber(e.target.value)} />
-            <TextField size="small" label={t("biologicalWaste.dialog.cycleStarted")} type="datetime-local" value={cycleStartedAt}
-              onChange={(e) => setCycleStartedAt(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+            <DateTimeField24
+              label={t("biologicalWaste.dialog.cycleStarted")}
+              value={cycleStartedAt}
+              onChange={setCycleStartedAt}
+            />
           </Box>
           {program && (
             <Typography variant="body2" sx={{ color: "text.secondary" }}>

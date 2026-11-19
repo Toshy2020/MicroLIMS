@@ -18,6 +18,9 @@ interface TimeField24Props {
   /** Called with "HH:mm" as soon as a complete, valid time is typed. */
   onChange: (value: string) => void;
   ariaLabel: string;
+  disabled?: boolean;
+  error?: boolean;
+  helperText?: string;
   sx?: SxProps<Theme>;
 }
 
@@ -26,17 +29,20 @@ function autoColon(raw: string): string {
   return digits.length > 2 ? `${digits.slice(0, 2)}:${digits.slice(2)}` : digits;
 }
 
-export function TimeField24({ value, onChange, ariaLabel, sx }: TimeField24Props) {
+export function TimeField24({ value, onChange, ariaLabel, disabled, error, helperText, sx }: TimeField24Props) {
   // The draft is what is typed; it follows the value again whenever the field is not being edited.
   const [draft, setDraft] = useState<string | null>(null);
   const shown = draft ?? value;
-  const invalid = draft !== null && draft !== "" && !isValidTime24(draft);
+  const formatInvalid = draft !== null && draft !== "" && !isValidTime24(draft);
+  const invalid = formatInvalid || Boolean(error);
   return (
     <TextField
       size="small"
       value={shown}
       placeholder={TIME_FORMAT_HINT}
+      disabled={disabled}
       error={invalid}
+      helperText={helperText}
       onChange={(e) => {
         const next = autoColon(e.target.value);
         setDraft(next);
@@ -46,7 +52,7 @@ export function TimeField24({ value, onChange, ariaLabel, sx }: TimeField24Props
       slotProps={{
         htmlInput: {
           "aria-label": ariaLabel,
-          "aria-invalid": invalid || undefined,
+          "aria-invalid": invalid,
           dir: "ltr",
           inputMode: "numeric",
           maxLength: 5,

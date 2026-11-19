@@ -20,6 +20,22 @@ Gemini 4 Argon (agy) reviewed branch `r2/integration` against the nine R2 plans 
 | F4 | A restored configuration draft does not keep the version it started from, so it can overwrite a later save without a conflict | Bench / Configuration | Frontend |
 | F5 | Four receiving signature dialogs show no Arabic translation of the meaning statement | Arabic | Frontend |
 
+## How the fixes were made
+
+| # | Commit | By |
+|---|---|---|
+| B1 | 956864ca | Argon (agy) |
+| B2 | e4271c4e | Argon (agy) |
+| B4 | 7301d166 | Argon (agy) |
+| B5 | 1ca1d809 | Sonnet (agy credits ran out) |
+| B6 | 98cc721b | Sonnet |
+| B3 | 69889dab | Sonnet: one shared read rule (`LiveRecordReadAuthorizer`) for watching a record, applied again when access changes |
+| F1 | 710e15ad | Hydrogen (agy) |
+| F2 | 2643b1b8, 51c31015 | Hydrogen; then the workspace keeps samples ticked by hand and reports them as hidden, while "all that match" always clears |
+| F3 | a8e8042d | Hydrogen |
+| F4 | 3e350e1a, 639acc14 | Hydrogen |
+| F5 | 2d02398d | Hydrogen |
+
 ## Partly correct or not confirmed
 
 - **Retired specification fallback (C7):** not confirmed. `SpecificationLookup.ThrowIfRetiredAsync` refuses result entry when any retired row matches the sample's grade or stage, including ungraded rows, so evaluation never silently falls back to other limits. Two small points do hold and wait until after R2:
@@ -29,6 +45,10 @@ Gemini 4 Argon (agy) reviewed branch `r2/integration` against the nine R2 plans 
 - **Exported CSV omits selected retest child rows:** plausible. After R2.
 
 ## After R2 (not checked in detail or low risk)
+
+- Live updates: the `equipment` record type still checks the equipment master table, while the inventory page works with equipment inventory IDs (same mix-up as B6).
+- Bulk assign reports a sample as "not found" when the user's only orders on it were superseded (narrower than `SampleSectionRollup`); not a leak.
+- No positive test that a user with Roles.Manage can watch a role record.
 
 - My Work sign-off queue loads sample entities with their test orders into memory instead of projecting (performance).
 - Configuration paste: the upfront check does not run every domain rule, so a batch can stop at the first failing row instead of listing all; the Solution master screen has no paste.

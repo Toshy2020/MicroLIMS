@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Text.Json;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
@@ -59,23 +61,34 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct);
 
         if (prep.Type != SolutionType.Titrant)
-            throw new BusinessRuleException("Only titrant preparations can be standardized.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrantOnlyTitrantPreparations,
+                "Only titrant preparations can be standardized.");
 
         var nowUtc = _clock.UtcNow.UtcDateTime;
         if (SolutionPreparationResponse.EffectiveStatusOf(prep, nowUtc) != SolutionPreparationStatus.Prepared)
-            throw new BusinessRuleException("This preparation is expired or discarded and cannot be standardized.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrantPreparationExpiredOrDiscarded,
+                "This preparation is expired or discarded and cannot be standardized.");
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SolutionSnapshotUnreadable,
+                "The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.StandardizationMode.HasValue || !snapshot.NominalStrength.HasValue || !snapshot.StrengthUnit.HasValue
             || !snapshot.ReplicateCount.HasValue || !snapshot.FactorMin.HasValue || !snapshot.FactorMax.HasValue || !snapshot.MaxRsdPercent.HasValue)
-            throw new BusinessRuleException("This titrant is not configured for standardization.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrantNotConfiguredForStandardization,
+                "This titrant is not configured for standardization.");
 
         var mode = snapshot.StandardizationMode.Value;
 
         if (r.Replicates == null || r.Replicates.Count != snapshot.ReplicateCount.Value)
-            throw new BusinessRuleException($"Exactly {snapshot.ReplicateCount.Value} replicate(s) are required.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrantReplicateCountMismatch,
+                $"Exactly {snapshot.ReplicateCount.Value} replicate(s) are required.",
+                new Dictionary<string, string> { ["count"] = snapshot.ReplicateCount.Value.ToString(CultureInfo.InvariantCulture) });
 
         var today = _clock.LabToday;
         var replicateEntities = new List<TitrantStandardizationReplicate>();
@@ -87,19 +100,28 @@ public class TitrantStandardizationService
             var replicateNo = i + 1;
 
             if (input.TitrantVolumeMl <= 0)
-                throw new BusinessRuleException($"Replicate {replicateNo}: titrant volume must be greater than zero.");
+                throw new BusinessRuleException(
+                    MessageCodes.TitrantReplicateVolumeInvalid,
+                    $"Replicate {replicateNo}: titrant volume must be greater than zero.",
+                    new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
             decimal blank;
             if (snapshot.BlankRequired)
             {
                 if (!input.BlankMl.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: a blank is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateBlankRequired,
+                        $"Replicate {replicateNo}: a blank is required.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 blank = input.BlankMl.Value;
             }
             else
             {
                 if (input.BlankMl.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: this titrant does not use a blank.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateBlankNotUsed,
+                        $"Replicate {replicateNo}: this titrant does not use a blank.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 blank = 0m;
             }
 
@@ -111,25 +133,61 @@ public class TitrantStandardizationService
             if (mode == StandardizationMode.PrimaryStandard)
             {
                 if (input.ReferencePreparationId.HasValue || input.ReferenceVolumeMl.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference fields do not apply to primary-standard standardization.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceNotApplicable,
+                        $"Replicate {replicateNo}: reference fields do not apply to primary-standard standardization.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 if (!input.StandardMaterialId.HasValue || !input.StandardWeightMg.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: a standard lot and weight are required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardLotAndWeightRequired,
+                        $"Replicate {replicateNo}: a standard lot and weight are required.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 if (!snapshot.StandardEntryId.HasValue || !snapshot.EquivalenceMgPerMl.HasValue)
-                    throw new BusinessRuleException("This titrant has no primary standard configured.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantNoPrimaryStandardConfigured,
+                        "This titrant has no primary standard configured.");
 
                 lot = await _db.Materials.FirstOrDefaultAsync(m => m.Id == input.StandardMaterialId.Value, ct)
-                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: standard material not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardMaterialNotFound,
+                        $"Replicate {replicateNo}: standard material not found.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 if (lot.SectionId != prep.SectionId)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot belongs to another laboratory.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardLotWrongLab,
+                        $"Replicate {replicateNo}: standard lot belongs to another laboratory.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 var check = LotUsability.Check(lot, snapshot.StandardEntryId.Value, null, today);
                 if (!check.Usable)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}): {check.Reason}");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardLotUnusable,
+                        $"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}): {check.Reason}",
+                        new Dictionary<string, string>
+                        {
+                            ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture),
+                            ["batchNumber"] = lot.BatchNumber,
+                            ["reason"] = check.Reason ?? string.Empty
+                        });
                 if (lot.MaterialType != MaterialType.PrimaryStandard)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) is not a primary standard.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardLotNotPrimary,
+                        $"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) is not a primary standard.",
+                        new Dictionary<string, string>
+                        {
+                            ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture),
+                            ["batchNumber"] = lot.BatchNumber
+                        });
                 if (!lot.Purity.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) has no purity - enter it in Materials Stock before standardizing.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardLotNoPurity,
+                        $"Replicate {replicateNo}: standard lot (batch {lot.BatchNumber}) has no purity - enter it in Materials Stock before standardizing.",
+                        new Dictionary<string, string>
+                        {
+                            ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture),
+                            ["batchNumber"] = lot.BatchNumber
+                        });
 
                 try
                 {
@@ -138,37 +196,73 @@ public class TitrantStandardizationService
                 }
                 catch (InvalidOperationException ex)
                 {
-                    throw new BusinessRuleException($"Replicate {replicateNo}: {ex.Message}");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateCalculationFailed,
+                        $"Replicate {replicateNo}: {ex.Message}",
+                        new Dictionary<string, string>
+                        {
+                            ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture),
+                            ["message"] = ex.Message
+                        });
                 }
             }
             else
             {
                 if (input.StandardMaterialId.HasValue || input.StandardWeightMg.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: standard-lot fields do not apply to standardization against a volumetric solution.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateStandardFieldsNotApplicable,
+                        $"Replicate {replicateNo}: standard-lot fields do not apply to standardization against a volumetric solution.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 if (!input.ReferencePreparationId.HasValue || !input.ReferenceVolumeMl.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: a reference preparation and volume are required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceRequired,
+                        $"Replicate {replicateNo}: a reference preparation and volume are required.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 if (!snapshot.ReferenceSolutionId.HasValue)
-                    throw new BusinessRuleException("This titrant has no reference solution configured.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantNoReferenceSolutionConfigured,
+                        "This titrant has no reference solution configured.");
 
                 refPrep = await _db.SolutionPreparations.FirstOrDefaultAsync(p => p.Id == input.ReferencePreparationId.Value, ct)
-                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation not found.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceNotFound,
+                        $"Replicate {replicateNo}: reference preparation not found.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 if (refPrep.SectionId != prep.SectionId)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation belongs to another laboratory.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceWrongLab,
+                        $"Replicate {replicateNo}: reference preparation belongs to another laboratory.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 if (refPrep.SolutionMasterId != snapshot.ReferenceSolutionId.Value)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation is not of this titrant's configured reference solution.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceWrongSolution,
+                        $"Replicate {replicateNo}: reference preparation is not of this titrant's configured reference solution.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 if (SolutionPreparationResponse.EffectiveStatusOf(refPrep, nowUtc) != SolutionPreparationStatus.Prepared)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation is expired or discarded.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceExpiredOrDiscarded,
+                        $"Replicate {replicateNo}: reference preparation is expired or discarded.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 var refSnapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(refPrep.RecipeSnapshotJson, JsonOptions)
-                    ?? throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation's recipe snapshot could not be read.");
+                    ?? throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceSnapshotUnreadable,
+                        $"Replicate {replicateNo}: reference preparation's recipe snapshot could not be read.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 if (!refSnapshot.StrengthUnit.HasValue || refSnapshot.StrengthUnit.Value != snapshot.StrengthUnit.Value)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference titrant's strength unit does not match.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceStrengthUnitMismatch,
+                        $"Replicate {replicateNo}: reference titrant's strength unit does not match.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
                 if (!refSnapshot.NominalStrength.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference titrant has no nominal strength configured.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceNoNominalStrength,
+                        $"Replicate {replicateNo}: reference titrant has no nominal strength configured.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 var refRecords = await _db.TitrantStandardizations.AsNoTracking()
                     .Where(x => x.SolutionPreparationId == refPrep.Id)
@@ -180,7 +274,10 @@ public class TitrantStandardizationService
                 var refAcceptable = refCurrent.State == "Valid" || (refCurrent.State == "BeforeEachUse" && refStandardizedSameDay);
 
                 if (!refAcceptable || !refCurrent.Factor.HasValue)
-                    throw new BusinessRuleException($"Replicate {replicateNo}: reference preparation's standardization is expired, failed or missing.");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateReferenceStandardizationInvalid,
+                        $"Replicate {replicateNo}: reference preparation's standardization is expired, failed or missing.",
+                        new Dictionary<string, string> { ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture) });
 
                 refFactorSnapshot = refCurrent.Factor.Value;
 
@@ -192,7 +289,14 @@ public class TitrantStandardizationService
                 }
                 catch (InvalidOperationException ex)
                 {
-                    throw new BusinessRuleException($"Replicate {replicateNo}: {ex.Message}");
+                    throw new BusinessRuleException(
+                        MessageCodes.TitrantReplicateCalculationFailed,
+                        $"Replicate {replicateNo}: {ex.Message}",
+                        new Dictionary<string, string>
+                        {
+                            ["replicateNo"] = replicateNo.ToString(CultureInfo.InvariantCulture),
+                            ["message"] = ex.Message
+                        });
                 }
             }
 
@@ -226,16 +330,31 @@ public class TitrantStandardizationService
                 MaterialUnit.Gram => mg / 1000m,
                 MaterialUnit.Kilogram => mg / 1_000_000m,
                 _ => throw new BusinessRuleException(
-                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it."),
+                    MessageCodes.TitrantStandardLotUnitUnsupported,
+                    $"Lot {lot.LotLabel} is stocked in {lot.Unit}; a standard weight in mg cannot be deducted from it.",
+                    new Dictionary<string, string>
+                    {
+                        ["lotLabel"] = lot.LotLabel,
+                        ["unit"] = lot.Unit.ToString()
+                    }),
             };
             var check = LotUsability.Check(lot, snapshot.StandardEntryId!.Value, quantity, today);
             if (!check.Usable)
-                throw new BusinessRuleException($"Standard lot {lot.LotLabel}: {check.Reason}");
+                throw new BusinessRuleException(
+                    MessageCodes.TitrantStandardLotUnusable,
+                    $"Standard lot {lot.LotLabel}: {check.Reason}",
+                    new Dictionary<string, string>
+                    {
+                        ["lotLabel"] = lot.LotLabel,
+                        ["reason"] = check.Reason ?? string.Empty
+                    });
             deductions.Add((lot, quantity));
         }
 
         if (r.TemperatureC.HasValue && (r.TemperatureC < -20m || r.TemperatureC > 60m))
-            throw new BusinessRuleException("Temperature must be between -20 and 60 C.");
+            throw new BusinessRuleException(
+                MessageCodes.TitrantTemperatureOutOfRange,
+                "Temperature must be between -20 and 60 C.");
 
         var evaluation = TitrationEngine.Evaluate(factors, snapshot.FactorMin.Value, snapshot.FactorMax.Value, snapshot.MaxRsdPercent.Value);
 
@@ -340,7 +459,9 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SolutionSnapshotUnreadable,
+                "The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.StandardEntryId.HasValue)
             return new List<LotOption>();
@@ -365,7 +486,9 @@ public class TitrantStandardizationService
         await EnsureAccessAsync(prep, userId, ct, SectionAccess.Read);
 
         var snapshot = JsonSerializer.Deserialize<SolutionMasterResponse>(prep.RecipeSnapshotJson, JsonOptions)
-            ?? throw new BusinessRuleException("The preparation's recipe snapshot could not be read.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.SolutionSnapshotUnreadable,
+                "The preparation's recipe snapshot could not be read.");
 
         if (!snapshot.ReferenceSolutionId.HasValue)
             return new List<SolutionPreparationListItem>();
@@ -406,12 +529,18 @@ public class TitrantStandardizationService
     {
         var scope = await _scope.GetSectionIdsAsync(userId, access, ct);
         if (scope != null && !scope.Contains(prep.SectionId))
-            throw new NotFoundException($"Solution preparation {prep.Id} not found.");
+            throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {prep.Id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = prep.Id.ToString(CultureInfo.InvariantCulture) });
     }
 
     private async Task<SolutionPreparation> LoadPrepAsync(int id, CancellationToken ct) =>
         await _db.SolutionPreparations
             .Include(p => p.Section)
             .FirstOrDefaultAsync(p => p.Id == id, ct)
-            ?? throw new NotFoundException($"Solution preparation {id} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SolutionPreparationNotFound,
+                $"Solution preparation {id} not found.",
+                new Dictionary<string, string> { ["preparationId"] = id.ToString(CultureInfo.InvariantCulture) });
 }

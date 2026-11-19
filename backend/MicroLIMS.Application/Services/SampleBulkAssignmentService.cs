@@ -60,6 +60,7 @@ public class SampleBulkAssignmentService
             .Where(s => request.SampleIds.Contains(s.Id))
             .ToDictionaryAsync(s => s.Id, ct);
 
+        var readableScope = await _scope.GetReadableSectionIdsAsync(actingUserId, ct);
         var actingScope = await _scope.GetMemberSectionIdsAsync(actingUserId, ct);
         var assigneeScope = await _scope.GetMemberSectionIdsAsync(request.AnalystUserId, ct);
 
@@ -68,7 +69,7 @@ public class SampleBulkAssignmentService
 
         foreach (var sampleId in request.SampleIds)
         {
-            if (!samplesById.TryGetValue(sampleId, out var sample))
+            if (!samplesById.TryGetValue(sampleId, out var sample) || !CanReadSample(sample, readableScope))
             {
                 rows.Add(new BulkAssignRowResult(sampleId, $"#{sampleId}", false, $"Sample {sampleId} not found."));
                 continue;
@@ -105,5 +106,20 @@ public class SampleBulkAssignmentService
         }
 
         return new BulkAssignResult(passing.Count, rows.Count - passing.Count, rows);
+    }
+
+    private static bool CanReadSample(Sample sample, IReadOnlyList<int>? readableScope)
+    {
+        if (readableScope is null)
+            return true;
+
+        var sectionIds = sample.TestOrders
+            .Where(t => !t.IsSuperseded)
+            .Select(t => t.SectionId)
+            .Concat(SampleSectionRollup.PendingSectionIds(sample.AwaitingTestSelection, sample.PendingTargetSectionIds));
+        if (sample.LabSectionId.HasValue)
+            sectionIds = sectionIds.Concat(new[] { sample.LabSectionId.Value });
+
+        return sectionIds.Any(readableScope.Contains);
     }
 }

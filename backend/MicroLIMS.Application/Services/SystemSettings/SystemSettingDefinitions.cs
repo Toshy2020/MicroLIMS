@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using MicroLIMS.Domain.Enums;
 
@@ -87,29 +88,64 @@ public sealed record SystemSettingDefinition(
         if (Type == SystemSettingValueType.EmailList)
             return EmailAddressList.Normalize(Key, text, (int)(Max ?? EmailAddressList.DefaultMaxAddresses));
         if (string.IsNullOrEmpty(text))
-            throw new BusinessRuleException($"A value is required for '{Key}'.");
+            throw new BusinessRuleException(
+                MessageCodes.SettingsValueRequired,
+                $"A value is required for '{Key}'.",
+                new Dictionary<string, string> { ["key"] = Key });
 
         switch (Type)
         {
             case SystemSettingValueType.Integer:
                 if (!long.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
-                    throw new BusinessRuleException($"'{Key}' must be a whole number.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsMustBeWholeNumber,
+                        $"'{Key}' must be a whole number.",
+                        new Dictionary<string, string> { ["key"] = Key });
                 if (Min is { } min && number < min)
-                    throw new BusinessRuleException($"'{Key}' must be at least {min}{UnitSuffix()}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsMustBeAtLeast,
+                        $"'{Key}' must be at least {min}{UnitSuffix()}.",
+                        new Dictionary<string, string>
+                        {
+                            ["key"] = Key,
+                            ["min"] = min.ToString(CultureInfo.InvariantCulture),
+                            ["unitSuffix"] = UnitSuffix(),
+                        });
                 if (Max is { } max && number > max)
-                    throw new BusinessRuleException($"'{Key}' must be at most {max}{UnitSuffix()}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsMustBeAtMost,
+                        $"'{Key}' must be at most {max}{UnitSuffix()}.",
+                        new Dictionary<string, string>
+                        {
+                            ["key"] = Key,
+                            ["max"] = max.ToString(CultureInfo.InvariantCulture),
+                            ["unitSuffix"] = UnitSuffix(),
+                        });
                 return number.ToString(CultureInfo.InvariantCulture);
 
             case SystemSettingValueType.Boolean:
                 if (bool.TryParse(text, out var flag))
                     return flag ? "true" : "false";
-                throw new BusinessRuleException($"'{Key}' must be true or false.");
+                throw new BusinessRuleException(
+                    MessageCodes.SettingsMustBeBoolean,
+                    $"'{Key}' must be true or false.",
+                    new Dictionary<string, string> { ["key"] = Key });
 
             default:
                 if (AllowedValues is { Count: > 0 } && !AllowedValues.Contains(text, StringComparer.Ordinal))
-                    throw new BusinessRuleException($"'{Key}' must be one of: {string.Join(", ", AllowedValues)}.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsMustBeOneOf,
+                        $"'{Key}' must be one of: {string.Join(", ", AllowedValues)}.",
+                        new Dictionary<string, string>
+                        {
+                            ["allowedValues"] = string.Join(", ", AllowedValues),
+                            ["key"] = Key,
+                        });
                 if (text.Length > 500)
-                    throw new BusinessRuleException($"'{Key}' must be 500 characters or fewer.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SettingsTooLong,
+                        $"'{Key}' must be 500 characters or fewer.",
+                        new Dictionary<string, string> { ["key"] = Key });
                 return text;
         }
     }

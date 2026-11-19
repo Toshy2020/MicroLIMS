@@ -1,9 +1,11 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -35,9 +37,12 @@ public sealed class UserUiStateService : IUserUiStateService
     public async Task SetAsync(int userId, string key, string value, CancellationToken ct = default)
     {
         ValidateKey(key);
-        if (value is null) throw new BusinessRuleException("A value is required.");
+        if (value is null) throw new BusinessRuleException(MessageCodes.UserUiStateValueRequired, "A value is required.");
         if (value.Length > MaxValueLength)
-            throw new BusinessRuleException($"A value can be at most {MaxValueLength} characters.");
+            throw new BusinessRuleException(
+                MessageCodes.UserUiStateValueTooLong,
+                $"A value can be at most {MaxValueLength} characters.",
+                new Dictionary<string, string> { ["maxLength"] = MaxValueLength.ToString(CultureInfo.InvariantCulture) });
 
         var existing = await _db.UserUiStates.SingleOrDefaultAsync(s => s.UserId == userId && s.Key == key, ct);
         var now = _time.GetUtcNow().UtcDateTime;
@@ -50,7 +55,10 @@ public sealed class UserUiStateService : IUserUiStateService
         {
             var count = await _db.UserUiStates.CountAsync(s => s.UserId == userId, ct);
             if (count >= MaxKeysPerUser)
-                throw new BusinessRuleException($"At most {MaxKeysPerUser} interface settings can be stored per user.");
+                throw new BusinessRuleException(
+                    MessageCodes.UserUiStateMaxKeysReached,
+                    $"At most {MaxKeysPerUser} interface settings can be stored per user.",
+                    new Dictionary<string, string> { ["maxKeys"] = MaxKeysPerUser.ToString(CultureInfo.InvariantCulture) });
             _db.UserUiStates.Add(new UserUiState { UserId = userId, Key = key, Value = value, UpdatedAt = now });
         }
         await _db.SaveChangesAsync(ct);
@@ -68,6 +76,8 @@ public sealed class UserUiStateService : IUserUiStateService
     private static void ValidateKey(string key)
     {
         if (key is null || !KeyPattern.IsMatch(key))
-            throw new BusinessRuleException("The key must start with a lowercase letter and contain only letters, digits and dots (2 to 64 characters).");
+            throw new BusinessRuleException(
+                MessageCodes.UserUiStateKeyInvalid,
+                "The key must start with a lowercase letter and contain only letters, digits and dots (2 to 64 characters).");
     }
 }

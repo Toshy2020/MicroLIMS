@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 
 namespace MicroLIMS.Application.Labels;
@@ -89,15 +90,43 @@ public sealed class LabelPrintService(
         foreach (var item in request.Items)
         {
             var record = await _dataSource.FindByIdAsync(item.EntityType, item.EntityId, userId, ct)
-                ?? throw new NotFoundException($"{item.EntityType} #{item.EntityId} was not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.LabelRecordNotFound,
+                    $"{item.EntityType} #{item.EntityId} was not found.",
+                    new Dictionary<string, string>
+                    {
+                        ["entityId"] = item.EntityId.ToString(CultureInfo.InvariantCulture),
+                        ["entityType"] = item.EntityType.ToString(),
+                    });
             loaded.Add(record);
         }
 
         var uncoded = loaded.FirstOrDefault(r => string.IsNullOrWhiteSpace(r.Code) || r.Content is null);
         if (uncoded is not null)
         {
+            if (uncoded.BlockedReason is not null)
+            {
+                throw new BusinessRuleException(
+                    MessageCodes.LabelCannotPrintBlocked,
+                    $"{uncoded.Type} #{uncoded.Id} ({uncoded.DisplayName}) cannot be printed: {uncoded.BlockedReason}",
+                    new Dictionary<string, string>
+                    {
+                        ["blockedReason"] = uncoded.BlockedReason,
+                        ["displayName"] = uncoded.DisplayName,
+                        ["entityId"] = uncoded.Id.ToString(CultureInfo.InvariantCulture),
+                        ["entityType"] = uncoded.Type.ToString(),
+                    });
+            }
+
             throw new BusinessRuleException(
-                $"{uncoded.Type} #{uncoded.Id} ({uncoded.DisplayName}) cannot be printed: {uncoded.BlockedReason ?? "no code has been assigned yet."}");
+                MessageCodes.LabelCannotPrintNoCode,
+                $"{uncoded.Type} #{uncoded.Id} ({uncoded.DisplayName}) cannot be printed: no code has been assigned yet.",
+                new Dictionary<string, string>
+                {
+                    ["displayName"] = uncoded.DisplayName,
+                    ["entityId"] = uncoded.Id.ToString(CultureInfo.InvariantCulture),
+                    ["entityType"] = uncoded.Type.ToString(),
+                });
         }
 
         // 3 & 4. Count existing logs, check per-item CreatePermission (or Labels.Reprint), and enforce reprint rules.
@@ -137,12 +166,17 @@ public sealed class LabelPrintService(
             if (string.IsNullOrEmpty(trimmedReason) || trimmedReason.Length < MinReprintReasonLength)
             {
                 throw new BusinessRuleException(
-                    $"A reprint reason of at least {MinReprintReasonLength} characters is required.");
+                    MessageCodes.LabelReprintReasonTooShort,
+                    $"A reprint reason of at least {MinReprintReasonLength} characters is required.",
+                    new Dictionary<string, string> { ["minLength"] = MinReprintReasonLength.ToString(CultureInfo.InvariantCulture) });
             }
 
             if (trimmedReason.Length > MaxReasonLength)
             {
-                throw new BusinessRuleException($"Reason cannot exceed {MaxReasonLength} characters.");
+                throw new BusinessRuleException(
+                    MessageCodes.LabelReasonTooLong,
+                    $"Reason cannot exceed {MaxReasonLength} characters.",
+                    new Dictionary<string, string> { ["maxLength"] = MaxReasonLength.ToString(CultureInfo.InvariantCulture) });
             }
         }
         else
@@ -150,7 +184,10 @@ public sealed class LabelPrintService(
             trimmedReason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
             if (trimmedReason is not null && trimmedReason.Length > MaxReasonLength)
             {
-                throw new BusinessRuleException($"Reason cannot exceed {MaxReasonLength} characters.");
+                throw new BusinessRuleException(
+                    MessageCodes.LabelReasonTooLong,
+                    $"Reason cannot exceed {MaxReasonLength} characters.",
+                    new Dictionary<string, string> { ["maxLength"] = MaxReasonLength.ToString(CultureInfo.InvariantCulture) });
             }
         }
 
@@ -167,14 +204,24 @@ public sealed class LabelPrintService(
             var record = loaded[i];
             if (!formats.TryGetValue(item.EntityType, out var format))
             {
-                throw new NotFoundException($"Label format for {item.EntityType} was not found.");
+                throw new NotFoundException(
+                    MessageCodes.LabelFormatForTypeNotFound,
+                    $"Label format for {item.EntityType} was not found.",
+                    new Dictionary<string, string> { ["entityType"] = item.EntityType.ToString() });
             }
 
             // Validated in step 2 above.
             if (record.Code is null || record.Content is null)
             {
                 throw new BusinessRuleException(
-                    $"{record.Type} #{record.Id} ({record.DisplayName}) cannot be printed: no code has been assigned yet.");
+                    MessageCodes.LabelCannotPrintNoCode,
+                    $"{record.Type} #{record.Id} ({record.DisplayName}) cannot be printed: no code has been assigned yet.",
+                    new Dictionary<string, string>
+                    {
+                        ["displayName"] = record.DisplayName,
+                        ["entityId"] = record.Id.ToString(CultureInfo.InvariantCulture),
+                        ["entityType"] = record.Type.ToString(),
+                    });
             }
 
             validatedItems.Add(new ValidatedPrintItem(item, record, record.Code, record.Content, format));
@@ -327,14 +374,24 @@ public sealed class LabelPrintService(
 
         if (records.Count > MaxItems)
         {
-            throw new BusinessRuleException($"Cannot query status for more than {MaxItems} records at once.");
+            throw new BusinessRuleException(
+                MessageCodes.LabelStatusQueryTooManyItems,
+                $"Cannot query status for more than {MaxItems} records at once.",
+                new Dictionary<string, string> { ["maxItems"] = MaxItems.ToString(CultureInfo.InvariantCulture) });
         }
 
         var loaded = new List<LabelRecord>(records.Count);
         foreach (var (type, id) in records)
         {
             var record = await _dataSource.FindByIdAsync(type, id, userId, ct)
-                ?? throw new NotFoundException($"{type} #{id} was not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.LabelRecordNotFound,
+                    $"{type} #{id} was not found.",
+                    new Dictionary<string, string>
+                    {
+                        ["entityId"] = id.ToString(CultureInfo.InvariantCulture),
+                        ["entityType"] = type.ToString(),
+                    });
             loaded.Add(record);
         }
 
@@ -370,39 +427,79 @@ public sealed class LabelPrintService(
         if (items is null || items.Count < MinItems || items.Count > MaxItems)
         {
             throw new BusinessRuleException(
-                $"Items: Print request must contain between {MinItems} and {MaxItems} items.");
+                MessageCodes.LabelPrintRequestItemsCountOutOfRange,
+                $"Items: Print request must contain between {MinItems} and {MaxItems} items.",
+                new Dictionary<string, string>
+                {
+                    ["maxItems"] = MaxItems.ToString(CultureInfo.InvariantCulture),
+                    ["minItems"] = MinItems.ToString(CultureInfo.InvariantCulture),
+                });
         }
 
-        var errors = new List<string>();
+        var errors = new List<(string Code, string Message, Dictionary<string, string> Params)>();
         var seen = new HashSet<(LabelEntityType Type, int Id)>();
 
         for (var i = 0; i < items.Count; i++)
         {
             var item = items[i];
+            var indexText = i.ToString(CultureInfo.InvariantCulture);
             if (!Enum.IsDefined(item.EntityType))
             {
-                errors.Add($"Items[{i}].EntityType: Invalid label entity type.");
+                errors.Add((
+                    MessageCodes.LabelItemEntityTypeInvalid,
+                    $"Items[{i}].EntityType: Invalid label entity type.",
+                    new Dictionary<string, string> { ["index"] = indexText }));
             }
 
             if (item.EntityId <= 0)
             {
-                errors.Add($"Items[{i}].EntityId: EntityId must be positive.");
+                errors.Add((
+                    MessageCodes.LabelItemEntityIdInvalid,
+                    $"Items[{i}].EntityId: EntityId must be positive.",
+                    new Dictionary<string, string> { ["index"] = indexText }));
             }
 
             if (item.Copies < MinCopies || item.Copies > MaxCopies)
             {
-                errors.Add($"Items[{i}].Copies: Copies must be between {MinCopies} and {MaxCopies}.");
+                errors.Add((
+                    MessageCodes.LabelItemCopiesOutOfRange,
+                    $"Items[{i}].Copies: Copies must be between {MinCopies} and {MaxCopies}.",
+                    new Dictionary<string, string>
+                    {
+                        ["index"] = indexText,
+                        ["max"] = MaxCopies.ToString(CultureInfo.InvariantCulture),
+                        ["min"] = MinCopies.ToString(CultureInfo.InvariantCulture),
+                    }));
             }
 
             if (!seen.Add((item.EntityType, item.EntityId)))
             {
-                errors.Add($"Items[{i}]: Duplicate record ({item.EntityType} #{item.EntityId}).");
+                errors.Add((
+                    MessageCodes.LabelItemDuplicate,
+                    $"Items[{i}]: Duplicate record ({item.EntityType} #{item.EntityId}).",
+                    new Dictionary<string, string>
+                    {
+                        ["entityId"] = item.EntityId.ToString(CultureInfo.InvariantCulture),
+                        ["entityType"] = item.EntityType.ToString(),
+                        ["index"] = indexText,
+                    }));
             }
         }
 
-        if (errors.Count > 0)
+        if (errors.Count == 1)
         {
-            throw new BusinessRuleException(string.Join(" ", errors));
+            var error = errors[0];
+            var code = error.Code;
+            throw new BusinessRuleException(code, error.Message, error.Params);
+        }
+
+        if (errors.Count > 1)
+        {
+            var joined = string.Join(" ", errors.Select(e => e.Message));
+            throw new BusinessRuleException(
+                MessageCodes.LabelPrintRequestItemsInvalid,
+                joined,
+                new Dictionary<string, string> { ["message"] = joined });
         }
     }
 

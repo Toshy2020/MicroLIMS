@@ -3,6 +3,7 @@ import { Box, Button, Stack, Typography } from "@mui/material";
 import { useOptionalAuth } from "../../../contexts/AuthContext";
 import { useTranslation } from "../../../i18n";
 import type { RowSelection } from "./useRowSelection";
+import { formatCount } from "../../../utils/formatCount";
 
 export interface BulkAction<Id> {
   key: string;
@@ -88,7 +89,7 @@ export function BulkActionBar<Id>({
           role="status"
           aria-live="polite"
         >
-          {t("selectedCount", { count: selection.count.toLocaleString() })}
+          {t("selectedCount", { count: formatCount(selection.count) })}
         </Typography>
         {showSelectAllMatching && (
           <Button
@@ -102,7 +103,7 @@ export function BulkActionBar<Id>({
               }
             }}
           >
-            {t("components.bulkActionBar.selectAllMatching", { total: totalMatching.toLocaleString() })}
+            {t("components.bulkActionBar.selectAllMatching", { total: formatCount(totalMatching) })}
           </Button>
         )}
         {permittedActions.map((action) => {

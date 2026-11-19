@@ -16,6 +16,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { RegisterTable, type RegisterColumn } from "../../../components/lab/RegisterTable";
 import { useRowSelection } from "../../../components/lab/table/useRowSelection";
 import { useTranslation } from "../../../i18n";
+import { formatCount } from "../../../utils/formatCount";
 
 const ROWS_PER_PAGE_OPTIONS = [10, 25, 50, 100];
 
@@ -188,7 +189,7 @@ export function MediaGptResultsTable({
             {t("mediaGpt.table.showing", {
               from: totalCount === 0 ? 0 : (page - 1) * pageSize + 1,
               to: Math.min(page * pageSize, totalCount),
-              total: totalCount.toLocaleString()
+              total: formatCount(totalCount)
             })}
           </Typography>
         </Box>

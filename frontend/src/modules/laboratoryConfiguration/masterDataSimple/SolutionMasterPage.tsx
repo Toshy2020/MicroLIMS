@@ -34,6 +34,7 @@ import { useLaboratorySections } from "../../../hooks/useLaboratorySections";
 import { getMySections, LaboratorySection } from "../../../services/laboratorySectionService";
 import { SolutionMasterDialog } from "./solutionMaster/SolutionMasterDialog";
 import { ReasonDialog } from "./solutionMaster/ReasonDialog";
+import { formatCount } from "../../../utils/formatCount";
 
 export function SolutionMasterPage() {
   const { t } = useTranslation("masterData");
@@ -254,7 +255,7 @@ export function SolutionMasterPage() {
       sortValue: (sol) => Number(sol.finalVolumeMl),
       render: (sol) => (
         <Typography variant="body2" sx={{ fontWeight: 500 }}>
-          {t("solutionMasterPage.finalVolumeValue", { value: Number(sol.finalVolumeMl).toLocaleString() })}
+          {t("solutionMasterPage.finalVolumeValue", { value: formatCount(Number(sol.finalVolumeMl)) })}
         </Typography>
       )
     },

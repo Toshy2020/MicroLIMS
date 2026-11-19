@@ -10,6 +10,7 @@ import {
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import type { TFunction } from "i18next";
 import { i18n, useTranslation } from "../../i18n";
+import { formatCount } from "../../utils/formatCount";
 
 const tl = (key: string, options?: Record<string, unknown>): string => i18n.t(key, { ns: "admin", ...options });
 
@@ -36,7 +37,7 @@ function backupMessage(backup: BackupRun | null, now: Date, t: TFunction<"admin"
 }
 
 function formatRows(value: number | null, notAnalyzed: string): string {
-  return value === null ? notAnalyzed : value.toLocaleString();
+  return value === null ? notAnalyzed : formatCount(value);
 }
 
 export function DatabaseOverviewPage() {
@@ -75,7 +76,7 @@ export function DatabaseOverviewPage() {
           <Paper variant="outlined" sx={{ p: 2 }}>
             <Typography variant="subtitle1" component="h2" sx={{ fontWeight: 600 }}>{t("dbOverview.size")}</Typography>
             <Typography variant="h5" component="p">{overview.databaseSizePretty}</Typography>
-            <Typography variant="body2" color="text.secondary">{t("dbOverview.bytes", { bytes: overview.databaseSizeBytes.toLocaleString() })}</Typography>
+            <Typography variant="body2" color="text.secondary">{t("dbOverview.bytes", { bytes: formatCount(overview.databaseSizeBytes) })}</Typography>
           </Paper>
 
           <Alert severity={backupStatusTone(overview.latestBackup, new Date()) === "success" ? "success" : "warning"}>

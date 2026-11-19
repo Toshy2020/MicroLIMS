@@ -2,6 +2,7 @@ import { OverviewDashboardData, SampleCategory } from "../types/reportingTypes";
 import { ReportingService } from "./ReportingService";
 import { chartPalette as defaultChartPalette } from "../../../theme";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { formatCount } from "../../../utils/formatCount";
 
 // Exported so other Reports tabs (e.g. the KPI tab's category filter and
 // "Tests by Category" donut) use the same human labels instead of each
@@ -127,14 +128,14 @@ export const OverviewService = {
       return {
         totalTests: {
           title: "Total Tests",
-          value: totalCount.toLocaleString(),
+          value: formatCount(totalCount),
           deltaPercent: totalCount > 0 ? 100 : 0,
           deltaDirection: "up",
           comparisonLabel: "live database records"
         },
         approvedResults: {
           title: "Approved Results",
-          value: approvedCount.toLocaleString(),
+          value: formatCount(approvedCount),
           deltaPercent: totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0,
           deltaDirection: "up",
           comparisonLabel: `${approvedCount} of ${totalCount} approved`

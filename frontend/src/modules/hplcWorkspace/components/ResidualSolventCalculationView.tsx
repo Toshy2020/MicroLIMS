@@ -20,6 +20,7 @@ import { useTranslation } from "../../../i18n";
 import { HplcStatusBadge } from "./HplcStatusBadge";
 import { tableHeadSx } from "../../../theme";
 import type { ResultStatus } from "../types";
+import { formatNumber } from "../../../utils/formatCount";
 
 export interface ResidualSolventReplicateData {
   replicateNo: number;
@@ -142,7 +143,7 @@ export function ResidualSolventCalculationView({
               {t("residualSolvent.standardMeanResponse")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace" }}>
-              <Ltr>{calc.standardMeanResponse.toLocaleString(undefined, { maximumFractionDigits: 2, useGrouping: false })}</Ltr>
+              <Ltr>{formatNumber(calc.standardMeanResponse, { maximumFractionDigits: 2, useGrouping: false })}</Ltr>
             </Typography>
           </Box>
         </Stack>

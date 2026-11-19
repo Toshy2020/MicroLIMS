@@ -14,6 +14,7 @@ import { OverviewDashboardData, OverviewKpiCardData } from "../types/reportingTy
 import { OverviewService } from "../services/OverviewService";
 import { brandColors } from "../../../theme";
 import { useTranslation } from "../../../i18n";
+import { formatCount } from "../../../utils/formatCount";
 
 // "Results by Test" y-axis ticks.
 //
@@ -371,7 +372,7 @@ export function OverviewTab({ fromDate, toDate, onNavigateTab, canViewKpi = fals
                   textAlign: "center", pointerEvents: "none"
                 }}>
                   <Typography sx={{ fontSize: 16, fontWeight: 800, color: theme.palette.primary.main, lineHeight: 1 }}>
-                    {data.locationDistribution.reduce((acc, x) => acc + x.count, 0).toLocaleString()}
+                    {formatCount(data.locationDistribution.reduce((acc, x) => acc + x.count, 0))}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: "text.secondary" }}>{t("overview.total")}</Typography>
                 </Box>

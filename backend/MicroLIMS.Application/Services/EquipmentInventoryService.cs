@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Constants;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
@@ -145,12 +147,12 @@ public class EquipmentInventoryService
     private async Task<int> ResolveInventorySectionAsync(int userId, int? requestedSectionId)
     {
         if (!requestedSectionId.HasValue)
-            throw new BusinessRuleException("Choose the laboratory this asset belongs to.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanLaboratoryRequired, "Choose the laboratory this asset belongs to.");
 
         var sectionId = requestedSectionId.Value;
         var existsAndActive = await _db.DocumentSections.AnyAsync(s => s.Id == sectionId && s.IsActive);
         if (!existsAndActive)
-            throw new BusinessRuleException("Selected laboratory section was not found or is inactive.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanLaboratorySectionInvalid, "Selected laboratory section was not found or is inactive.");
 
         var scope = await _scope.GetMemberSectionIdsAsync(userId);
         if (scope != null && !scope.Contains(sectionId))
@@ -183,14 +185,21 @@ public class EquipmentInventoryService
 
         if (conflict != null)
         {
-            throw new BusinessRuleException($"Instrument {conflict.Code} already has serial number {trimmedSerial} from {trimmedManufacturer}.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanSerialNumberDuplicate, $"Instrument {conflict.Code} already has serial number {trimmedSerial} from {trimmedManufacturer}.",
+                new Dictionary<string, string>
+                {
+                    ["code"] = conflict.Code,
+                    ["serial"] = trimmedSerial,
+                    ["manufacturer"] = trimmedManufacturer
+                });
         }
     }
 
     public async Task<EquipmentInventoryResponse> CreateAsync(SaveEquipmentInventoryRequest r, int currentUserId, CancellationToken ct = default)
     {
         if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code, ct))
-            throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanEquipmentCodeExists, $"Equipment code \"{r.Code}\" already exists.",
+                new Dictionary<string, string> { ["code"] = r.Code });
 
         await EnsureUniqueSerialNumberAsync(excludeId: null, r.SerialNumber, r.ManufacturerName);
 
@@ -222,7 +231,8 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(currentUserId, id, ct);
 
         var entity = await _db.EquipmentInventories.FindAsync([id], ct)
-            ?? throw new NotFoundException($"Equipment {id} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {id} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = id.ToString(CultureInfo.InvariantCulture) });
         RecordVersion.EnsureCurrent(_db, entity);
 
         if (r.Code != entity.Code)
@@ -231,10 +241,11 @@ public class EquipmentInventoryService
                 l => l.EntityType == LabelEntityType.EquipmentAsset && l.EntityId == id,
                 ct);
             if (hasPrintedLabel)
-                throw new BusinessRuleException("The code cannot be changed because a label has been printed for this instrument.");
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanCodeLockedByPrintedLabel, "The code cannot be changed because a label has been printed for this instrument.");
 
             if (await _db.EquipmentInventories.AnyAsync(e => e.Code == r.Code, ct))
-                throw new BusinessRuleException($"Equipment code \"{r.Code}\" already exists.");
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanEquipmentCodeExists, $"Equipment code \"{r.Code}\" already exists.",
+                new Dictionary<string, string> { ["code"] = r.Code });
         }
 
         await EnsureUniqueSerialNumberAsync(excludeId: id, r.SerialNumber, r.ManufacturerName);
@@ -247,7 +258,7 @@ public class EquipmentInventoryService
         if (statusChanged || manualConfirmWithAuto)
         {
             if (string.IsNullOrWhiteSpace(r.StatusChangeComment))
-                throw new BusinessRuleException("A comment explaining the reason for changing the operational status is required.");
+                throw new BusinessRuleException(MessageCodes.EquipmentPlanStatusChangeCommentRequired, "A comment explaining the reason for changing the operational status is required.");
 
             var history = new EquipmentStatusHistory
             {
@@ -283,7 +294,8 @@ public class EquipmentInventoryService
 
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
-            throw new NotFoundException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var historyList = await _db.EquipmentStatusHistories
             .Where(h => h.EquipmentInventoryId == equipmentId)
@@ -357,7 +369,8 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId, access: SectionAccess.Read);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
         var masterEquipment = await _db.Equipment.ToListAsync();
         return await GetActiveActivitiesForEquipmentInternalAsync(eq, masterEquipment);
     }
@@ -367,7 +380,8 @@ public class EquipmentInventoryService
         await _scope.EnsureEquipmentInventoryAccessAsync(userId, equipmentId, access: SectionAccess.Read);
 
         var eq = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
         var masterEquipment = await _db.Equipment.ToListAsync();
         var matchingMasterId = masterEquipment.FirstOrDefault(m => string.Equals(m.Code, eq.Code, StringComparison.OrdinalIgnoreCase))?.Id;
 

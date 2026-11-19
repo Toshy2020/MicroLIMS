@@ -131,28 +131,32 @@ export const OverviewService = {
           value: formatCount(totalCount),
           deltaPercent: totalCount > 0 ? 100 : 0,
           deltaDirection: "up",
-          comparisonLabel: "live database records"
+          comparisonLabel: "live database records",
+          caption: { key: "liveRecords" }
         },
         approvedResults: {
           title: "Approved Results",
           value: formatCount(approvedCount),
           deltaPercent: totalCount > 0 ? Math.round((approvedCount / totalCount) * 100) : 0,
           deltaDirection: "up",
-          comparisonLabel: `${approvedCount} of ${totalCount} approved`
+          comparisonLabel: `${approvedCount} of ${totalCount} approved`,
+          caption: { key: "approved", approved: approvedCount, total: totalCount }
         },
         pendingReview: {
           title: "Pending Review",
           value: pendingReviewCount,
           deltaPercent: pendingReviewCount > 0 ? 100 : 0,
           deltaDirection: pendingReviewCount > 0 ? "up" : "down",
-          comparisonLabel: "active in testing/review queue"
+          comparisonLabel: "active in testing/review queue",
+          caption: { key: "reviewQueue" }
         },
         pendingApproval: {
           title: "Pending Approval",
           value: pendingApprovalCount,
           deltaPercent: pendingApprovalCount > 0 ? 100 : 0,
           deltaDirection: pendingApprovalCount > 0 ? "up" : "down",
-          comparisonLabel: "awaiting section head release"
+          comparisonLabel: "awaiting section head release",
+          caption: { key: "awaitingRelease" }
         },
         outOfSpec: {
           title: "Out of Spec",
@@ -160,6 +164,7 @@ export const OverviewService = {
           deltaPercent: outOfSpecCount,
           deltaDirection: outOfSpecCount > 0 ? "up" : "down",
           comparisonLabel: "quality signal (independent of analyst)",
+          caption: { key: "qualitySignal" },
           variant: outOfSpecCount > 0 ? "error" : "default",
           tooltip: "Laboratory Quality Metric: Evaluated independently of analyst performance"
         },
@@ -169,6 +174,7 @@ export const OverviewService = {
           deltaPercent: alertActionCount,
           deltaDirection: alertActionCount > 0 ? "up" : "down",
           comparisonLabel: "exceeded alert or action thresholds",
+          caption: { key: "exceeded" },
           variant: alertActionCount > 0 ? "warning" : "default"
         },
         categoryDistribution,
@@ -184,12 +190,12 @@ export const OverviewService = {
       };
     } catch {
       return {
-        totalTests: { title: "Total Tests", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data" },
-        approvedResults: { title: "Approved Results", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data" },
-        pendingReview: { title: "Pending Review", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data" },
-        pendingApproval: { title: "Pending Approval", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data" },
-        outOfSpec: { title: "Out of Spec", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", variant: "error" },
-        alertActionLevel: { title: "Alert / Action Level", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", variant: "warning" },
+        totalTests: { title: "Total Tests", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data", caption: { key: "noData" } },
+        approvedResults: { title: "Approved Results", value: "0", deltaPercent: 0, deltaDirection: "up", comparisonLabel: "no data", caption: { key: "noData" } },
+        pendingReview: { title: "Pending Review", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", caption: { key: "noData" } },
+        pendingApproval: { title: "Pending Approval", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", caption: { key: "noData" } },
+        outOfSpec: { title: "Out of Spec", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", caption: { key: "noData" }, variant: "error" },
+        alertActionLevel: { title: "Alert / Action Level", value: 0, deltaPercent: 0, deltaDirection: "down", comparisonLabel: "no data", caption: { key: "noData" }, variant: "warning" },
         categoryDistribution: [],
         testDistribution: [],
         locationDistribution: [],

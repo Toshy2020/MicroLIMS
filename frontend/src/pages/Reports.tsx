@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Tabs, Tab, Box } from "@mui/material";
+import { useTranslation } from "../i18n";
 import { PageHeader } from "../components/PageHeader";
 import { useHasPermission } from "../contexts/AuthContext";
 import { usePersistedTab } from "../hooks/usePersistedTab";
@@ -14,15 +15,6 @@ import { KpiPerformanceTab } from "../modules/kpi/components/KpiPerformanceTab";
 import { QuickPeriod, computeQuickPeriodRange, toDateInputValue } from "../modules/reports/utils/dateRange";
 import { SampleCategory } from "../modules/reports/types/reportingTypes";
 
-const TABS = [
-  "Overview",
-  "Record Search",
-  "Media / GPT",
-  "Reference Strains",
-  "Trending & Control Charts",
-  "KPI / Performance"
-] as const;
-
 const TAB_KEYS = ["overview", "search", "media-gpt", "reference-strains", "control-charts", "performance"] as const;
 
 // The KPI tab is the last entry. It owns its filters, so the page-level period selector is hidden there.
@@ -33,7 +25,7 @@ export function ReportsPage() {
   // Without Kpi.View the KPI tab is dropped from both lists, so a link to
   // ?tab=performance falls back to Overview. The server enforces the permission too.
   const canViewKpi = useHasPermission(PERMISSIONS.KPI_VIEW);
-  const tabs: readonly string[] = canViewKpi ? TABS : TABS.slice(0, PERFORMANCE_TAB);
+  const { t } = useTranslation("reports");
   const tabKeys = useMemo<readonly string[]>(
     () => (canViewKpi ? TAB_KEYS : TAB_KEYS.slice(0, PERFORMANCE_TAB)),
     [canViewKpi]
@@ -68,7 +60,7 @@ export function ReportsPage() {
 
   return (
     <>
-      <PageHeader title="Reports" subtitle="Search, trend, and export laboratory results." />
+      <PageHeader title={t("page.title")} subtitle={t("page.subtitle")} />
 
       {tab !== PERFORMANCE_TAB && (
         <QuickPeriodSelector
@@ -86,13 +78,13 @@ export function ReportsPage() {
           onChange={(_, v) => handleTabChange(v)}
           variant="scrollable"
           scrollButtons="auto"
-          aria-label="Report sections"
+          aria-label={t("page.tabsLabel")}
           sx={{ "& .Mui-selected": { fontWeight: 700 } }}
         >
-          {tabs.map((label, idx) => (
+          {tabKeys.map((key, idx) => (
             <Tab
-              key={label}
-              label={label}
+              key={key}
+              label={t(`page.tabs.${key}`)}
               id={`reports-tab-${idx}`}
               aria-controls={`reports-tabpanel-${idx}`}
             />

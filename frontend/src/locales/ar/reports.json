@@ -640,7 +640,25 @@
     "searchRecords": "بحث السجلات",
     "trendingControlCharts": "تحليل اتجاه وخريطة ضبط",
     "kpiPerformance": "مؤشرات الأداء (KPI)",
-    "sourceFootnote": "المصدر: سجلات كل نتيجة وطلبات الاختبارات في MicroLIMS GMP · تعكس الأرقام نافذة التقارير المحددة."
+    "sourceFootnote": "المصدر: سجلات كل نتيجة وطلبات الاختبارات في MicroLIMS GMP · تعكس الأرقام نافذة التقارير المحددة.",
+    "kpi": {
+      "totalTests": "إجمالي الاختبارات",
+      "approvedResults": "النتائج المعتمدة",
+      "pendingReview": "بانتظار المراجعة",
+      "pendingApproval": "بانتظار الاعتماد",
+      "outOfSpec": "خارج المواصفات",
+      "alertActionLevel": "مستوى التنبيه / الإجراء",
+      "outOfSpecTooltip": "مقياس جودة المختبر: يُقيَّم بمعزل عن أداء المحلل",
+      "caption": {
+        "liveRecords": "سجلات قاعدة البيانات الحية",
+        "approved": "<ltr>{{approved}}</ltr> من <ltr>{{total}}</ltr> معتمدة",
+        "reviewQueue": "قيد الاختبار أو في طابور المراجعة",
+        "awaitingRelease": "بانتظار إفراج رئيس القسم",
+        "qualitySignal": "مؤشر جودة (مستقل عن المحلل)",
+        "exceeded": "تجاوزت حدود التنبيه أو الإجراء",
+        "noData": "لا توجد بيانات"
+      }
+    }
   },
   "recordDetail": {
     "title": "سجل نتيجة المختبر",
@@ -723,5 +741,18 @@
     "mediaGpt": "أوساط زرعية / اختبار تعزيز النمو (GPT)",
     "referenceStrains": "سلالة مرجعية",
     "customReport": "تقرير مخصص"
+  },
+  "page": {
+    "title": "التقارير",
+    "subtitle": "ابحث في نتائج المختبر وتتبّع اتجاهاتها وصدّرها.",
+    "tabsLabel": "أقسام التقارير",
+    "tabs": {
+      "overview": "نظرة عامة",
+      "search": "بحث السجلات",
+      "media-gpt": "أوساط زرعية / اختبار تعزيز النمو (GPT)",
+      "reference-strains": "السلالات المرجعية",
+      "control-charts": "تحليل اتجاه وخريطة ضبط",
+      "performance": "مؤشرات الأداء (KPI)"
+    }
   }
 }

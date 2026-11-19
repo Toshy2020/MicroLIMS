@@ -632,7 +632,25 @@
     "searchRecords": "Search Records",
     "trendingControlCharts": "Trending & Control Charts",
     "kpiPerformance": "KPI / Performance",
-    "sourceFootnote": "Source: MicroLIMS GMP Result Records & Test Orders · Figures reflect the selected reporting window."
+    "sourceFootnote": "Source: MicroLIMS GMP Result Records & Test Orders · Figures reflect the selected reporting window.",
+    "kpi": {
+      "totalTests": "Total Tests",
+      "approvedResults": "Approved Results",
+      "pendingReview": "Pending Review",
+      "pendingApproval": "Pending Approval",
+      "outOfSpec": "Out of Spec",
+      "alertActionLevel": "Alert / Action Level",
+      "outOfSpecTooltip": "Laboratory Quality Metric: Evaluated independently of analyst performance",
+      "caption": {
+        "liveRecords": "live database records",
+        "approved": "<ltr>{{approved}}</ltr> of <ltr>{{total}}</ltr> approved",
+        "reviewQueue": "active in testing/review queue",
+        "awaitingRelease": "awaiting section head release",
+        "qualitySignal": "quality signal (independent of analyst)",
+        "exceeded": "exceeded alert or action thresholds",
+        "noData": "no data"
+      }
+    }
   },
   "recordDetail": {
     "title": "Laboratory Result Record",
@@ -715,5 +733,18 @@
     "mediaGpt": "Media/GPT",
     "referenceStrains": "Reference Strains",
     "customReport": "Custom Report"
+  },
+  "page": {
+    "title": "Reports",
+    "subtitle": "Search, trend, and export laboratory results.",
+    "tabsLabel": "Report sections",
+    "tabs": {
+      "overview": "Overview",
+      "search": "Record Search",
+      "media-gpt": "Media / GPT",
+      "reference-strains": "Reference Strains",
+      "control-charts": "Trending & Control Charts",
+      "performance": "KPI / Performance"
+    }
   }
 }

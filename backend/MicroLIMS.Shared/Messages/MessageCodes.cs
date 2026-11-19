@@ -36,16 +36,19 @@ public static partial class MessageCodes
         OutsourcedParameters(),
         PathogenParameters(),
         ReceivingParameters(),
+        ResultParameters(),
         SampleParameters(),
         SolutionParameters(),
         SpecificationParameters(),
         StandardParameters(),
+        TableViewParameters(),
         TestDefinitionParameters(),
         TestParameters(),
         TitrantParameters(),
         TitrationParameters(),
         UserParameters(),
         UvParameters(),
+        WasteParameters(),
         WeightVariationParameters());
 
     private static Dictionary<string, string[]> Combine(params Dictionary<string, string[]>[] parts)

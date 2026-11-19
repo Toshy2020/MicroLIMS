@@ -258,14 +258,6 @@ public class SpecificationService
         _ => "Total of others",
     };
 
-    private static string RelatedSubstanceDuplicateLabel(RelatedSubstanceRow kind, string? impurityName) => kind switch
-    {
-        RelatedSubstanceRow.Named => $"named impurity '{impurityName}'",
-        RelatedSubstanceRow.UnspecifiedEach => "any unspecified impurity",
-        RelatedSubstanceRow.Total => "total impurities",
-        _ => "total of others",
-    };
-
     private async Task ValidateRelatedSubstanceRowAsync(Specification spec, int? methodId, CancellationToken cancellationToken)
     {
         if (spec.RelatedSubstanceRow is not RelatedSubstanceRow kind || !Enum.IsDefined(kind))
@@ -325,13 +317,22 @@ public class SpecificationService
         }
 
         if (string.IsNullOrWhiteSpace(spec.TestCode))
-            throw new BusinessRuleException("Test code is required.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationTestCodeRequired,
+                "Test code is required.");
 
         var testAssigned = await _db.SampleTests.AnyAsync(
             st => st.ItemId == spec.ItemId && st.TestCode == spec.TestCode,
             cancellationToken);
         if (!testAssigned)
-            throw new BusinessRuleException($"Test '{spec.TestCode}' is not assigned to item {spec.ItemId}.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationTestNotAssignedToItem,
+                $"Test '{spec.TestCode}' is not assigned to item {spec.ItemId}.",
+                new Dictionary<string, string>
+                {
+                    ["testCode"] = spec.TestCode,
+                    ["itemId"] = spec.ItemId.ToString(CultureInfo.InvariantCulture),
+                });
 
         await NotApplicableTestService.EnsureSpecBasisHasMoistureAsync(_db, spec.ItemId, spec.ResultBasis, spec.Grade, cancellationToken);
 
@@ -341,9 +342,18 @@ public class SpecificationService
         {
             var itemCategory = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
             if (itemCategory is SampleCategory cat && !PhyschemAreas.Includes(testArea, PhyschemAreas.OfCategory(cat)))
-                throw new BusinessRuleException(PhyschemAreas.OfCategory(cat) == WorkspaceArea.Fp
-                    ? $"Test {spec.TestCode} is not used for finished products - it belongs to RM & PM."
-                    : $"Test {spec.TestCode} is not used for raw and packaging materials - it belongs to FP.");
+            {
+                if (PhyschemAreas.OfCategory(cat) == WorkspaceArea.Fp)
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationTestNotForFinishedProducts,
+                        $"Test {spec.TestCode} is not used for finished products - it belongs to RM & PM.",
+                        new Dictionary<string, string> { ["testCode"] = spec.TestCode });
+                else
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationTestNotForRawPackagingMaterials,
+                        $"Test {spec.TestCode} is not used for raw and packaging materials - it belongs to FP.",
+                        new Dictionary<string, string> { ["testCode"] = spec.TestCode });
+            }
         }
 
         // Production stages exist only on Finished Product samples, so a
@@ -351,10 +361,14 @@ public class SpecificationService
         if (spec.ProductionStageRole is ProductionStageRole role)
         {
             if (role == ProductionStageRole.Other)
-                throw new BusinessRuleException("Choose Bulk, In-Process, Finished or Stability, or leave the stage as all stages.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationProductionStageInvalid,
+                    "Choose Bulk, In-Process, Finished or Stability, or leave the stage as all stages.");
             var category = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
             if (category != SampleCategory.FinishedProduct)
-                throw new BusinessRuleException("Stage-specific specifications are only available for Finished Product items.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationProductionStageOnlyFinishedProduct,
+                    "Stage-specific specifications are only available for Finished Product items.");
         }
 
         // Method-analyte rows are keyed by analyte + basis; checked first so the
@@ -367,7 +381,9 @@ public class SpecificationService
                      && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateAnalyteBasis)
-                throw new BusinessRuleException("A specification for this analyte and basis already exists.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDuplicateAnalyteAndBasis,
+                    "A specification for this analyte and basis already exists.");
         }
 
         if (spec.IcpTestElementId is int icpElementId)
@@ -378,7 +394,9 @@ public class SpecificationService
                      && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                 cancellationToken);
             if (duplicateElementBasis)
-                throw new BusinessRuleException("A specification for this element and basis already exists.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDuplicateElementAndBasis,
+                    "A specification for this element and basis already exists.");
         }
 
         // Related-substance rows are keyed by kind (+ impurity for a Named row) per stage and grade;
@@ -396,7 +414,26 @@ public class SpecificationService
                 string? impurityName = null;
                 if (kind == RelatedSubstanceRow.Named && spec.HplcMethodImpurityId is int impurityId)
                     impurityName = await _db.HplcMethodImpurities.Where(i => i.Id == impurityId).Select(i => i.Name).FirstOrDefaultAsync(cancellationToken);
-                throw new BusinessRuleException($"A {RelatedSubstanceDuplicateLabel(kind, impurityName)} row already exists for this test, stage and grade.");
+                switch (kind)
+                {
+                    case RelatedSubstanceRow.Named:
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationDuplicateRelatedNamedImpurity,
+                            $"A named impurity '{impurityName}' row already exists for this test, stage and grade.",
+                            new Dictionary<string, string> { ["impurity"] = impurityName ?? string.Empty });
+                    case RelatedSubstanceRow.UnspecifiedEach:
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationDuplicateRelatedUnspecifiedImpurity,
+                            "A any unspecified impurity row already exists for this test, stage and grade.");
+                    case RelatedSubstanceRow.Total:
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationDuplicateRelatedTotalImpurities,
+                            "A total impurities row already exists for this test, stage and grade.");
+                    default:
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationDuplicateRelatedTotalOfOthers,
+                            "A total of others row already exists for this test, stage and grade.");
+                }
             }
         }
 
@@ -406,9 +443,31 @@ public class SpecificationService
                  && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
             cancellationToken);
         if (duplicate)
-            throw new BusinessRuleException(spec.Grade is not null
-                ? "A specification for this parameter and grade already exists."
-                : $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at {StageText(spec.ProductionStageRole)} on this item.");
+        {
+            if (spec.Grade is not null)
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDuplicateParameterAndGrade,
+                    "A specification for this parameter and grade already exists.");
+            else if (spec.ProductionStageRole is null)
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDuplicateParameterAllStages,
+                    $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at all stages on this item.",
+                    new Dictionary<string, string>
+                    {
+                        ["parameter"] = spec.ParameterName,
+                        ["testCode"] = spec.TestCode,
+                    });
+            else
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDuplicateParameterAtStage,
+                    $"A specification for parameter '{spec.ParameterName}' already exists for test '{spec.TestCode}' at the {spec.ProductionStageRole} stage on this item.",
+                    new Dictionary<string, string>
+                    {
+                        ["parameter"] = spec.ParameterName,
+                        ["testCode"] = spec.TestCode,
+                        ["stage"] = spec.ProductionStageRole.Value.ToString(),
+                    });
+        }
 
         var testDef = await _db.TestDefinitions
             .FirstOrDefaultAsync(t => t.Code == spec.TestCode, cancellationToken);
@@ -416,49 +475,70 @@ public class SpecificationService
         if (spec.LimitType == LimitType.DissolutionQ)
         {
             if (testDef == null || testDef.WorkflowType != WorkflowType.Dissolution)
-                throw new BusinessRuleException("DissolutionQ specifications are only allowed for Dissolution tests.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDissolutionOnlyForDissolutionTests,
+                    "DissolutionQ specifications are only allowed for Dissolution tests.");
 
             var duplicateDissolution = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateDissolution)
-                throw new BusinessRuleException($"Only one specification is allowed for Dissolution test '{spec.TestCode}' on this item.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDissolutionSingleSpec,
+                    $"Only one specification is allowed for Dissolution test '{spec.TestCode}' on this item.",
+                    new Dictionary<string, string> { ["testCode"] = spec.TestCode });
         }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution)
         {
-            throw new BusinessRuleException("Only DissolutionQ specifications are allowed for Dissolution tests.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationDissolutionTestRequiresDissolutionQ,
+                "Only DissolutionQ specifications are allowed for Dissolution tests.");
         }
 
         if (spec.LimitType == LimitType.DisintegrationTime)
         {
             if (testDef == null || testDef.WorkflowType != WorkflowType.Disintegration)
-                throw new BusinessRuleException("DisintegrationTime specifications are only allowed for Disintegration tests.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDisintegrationOnlyForDisintegrationTests,
+                    "DisintegrationTime specifications are only allowed for Disintegration tests.");
 
             var duplicateDisintegration = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateDisintegration)
-                throw new BusinessRuleException($"Only one specification is allowed for Disintegration test '{spec.TestCode}' on this item.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDisintegrationSingleSpec,
+                    $"Only one specification is allowed for Disintegration test '{spec.TestCode}' on this item.",
+                    new Dictionary<string, string> { ["testCode"] = spec.TestCode });
         }
         else if (testDef?.WorkflowType == WorkflowType.Disintegration)
         {
-            throw new BusinessRuleException("Only DisintegrationTime specifications are allowed for Disintegration tests.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationDisintegrationTestRequiresDisintegrationTime,
+                "Only DisintegrationTime specifications are allowed for Disintegration tests.");
         }
 
         if (spec.LimitType == LimitType.WeightVariation)
         {
             if (testDef == null || testDef.WorkflowType != WorkflowType.WeightVariation)
-                throw new BusinessRuleException("WeightVariation specifications are only allowed for WeightVariation tests.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationWeightVariationOnlyForWeightVariationTests,
+                    "WeightVariation specifications are only allowed for WeightVariation tests.");
 
             var duplicateWeightVariation = await _db.Specifications.AnyAsync(
                 s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.ProductionStageRole == spec.ProductionStageRole && s.Id != spec.Id && !s.IsRetired,
                 cancellationToken);
             if (duplicateWeightVariation)
-                throw new BusinessRuleException($"Only one specification is allowed for WeightVariation test '{spec.TestCode}' on this item.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationWeightVariationSingleSpec,
+                    $"Only one specification is allowed for WeightVariation test '{spec.TestCode}' on this item.",
+                    new Dictionary<string, string> { ["testCode"] = spec.TestCode });
         }
         else if (testDef?.WorkflowType == WorkflowType.WeightVariation)
         {
-            throw new BusinessRuleException("Only WeightVariation specifications are allowed for WeightVariation tests.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationWeightVariationTestRequiresWeightVariation,
+                "Only WeightVariation specifications are allowed for WeightVariation tests.");
         }
 
         // HPLC chain S3: specification rows for an HplcMethodAssay test are
@@ -467,22 +547,33 @@ public class SpecificationService
         // spec 3.4). No new enum.
         if (testDef?.WorkflowType != WorkflowType.HplcMethodAssay
             && (spec.RelatedSubstanceRow.HasValue || spec.HplcMethodImpurityId.HasValue))
-            throw new BusinessRuleException("Related-substance rows belong to related-substances methods only.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationRelatedSubstanceOnlyRelatedMethods,
+                "Related-substance rows belong to related-substances methods only.");
 
         if (testDef?.WorkflowType == WorkflowType.HplcMethodAssay)
         {
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (!spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is required for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteRequiredForHplc,
+                    "Method analyte is required for HPLC method assay specifications.");
 
             var analyte = await _db.HplcMethodAnalytes.Include(a => a.HplcMethod).FirstOrDefaultAsync(a => a.Id == spec.HplcMethodAnalyteId.Value, cancellationToken);
             if (analyte == null || analyte.HplcMethodId != testDef.HplcMethodId)
-                throw new BusinessRuleException($"That analyte does not belong to the method of test '{spec.TestCode}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationAnalyteNotInTestMethod,
+                    $"That analyte does not belong to the method of test '{spec.TestCode}'.",
+                    new Dictionary<string, string> { ["testCode"] = spec.TestCode });
 
             bool relatedSubstances = analyte.HplcMethod!.ResultMode == HplcResultMode.RelatedSubstances;
             if (!relatedSubstances && (spec.RelatedSubstanceRow.HasValue || spec.HplcMethodImpurityId.HasValue))
-                throw new BusinessRuleException("Related-substance rows belong to related-substances methods only.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationRelatedSubstanceOnlyRelatedMethods,
+                    "Related-substance rows belong to related-substances methods only.");
 
             bool residualSolvents = analyte.HplcMethod!.ResultMode == HplcResultMode.ResidualSolvents;
             if (relatedSubstances)
@@ -491,18 +582,26 @@ public class SpecificationService
             {
                 if (spec.ResultBasis != ResultBasis.Ppm || spec.LimitType != LimitType.NotMoreThan
                     || spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                    throw new BusinessRuleException("Residual-solvent specifications use ppm with a not-more-than limit.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationResidualSolventMustBePpmNotMoreThan,
+                        "Residual-solvent specifications use ppm with a not-more-than limit.");
             }
             else
             {
                 if (spec.ResultBasis is not (ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
-                    throw new BusinessRuleException("Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationHplcResultBasisInvalid,
+                        "Result basis must be assay % of label claim, amount per unit, % as is, % dried basis or % anhydrous basis.");
 
                 if (spec.ResultBasis == ResultBasis.MgPerUnit && (!spec.LabelClaim.HasValue || spec.LabelClaim <= 0 || string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                    throw new BusinessRuleException("Amount per unit needs a label claim and its unit.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationHplcAmountPerUnitNeedsLabelClaim,
+                        "Amount per unit needs a label claim and its unit.");
 
                 if (spec.ResultBasis != ResultBasis.MgPerUnit && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                    throw new BusinessRuleException("Label claim belongs on the amount-per-unit row.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationHplcLabelClaimOnlyOnAmountPerUnit,
+                        "Label claim belongs on the amount-per-unit row.");
 
                 var neededRole = spec.ResultBasis switch
                 {
@@ -516,15 +615,24 @@ public class SpecificationService
                     if (await _db.Specifications.AnyAsync(s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ProductionStageRole == spec.ProductionStageRole
                              && (s.Grade == null ? null : s.Grade.ToLower()) == grade
                              && s.ResultBasis == opposite, cancellationToken))
-                        throw new BusinessRuleException("One HPLC test cannot report on both dried and anhydrous basis.");
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationHplcBothMoistureBasesConflict,
+                            "One HPLC test cannot report on both dried and anhydrous basis.");
                     var hasMoistureTest = await _db.SampleTests.AnyAsync(
                         st => st.ItemId == spec.ItemId && st.TestCode != spec.TestCode
                               && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
                         cancellationToken);
                     if (!hasMoistureTest)
-                        throw new BusinessRuleException(neededRole == MoistureRole.LossOnDrying
-                            ? "Assign a loss on drying test to this item before using a dried basis."
-                            : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                    {
+                        if (neededRole == MoistureRole.LossOnDrying)
+                            throw new BusinessRuleException(
+                                MessageCodes.SpecificationMoistureLossOnDryingRequired,
+                                "Assign a loss on drying test to this item before using a dried basis.");
+                        else
+                            throw new BusinessRuleException(
+                                MessageCodes.SpecificationMoistureWaterRequired,
+                                "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                    }
                 }
 
                 bool isContent = spec.ResultBasis is ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis;
@@ -538,7 +646,9 @@ public class SpecificationService
                              && s.ProductionStageRole == spec.ProductionStageRole && (s.Grade == null ? null : s.Grade.ToLower()) == grade,
                         cancellationToken);
                     if (conflict)
-                        throw new BusinessRuleException("An HPLC analyte reports either % of label claim or a content basis, not both.");
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationHplcAnalyteClaimOrContentOnly,
+                            "An HPLC analyte reports either % of label claim or a content basis, not both.");
                 }
                 else if (isClaim)
                 {
@@ -549,7 +659,9 @@ public class SpecificationService
                              && (s.ResultBasis == ResultBasis.PercentAsIs || s.ResultBasis == ResultBasis.PercentDriedBasis || s.ResultBasis == ResultBasis.PercentAnhydrousBasis),
                         cancellationToken);
                     if (conflict)
-                        throw new BusinessRuleException("An HPLC analyte reports either % of label claim or a content basis, not both.");
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationHplcAnalyteClaimOrContentOnly,
+                            "An HPLC analyte reports either % of label claim or a content basis, not both.");
                 }
 
             }
@@ -559,35 +671,54 @@ public class SpecificationService
                 spec.LimitType != LimitType.NotLessThan &&
                 spec.LimitType != LimitType.TargetWithTolerance)
             {
-                throw new BusinessRuleException($"Limit type '{spec.LimitType}' is not supported for HPLC method assay specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationHplcLimitTypeUnsupported,
+                    $"Limit type '{spec.LimitType}' is not supported for HPLC method assay specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
             }
         }
         else if (testDef?.WorkflowType == WorkflowType.IcpMethodAssay)
         {
             if (!spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Element is required for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationElementRequiredForIcp,
+                    "Element is required for ICP method assay specifications.");
 
             var element = await _db.TestDefinitionIcpElements.FirstOrDefaultAsync(e => e.Id == spec.IcpTestElementId.Value, cancellationToken);
             if (element == null || element.TestDefinitionId != testDef.Id)
-                throw new BusinessRuleException($"That element does not belong to test '{spec.TestCode}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationElementNotInTest,
+                    $"That element does not belong to test '{spec.TestCode}'.",
+                    new Dictionary<string, string> { ["testCode"] = spec.TestCode });
 
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new BusinessRuleException("Result basis is not used for ICP specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationIcpResultBasisNotUsed,
+                    "Result basis is not used for ICP specifications.");
             if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new BusinessRuleException("Label claim is not used for ICP specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationIcpLabelClaimNotUsed,
+                    "Label claim is not used for ICP specifications.");
 
             // Assay: the limit is on the assay % (of the test's target). Impurity: the limit is the element ppm; 0 = not detected.
             if (testDef.IcpMode == IcpTestMode.Impurity && spec.LimitType != LimitType.NotMoreThan)
-                throw new BusinessRuleException("Elemental impurity specifications use a not-more-than limit.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationElementalImpurityMustBeNotMoreThan,
+                    "Elemental impurity specifications use a not-more-than limit.");
 
             if (spec.LimitType != LimitType.Range &&
                 spec.LimitType != LimitType.NotMoreThan &&
                 spec.LimitType != LimitType.NotLessThan &&
                 spec.LimitType != LimitType.TargetWithTolerance)
             {
-                throw new BusinessRuleException($"Limit type '{spec.LimitType}' is not supported for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationIcpLimitTypeUnsupported,
+                    $"Limit type '{spec.LimitType}' is not supported for ICP method assay specifications.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
             }
         }
         else if (testDef?.WorkflowType == WorkflowType.Titration)
@@ -754,8 +885,6 @@ public class SpecificationService
                 throw new BusinessRuleException("Label claim unit is not used for this test type.");
         }
     }
-
-    private static string StageText(ProductionStageRole? role) => role is null ? "all stages" : $"the {role} stage";
 
     // Backend performs alert/action/spec comparison - frontend only displays results.
     public ResultStatus CompareAgainstLimits(decimal value, Specification spec) =>

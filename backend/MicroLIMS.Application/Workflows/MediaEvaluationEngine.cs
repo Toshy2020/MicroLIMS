@@ -1,5 +1,7 @@
+using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -67,7 +69,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             .Include(t => t.Cryovial!).ThenInclude(c => c.Material)
             .Include(t => t.DestructionItem)
             .FirstOrDefaultAsync(t => t.Id == thawEventId)
-            ?? throw new NotFoundException($"Thawed vial {thawEventId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.CryovialThawedVialNotFound,
+                $"Thawed vial {thawEventId} not found.",
+                new Dictionary<string, string> { ["thawEventId"] = thawEventId.ToString(CultureInfo.InvariantCulture) });
 
         await EnsureCryovialFitsChallengeAsync(challenge, thaw.Cryovial!);
         CryovialThaw.EnsureThawedVialUsable(thaw, _time.GetUtcNow().UtcDateTime);
@@ -88,7 +93,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
             var cryovial = await _db.Cryovials.Include(c => c.Material)
                 .FirstOrDefaultAsync(c => c.Id == cryovialId)
-                ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.CryovialNotFound,
+                    $"Cryovial {cryovialId} not found.",
+                    new Dictionary<string, string> { ["cryovialId"] = cryovialId.ToString(CultureInfo.InvariantCulture) });
 
             // Validate the fit before thawing, so a wrong pick never
             // costs a vial.
@@ -104,9 +112,14 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     {
         var challenge = await _db.MediaEvaluationChallenges.Include(c => c.Organism)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaChallengeNotFound,
+                $"Challenge {challengeId} not found.",
+                new Dictionary<string, string> { ["challengeId"] = challengeId.ToString(CultureInfo.InvariantCulture) });
         if (challenge.Outcome is not null)
-            throw new BusinessRuleException("This challenge already has a recorded result - its organism source can no longer change.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeResultAlreadyRecorded,
+                "This challenge already has a recorded result - its organism source can no longer change.");
         return challenge;
     }
 
@@ -114,12 +127,23 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     private async Task EnsureCryovialFitsChallengeAsync(MediaEvaluationChallenge challenge, Cryovial cryovial)
     {
         if (cryovial.Material!.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} belongs to another laboratory section and cannot challenge this media lot.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeCryovialWrongSection,
+                $"Cryovial batch {cryovial.Code} belongs to another laboratory section and cannot challenge this media lot.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
 
         CryovialThaw.EnsureUsable(cryovial, _time.GetUtcNow().UtcDateTime);
 
         if (cryovial.OrganismId != challenge.OrganismId)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is {cryovial.OrganismNameSnapshot}, not {challenge.Organism?.ScientificName}.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeCryovialWrongOrganism,
+                $"Cryovial batch {cryovial.Code} is {cryovial.OrganismNameSnapshot}, not {challenge.Organism?.ScientificName}.",
+                new Dictionary<string, string>
+                {
+                    ["code"] = cryovial.Code,
+                    ["actual"] = cryovial.OrganismNameSnapshot,
+                    ["expected"] = challenge.Organism?.ScientificName ?? string.Empty
+                });
     }
 
     private static void LinkThawedVial(MediaEvaluationChallenge challenge, ThawEvent thaw)
@@ -137,7 +161,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     {
         var challenge = await _db.MediaEvaluationChallenges.Include(c => c.Organism)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaChallengeNotFound,
+                $"Challenge {challengeId} not found.",
+                new Dictionary<string, string> { ["challengeId"] = challengeId.ToString(CultureInfo.InvariantCulture) });
 
         if (challenge.LyophilizedDiskId == materialId)
             return; // already selected - no new disc to consume
@@ -145,19 +172,50 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         await _scope.EnsureMaterialAccessAsync(userId, materialId);
 
         var material = await _db.Materials.Include(m => m.Organism).FirstOrDefaultAsync(m => m.Id == materialId)
-            ?? throw new NotFoundException($"Material {materialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaAdditiveMaterialNotFound,
+                $"Material {materialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = materialId.ToString(CultureInfo.InvariantCulture) });
 
         if (material.SectionId != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
-            throw new BusinessRuleException($"Material {material.MaterialName} belongs to another laboratory section and cannot challenge this media lot.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskWrongSection,
+                $"Material {material.MaterialName} belongs to another laboratory section and cannot challenge this media lot.",
+                new Dictionary<string, string> { ["materialName"] = material.MaterialName });
 
         if (material.MaterialType != MaterialType.LyophilizedMicroorganism)
-            throw new BusinessRuleException($"Material {material.MaterialName} is not a lyophilized microorganism disk.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskInvalidType,
+                $"Material {material.MaterialName} is not a lyophilized microorganism disk.",
+                new Dictionary<string, string> { ["materialName"] = material.MaterialName });
         if (material.OrganismId != challenge.OrganismId)
-            throw new BusinessRuleException($"Material {material.MaterialName} is {material.Organism?.ScientificName ?? "a different organism"}, not {challenge.Organism?.ScientificName}.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskWrongOrganism,
+                $"Material {material.MaterialName} is {material.Organism?.ScientificName ?? "a different organism"}, not {challenge.Organism?.ScientificName}.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["actual"] = material.Organism?.ScientificName ?? "a different organism",
+                    ["expected"] = challenge.Organism?.ScientificName ?? string.Empty
+                });
         if (material.ExpiryDate.HasValue && material.ExpiryDate.Value.Date < _time.GetUtcNow().UtcDateTime.Date)
-            throw new BusinessRuleException($"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskExpired,
+                $"Material {material.MaterialName} (batch {material.BatchNumber}) is expired and cannot be used.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["batchNumber"] = material.BatchNumber
+                });
         if (material.QuantityRemaining <= 0)
-            throw new BusinessRuleException($"Material {material.MaterialName} (batch {material.BatchNumber}) has no quantity remaining.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeDiskOutOfStock,
+                $"Material {material.MaterialName} (batch {material.BatchNumber}) has no quantity remaining.",
+                new Dictionary<string, string>
+                {
+                    ["materialName"] = material.MaterialName,
+                    ["batchNumber"] = material.BatchNumber
+                });
 
         // Unlike a thawed cryovial vial (already taken out of its batch by
         // an explicit thaw and reusable across challenges - see
@@ -183,13 +241,19 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         var challenge = await _db.MediaEvaluationChallenges
             .Include(c => c.MediaEvaluation!).ThenInclude(e => e.Media!).ThenInclude(m => m.Material)
             .FirstOrDefaultAsync(c => c.Id == challengeId)
-            ?? throw new NotFoundException($"Challenge {challengeId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.MediaChallengeNotFound,
+                $"Challenge {challengeId} not found.",
+                new Dictionary<string, string> { ["challengeId"] = challengeId.ToString(CultureInfo.InvariantCulture) });
 
         var evaluation = challenge.MediaEvaluation!;
         var config = await GetCanonicalConfigAsync(evaluation.Media!);
 
         var condition = config.IncubationCondition
-            ?? throw new BusinessRuleException($"Media Configuration for lot \"{evaluation.Media!.LotNumber}\" is missing an incubation condition.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaConfigurationMissingIncubation,
+                $"Media Configuration for lot \"{evaluation.Media!.LotNumber}\" is missing an incubation condition.",
+                new Dictionary<string, string> { ["lotNumber"] = evaluation.Media!.LotNumber });
 
         var startedAt = _time.GetUtcNow().UtcDateTime;
         var incubation = new Incubation
@@ -225,7 +289,10 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
             .Include(c => c.MediaEvaluation!).ThenInclude(e => e.Media!).ThenInclude(m => m.Material)
             .Include(c => c.Incubation)
             .FirstOrDefaultAsync(c => c.Id == request.ChallengeId)
-            ?? throw new BusinessRuleException($"Challenge {request.ChallengeId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaChallengeNotFound,
+                $"Challenge {request.ChallengeId} not found.",
+                new Dictionary<string, string> { ["challengeId"] = request.ChallengeId.ToString(CultureInfo.InvariantCulture) });
 
         var evaluation = challenge.MediaEvaluation!;
         var config = await GetCanonicalConfigAsync(evaluation.Media!);
@@ -234,32 +301,48 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
         // result can't be recorded until the canonical incubation
         // duration has actually elapsed since incubation was set up.
         if (challenge.Incubation is null)
-            throw new BusinessRuleException("Incubation must be recorded before a result can be entered.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaChallengeIncubationRequired,
+                "Incubation must be recorded before a result can be entered.");
         if (_time.GetUtcNow().UtcDateTime < challenge.Incubation.ExpectedReadingAt)
             throw new BusinessRuleException(
-                $"Incubation is still in progress - earliest reading time is {challenge.Incubation.ExpectedReadingAt:yyyy-MM-dd HH:mm} UTC.");
+                MessageCodes.MediaChallengeIncubationInProgress,
+                $"Incubation is still in progress - earliest reading time is {challenge.Incubation.ExpectedReadingAt:yyyy-MM-dd HH:mm} UTC.",
+                new Dictionary<string, string> { ["earliest"] = challenge.Incubation.ExpectedReadingAt?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? string.Empty });
 
         switch (evaluation.EvaluationType, challenge.ChallengeRole)
         {
             case (EvaluationType.GrowthPromotion, _):
                 if (request.OldMediaCount is null || request.NewMediaCount is null)
-                    throw new BusinessRuleException("Old and new media counts are required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeCountsRequired,
+                        "Old and new media counts are required.");
                 if (request.OldMediaCount == 0)
-                    throw new BusinessRuleException("Old media count cannot be zero - recovery% cannot be calculated.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeOldCountZero,
+                        "Old media count cannot be zero - recovery% cannot be calculated.");
 
                 var hasLinkedReference = request.ReferenceMediaId.HasValue;
                 var hasFreeTextReference = !string.IsNullOrWhiteSpace(request.ReferenceMediaLabel);
                 if (hasLinkedReference == hasFreeTextReference)
-                    throw new BusinessRuleException("A reference lot is required - either a linked prior lot or a free-text description, not both or neither.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeReferenceLotRequired,
+                        "A reference lot is required - either a linked prior lot or a free-text description, not both or neither.");
 
                 if (hasLinkedReference)
                 {
                     var referenceSection = await _db.Media.Where(m => m.Id == request.ReferenceMediaId!.Value)
                         .Select(m => (int?)m.Material!.SectionId).FirstOrDefaultAsync();
                     if (referenceSection is null)
-                        throw new BusinessRuleException($"Reference media lot {request.ReferenceMediaId} not found.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MediaChallengeReferenceLotNotFound,
+                            $"Reference media lot {request.ReferenceMediaId} not found.",
+                            new Dictionary<string, string> { ["referenceMediaId"] = request.ReferenceMediaId!.Value.ToString(CultureInfo.InvariantCulture) });
                     if (referenceSection != await EvaluatedLotSectionAsync(challenge.MediaEvaluationId))
-                        throw new BusinessRuleException($"Reference media lot {request.ReferenceMediaId} belongs to another laboratory section.");
+                        throw new BusinessRuleException(
+                            MessageCodes.MediaChallengeReferenceLotWrongSection,
+                            $"Reference media lot {request.ReferenceMediaId} belongs to another laboratory section.",
+                            new Dictionary<string, string> { ["referenceMediaId"] = request.ReferenceMediaId!.Value.ToString(CultureInfo.InvariantCulture) });
                 }
 
                 var recovery = Math.Round(request.NewMediaCount.Value / request.OldMediaCount.Value * 100, 1);
@@ -275,27 +358,35 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
 
             case (EvaluationType.IndicationInhibition, ChallengeRole.Inhibition):
                 if (request.GrowthObserved is null)
-                    throw new BusinessRuleException("Growth observed is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeGrowthObservedRequired,
+                        "Growth observed is required.");
                 challenge.GrowthObserved = request.GrowthObserved;
                 challenge.Outcome = request.GrowthObserved == false ? EvaluationOutcome.Conform : EvaluationOutcome.NonConform;
                 break;
 
             case (EvaluationType.IndicationInhibition, ChallengeRole.Indication):
                 if (request.ObservedDescription is null || request.ManualConform is null)
-                    throw new BusinessRuleException("Observed description and a Conform/NonConform judgment are required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeIndicationJudgmentRequired,
+                        "Observed description and a Conform/NonConform judgment are required.");
                 challenge.ObservedDescription = request.ObservedDescription;
                 challenge.Outcome = request.ManualConform.Value ? EvaluationOutcome.Conform : EvaluationOutcome.NonConform;
                 break;
 
             case (EvaluationType.EnrichmentCharacteristics, _):
                 if (request.IsTurbid is null)
-                    throw new BusinessRuleException("Turbid/clear is required.");
+                    throw new BusinessRuleException(
+                        MessageCodes.MediaChallengeTurbidClearRequired,
+                        "Turbid/clear is required.");
                 challenge.IsTurbid = request.IsTurbid;
                 challenge.Outcome = request.IsTurbid == true ? EvaluationOutcome.Conform : EvaluationOutcome.NonConform;
                 break;
 
             default:
-                throw new BusinessRuleException("This challenge has no recognized evaluation type / challenge role combination.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaChallengeUnrecognizedEvaluationType,
+                    "This challenge has no recognized evaluation type / challenge role combination.");
         }
 
         challenge.ReadAt = _time.GetUtcNow().UtcDateTime;
@@ -336,14 +427,20 @@ public class MediaEvaluationEngine : IMediaEvaluationEngine
     private async Task<MediaConfiguration> GetCanonicalConfigAsync(Media media)
     {
         var productId = media.Material?.MediaProductId
-            ?? throw new BusinessRuleException($"Media lot \"{media.LotNumber}\" is not linked to a configured media product.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaLotNotLinkedToProduct,
+                $"Media lot \"{media.LotNumber}\" is not linked to a configured media product.",
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
 
         return await _db.MediaConfigurations
             .Include(c => c.IncubationCondition)
             .Where(c => c.MediaProductId == productId)
             .OrderBy(c => c.Id)
             .FirstOrDefaultAsync()
-            ?? throw new BusinessRuleException($"No Media Configuration exists for media lot \"{media.LotNumber}\".");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaLotConfigurationMissing,
+                $"No Media Configuration exists for media lot \"{media.LotNumber}\".",
+                new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
     }
 
     // The section of the lot under evaluation (the section of the material

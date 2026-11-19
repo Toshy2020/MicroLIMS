@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
@@ -54,30 +56,49 @@ public class CryovialService
     private async Task<Cryovial> PrepareCryovialsCoreAsync(PrepareCryovialsRequest request)
     {
         if (!request.PhysicalCheckConfirmed)
-            throw new BusinessRuleException("Physical check confirmation against the organism reference description is required.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialPhysicalCheckRequired,
+                "Physical check confirmation against the organism reference description is required.");
 
         var material = await _db.Materials.Include(m => m.Organism).Include(m => m.ReferenceOrganism).FirstOrDefaultAsync(m => m.Id == request.MaterialId)
-            ?? throw new BusinessRuleException($"Material {request.MaterialId} not found.");
+            ?? throw new BusinessRuleException(
+                MessageCodes.MediaAdditiveMaterialNotFound,
+                $"Material {request.MaterialId} not found.",
+                new Dictionary<string, string> { ["materialId"] = request.MaterialId.ToString(CultureInfo.InvariantCulture) });
 
         if (material.MaterialType != MaterialType.LyophilizedMicroorganism)
-            throw new BusinessRuleException($"Material {material.MaterialName} is not a Lyophilized Microorganism item.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialMaterialNotLyophilized,
+                $"Material {material.MaterialName} is not a Lyophilized Microorganism item.",
+                new Dictionary<string, string> { ["materialName"] = material.MaterialName });
 
         if (material.OrganismId is null || material.Organism is null)
-            throw new BusinessRuleException($"Set an Organism on material \"{material.MaterialName}\" (Inventory > Materials Stock) before preparing cryovials from it.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialMaterialOrganismRequired,
+                $"Set an Organism on material \"{material.MaterialName}\" (Inventory > Materials Stock) before preparing cryovials from it.",
+                new Dictionary<string, string> { ["materialName"] = material.MaterialName });
 
         foreach (var row in request.Panel)
         {
             var media = await _db.Media.FirstOrDefaultAsync(m => m.Id == row.MediaId)
-                ?? throw new BusinessRuleException($"Media {row.MediaId} not found.");
+                ?? throw new BusinessRuleException(
+                    MessageCodes.CryovialConfirmationMediaNotFound,
+                    $"Media {row.MediaId} not found.",
+                    new Dictionary<string, string> { ["mediaId"] = row.MediaId.ToString(CultureInfo.InvariantCulture) });
             if (!media.IsReleasedForUse || media.Status == MediaStatus.OutOfStock || media.Status == MediaStatus.QuarantineFailed)
-                throw new BusinessRuleException($"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.");
+                throw new BusinessRuleException(
+                    MessageCodes.CryovialConfirmationMediaNotUsable,
+                    $"Media lot {media.LotNumber} is not GPT-released, out of stock, or rejected - cannot be used for identity confirmation.",
+                    new Dictionary<string, string> { ["lotNumber"] = media.LotNumber });
         }
 
         // Identity-confirmation media must be this section's own lots.
         await SectionMediaRule.EnsureLotsAsync(_db, request.Panel.Select(p => p.MediaId), material.SectionId);
 
         if (request.Panel.Count == 0)
-            throw new BusinessRuleException("At least one identity confirmation row is required.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialIdentityConfirmationRequired,
+                "At least one identity confirmation row is required.");
 
         // Guards + decrements the Material row in memory - not saved
         // until the SaveChangesAsync below, so a failure here leaves
@@ -126,7 +147,9 @@ public class CryovialService
             cryovial.Code = await PreparedLotNumber.NextAsync(_db.Cryovials.Select(c => c.Code), codePrefix, _time.GetUtcNow().UtcDateTime);
             if (!await _db.TrySaveChangesAsync(UniqueIndexNames.CryovialCode))
                 throw new BusinessRuleException(
-                    $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.");
+                    MessageCodes.CryovialCodeClash,
+                    $"Cryovial code {cryovial.Code} was taken by another preparation at the same moment. Nothing was saved - submit the preparation again.",
+                    new Dictionary<string, string> { ["code"] = cryovial.Code });
         }
 
         return cryovial;
@@ -145,13 +168,25 @@ public class CryovialService
     private async Task<Cryovial> ApproveCoreAsync(int cryovialId, bool approved, int userId, string password, string? comment, string? ipAddress)
     {
         var cryovial = await _db.Cryovials.Include(c => c.ReferenceOrganism).FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.CryovialNotFound,
+                $"Cryovial {cryovialId} not found.",
+                new Dictionary<string, string> { ["cryovialId"] = cryovialId.ToString(CultureInfo.InvariantCulture) });
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.PendingReview)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has already been decided ({cryovial.ApprovalStatus}).");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialAlreadyDecided,
+                $"Cryovial batch {cryovial.Code} has already been decided ({cryovial.ApprovalStatus}).",
+                new Dictionary<string, string>
+                {
+                    ["code"] = cryovial.Code,
+                    ["status"] = cryovial.ApprovalStatus.ToString()
+                });
 
         if (await _segregationOfDuties.DidUserPrepareCryovialAsync(cryovialId, userId))
-            throw new BusinessRuleException("You cannot approve a cryovial batch you prepared.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialCannotApproveOwnBatch,
+                "You cannot approve a cryovial batch you prepared.");
 
         // Signs first - if password verification fails, nothing below is
         // written (the signature, the event, and the state change below
@@ -185,7 +220,10 @@ public class CryovialService
     public async Task<ThawEventResponse> ThawVialAsync(int cryovialId, int userId, string? notes)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.CryovialNotFound,
+                $"Cryovial {cryovialId} not found.",
+                new Dictionary<string, string> { ["cryovialId"] = cryovialId.ToString(CultureInfo.InvariantCulture) });
 
         var thaw = CryovialThaw.Record(_db, cryovial, userId, notes, _time.GetUtcNow().UtcDateTime);
         await _db.SaveChangesAsync();
@@ -201,7 +239,10 @@ public class CryovialService
     public async Task DestroyAsync(int cryovialId)
     {
         var cryovial = await _db.Cryovials.FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.CryovialNotFound,
+                $"Cryovial {cryovialId} not found.",
+                new Dictionary<string, string> { ["cryovialId"] = cryovialId.ToString(CultureInfo.InvariantCulture) });
         cryovial.IsDestroyed = true;
         await _db.SaveChangesAsync();
     }
@@ -216,12 +257,16 @@ public class CryovialService
     private async Task<CryovialResponse> MoveStorageCoreAsync(int cryovialId, int userId, int? equipmentId, string? locationText, string reason)
     {
         if (string.IsNullOrWhiteSpace(reason))
-            throw new BusinessRuleException("A reason is required to move cryovial storage.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialStorageMoveReasonRequired,
+                "A reason is required to move cryovial storage.");
 
         var hasEquipment = equipmentId.HasValue;
         var hasLocationText = !string.IsNullOrWhiteSpace(locationText);
         if ((hasEquipment && hasLocationText) || (!hasEquipment && !hasLocationText))
-            throw new BusinessRuleException("Exactly one of EquipmentId or LocationText must be provided.");
+            throw new BusinessRuleException(
+                MessageCodes.MediaStorageTargetInvalid,
+                "Exactly one of EquipmentId or LocationText must be provided.");
 
         var cryovial = await _db.Cryovials
             .Include(c => c.Material)
@@ -230,12 +275,21 @@ public class CryovialService
             .Include(c => c.IdentityConfirmations)
             .Include(c => c.ThawHistory)
             .FirstOrDefaultAsync(c => c.Id == cryovialId)
-            ?? throw new NotFoundException($"Cryovial {cryovialId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.CryovialNotFound,
+                $"Cryovial {cryovialId} not found.",
+                new Dictionary<string, string> { ["cryovialId"] = cryovialId.ToString(CultureInfo.InvariantCulture) });
 
         if (cryovial.ApprovalStatus != ApprovalGateStatus.Approved)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} is not approved - cannot move storage.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialNotApprovedCannotMove,
+                $"Cryovial batch {cryovial.Code} is not approved - cannot move storage.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
         if (cryovial.IsDestroyed)
-            throw new BusinessRuleException($"Cryovial batch {cryovial.Code} has been destroyed and cannot be moved.");
+            throw new BusinessRuleException(
+                MessageCodes.CryovialDestroyedCannotMove,
+                $"Cryovial batch {cryovial.Code} has been destroyed and cannot be moved.",
+                new Dictionary<string, string> { ["code"] = cryovial.Code });
 
         EquipmentInventory? equipment = null;
         string newLocation;
@@ -243,10 +297,16 @@ public class CryovialService
         if (hasEquipment)
         {
             equipment = await _db.EquipmentInventories.FirstOrDefaultAsync(e => e.Id == equipmentId!.Value)
-                ?? throw new NotFoundException($"Equipment {equipmentId!.Value} not found.");
+                ?? throw new NotFoundException(
+                    MessageCodes.MediaEquipmentNotFound,
+                    $"Equipment {equipmentId!.Value} not found.",
+                    new Dictionary<string, string> { ["equipmentId"] = equipmentId!.Value.ToString(CultureInfo.InvariantCulture) });
 
             if (equipment.Status != EquipmentOperationalStatus.InService)
-                throw new BusinessRuleException($"Equipment {equipment.Code} is not currently in service.");
+                throw new BusinessRuleException(
+                    MessageCodes.MediaEquipmentNotInService,
+                    $"Equipment {equipment.Code} is not currently in service.",
+                    new Dictionary<string, string> { ["code"] = equipment.Code });
 
             newLocation = $"{equipment.InstrumentType}, {equipment.ManufacturerName} ({equipment.Code})";
         }

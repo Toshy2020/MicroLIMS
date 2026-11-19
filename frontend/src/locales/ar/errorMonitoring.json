@@ -30,7 +30,7 @@
   "row": {
     "correlationId": "معرّف الارتباط:",
     "resolutionNotes": "ملاحظات الحل",
-    "markResolved": "وضع علامة محلول",
+    "markResolved": "تعليم كـ: تم الحل",
     "resolved": "تم الحل {{date}}",
     "resolvedBy": " بواسطة {{user}}",
     "resolvedNotes": " - {{notes}}",

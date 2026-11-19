@@ -809,7 +809,7 @@ public class LiveSignalsPostgresTests
 
         var received = new ConcurrentQueue<LiveSignal>();
         await using var conn = BuildHubConnection(server, token, onSignal: s => received.Enqueue(s));
-        await conn.StartAsync();
+        await StartAndAwaitConnectedAsync(conn);
 
         await using (var scope = app.Services.CreateAsyncScope())
         {
@@ -855,7 +855,7 @@ public class LiveSignalsPostgresTests
 
         var received = new ConcurrentQueue<LiveSignal>();
         await using var conn = BuildHubConnection(server, token, onSignal: s => received.Enqueue(s));
-        await conn.StartAsync();
+        await StartAndAwaitConnectedAsync(conn);
 
         await using (var scope = app.Services.CreateAsyncScope())
         {
@@ -934,7 +934,7 @@ public class LiveSignalsPostgresTests
         var token = await LoginAsync(client, user.Username);
         var rawPayloads = new ConcurrentQueue<JsonElement>();
         await using var conn = BuildHubConnection(server, token, onRawSignal: el => rawPayloads.Enqueue(el.Clone()));
-        await conn.StartAsync();
+        await StartAndAwaitConnectedAsync(conn);
 
         await using (var scope = app.Services.CreateAsyncScope())
         {

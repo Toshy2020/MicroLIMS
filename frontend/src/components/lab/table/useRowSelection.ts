@@ -11,20 +11,30 @@ export interface RowSelection<Id> {
   clear(): void;
 }
 
-export function useRowSelection<Id>(resetKey: string): RowSelection<Id> {
+export interface RowSelectionOptions {
+  /**
+   * When resetKey (filters + search) changes, keep the rows the user ticked one by one and clear
+   * only "all that match", whose meaning changes with the filter. The page then reports ticked
+   * rows that the filter hides. Default: clear everything.
+   */
+  keepPicksOnReset?: boolean;
+}
+
+export function useRowSelection<Id>(resetKey: string, options: RowSelectionOptions = {}): RowSelection<Id> {
   const [selected, setSelected] = useState<Set<Id>>(() => new Set());
   const [allMatching, setAllMatching] = useState(false);
   const [matchingTotal, setMatchingTotal] = useState(0);
   const prevResetKey = useRef(resetKey);
+  const keepPicksOnReset = options.keepPicksOnReset ?? false;
 
   useEffect(() => {
     if (prevResetKey.current !== resetKey) {
       prevResetKey.current = resetKey;
-      setSelected(new Set());
+      if (!keepPicksOnReset) setSelected(new Set());
       setAllMatching(false);
       setMatchingTotal(0);
     }
-  }, [resetKey]);
+  }, [resetKey, keepPicksOnReset]);
 
   const isSelected = useCallback(
     (id: Id) => allMatching || selected.has(id),

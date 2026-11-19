@@ -532,7 +532,7 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     expect(restoredCol?.getAttribute("aria-sort")).toBe("descending");
   });
 
-  it("clears select-all-matching and bulk bar when a filter changes", async () => {
+  it("clears select-all-matching when a filter changes but keeps the sample ticked by hand", async () => {
     const user = userEvent.setup();
     renderWorkspace();
     await screen.findByText("Alpha Syrup");
@@ -548,8 +548,7 @@ describe("ReceivingTestingWorkspacePage on the shared table state", () => {
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(screen.queryByText("120 selected")).toBeNull());
-    expect(screen.queryByRole("button", { name: "Clear" })).toBeNull();
-    const boxes = screen.getAllByRole("checkbox", { name: /for grouped actions$/ }) as HTMLInputElement[];
-    expect(boxes.every((b) => !b.checked)).toBe(true);
+    // "All that match" is gone; the one sample ticked by hand stays selected.
+    expect(await screen.findByText("1 selected")).toBeTruthy();
   });
 });

@@ -333,8 +333,9 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
   });
   const [extraSelectedSample, setExtraSelectedSample] = useState<SampleRecord | null>(null);
 
-  // Multi-select Sample Checkboxes for Grouped Actions. Selection survives page and
-  // sort changes, and clears whenever the applied filters or search change.
+  // Multi-select Sample Checkboxes for Grouped Actions. Selection survives page and sort
+  // changes. When the applied filters or search change, "all that match" is cleared (its
+  // meaning changed), while samples ticked one by one stay ticked and are reported as hidden.
   const selectionResetKey = useMemo(
     () =>
       JSON.stringify({
@@ -364,7 +365,7 @@ export function ReceivingTestingWorkspacePage({ lab }: Props) {
       workloadFilter
     ]
   );
-  const selection = useRowSelection<number>(selectionResetKey);
+  const selection = useRowSelection<number>(selectionResetKey, { keepPicksOnReset: true });
   const checkedSampleIds = selection.selected;
   const checkedSamplesCache = useRef<Map<number, SampleRecord>>(new Map());
   const requestedCheckedRef = useRef<Set<number>>(new Set());

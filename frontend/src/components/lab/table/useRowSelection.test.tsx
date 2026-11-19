@@ -4,11 +4,11 @@ import { useState } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import { useRowSelection } from "./useRowSelection";
 
-function SelectionHarness() {
+function SelectionHarness({ keepPicksOnReset = false }: { keepPicksOnReset?: boolean }) {
   const [filterKey, setFilterKey] = useState("status=Active|q=");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState("code:asc");
-  const sel = useRowSelection<string>(filterKey);
+  const sel = useRowSelection<string>(filterKey, { keepPicksOnReset });
 
   return (
     <div>
@@ -85,5 +85,19 @@ describe("useRowSelection", () => {
     expect(screen.getByTestId("count").textContent).toBe("0");
     expect(screen.getByTestId("all-matching").textContent).toBe("false");
     expect(screen.getByTestId("selected-ids").textContent).toBe("");
+  });
+
+  it("with keepPicksOnReset, a filter change keeps rows ticked one by one but clears all that match", async () => {
+    const user = userEvent.setup();
+    render(<SelectionHarness keepPicksOnReset />);
+
+    await user.click(screen.getByRole("button", { name: "Toggle 1" }));
+    await user.click(screen.getByRole("button", { name: "Select All Matching" }));
+    expect(screen.getByTestId("count").textContent).toBe("312");
+
+    await user.click(screen.getByRole("button", { name: "Change Filter" }));
+    expect(screen.getByTestId("all-matching").textContent).toBe("false");
+    expect(screen.getByTestId("selected-ids").textContent).toBe("EQ-001");
+    expect(screen.getByTestId("count").textContent).toBe("1");
   });
 });

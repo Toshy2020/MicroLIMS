@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
@@ -120,8 +120,16 @@ describe("AuditTrailReviewsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Start review" }));
     await user.type(screen.getByLabelText(/Title/i), "October Sample Review");
-    await user.type(screen.getByLabelText(/Period from/i), "2026-10-01T09:00");
-    await user.type(screen.getByLabelText(/Period to/i), "2026-10-10T10:00");
+    const fromDate = screen.getByRole("group", { name: /Period from/i });
+    await user.type(within(fromDate).getByRole("spinbutton", { name: "Day" }), "01102026");
+    const fromTime = screen.getByLabelText(/Period from.*time/i);
+    await user.clear(fromTime);
+    await user.type(fromTime, "0900");
+    const toDate = screen.getByRole("group", { name: /Period to/i });
+    await user.type(within(toDate).getByRole("spinbutton", { name: "Day" }), "10102026");
+    const toTime = screen.getByLabelText(/Period to.*time/i);
+    await user.clear(toTime);
+    await user.type(toTime, "1000");
     const submitButtons = screen.getAllByRole("button", { name: "Start review" });
     await user.click(submitButtons[submitButtons.length - 1]);
 

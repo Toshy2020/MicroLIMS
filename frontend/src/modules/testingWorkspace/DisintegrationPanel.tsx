@@ -25,6 +25,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { StatusBadge } from "../../components/StatusBadge";
 import { CriteriaCard, NumericCell, ResultSection, VerdictBanner } from "../../components/lab";
 import type { CriteriaRow, Verdict } from "../../components/lab";
+import { DateTimeField24, getLocalIsoString } from "../../components/DateTimeField24";
 import { Ltr } from "../../components/Ltr";
 import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
@@ -67,11 +68,6 @@ interface UnitRowInput {
   minutes: string;
   notDisintegrated: boolean;
 }
-
-const getLocalIsoString = (date: Date = new Date()): string => {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
 
 const errorMessage = (e: unknown, fallback: string) =>
   (e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? fallback;
@@ -719,13 +715,10 @@ export function DisintegrationPanel({
                 </Select>
               </FormControl>
 
-              <TextField
-                size="small"
-                type="datetime-local"
+              <DateTimeField24
                 label={t("disintegration.analysisTimeLocal")}
                 value={analysedAt}
-                onChange={(e) => setAnalysedAt(e.target.value)}
-                slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
+                onChange={setAnalysedAt}
                 required
                 sx={{ flex: 1 }}
               />

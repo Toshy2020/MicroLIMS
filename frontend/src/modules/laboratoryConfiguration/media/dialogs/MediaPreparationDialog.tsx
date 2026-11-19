@@ -777,12 +777,18 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     </>
   );
 
+  const closeBench = async () => {
+    // Leaving a form with entries was confirmed as a discard; an offered draft nobody accepted is left alone.
+    if (isDirty && !draft.restored) await draft.discard();
+    onClose();
+  };
+
   if (benchMode) {
     return (
       <BenchDialog
         open={open}
         title={dialogTitle}
-        onClose={onClose}
+        onClose={() => void closeBench()}
         onSave={() => void submitPreparation()}
         saving={saving}
         saveLabel={t("media.preparationDialog.saveLabel")}

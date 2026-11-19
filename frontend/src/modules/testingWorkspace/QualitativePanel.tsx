@@ -20,8 +20,7 @@ import { SignatureDialog } from "../../components/SignatureDialog";
 import { BenchDialog } from "../../components/bench/BenchDialog";
 import { DraftRestoreNotice } from "../../components/bench/DraftRestoreNotice";
 import { NumericEntryField } from "../../components/bench/NumericEntryField";
-import { DateField } from "../../components/DateField";
-import { TimeField24 } from "../../components/TimeField24";
+import { DateTimeField24, getLocalIsoString } from "../../components/DateTimeField24";
 import { Ltr } from "../../components/Ltr";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 import { useBenchDraft } from "../../hooks/useBenchDraft";
@@ -114,11 +113,6 @@ function pickQualitativeDraft(v: QualitativeFormValues): Partial<QualitativeForm
     }))
   };
 }
-
-const getLocalIsoString = (date: Date = new Date()): string => {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-};
 
 export function QualitativePanel({
   testOrderId,
@@ -555,27 +549,12 @@ export function QualitativePanel({
           <Stack spacing={2}>
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
               <Box>
-                <Box sx={{ display: "flex", gap: 1 }}>
-                  <DateField
-                    label={t("qualitative.analysisTime")}
-                    value={analysedAt.slice(0, 10)}
-                    onChange={(d) => {
-                      const timePart = analysedAt.slice(11, 16) || "00:00";
-                      setAnalysedAt(d ? `${d}T${timePart}` : "");
-                    }}
-                    required
-                    fullWidth
-                  />
-                  <TimeField24
-                    value={analysedAt.slice(11, 16)}
-                    onChange={(time) => {
-                      const datePart = analysedAt.slice(0, 10) || getLocalIsoString().slice(0, 10);
-                      setAnalysedAt(`${datePart}T${time}`);
-                    }}
-                    ariaLabel={t("qualitative.analysisTime")}
-                    sx={{ minWidth: 115 }}
-                  />
-                </Box>
+                <DateTimeField24
+                  label={t("qualitative.analysisTime")}
+                  value={analysedAt}
+                  onChange={setAnalysedAt}
+                  required
+                />
                 {analysedAt && !Number.isNaN(new Date(analysedAt).getTime()) && (
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.5 }}>
                     <Ltr>{formatDateTimeWithTimeZone(new Date(analysedAt))}</Ltr>

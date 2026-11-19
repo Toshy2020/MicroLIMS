@@ -10,8 +10,8 @@ The interface is now translated module by module. `frontend/src/locales/glossary
 | Q2 | Sample location / sampling point (EM, water) | **Decided 2026-11-19: موقع أخذ العينات** (the glossary check accepts العينات for "Sample") | The glossary test needs the exact word عينة wherever the English says "Sample", so "مواقع أخذ العينات" is not accepted. Keep موقع عينة, or relax the test for this phrase? |
 | Q3 | Media lot | **Decided 2026-11-19: Lot = تشغيلة** (added to the glossary; Batch stays دفعة) | Batch (product) is دفعة (glossary). Media and reagent lots use تشغيلة. Confirm? |
 | Q4 | Bench mode | **Decided 2026-11-19: وضع منصة العمل** (added to the glossary) | Confirm, or another word (وضع منصة العمل)? |
-| Q5 | Retired (rule, specification) | مُوقَف | Confirm? |
-| Q6 | Status names and enum values from the server | translated on chips; raw values in data tables | Confirm that tables may show the stored English value (e.g. room kind "Room/LAF")? |
+| Q5 | Retired (rule, specification) | **Decided 2026-11-19: مُوقَف** | Confirm? |
+| Q6 | Status names and enum values from the server | **Decided 2026-11-19: accepted for R2** (chips translated; tables show the stored English value; translating table values follows after R2) | Confirm that tables may show the stored English value (e.g. room kind "Room/LAF")? |
 
 ## 2. Terms set once for all modules (please confirm)
 

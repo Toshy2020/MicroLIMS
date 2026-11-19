@@ -96,6 +96,7 @@ R2 changes how staff use the laboratory application day to day. It adds a My Wor
 - Arabic dates are wrapped in a right-to-left isolate. Numbers use Latin digits in every language. Arabic/RTL layout overflow, clipping and typography were fixed. (a3e6a07a, 45c2e404, d7208f5a, 6a994861)
 - In-page printed tables and CSV exports are English and left to right for every user. The Reports page shell and Overview KPI cards are in Arabic. (853de195, 959b6ff2, feb791a0)
 - A language change no longer wipes typed replicates or resets an open method form, and the recorded English meaning statement is kept on sign-off. (a69dff54, 3ddf2f78, 3d4f185c)
+- Arabic walk recheck fixes: the tour stays on screen in Arabic, KPI names and definitions are translated by KPI key, the actions column is no longer pushed off the edge when rows can be selected, the tablet header shows only the avatar, and the qualitative analysis time is a 24-hour field. (1afef32a, a4bab49f, c4c195b2, 9f7322d0, ff82bb80)
 - Terms were reviewed and applied. The manual, the Arabic walk triage and the interface-language requirements were documented. (4fd38c15, a7611741, 5275be09, 6ce9c0ab)
 
 ## Walkthrough findings fixed
@@ -103,3 +104,10 @@ R2 changes how staff use the laboratory application day to day. It adds a My Wor
 - `docs/r2/walkthrough-2026-11-17-part1.md` — part 1 walkthrough, with findings and triage (24d0e34d).
 - `docs/r2/walkthrough-2026-11-18-part2.md` — part 2 walkthrough, with findings and triage (0c64360c).
 - `docs/r2/arabic-walk-2026-11-19.md` — Arabic screenshot walk, with findings and triage (5275be09).
+
+## Deferred to after R2 (decided 2026-11-19)
+
+- Convert the remaining uncoded server messages (configuration, administration and other areas).
+- Translate stored English values shown in data tables (for example room kind "Room/LAF"). Status chips are already translated.
+- Redesign the New Sample grid column widths so the date and delete columns are visible without sideways scrolling.
+- Use the 24-hour time field in the disintegration, dissolution, gravimetric and measurement panels.

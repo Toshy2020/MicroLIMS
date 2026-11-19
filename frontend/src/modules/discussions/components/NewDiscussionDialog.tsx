@@ -1,4 +1,5 @@
 import { useState, ChangeEvent } from "react";
+import { useTranslation } from "../../../i18n";
 import {
   Dialog,
   DialogTitle,
@@ -30,6 +31,7 @@ interface Props {
 }
 
 export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
+  const { t } = useTranslation("discussions");
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
   const [category, setCategory] = useState<DiscussionCategory>(DiscussionCategory.Water);
@@ -51,11 +53,11 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      setError("Discussion title is required.");
+      setError(t("validation.titleRequired"));
       return;
     }
     if (!content.trim()) {
-      setError("Discussion content is required.");
+      setError(t("validation.contentRequired"));
       return;
     }
 
@@ -77,7 +79,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
       handleReset();
       onCreated(res.id);
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Failed to create discussion.");
+      setError(err.response?.data?.message || err.message || t("newDialog.createError"));
     } finally {
       setLoading(false);
     }
@@ -96,16 +98,16 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
     <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
         <AddCommentIcon color="primary" />
-        New Discussion
+        {t("newDialog.title")}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
         {error && <Alert severity="error">{error}</Alert>}
 
         <TextField
-          label="Title"
+          label={t("fields.title")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="What is this discussion about?"
+          placeholder={t("newDialog.titlePlaceholder")}
           fullWidth
           required
           disabled={loading}
@@ -114,11 +116,11 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
 
         <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
           <FormControl sx={{ minWidth: 260 }}>
-            <InputLabel id="category-label">Category</InputLabel>
+            <InputLabel id="category-label">{t("fields.category")}</InputLabel>
             <Select
               labelId="category-label"
               value={category}
-              label="Category"
+              label={t("fields.category")}
               onChange={(e) => setCategory(Number(e.target.value) as DiscussionCategory)}
               disabled={loading}
             >
@@ -139,15 +141,15 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
                 disabled={loading}
               />
             }
-            label="Mark as Important (Pinned at top)"
+            label={t("newDialog.markImportant")}
           />
         </Box>
 
         <TextField
-          label="Content / Details"
+          label={t("fields.content")}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Provide context, observations, questions, or regulatory references..."
+          placeholder={t("newDialog.contentPlaceholder")}
           fullWidth
           multiline
           minRows={5}
@@ -160,7 +162,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
         <Box sx={{ border: "1px dashed", borderColor: "divider", p: 2, borderRadius: 2 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              Attachments (Documents, Images, Worksheets)
+              {t("newDialog.attachments")}
             </Typography>
             <Button
               variant="outlined"
@@ -169,7 +171,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
               startIcon={<AttachFileIcon />}
               disabled={loading}
             >
-              Choose Files
+              {t("newDialog.chooseFiles")}
               <input
                 type="file"
                 multiple
@@ -182,7 +184,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
 
           {files.length === 0 ? (
             <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              No files attached yet. Supported: PDF, Word, Excel, PowerPoint, images, text files - up to 5 files, 10 MB each.
+              {t("newDialog.noFiles")}
             </Typography>
           ) : (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
@@ -201,7 +203,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} disabled={loading} color="inherit">
-          Cancel
+          {t("actions.cancel")}
         </Button>
         <Button
           onClick={handleSubmit}
@@ -210,7 +212,7 @@ export function NewDiscussionDialog({ open, onClose, onCreated }: Props) {
           disabled={loading || !title.trim() || !content.trim()}
           startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <AddCommentIcon />}
         >
-          {loading ? "Publishing..." : "Publish Discussion"}
+          {loading ? t("newDialog.publishing") : t("newDialog.publish")}
         </Button>
       </DialogActions>
     </Dialog>

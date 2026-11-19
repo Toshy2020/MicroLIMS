@@ -1,0 +1,57 @@
+{
+  "page": {
+    "title": "Direct & Group Messages",
+    "subtitle": "Real-time workplace discussions with laboratory analysts, reviewers, and section heads.",
+    "newMessage": "New Message",
+    "loadError": "Failed to load conversations."
+  },
+  "list": {
+    "filterPlaceholder": "Filter conversations...",
+    "filterLabel": "Filter conversations",
+    "empty": "No conversations yet. Start a new message!",
+    "noMatch": "No matching conversations found.",
+    "fallbackTitle": "Conversation",
+    "noMessagesYet": "No messages yet",
+    "you": "You: ",
+    "lastMessage": "{{prefix}}{{content}}"
+  },
+  "chat": {
+    "back": "Back to conversations",
+    "fallbackTitle": "Conversation",
+    "members": "{{count}} members: {{names}}",
+    "jobRole": "{{jobTitle}} • {{roleName}}",
+    "colleague": "Colleague",
+    "sendError": "Failed to send message.",
+    "noMessages": "No messages in this conversation yet.",
+    "sayHello": "Say hello to start the conversation!",
+    "placeholder": "Write a message... (Press Enter to send)",
+    "inputLabel": "Message",
+    "sendAria": "Send message"
+  },
+  "emptyPane": {
+    "title": "Select a conversation",
+    "body": "Choose a conversation from the list, or use New Message above to start one."
+  },
+  "dialog": {
+    "directoryFailed": "The user directory could not be loaded, so no recipients can be listed. Close and reopen this dialog to try again.",
+    "noRecipient": "Please select at least one recipient.",
+    "groupTitleRequired": "Group conversation title is required.",
+    "initialEmpty": "Initial message cannot be empty.",
+    "createFailed": "Failed to create conversation.",
+    "conversationType": "Conversation Type",
+    "direct": "Direct Message (1-on-1)",
+    "group": "Group Conversation",
+    "groupTitle": "Group Title",
+    "groupPlaceholder": "e.g. Microbiology Team, Water Testing Group...",
+    "selectParticipants": "Select Participants",
+    "selectRecipient": "Select Recipient",
+    "searchPlaceholder": "Search colleagues by name...",
+    "jobTitle": "• {{jobTitle}}",
+    "roleJob": "{{role}} {{job}}",
+    "initialMessage": "Initial Message",
+    "initialPlaceholder": "Type your message here...",
+    "cancel": "Cancel",
+    "sending": "Sending...",
+    "send": "Send Message"
+  }
+}

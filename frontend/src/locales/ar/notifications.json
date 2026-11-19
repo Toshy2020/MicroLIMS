@@ -1,0 +1,136 @@
+{
+  "page": {
+    "title": "الإشعارات",
+    "subtitle": "تنبيهات وإسنادات وتصعيدات وتذكيرات عبر أقسامك."
+  },
+  "tabs": {
+    "stateLabel": "حالة الإشعار",
+    "all": "الكل",
+    "unread": "غير مقروءة",
+    "read": "مقروءة",
+    "done": "منجزة"
+  },
+  "severity": {
+    "label": "الأهمية",
+    "error": "خطأ",
+    "warning": "تحذير",
+    "info": "معلومة"
+  },
+  "columns": {
+    "title": "العنوان",
+    "message": "الرسالة",
+    "section": "القسم",
+    "created": "تاريخ الإنشاء"
+  },
+  "badge": {
+    "done": "منجز"
+  },
+  "filters": {
+    "searchPlaceholder": "ابحث في الإشعارات",
+    "type": "النوع",
+    "allTypes": "كل الأنواع"
+  },
+  "actions": {
+    "markAllRead": "تحديد الكل كمقروء",
+    "markingAllRead": "جارٍ تحديد الكل كمقروء...",
+    "retry": "إعادة المحاولة",
+    "clearFilters": "مسح عوامل التصفية",
+    "saveMandatory": "حفظ الأنواع الإلزامية",
+    "savePreferences": "حفظ التفضيلات",
+    "saving": "جارٍ الحفظ..."
+  },
+  "toast": {
+    "allRead": "تم تحديد كل الإشعارات كمقروءة."
+  },
+  "errors": {
+    "load": "تعذّر تحميل الإشعارات.",
+    "loadTitle": "تعذّر تحميل الإشعارات",
+    "loadDescription": "أعد المحاولة أو تحقّق من اتصالك.",
+    "markAllRead": "تعذّر تحديد كل الإشعارات كمقروءة.",
+    "markRead": "تعذّر تحديد الإشعار كمقروء.",
+    "sections": "تعذّر تحميل أقسام المختبر الخاصة بك.",
+    "mandatoryTypes": "تعذّر تحميل أنواع الإشعارات الإلزامية.",
+    "saveMandatory": "تعذّر حفظ أنواع الإشعارات الإلزامية.",
+    "preferences": "تعذّر تحميل تفضيلات الإشعارات.",
+    "savePreferences": "تعذّر حفظ تفضيلات الإشعارات."
+  },
+  "empty": {
+    "filteredTitle": "لا توجد إشعارات مطابقة",
+    "filteredDescription": "لا توجد إشعارات تطابق الحالة أو النوع أو البحث المحدد.",
+    "title": "لا توجد إشعارات",
+    "description": "أنت على اطلاع كامل، ولا يوجد ما يتطلب انتباهك.",
+    "noSections": "لم يتم إسنادك إلى أي أقسام مختبر.",
+    "noMandatoryTypes": "لا تتوفر أنواع إشعارات قابلة للإرسال بالبريد الإلكتروني.",
+    "noPreferenceTypes": "لم يتم إعداد أي أنواع إشعارات."
+  },
+  "types": {
+    "ReviewWaiting": "عينة بانتظار المراجعة",
+    "ApprovalWaiting": "عينة بانتظار الاعتماد",
+    "TestReturned": "اختبار أُعيد إلى المحلل",
+    "TestAssigned": "تم إسناد اختبار",
+    "IncubationReady": "الحضانة جاهزة للقراءة",
+    "MediaExpiry": "تشغيلة أوساط زرعية على وشك الانتهاء أو منتهية",
+    "SolutionExpiry": "تشغيلة محلول على وشك الانتهاء أو منتهية",
+    "StrainExpiry": "سلالة مرجعية على وشك الانتهاء أو منتهية",
+    "CalibrationDue": "معايرة معدات مستحقة",
+    "ItemOverdue": "بند متأخر",
+    "Escalation": "تم تفعيل التصعيد",
+    "DocumentTask": "مهمة مستند مُسندة",
+    "TrainingAssigned": "تم إسناد تدريب",
+    "DirectMessage": "رسالة مباشرة جديدة",
+    "Discussion": "نشاط في المناقشات",
+    "ConfigurationApprovalWaiting": "إعداد بانتظار الاعتماد",
+    "PendingPreparationConfigApproval": "إعداد التحضير بانتظار الاعتماد",
+    "TestReturnedForRevision": "اختبار أُعيد للمراجعة",
+    "TestReturnedForBiochemical": "اختبار أُعيد للتأكيد الكيميائي الحيوي",
+    "DiscussionPostUpdated": "تم تحديث منشور مناقشة",
+    "DiscussionComment": "تعليق جديد في مناقشة",
+    "DocumentReassigned": "أُعيد إسناد مسؤولية المستند",
+    "ReassignmentOverdue": "إعادة إسناد المستند متأخرة",
+    "MonitoringOverdue": "مهمة مراقبة متأخرة",
+    "MonitoringDeviationsOpen": "انحرافات مراقبة مفتوحة",
+    "MonitoringDueThisMonth": "مراقبة مستحقة هذا الشهر",
+    "EquipmentCalibrationOverdue": "مهمة معايرة معدات متأخرة",
+    "EquipmentPmOverdue": "صيانة وقائية للمعدات متأخرة"
+  },
+  "mandatory": {
+    "title": "إشعارات القسم الإلزامية",
+    "intro": "أنواع الإشعارات التي تدعم البريد الإلكتروني وتم تحديدها كإلزامية تتطلب إرسالًا فوريًا بالبريد الإلكتروني لجميع أعضاء القسم المحدد. يرى الأعضاء سبب القفل هذا تلقائيًا بوصفه {{reason}}.",
+    "reasonQuoted": "«{{reason}}»",
+    "forSection": "إلزامي لقسم {{section}}",
+    "theirSectionName": "اسم قسمهم",
+    "yourSection": "إلزامي لقسمك",
+    "optional": "اختياري",
+    "sectionField": "قسم المختبر",
+    "tableLabel": "أنواع الإشعارات الإلزامية للقسم",
+    "colType": "نوع الإشعار",
+    "colReason": "السبب المعروض للأعضاء",
+    "colMandatory": "إلزامي",
+    "switchLabel": "{{title}} إلزامي",
+    "saved": "تم حفظ أنواع الإشعارات الإلزامية."
+  },
+  "loading": {
+    "sections": "جارٍ تحميل أقسام المختبر الخاصة بك...",
+    "types": "جارٍ تحميل إعدادات إشعارات القسم...",
+    "preferences": "جارٍ تحميل تفضيلات الإشعارات..."
+  },
+  "preferences": {
+    "title": "الإشعارات",
+    "aria": "الإشعارات",
+    "intro": "تبقى الإشعارات داخل التطبيق مفعّلة لجميع الأحداث التشغيلية. يمكن ضبط تسليم البريد الإلكتروني لكل نوع إشعار ما لم يتطلب قسمك التسليم الفوري.",
+    "tableLabel": "تفضيلات الإشعارات",
+    "colNotification": "الإشعار",
+    "colInApp": "داخل التطبيق",
+    "colEmail": "البريد الإلكتروني",
+    "alwaysOn": "مفعّل دائمًا",
+    "inAppRequired": "الإشعارات داخل التطبيق مطلوبة لجميع المستخدمين ولا يمكن إيقافها.",
+    "inAppOnly": "داخل التطبيق فقط",
+    "emailLabel": "تسليم {{title}} بالبريد الإلكتروني",
+    "saved": "تم حفظ تفضيلات الإشعارات."
+  },
+  "mode": {
+    "off": "إيقاف",
+    "immediate": "فوري",
+    "digest": "ملخص دوري"
+  }
+}

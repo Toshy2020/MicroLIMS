@@ -19,6 +19,7 @@ import {
   Typography
 } from "@mui/material";
 import { toast } from "sonner";
+import { i18n, useTranslation } from "../../i18n";
 import { useOptionalAuth } from "../../contexts/AuthContext";
 import { PERMISSIONS } from "../../routes/routes";
 import { type LaboratorySection, laboratorySectionService } from "../../services/laboratorySectionService";
@@ -31,6 +32,7 @@ interface NotificationMandatoryPanelProps {
 }
 
 export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPanelProps) {
+  const { t } = useTranslation("notifications");
   const auth = useOptionalAuth();
   const canConfigure = Boolean(auth?.permissions.includes(PERMISSIONS.NOTIFICATIONS_CONFIGURE));
   const headingId = useId();
@@ -74,7 +76,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
-        setSectionsError(getErrorMessage(err, "Could not load your laboratory sections."));
+        setSectionsError(getErrorMessage(err, i18n.t("errors.sections", { ns: "notifications" })));
         setSectionsLoading(false);
       });
 
@@ -96,7 +98,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
       })
       .catch((err: unknown) => {
         if (signal.aborted) return;
-        setTypesError(getErrorMessage(err, "Could not load mandatory notification types."));
+        setTypesError(getErrorMessage(err, i18n.t("errors.mandatoryTypes", { ns: "notifications" })));
         setLoadingTypes(false);
       });
   }, []);
@@ -133,10 +135,10 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
       const updated = await notificationService.putMandatory(selectedSectionId, selectedTypes);
       setItems(updated);
       setSelectedTypes(updated.filter((item) => item.mandatory).map((item) => item.type));
-      toast.success("Mandatory notification types saved.");
+      toast.success(t("mandatory.saved"));
       onSaved?.();
     } catch (err: unknown) {
-      const message = getErrorMessage(err, "Could not save mandatory notification types.");
+      const message = getErrorMessage(err, t("errors.saveMandatory"));
       const fieldErrors = getFieldErrors(err);
       const details = fieldErrors.map((fe) => fe.message).filter((msg) => msg.trim().length > 0);
       setSaveError(details.length > 0 ? Array.from(new Set(details)).join(" ") : message);
@@ -149,18 +151,23 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
   return (
     <Paper component="section" aria-labelledby={headingId} sx={{ p: 2.5, maxWidth: 760, mb: 2 }}>
       <Typography id={headingId} variant="h6" component="h3" sx={{ mb: 0.5 }}>
-        Section mandatory notifications
+        {t("mandatory.title")}
       </Typography>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Email-enabled types marked mandatory require immediate email delivery for all members of the selected section. Members see this lock reason automatically as{" "}
-        {selectedSection ? `"Mandatory for ${selectedSection.sectionName}"` : "their section name"}.
+        {t("mandatory.intro", {
+          reason: selectedSection
+            ? t("mandatory.reasonQuoted", {
+                reason: t("mandatory.forSection", { section: selectedSection.sectionName })
+              })
+            : t("mandatory.theirSectionName")
+        })}
       </Typography>
 
       {sectionsLoading && (
         <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1 }} role="status" aria-live="polite">
           <CircularProgress size={18} />
           <Typography variant="body2" color="text.secondary">
-            Loading your laboratory sections...
+            {t("loading.sections")}
           </Typography>
         </Stack>
       )}
@@ -170,7 +177,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
           severity="error"
           action={
             <Button color="inherit" size="small" onClick={() => setSectionsReloadToken((n) => n + 1)}>
-              Retry
+              {t("actions.retry")}
             </Button>
           }
         >
@@ -180,17 +187,17 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
 
       {!sectionsLoading && !sectionsError && sections.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          You are not assigned to any laboratory sections.
+          {t("empty.noSections")}
         </Typography>
       )}
 
       {!sectionsLoading && !sectionsError && sections.length > 0 && (
         <>
           <FormControl size="small" sx={{ minWidth: 260, mb: 2 }}>
-            <InputLabel id={sectionLabelId}>Laboratory section</InputLabel>
+            <InputLabel id={sectionLabelId}>{t("mandatory.sectionField")}</InputLabel>
             <Select
               labelId={sectionLabelId}
-              label="Laboratory section"
+              label={t("mandatory.sectionField")}
               value={selectedSectionId}
               disabled={saving}
               onChange={(event) => setSelectedSectionId(Number(event.target.value))}
@@ -207,7 +214,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
             <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 1 }} role="status" aria-live="polite">
               <CircularProgress size={18} />
               <Typography variant="body2" color="text.secondary">
-                Loading section notification settings...
+                {t("loading.types")}
               </Typography>
             </Stack>
           )}
@@ -217,7 +224,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
               severity="error"
               action={
                 <Button color="inherit" size="small" onClick={() => setTypesReloadToken((n) => n + 1)}>
-                  Retry
+                  {t("actions.retry")}
                 </Button>
               }
             >
@@ -227,7 +234,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
 
           {!loadingTypes && !typesError && items && items.length === 0 && (
             <Typography variant="body2" color="text.secondary">
-              No email-capable notification types are available.
+              {t("empty.noMandatoryTypes")}
             </Typography>
           )}
 
@@ -240,12 +247,12 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
               )}
 
               <TableContainer>
-                <Table size="small" aria-label="Section mandatory notification types">
+                <Table size="small" aria-label={t("mandatory.tableLabel")}>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Notification type</TableCell>
-                      <TableCell>Reason shown to members</TableCell>
-                      <TableCell align="right">Mandatory</TableCell>
+                      <TableCell>{t("mandatory.colType")}</TableCell>
+                      <TableCell>{t("mandatory.colReason")}</TableCell>
+                      <TableCell align="right">{t("mandatory.colMandatory")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -261,8 +268,8 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
                           <TableCell>
                             <Typography variant="body2" color="text.secondary">
                               {isMandatory && selectedSection
-                                ? `Mandatory for ${selectedSection.sectionName}`
-                                : "Optional"}
+                                ? t("mandatory.forSection", { section: selectedSection.sectionName })
+                                : t("mandatory.optional")}
                             </Typography>
                           </TableCell>
                           <TableCell align="right">
@@ -270,7 +277,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
                               checked={isMandatory}
                               disabled={saving}
                               onChange={() => toggleType(item.type)}
-                              slotProps={{ input: { "aria-label": `${item.title} mandatory` } }}
+                              slotProps={{ input: { "aria-label": t("mandatory.switchLabel", { title: item.title }) } }}
                             />
                           </TableCell>
                         </TableRow>
@@ -286,7 +293,7 @@ export function NotificationMandatoryPanel({ onSaved }: NotificationMandatoryPan
                   onClick={handleSave}
                   disabled={saving || typeof selectedSectionId !== "number"}
                 >
-                  {saving ? "Saving..." : "Save mandatory types"}
+                  {saving ? t("actions.saving") : t("actions.saveMandatory")}
                 </Button>
               </Stack>
             </>

@@ -4,6 +4,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import type { IncidentFilterState } from "../types/errorMonitoringTypes";
 import { SEVERITIES, SOURCES, STATUSES } from "../types/errorMonitoringTypes";
 import { DateField } from "../../../components/DateField";
+import { useTranslation } from "../../../i18n";
 
 interface Props {
   filters: IncidentFilterState;
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function IncidentFilterBar({ filters, onChange, onReset, onExport, exporting, disabled }: Props) {
+  const { t } = useTranslation("errorMonitoring");
   const set = <K extends keyof IncidentFilterState>(key: K, value: IncidentFilterState[K]) =>
     onChange({ ...filters, [key]: value });
 
@@ -29,49 +31,49 @@ export function IncidentFilterBar({ filters, onChange, onReset, onExport, export
           alignItems: "flex-end"
         }}>
         <TextField
-          select size="small" label="Severity" sx={{ minWidth: 140 }}
+          select size="small" label={t("filters.severity")} sx={{ minWidth: 140 }}
           value={filters.severity}
           onChange={(e) => set("severity", e.target.value as IncidentFilterState["severity"])}
         >
-          <MenuItem value="">All</MenuItem>
+          <MenuItem value="">{t("filters.all")}</MenuItem>
           {SEVERITIES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
 
         <TextField
-          select size="small" label="Source" sx={{ minWidth: 140 }}
+          select size="small" label={t("filters.source")} sx={{ minWidth: 140 }}
           value={filters.source}
           onChange={(e) => set("source", e.target.value as IncidentFilterState["source"])}
         >
-          <MenuItem value="">All</MenuItem>
+          <MenuItem value="">{t("filters.all")}</MenuItem>
           {SOURCES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
 
         <TextField
-          select size="small" label="Status" sx={{ minWidth: 140 }}
+          select size="small" label={t("filters.status")} sx={{ minWidth: 140 }}
           value={filters.status}
           onChange={(e) => set("status", e.target.value as IncidentFilterState["status"])}
         >
-          <MenuItem value="">All</MenuItem>
+          <MenuItem value="">{t("filters.all")}</MenuItem>
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
         </TextField>
 
-        <DateField label="Active from" value={filters.fromDate} onChange={(v) => set("fromDate", v)} max={filters.toDate} />
-        <DateField label="Active to" value={filters.toDate} onChange={(v) => set("toDate", v)} min={filters.fromDate} />
+        <DateField label={t("filters.activeFrom")} value={filters.fromDate} onChange={(v) => set("fromDate", v)} max={filters.toDate} />
+        <DateField label={t("filters.activeTo")} value={filters.toDate} onChange={(v) => set("toDate", v)} min={filters.fromDate} />
 
         <TextField
-          size="small" label="Search summary or correlation id" sx={{ minWidth: 280, flexGrow: 1 }}
+          size="small" label={t("filters.search")} sx={{ minWidth: 280, flexGrow: 1 }}
           value={filters.search} onChange={(e) => set("search", e.target.value)}
         />
 
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button size="small" startIcon={<RestartAltIcon />} onClick={onReset} disabled={disabled}>
-            Reset
+            {t("filters.reset")}
           </Button>
           <Button
             size="small" variant="outlined" startIcon={<FileDownloadOutlinedIcon />}
             onClick={onExport} disabled={disabled || exporting}
           >
-            {exporting ? "Exporting..." : "Export CSV"}
+            {exporting ? t("filters.exporting") : t("filters.exportCsv")}
           </Button>
         </Box>
       </Stack>

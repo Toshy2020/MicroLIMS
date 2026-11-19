@@ -22,6 +22,7 @@ import {
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { visuallyHidden } from "@mui/utils";
 import { toast } from "sonner";
+import { i18n, useTranslation } from "../../i18n";
 import { SectionTitle } from "../../components/SectionTitle";
 import { getErrorMessage } from "../../utils/errorMessage";
 import { getFieldErrors } from "../../utils/fieldErrors";
@@ -31,10 +32,10 @@ import {
   notificationService
 } from "./services/notificationService";
 
-const EMAIL_MODE_OPTIONS: { value: EmailMode; label: string }[] = [
-  { value: "Off", label: "Off" },
-  { value: "Immediate", label: "Immediate" },
-  { value: "Digest", label: "Digest" }
+const EMAIL_MODE_OPTIONS: { value: EmailMode; labelKey: string }[] = [
+  { value: "Off", labelKey: "mode.off" },
+  { value: "Immediate", labelKey: "mode.immediate" },
+  { value: "Digest", labelKey: "mode.digest" }
 ];
 
 interface NotificationPreferencesProps {
@@ -52,6 +53,7 @@ function buildDraft(rows: NotificationPreferenceRowDto[]): Record<string, EmailM
 }
 
 export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferencesProps) {
+  const { t } = useTranslation("notifications");
   const [rows, setRows] = useState<NotificationPreferenceRowDto[] | null>(null);
   const [draft, setDraft] = useState<Record<string, EmailMode>>({});
   const [loading, setLoading] = useState(true);
@@ -77,7 +79,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
         })
         .catch((err: unknown) => {
           if (signal.aborted) return;
-          setLoadError(getErrorMessage(err, "Could not load notification preferences."));
+          setLoadError(getErrorMessage(err, i18n.t("errors.preferences", { ns: "notifications" })));
           setLoading(false);
         });
     },
@@ -121,9 +123,9 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
       const updated = await notificationService.putPreferences(payload);
       setRows(updated);
       setDraft(buildDraft(updated));
-      toast.success("Notification preferences saved.");
+      toast.success(t("preferences.saved"));
     } catch (err: unknown) {
-      const message = getErrorMessage(err, "Could not save notification preferences.");
+      const message = getErrorMessage(err, t("errors.savePreferences"));
       const fieldErrors = getFieldErrors(err);
       const nextRowErrors: Record<string, string> = {};
       const generalMessages: string[] = [];
@@ -149,18 +151,18 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
   };
 
   return (
-    <Box component="section" aria-label="Notifications">
-      <SectionTitle>Notifications</SectionTitle>
+    <Box component="section" aria-label={t("preferences.aria")}>
+      <SectionTitle>{t("preferences.title")}</SectionTitle>
       <Paper sx={{ p: 2.5, maxWidth: 760, mb: 2 }}>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          In-app notifications stay on for all operational events. Email delivery can be set per notification type unless your section requires immediate delivery.
+          {t("preferences.intro")}
         </Typography>
 
         {loading && (
           <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", py: 2 }} role="status" aria-live="polite">
             <CircularProgress size={20} />
             <Typography variant="body2" color="text.secondary">
-              Loading notification preferences...
+              {t("loading.preferences")}
             </Typography>
           </Stack>
         )}
@@ -170,7 +172,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
             severity="error"
             action={
               <Button color="inherit" size="small" onClick={() => setReloadToken((n) => n + 1)}>
-                Retry
+                {t("actions.retry")}
               </Button>
             }
           >
@@ -180,7 +182,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
 
         {!loading && !loadError && rows && rows.length === 0 && (
           <Typography variant="body2" color="text.secondary">
-            No notification types are configured.
+            {t("empty.noPreferenceTypes")}
           </Typography>
         )}
 
@@ -193,12 +195,12 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
             )}
 
             <TableContainer>
-              <Table size="small" aria-label="Notification preferences">
+              <Table size="small" aria-label={t("preferences.tableLabel")}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Notification</TableCell>
-                    <TableCell>In app</TableCell>
-                    <TableCell sx={{ minWidth: 180 }}>Email</TableCell>
+                    <TableCell>{t("preferences.colNotification")}</TableCell>
+                    <TableCell>{t("preferences.colInApp")}</TableCell>
+                    <TableCell sx={{ minWidth: 180 }}>{t("preferences.colEmail")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -217,7 +219,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
                             <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", mt: 0.5 }}>
                               <LockOutlinedIcon fontSize="inherit" color="action" aria-hidden="true" />
                               <Typography variant="caption" color="text.secondary">
-                                {row.mandatoryReason ?? "Mandatory for your section"}
+                                {row.mandatoryReason ?? t("mandatory.yourSection")}
                               </Typography>
                             </Stack>
                           )}
@@ -225,22 +227,22 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
 
                         <TableCell>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            Always on
+                            {t("preferences.alwaysOn")}
                           </Typography>
                           <Box component="span" sx={visuallyHidden}>
-                            In-app notifications are required for all users and cannot be turned off.
+                            {t("preferences.inAppRequired")}
                           </Box>
                         </TableCell>
 
                         <TableCell>
                           {!row.emailAllowed ? (
                             <Typography variant="body2" color="text.secondary">
-                              In-app only
+                              {t("preferences.inAppOnly")}
                             </Typography>
                           ) : (
                             <FormControl size="small" fullWidth error={Boolean(errorText)}>
                               <InputLabel id={labelId} sx={visuallyHidden}>
-                                {row.title} email delivery
+                                {t("preferences.emailLabel", { title: row.title })}
                               </InputLabel>
                               <Select
                                 labelId={labelId}
@@ -250,7 +252,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
                               >
                                 {EMAIL_MODE_OPTIONS.map((option) => (
                                   <MenuItem key={option.value} value={option.value}>
-                                    {option.label}
+                                    {t(option.labelKey)}
                                   </MenuItem>
                                 ))}
                               </Select>
@@ -271,7 +273,7 @@ export function NotificationPreferences({ refreshKey = 0 }: NotificationPreferen
                 onClick={handleSave}
                 disabled={saving || editableRows.length === 0}
               >
-                {saving ? "Saving..." : "Save preferences"}
+                {saving ? t("actions.saving") : t("actions.savePreferences")}
               </Button>
             </Stack>
           </>

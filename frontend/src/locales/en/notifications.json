@@ -1,0 +1,136 @@
+{
+  "page": {
+    "title": "Notifications",
+    "subtitle": "Alerts, assignments, escalations, and reminders across your sections."
+  },
+  "tabs": {
+    "stateLabel": "Notification state",
+    "all": "All",
+    "unread": "Unread",
+    "read": "Read",
+    "done": "Done"
+  },
+  "severity": {
+    "label": "Severity",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "columns": {
+    "title": "Title",
+    "message": "Message",
+    "section": "Section",
+    "created": "Created"
+  },
+  "badge": {
+    "done": "Done"
+  },
+  "filters": {
+    "searchPlaceholder": "Search notifications",
+    "type": "Type",
+    "allTypes": "All types"
+  },
+  "actions": {
+    "markAllRead": "Mark all read",
+    "markingAllRead": "Marking all read...",
+    "retry": "Retry",
+    "clearFilters": "Clear filters",
+    "saveMandatory": "Save mandatory types",
+    "savePreferences": "Save preferences",
+    "saving": "Saving..."
+  },
+  "toast": {
+    "allRead": "All notifications marked as read."
+  },
+  "errors": {
+    "load": "Could not load notifications.",
+    "loadTitle": "Could not load notifications",
+    "loadDescription": "Try again or check your connection.",
+    "markAllRead": "Could not mark all notifications as read.",
+    "markRead": "Could not mark notification as read.",
+    "sections": "Could not load your laboratory sections.",
+    "mandatoryTypes": "Could not load mandatory notification types.",
+    "saveMandatory": "Could not save mandatory notification types.",
+    "preferences": "Could not load notification preferences.",
+    "savePreferences": "Could not save notification preferences."
+  },
+  "empty": {
+    "filteredTitle": "No matching notifications",
+    "filteredDescription": "No notifications match the selected state, type, or search.",
+    "title": "No notifications",
+    "description": "You are up to date - nothing needs your attention.",
+    "noSections": "You are not assigned to any laboratory sections.",
+    "noMandatoryTypes": "No email-capable notification types are available.",
+    "noPreferenceTypes": "No notification types are configured."
+  },
+  "types": {
+    "ReviewWaiting": "Sample awaiting review",
+    "ApprovalWaiting": "Sample awaiting approval",
+    "TestReturned": "Test returned to analyst",
+    "TestAssigned": "Test assigned",
+    "IncubationReady": "Incubation ready to read",
+    "MediaExpiry": "Media lot expiring or expired",
+    "SolutionExpiry": "Solution lot expiring or expired",
+    "StrainExpiry": "Reference strain expiring or expired",
+    "CalibrationDue": "Equipment calibration due",
+    "ItemOverdue": "Item overdue",
+    "Escalation": "Escalation triggered",
+    "DocumentTask": "Document task assigned",
+    "TrainingAssigned": "Training assigned",
+    "DirectMessage": "New direct message",
+    "Discussion": "Discussion activity",
+    "ConfigurationApprovalWaiting": "Configuration awaiting approval",
+    "PendingPreparationConfigApproval": "Preparation configuration awaiting approval",
+    "TestReturnedForRevision": "Test returned for revision",
+    "TestReturnedForBiochemical": "Test returned for biochemical confirmation",
+    "DiscussionPostUpdated": "Discussion post updated",
+    "DiscussionComment": "New discussion comment",
+    "DocumentReassigned": "Document responsibility reassigned",
+    "ReassignmentOverdue": "Document reassignment overdue",
+    "MonitoringOverdue": "Monitoring occurrence overdue",
+    "MonitoringDeviationsOpen": "Open monitoring deviations",
+    "MonitoringDueThisMonth": "Monitoring due this month",
+    "EquipmentCalibrationOverdue": "Equipment calibration task overdue",
+    "EquipmentPmOverdue": "Equipment preventive maintenance overdue"
+  },
+  "mandatory": {
+    "title": "Section mandatory notifications",
+    "intro": "Email-enabled types marked mandatory require immediate email delivery for all members of the selected section. Members see this lock reason automatically as {{reason}}.",
+    "reasonQuoted": "\"{{reason}}\"",
+    "forSection": "Mandatory for {{section}}",
+    "theirSectionName": "their section name",
+    "yourSection": "Mandatory for your section",
+    "optional": "Optional",
+    "sectionField": "Laboratory section",
+    "tableLabel": "Section mandatory notification types",
+    "colType": "Notification type",
+    "colReason": "Reason shown to members",
+    "colMandatory": "Mandatory",
+    "switchLabel": "{{title}} mandatory",
+    "saved": "Mandatory notification types saved."
+  },
+  "loading": {
+    "sections": "Loading your laboratory sections...",
+    "types": "Loading section notification settings...",
+    "preferences": "Loading notification preferences..."
+  },
+  "preferences": {
+    "title": "Notifications",
+    "aria": "Notifications",
+    "intro": "In-app notifications stay on for all operational events. Email delivery can be set per notification type unless your section requires immediate delivery.",
+    "tableLabel": "Notification preferences",
+    "colNotification": "Notification",
+    "colInApp": "In app",
+    "colEmail": "Email",
+    "alwaysOn": "Always on",
+    "inAppRequired": "In-app notifications are required for all users and cannot be turned off.",
+    "inAppOnly": "In-app only",
+    "emailLabel": "{{title}} email delivery",
+    "saved": "Notification preferences saved."
+  },
+  "mode": {
+    "off": "Off",
+    "immediate": "Immediate",
+    "digest": "Digest"
+  }
+}

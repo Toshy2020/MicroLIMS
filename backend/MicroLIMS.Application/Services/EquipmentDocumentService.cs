@@ -1,5 +1,7 @@
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
+using System.Globalization;
+using MicroLIMS.Shared.Messages;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -83,7 +85,8 @@ public class EquipmentDocumentService
     {
         var equipmentExists = await _db.EquipmentInventories.AnyAsync(e => e.Id == equipmentId);
         if (!equipmentExists)
-            throw new NotFoundException($"Equipment {equipmentId} not found.");
+            throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         var docs = await _db.EquipmentDocuments
             .Where(d => d.EquipmentInventoryId == equipmentId)
@@ -109,13 +112,15 @@ public class EquipmentDocumentService
     private async Task<EquipmentDocumentDto> UploadCoreAsync(int equipmentId, UploadEquipmentDocumentRequest request, int uploadingUserId)
     {
         var equipment = await _db.EquipmentInventories.FindAsync(equipmentId)
-            ?? throw new NotFoundException($"Equipment {equipmentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentNotFound, $"Equipment {equipmentId} not found.",
+                new Dictionary<string, string> { ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture) });
 
         // Server-side file validation.
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentValidationFailed, error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -164,7 +169,12 @@ public class EquipmentDocumentService
     {
         var document = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanDocumentNotFoundForEquipment, $"Document {documentId} not found for equipment {equipmentId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture)
+                });
 
         byte[] content;
         try
@@ -174,7 +184,7 @@ public class EquipmentDocumentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "File read failed for EquipmentDocument {Id} (key: {Key}).", document.Id, document.StorageKey);
-            throw new BusinessRuleException("The document file could not be retrieved.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentReadFailed, "The document file could not be retrieved.");
         }
 
         // Integrity verification.
@@ -185,7 +195,7 @@ public class EquipmentDocumentService
                 "INTEGRITY FAILURE: EquipmentDocument {Id} (equipment {EquipmentId}) stored hash {Stored} does not match computed hash {Computed}.",
                 document.Id, document.EquipmentInventoryId, document.ContentSha256, computedHash);
             await RecordAccessAsync(document.Id, equipmentId, requestingUserId, EquipmentDocumentAccessAction.Download);
-            throw new BusinessRuleException("Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentIntegrityFailed, "Document integrity check failed. The file may have been altered. Please contact your System Administrator.");
         }
 
         await RecordAccessAsync(document.Id, equipmentId, requestingUserId, EquipmentDocumentAccessAction.Download);
@@ -206,19 +216,25 @@ public class EquipmentDocumentService
     private async Task<EquipmentDocumentDto> SupersedeCoreAsync(int documentId, int equipmentId, SupersedeEquipmentDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A supersession reason is required.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanSupersessionReasonRequired, "A supersession reason is required.");
 
         var old = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanDocumentNotFoundForEquipment, $"Document {documentId} not found for equipment {equipmentId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (old.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("A voided document cannot be superseded. Upload a new document instead.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanVoidedDocumentCannotBeSuperseded, "A voided document cannot be superseded. Upload a new document instead.");
 
         var firstBytes = request.Content.Take(16).ToArray();
         var error = _validator.Validate(request.OriginalFileName, request.DeclaredContentType, request.Content.Length, firstBytes);
         if (error != null)
-            throw new BusinessRuleException(error);
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentValidationFailed, error,
+                new Dictionary<string, string> { ["message"] = error });
 
         var ext = Path.GetExtension(request.OriginalFileName).ToLowerInvariant();
         var sha256 = Convert.ToHexString(SHA256.HashData(request.Content));
@@ -279,14 +295,19 @@ public class EquipmentDocumentService
     public async Task<EquipmentDocumentDto> VoidAsync(int documentId, int equipmentId, VoidEquipmentDocumentRequest request, int actingUserId)
     {
         if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BusinessRuleException("A void reason is required.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentVoidReasonRequired, "A void reason is required.");
 
         var document = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId && d.EquipmentInventoryId == equipmentId)
-            ?? throw new NotFoundException($"Document {documentId} not found for equipment {equipmentId}.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanDocumentNotFoundForEquipment, $"Document {documentId} not found for equipment {equipmentId}.",
+                new Dictionary<string, string>
+                {
+                    ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture),
+                    ["equipmentId"] = equipmentId.ToString(CultureInfo.InvariantCulture)
+                });
 
         if (document.Status == MaterialDocumentStatus.Voided)
-            throw new BusinessRuleException("This document is already voided.");
+            throw new BusinessRuleException(MessageCodes.EquipmentPlanDocumentAlreadyVoided, "This document is already voided.");
 
         document.Status = MaterialDocumentStatus.Voided;
         document.VoidedAt = _time.GetUtcNow().UtcDateTime;
@@ -327,7 +348,8 @@ public class EquipmentDocumentService
     {
         var doc = await _db.EquipmentDocuments
             .FirstOrDefaultAsync(d => d.Id == documentId)
-            ?? throw new NotFoundException($"Equipment document {documentId} not found.");
+            ?? throw new NotFoundException(MessageCodes.EquipmentPlanEquipmentDocumentNotFound, $"Equipment document {documentId} not found.",
+                new Dictionary<string, string> { ["documentId"] = documentId.ToString(CultureInfo.InvariantCulture) });
 
         var userName = await _db.Users
             .Where(u => u.Id == doc.UploadedByUserId)

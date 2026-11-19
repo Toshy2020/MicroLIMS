@@ -724,13 +724,19 @@ public class SpecificationService
         else if (testDef?.WorkflowType == WorkflowType.Titration)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
 
             if (spec.ResultBasis is not (ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis
                 or ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit))
-                throw new BusinessRuleException("Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTitrationResultBasisRequired,
+                    "Result basis is required for titration specifications: % as is, % dried basis, % anhydrous basis, % of label claim or mg per unit.");
 
             // A dried/anhydrous basis needs the item to carry the moisture test it corrects with
             // (assigned test is enough; its spec row may be added later). The spec's own test never counts.
@@ -747,9 +753,16 @@ public class SpecificationService
                           && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
                     cancellationToken);
                 if (!hasMoistureTest)
-                    throw new BusinessRuleException(neededRole == MoistureRole.LossOnDrying
-                        ? "Assign a loss on drying test to this item before using a dried basis."
-                        : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                {
+                    if (neededRole == MoistureRole.LossOnDrying)
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationMoistureLossOnDryingRequired,
+                            "Assign a loss on drying test to this item before using a dried basis.");
+                    else
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationMoistureWaterRequired,
+                            "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                }
             }
 
             // One titration run corrects with a single moisture result, so its rows cannot mix the two bases.
@@ -759,20 +772,28 @@ public class SpecificationService
                 if (await _db.Specifications.AnyAsync(
                         s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ResultBasis == otherBasis,
                         cancellationToken))
-                    throw new BusinessRuleException("One titration cannot report on both dried and anhydrous basis.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationTitrationBothMoistureBasesConflict,
+                        "One titration cannot report on both dried and anhydrous basis.");
             }
 
             bool needsClaim = spec.ResultBasis is ResultBasis.PercentLabelClaim or ResultBasis.MgPerUnit;
             if (needsClaim && (!spec.LabelClaim.HasValue || spec.LabelClaim.Value <= 0))
-                throw new BusinessRuleException("Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTitrationLabelClaimPositive,
+                    "Label claim (mg per unit) must be greater than zero when the result basis is % of label claim or mg per unit.");
             if (!needsClaim && (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit)))
-                throw new BusinessRuleException("Label claim is only used with the % of label claim and mg per unit result bases.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTitrationLabelClaimOnlyForClaimBases,
+                    "Label claim is only used with the % of label claim and mg per unit result bases.");
             if (needsClaim)
             {
                 // A label claim (mg per unit) exists only for dosage units.
                 var itemCategory = await _db.Items.Where(i => i.Id == spec.ItemId).Select(i => (SampleCategory?)i.Category).FirstOrDefaultAsync(cancellationToken);
                 if (itemCategory != SampleCategory.FinishedProduct)
-                    throw new BusinessRuleException("% of label claim and mg per unit are only available for Finished Product items.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationLabelClaimBasesOnlyFinishedProduct,
+                        "% of label claim and mg per unit are only available for Finished Product items.");
             }
 
             if (spec.LimitType != LimitType.Range &&
@@ -780,32 +801,50 @@ public class SpecificationService
                 spec.LimitType != LimitType.NotLessThan &&
                 spec.LimitType != LimitType.TargetWithTolerance)
             {
-                throw new BusinessRuleException($"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTitrationLimitTypeUnsupported,
+                    $"Limit type '{spec.LimitType}' is not supported for titration specifications. Must be Range, NotMoreThan, NotLessThan, or TargetWithTolerance.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
             }
         }
         else if (testDef?.WorkflowType == WorkflowType.UvSpectrophotometry)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (spec.LabelClaim.HasValue || !string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new BusinessRuleException("Label claim is not used for UV specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationUvLabelClaimNotUsed,
+                    "Label claim is not used for UV specifications.");
 
             if (testDef.UvCalculationMode == UvCalculationMode.AbsorbanceLimit)
             {
                 // The limit is a reference absorbance typed at recording time, so the row carries text only.
                 if (spec.LimitType != LimitType.Qualitative)
-                    throw new BusinessRuleException("An absorbance limit test takes a Qualitative specification.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationUvAbsorbanceLimitMustBeQualitative,
+                        "An absorbance limit test takes a Qualitative specification.");
                 if (spec.ResultBasis.HasValue)
-                    throw new BusinessRuleException("Result basis is not used for an absorbance limit test.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationUvAbsorbanceLimitResultBasisNotUsed,
+                        "Result basis is not used for an absorbance limit test.");
             }
             else
             {
                 if (spec.LimitType is not (LimitType.Range or LimitType.NotMoreThan or LimitType.NotLessThan))
-                    throw new BusinessRuleException($"Limit type '{spec.LimitType}' is not supported for this UV test. Must be Range, NotMoreThan or NotLessThan.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationUvLimitTypeUnsupported,
+                        $"Limit type '{spec.LimitType}' is not supported for this UV test. Must be Range, NotMoreThan or NotLessThan.",
+                        new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
                 if (spec.ResultBasis is not (null or ResultBasis.PercentAsIs or ResultBasis.PercentDriedBasis or ResultBasis.PercentAnhydrousBasis))
-                    throw new BusinessRuleException("Result basis must be % as is, % dried basis, % anhydrous basis or left empty for a UV test.");
+                    throw new BusinessRuleException(
+                        MessageCodes.SpecificationUvResultBasisInvalid,
+                        "Result basis must be % as is, % dried basis, % anhydrous basis or left empty for a UV test.");
 
                 var neededRole = spec.ResultBasis switch
                 {
@@ -820,69 +859,116 @@ public class SpecificationService
                               && _db.TestDefinitions.Any(t => t.Code == st.TestCode && t.IsActive && t.MoistureRole == neededRole),
                         cancellationToken);
                     if (!hasMoistureTest)
-                        throw new BusinessRuleException(neededRole == MoistureRole.LossOnDrying
-                            ? "Assign a loss on drying test to this item before using a dried basis."
-                            : "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                    {
+                        if (neededRole == MoistureRole.LossOnDrying)
+                            throw new BusinessRuleException(
+                                MessageCodes.SpecificationMoistureLossOnDryingRequired,
+                                "Assign a loss on drying test to this item before using a dried basis.");
+                        else
+                            throw new BusinessRuleException(
+                                MessageCodes.SpecificationMoistureWaterRequired,
+                                "Assign a water (Karl Fischer) test to this item before using an anhydrous basis.");
+                    }
 
                     var otherBasis = spec.ResultBasis == ResultBasis.PercentDriedBasis ? ResultBasis.PercentAnhydrousBasis : ResultBasis.PercentDriedBasis;
                     if (await _db.Specifications.AnyAsync(
                             s => s.ItemId == spec.ItemId && s.TestCode == spec.TestCode && s.Id != spec.Id && !s.IsRetired && s.ResultBasis == otherBasis,
                             cancellationToken))
-                        throw new BusinessRuleException("One UV test cannot report on both dried and anhydrous basis.");
+                        throw new BusinessRuleException(
+                            MessageCodes.SpecificationUvBothMoistureBasesConflict,
+                            "One UV test cannot report on both dried and anhydrous basis.");
                 }
             }
         }
         else if (testDef?.EquationType == EquationType.CalibrationCurve || testDef?.WorkflowType == WorkflowType.ElementalAssay)
         {
-            throw new BusinessRuleException("Elemental assay tests are retired; use an ICP method assay test.");
+            throw new BusinessRuleException(
+                MessageCodes.SpecificationElementalAssayTestsRetired,
+                "Elemental assay tests are retired; use an ICP method assay test.");
         }
         else if (testDef?.WorkflowType == WorkflowType.Dissolution || spec.LimitType == LimitType.DissolutionQ)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new BusinessRuleException("Result basis is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeResultBasisNotUsed,
+                    "Result basis is not used for this test type.");
         }
         else if (testDef?.WorkflowType == WorkflowType.Disintegration || spec.LimitType == LimitType.DisintegrationTime)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new BusinessRuleException("Result basis is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeResultBasisNotUsed,
+                    "Result basis is not used for this test type.");
             if (spec.LabelClaim.HasValue)
-                throw new BusinessRuleException("Label claim is not allowed for Disintegration specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDisintegrationLabelClaimNotAllowedForWorkflow,
+                    "Label claim is not allowed for Disintegration specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new BusinessRuleException("Label claim unit is not allowed for Disintegration specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationDisintegrationLabelClaimUnitNotAllowedForWorkflow,
+                    "Label claim unit is not allowed for Disintegration specifications.");
         }
         else if (testDef?.WorkflowType == WorkflowType.WeightVariation || spec.LimitType == LimitType.WeightVariation)
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new BusinessRuleException("Result basis is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeResultBasisNotUsed,
+                    "Result basis is not used for this test type.");
             if (spec.LabelClaim.HasValue)
-                throw new BusinessRuleException("Label claim is not allowed for WeightVariation specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationWeightVariationLabelClaimNotAllowed,
+                    "Label claim is not allowed for WeightVariation specifications.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new BusinessRuleException("Label claim unit is not allowed for WeightVariation specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationWeightVariationLabelClaimUnitNotAllowed,
+                    "Label claim unit is not allowed for WeightVariation specifications.");
         }
         else
         {
             if (spec.HplcMethodAnalyteId.HasValue)
-                throw new BusinessRuleException("Method analyte is only allowed for HPLC method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodAnalyteOnlyHplc,
+                    "Method analyte is only allowed for HPLC method assay specifications.");
             if (spec.IcpTestElementId.HasValue)
-                throw new BusinessRuleException("Method element is only allowed for ICP method assay specifications.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationMethodElementOnlyIcp,
+                    "Method element is only allowed for ICP method assay specifications.");
             if (spec.ResultBasis.HasValue)
-                throw new BusinessRuleException("Result basis is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeResultBasisNotUsed,
+                    "Result basis is not used for this test type.");
             if (spec.LabelClaim.HasValue)
-                throw new BusinessRuleException("Label claim is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeLabelClaimNotUsed,
+                    "Label claim is not used for this test type.");
             if (!string.IsNullOrWhiteSpace(spec.LabelClaimUnit))
-                throw new BusinessRuleException("Label claim unit is not used for this test type.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationTestTypeLabelClaimUnitNotUsed,
+                    "Label claim unit is not used for this test type.");
         }
     }
 

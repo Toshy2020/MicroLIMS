@@ -233,6 +233,7 @@ export function AddLaboratoryDialog({ open, sample, onClose, onSuccess }: Props)
       <SignatureDialog
         open={signing}
         meaningStatement={MEANING_STATEMENT}
+        meaningStatementTranslation={t("addLab.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={handleSign}
       />

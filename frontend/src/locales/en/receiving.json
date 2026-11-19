@@ -312,7 +312,8 @@
     "reasonLabel": "Reason *",
     "reasonPlaceholder": "Why this laboratory is being added now...",
     "reasonRequired": "A reason is required.",
-    "reasonHelper": "Recorded with your electronic signature and in the sample's audit trail."
+    "reasonHelper": "Recorded with your electronic signature and in the sample's audit trail.",
+    "signatureMeaning": "I add this laboratory to the sample; it creates that lab's test orders."
   },
   "assignAnalyst": {
     "title": "Assign Analysts",
@@ -403,6 +404,7 @@
     "storageTimeHours": "Storage Time (hours)",
     "reasonForCorrection": "Reason for Correction",
     "reasonHelper": "Recorded with your electronic signature and in the sample's audit trail.",
+    "signatureMeaning": "I confirm these corrections to the sample record are accurate and justified.",
     "hints": {
       "batchNumber": "Required. The batch number of the sample; a save is refused without it.",
       "controlNumber": "Required. The control number of the sample; a save is refused without it.",
@@ -583,7 +585,8 @@
     "signAndSelect": "Sign & Select Tests",
     "loadFailed": "Could not load the tests for this sample.",
     "info": "A Section Head or Supervisor of each laboratory chooses that laboratory's tests for a periodic retest. Tests you cannot choose are shown for reference.",
-    "empty": "No tests are available for this sample."
+    "empty": "No tests are available for this sample.",
+    "signatureMeaning": "I choose these tests for this periodic retest."
   },
   "voidSample": {
     "title": "Void Sample Confirmation",
@@ -599,7 +602,8 @@
     "reasonLabel": "Reason for Voiding *",
     "reasonPlaceholder": "Please provide the operational or compliance reason for voiding this sample...",
     "reasonRequired": "A reason for voiding is required.",
-    "reasonHelper": "Recorded with your electronic signature and in the sample's audit trail."
+    "reasonHelper": "Recorded with your electronic signature and in the sample's audit trail.",
+    "signatureMeaning": "I void this sample record; it is struck from the register."
   },
   "workspace": {
     "notAMemberPrefix": "Not a member:",

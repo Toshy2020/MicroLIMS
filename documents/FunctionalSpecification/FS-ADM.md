@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.4 |
+| Version | 0.5 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -19,6 +19,7 @@
 | 0.2 | 2026-11-13 | AI coding agent, draft from code | Added QA dashboard navigation and controlled-document QA approver requirement (FS-ADM-011, FS-ADM-012). |
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts dialog, form initial focus, server-paged table sorting restriction, and `entry.lastChoiceDefaults.enabled` setting (FS-ADM-013). |
 | 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and version endpoint specification (FS-ADM-014). |
+| 0.5 | 2026-11-19 | AI coding agent, draft from code | Added interface language selection, direction and English-only record rules (FS-ADM-015). |
 
 ## Scope and reading notes
 
@@ -122,3 +123,10 @@
 **Code:** `backend/MicroLIMS.API/Controllers/SystemVersionController.cs`; `backend/Directory.Build.props`; `frontend/vite.config.ts`; `frontend/src/modules/help/AboutDialog.tsx`; `frontend/src/modules/help/HelpMenu.tsx`
 **Verified by:** reading (not run); no test file for the version endpoint or `AboutDialog` was found
 **Not verified:** the About dialog at run time; that the release pipeline passes `MicroLimsVersion`.
+
+### FS-ADM-015
+**Satisfies:** URS-ADM-015
+**Function:** Interface language and direction. `LanguageProvider` resolves the language: a signed-in user's language is read from the per-user interface state (key `language`, `UserUiState`, `GET api/me/ui-state` and `PUT api/me/ui-state/{key}`) and saved there when changed from the account menu (`LanguageMenuItems`, in the profile menu of `Header`); before sign-in the browser's first supported language is used (`browserLanguage`, default English), and a choice made before sign-in is held for the tab only. The direction is `rtl` for Arabic and `ltr` otherwise; `document.documentElement.lang` and `dir` follow the language. Namespace texts are in `frontend/src/locales/{en,ar}/*.json`; English is bundled, Arabic loads per namespace and falls back to English per key. `EnglishOnly` keeps print and export screens in English. `SignatureDialog` shows the English meaning statement first, left to right, and in Arabic adds the translation (`meaningStatementTranslation`) in a labelled section and the note "The English statement is recorded."; the recorded and printed meaning is always the English statement (FS-SIG). Server messages with a code are mapped by `serverMessages.ts`; configuration and administration messages that carry no code stay English. Laboratory Arabic terms follow `frontend/src/locales/glossary.json`. Identifiers, numbers and dates are kept left to right by the frontend.
+**Code:** `frontend/src/i18n/index.ts`; `frontend/src/i18n/LanguageProvider.tsx`; `frontend/src/i18n/EnglishOnly.tsx`; `frontend/src/i18n/serverMessages.ts`; `frontend/src/components/LanguageMenuItems.tsx`; `frontend/src/components/Header.tsx`; `frontend/src/components/SignatureDialog.tsx`; `frontend/src/locales/glossary.json`; `backend/MicroLIMS.API/Controllers/UserUiStateController.cs`
+**Verified by:** reading (not run); tests `frontend/src/components/SignatureDialog.english.test.tsx` and `frontend/src/components/SignatureDialog.rtl.test.tsx` were listed but not run
+**Not verified:** the rendered right-to-left layout and the completeness of the Arabic texts at run time; that every print and export path uses `EnglishOnly` (only two non-test frontend files reference it when read).

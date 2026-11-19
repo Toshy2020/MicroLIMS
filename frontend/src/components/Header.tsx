@@ -77,7 +77,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   const { benchMode, setBenchMode } = useBenchMode();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const showIdentityText = useMediaQuery(theme.breakpoints.up("sm"));
+  const showIdentityText = useMediaQuery(theme.breakpoints.up("md"));
   const navigate = useNavigate();
   const { username, fullName, jobTitle, role, roleName, logout } = useAuth();
   const { status: liveStatus } = useLive();
@@ -489,7 +489,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               </Avatar>
             </Badge>
             {showIdentityText && (
-              <Box sx={{ minWidth: 0, maxWidth: { sm: 120, md: 220 } }}>
+              <Box sx={{ minWidth: 0, maxWidth: 220 }}>
                 <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}>{displayName}</Typography>
                 <Typography noWrap sx={{ fontSize: 12, lineHeight: 1.25, color: theme.custom.chrome.topbarMutedText }}>
                   {username ? <><Ltr>{username}</Ltr> · {displayTitle}</> : displayTitle}

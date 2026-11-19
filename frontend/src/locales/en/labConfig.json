@@ -2163,5 +2163,112 @@
       "addRoomTo": "Add room to {{name}}",
       "noRoomMatch": "No rooms here match your search."
     }
+  },
+  "afterCleaning": {
+    "prep": {
+      "machinePart": "Machine Part",
+      "prepareError": "Could not prepare sample.",
+      "loading": "Loading machine parts..."
+    },
+    "pathogen": {
+      "ownedByOther": "Owned by another laboratory",
+      "label": "Pathogen tests",
+      "placeholder": "e.g. E. coli, Salmonella",
+      "noOptions": "No pathogen tests in the Test Master"
+    },
+    "card": {
+      "otherLab": "Other laboratory",
+      "noTests": "No tests configured",
+      "summary": "{{counts}} · {{pathogens}}",
+      "countTests_one": "{{count}} count test",
+      "countTests_other": "{{count}} count tests",
+      "pathogenCount_one": "{{count}} pathogen",
+      "pathogenCount_other": "{{count}} pathogens",
+      "renamePart": "Rename part",
+      "editAria": "Edit {{name}}",
+      "deletePart": "Delete part",
+      "deleteAria": "Delete {{name}}",
+      "countHeading": "Count tests",
+      "editTest": "Edit test",
+      "editTestAria": "Edit {{type}} {{code}}",
+      "removeTest": "Remove test",
+      "removeTestAria": "Remove {{type}} {{code}}",
+      "addCountAria": "Add count test to {{name}}",
+      "addCount": "Add swab / rinse test",
+      "pathogenHeading": "Pathogen tests",
+      "noPathogens": "None - presence/absence tests such as E. coli or Salmonella.",
+      "pathogenAria_add": "Add pathogen tests for {{name}}",
+      "pathogenAria_edit": "Edit pathogen tests for {{name}}",
+      "addPathogens": "Add pathogen tests",
+      "editPathogens": "Edit pathogen tests"
+    },
+    "sampleTypes": {
+      "Swab": "Swab",
+      "Rinse": "Rinse"
+    },
+    "machine": {
+      "nameRequired": "Name is required.",
+      "updated": "\"{{name}}\" updated.",
+      "added": "\"{{name}}\" added.",
+      "saveError": "Could not save this machine.",
+      "overline": "Machine",
+      "renameTitle": "Rename {{name}}",
+      "addTitle": "Add machine",
+      "saveChanges": "Save changes",
+      "nameLabel": "Machine name",
+      "namePlaceholder": "e.g. Filling line 2"
+    },
+    "part": {
+      "required": "Part name and machine are required.",
+      "updated": "Part \"{{name}}\" updated.",
+      "added": "Part \"{{name}}\" added.",
+      "saveError": "Could not save this part.",
+      "overline": "Machine part",
+      "editTitle": "Edit {{name}}",
+      "addTitle": "Add machine part",
+      "saveChanges": "Save changes",
+      "addPart": "Add part",
+      "partName": "Part name",
+      "partPlaceholder": "e.g. Filling needles",
+      "machine": "Machine"
+    },
+    "count": {
+      "chooseTest": "Choose the test to run.",
+      "rangeNeedsOne": "Range limit requires a lower limit, an upper limit, or both.",
+      "lowerGtUpper": "Lower limit cannot be greater than upper limit.",
+      "upperRequired": "Upper limit is required for Not More Than.",
+      "lowerRequired": "Lower limit is required for Not Less Than.",
+      "expectedRequired": "Expected result text is required for Qualitative.",
+      "updated": "Test updated for {{part}}.",
+      "added": "Test added to {{part}}.",
+      "saveError": "Could not save this test.",
+      "editTest": "Edit test",
+      "editCount": "Edit count test",
+      "addTest": "Add test",
+      "addSwabRinse": "Add swab / rinse test",
+      "saveChanges": "Save changes",
+      "section1": "1 · What is sampled",
+      "sampleType": "Sample type",
+      "test": "Test",
+      "section2": "2 · Limits",
+      "hintUv": "UV scan limit (defaults to Qualitative: 'No peaks').",
+      "hintChem": "Chemistry limits for residue testing.",
+      "hintCount": "Results for {{type}} samples are reported in {{unit}}.",
+      "limitFromMethod": "Limit from the method",
+      "limitFromIcp": "Limit from the ICP test",
+      "unitChem": "e.g. ppm, µg/swab"
+    },
+    "pathogenPanel": {
+      "couldNotAdd": "could not be added",
+      "couldNotRemove": "could not be removed",
+      "someNotSaved": "Some changes were not saved. {{failures}}",
+      "updated": "Pathogen tests updated for {{part}}.",
+      "title": "Pathogen tests",
+      "save": "Save pathogen tests",
+      "sectionTitle": "Pathogens tested on this part",
+      "sectionHint": "Choose as many as needed. Each is a presence/absence test with its own test order - no numeric limits.",
+      "toAdd": "{{count}} to add",
+      "toRemove": "{{count}} to remove"
+    }
   }
 }

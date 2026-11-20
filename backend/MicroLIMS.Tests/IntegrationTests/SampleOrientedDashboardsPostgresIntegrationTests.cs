@@ -15,23 +15,23 @@ namespace MicroLIMS.Tests.IntegrationTests;
 // shape Npgsql cannot translate (or translates differently) fails CI instead
 // of the live deploy.
 [Collection("PostgresDatabaseCollection")]
-public class SampleOrientedDashboardsPostgresIntegrationTests
+public class SampleOrientedDashboardsPostgresIntegrationTests : IAsyncLifetime
 {
     private const string SeededUserFullName = "QA Document Admin";
 
-    private readonly PostgresTestFixture _fixture;
+    // Each test needs an empty sample dataset without clearing protected records.
+    private readonly PostgresTestFixture _fixture = new();
     private int _microSectionId;
 
-    public SampleOrientedDashboardsPostgresIntegrationTests(PostgresTestFixture fixture)
-    {
-        _fixture = fixture;
-    }
+    public Task InitializeAsync() => _fixture.InitializeAsync();
+
+    public Task DisposeAsync() => _fixture.DisposeAsync();
 
     [PostgresFact]
     public async Task ReviewerDashboard_OnPostgres_GroupsBySample_WithReviewClock_WorstActiveResult_AndRetests()
     {
         await using var db = _fixture.CreateDbContext();
-        var (causeId, itemId) = await ResetAsync(db);
+        var (causeId, itemId) = await EnsureBaselineDataAsync(db);
         var now = DateTime.UtcNow;
 
         // A: in review for 26h (SubmittedForReview event). TAMC's OOS reading
@@ -101,7 +101,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     public async Task SectionHeadDashboard_AndAdminSummary_OnPostgres_CountSamples_WithApprovalClock_AndFullRetestCount()
     {
         await using var db = _fixture.CreateDbContext();
-        var (causeId, itemId) = await ResetAsync(db);
+        var (causeId, itemId) = await EnsureBaselineDataAsync(db);
         var now = DateTime.UtcNow;
 
         var inReview = NewSample("PG-SH-REV", SampleStatus.UnderReview, now.AddDays(-3), causeId, itemId);
@@ -165,7 +165,7 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
     public async Task WorkspaceFiltersCountsAndNotifications_OnPostgres_AreSampleOriented()
     {
         await using var db = _fixture.CreateDbContext();
-        var (causeId, itemId) = await ResetAsync(db);
+        var (causeId, itemId) = await EnsureBaselineDataAsync(db);
         var now = DateTime.UtcNow;
         var analystId = await EnsureAnalystAsync(db);
         var microSection = await db.DocumentSections.FirstAsync(s => s.Code == "MICRO");
@@ -249,20 +249,8 @@ public class SampleOrientedDashboardsPostgresIntegrationTests
         Assert.DoesNotContain(analystNotifications, n => n.Type == "ItemOverdue" && (n.SampleId == inReview.Id || n.SampleId == inApproval.Id));
     }
 
-    // The collection shares one database across test classes, so each test
-    // starts from a known state. TRUNCATE ... CASCADE also clears the tables
-    // that reference Samples (TestOrders, readings, incubations, ResultRecords,
-    // WorkflowHistory). Review events and notification logs hold plain id
-    // columns rather than foreign keys, so the rows these tests read are
-    // cleared explicitly.
-    private async Task<(int CauseId, int ItemId)> ResetAsync(MicroLimsDbContext db)
+    private async Task<(int CauseId, int ItemId)> EnsureBaselineDataAsync(MicroLimsDbContext db)
     {
-        await db.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"Samples\" CASCADE;");
-        await db.ReviewWorkflowEvents.Where(e => e.EntityType == ReviewEntityTypes.Sample).ExecuteDeleteAsync();
-        await db.NotificationLogs
-            .Where(n => n.Type == "ReviewWaiting" || n.Type == "ApprovalWaiting" || n.Type == "IncubationReady")
-            .ExecuteDeleteAsync();
-
         var cause = await db.CausesOfTesting.FirstOrDefaultAsync();
         if (cause is null)
         {

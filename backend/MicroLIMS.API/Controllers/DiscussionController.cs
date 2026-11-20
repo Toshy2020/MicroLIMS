@@ -60,8 +60,10 @@ public class DiscussionController : ControllerBase
         // Refuse an oversized set before buffering it; the service
         // re-checks everything (DiscussionAttachmentPolicy).
         if (form.Files is { Count: > DiscussionAttachmentPolicy.MaxFiles })
-            return BadRequest(ApiResponse<object>.Fail(
-                $"A post can carry at most {DiscussionAttachmentPolicy.MaxFiles} attachments; {form.Files.Count} were attached."));
+        {
+            var error = DiscussionAttachmentPolicy.TooManyFiles(form.Files.Count);
+            return BadRequest(ApiResponse<object>.Fail(error.Message, null, null, [error]));
+        }
 
         var attachments = new List<(string FileName, string ContentType, byte[] Data)>();
         if (form.Files != null)

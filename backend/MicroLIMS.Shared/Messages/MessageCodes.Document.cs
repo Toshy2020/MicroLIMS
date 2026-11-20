@@ -3,6 +3,13 @@ namespace MicroLIMS.Shared.Messages;
 // Document.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string DocumentFileTooLarge = "Document.FileTooLarge";
+    public const string DocumentFileEmpty = "Document.FileEmpty";
+    public const string DocumentFileExtensionUnsupported = "Document.FileExtensionUnsupported";
+    public const string DocumentFileContentTypeMismatch = "Document.FileContentTypeMismatch";
+    public const string DocumentFileContentTooShort = "Document.FileContentTooShort";
+    public const string DocumentFileInvalidWebp = "Document.FileInvalidWebp";
+    public const string DocumentFileSignatureMismatch = "Document.FileSignatureMismatch";
     public const string DocumentAcknowledgeAssignmentCancelled = "Document.AcknowledgeAssignmentCancelled";
     public const string DocumentAcknowledgeAssignmentInvalidStatus = "Document.AcknowledgeAssignmentInvalidStatus";
     public const string DocumentAcknowledgeAssignmentSupersededIncomplete = "Document.AcknowledgeAssignmentSupersededIncomplete";
@@ -104,6 +111,13 @@ public static partial class MessageCodes
 
     private static Dictionary<string, string[]> DocumentParameters() => new()
     {
+        [DocumentFileTooLarge] = ["maxMb"],
+        [DocumentFileEmpty] = [],
+        [DocumentFileExtensionUnsupported] = ["extension"],
+        [DocumentFileContentTypeMismatch] = ["contentType", "extension"],
+        [DocumentFileContentTooShort] = [],
+        [DocumentFileInvalidWebp] = [],
+        [DocumentFileSignatureMismatch] = ["extension"],
         [DocumentAcknowledgeAssignmentCancelled] = [],
         [DocumentAcknowledgeAssignmentInvalidStatus] = ["status"],
         [DocumentAcknowledgeAssignmentSupersededIncomplete] = [],

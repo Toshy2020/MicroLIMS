@@ -6,6 +6,7 @@ using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.Sso;
 
@@ -16,7 +17,8 @@ public sealed record SsoAdminOverviewDto(
     IReadOnlyDictionary<string, object?> Configuration,
     DateTime? LastTestPassedAt,
     IReadOnlyList<string> Blockers,
-    IReadOnlyList<SsoUnlinkedUserDto> UnlinkedUsers);
+    IReadOnlyList<SsoUnlinkedUserDto> UnlinkedUsers,
+    IReadOnlyList<ApiError> BlockerDetails);
 
 public sealed record SsoTestResultDto(bool Passed, DateTime TestedAt);
 
@@ -94,7 +96,9 @@ public sealed class SsoAdminService
             .Select(u => new SsoUnlinkedUserDto(u.Id, u.Username, u.FullName, u.Role != null ? u.Role.Name : string.Empty))
             .ToListAsync(ct);
 
-        return new SsoAdminOverviewDto(mode.ToString(), BuildConfiguration(), lastPassed, blockers, unlinked);
+        return new SsoAdminOverviewDto(
+            mode.ToString(), BuildConfiguration(), lastPassed,
+            blockers.Select(blocker => blocker.Message).ToList(), unlinked, blockers);
     }
 
     // Explicit allow-list of values safe to show. Never add a secret (client

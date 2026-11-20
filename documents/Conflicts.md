@@ -1113,3 +1113,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** How should existing case-variant active codes be reconciled before enforcing case-insensitive uniqueness in the database?
 - **Decision:** Database enforcement remains open. For D4 Task 2, Item STM retains its first-match behavior and the competency guard reports that the SOP was not checked when more than one active master matches (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20
+
+### CONF-213
+- **Area:** REV
+- **Status:** Decided
+- **What the code does:** OOS cause categories are shared across laboratories and have no section ID.
+- **What the other source says:** The OOS design spec §5.1 describes configuration by laboratory.
+- **Question:** Who may edit the shared cause list?
+- **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20). Phase I signing requires a currently active category, and deactivation preserves existing records (orchestrator, 2026-11-20).
+- **Date:** 2026-11-20

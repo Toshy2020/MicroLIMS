@@ -912,7 +912,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         var byProcess = CurrentUserId is null && !byAgent && !string.IsNullOrEmpty(CurrentSystemProcessName);
         var bySystem = byAgent || byProcess;
 
-        return new AuditLog
+        var audit = new AuditLog
         {
             EntityName = entry.Entity.GetType().Name,
             EntityId = entityId ?? "unknown",
@@ -923,7 +923,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             ActorType = bySystem ? Domain.Enums.ActorType.System : null,
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = _clock.GetUtcNow().UtcDateTime,
-            Reason = CurrentReason,
+            Reason = CurrentReason is { Length: > 2000 } ? "See the Reason audit detail." : CurrentReason,
             SourceContext = CurrentSourceContext,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
@@ -934,6 +934,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
             TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)
         };
+        if (CurrentReason is { Length: > 2000 } reason)
+            audit.Changes.Add(new AuditEventChange { FieldName = nameof(AuditLog.Reason), NewValue = reason });
+        return audit;
     }
 
     // Reads a named property off the entity's current values, if it

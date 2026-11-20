@@ -111,6 +111,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITestOrderOutcomeService, TestOrderOutcomeService>();
         services.AddScoped<OosOpeningRule>();
         services.AddScoped<OosInvestigationService>();
+        services.AddScoped<OosTemplateService>();
         services.AddScoped<OosGate>();
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SectionClosureService>();

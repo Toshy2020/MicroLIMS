@@ -38,9 +38,9 @@ public class TitrationAtomicityPostgresTests
         private readonly IElectronicSignatureService _inner;
         public FailingResultSignature(IElectronicSignatureService inner) => _inner = inner;
         public async Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType,
-            int entityId, string? comment, string? ipAddress)
+            int entityId, string? comment, string? ipAddress, CancellationToken ct = default)
         {
-            var sig = await _inner.SignAsync(userId, password, meaning, entityType, entityId, comment, ipAddress);
+            var sig = await _inner.SignAsync(userId, password, meaning, entityType, entityId, comment, ipAddress, ct);
             if (meaning == SignatureMeaning.ResultRecorded) throw new InvalidOperationException("result signature step failed");
             return sig;
         }

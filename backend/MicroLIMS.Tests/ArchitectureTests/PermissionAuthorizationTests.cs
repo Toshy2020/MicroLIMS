@@ -62,9 +62,7 @@ public class PermissionAuthorizationTests
         // Remove each entry when its first check is added.
         string[] provisionedAheadOfChecks =
         [
-            PermissionConstants.OosContribute,       // D1 Task 5
             PermissionConstants.OosRequestDeviation, // D1 Task 8
-            PermissionConstants.OosView              // D1 Task 10
         ];
         Assert.Equal(provisionedAheadOfChecks, PermissionConstants.Enforced.Except(referenced).Order(StringComparer.Ordinal));
     }

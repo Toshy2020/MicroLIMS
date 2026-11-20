@@ -44,5 +44,11 @@ public enum SignatureMeaning
     NotApplicableWithdrawn,
     TestOutsourced,
     SampleAssignedToRun,
-    AuditTrailReviewed
+    AuditTrailReviewed,
+    OosPhaseOneConcluded,
+    OosRetestPlanApproved,
+    OosInvestigationConcluded,
+    OosInvestigationReopened,
+    ExcursionReviewClosed,
+    NewSampleRequested
 }

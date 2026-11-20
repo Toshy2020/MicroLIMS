@@ -246,6 +246,16 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<ItemDocument> ItemDocuments => Set<ItemDocument>();
     public DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs => Set<ItemDocumentAccessLog>();
     public DbSet<OosInvestigationDocument> OosInvestigationDocuments => Set<OosInvestigationDocument>();
+    public DbSet<OosInvestigation> OosInvestigations => Set<OosInvestigation>();
+    public DbSet<OosInvestigationResult> OosInvestigationResults => Set<OosInvestigationResult>();
+    public DbSet<OosInvestigationEntry> OosInvestigationEntrys => Set<OosInvestigationEntry>();
+    public DbSet<OosRetestPlan> OosRetestPlans => Set<OosRetestPlan>();
+    public DbSet<OosRetestPlanSample> OosRetestPlanSamples => Set<OosRetestPlanSample>();
+    public DbSet<OosDeviationRequest> OosDeviationRequests => Set<OosDeviationRequest>();
+    public DbSet<OosInvestigationReopening> OosInvestigationReopenings => Set<OosInvestigationReopening>();
+    public DbSet<OosInvestigationTemplate> OosInvestigationTemplates => Set<OosInvestigationTemplate>();
+    public DbSet<OosChecklistItem> OosChecklistItems => Set<OosChecklistItem>();
+    public DbSet<OosCauseCategory> OosCauseCategories => Set<OosCauseCategory>();
 
     // Test Master
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();

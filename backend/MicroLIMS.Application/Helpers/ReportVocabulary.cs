@@ -21,7 +21,13 @@ public static class ReportVocabulary
         ["InvestigationOrdered"] = "I am ordering an investigation into these results.",
         ["SampleCorrected"] = "I confirm these corrections to the sample record are accurate and justified.",
         ["SampleVoided"] = "I void this sample record; it is struck from the register.",
-        ["AuditTrailReviewed"] = "Audit trail review"
+        ["AuditTrailReviewed"] = "Audit trail review",
+        ["OosPhaseOneConcluded"] = "Phase I concluded",
+        ["OosRetestPlanApproved"] = "Retest plan approved",
+        ["OosInvestigationConcluded"] = "Investigation concluded",
+        ["OosInvestigationReopened"] = "Investigation reopened",
+        ["ExcursionReviewClosed"] = "Excursion review closed",
+        ["NewSampleRequested"] = "New sample requested",
     };
 
     public static string SignatureMeaning(string? meaning) =>

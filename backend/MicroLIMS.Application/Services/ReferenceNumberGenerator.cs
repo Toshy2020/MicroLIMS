@@ -77,20 +77,30 @@ public class ReferenceNumberGenerator
         await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
     }
 
-    public async Task<string> GenerateOosCodeAsync()
+    public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)
     {
-        var now = _time.GetUtcNow().UtcDateTime;
-        var mm = now.ToString("MM");
-        var yy = now.ToString("yy");
-        var prefix = $"OOS{mm}{yy}";
+        // The production transaction must span allocation and persistence.
+        // In-memory workflow tests use the same sequence without database locks.
+        if (_db.Database.IsRelational())
+        {
+            if (_db.Database.CurrentTransaction is null)
+                throw new InvalidOperationException(
+                    "An OOS number can only be generated inside a database transaction that also saves the record.");
 
-        var countThisMonth = await _db.Samples
+            await _db.Database.ExecuteSqlAsync(
+                $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
+        }
+
+        var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
+        var prefix = FormattableString.Invariant($"OOS{labNow:MMyy}");
+        var legacyNumbers = _db.Samples
             .Where(s => s.OosGroupCode != null && s.OosGroupCode.StartsWith(prefix))
-            .Select(s => s.OosGroupCode)
-            .Distinct()
-            .CountAsync();
+            .Select(s => s.OosGroupCode);
+        var investigationNumbers = _db.OosInvestigations
+            .Where(i => i.Number.StartsWith(prefix))
+            .Select(i => (string?)i.Number);
 
-        var sequence = (countThisMonth + 1).ToString("D3");
-        return $"{prefix}{sequence}";
+        var count = await legacyNumbers.Union(investigationNumbers).CountAsync(cancellationToken);
+        return FormattableString.Invariant($"{prefix}{count + 1:D3}");
     }
 }

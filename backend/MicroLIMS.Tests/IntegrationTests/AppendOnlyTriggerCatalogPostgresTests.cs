@@ -46,6 +46,11 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["AuditTrailReviews"] = Update | Delete,
         ["AuditTrailReviewFindings"] = Update | Delete,
         ["LabelPrintLogs"] = Update | Delete,
+        ["OosInvestigations"] = Delete,
+        ["OosInvestigationEntries"] = Update | Delete,
+        ["OosInvestigationResults"] = Update | Delete,
+        ["OosInvestigationReopenings"] = Update | Delete,
+        ["OosRetestPlans"] = Update | Delete,
     };
 
     private sealed record TriggerRow(string Table, string Name, int Type, char Enabled);

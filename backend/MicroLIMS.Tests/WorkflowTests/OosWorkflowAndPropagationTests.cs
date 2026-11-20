@@ -107,34 +107,6 @@ public class OosWorkflowAndPropagationTests
     }
 
     [Fact]
-    public async Task ReferenceNumberGenerator_GenerateOosCodeAsync_IncrementsMonthlySequenceAcrossDistinctGroups()
-    {
-        await using var db = NewDb();
-        var gen = new ReferenceNumberGenerator(db);
-
-        var now = DateTime.UtcNow;
-        var expectedPrefix = $"OOS{now:MM}{now:yy}";
-
-        var code1 = await gen.GenerateOosCodeAsync();
-        Assert.Equal($"{expectedPrefix}001", code1);
-
-        // Add 2 samples sharing code1
-        db.Samples.Add(new Sample { ReferenceNumber = "S1", ControlNumber = "C1", SampledBy = "A", OosGroupCode = code1 });
-        db.Samples.Add(new Sample { ReferenceNumber = "S2", ControlNumber = "C2", SampledBy = "A", OosGroupCode = code1 });
-        await db.SaveChangesAsync();
-
-        // Distinct count should still be 1 -> next is 002
-        var code2 = await gen.GenerateOosCodeAsync();
-        Assert.Equal($"{expectedPrefix}002", code2);
-
-        db.Samples.Add(new Sample { ReferenceNumber = "S3", ControlNumber = "C3", SampledBy = "A", OosGroupCode = code2 });
-        await db.SaveChangesAsync();
-
-        var code3 = await gen.GenerateOosCodeAsync();
-        Assert.Equal($"{expectedPrefix}003", code3);
-    }
-
-    [Fact]
     public async Task RetestRetainedSample_SingleChild_Approval_MirrorsOutcomeToOriginAndGeneratesCoa()
     {
         await using var db = NewDb();

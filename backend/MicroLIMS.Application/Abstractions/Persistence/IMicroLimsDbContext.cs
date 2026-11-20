@@ -203,6 +203,16 @@ public interface IMicroLimsDbContext
     DbSet<ItemDocument> ItemDocuments { get; }
     DbSet<ItemDocumentAccessLog> ItemDocumentAccessLogs { get; }
     DbSet<OosInvestigationDocument> OosInvestigationDocuments { get; }
+    DbSet<OosInvestigation> OosInvestigations { get; }
+    DbSet<OosInvestigationResult> OosInvestigationResults { get; }
+    DbSet<OosInvestigationEntry> OosInvestigationEntrys { get; }
+    DbSet<OosRetestPlan> OosRetestPlans { get; }
+    DbSet<OosRetestPlanSample> OosRetestPlanSamples { get; }
+    DbSet<OosDeviationRequest> OosDeviationRequests { get; }
+    DbSet<OosInvestigationReopening> OosInvestigationReopenings { get; }
+    DbSet<OosInvestigationTemplate> OosInvestigationTemplates { get; }
+    DbSet<OosChecklistItem> OosChecklistItems { get; }
+    DbSet<OosCauseCategory> OosCauseCategories { get; }
     DbSet<TestDefinition> TestDefinitions { get; }
     DbSet<TestWorkflowStep> TestWorkflowSteps { get; }
     DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias { get; }

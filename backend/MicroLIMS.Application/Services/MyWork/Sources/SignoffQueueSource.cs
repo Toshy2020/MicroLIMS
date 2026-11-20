@@ -6,8 +6,8 @@ using MicroLIMS.Domain.Enums;
 namespace MicroLIMS.Application.Services.MyWork.Sources;
 
 // The sample-and-section entries waiting for the caller's sign-off (review or approval), with the
-// Segregation of Duties lock. The entries come from SectionReviewQueues - the same rule the dashboards and the
-// decision endpoints use - and the lock is decided for the whole list with ONE set-based guard call, so the
+// Segregation of Duties lock. The entries are projected in SQL here by the same rule SectionReviewQueues.Entries applies
+// for the dashboards and the decision endpoints (keep the two in step), and the lock is decided for the whole list with ONE set-based guard call, so the
 // number of SQL commands depends on the number of tables touched, never on the number of entries.
 //
 // Scope is the caller's own sections (MemberSectionIds, already narrowed to a chosen laboratory). Sections.ViewAll

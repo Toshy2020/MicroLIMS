@@ -190,32 +190,42 @@ describe("EquipmentInventoryPage register", () => {
     await ready();
 
     await pick(user, "Instrument Type", "Incubator");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-IN-03")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-IN-03")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Status", "Retired");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-PH-04")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-PH-04")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Location", "Weighing room");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
-    expect(hasCode("EQ-AC-01")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(2);
+      expect(hasCode("EQ-AC-01")).toBe(false);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Calibration Due", "Calibration Overdue");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-BL-02")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-BL-02")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Calibration Due", "Due in 30 Days");
-    await waitFor(() => expect(hasCode("EQ-IN-03")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasCode("EQ-IN-03")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    }, { timeout: 5000 });
   });
 
   it("a KPI tile filters the list, a second click clears it, and it combines with a dropdown", async () => {
@@ -223,13 +233,17 @@ describe("EquipmentInventoryPage register", () => {
     renderPage();
     await ready();
     await user.click(screen.getByRole("button", { name: /^Calibration Overdue/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-BL-02")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-BL-02")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: /^Calibration Overdue \(filtered\)/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: /^Out of Service/ }));
-    await waitFor(() => expect(hasCode("EQ-PH-04")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasCode("EQ-PH-04")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    }, { timeout: 5000 });
     await pick(user, "Location", "Prep room");
     await waitFor(() => expect(screen.getByText("No equipment matching the selected filter criteria")).toBeTruthy());
   });

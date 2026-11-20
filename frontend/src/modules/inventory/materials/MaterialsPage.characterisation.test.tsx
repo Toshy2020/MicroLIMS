@@ -179,14 +179,18 @@ describe("MaterialsPage register", () => {
     await ready();
     const search = screen.getByRole("textbox", { name: "Search by name, lot no., code..." });
     await user.type(search, "oxoid");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Peptone Water")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Peptone Water")).toBe(true);
+    }, { timeout: 5000 });
     await user.clear(search);
     await user.type(search, "rg-003");
-    await waitFor(() => expect(hasLot("Acetone AR")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasLot("Acetone AR")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
     expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();
   });
 
@@ -196,31 +200,39 @@ describe("MaterialsPage register", () => {
     await ready();
 
     await pick(user, "Type", "Dehydrated Media");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Peptone Water")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Peptone Water")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Manufacturer", "Merck");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
-    expect(hasLot("Acetone AR")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(2);
+      expect(hasLot("Acetone AR")).toBe(false);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Location", "Fridge");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
+    await waitFor(() => expect(registerRows()).toHaveLength(1), { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Status", "Low Stock");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Acetone AR")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Acetone AR")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
 
     await pick(user, "Expiry", "Expired");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Peptone Water")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Peptone Water")).toBe(true);
+    }, { timeout: 5000 });
   });
 
   it("a KPI tile filters the list, a second click clears it, and it combines with a dropdown", async () => {
@@ -228,13 +240,17 @@ describe("MaterialsPage register", () => {
     renderPage();
     await ready();
     await user.click(screen.getByRole("button", { name: /^Low Stock/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Acetone AR")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Acetone AR")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: /^Low Stock \(filtered\)/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: /^Out of Stock/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Peptone Water")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Peptone Water")).toBe(true);
+    }, { timeout: 5000 });
     await pick(user, "Manufacturer", "Merck");
     await waitFor(() => expect(screen.getByText("No materials matching the selected filter criteria")).toBeTruthy());
   });

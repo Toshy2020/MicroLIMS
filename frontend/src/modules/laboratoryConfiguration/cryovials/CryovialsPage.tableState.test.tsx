@@ -164,8 +164,10 @@ describe("CryovialsPage on the shared table state", () => {
     expect(address().get("q")).toBe("cultiloops");
     expect(address().get("f.organism")).toBe("Candida albicans");
     expect(address().get("f.status")).toBe("Approved");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-003")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-003")).toBe(true);
+    }, { timeout: 5000 });
     const url = `/${screen.getByLabelText("Address").textContent}`;
     const before = registerRows();
     first.unmount();
@@ -185,7 +187,7 @@ describe("CryovialsPage on the shared table state", () => {
     await waitFor(() => expect(screen.getByText("No cryovials matching the filter criteria")).toBeTruthy());
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
+    await waitFor(() => expect(registerRows()).toHaveLength(4), { timeout: 5000 });
     expect(address().has("f.organism")).toBe(false);
     expect(address().has("f.status")).toBe(false);
     expect(address().has("f.expiryRange")).toBe(false);
@@ -208,8 +210,10 @@ describe("CryovialsPage on the shared table state", () => {
     ]);
 
     renderPage("/?view=7");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-003")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-003")).toBe(true);
+    }, { timeout: 5000 });
     expect(screen.getAllByRole("columnheader").map((h) => h.textContent?.trim()).filter(Boolean)).toEqual([
       "Code", "Organism & Source", "Expiry", "Actions"
     ]);

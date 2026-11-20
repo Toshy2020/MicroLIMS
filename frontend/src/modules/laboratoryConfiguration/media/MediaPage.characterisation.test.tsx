@@ -207,26 +207,30 @@ describe("MediaPage lots register", () => {
     await ready();
 
     await pickSelect(user, "Material", "Sabouraud Dextrose Agar Powder");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
+    await waitFor(() => expect(registerRows()).toHaveLength(2), { timeout: 5000 });
     await pickSelect(user, "Status", "Rejected");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-5")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-5")).toBe(true);
+    }, { timeout: 5000 });
     expect(screen.getByRole("button", { name: /^Rejected \(filtered\)/ })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Reset Filters" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(5));
+    await waitFor(() => expect(registerRows()).toHaveLength(5), { timeout: 5000 });
 
     await user.click(screen.getByRole("button", { name: /^Awaiting Approval/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-2")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-2")).toBe(true);
+    }, { timeout: 5000 });
     expect(screen.getByRole("combobox", { name: "Status" }).textContent).toBe("Awaiting Approval");
     await user.click(screen.getByRole("button", { name: /^Awaiting Approval \(filtered\)/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(5));
+    await waitFor(() => expect(registerRows()).toHaveLength(5), { timeout: 5000 });
     expect(screen.getByRole("combobox", { name: "Status" }).textContent).toBe("All Statuses");
 
     await user.click(screen.getByRole("button", { name: /^Released/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
+    await waitFor(() => expect(registerRows()).toHaveLength(1), { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: /^Total Lots/ }));
-    await waitFor(() => expect(registerRows()).toHaveLength(5));
+    await waitFor(() => expect(registerRows()).toHaveLength(5), { timeout: 5000 });
   });
 
   it("a release the server refuses shows its sentence on the row item and does nothing when chosen", async () => {

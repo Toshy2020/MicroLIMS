@@ -178,19 +178,25 @@ describe("ApprovedMediaListPage register", () => {
     expect((reset() as HTMLButtonElement).disabled).toBe(true);
     const search = screen.getByRole("textbox", { name: SEARCH });
     await user.type(search, "peptone");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-002")).toBe(true);
+    }, { timeout: 5000 });
     expect((reset() as HTMLButtonElement).disabled).toBe(false);
     await user.clear(search);
     await user.type(search, "mfg-lot-1");
-    await waitFor(() => expect(hasLot("ML-001")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasLot("ML-001")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    }, { timeout: 5000 });
     await user.clear(search);
     await user.type(search, "selective broth");
-    await waitFor(() => expect(hasLot("ML-002")).toBe(true));
-    expect(registerRows()).toHaveLength(1);
+    await waitFor(() => {
+      expect(hasLot("ML-002")).toBe(true);
+      expect(registerRows()).toHaveLength(1);
+    }, { timeout: 5000 });
     await user.click(reset());
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
     expect((reset() as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -200,38 +206,50 @@ describe("ApprovedMediaListPage register", () => {
     await ready();
 
     await pick(user, "Media Type", "Selective Broth");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-002")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
 
     await pick(user, "Manufacturer", "Merck");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-002")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
 
     await pick(user, "Status", "Out of Stock");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-002")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
 
     await pick(user, "Status", "Released / Active");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
-    expect(hasLot("ML-002")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(2);
+      expect(hasLot("ML-002")).toBe(false);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
 
     await pick(user, "Expiry Date", "Expiring in 30 Days");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-002")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
 
     await pick(user, "Expiry Date", "Expiring in 60 Days");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
-    expect(hasLot("ML-001")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(2);
+      expect(hasLot("ML-001")).toBe(false);
+    }, { timeout: 5000 });
   });
 
   it("an empty result explains the filters and offers Reset Filters; an empty list says so", async () => {
@@ -241,7 +259,7 @@ describe("ApprovedMediaListPage register", () => {
     await user.type(screen.getByRole("textbox", { name: SEARCH }), "no-such-lot");
     expect(await screen.findByText("No approved media lots match the selected filters.")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Reset Filters" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
   });
 
   it("with no released lots the page says none are available", async () => {

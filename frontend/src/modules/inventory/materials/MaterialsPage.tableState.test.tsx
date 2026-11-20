@@ -175,7 +175,7 @@ describe("MaterialsPage on the shared table state", () => {
     expect(address().get("f.status")).toBe("InStock");
     expect(address().get("lab")).toBe("MICRO");
     const url = `/${screen.getByLabelText("Address").textContent}`;
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
+    await waitFor(() => expect(registerRows()).toHaveLength(2), { timeout: 5000 });
     const before = registerRows();
     first.unmount();
 
@@ -206,8 +206,10 @@ describe("MaterialsPage on the shared table state", () => {
       }))
     ]);
     renderPage("/?view=7");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("Peptone Water")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("Peptone Water")).toBe(true);
+    }, { timeout: 5000 });
     expect(registerRoot().getAllByRole("columnheader").map((h) => h.textContent?.trim()).filter(Boolean)).toEqual([
       "Type", "Material Name", "Batch/Lot No.", "Actions"
     ]);

@@ -55,6 +55,14 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["QualificationAttachments"] = Insert | Update | Delete,
     };
 
+    // Non-append-only column guards: the table stays mutable, but these exact
+    // row triggers must exist and keep the captured columns frozen after first write.
+    private static readonly IReadOnlyDictionary<string, (string Table, int RowEvents)> ColumnGuards =
+        new Dictionary<string, (string, int)>
+        {
+            ["test_orders_sop_capture_immutable"] = ("TestOrders", Update)
+        };
+
     private sealed record TriggerRow(string Table, string Name, int Type, char Enabled);
 
     [PostgresFact]
@@ -111,10 +119,13 @@ public class AppendOnlyTriggerCatalogPostgresTests
             CheckTrigger(problems, triggers, table, $"trg_{lower}_no_truncate", Before | Truncate, forbidden: Row);
         }
 
+        foreach (var (name, (table, rowEvents)) in ColumnGuards)
+            CheckTrigger(problems, triggers, table, name, Row | Before | rowEvents, forbidden: Truncate);
+
         // Reverse check: a table protected in a migration must be listed above.
         foreach (var t in triggers.Where(t => t.Name.EndsWith("_immutable", StringComparison.Ordinal)))
         {
-            if (!ProtectedTables.ContainsKey(t.Table))
+            if (!ProtectedTables.ContainsKey(t.Table) && !ColumnGuards.ContainsKey(t.Name))
                 problems.Add($"{t.Table}: has append-only trigger {t.Name} but is not in ProtectedTables - add it.");
         }
 

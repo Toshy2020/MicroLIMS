@@ -44,6 +44,17 @@ public class TestOrder
     public DateTime? OutsourcedAt { get; set; }
     public int? OutsourcedByUserId { get; set; }
 
+    // SOP revision in force at the first recorded step of this test. Written
+    // once and frozen by a database trigger; never re-resolved later.
+    public SopCaptureStatus? SopCaptureStatus { get; set; }
+    public int? SopDocumentMasterId { get; set; }
+    public string? SopDocumentCode { get; set; }
+    public string? SopDocumentTitle { get; set; }
+    public int? SopRevisionId { get; set; }
+    public string? SopRevisionNumber { get; set; }
+    public DateTime? SopEffectiveDateUtc { get; set; }
+    public DateTime? SopCapturedAtUtc { get; set; }
+
     public List<Result> Results { get; set; } = new();
     public List<Incubation> Incubations { get; set; } = new();
     public List<WorkflowHistory> WorkflowHistory { get; set; } = new();

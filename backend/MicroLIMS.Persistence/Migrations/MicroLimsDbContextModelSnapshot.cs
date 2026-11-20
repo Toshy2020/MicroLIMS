@@ -12698,6 +12698,30 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("SectionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SopCaptureStatus")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SopCapturedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SopDocumentCode")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SopDocumentMasterId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SopDocumentTitle")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SopEffectiveDateUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("SopRevisionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SopRevisionNumber")
+                        .HasColumnType("text");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -16860,7 +16884,7 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.OosInvestigationResult", b =>
                 {
                     b.HasOne("MicroLIMS.Domain.Entities.OosInvestigation", null)
-                        .WithMany()
+                        .WithMany("Results")
                         .HasForeignKey("InvestigationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -18723,6 +18747,11 @@ namespace MicroLIMS.Persistence.Migrations
             modelBuilder.Entity("MicroLIMS.Domain.Entities.MonitoringPlanRevision", b =>
                 {
                     b.Navigation("CreatedOccurrences");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.OosInvestigation", b =>
+                {
+                    b.Navigation("Results");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ParameterResult", b =>

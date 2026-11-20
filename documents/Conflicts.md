@@ -1077,3 +1077,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Should a result with no specification be accepted as a pass (2026-11-11), or stay refused (current code)?
 - **Decision:** Keep it refused (user, 2026-11-16). The 2026-11-11 decision is superseded; the flag is not built. The plan and design spec carry a dated note.
 - **Date:** 2026-11-16
+
+### CONF-209
+- **Area:** REV
+- **Status:** Open
+- **What the code does:** `ResultConformanceRules.FromStatus` classifies `AlertLimitExceeded` and `ActionLimitExceeded` as `DoesNotConform`. D1 Task 1 preserves that behavior for the shared outcome and for approval and retest propagation (user, 2026-11-20). The outcome also exposes the deciding status.
+- **What the other source says:** D1 Task 1 in `docs/superpowers/plans/2026-11-11-oos-investigation.md` called for alert and action limit exceedances to conform.
+- **Question:** Which outcomes should open an investigation at review in D1 Task 3?
+- **Decision:** Not decided.
+- **Date:** Not applicable

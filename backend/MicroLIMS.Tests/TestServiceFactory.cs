@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.InstrumentImport;
 using Microsoft.Extensions.Logging;
 using MicroLIMS.Persistence.Helpers;
@@ -165,7 +166,7 @@ public static class TestServiceFactory
             audit ?? new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), new TestOrderOutcomeService(db));
 
     public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
         new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));

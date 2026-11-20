@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
+using MicroLIMS.Application.Services.Oos;
 
 namespace MicroLIMS.Application.Services;
 
@@ -33,11 +34,13 @@ public class SampleApprovalService
     private readonly SegregationOfDutiesGuard _segregationOfDuties;
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
+    private readonly ITestOrderOutcomeService _outcomes;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        SegregationOfDutiesGuard segregationOfDuties, TimeProvider? timeProvider = null,
+        SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes,
+        TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
     {
         _time = timeProvider ?? TimeProvider.System;
@@ -49,6 +52,7 @@ public class SampleApprovalService
         _archive = archive;
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
+        _outcomes = outcomes;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
@@ -111,8 +115,7 @@ public class SampleApprovalService
         if (originalLocations.Count == 0)
             return false;
 
-        // Conforming statuses mirror DetermineOwnResultConformanceAsync
-        // below. If none of the original locations actually failed (e.g.
+        // Conforming statuses mirror the test order outcome service. If none of the original locations actually failed (e.g.
         // the order was sent to retest for a procedural/OOS reason rather
         // than a location result), fall back to carrying every original
         // location rather than creating a TestOrder with no locations at
@@ -671,9 +674,10 @@ public class SampleApprovalService
         // finalized here from its own recorded result, independent of the
         // sample-level outcome and of whether it was ever superseded.
         var originOrders = origin.TestOrders.Where(o => o.SectionId == section).ToList();
+        var outcomes = await _outcomes.GetOutcomesAsync(originOrders.Select(o => o.Id).ToArray());
         foreach (var order in originOrders)
         {
-            var conforms = await DetermineOwnResultConformanceAsync(order.Id);
+            var conforms = !outcomes[order.Id].Fails;
             order.Status = conforms ? ApprovalStatus.Approved : ApprovalStatus.Rejected;
             if (conforms)
             {
@@ -694,49 +698,5 @@ public class SampleApprovalService
             await _archive.ArchiveAsync(ReviewEntityTypes.Sample, origin.Id, document, $"Sample {outcome} (OOS resolved)", sectionHeadUserId);
 
         await PropagateOosOutcomeAsync(origin, outcome, sectionHeadUserId);
-    }
-
-    // Classifies this TestOrder's own recorded result with the same
-    // ResultConformanceRules the Certificate of Analysis uses -
-    // deliberately ignores IsSuperseded, since a superseded order's own
-    // result is exactly what proved it needed a retest.
-    private async Task<bool> DetermineOwnResultConformanceAsync(int testOrderId)
-    {
-        var lastReading = await _db.CountTestReadings
-            .Where(r => r.TestOrderId == testOrderId && r.IsActive).OrderByDescending(r => r.Id).FirstOrDefaultAsync();
-        if (lastReading is not null)
-            return ResultConformanceRules.FromStatus(lastReading.Status) == ResultConformance.Conforms;
-
-        var lastLocation = await _db.SampleLocations
-            .Where(l => l.TestOrderId == testOrderId).OrderByDescending(l => l.Id).FirstOrDefaultAsync();
-        if (lastLocation is not null)
-            return ResultConformanceRules.FromStatus(lastLocation.Status) == ResultConformance.Conforms;
-
-        var lastBiochemical = await _db.WorkflowStepResults
-            .Where(r => r.TestOrderId == testOrderId && r.BiochemicalOrganismDetected != null)
-            .OrderByDescending(r => r.Id).FirstOrDefaultAsync();
-        if (lastBiochemical is not null)
-            return ResultConformanceRules.FromDetection(lastBiochemical.BiochemicalOrganismDetected == true) == ResultConformance.Conforms;
-
-        var hasPathogenChain = await _db.PathogenObservations.AnyAsync(p => p.TestOrderId == testOrderId);
-        if (hasPathogenChain)
-        {
-            var detected = await _db.PathogenObservations
-                .AnyAsync(p => p.TestOrderId == testOrderId && p.Observation == GrowthObservation.GrowthConforming);
-            return ResultConformanceRules.FromDetection(detected) == ResultConformance.Conforms;
-        }
-
-        var lastResult = await _db.Results
-            .Where(r => r.TestOrderId == testOrderId).OrderByDescending(r => r.Id).FirstOrDefaultAsync();
-        if (lastResult is not null)
-        {
-            // An empty value counts as nothing to contradict here, as the
-            // no-result case below does.
-            return ResultConformanceRules.FromResultValue(lastResult.InterpretedValue ?? lastResult.RawValue) != ResultConformance.DoesNotConform;
-        }
-
-        // No result recorded anywhere for this TestOrder - nothing to
-        // contradict, leave it conforming by default.
-        return true;
     }
 }

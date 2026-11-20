@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Persistence.DbContext;
 using Microsoft.EntityFrameworkCore;
@@ -107,6 +108,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<CryovialSummaryService>();
         services.AddScoped<SampleReviewService>();
         services.AddScoped<SampleMoistureResolver>();
+        services.AddScoped<ITestOrderOutcomeService, TestOrderOutcomeService>();
         services.AddScoped<SampleApprovalService>();
         services.AddScoped<SectionClosureService>();
         services.AddScoped<AddLaboratoryService>();

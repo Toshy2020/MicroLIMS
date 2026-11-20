@@ -32,6 +32,7 @@ public class TestWorkflowSupport
     protected readonly IUserSectionScopeService _sectionScope;
     protected readonly ILabClock _clock;
     protected readonly ICompetencyGuard _competency;
+    protected readonly ISopRevisionCapture _sopCapture;
     protected readonly INotificationPublisher _publisher;
 
     public TestWorkflowSupport(TestWorkflowDependencies deps)
@@ -47,6 +48,7 @@ public class TestWorkflowSupport
         _sectionScope = deps.SectionScope;
         _clock = deps.Clock;
         _competency = deps.Competency;
+        _sopCapture = deps.SopCapture;
         _publisher = deps.Publisher ?? new NotificationPublisher(deps.Db, deps.TimeProvider);
     }
 
@@ -972,5 +974,6 @@ public sealed record TestWorkflowDependencies(
     IUserSectionScopeService SectionScope,
     ILabClock Clock,
     ICompetencyGuard Competency,
+    ISopRevisionCapture SopCapture,
     INotificationPublisher? Publisher = null,
     TimeProvider? TimeProvider = null);

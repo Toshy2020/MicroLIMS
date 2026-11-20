@@ -48,6 +48,7 @@ public class SamplePreparationService
     private readonly IUserSectionScopeService _scope;
     private readonly PreparationMaterialService _materials;
     private readonly ICompetencyGuard _competency;
+    private readonly ISopRevisionCapture _sopCapture;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
@@ -55,7 +56,8 @@ public class SamplePreparationService
         IElectronicSignatureService signatures,
         IUserSectionScopeService scope,
         PreparationMaterialService materials,
-        ICompetencyGuard competency)
+        ICompetencyGuard competency,
+        ISopRevisionCapture sopCapture)
     {
         _db = db;
         _validator = validator;
@@ -63,6 +65,7 @@ public class SamplePreparationService
         _scope = scope;
         _materials = materials;
         _competency = competency;
+        _sopCapture = sopCapture;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's

@@ -111,7 +111,7 @@ public static class TestServiceFactory
         new(db, scope ?? new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db, TimeProvider? time = null) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db), SopCapture(db, time));
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), PreparationMaterial(db));
@@ -155,13 +155,16 @@ public static class TestServiceFactory
     public static ICompetencyGuard Competency(MicroLimsDbContext db, ILabClock? clock = null) =>
         new CompetencyGuard(db, clock ?? LabClock.Default, new ItemSopResolver(db));
 
-    public static PathogenSessionService PathogenSession(MicroLimsDbContext db, TimeProvider? timeProvider = null) =>
-        new(db, Competency(db), timeProvider: timeProvider);
+    public static ISopRevisionCapture SopCapture(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new SopRevisionCapture(db, new ItemSopResolver(db), time ?? TimeProvider.System);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null, ICompetencyGuard? competency = null)
+    public static PathogenSessionService PathogenSession(MicroLimsDbContext db, TimeProvider? timeProvider = null) =>
+        new(db, Competency(db), SopCapture(db, timeProvider), timeProvider: timeProvider);
+
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null, ICompetencyGuard? competency = null, ISopRevisionCapture? sopCapture = null)
     {
         var engine = new TestWorkflowEngine(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db), competency ?? Competency(db, clock),
+            new SegregationOfDutiesGuard(db), ReviewGate(db), competency ?? Competency(db, clock), sopCapture ?? SopCapture(db),
             signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
         EngineDatabases.AddOrUpdate(engine, db);

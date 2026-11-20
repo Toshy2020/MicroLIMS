@@ -23,6 +23,7 @@ public partial class PathogenSessionService
 
     private readonly IMicroLimsDbContext _db;
     private readonly ICompetencyGuard _competency;
+    private readonly ISopRevisionCapture _sopCapture;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
@@ -31,6 +32,7 @@ public partial class PathogenSessionService
     public PathogenSessionService(
         IMicroLimsDbContext db,
         ICompetencyGuard competency,
+        ISopRevisionCapture sopCapture,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
         IncubatorEligibilityService? incubatorEligibility = null,
@@ -39,6 +41,7 @@ public partial class PathogenSessionService
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _competency = competency;
+        _sopCapture = sopCapture;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
         _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);

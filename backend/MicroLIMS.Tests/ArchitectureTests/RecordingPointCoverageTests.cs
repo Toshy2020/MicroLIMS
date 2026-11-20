@@ -10,7 +10,6 @@ public class RecordingPointCoverageTests
     {
         ["PathogenSessionService.ResetSessionAsync"] = "Supervisory reset invalidates existing records under TestWorkflow.Supervise.",
         ["PathogenConfirmationRecorder.RecordBiochemicalReviewDecisionAsync"] = "This is a technical review decision outside analyst competency scope.",
-        ["WaterWorkflowEngine.CalculateAndCompareAsync"] = "Legacy POST api/water/calculate has no production client caller.",
         ["AfterCleaningWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",
         ["EMWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",
         ["WaterWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",

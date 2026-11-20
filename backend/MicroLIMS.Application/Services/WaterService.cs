@@ -43,9 +43,6 @@ public class WaterService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public Task<WaterComparisonResult> CalculateAsync(int testOrderId, List<decimal> readings) =>
-        _workflow.CalculateAndCompareAsync(testOrderId, readings);
-
     public Task<List<WaterComparisonResult>> GetDailyAggregateAsync(DateTime date, IReadOnlyCollection<int>? sectionIds = null) =>
         _workflow.GetDailyAggregateAsync(date, sectionIds);
 }

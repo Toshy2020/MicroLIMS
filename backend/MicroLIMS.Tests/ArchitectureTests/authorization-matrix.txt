@@ -756,7 +756,6 @@ UserDirectoryController.GetDirectory(String): SystemAdministrator,SectionHead,Re
 UserUiStateController.GetAll(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 UserUiStateController.Remove(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 UserUiStateController.Set(String, SetUiStateRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-WaterController.Calculate(CalculateWaterRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.Prepare(PrepareWaterRequest): SectionHead,Reviewer,Analyst
 WaterController.Receive(ReceiveWaterRequest): SectionHead,Reviewer,Analyst

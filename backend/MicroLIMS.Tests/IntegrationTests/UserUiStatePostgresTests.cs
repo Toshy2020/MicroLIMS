@@ -140,6 +140,9 @@ public class UserUiStatePostgresTests
             "tour-done",     // hyphen
             "tour done",     // space
             "tour_done",     // underscore
+            "tour/done",     // path separator
+            "tour%2fdone",   // percent escape
+            "tour'done",     // quote
         };
 
         await using (var actDb = _fixture.CreateDbContext())

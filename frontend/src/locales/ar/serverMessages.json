@@ -116,7 +116,7 @@
   "Competency.IntervalInvalid": "أدخل فترة إعادة تأهيل من شهر واحد إلى 120 شهرًا، أو اتركها فارغة.",
   "Competency.ManageRequired": "ليست لديك صلاحية إدارة تأهيل المحللين.",
   "Competency.NotQualified": "أنت غير مؤهل لإجراء {{test}}.",
-  "Competency.RecordingRefused": "{{reasons}}",
+  "Competency.RecordingRefused": "رُفض تسجيل النتائج.",
   "Competency.QualificationAlreadyWithdrawn": "تم سحب التأهيل بالفعل.",
   "Competency.QualificationExpired": "انتهت صلاحية تأهيلك لإجراء {{test}} في {{date}}.",
   "Competency.QualificationIneligible": "يجب أن يكون المحلل نشطًا ومنتميًا إلى مختبر الاختبار.",

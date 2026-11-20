@@ -1,6 +1,7 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -21,6 +22,7 @@ public partial class PathogenSessionService
     public const string ResetReasonTooLongMessage = "The reason can be at most 500 characters.";
 
     private readonly IMicroLimsDbContext _db;
+    private readonly ICompetencyGuard _competency;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
@@ -28,6 +30,7 @@ public partial class PathogenSessionService
 
     public PathogenSessionService(
         IMicroLimsDbContext db,
+        ICompetencyGuard competency,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
         IncubatorEligibilityService? incubatorEligibility = null,
@@ -35,6 +38,7 @@ public partial class PathogenSessionService
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
+        _competency = competency;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
         _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);
@@ -162,10 +166,12 @@ public partial class PathogenSessionService
         return joining;
     }
 
-    public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
-        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
+    public Task<SharedTsbStateDto> StartSharedTsbAsync(
+        int sampleId, StartSharedTsbRequest request, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId, cancellationToken));
 
-    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(int sampleId, StartSharedTsbRequest request, int userId)
+    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(
+        int sampleId, StartSharedTsbRequest request, int userId, CancellationToken cancellationToken)
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
@@ -174,8 +180,6 @@ public partial class PathogenSessionService
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
-
-        await EnsurePreparedAsync(sample, userId);
 
         var media = await _db.Media
             .Include(m => m.Material)
@@ -200,6 +204,12 @@ public partial class PathogenSessionService
 
         foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
             SectionMediaRule.EnsureLot(media, sectionId);
+
+        var competency = await _competency.FilterAsync(userId, joining.Select(j => j.Order).ToList(), cancellationToken);
+        competency.ThrowIfAllRefused();
+        joining.RemoveAll(j => !competency.Allowed.Contains(j.Order.Id));
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await EnsurePreparedAsync(sample, userId);
 
         var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
 
@@ -274,7 +284,7 @@ public partial class PathogenSessionService
         await _db.SaveChangesAsync();
 
         var session = await GetSessionAsync(sampleId);
-        return session!.SharedTsb;
+        return session!.SharedTsb with { Skipped = Skips(competency) };
     }
 
     public async Task<List<EligibleLocationForConfirmationDto>> GetEligibleLocationsForConfirmationAsync(
@@ -366,11 +376,17 @@ public partial class PathogenSessionService
             }
         }
 
+        var touched = request.Observations.Where(o => locationsById.ContainsKey(o.SampleLocationId))
+            .Select(o => testOrdersByCode.GetValueOrDefault(o.TestCode)).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
         foreach (var obs in request.Observations)
         {
-            if (!testOrdersByCode.TryGetValue(obs.TestCode, out var order))
+            if (!testOrdersByCode.TryGetValue(obs.TestCode, out var order) || !competency.Allowed.Contains(order.Id))
                 continue;
 
             if (locationsById.TryGetValue(obs.SampleLocationId, out var loc))
@@ -402,7 +418,7 @@ public partial class PathogenSessionService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return (await GetSessionAsync(sampleId))!;
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Primary observations for a sample's locations, loaded once and keyed by (location, test order), so a
@@ -486,6 +502,9 @@ public partial class PathogenSessionService
                 MessageCodes.PathogenTestOrderNotFound,
                 $"TestOrder #{request.TestOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = request.TestOrderId.ToString(CultureInfo.InvariantCulture) });
+        var decision = await _competency.EvaluateAsync(userId, testOrder.Id, cancellationToken);
+        decision.ToActionCheck().ThrowIfRefused();
+        using var recording = AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -630,6 +649,12 @@ public partial class PathogenSessionService
                 MessageCodes.PathogenConfirmatoryPrimaryObservationNotFound,
                 "One or more primary observations were not found for this sample.");
 
+        var touched = primaryObsList.Select(o => o.TestOrder).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        primaryObsList.RemoveAll(o => !competency.Allowed.Contains(o.TestOrderId));
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+
         var testCodes = primaryObsList.Select(o => o.TestOrder?.TestCode ?? "").Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -640,7 +665,8 @@ public partial class PathogenSessionService
 
         foreach (var reading in request.Readings)
         {
-            var primaryObs = primaryObsMap[reading.LocationPathogenObservationId];
+            if (!primaryObsMap.TryGetValue(reading.LocationPathogenObservationId, out var primaryObs))
+                continue;
 
             testDefs.TryGetValue(primaryObs.TestOrder?.TestCode ?? "", out var testDef);
             var targetOrganismId = testDef?.Steps
@@ -704,7 +730,7 @@ public partial class PathogenSessionService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return (await GetSessionAsync(sampleId))!;
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Decides each primary observation's reported result from how its
@@ -749,7 +775,8 @@ public partial class PathogenSessionService
         }
     }
 
-    public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)
+    public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(
+        int sampleId, SaveResultMatrixRequest request, int userId, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
@@ -782,11 +809,16 @@ public partial class PathogenSessionService
             }
         }
 
-        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys);
+        var touched = request.Cells.Where(c => locationsById.ContainsKey(c.SampleLocationId))
+            .Select(c => testOrdersByCode.GetValueOrDefault(c.TestCode)).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
         foreach (var cell in request.Cells)
         {
-            if (!testOrdersByCode.TryGetValue(cell.TestCode, out var order))
+            if (!testOrdersByCode.TryGetValue(cell.TestCode, out var order) || !competency.Allowed.Contains(order.Id))
                 continue;
 
             if (locationsById.TryGetValue(cell.SampleLocationId, out var loc))
@@ -839,20 +871,33 @@ public partial class PathogenSessionService
         }
 
         await _db.SaveChangesAsync();
-        return (await GetSessionAsync(sampleId))!;
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Same semantics as TestWorkflowEngine's Compare(...) - delegates to shared SpecLimitParser
     private static ResultStatus CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
-    public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
+    public async Task<PathogenTestingSessionDto> CompleteSessionAsync(
+        int sampleId, int userId, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSessionNotFound,
                 $"Session for sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
+
+        var sample = await _db.Samples
+            .Include(s => s.TestOrders)
+            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
+
+        var competency = await _competency.FilterAsync(userId, sample.TestOrders, cancellationToken);
+        competency.ThrowIfRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
 
         // 1. Completeness Validation
         if (session.MissingResults.Count > 0)
@@ -872,14 +917,6 @@ public partial class PathogenSessionService
                 "PrerequisitesIncomplete",
                 $"Cannot complete testing session: Assigned tests {string.Join(", ", incompleteTests.Select(t => t.TestCode))} have incomplete workflow prerequisites.");
         }
-
-        var sample = await _db.Samples
-            .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException(
-                MessageCodes.PathogenSampleNotFound,
-                $"Sample #{sampleId} not found.",
-                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 3. Mark TestOrders as completed / ready for review
         foreach (var order in sample.TestOrders)
@@ -909,6 +946,9 @@ public partial class PathogenSessionService
         await _db.SaveChangesAsync();
         return (await GetSessionAsync(sampleId))!;
     }
+
+    private static List<CompetencySkipDto>? Skips(CompetencyBatch competency) =>
+        competency.Refused.Count == 0 ? null : competency.Refused.ToList();
 
     public async Task<PathogenTestingSessionDto> ResetSessionAsync(int sampleId, string? reason, int userId)
     {

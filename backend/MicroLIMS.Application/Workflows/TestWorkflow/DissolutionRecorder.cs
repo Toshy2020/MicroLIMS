@@ -19,11 +19,11 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
     public DissolutionRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordDissolutionResultAsync(
-        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordDissolutionResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordDissolutionResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordDissolutionResultCoreAsync(
-        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null)
+        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (payload.MediumVolumeMl <= 0m)
             throw new BusinessRuleException(MessageCodes.DissolutionMediumVolumePositive, "Medium volume must be greater than zero.");
@@ -36,6 +36,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         var resolved = await HplcDissolutionStandard.ResolveAsync(_db, order.Id);
         var std = resolved.Standard ?? throw new BusinessRuleException(
@@ -231,11 +232,11 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordDissolutionStageAsync(
-        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordDissolutionStageCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordDissolutionStageCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordDissolutionStageCoreAsync(
-        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null)
+        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
             throw new BusinessRuleException(MessageCodes.DissolutionPasswordRequired, "Password is required to sign the result.");
@@ -252,6 +253,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         RequireOrderNotFinalized(order);
 

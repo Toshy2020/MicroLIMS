@@ -1,4 +1,5 @@
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Application.Services.Competency;
 
 namespace MicroLIMS.Application.Services;
 
@@ -163,7 +164,8 @@ public record SharedTsbStateDto(
     int ApplicableLocationCount,
     // True when a test's own TSB window can't be resolved from Test Master -
     // the TSB then never reports ready instead of using a guessed window.
-    bool WindowNotConfigured = false);
+    bool WindowNotConfigured = false,
+    List<CompetencySkipDto>? Skipped = null);
 
 public record MatrixCellResultDto(
     int SampleLocationId,
@@ -213,4 +215,5 @@ public record PathogenTestingSessionDto(
     List<SessionAssignedTestDto> AssignedTests,
     SharedTsbStateDto SharedTsb,
     List<MatrixCellResultDto> ResultMatrix,
-    List<MissingResultDto> MissingResults);
+    List<MissingResultDto> MissingResults,
+    List<CompetencySkipDto>? Skipped = null);

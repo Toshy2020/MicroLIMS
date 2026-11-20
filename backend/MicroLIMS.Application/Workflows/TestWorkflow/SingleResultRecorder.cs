@@ -20,15 +20,16 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
     public SingleResultRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordMeasurementResultAsync(
-        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordMeasurementResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordMeasurementResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordMeasurementResultCoreAsync(
-        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null)
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Measurement, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
             throw new BusinessRuleException(
@@ -112,15 +113,16 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordGravimetricResultAsync(
-        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordGravimetricResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordGravimetricResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordGravimetricResultCoreAsync(
-        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null)
+        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Gravimetric, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         if (definition.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
             throw new BusinessRuleException(
@@ -293,15 +295,16 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordQualitativeResultAsync(
-        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordQualitativeResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordQualitativeResultCoreAsync(
-        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null)
+        int testOrderId, QualitativePayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var suppliedSpecIds = payload.Parameters?.Select(p => p.SpecificationId).ToList() ?? new List<int>();
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Qualitative, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         if (definition.EquationType != EquationType.Qualitative)
             throw new BusinessRuleException(

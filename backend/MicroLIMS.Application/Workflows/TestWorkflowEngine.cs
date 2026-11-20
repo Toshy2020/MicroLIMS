@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Shared.Exceptions;
 using System.Globalization;
 using System.Text.Json;
@@ -50,7 +51,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public TestWorkflowEngine(
         IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
-        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate,
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, ICompetencyGuard competency,
         IElectronicSignatureService? signatureService = null,
         IUserSectionScopeService? sectionScope = null,
         ILabClock? clock = null,
@@ -63,6 +64,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             signatureService ?? new ElectronicSignatureService(db),
             sectionScope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default,
+            competency,
             publisher,
             timeProvider);
         _clock = clock ?? LabClock.Default;
@@ -97,8 +99,8 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public Task<IReadOnlyDictionary<int, CurrentStepLookup>> GetCurrentStepDetailsForOrdersAsync(IReadOnlyCollection<int> testOrderIds) =>
         _testStepNavigator.GetCurrentStepDetailsForOrdersAsync(testOrderIds);
 
-    public async Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId), _clock.UtcNow.UtcDateTime);
+    public async Task<IncubationResponse> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default) =>
+        IncubationResponse.From(await _incubationStepRecorder.SelectMediaAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId, cancellationToken), _clock.UtcNow.UtcDateTime);
 
     public Task<List<SiblingPathogenOrderDto>> GetSiblingPathogenOrdersAsync(int testOrderId, CancellationToken ct = default) =>
         _testStepNavigator.GetSiblingPathogenOrdersAsync(testOrderId, ct);
@@ -110,11 +112,11 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         CancellationToken ct = default) =>
         _support.PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubationId, userId, ct);
 
-    public async Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.StartStage2IncubationAsync(testOrderId, stepName, incubatorEquipmentId, userId), _clock.UtcNow.UtcDateTime);
+    public async Task<IncubationResponse> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default) =>
+        IncubationResponse.From(await _incubationStepRecorder.StartStage2IncubationAsync(testOrderId, stepName, incubatorEquipmentId, userId, cancellationToken), _clock.UtcNow.UtcDateTime);
 
-    public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId) =>
-        _incubationStepRecorder.RecordResultAsync(testOrderId, stepName, payload, userId);
+    public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId, CancellationToken cancellationToken = default) =>
+        _incubationStepRecorder.RecordResultAsync(testOrderId, stepName, payload, userId, cancellationToken);
 
     public Task<CountCalculationResult> PreviewCountResultAsync(int testOrderId, string stepName, CountTestPayload payload) =>
         _incubationStepRecorder.PreviewCountResultAsync(testOrderId, stepName, payload);
@@ -122,25 +124,25 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public async Task<List<TestOrderLocationResponse>> GetLocationsAsync(int testOrderId) =>
         (await _incubationStepRecorder.GetLocationsAsync(testOrderId)).Select(TestOrderLocationResponse.From).ToList();
 
-    public async Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId) =>
-        IncubationResponse.From(await _incubationStepRecorder.CloseCurrentIncubationWindowAsync(testOrderId, userId), _clock.UtcNow.UtcDateTime);
+    public async Task<IncubationResponse> CloseCurrentIncubationWindowAsync(int testOrderId, int userId, CancellationToken cancellationToken = default) =>
+        IncubationResponse.From(await _incubationStepRecorder.CloseCurrentIncubationWindowAsync(testOrderId, userId, cancellationToken), _clock.UtcNow.UtcDateTime);
 
     public async Task<IncubationResponse> OverrideMinimumDurationAsync(int testOrderId, int userId) =>
         IncubationResponse.From(await _incubationStepRecorder.OverrideMinimumDurationAsync(testOrderId, userId), _clock.UtcNow.UtcDateTime);
 
-    public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId) =>
-        _incubationStepRecorder.RecordBatchResultsAsync(testOrderId, locations, userId);
+    public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default) =>
+        _incubationStepRecorder.RecordBatchResultsAsync(testOrderId, locations, userId, cancellationToken);
 
-    public Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId) =>
-        _incubationStepRecorder.RecordWaterBatchReadingsAsync(testOrderId, locations, userId);
+    public Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default) =>
+        _incubationStepRecorder.RecordWaterBatchReadingsAsync(testOrderId, locations, userId, cancellationToken);
 
     public Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
-        int testOrderId, List<BatchLocationObservation>? observations, int userId) =>
-        _incubationStepRecorder.RecordBatchPathogenResultsAsync(testOrderId, observations, userId);
+        int testOrderId, List<BatchLocationObservation>? observations, int userId, CancellationToken cancellationToken = default) =>
+        _incubationStepRecorder.RecordBatchPathogenResultsAsync(testOrderId, observations, userId, cancellationToken);
 
     public Task<TestWorkflowResult> RecordLocationResultsAsync(
-        int testOrderId, List<LocationResultInput> inputs, int userId) =>
-        _locationResultRecorder.RecordLocationResultsAsync(testOrderId, inputs, userId);
+        int testOrderId, List<LocationResultInput> inputs, int userId, CancellationToken cancellationToken = default) =>
+        _locationResultRecorder.RecordLocationResultsAsync(testOrderId, inputs, userId, cancellationToken);
 
     public static string GetCfuUnit(SampleCategory category, string? prepUnit) =>
         IncubationStepRecorder.GetCfuUnit(category, prepUnit);
@@ -149,90 +151,90 @@ public class TestWorkflowEngine : ITestWorkflowEngine
         IncubationStepRecorder.Compare(value, alert, action, spec);
 
     public Task<TestWorkflowResult> RecordMeasurementResultAsync(
-        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null) =>
-        _singleResultRecorder.RecordMeasurementResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, MeasurementPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _singleResultRecorder.RecordMeasurementResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordTitrationResultAsync(
-        int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null) =>
-        _titrationRecorder.RecordTitrationResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, TitrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _titrationRecorder.RecordTitrationResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task OutsourceTestAsync(int testOrderId, OutsourceTestPayload payload, int userId, string? ipAddress = null) =>
         _outsourcedRecorder.OutsourceTestAsync(testOrderId, payload, userId, ipAddress);
 
-    public Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null) =>
-        _outsourcedRecorder.RecordOutsourcedResultAsync(testOrderId, payload, userId, ipAddress);
+    public Task<TestWorkflowResult> RecordOutsourcedResultAsync(int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _outsourcedRecorder.RecordOutsourcedResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordUvResultAsync(
-        int testOrderId, UvPayload payload, int userId, string? ipAddress = null) =>
-        _uvRecorder.RecordUvResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, UvPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _uvRecorder.RecordUvResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordGravimetricResultAsync(
-        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null) =>
-        _singleResultRecorder.RecordGravimetricResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, GravimetricPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _singleResultRecorder.RecordGravimetricResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordQualitativeResultAsync(
-        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null) =>
-        _singleResultRecorder.RecordQualitativeResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, QualitativePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _singleResultRecorder.RecordQualitativeResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordDissolutionResultAsync(
-        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null) =>
-        _dissolutionRecorder.RecordDissolutionResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, DissolutionPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _dissolutionRecorder.RecordDissolutionResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordDissolutionStageAsync(
-        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null) =>
-        _dissolutionRecorder.RecordDissolutionStageAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, DissolutionStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _dissolutionRecorder.RecordDissolutionStageAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordDisintegrationResultAsync(
-        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null) =>
-        _disintegrationRecorder.RecordDisintegrationResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, DisintegrationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _disintegrationRecorder.RecordDisintegrationResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordDisintegrationStageAsync(
-        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null) =>
-        _disintegrationRecorder.RecordDisintegrationStageAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, DisintegrationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _disintegrationRecorder.RecordDisintegrationStageAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordWeightVariationResultAsync(
-        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null) =>
-        _weightVariationRecorder.RecordWeightVariationResultAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _weightVariationRecorder.RecordWeightVariationResultAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> RecordWeightVariationStageAsync(
-        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null) =>
-        _weightVariationRecorder.RecordWeightVariationStageAsync(testOrderId, payload, userId, ipAddress);
+        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _weightVariationRecorder.RecordWeightVariationStageAsync(testOrderId, payload, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> SubmitHplcMethodAssayAsync(
-        int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>
-        _hplcMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress);
+        int runSampleId, string password, string? comment, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _hplcMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress, cancellationToken);
 
     public Task<TestWorkflowResult> SubmitIcpMethodAssayAsync(
-        int runSampleId, string password, string? comment, int userId, string? ipAddress = null) =>
-        _icpMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress);
+        int runSampleId, string password, string? comment, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        _icpMethodAssayRecorder.SubmitAsync(runSampleId, password, comment, userId, ipAddress, cancellationToken);
 
     public Task<StepResultDto> SubmitBrothAsync(
-        int testOrderId, string stepName, string? observation, int userId) =>
-        _pathogenConfirmationRecorder.SubmitBrothAsync(testOrderId, stepName, observation, userId);
+        int testOrderId, string stepName, string? observation, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.SubmitBrothAsync(testOrderId, stepName, observation, userId, cancellationToken);
 
     public async Task<IncubationResponse> StartSelectivePlatingIncubationAsync(
-        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId) =>
-        IncubationResponse.From(await _pathogenConfirmationRecorder.StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId), _clock.UtcNow.UtcDateTime);
+        int testOrderId, string stepName, int mediaLotId, int equipmentId, DateTime? incubationStartUtc, int userId, CancellationToken cancellationToken = default) =>
+        IncubationResponse.From(await _pathogenConfirmationRecorder.StartSelectivePlatingIncubationAsync(testOrderId, stepName, mediaLotId, equipmentId, incubationStartUtc, userId, cancellationToken), _clock.UtcNow.UtcDateTime);
 
     public Task<StepResultDto> SubmitSelectivePlatingObservationAsync(
-        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId) =>
-        _pathogenConfirmationRecorder.SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, observedAppearanceNote, userId);
+        int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.SubmitSelectivePlatingObservationAsync(testOrderId, stepName, observation, observedAppearanceNote, userId, cancellationToken);
 
     public Task<StepResultDto> SubmitConfirmatorySetupAsync(
         int testOrderId, string stepName, IReadOnlyList<ConfirmatorySelectionInput> selections,
-        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId) =>
-        _pathogenConfirmationRecorder.SubmitConfirmatorySetupAsync(testOrderId, stepName, selections, incubationStartUtc, incubationEndUtc, userId);
+        DateTime incubationStartUtc, DateTime incubationEndUtc, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.SubmitConfirmatorySetupAsync(testOrderId, stepName, selections, incubationStartUtc, incubationEndUtc, userId, cancellationToken);
 
     public Task<ConfirmatoryOutcomeDto> SubmitConfirmatoryObservationsAsync(
-        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId) =>
-        _pathogenConfirmationRecorder.SubmitConfirmatoryObservationsAsync(testOrderId, stepName, observations, userId);
+        int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.SubmitConfirmatoryObservationsAsync(testOrderId, stepName, observations, userId, cancellationToken);
 
-    public Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId) =>
-        _pathogenConfirmationRecorder.RecordAnalystDecisionAsync(testOrderId, decision, userId);
+    public Task<StepResultDto> RecordAnalystDecisionAsync(int testOrderId, AnalystDecision decision, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.RecordAnalystDecisionAsync(testOrderId, decision, userId, cancellationToken);
 
     public Task<StepResultDto> SubmitBiochemicalAsync(
-        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId) =>
-        _pathogenConfirmationRecorder.SubmitBiochemicalAsync(testOrderId, stepName, biochemicalResultText, attachmentId, organismDetected, userId);
+        int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId, CancellationToken cancellationToken = default) =>
+        _pathogenConfirmationRecorder.SubmitBiochemicalAsync(testOrderId, stepName, biochemicalResultText, attachmentId, organismDetected, userId, cancellationToken);
 
     public Task<StepResultDto> RecordBiochemicalReviewDecisionAsync(
         int workflowStepResultId, bool approve, string comment, int reviewerUserId) =>

@@ -116,6 +116,7 @@
   "Competency.IntervalInvalid": "Use a requalification interval from 1 to 120 months, or leave it empty.",
   "Competency.ManageRequired": "You do not have permission to manage analyst qualifications.",
   "Competency.NotQualified": "You are not qualified for {{test}}.",
+  "Competency.RecordingRefused": "{{reasons}}",
   "Competency.QualificationAlreadyWithdrawn": "The qualification has already been withdrawn.",
   "Competency.QualificationExpired": "Your qualification for {{test}} expired on {{date}}.",
   "Competency.QualificationIneligible": "The analyst must be active and belong to the laboratory for this test.",

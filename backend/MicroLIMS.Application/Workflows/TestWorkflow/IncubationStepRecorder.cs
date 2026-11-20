@@ -20,12 +20,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 {
     public IncubationStepRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
-    public Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId) =>
-        UnitOfWork.RunAsync(_db, () => SelectMediaCoreAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId));
+    public Task<Incubation> SelectMediaAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SelectMediaCoreAsync(testOrderId, stepName, mediaLotId, incubatorEquipmentId, userId, cancellationToken));
 
-    private async Task<Incubation> SelectMediaCoreAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId)
+    private async Task<Incubation> SelectMediaCoreAsync(int testOrderId, string stepName, int mediaLotId, int incubatorEquipmentId, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
                 MessageCodes.IncubationStepNotInTemplate,
@@ -149,7 +151,9 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
 
         if (isSharedTsbStep)
         {
-            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId);
+            // Sibling writes carry the result of their own competency evaluation.
+            recording.Dispose();
+            await PropagateSharedTsbToSiblingOrdersAsync(testOrderId, incubation.Id, userId, cancellationToken);
         }
 
         return incubation;
@@ -180,9 +184,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // between stages, so MediaId is copied from stage 1 rather than
     // asking the analyst to reselect it; the incubator is new, since
     // that's the whole point of a transfer.
-    public async Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId)
+    public Task<Incubation> StartStage2IncubationAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => StartStage2IncubationCoreAsync(testOrderId, stepName, incubatorEquipmentId, userId, cancellationToken));
+
+    private async Task<Incubation> StartStage2IncubationCoreAsync(int testOrderId, string stepName, int incubatorEquipmentId, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
                 MessageCodes.IncubationStepNotInTemplate,
@@ -263,12 +272,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         return stage2;
     }
 
-    public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordResultCoreAsync(testOrderId, stepName, payload, userId));
+    public Task<TestWorkflowResult> RecordResultAsync(int testOrderId, string stepName, ResultPayload payload, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordResultCoreAsync(testOrderId, stepName, payload, userId, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordResultCoreAsync(int testOrderId, string stepName, ResultPayload payload, int userId)
+    private async Task<TestWorkflowResult> RecordResultCoreAsync(int testOrderId, string stepName, ResultPayload payload, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
                 MessageCodes.IncubationStepNotInTemplate,
@@ -472,9 +483,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         }
     }
 
-    public async Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId)
+    public Task<Incubation> CloseCurrentIncubationWindowAsync(int testOrderId, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => CloseCurrentIncubationWindowCoreAsync(testOrderId, userId, cancellationToken));
+
+    private async Task<Incubation> CloseCurrentIncubationWindowCoreAsync(int testOrderId, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         var (incubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
 
         if (step.RequiresIncubationTransfer)
@@ -515,12 +531,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
         return incubation;
     }
 
-    public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordBatchResultsCoreAsync(testOrderId, locations, userId));
+    public Task<TestWorkflowResult> RecordBatchResultsAsync(int testOrderId, List<BatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordBatchResultsCoreAsync(testOrderId, locations, userId, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordBatchResultsCoreAsync(int testOrderId, List<BatchLocationReadings> locations, int userId)
+    private async Task<TestWorkflowResult> RecordBatchResultsCoreAsync(int testOrderId, List<BatchLocationReadings> locations, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(
                 MessageCodes.IncubationMediaRequiredForBatchResults,
@@ -639,12 +657,14 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // opening/closing the incubation window and transitioning the
     // TestOrder is identical to RecordBatchResultsAsync; only the
     // result computation differs.
-    public Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordWaterBatchReadingsCoreAsync(testOrderId, locations, userId));
+    public Task<TestWorkflowResult> RecordWaterBatchReadingsAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordWaterBatchReadingsCoreAsync(testOrderId, locations, userId, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordWaterBatchReadingsCoreAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId)
+    private async Task<TestWorkflowResult> RecordWaterBatchReadingsCoreAsync(int testOrderId, List<WaterBatchLocationReadings> locations, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(
                 MessageCodes.IncubationMediaRequiredForBatchResults,
@@ -755,13 +775,15 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     // intermediate step was just a shared incubation window closed via
     // CloseCurrentIncubationWindowAsync, no per-location judgment call).
     public Task<TestWorkflowResult> RecordBatchPathogenResultsAsync(
-        int testOrderId, List<BatchLocationObservation>? observations, int userId) =>
-        UnitOfWork.RunAsync(_db, () => RecordBatchPathogenResultsCoreAsync(testOrderId, observations, userId));
+        int testOrderId, List<BatchLocationObservation>? observations, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordBatchPathogenResultsCoreAsync(testOrderId, observations, userId, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordBatchPathogenResultsCoreAsync(
-        int testOrderId, List<BatchLocationObservation>? observations, int userId)
+        int testOrderId, List<BatchLocationObservation>? observations, int userId, CancellationToken cancellationToken)
     {
-        var (order, definition) = await LoadWithTemplateAsync(testOrderId);
+        var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(
                 MessageCodes.IncubationMediaRequiredForBatchResults,

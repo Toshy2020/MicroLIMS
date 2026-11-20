@@ -22,7 +22,7 @@ public class PathogenConfirmatoryReadingScopePostgresTests(PostgresTestFixture f
             await using var actDb = fixture.CreateDbContext();
             actDb.CurrentUserId = fixture.SeededUserId;
             var ex = await Assert.ThrowsAsync<NotFoundException>(() =>
-                new PathogenSessionService(actDb).SaveBatchConfirmatoryPlateReadingsAsync(
+                TestServiceFactory.PathogenSession(actDb).SaveBatchConfirmatoryPlateReadingsAsync(
                     own.SampleLocation!.SampleId, Request(materialId, own.Id, invalidId), fixture.SeededUserId));
             Assert.Equal("Pathogen.ConfirmatoryPrimaryObservationNotFound", ex.Code);
             Assert.Equal(message, ex.Message);
@@ -49,7 +49,7 @@ public class PathogenConfirmatoryReadingScopePostgresTests(PostgresTestFixture f
         await using (var actDb = fixture.CreateDbContext())
         {
             actDb.CurrentUserId = fixture.SeededUserId;
-            await new PathogenSessionService(actDb).SaveBatchConfirmatoryPlateReadingsAsync(
+            await TestServiceFactory.PathogenSession(actDb).SaveBatchConfirmatoryPlateReadingsAsync(
                 own.SampleLocation!.SampleId, Request(materialId, own.Id), fixture.SeededUserId);
         }
 
@@ -92,7 +92,8 @@ public class PathogenConfirmatoryReadingScopePostgresTests(PostgresTestFixture f
         };
         var own = Observation(db, sectionId, cause);
         var foreign = Observation(db, sectionId, cause);
-        db.ConfirmatoryPlateObservations.AddRange(ExistingPlate(own, material), ExistingPlate(foreign, material));
+        db.ConfirmatoryPlateObservations.AddRange(
+            ExistingPlate(own, material, fixture.SeededUserId), ExistingPlate(foreign, material, fixture.SeededUserId));
         await db.SaveChangesAsync();
         return (own, foreign, material.Id, await db.AuditLogs.AsNoTracking().CountAsync());
     }
@@ -123,13 +124,13 @@ public class PathogenConfirmatoryReadingScopePostgresTests(PostgresTestFixture f
     // The migrated database requires a workflow step result even for a
     // location-linked plate. Updating an existing plate exercises the scope
     // rule without relying on the session's first-insert path (CONF-214).
-    private ConfirmatoryPlateObservation ExistingPlate(LocationPathogenObservation observation, Material material) =>
+    internal static ConfirmatoryPlateObservation ExistingPlate(LocationPathogenObservation observation, Material material, int userId) =>
         new()
         {
             LocationPathogenObservation = observation,
             SampleLocation = observation.SampleLocation,
             Material = material,
-            RecordedByUserId = fixture.SeededUserId,
+            RecordedByUserId = userId,
             Observation = GrowthObservation.GrowthConforming,
             WorkflowStepResult = new WorkflowStepResult
             {
@@ -142,7 +143,7 @@ public class PathogenConfirmatoryReadingScopePostgresTests(PostgresTestFixture f
                 },
                 StepName = "Confirmatory Plating",
                 StepType = StepType.ConfirmatoryPlating,
-                SubmittedByUserId = fixture.SeededUserId,
+                SubmittedByUserId = userId,
             },
         };
 }

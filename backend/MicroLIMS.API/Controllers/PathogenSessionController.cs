@@ -38,57 +38,57 @@ public class PathogenSessionController : ControllerBase
     }
 
     [HttpPost("{sampleId:int}/start-tsb")]
-    public async Task<IActionResult> StartSharedTsb(int sampleId, [FromBody] StartSharedTsbRequest request)
+    public async Task<IActionResult> StartSharedTsb(int sampleId, [FromBody] StartSharedTsbRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var res = await _sessionService.StartSharedTsbAsync(sampleId, request, CurrentUserId);
+            var res = await _sessionService.StartSharedTsbAsync(sampleId, request, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<SharedTsbStateDto>.Ok(res));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
 
     [HttpPost("{sampleId:int}/save-matrix")]
-    public async Task<IActionResult> SaveResultMatrix(int sampleId, [FromBody] SaveResultMatrixRequest request)
+    public async Task<IActionResult> SaveResultMatrix(int sampleId, [FromBody] SaveResultMatrixRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var session = await _sessionService.SaveResultMatrixAsync(sampleId, request, CurrentUserId);
+            var session = await _sessionService.SaveResultMatrixAsync(sampleId, request, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
 
     [HttpPost("{sampleId:int}/save-primary-observations")]
-    public async Task<IActionResult> SavePrimaryObservations(int sampleId, [FromBody] SavePrimaryObservationsRequest request)
+    public async Task<IActionResult> SavePrimaryObservations(int sampleId, [FromBody] SavePrimaryObservationsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var session = await _sessionService.SavePrimaryObservationsAsync(sampleId, request, CurrentUserId);
+            var session = await _sessionService.SavePrimaryObservationsAsync(sampleId, request, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
@@ -110,57 +110,57 @@ public class PathogenSessionController : ControllerBase
     }
 
     [HttpPost("{sampleId:int}/start-confirmatory-setup")]
-    public async Task<IActionResult> StartConfirmatorySetup(int sampleId, [FromBody] BatchConfirmatorySetupRequest request)
+    public async Task<IActionResult> StartConfirmatorySetup(int sampleId, [FromBody] BatchConfirmatorySetupRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var session = await _sessionService.StartSharedConfirmatorySetupAsync(sampleId, request, CurrentUserId);
+            var session = await _sessionService.StartSharedConfirmatorySetupAsync(sampleId, request, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
 
     [HttpPost("{sampleId:int}/save-confirmatory-readings")]
-    public async Task<IActionResult> SaveConfirmatoryReadings(int sampleId, [FromBody] SaveBatchConfirmatoryPlateReadingsRequest request)
+    public async Task<IActionResult> SaveConfirmatoryReadings(int sampleId, [FromBody] SaveBatchConfirmatoryPlateReadingsRequest request, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var session = await _sessionService.SaveBatchConfirmatoryPlateReadingsAsync(sampleId, request, CurrentUserId);
+            var session = await _sessionService.SaveBatchConfirmatoryPlateReadingsAsync(sampleId, request, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }
     }
 
     [HttpPost("{sampleId:int}/complete")]
-    public async Task<IActionResult> CompleteSession(int sampleId)
+    public async Task<IActionResult> CompleteSession(int sampleId, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsurePathogenSampleAccessAsync(CurrentUserId, sampleId);
         try
         {
-            var session = await _sessionService.CompleteSessionAsync(sampleId, CurrentUserId);
+            var session = await _sessionService.CompleteSessionAsync(sampleId, CurrentUserId, cancellationToken);
             return Ok(ApiResponse<PathogenTestingSessionDto>.Ok(session));
         }
         catch (WorkflowStepException ex)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message, new List<string> { ex.ErrorCode, ex.Message }));
         }
-        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException)
+        catch (Exception ex) when (ex is not DbUpdateConcurrencyException and not NotFoundException and not BusinessRuleException and not OperationCanceledException)
         {
             return BadRequest(ApiResponse<string>.Fail(ex.Message));
         }

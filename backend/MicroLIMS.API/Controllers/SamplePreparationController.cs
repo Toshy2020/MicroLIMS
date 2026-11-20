@@ -55,7 +55,7 @@ public class SamplePreparationController : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = PermissionConstants.SamplesPrepare)]
-    public async Task<IActionResult> Prepare(PrepareSampleHttpRequest r)
+    public async Task<IActionResult> Prepare(PrepareSampleHttpRequest r, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
         var prep = await _service.PrepareAsync(new PrepareSampleRequest(
@@ -63,19 +63,19 @@ public class SamplePreparationController : ControllerBase
             string.Empty, string.Empty, CurrentUserId, r.Password,
             new PreparationMaterialChoice(r.DiluentSource, r.DiluentMediaProductId, r.DiluentSolutionMasterId, r.DiluentMaterialMasterEntryId),
             new PreparationMaterialChoice(r.NeutralizerSource, r.NeutralizerMediaProductId, r.NeutralizerSolutionMasterId, r.NeutralizerMaterialMasterEntryId),
-            r.DiluentLotId, r.NeutralizerLotId), ClientIp);
+            r.DiluentLotId, r.NeutralizerLotId), ClientIp, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(prep));
     }
 
     [HttpPost("confirm")]
     [Authorize(Policy = PermissionConstants.SamplesPrepare)]
-    public async Task<IActionResult> Confirm(ConfirmPreparationHttpRequest r)
+    public async Task<IActionResult> Confirm(ConfirmPreparationHttpRequest r, CancellationToken cancellationToken = default)
     {
         await _scopeService.EnsureSampleAccessAsync(CurrentUserId, r.SampleId);
         var prep = await _service.ConfirmFromConfigurationAsync(
             new ConfirmPreparationRequest(
-                r.SampleId, CurrentUserId, r.Password, DiluentLotId: r.DiluentLotId, NeutralizerLotId: r.NeutralizerLotId), ClientIp);
+                r.SampleId, CurrentUserId, r.Password, DiluentLotId: r.DiluentLotId, NeutralizerLotId: r.NeutralizerLotId), ClientIp, cancellationToken);
 
         return Ok(ApiResponse<object>.Ok(prep));
     }

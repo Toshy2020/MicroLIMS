@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.InstrumentImport;
 using Microsoft.Extensions.Logging;
@@ -110,7 +111,7 @@ public static class TestServiceFactory
         new(db, scope ?? new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db, TimeProvider? time = null) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db));
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), PreparationMaterial(db));
@@ -140,10 +141,16 @@ public static class TestServiceFactory
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
 
-    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null)
+    public static ICompetencyGuard Competency(MicroLimsDbContext db, ILabClock? clock = null) =>
+        new CompetencyGuard(db, clock ?? LabClock.Default, new ItemSopResolver(db));
+
+    public static PathogenSessionService PathogenSession(MicroLimsDbContext db, TimeProvider? timeProvider = null) =>
+        new(db, Competency(db), timeProvider: timeProvider);
+
+    public static TestWorkflowEngine TestWorkflow(MicroLimsDbContext db, IElectronicSignatureService? signatures = null, IUserSectionScopeService? scope = null, ILabClock? clock = null, ICompetencyGuard? competency = null)
     {
         var engine = new TestWorkflowEngine(db, SampleReview(db), ResultProjection(db), IncubatorEligibility(db), AppearanceSnapshot(db),
-            new SegregationOfDutiesGuard(db), ReviewGate(db),
+            new SegregationOfDutiesGuard(db), ReviewGate(db), competency ?? Competency(db, clock),
             signatures ?? new ElectronicSignatureService(db), scope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default);
         EngineDatabases.AddOrUpdate(engine, db);

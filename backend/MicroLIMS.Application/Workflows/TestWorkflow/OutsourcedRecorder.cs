@@ -123,10 +123,10 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordOutsourcedResultAsync(
-        int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, RecordOutsourcedResultPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
-    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, RecordOutsourcedResultPayload p, int userId, string? ipAddress)
+    private async Task<TestWorkflowResult> RecordCoreAsync(int testOrderId, RecordOutsourcedResultPayload p, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         var parameters = p.Parameters ?? new List<OutsourcedParameterInput>();
 
@@ -145,6 +145,7 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.ReportedAt, null, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, workflowType, userId, outsourced: true);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         // the specs of this test, each exactly once (the shared check does not cover every workflow type)
         if (parameters.Count != specById.Count || !specById.Keys.ToHashSet().SetEquals(parameters.Select(x => x.SpecificationId)))

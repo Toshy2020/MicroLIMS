@@ -73,7 +73,8 @@ public record BatchPreparationSuccessItem(
 public record BatchPreparationSkippedItem(
     int SampleId,
     string SampleReference,
-    string Reason
+    string Reason,
+    string? Code = null
 );
 
 public record BatchConfirmPreparationResponse(

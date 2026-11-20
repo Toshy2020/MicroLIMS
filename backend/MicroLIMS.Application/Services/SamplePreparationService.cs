@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Application.Services.Competency;
 
 namespace MicroLIMS.Application.Services;
 
@@ -45,29 +46,36 @@ public class SamplePreparationService
     private readonly IElectronicSignatureService _signatures;
     private readonly IUserSectionScopeService _scope;
     private readonly PreparationMaterialService _materials;
+    private readonly ICompetencyGuard _competency;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
         PreparationParameterValidator validator,
         IElectronicSignatureService signatures,
         IUserSectionScopeService scope,
-        PreparationMaterialService materials)
+        PreparationMaterialService materials,
+        ICompetencyGuard competency)
     {
         _db = db;
         _validator = validator;
         _signatures = signatures;
         _scope = scope;
         _materials = materials;
+        _competency = competency;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
     // configuration (PendingReview) from the same values, in one transaction.
-    public Task<SamplePreparationResponse> PrepareAsync(PrepareSampleRequest request, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await PrepareCoreAsync(request, ipAddress)));
+    public Task<SamplePreparationResponse> PrepareAsync(
+        PrepareSampleRequest request, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await PrepareCoreAsync(request, ipAddress, cancellationToken)));
 
-    private async Task<SamplePreparation> PrepareCoreAsync(PrepareSampleRequest request, string? ipAddress = null)
+    private async Task<SamplePreparation> PrepareCoreAsync(
+        PrepareSampleRequest request, string? ipAddress, CancellationToken cancellationToken)
     {
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
+        var (recording, waitingOrders) = await RequirePreparationCompetencyAsync(sample.Id, request.UserId, cancellationToken);
+        using var reason = recording;
 
         if (sample.ItemId is null)
             throw new BusinessRuleException(
@@ -127,17 +135,21 @@ public class SamplePreparationService
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluent.Choice, diluentLot);
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizer.Choice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress, SignatureComment(prep));
+        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep));
     }
 
     // Confirm-only: every value is copied from the Item's configuration, so
     // editing that config later cannot rewrite this sample's record.
-    public Task<SamplePreparationResponse> ConfirmFromConfigurationAsync(ConfirmPreparationRequest request, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await ConfirmFromConfigurationCoreAsync(request, ipAddress)));
+    public Task<SamplePreparationResponse> ConfirmFromConfigurationAsync(
+        ConfirmPreparationRequest request, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () => SamplePreparationResponse.From(await ConfirmFromConfigurationCoreAsync(request, ipAddress, cancellationToken)));
 
-    private async Task<SamplePreparation> ConfirmFromConfigurationCoreAsync(ConfirmPreparationRequest request, string? ipAddress = null)
+    private async Task<SamplePreparation> ConfirmFromConfigurationCoreAsync(
+        ConfirmPreparationRequest request, string? ipAddress, CancellationToken cancellationToken)
     {
         var sample = await LoadPreparableSampleAsync(request.SampleId, request.UserId);
+        var (recording, waitingOrders) = await RequirePreparationCompetencyAsync(sample.Id, request.UserId, cancellationToken);
+        using var reason = recording;
 
         if (sample.ItemId is null)
             throw new BusinessRuleException(
@@ -185,7 +197,20 @@ public class SamplePreparationService
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluentChoice, diluentLot);
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizerChoice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, request.UserId, request.Password, ipAddress, SignatureComment(prep));
+        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep));
+    }
+
+    private async Task<(IDisposable Recording, List<TestOrder> WaitingOrders)> RequirePreparationCompetencyAsync(
+        int sampleId, int userId, CancellationToken ct)
+    {
+        var orders = await _db.TestOrders.Where(order => order.SampleId == sampleId).ToListAsync(ct);
+        var memberOf = await _scope.GetMemberSectionIdsAsync(userId, ct);
+        var waitingOrders = orders.Where(order => order.CurrentStep == WorkflowStep.Waiting && order.AssignedAnalystId == null &&
+            (memberOf is null || memberOf.Contains(order.SectionId))).ToList();
+        var covered = orders.Where(order => !order.IsSuperseded).Concat(waitingOrders).ToList();
+        var competency = await _competency.FilterAsync(userId, covered, ct);
+        competency.ThrowIfRefused();
+        return (AuditReasonScope.Append(_db, competency.SopNotChecked), waitingOrders);
     }
 
     private async Task<Sample> LoadPreparableSampleAsync(int sampleId, int userId)
@@ -229,7 +254,8 @@ public class SamplePreparationService
     // One transaction: the preparation snapshot, the signature that attests
     // to it, and the sample moving to Ready all land together or not at all.
     private async Task<SamplePreparation> CommitPreparationAsync(
-        Sample sample, SamplePreparation prep, int userId, string password, string? ipAddress, string? signatureComment = null)
+        Sample sample, SamplePreparation prep, List<TestOrder> waitingOrders,
+        int userId, string password, string? ipAddress, string? signatureComment = null)
     {
         // Signs first - if password verification fails, nothing below is
         // written. Signed against the Sample rather than the SamplePreparation
@@ -249,12 +275,6 @@ public class SamplePreparationService
         // unassigned test on this sample that hasn't started yet, in the
         // laboratory sections they belong to. Tests already assigned, or past
         // Waiting, keep whoever's already on them.
-        var memberOf = await _scope.GetMemberSectionIdsAsync(userId);
-        var waitingOrders = (await _db.TestOrders
-            .Where(t => t.SampleId == sample.Id && t.CurrentStep == WorkflowStep.Waiting && t.AssignedAnalystId == null)
-            .ToListAsync())
-            .Where(t => memberOf is null || memberOf.Contains(t.SectionId))
-            .ToList();
         foreach (var order in waitingOrders)
             order.AssignedAnalystId = userId;
         if (waitingOrders.Count > 0)
@@ -485,7 +505,7 @@ public class SamplePreparationService
                 var prep = await ConfirmFromConfigurationAsync(
                     new ConfirmPreparationRequest(
                         sampleId, userId, request.Password, request.ConfigurationId, request.DiluentLotId, request.NeutralizerLotId),
-                    ipAddress);
+                    ipAddress, ct);
 
                 anySigned = true;
                 succeeded.Add(new BatchPreparationSuccessItem(
@@ -501,7 +521,7 @@ public class SamplePreparationService
             }
             catch (InvalidOperationException ex)
             {
-                skipped.Add(new BatchPreparationSkippedItem(sampleId, reference, ex.Message));
+                skipped.Add(new BatchPreparationSkippedItem(sampleId, reference, ex.Message, (ex as ICodedMessage)?.Code));
             }
         }
 

@@ -375,7 +375,7 @@ public class PathogenSessionServiceTests
     public async Task StartSharedTsbAsync_TestWithBothBrothTypes_AttachesToBrothEnrichmentNotSelectiveBroth()
     {
         var (db, sampleId, _) = SetupTestEnvironment(1);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
             MediaLotId: 20,
@@ -400,7 +400,7 @@ public class PathogenSessionServiceTests
         sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
             service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
@@ -439,7 +439,7 @@ public class PathogenSessionServiceTests
         ecoliMedium.IncubationMaxHours = 48;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         var start = DateTime.UtcNow;
         var tsb = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, start), 5);
 
@@ -465,7 +465,7 @@ public class PathogenSessionServiceTests
         (await TsbMediumAsync(db, "S. aureus")).MediaProductId = 14;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         var tsb = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
 
         Assert.False(await db.Incubations.AnyAsync(i => i.TestOrderId == 203));
@@ -484,7 +484,7 @@ public class PathogenSessionServiceTests
         (await TsbMediumAsync(db, "P. aeruginosa")).IncubationMinHours = 0;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
             service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5));
 
@@ -500,7 +500,7 @@ public class PathogenSessionServiceTests
         (await TsbMediumAsync(db, "BCC")).TempMin = 33; // INC-03 is set to 32.5 °C
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         var ex = await Assert.ThrowsAsync<WorkflowStepException>(() =>
             service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5));
 
@@ -518,7 +518,7 @@ public class PathogenSessionServiceTests
         db.EquipmentInventories.Add(new EquipmentInventory { Id = 50, Code = "INC-50", InstrumentType = "Incubator", Status = EquipmentOperationalStatus.InService });
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
             service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 50, DateTime.UtcNow), 5));
         Assert.False(await db.Incubations.AnyAsync());
@@ -598,7 +598,7 @@ public class PathogenSessionServiceTests
     public async Task Scenario_3Locations_6AssignedTests_TsbIncubation_Gating_And_Counters()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // 1. Start Shared TSB
         var tsbResult = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(
@@ -667,7 +667,7 @@ public class PathogenSessionServiceTests
     public async Task Scenario_PartialWorkflowCompletion_BccAndEcoliComplete_SalmonellaLocked()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // 1. Complete TSB incubation (25h ago)
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
@@ -714,7 +714,7 @@ public class PathogenSessionServiceTests
     public async Task Scenario_20Locations_6AssignedTests_FullLifecycle()
     {
         var (db, sampleId, _) = SetupTestEnvironment(20);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // 1. Initial State
         var session = await service.GetSessionAsync(sampleId);
@@ -808,7 +808,7 @@ public class PathogenSessionServiceTests
     public async Task SaveResultMatrix_RejectedForALockedTest_PersistsNothing()
     {
         var (db, sampleId, _) = SetupTestEnvironment(20);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
 
         // BCC and Salmonella have not completed step 2, so they are locked.
@@ -831,7 +831,7 @@ public class PathogenSessionServiceTests
     public async Task SaveResultMatrix_120Cells_SavesOnce()
     {
         var (db, sampleId, _) = SetupTestEnvironment(20);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
         await CompleteStep2ForBccAndSalmonellaAsync(db);
 
@@ -861,7 +861,7 @@ public class PathogenSessionServiceTests
     public async Task SaveResultMatrix_SavedTwice_UpdatesObservationsInsteadOfDuplicating()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
         await CompleteStep2ForBccAndSalmonellaAsync(db);
 
@@ -895,7 +895,7 @@ public class PathogenSessionServiceTests
     public async Task SavePrimaryObservations_RejectedForALockedTest_PersistsNothing()
     {
         var (db, sampleId, _) = SetupTestEnvironment(20);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
 
         var inputs = NoGrowthForAllQualitativeCellsLockedTestsLast((await service.GetSessionAsync(sampleId))!);
@@ -914,7 +914,7 @@ public class PathogenSessionServiceTests
     public async Task SavePrimaryObservations_100Observations_SavesOnce()
     {
         var (db, sampleId, _) = SetupTestEnvironment(20);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
         await CompleteStep2ForBccAndSalmonellaAsync(db);
 
@@ -942,7 +942,7 @@ public class PathogenSessionServiceTests
     public async Task SavePrimaryObservations_ResavedWithoutSnapshot_KeepsExistingSnapshot()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow.AddHours(-25)), 5);
         await CompleteStep2ForBccAndSalmonellaAsync(db);
 
@@ -967,7 +967,7 @@ public class PathogenSessionServiceTests
     public async Task GetSession_CountTestIncubating_BeforeMinHours_IsLocked()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
         var start = DateTime.UtcNow.AddHours(-1); // 1 hour ago, minHours is 48
@@ -999,7 +999,7 @@ public class PathogenSessionServiceTests
     public async Task GetSession_CountTestIncubating_AfterMinHours_IsUnlocked()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
         var start = DateTime.UtcNow.AddHours(-50); // 50 hours ago, minHours is 48
@@ -1031,7 +1031,7 @@ public class PathogenSessionServiceTests
     public async Task GetSession_PathogenTest_UnaffectedByCountIncubationFix()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // TAMC is incubating before minHours
         var tamcOrder = await db.TestOrders.FirstAsync(t => t.TestCode == "TAMC-Water");
@@ -1073,7 +1073,7 @@ public class PathogenSessionServiceTests
     public async Task StartSharedTsb_CreatesWorkflowStepResult_ForAllPathogenOrders()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var res = await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
         Assert.NotNull(res);
@@ -1193,7 +1193,7 @@ public class PathogenSessionServiceTests
     public async Task ResetSessionAsync_CleansUpAllStepResultsAndResetsOrdersToWaiting()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // Start TSB
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
@@ -1226,7 +1226,7 @@ public class PathogenSessionServiceTests
     public async Task ResetSessionAsync_RefusesToResetARejectedSample()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         await service.StartSharedTsbAsync(sampleId, new StartSharedTsbRequest(20, 3, DateTime.UtcNow), 5);
 
@@ -1252,7 +1252,7 @@ public class PathogenSessionServiceTests
     public async Task ResetSessionAsync_StillResetsASampleUnderReview()
     {
         var (db, sampleId, _) = SetupTestEnvironment(3);
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var sample = await db.Samples.FirstAsync(s => s.Id == sampleId);
         sample.Status = SampleStatus.UnderReview;

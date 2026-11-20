@@ -60,5 +60,5 @@ Gemini 4 Argon (agy) reviewed branch `r2/integration` against the nine R2 plans 
 - "Changed by someone else" banner is not mounted on the sample summary, test workflow and a few configuration dialogs.
 - Notification preference writes do not set the audit user outside the request pipeline; digest e-mails may repeat mandatory immediate types.
 - `SampleSummaryDialog.test.tsx` still mocks project components and uses `fireEvent` (legacy test changed during R2).
-- Interface-state keys reject hyphens; the Notification Centre has no section filter.
+- Interface-state keys reject hyphens: not a defect, decided 2026-11-20 to keep. FS-NTF-038 fixes the key pattern at `^[a-z][a-zA-Z0-9.]{1,63}$`; a caller that needs a separator uses a dot. The Notification Centre has no section filter.
 - 765 hard-coded interface strings remain (the ratchet only goes down).

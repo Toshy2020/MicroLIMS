@@ -157,7 +157,10 @@ describe("useUiState", () => {
 describe("interface state keys", () => {
   // The same cases as the server's UserUiStatePostgresTests: a key the server
   // refuses would never be saved, so the hook refuses it up front.
-  it.each(["", "a", "Tour.done", "1tour", "tour-done", "tour done", "tour_done", "a" + "b".repeat(64)])(
+  it.each([
+    "", "a", "Tour.done", "1tour", "tour-done", "tour done", "tour_done",
+    "tour/done", "tour%2fdone", "tour'done", "a" + "b".repeat(64),
+  ])(
     "%j is refused as the server refuses it",
     (key) => {
       expect(isUiStateKey(key)).toBe(false);

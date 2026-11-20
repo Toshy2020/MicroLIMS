@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Shared.Exceptions;
 
@@ -25,6 +26,16 @@ public class BusinessRuleException : InvalidOperationException, ICodedMessage
     public string? Code { get; }
 
     public IReadOnlyDictionary<string, string>? Parameters { get; }
+
+    public IReadOnlyList<ApiError>? Details { get; }
+
+    private BusinessRuleException(IReadOnlyList<ApiError> details)
+        : base(string.Join(" ", details.Select(detail => detail.Message)))
+    {
+        Details = details;
+    }
+
+    public static BusinessRuleException FromDetails(IReadOnlyList<ApiError> details) => new(details);
 
     public BusinessRuleException(string? message) : base(message) { }
 

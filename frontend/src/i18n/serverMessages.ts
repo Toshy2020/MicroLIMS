@@ -52,9 +52,11 @@ export async function translateServerErrorBody(body: unknown): Promise<string | 
   const english = data.message;
   const translated = details.map(translateServerDetail);
 
-  // The server's Message is the sentence of its single coded refusal; a field
-  // error or an errors[] entry that repeats it is the same sentence.
-  const primary = details.length === 1 ? translated[0] : null;
+  // A response can use one coded sentence or join several in validation order.
+  // Only replace a multi-message summary when it matches those sentences.
+  const primary = details.length === 1 || english === details.map((detail) => detail.message).join(" ")
+    ? translated.join(" ")
+    : null;
   if (primary !== null) {
     data.message = primary;
     if (Array.isArray(data.errors)) data.errors = data.errors.map((e) => (e === english ? primary : e));

@@ -90,10 +90,10 @@ public class EnvironmentalMonitoringMasterDataService
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
     {
         if (rule is not null && FrequencyRules.Validate(rule) is { } problem)
-            throw new BusinessRuleException(
-                MessageCodes.MonitoringFrequencyValidationFailed,
-                problem,
-                new Dictionary<string, string> { ["message"] = problem });
+        {
+            var (code, parameters, message) = problem;
+            throw new BusinessRuleException(code, message, parameters);
+        }
         FrequencyRules.Apply(target, rule);
     }
 
@@ -228,7 +228,7 @@ public class EnvironmentalMonitoringMasterDataService
 
         if (request.Frequency is not null && FrequencyRules.Validate(request.Frequency) is { } problem)
         {
-            errors.Add(new FieldError("frequency", problem, row));
+            errors.Add(new FieldError("frequency", problem.Message, row));
         }
 
         return errors;

@@ -56,6 +56,22 @@ describe("apiClient coded server messages", () => {
     expect(body.errors).toEqual(["تم أخذ الاختبار بالفعل بواسطة Dana Lee."]);
   });
 
+  it("translates each password refusal in the joined message", async () => {
+    await i18n.changeLanguage("ar");
+    const length = "Password must be at least 12 characters long.";
+    const digit = "Password must contain at least one digit.";
+
+    const { body } = await refusal(400, {
+      message: `${length} ${digit}`,
+      errorDetails: [
+        { code: "User.PasswordMinimumLength", params: { minimumLength: "12" }, message: length },
+        { code: "User.PasswordDigitRequired", message: digit }
+      ]
+    });
+
+    expect(body.message).toBe("يجب ألا تقل كلمة المرور عن 12 أحرف. يجب أن تحتوي كلمة المرور على رقم واحد على الأقل.");
+  });
+
   it("keeps the server's refusal and English sentence when the templates cannot be loaded", async () => {
     await i18n.changeLanguage("ar");
     const load = vi.spyOn(i18n, "loadNamespaces").mockRejectedValue(new Error("chunk failed"));

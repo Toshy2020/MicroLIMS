@@ -38,6 +38,46 @@ public class FrequencyRulesTests
     }
 
     [Fact]
+    public void Validate_CodesEachRefusalAndKeepsItsEnglish()
+    {
+        var cases = new (FrequencyRuleDto Rule, string Code, string Message)[]
+        {
+            (new(FrequencyType.Daily, 2),
+                "Monitoring.FrequencyDailyIntervalNotAllowed", "A daily frequency cannot have an interval."),
+            (new(FrequencyType.Daily, 1, DayOfWeek.Monday),
+                "Monitoring.FrequencyDailyWeekdayNotAllowed", "A daily frequency cannot have a sampling weekday."),
+            (new(FrequencyType.Daily, AnchorMonth: 2),
+                "Monitoring.FrequencyDailyAnchorMonthNotAllowed", "A daily frequency cannot have an anchor month."),
+            (new(FrequencyType.Daily, WeekOfMonth: 2),
+                "Monitoring.FrequencyDailyWeekOfMonthNotAllowed", "A daily frequency cannot have a week of the month."),
+            (new(FrequencyType.Weekly, 53),
+                "Monitoring.FrequencyIntervalOutOfRange", "Frequency interval must be between 1 and 52."),
+            (new(FrequencyType.Weekly, AnchorMonth: 2),
+                "Monitoring.FrequencyWeeklyAnchorMonthNotAllowed", "A weekly frequency cannot have an anchor month."),
+            (new(FrequencyType.Weekly, WeekOfMonth: 2),
+                "Monitoring.FrequencyWeeklyWeekOfMonthNotAllowed", "A weekly frequency cannot have a week of the month."),
+            (new(FrequencyType.Weekly),
+                "Monitoring.FrequencyWeeklyWeekdayRequired", "A weekly frequency needs a sampling weekday."),
+            (new(FrequencyType.Monthly, 13),
+                "Monitoring.FrequencyMonthlyIntervalTooLong", "A monthly interval cannot exceed 12 months."),
+            (new(FrequencyType.Monthly, 2, AnchorMonth: 13),
+                "Monitoring.FrequencyAnchorMonthOutOfRange", "Anchor month must be between 1 and 12."),
+            (new(FrequencyType.Monthly, AnchorMonth: 2),
+                "Monitoring.FrequencyAnchorMonthRequiresMultiMonthInterval", "An anchor month only applies to every-N-months rules."),
+            (new(FrequencyType.Monthly, WeekOfMonth: 5),
+                "Monitoring.FrequencyWeekOfMonthOutOfRange", "Week of the month must be between 1 and 4."),
+        };
+
+        foreach (var (rule, code, message) in cases)
+        {
+            var problem = FrequencyRules.Validate(rule, weekdayRequired: true);
+            Assert.NotNull(problem);
+            Assert.Equal(code, problem.Code);
+            Assert.Equal(message, problem.Message);
+        }
+    }
+
+    [Fact]
     public void Validate_WeeklyWaterPointNeedsWeekday()
     {
         var rule = new FrequencyRuleDto(FrequencyType.Weekly, 1);

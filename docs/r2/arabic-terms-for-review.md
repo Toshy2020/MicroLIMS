@@ -67,7 +67,11 @@ The interface is now translated module by module. `frontend/src/locales/glossary
 - **Administration and security:** صلاحية (permission); دور (role); المصادقة الثنائية (two-factor authentication); العامل الثاني للمصادقة (second factor); رمز الاسترداد (recovery code); مفتاح أمان مادي (hardware token); تطبيق المصادقة (authenticator app); جهاز موثوق (trusted computer); المهام الخلفية (background jobs); فصل المهام (segregation of duties); وكلاء الأجهزة (instrument agents); تدوير المفتاح (key rotation); الهيكل التنظيمي (organization); نقطة القطع (cut-off); المنفِّذ (actor); الموقِّع (signer).
 - **Interface:** طرق العرض (views); كثافة مريحة / مضغوطة (comfortable / compact density); الجهاز اللوحي (tablet); تجاهل (discard); إخفاء (dismiss); لصق (paste); مناقشة، تعليق، مرفق، مُعدَّل (discussion, comment, attachment, edited); الجديد (what's new); معرّف الارتباط (correlation ID); حوادث (incidents); ملخص دوري (digest); تسليم (delivery); إلزامي (mandatory).
 
-## 4. What stays English by design
+## 4. Server message templates for review
+
+The password templates reuse the account password checklist. The monitoring templates reuse the frequency form's terms for التكرار (frequency), يوم أخذ العينات (sampling weekday), أسبوع الشهر (week of the month), and الشهر الأول من الدورة (anchor month). Please review the new `User.Password*` and `Monitoring.Frequency*` validation sentences in `frontend/src/locales/ar/serverMessages.json`, including الفاصل الزمني للتكرار for frequency interval.
+
+## 5. What stays English by design
 
 - Printed and exported records (certificate of analysis, sample report, media and cryovial reports, equipment history, CSV and PDF exports), because the English record is the regulated one.
 - The recorded meaning of every electronic signature. In Arabic, the screen shows the English statement first and the Arabic translation under it, with a note that the English text is recorded.

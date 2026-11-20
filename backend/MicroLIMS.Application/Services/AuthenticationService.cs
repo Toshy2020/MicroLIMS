@@ -525,15 +525,9 @@ public class AuthenticationService : IAuthenticationService
     // SaveChangesAsync so it can be combined with its own changes in one transaction.
     private async Task ValidateAndApplyNewPasswordAsync(User user, string newPassword, bool revokeExistingSessions = true)
     {
-        var failures = PasswordPolicy.Validate(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
+        var failures = PasswordPolicy.ValidateCoded(newPassword, await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordMinimumLength));
         if (failures.Count > 0)
-        {
-            var failureMessage = string.Join(" ", failures);
-            throw new BusinessRuleException(
-                MessageCodes.UserPasswordPolicyFailed,
-                failureMessage,
-                new Dictionary<string, string> { ["message"] = failureMessage });
-        }
+            throw BusinessRuleException.FromDetails(failures);
 
         var historyLimit = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.PasswordHistoryLimit);
         var existingHistory = await _db.PasswordHistories

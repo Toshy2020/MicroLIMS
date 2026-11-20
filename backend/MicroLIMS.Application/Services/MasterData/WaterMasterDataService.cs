@@ -87,10 +87,10 @@ public class WaterMasterDataService
 
         var rule = request.ToRuleDto();
         if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
-            throw new BusinessRuleException(
-                MessageCodes.MonitoringFrequencyRuleInvalid,
-                problem,
-                new Dictionary<string, string> { ["message"] = problem });
+        {
+            var (code, parameters, message) = problem;
+            throw new BusinessRuleException(code, message, parameters);
+        }
 
         var existing = await _db.WaterPointLabFrequencies
             .FirstOrDefaultAsync(f => f.WaterSamplingPointId == id && f.SectionId == sectionId);
@@ -144,10 +144,10 @@ public class WaterMasterDataService
     private static void ApplyFrequency(IHasFrequency target, FrequencyRuleDto? rule)
     {
         if (rule is not null && FrequencyRules.Validate(rule, weekdayRequired: true) is { } problem)
-            throw new BusinessRuleException(
-                MessageCodes.MonitoringFrequencyRuleInvalid,
-                problem,
-                new Dictionary<string, string> { ["message"] = problem });
+        {
+            var (code, parameters, message) = problem;
+            throw new BusinessRuleException(code, message, parameters);
+        }
         FrequencyRules.Apply(target, rule);
     }
 
@@ -162,7 +162,7 @@ public class WaterMasterDataService
         // Same rule ApplyFrequency enforces on create, reported per row before anything is written.
         if (request.Frequency is not null && FrequencyRules.Validate(request.Frequency, weekdayRequired: true) is { } problem)
         {
-            errors.Add(new FieldError("frequency", problem, row));
+            errors.Add(new FieldError("frequency", problem.Message, row));
         }
 
         return errors;

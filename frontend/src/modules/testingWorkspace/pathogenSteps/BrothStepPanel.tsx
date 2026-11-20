@@ -37,7 +37,7 @@ interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
   current?: CurrentStepResponse;
-  onSubmitted: () => void;
+  onSubmitted: (saved?: boolean) => void;
 }
 
 // BrothEnrichment/SelectiveBroth: preparation only. The incubation
@@ -141,7 +141,7 @@ export function BrothStepPanel({ testOrderId, step, current, onSubmitted }: Prop
     } catch (e: unknown) {
       const parsed = parseWorkflowError(e);
       if (parsed.message?.includes("order violation") || parsed.message?.includes("already")) {
-        onSubmitted();
+        onSubmitted(false);
       } else {
         setError(workflowErrorDisplayMessage(parsed));
       }

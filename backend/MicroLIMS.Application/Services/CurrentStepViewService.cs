@@ -367,6 +367,8 @@ public class CurrentStepViewService
             return new
             {
                 testOrderId,
+                outsourcedToLab = order.OutsourcedToLab,
+                status = order.Status.ToString(),
                 step = current.Step is null ? null : new
                 {
                     current.Step.Id, current.Step.StepOrder, current.Step.StepName,
@@ -425,6 +427,8 @@ public class CurrentStepViewService
         return new
         {
             testOrderId,
+            outsourcedToLab = order.OutsourcedToLab,
+            status = order.Status.ToString(),
             step = current.Step is null ? null : new
             {
                 current.Step.Id, current.Step.StepOrder, current.Step.StepName,

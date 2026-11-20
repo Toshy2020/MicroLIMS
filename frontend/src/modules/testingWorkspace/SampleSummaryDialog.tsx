@@ -9,8 +9,10 @@ import TimelineOutlinedIcon from "@mui/icons-material/TimelineOutlined";
 import { Link } from "react-router-dom";
 import { Trans } from "react-i18next";
 import { FloatingDialog } from "../../components/FloatingDialog";
+import { RecordChangedBanner } from "../../components/RecordChangedBanner";
+import { noteOwnSave } from "../../hooks/useRecordChanged";
 import { Ltr } from "../../components/Ltr";
-import { useTranslation } from "../../i18n";
+import { i18n, useTranslation } from "../../i18n";
 import { SignatureDialog } from "../../components/SignatureDialog";
 import { ReturnToAnalystDialog } from "../../components/ReturnToAnalystDialog";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
@@ -117,11 +119,11 @@ function WorkflowHistoryStrip({ summary }: { summary: SampleSummary }) {
 }
 
 export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
-  const theme = useTheme();
   const { t } = useTranslation("testingWorkspace");
   const { permissions } = useAuth();
   const canAssignAnalyst = permissions.includes(PERMISSIONS.SAMPLES_ASSIGN_ANALYST);
   const [summary, setSummary] = useState<SampleSummary | null>(null);
+  const [reloadCount, setReloadCount] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [decision, setDecision] = useState<SampleApprovalDecision>("Approve");
@@ -190,6 +192,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const refreshApprovalAvailability = approvalAvailability.refresh;
 
   useEffect(() => {
+    const controller = new AbortController();
     if (open && sampleId) {
       setSummary(null);
       setLoadError(null);
@@ -205,8 +208,9 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setClosingSectionId("");
       setRetentionQuantity("");
       setRetentionQuantityUnit("");
-      SampleSummaryService.getSummary(sampleId)
+      SampleSummaryService.getSummary(sampleId, { signal: controller.signal })
         .then((data) => {
+          if (controller.signal.aborted) return;
           setSummary(data);
           if (data.retentionQuantity != null) {
             setRetentionQuantity(String(data.retentionQuantity));
@@ -229,19 +233,31 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           }
         })
         .catch((e) => {
-          setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
+          if (controller.signal.aborted) return;
+          setLoadError(e?.response?.data?.message ?? i18n.t("testingWorkspace:sampleSummary.dialog.loadFailed"));
         });
       if (canAssignAnalyst) {
         setAnalystsLoadFailed(false);
         UserService.getEligibleAnalysts()
-          .then(setAnalysts)
+          .then((data) => { if (!controller.signal.aborted) setAnalysts(data); })
           .catch(() => {
+            if (controller.signal.aborted) return;
             setAnalysts([]);
             setAnalystsLoadFailed(true);
           });
       }
     }
-  }, [open, sampleId, canAssignAnalyst]);
+    return () => controller.abort();
+  }, [open, sampleId, canAssignAnalyst, reloadCount]);
+
+  const dirty = Boolean(comment || decision !== "Approve" ||
+    newSampleAnalystOneId !== "" || newSampleAnalystTwoId !== "" ||
+    certificateRemarks !== (approvableSections.find((section) => section.sectionId === effectiveApprovalSectionId)?.certificateRemarks ?? "") ||
+    retentionQuantity !== (summary?.retentionQuantity == null ? "" : String(summary.retentionQuantity)) ||
+    retentionQuantityUnit !== (summary?.retentionQuantityUnit ?? "") ||
+    (reviewableSections.length > 1 && reviewSectionId !== "") ||
+    (approvableSections.length > 1 && approvalSectionId !== "") ||
+    (closableSections.length > 1 && closingSectionId !== ""));
 
   const handleApprovalSectionChange = (newSectionId: number | "") => {
     setApprovalSectionId(newSectionId);
@@ -268,6 +284,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const handleCloseTestingSuccess = async () => {
     setConfirmingClose(false);
     if (!sampleId) return;
+    noteOwnSave("sample", sampleId);
     const updated = await SampleSummaryService.getSummary(sampleId);
     setSummary(updated);
     refreshReviewAvailability();
@@ -277,6 +294,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const handleReturnConfirm = async (reason?: string) => {
     if (!sampleId || !returningTestOrder) return;
     await SampleSummaryService.returnTestToAnalyst(sampleId, returningTestOrder.testOrderId, reason);
+    noteOwnSave("sample", sampleId);
     setReturningTestOrder(null);
     const updated = await SampleSummaryService.getSummary(sampleId);
     setSummary(updated);
@@ -298,6 +316,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         showRetention ? Number(retentionQuantity) : undefined,
         showRetention ? retentionQuantityUnit : undefined
       );
+      noteOwnSave("sample", sampleId);
     } finally {
       refreshReviewAvailability();
     }
@@ -317,6 +336,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         decision === "NewSampleRequest" && newSampleAnalystTwoId !== "" ? newSampleAnalystTwoId : undefined,
         effectiveApprovalSectionId
       );
+      noteOwnSave("sample", sampleId);
     } finally {
       refreshApprovalAvailability();
     }
@@ -420,6 +440,13 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
         title={t("sampleSummary.dialog.title")}
         onClose={onClose}
       >
+        {open && summary?.sampleId === sampleId && (
+          <RecordChangedBanner type="sample" id={sampleId} dirty={dirty} onReload={() => {
+            setReloadCount((count) => count + 1);
+            refreshReviewAvailability();
+            refreshApprovalAvailability();
+          }} />
+        )}
         {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
         {!summary && !loadError && <DialogBodySkeleton blocks={6} blockHeight={64} />}
         {summary && (

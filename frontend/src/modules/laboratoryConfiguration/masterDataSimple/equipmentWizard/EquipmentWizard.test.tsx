@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AxiosError, AxiosHeaders } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../../theme/PinnedLightTheme";
 import { i18n } from "../../../../i18n";
 import { AuthProvider } from "../../../../contexts/AuthContext";
+import { LiveProvider } from "../../../../contexts/LiveContext";
+import { createFakeLiveConnection, type FakeLiveConnection } from "../../../../contexts/testing/fakeLiveConnection";
 import { resetDraftDb, signInForTest } from "../../../../services/drafts/draftTestUtils";
 import { masterDataUsageService } from "../../../../services/masterDataUsageService";
 import type { LaboratorySection } from "../../../../services/laboratorySectionService";
@@ -89,21 +91,15 @@ const saved: EquipmentResponse = {
   connectionSettings: null
 };
 
-function renderWizard(props: Partial<EquipmentWizardProps> = {}) {
+function renderWizard(props: Partial<EquipmentWizardProps> = {}, connection?: FakeLiveConnection) {
   const onSaved = vi.fn();
   const onClose = vi.fn();
+  const wizard = <EquipmentWizard open mySections={[micro]} inventory={[asset]} onSaved={onSaved} onClose={onClose} {...props} />;
   render(
     <PinnedLightTheme>
       <AuthProvider>
         <MemoryRouter>
-          <EquipmentWizard
-            open
-            mySections={[micro]}
-            inventory={[asset]}
-            onSaved={onSaved}
-            onClose={onClose}
-            {...props}
-          />
+          {connection ? <LiveProvider connection={connection}>{wizard}</LiveProvider> : wizard}
         </MemoryRouter>
       </AuthProvider>
     </PinnedLightTheme>
@@ -129,6 +125,25 @@ describe("EquipmentWizard", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  it("asks before replacing unsaved equipment edits with the latest record", async () => {
+    const user = userEvent.setup();
+    const connection = createFakeLiveConnection();
+    vi.mocked(EquipmentConfigurationService.getEquipmentById).mockResolvedValue({ ...saved, location: "New server location" });
+    renderWizard({ editing: source }, connection);
+    await waitFor(() => expect(connection.invoke).toHaveBeenCalledWith("WatchRecord", "equipment", source.id));
+    const location = await screen.findByRole<HTMLInputElement>("textbox", { name: /Location/ });
+    await user.clear(location);
+    await user.type(location, "My draft");
+
+    act(() => connection.emitSignal({ kind: "record", key: `equipment:${source.id}`, actorUserId: 99 }));
+    await user.click(await screen.findByRole("button", { name: "Reload" }));
+    expect(EquipmentConfigurationService.getEquipmentById).not.toHaveBeenCalled();
+    await user.click(await screen.findByRole("button", { name: "Discard and reload" }));
+
+    expect(await screen.findByDisplayValue("New server location")).toBeTruthy();
+    expect(EquipmentConfigurationService.getEquipmentById).toHaveBeenCalledWith(source.id);
   });
 
   it("shows only the chosen type's settings", async () => {

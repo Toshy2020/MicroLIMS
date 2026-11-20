@@ -3,6 +3,7 @@ import type { FrequencyColumns, FrequencyRulePayload } from "../../../components
 export type { FrequencyRulePayload };
 
 export interface WaterPointLabFrequency extends FrequencyColumns {
+  id?: number;
   sectionId: number;
   sectionCode: string;
   type?: "Daily" | "Weekly" | "Monthly" | null;

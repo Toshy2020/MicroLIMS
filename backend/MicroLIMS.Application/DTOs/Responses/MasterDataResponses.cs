@@ -314,6 +314,7 @@ public class WaterSamplingPointResponse
 
 public class WaterPointLabFrequencyResponse
 {
+    public int Id { get; init; }
     public int SectionId { get; init; }
     public string SectionCode { get; init; } = string.Empty;
     public FrequencyType? FrequencyType { get; init; }
@@ -332,6 +333,7 @@ public class WaterPointLabFrequencyResponse
         var ruleDto = FrequencyRules.From(f);
         return new WaterPointLabFrequencyResponse
         {
+            Id = f.Id,
             SectionId = f.SectionId,
             SectionCode = f.Section?.Code ?? string.Empty,
             FrequencyType = f.FrequencyType,

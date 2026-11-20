@@ -39,7 +39,7 @@ interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
   current: CurrentStepResponse;
-  onSubmitted: () => void;
+  onSubmitted: (saved?: boolean) => void;
 }
 
 export function SelectivePlatingPanel({ testOrderId, step, current, onSubmitted }: Props) {

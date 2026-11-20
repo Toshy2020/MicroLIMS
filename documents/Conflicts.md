@@ -1122,3 +1122,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Who may edit the shared cause list?
 - **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20). Phase I signing requires a currently active category, and deactivation preserves existing records (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20
+
+### CONF-214
+- **Area:** PTH
+- **Status:** Fixed
+- **What the code does:** Migration `20260810225125_AddPathogenWorkflowRefactor` created `ConfirmatoryPlateObservations.WorkflowStepResultId` as NOT NULL with an unfiltered unique index on (`WorkflowStepResultId`, `MaterialId`). The model, the EF configuration and the model snapshot say the column is nullable with a filtered unique index. Saving location-linked confirmatory plates (null `WorkflowStepResultId`) failed in the migrated database with PostgreSQL error 23502.
+- **What the other source says:** The model snapshot and `ConfirmatoryPlateObservationConfiguration` expect a nullable column and an index filtered on `"WorkflowStepResultId" IS NOT NULL`.
+- **Question:** Not applicable (a defect, not a rule question).
+- **Decision:** Fixed by the forward migration `20261120201135_FixConfirmatoryPlateWorkflowStepNullable`: the column is nullable and the unique index is recreated with the filter. Its Down() refuses to run while NULL rows exist and never deletes regulated rows (orchestrator, 2026-11-20).
+- **Date:** 2026-11-20

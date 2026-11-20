@@ -47,7 +47,8 @@ public class SegregationOfDutiesRulesTests
         Assert.All(SegregationOfDutiesRules.AdministrationCodes.Concat(SegregationOfDutiesRules.GxpExecutionAndApprovalCodes),
             code => Assert.Contains(code, PermissionConstants.All));
         Assert.Equal(2, SegregationOfDutiesRules.AdministrationCodes.Count);
-        Assert.Equal(31, SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Count);
+        Assert.Equal(32, SegregationOfDutiesRules.GxpExecutionAndApprovalCodes.Count);
+        Assert.Contains(PermissionConstants.OosContribute, SegregationOfDutiesRules.GxpExecutionAndApprovalCodes);
     }
 
     public static IEnumerable<object[]> QaForbiddenCodeRows() =>

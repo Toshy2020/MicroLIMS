@@ -109,6 +109,9 @@ public static class PermissionConstants
     public const string CompetencyOverride = "Competency.Override";
 
     public const string OosManage = "Oos.Manage";
+    public const string OosView = "Oos.View";
+    public const string OosContribute = "Oos.Contribute";
+    public const string OosRequestDeviation = "Oos.RequestDeviation";
     public const string TestWorkflowSupervise = "TestWorkflow.Supervise";
     public const string SamplesReceiveOwnLab = "Samples.ReceiveOwnLab";
     public const string SamplesCorrect = "Samples.Correct";
@@ -193,7 +196,7 @@ public static class PermissionConstants
         DocumentsReview, DocumentsApprove, DocumentsPeriodicReview,
         DocumentsTrainingAssign, DocumentsTrainingViewMatrix, DocumentsConfigManage, DocumentsReassign,
         DashboardsLabOverview, DashboardsReview, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, TestWorkflowSupervise,
+        MediaPrepare, MediaRelease, MaterialCategoriesManage, MaterialsRelease, OosManage, OosView, OosContribute, OosRequestDeviation, TestWorkflowSupervise,
         SamplesReceiveOwnLab, SamplesCorrect, SamplesAssignAnalyst,
         SolutionsPrepare, SolutionsRelease, HplcOperate, WorkingStandardsQualify,
         MonitoringPlanView, MonitoringPlanManage, MonitoringPlanApprove,
@@ -236,20 +239,20 @@ public static class PermissionConstants
         DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
         SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
         KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
-        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView, OosView, OosRequestDeviation
     };
 
     // The codes some endpoint or service actually checks. The rest are
     // declared for the Roles screen but not yet enforced anywhere; the
     // screen shows which is which (Permission.IsEnforced).
-    // tests.not-applicable.* and tests.outsource join this set with the endpoints that check them.
+    // D1 Task 4 provisions the OOS investigation codes as enforced ahead of their endpoint checks.
     public static readonly IReadOnlySet<string> Enforced = new HashSet<string>
     {
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
         CompetencyManage,
-        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage,
+        MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage, OosView, OosContribute, OosRequestDeviation,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,
         TestWorkflowBiochemicalDecision, TestWorkflowExecute, TestWorkflowSupervise, UsersManage,

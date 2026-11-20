@@ -37,6 +37,9 @@ public class QcManagerRoleTests
 
         Assert.Contains(PermissionConstants.NotApplicableTestsFinalApprove, codes);
         Assert.Contains(PermissionConstants.CompetencyManage, codes);
+        Assert.Contains(PermissionConstants.OosView, codes);
+        Assert.DoesNotContain(PermissionConstants.OosContribute, codes);
+        Assert.DoesNotContain(PermissionConstants.OosRequestDeviation, codes);
         Assert.DoesNotContain(PermissionConstants.CompetencyOverride, codes);
         Assert.DoesNotContain(PermissionConstants.MasterDataManage, codes);
         // Sharing saved table views, exporting a table to CSV (audited), and configuring section notifications act on no laboratory record.

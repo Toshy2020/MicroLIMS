@@ -27,7 +27,7 @@ public static class SegregationOfDutiesRules
         PermissionConstants.MediaPrepare, PermissionConstants.MediaRelease, PermissionConstants.MaterialsRelease,
         PermissionConstants.CryovialsManage, PermissionConstants.CryovialsApprove,
         PermissionConstants.MonitoringPlanApprove, PermissionConstants.EquipmentPlanApprove, PermissionConstants.EquipmentWorkRecord,
-        PermissionConstants.OosManage, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
+        PermissionConstants.OosManage, PermissionConstants.OosContribute, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
         PermissionConstants.DocumentsReview, PermissionConstants.DocumentsApprove,
         PermissionConstants.SamplesPrepare, PermissionConstants.TestsOutsource, PermissionConstants.TestsSelfAssign,
         PermissionConstants.NotApplicableTestsManage, PermissionConstants.NotApplicableTestsFinalApprove

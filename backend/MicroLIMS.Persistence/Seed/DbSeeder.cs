@@ -511,6 +511,9 @@ public static class DbSeeder
             (PermissionConstants.CompetencyManage, "Sign and withdraw analyst qualifications."),
             (PermissionConstants.CompetencyOverride, "Sign a competency override for a test order."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
+            (PermissionConstants.OosView, "View out-of-specification investigations."),
+            (PermissionConstants.OosContribute, "Contribute statements and checklist answers to out-of-specification investigations."),
+            (PermissionConstants.OosRequestDeviation, "Request a deviation on an out-of-specification investigation."),
             (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
             (PermissionConstants.SamplesCorrect, "Correct or void a sample record."),
@@ -582,6 +585,7 @@ public static class DbSeeder
                 (RoleType.SectionHead, new[]
                 {
                     PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
+                    PermissionConstants.OosView, PermissionConstants.OosContribute,
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
                     PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll,
                     PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
@@ -612,7 +616,7 @@ public static class DbSeeder
                 }),
                 (RoleType.Reviewer, new[]
                 {
-                    PermissionConstants.CompetencyView,
+                    PermissionConstants.CompetencyView, PermissionConstants.OosView,
                     PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
                     PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
@@ -630,7 +634,7 @@ public static class DbSeeder
                 }),
                 (RoleType.Analyst, new[]
                 {
-                    PermissionConstants.CompetencyView,
+                    PermissionConstants.CompetencyView, PermissionConstants.OosView, PermissionConstants.OosContribute,
                     PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
                     PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,

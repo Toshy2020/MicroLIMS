@@ -59,10 +59,11 @@ public sealed class QaWriteRefusalPostgresTests
             .Where(c => c != PermissionConstants.DocumentsReview && c != PermissionConstants.DocumentsApprove)
             .OrderBy(c => c, StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(29, expectedCodes.Count);
+        Assert.Equal(30, expectedCodes.Count);
 
         // Competency.Override is provisioned in D4 Task 1. Its endpoint is added in Task 5.
-        var endpointCodes = expectedCodes.Where(code => code != PermissionConstants.CompetencyOverride);
+        // Oos.Contribute is provisioned in D1 Task 4. Its first endpoint follows in Task 5.
+        var endpointCodes = expectedCodes.Except([PermissionConstants.CompetencyOverride, PermissionConstants.OosContribute]);
         var descriptors = BuildWriteDescriptors();
         Assert.Equal(endpointCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal));
 

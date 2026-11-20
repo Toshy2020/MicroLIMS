@@ -28,6 +28,7 @@ public class PermissionEnforcementMigrationPostgresTests
     private static readonly string[] AddedByLaterMigrations =
     {
         PermissionConstants.CompetencyManage,
+        PermissionConstants.OosView, PermissionConstants.OosContribute, PermissionConstants.OosRequestDeviation,
         PermissionConstants.MaterialCategoriesManage,
         PermissionConstants.MaterialsRelease,
         PermissionConstants.SolutionsPrepare,

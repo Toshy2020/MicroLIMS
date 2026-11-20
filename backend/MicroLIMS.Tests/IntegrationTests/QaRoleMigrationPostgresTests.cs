@@ -21,9 +21,11 @@ public class QaRoleMigrationPostgresTests
         PermissionConstants.AccessReviewSign
     };
 
-    // This suite replays AddQaRole alone. Competency.View was granted by a later migration.
+    // This suite replays AddQaRole alone. Exclude the grants from later migrations.
+    private static readonly string[] LaterQaGrants =
+        [PermissionConstants.CompetencyView, PermissionConstants.OosView, PermissionConstants.OosRequestDeviation];
     private static readonly string[] OriginalQaGrants = PermissionConstants.QaGrants
-        .Where(code => code != PermissionConstants.CompetencyView)
+        .Except(LaterQaGrants)
         .OrderBy(code => code, StringComparer.Ordinal)
         .ToArray();
 
@@ -241,7 +243,7 @@ public class QaRoleMigrationPostgresTests
             .Select(rp => rp.Permission!.Code)
             .ToListAsync();
 
-        Assert.Equal(freshCodes.Where(c => c != PermissionConstants.CompetencyView).OrderBy(c => c, StringComparer.Ordinal),
+        Assert.Equal(freshCodes.Except(LaterQaGrants).OrderBy(c => c, StringComparer.Ordinal),
             migratedCodes.OrderBy(c => c, StringComparer.Ordinal));
         Assert.Equal(OriginalQaGrants.Length, migratedCodes.Count);
 

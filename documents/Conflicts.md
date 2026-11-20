@@ -1142,9 +1142,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-216
 - **Area:** REV
-- **Status:** Open
+- **Status:** Fixed
 - **What the code does:** POST api/water/calculate is open to SystemAdministrator, SectionHead, Reviewer, Analyst, QcManager, and Qa in the authorization matrix. WaterWorkflowEngine.CalculateAndCompareAsync adds a Result and moves the order to Ready under order.AssignedAnalystId ?? 0, irrespective of the caller. The competency gate does not apply. No production caller was found for the endpoint or for LocationPathogenObservationService.RecordPrimaryObservationAsync.
 - **Question:** User decision pending on whether to remove or guard the water endpoint. Remove or guard the direct observation writer if a production caller appears.
+- **Decision:** Removed (user, 2026-11-20). The endpoint POST api/water/calculate, WaterService.CalculateAsync and WaterWorkflowEngine.CalculateAndCompareAsync were deleted. The direct observation writer is unchanged and remains open if a production caller appears.
 - **Date:** 2026-11-20
 
 ### CONF-217

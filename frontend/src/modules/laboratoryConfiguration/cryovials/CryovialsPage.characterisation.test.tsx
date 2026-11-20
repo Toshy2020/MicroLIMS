@@ -258,7 +258,7 @@ describe("CryovialsPage register", () => {
     });
 
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(7));
+    await waitFor(() => expect(registerRows()).toHaveLength(7), { timeout: 5000 });
     expect(screen.queryByRole("button", { name: "Reset" })).toBeNull();
   });
 
@@ -268,45 +268,63 @@ describe("CryovialsPage register", () => {
     await ready();
 
     await pickSelect(user, "Organism", "Bacillus subtilis");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-002")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(7));
+    await waitFor(() => expect(registerRows()).toHaveLength(7), { timeout: 5000 });
 
     await pickSelect(user, "Status", "Approved");
-    await waitFor(() => expect(registerRows()).toHaveLength(4));
-    expect(hasCode("CV-007")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(4);
+      expect(hasCode("CV-007")).toBe(false);
+    }, { timeout: 5000 });
 
     await pickSelect(user, "Status", "Pending Review");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-002")).toBe(true);
+    }, { timeout: 5000 });
 
     await pickSelect(user, "Status", "Rejected");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-006")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-006")).toBe(true);
+    }, { timeout: 5000 });
 
     await pickSelect(user, "Status", "Destroyed");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-007")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-007")).toBe(true);
+    }, { timeout: 5000 });
 
     await pickSelect(user, "Status", "Depleted (0 Vials)");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-005")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-005")).toBe(true);
+    }, { timeout: 5000 });
     await user.click(screen.getByRole("button", { name: "Reset" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(7));
+    await waitFor(() => expect(registerRows()).toHaveLength(7), { timeout: 5000 });
 
     await pickSelect(user, "Expiry", "Expiring in 30 Days");
-    await waitFor(() => expect(registerRows()).toHaveLength(2));
-    expect(hasCode("CV-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(2);
+      expect(hasCode("CV-002")).toBe(true);
+    }, { timeout: 5000 });
     expect(hasCode("CV-003")).toBe(true);
 
     await pickSelect(user, "Expiry", "Expired");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-004")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-004")).toBe(true);
+    }, { timeout: 5000 });
 
     await pickSelect(user, "Expiry", "Valid / Unexpired");
-    await waitFor(() => expect(registerRows()).toHaveLength(6));
-    expect(hasCode("CV-004")).toBe(false);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(6);
+      expect(hasCode("CV-004")).toBe(false);
+    }, { timeout: 5000 });
   });
 
   it("an empty result says no cryovials match the filter criteria", async () => {

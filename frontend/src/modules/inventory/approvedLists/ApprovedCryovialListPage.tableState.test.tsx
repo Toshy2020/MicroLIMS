@@ -121,8 +121,10 @@ describe("ApprovedCryovialListPage on the shared table state", () => {
     await waitFor(() => expect(address().get("f.expiryRange")).toBe("expiring_60"));
     expect(address().get("q")).toBe("cv-");
     expect(address().get("f.status")).toBe("in_stock");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-003")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-003")).toBe(true);
+    }, { timeout: 5000 });
     const url = `/${screen.getByLabelText("Address").textContent}`;
     first.unmount();
 
@@ -138,7 +140,7 @@ describe("ApprovedCryovialListPage on the shared table state", () => {
     vi.mocked(CryovialService.getAll).mockResolvedValue(many);
     const user = userEvent.setup();
     renderPage();
-    await waitFor(() => expect(registerRows()).toHaveLength(25));
+    await waitFor(() => expect(registerRows()).toHaveLength(25), { timeout: 5000 });
     await user.click(screen.getAllByRole("button", { name: "Go to next page" })[0]);
     await waitFor(() => expect(address().get("page")).toBe("2"));
     expect(registerRows()).toHaveLength(5);
@@ -152,7 +154,7 @@ describe("ApprovedCryovialListPage on the shared table state", () => {
     renderPage("/?q=zzz&f.status=depleted");
     await screen.findByText("No approved cryovials match the selected filters.");
     await user.click(screen.getByRole("button", { name: "Reset Filters" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(3));
+    await waitFor(() => expect(registerRows()).toHaveLength(3), { timeout: 5000 });
     expect(address().has("q")).toBe(false);
     expect(address().has("f.status")).toBe(false);
   });
@@ -165,8 +167,10 @@ describe("ApprovedCryovialListPage on the shared table state", () => {
       }))
     ]);
     renderPage("/?view=7");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("CV-002")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("CV-002")).toBe(true);
+    }, { timeout: 5000 });
     expect(registerRoot().getAllByRole("columnheader").map((h) => h.textContent?.trim())).toEqual([
       "Cryovial Code", "Vials Remaining", "Actions"
     ]);

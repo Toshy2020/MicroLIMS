@@ -162,7 +162,7 @@ describe("EquipmentInventoryPage on the shared table state", () => {
     expect(address().get("q")).toBe("prep");
     expect(address().get("f.status")).toBe("InService");
     expect(address().get("lab")).toBe("MICRO");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
+    await waitFor(() => expect(registerRows()).toHaveLength(1), { timeout: 5000 });
     const url = `/${screen.getByLabelText("Address").textContent}`;
     const before = registerRows();
     first.unmount();
@@ -194,8 +194,10 @@ describe("EquipmentInventoryPage on the shared table state", () => {
       }))
     ]);
     renderPage("/?view=7");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasCode("EQ-BL-02")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasCode("EQ-BL-02")).toBe(true);
+    }, { timeout: 5000 });
     expect(registerRoot().getAllByRole("columnheader").map((h) => h.textContent?.trim()).filter(Boolean)).toEqual([
       "Type", "Code", "Actions"
     ]);

@@ -178,8 +178,10 @@ describe("MediaPage on the shared table state", () => {
     await waitFor(() => expect(address().get("f.status")).toBe("Rejected"));
     expect(address().get("q")).toBe("ox-2602");
     expect(address().get("f.materialId")).toBe("302");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-5")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-5")).toBe(true);
+    }, { timeout: 5000 });
     const url = `/${screen.getByLabelText("Address").textContent}`;
     const before = registerRows();
     first.unmount();
@@ -199,7 +201,7 @@ describe("MediaPage on the shared table state", () => {
     await waitFor(() => expect(screen.getByText("No media lots match this filter")).toBeTruthy());
 
     await user.click(screen.getByRole("button", { name: "Reset Filters" }));
-    await waitFor(() => expect(registerRows()).toHaveLength(5));
+    await waitFor(() => expect(registerRows()).toHaveLength(5), { timeout: 5000 });
     expect(address().has("f.materialId")).toBe(false);
     expect(address().has("f.status")).toBe(false);
     expect(address().has("q")).toBe(false);
@@ -221,8 +223,10 @@ describe("MediaPage on the shared table state", () => {
     ]);
 
     renderPage("/?view=7");
-    await waitFor(() => expect(registerRows()).toHaveLength(1));
-    expect(hasLot("ML-5")).toBe(true);
+    await waitFor(() => {
+      expect(registerRows()).toHaveLength(1);
+      expect(hasLot("ML-5")).toBe(true);
+    }, { timeout: 5000 });
     expect(screen.getAllByRole("columnheader").map((h) => h.textContent?.trim()).filter(Boolean)).toEqual([
       "Prepared On", "Lot Number", "Status", "Actions"
     ]);

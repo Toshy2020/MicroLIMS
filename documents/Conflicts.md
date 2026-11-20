@@ -1133,6 +1133,13 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 ### CONF-215
 - **Area:** REV
 - **Status:** Open
-- **What the code does:** POST api/water/calculate and LocationPathogenObservationService.RecordPrimaryObservationAsync can write results and have no production caller.
-- **Question:** Remove these paths, or add the competency guard if a production caller appears.
+- **What the code does:** POST api/water/calculate is open to SystemAdministrator, SectionHead, Reviewer, Analyst, QcManager, and Qa in the authorization matrix. WaterWorkflowEngine.CalculateAndCompareAsync adds a Result and moves the order to Ready under order.AssignedAnalystId ?? 0, irrespective of the caller. The competency gate does not apply. No production caller was found for the endpoint or for LocationPathogenObservationService.RecordPrimaryObservationAsync.
+- **Question:** User decision pending on whether to remove or guard the water endpoint. Remove or guard the direct observation writer if a production caller appears.
+- **Date:** 2026-11-20
+
+### CONF-216
+- **Area:** PAT
+- **Status:** Open
+- **What the code does:** CompleteSessionAsync evaluates competency for every entry in sample.TestOrders. On completion it marks every entry ResultEntered, including cancelled or superseded orders. Marking every order was existing behavior before the competency change.
+- **Question:** Which orders should participate in session completion, and which should retain their existing status?
 - **Date:** 2026-11-20

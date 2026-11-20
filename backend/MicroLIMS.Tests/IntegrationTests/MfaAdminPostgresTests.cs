@@ -1001,7 +1001,9 @@ public class MfaAdminPostgresTests
         var (_, adminUsername) = await SeedUserAsync(RoleType.SystemAdministrator);
         var (mfaUserId, mfaUsername, secret) = await SeedEnrolledUserAsync(RoleType.SectionHead);
         var (plainUserId, plainUsername) = await SeedUserAsync(RoleType.Analyst);
-        var clock = new FakeTimeProvider(BaseUtc);
+        // The sessions endpoint is served by a real host on the real clock, so these sessions must be live now:
+        // a fixed past date plus the 7-day refresh lifetime would expire and the list would come back empty.
+        var clock = new FakeTimeProvider(DateTimeOffset.UtcNow);
 
         await using (var loginDb = _fixture.CreateDbContext())
         {

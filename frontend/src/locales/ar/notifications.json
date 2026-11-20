@@ -91,7 +91,8 @@
     "MonitoringDeviationsOpen": "انحرافات مراقبة مفتوحة",
     "MonitoringDueThisMonth": "مراقبة مستحقة هذا الشهر",
     "EquipmentCalibrationOverdue": "مهمة معايرة معدات متأخرة",
-    "EquipmentPmOverdue": "صيانة وقائية للمعدات متأخرة"
+    "EquipmentPmOverdue": "صيانة وقائية للمعدات متأخرة",
+    "CompetencyExpiry": "تأهيل المحلل على وشك الانتهاء"
   },
   "mandatory": {
     "title": "إشعارات القسم الإلزامية",

@@ -23,6 +23,7 @@ public static class NotificationCatalog
         new("DirectMessage", "info", false, "New direct message"),
         new("Discussion", "info", false, "Discussion activity"),
         new("ConfigurationApprovalWaiting", "info", false, "Configuration awaiting approval"),
+        new("CompetencyExpiry", "warning", false, "Analyst qualification expiring"),
 
         // Existing types written by Application services
         new("PendingPreparationConfigApproval", "info", false, "Preparation configuration awaiting approval"),

@@ -15,10 +15,13 @@ namespace MicroLIMS.API.Controllers;
 
 [ApiController]
 [Route("api/competency/qualifications")]
-[Authorize(Policy = PermissionConstants.CompetencyManage)]
-public class CompetencyController(QualificationService qualifications) : ControllerBase
+public class CompetencyController(
+    QualificationService qualifications,
+    CompetencySettingsService settings,
+    CompetencyMatrixService matrix) : ControllerBase
 {
     [HttpPost]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
     [RequestSizeLimit(DiscussionAttachmentPolicy.MaxRequestBytes)]
     [RequestFormLimits(MultipartBodyLengthLimit = DiscussionAttachmentPolicy.MaxRequestBytes)]
     public async Task<IActionResult> Qualify([FromForm] QualifyForm request, CancellationToken cancellationToken)
@@ -49,11 +52,38 @@ public class CompetencyController(QualificationService qualifications) : Control
     }
 
     [HttpPost("{id:int}/withdraw")]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
     public async Task<IActionResult> Withdraw(int id, WithdrawRequest request, CancellationToken cancellationToken)
     {
         var qualification = await qualifications.WithdrawAsync(id, request.Reason, request.Password, CurrentUserId, cancellationToken);
         return Ok(ApiResponse<AnalystQualificationResponse>.Ok(qualification));
     }
+
+    [HttpGet("~/api/competency/settings/{sectionId:int}")]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
+    public async Task<IActionResult> GetSetting(int sectionId, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CompetencySettingDto>.Ok(await settings.GetAsync(sectionId, CurrentUserId, cancellationToken)));
+
+    [HttpGet("~/api/competency/settings/{sectionId:int}/impact")]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
+    public async Task<IActionResult> GetImpact(int sectionId, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<GateImpactDto>.Ok(await settings.GetImpactAsync(sectionId, CurrentUserId, cancellationToken)));
+
+    [HttpPost("~/api/competency/settings/{sectionId:int}/gate")]
+    [Authorize(Policy = PermissionConstants.CompetencyManage)]
+    public async Task<IActionResult> SetGate(int sectionId, GateChangeRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CompetencySettingDto>.Ok(await settings.SetGateAsync(sectionId, request.Enabled,
+            request.Reason, request.Password, request.ExpectedVersion, CurrentUserId, cancellationToken)));
+
+    [HttpGet("~/api/competency/matrix/{sectionId:int}")]
+    [Authorize(Policy = PermissionConstants.CompetencyView)]
+    public async Task<IActionResult> GetMatrix(int sectionId, [FromQuery] MatrixFilters filters, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CompetencyMatrixDto>.Ok(await matrix.GetMatrixAsync(sectionId, filters, CurrentUserId, cancellationToken)));
+
+    [HttpGet("~/api/competency/matrix/my")]
+    [Authorize(Policy = PermissionConstants.CompetencyView)]
+    public async Task<IActionResult> GetMy(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CompetencyMatrixDto>.Ok(await matrix.GetMyAsync(CurrentUserId, cancellationToken)));
 
     private int CurrentUserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "0");
 
@@ -71,4 +101,6 @@ public class CompetencyController(QualificationService qualifications) : Control
     }
 
     public sealed record WithdrawRequest(string Reason, string Password);
+
+    public sealed record GateChangeRequest(bool Enabled, string Reason, string Password, uint? ExpectedVersion);
 }

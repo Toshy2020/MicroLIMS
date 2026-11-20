@@ -413,6 +413,9 @@ public static class ServiceCollectionExtensions
             MicroLIMS.Application.Services.Competency.CompetencyGuard>();
         services.AddScoped<MicroLIMS.Application.Services.ISopRevisionCapture,
             MicroLIMS.Application.Services.SopRevisionCapture>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencySettingsService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencyMatrixService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.CompetencyReminderService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

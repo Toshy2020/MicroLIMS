@@ -1,6 +1,5 @@
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 
@@ -20,7 +19,7 @@ internal sealed class ReviewQueue : SignoffQueueSource
     protected override bool NeedsReviewClocks => true;
 
     // Review is timed from the section's submission, falling back to the sample-level review clock.
-    protected override DateTime StatusSince(Sample sample, SampleSectionSignoff? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks) =>
+    protected override DateTime StatusSince(SampleRow sample, SignoffRow? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks) =>
         signoff?.SubmittedForReviewAt ?? reviewClocks.GetValueOrDefault(sample.Id, sample.ReceivedAt);
 
     public Task<(List<MyWorkItem> Items, int Open, int Locked)> ListAsync(MyWorkContext ctx, int take, CancellationToken ct) => ItemsAsync(ctx, take, ct);

@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
-using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services.MyWork.Sources;
@@ -35,12 +34,19 @@ internal abstract class SignoffQueueSource
     protected abstract string PerformedReason { get; }
 
     // When the entry entered its current status: the age that drives urgency.
-    protected abstract DateTime StatusSince(Sample sample, SampleSectionSignoff? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks);
+    protected abstract DateTime StatusSince(SampleRow sample, SignoffRow? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks);
 
     // A reason the caller may not decide this entry on top of having performed a test; null = none.
-    protected virtual string? ExtraLockReason(Sample sample, SampleSectionSignoff? signoff, int userId) => null;
+    protected virtual string? ExtraLockReason(SampleRow sample, SignoffRow? signoff, int userId) => null;
 
     protected virtual bool NeedsReviewClocks => false;
+
+    protected sealed record OrderRow(int Id, int SectionId, bool IsSuperseded);
+    protected sealed record SignoffRow(int SectionId, SectionSignoffStatus Status, DateTime? SubmittedForReviewAt,
+        DateTime? ReviewedAt, int? ReviewedByUserId);
+    protected sealed record SampleRow(int Id, string ReferenceNumber, SampleStatus Status, SampleCategory Category,
+        DateTime ReceivedAt, DateTime? ReviewedAt, int? ReviewedByUserId, bool AwaitingTestSelection,
+        string? PendingTargetSectionIds, List<OrderRow> Orders, List<SignoffRow> Signoffs);
 
     protected sealed record Entry(int SampleId, string Reference, int SectionId, string SectionName, string Lab,
         DateTime Since, string? LockReason);
@@ -51,11 +57,32 @@ internal abstract class SignoffQueueSource
         var sectionIds = ctx.MemberSectionIds.ToArray();
 
         var samples = await SectionReviewQueues.Candidates(_db.Samples.AsNoTracking(), Status, sectionIds)
-            .Include(s => s.TestOrders)
-            .Include(s => s.SectionSignoffs)
             .AsSplitQuery()
+            .Select(s => new SampleRow(s.Id, s.ReferenceNumber, s.Status, s.Category, s.ReceivedAt,
+                s.ReviewedAt, s.ReviewedByUserId, s.AwaitingTestSelection, s.PendingTargetSectionIds,
+                s.TestOrders.Where(t => sectionIds.Contains(t.SectionId))
+                    .Select(t => new OrderRow(t.Id, t.SectionId, t.IsSuperseded)).ToList(),
+                s.SectionSignoffs.Where(r => sectionIds.Contains(r.SectionId))
+                    .Select(r => new SignoffRow(r.SectionId, r.Status, r.SubmittedForReviewAt, r.ReviewedAt, r.ReviewedByUserId)).ToList()))
             .ToListAsync(ct);
-        var entries = SectionReviewQueues.Entries(samples, Status, sectionIds);
+
+        // Use the same section membership and status fallback as SampleSectionRollup.
+        var entries = (from sample in samples
+                       from sectionId in sample.Orders.Select(o => o.SectionId)
+                           .Union(sample.Signoffs.Select(r => r.SectionId))
+                           .Union(SampleSectionRollup.PendingSectionIds(sample.AwaitingTestSelection, sample.PendingTargetSectionIds))
+                           .OrderBy(id => id)
+                       where sectionIds.Contains(sectionId)
+                       let signoff = sample.Signoffs.FirstOrDefault(r => r.SectionId == sectionId)
+                       where (signoff?.Status ?? SampleSectionRollup.FromSampleStatus(sample.Status)) == Status
+                       select new
+                       {
+                           Sample = sample,
+                           SectionId = sectionId,
+                           Signoff = signoff,
+                           OrderIds = sample.Orders.Where(o => o.SectionId == sectionId && !o.IsSuperseded)
+                               .Select(o => o.Id).ToArray()
+                       }).ToList();
         if (ctx.PhyschemSectionId is int fpId && ctx.ReadablePhyschemCategories is { } allowed)
         {
             entries = entries
@@ -65,9 +92,9 @@ internal abstract class SignoffQueueSource
         if (entries.Count == 0) return new List<Entry>();
 
         var performed = await _guard.GetTestOrderIdsPerformedByAsync(
-            ctx.UserId, entries.SelectMany(e => e.Orders.Select(o => o.Id)).Distinct().ToArray(), ct);
+            ctx.UserId, entries.SelectMany(e => e.OrderIds).Distinct().ToArray(), ct);
         var reviewClocks = NeedsReviewClocks
-            ? await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, entries.Select(e => e.Sample.Id).Distinct().ToArray())
+            ? await SampleWorkflowQueues.GetReviewClockStartsAsync(_db, entries.Select(e => e.Sample.Id).Distinct().ToArray(), ct)
             : new Dictionary<int, DateTime>();
         var entrySectionIds = entries.Select(e => e.SectionId).Distinct().ToArray();
         var sections = await _db.DocumentSections.AsNoTracking()
@@ -78,7 +105,7 @@ internal abstract class SignoffQueueSource
         return entries.Select(e =>
         {
             var section = sections.GetValueOrDefault(e.SectionId);
-            var reason = e.Orders.Any(o => performed.Contains(o.Id))
+            var reason = e.OrderIds.Any(performed.Contains)
                 ? PerformedReason
                 : ExtraLockReason(e.Sample, e.Signoff, ctx.UserId);
             return new Entry(e.Sample.Id, e.Sample.ReferenceNumber, e.SectionId, section?.Name ?? string.Empty, section?.Code ?? string.Empty,

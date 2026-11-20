@@ -415,6 +415,51 @@ public class MyWorkReviewSourcesPostgresTests
     }
 
     [PostgresFact]
+    public async Task ReviewProjection_PreservesSectionTiesPendingSectionsAndCurrentOrderLocks()
+    {
+        int reviewer, sampleId, labId, otherId;
+        string reference;
+        var since = Now.AddHours(-1);
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var w = await WorldAsync(arrange);
+            reviewer = (await NewUserAsync(arrange, "reviewer", ReviewerPermissions, w.Lab, w.Other)).Id;
+            labId = w.Lab.Id;
+            otherId = w.Other.Id;
+            var (sample, orders) = await NewSampleAsync(arrange, w, 1, SampleStatus.UnderReview,
+                SectionSignoffStatus.UnderReview, since, null, new TestSpec(w.Lab, reviewer));
+            sampleId = sample.Id;
+            reference = sample.ReferenceNumber;
+            orders[0].IsSuperseded = true;
+            sample.AwaitingTestSelection = true;
+            sample.PendingTargetSectionIds = otherId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            sample.ReceivedAt = since;
+            await arrange.SaveChangesAsync();
+
+            await NewSampleAsync(arrange, w, 1, SampleStatus.UnderReview,
+                SectionSignoffStatus.UnderReview, Now.AddDays(-5), null, new TestSpec(w.Lab, reviewer));
+        }
+
+        var group = Assert.IsType<MyWorkGroup>(Group(await GetAsync(reviewer), "review"));
+        Assert.Equal(2, group.Count);
+        Assert.Equal(1, group.LockedCount);
+        Assert.Equal(new[] { $"review:{sampleId}:{labId}", $"review:{sampleId}:{otherId}" },
+            group.Items.Take(2).Select(i => i.Key));
+        Assert.All(group.Items.Take(2), item =>
+        {
+            Assert.Equal(reference, item.Identifier);
+            Assert.Equal(since, item.SortAtUtc);
+            Assert.False(item.Locked);
+            Assert.Equal("review", Assert.Single(item.Actions));
+            Assert.Equal(sampleId, item.Target.SampleId);
+        });
+        var locked = Assert.Single(group.Items, i => i.Locked);
+        Assert.Same(locked, group.Items.Last());
+        Assert.Equal("You cannot review a sample you tested.", locked.LockReason);
+        Assert.Equal(2, (await SummaryAsync(reviewer)).Total);
+    }
+
+    [PostgresFact]
     public async Task SectionsViewAll_DoesNotWidenMyReviewQueue()
     {
         int reader;

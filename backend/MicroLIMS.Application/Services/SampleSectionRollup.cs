@@ -45,7 +45,7 @@ public static class SampleSectionRollup
     public static SectionSignoffStatus StatusOf(Sample sample, int sectionId) =>
         sample.SectionSignoffs.FirstOrDefault(s => s.SectionId == sectionId)?.Status ?? FromSampleStatus(sample.Status);
 
-    private static SectionSignoffStatus FromSampleStatus(SampleStatus status) => status switch
+    internal static SectionSignoffStatus FromSampleStatus(SampleStatus status) => status switch
     {
         SampleStatus.UnderReview => SectionSignoffStatus.UnderReview,
         SampleStatus.UnderApproval => SectionSignoffStatus.UnderApproval,

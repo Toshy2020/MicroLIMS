@@ -78,6 +78,8 @@ public class RecordingPointCoverageTests
             public class Recorder : Support
             {
                 public void Unguarded() => _db.Results.Add(result);
+                public void UnguardedThroughCore() => UnitOfWork.RunAsync(_db, () => WriteResult());
+                private void WriteResult() { _db.Results.Add(result); }
                 public void Guarded() => UnitOfWork.RunAsync(_db, () => Core());
                 private void Core() { Require(); _db.Results.Add(result); }
                 public void Exempt() => _db.Results.Add(result);
@@ -99,7 +101,11 @@ public class RecordingPointCoverageTests
             ["Recorder.Gone"] = "An explicitly justified exemption.",
         });
         Assert.Equal(
-            new[] { "Recorder.Interpolation", "Recorder.Reset", "Recorder.Unguarded", "Stale exemption: Recorder.Gone" },
+            new[]
+            {
+                "Recorder.Interpolation", "Recorder.Reset", "Recorder.Unguarded", "Recorder.UnguardedThroughCore",
+                "Stale exemption: Recorder.Gone",
+            },
             Inspect(sources, rule).Order(StringComparer.Ordinal));
     }
 

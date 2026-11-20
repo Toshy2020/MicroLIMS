@@ -1,5 +1,6 @@
 ﻿using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services;
@@ -43,7 +44,9 @@ public static class SampleSummaryTestOrderBuilder
         var baseDisplayName = def?.DisplayName ?? order.TestCode;
         var hasParameterResults = activeAnalyses.Any(e => e.TestOrderId == order.Id && e.Results.Count > 0);
         var orderLocations = sampleLocations.Where(l => l.TestOrderId == order.Id).ToList();
-        var singlePartLoc = hasParameterResults && orderLocations.Count == 1 ? orderLocations[0] : null;
+        var singlePartLoc = !TestOrderConformance.UsesLocationResults(orderLocations.Count, hasParameterResults)
+            ? orderLocations.SingleOrDefault()
+            : null;
         var testDisplayName = baseDisplayName;
         if (singlePartLoc != null)
         {

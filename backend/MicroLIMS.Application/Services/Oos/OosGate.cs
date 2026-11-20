@@ -64,13 +64,6 @@ public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
             $"Retest samples of {invalidatedNumber} are not all approved.", NumberParameter(invalidatedNumber));
     }
 
-    public async Task EnsureSectionMayBeDecidedAsync(
-        int sampleId, int sectionId, ApprovalDecision decision, CancellationToken ct = default)
-    {
-        var sample = await db.Samples.AsNoTracking().Include(s => s.TestOrders).SingleAsync(s => s.Id == sampleId, ct);
-        (await CheckSectionMayBeDecidedAsync(sample, sectionId, decision, ct)).ThrowIfRefused();
-    }
-
     public async Task EnsureCertificateAllowedAsync(int sampleId, CancellationToken ct = default)
     {
         var number = await FirstOpenNumberAsync(Covering(sampleId, sectionId: null), ct);

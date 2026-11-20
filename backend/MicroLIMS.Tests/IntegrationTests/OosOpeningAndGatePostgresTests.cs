@@ -317,10 +317,14 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
         var analyst = await _scenarios.AnalystAsync(section);
         var code = await _scenarios.TestDefinitionAsync(section, WorkflowType.Dissolution);
         var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id, testCode: code);
-        await RecordResultAsync(seed.Orders[0].Id, analyst.Id, "Stage 3: Does not comply (OutOfSpecification)");
+        var interpretation = "Stage 3: Does not comply " + new string('x', 520) + " (OutOfSpecification)";
+        await RecordResultAsync(seed.Orders[0].Id, analyst.Id, interpretation);
 
         await _scenarios.CompleteReviewAsync(new(reviewer.Id, seed.Sample.Id));
         await AssertOpenedForOrderAsync(seed.Sample.Id, seed.Orders[0].Id, reviewer.Id);
+        await using var verify = fixture.CreateDbContext();
+        Assert.Equal(interpretation[..500], await verify.OosInvestigationResults.AsNoTracking()
+            .Where(r => r.TestOrderId == seed.Orders[0].Id).Select(r => r.ResultSummaryAtOpening).SingleAsync());
     }
 
     [PostgresFact]
@@ -472,24 +476,34 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
-    public async Task Review_with_a_reserved_legacy_code_allocates_a_different_number()
+    public async Task Two_openings_in_same_month_after_a_gap_get_distinct_numbers()
     {
         var section = await _scenarios.SectionAsync();
         var reviewer = await _scenarios.ReviewerAsync(section);
         var analyst = await _scenarios.AnalystAsync(section);
         var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        var second = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
         const string legacyCode = "OOS0642002";
         await _scenarios.UpdateAsync<Sample>(seed.Sample.Id, s => s.OosGroupCode = legacyCode);
         await RecordResultAsync(seed.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
+        await RecordResultAsync(second.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
         var clock = new FixedTimeProvider(new DateTimeOffset(2042, 6, 5, 12, 0, 0, TimeSpan.Zero));
 
         await using (var act = fixture.CreateDbContext(clock))
             await TestServiceFactory.SampleReview(act, clock)
                 .CompleteReviewAsync(seed.Sample.Id, reviewer.Id, ActionGuardScenarios.Password, null, null);
+        await using (var act = fixture.CreateDbContext(clock))
+            await TestServiceFactory.SampleReview(act, clock)
+                .CompleteReviewAsync(second.Sample.Id, reviewer.Id, ActionGuardScenarios.Password, null, null);
 
         await using var verify = fixture.CreateDbContext();
         var investigation = await verify.OosInvestigations.AsNoTracking().SingleAsync(i => i.SampleId == seed.Sample.Id);
         Assert.Equal("OOS0642003", investigation.Number);
+        var next = await verify.OosInvestigations.AsNoTracking().SingleAsync(i => i.SampleId == second.Sample.Id);
+        Assert.Equal("OOS0642004", next.Number);
+        Assert.Equal(reviewer.Id, next.OpenedByUserId);
+        Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(OosInvestigation) && a.EntityId == next.Id.ToString() && a.Action == "Create" && a.UserId == reviewer.Id));
         Assert.Equal(reviewer.Id, investigation.OpenedByUserId);
         var sample = await verify.Samples.AsNoTracking().SingleAsync(s => s.Id == seed.Sample.Id);
         Assert.Equal(legacyCode, sample.OosGroupCode);
@@ -535,6 +549,69 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
+    public async Task Review_waits_for_conclusion_and_does_not_join_the_concluded_investigation()
+    {
+        var section = await _scenarios.SectionAsync();
+        var reviewer = await _scenarios.ReviewerAsync(section);
+        var head = await _scenarios.HeadAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+        var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        await RecordResultAsync(seed.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
+        int originalId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var original = new OosInvestigation
+            {
+                SampleId = seed.Sample.Id, SectionId = section.Id, OpenedByUserId = reviewer.Id,
+                Number = $"RACE-{Guid.NewGuid():N}"[..20], TemplateSnapshotJson = "{}"
+            };
+            arrange.OosInvestigations.Add(original);
+            await arrange.SaveChangesAsync();
+            originalId = original.Id;
+        }
+
+        await using var closer = fixture.CreateDbContext();
+        await using var review = fixture.CreateDbContext();
+        await using var observer = fixture.CreateDbContext();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        var ct = timeout.Token;
+        await review.Database.OpenConnectionAsync(ct);
+        var reviewPid = ((Npgsql.NpgsqlConnection)review.Database.GetDbConnection()).ProcessID;
+        await using var closingTransaction = await closer.Database.BeginTransactionAsync(ct);
+        closer.CurrentUserId = head.Id;
+        var closing = await closer.OosInvestigations.SingleAsync(i => i.Id == originalId, ct);
+        closing.Status = OosInvestigationStatus.Concluded;
+        closing.Conclusion = OosConclusion.Confirmed;
+        await closer.SaveChangesAsync(ct);
+        var completion = TestServiceFactory.SampleReview(review).CompleteReviewAsync(
+            seed.Sample.Id, reviewer.Id, ActionGuardScenarios.Password, null, null, ct: ct);
+        bool blocked;
+        try
+        {
+            while (!completion.IsCompleted && !await observer.Database.SqlQuery<bool>(
+                $"SELECT cardinality(pg_blocking_pids({reviewPid})) > 0 AS \"Value\"").SingleAsync(ct))
+                await Task.Delay(10, ct);
+            blocked = !completion.IsCompleted;
+        }
+        finally
+        {
+            await closingTransaction.CommitAsync();
+        }
+        await completion;
+        Assert.True(blocked);
+
+        await using var verify = fixture.CreateDbContext();
+        var originalAfter = await verify.OosInvestigations.AsNoTracking().Include(i => i.Results).SingleAsync(i => i.Id == originalId);
+        Assert.Equal(OosInvestigationStatus.Concluded, originalAfter.Status);
+        Assert.Empty(originalAfter.Results);
+        var opened = await verify.OosInvestigations.AsNoTracking().Include(i => i.Results)
+            .SingleAsync(i => i.SampleId == seed.Sample.Id && i.Status == OosInvestigationStatus.PhaseOne);
+        Assert.Equal(seed.Orders[0].Id, Assert.Single(opened.Results).TestOrderId);
+        Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(OosInvestigation) &&
+            a.EntityId == opened.Id.ToString() && a.Action == "Create" && a.UserId == reviewer.Id));
+    }
+
+    [PostgresFact]
     public async Task Earlier_batch_location_failure_opens()
     {
         var section = await _scenarios.SectionAsync();
@@ -568,6 +645,123 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
 
         await _scenarios.CompleteReviewAsync(new(reviewer.Id, seed.Sample.Id));
         await AssertOpenedForOrderAsync(seed.Sample.Id, seed.Orders[0].Id, reviewer.Id);
+    }
+
+    [PostgresFact]
+    public Task Analysis_with_one_location_drives_the_gate_and_two_locations_keep_location_precedence() =>
+        PostgresCases.RunAsync(new[] { 1, 2 }, CheckAnalysisLocationsAsync);
+
+    private async Task CheckAnalysisLocationsAsync(int locations)
+    {
+        var section = await _scenarios.SectionAsync();
+        var reviewer = await _scenarios.ReviewerAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+        var head = await _scenarios.HeadAsync(section);
+        var code = await _scenarios.TestDefinitionAsync(section, WorkflowType.HplcMethodAssay);
+        var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id, testCode: code);
+        var orderId = seed.Orders[0].Id;
+        var parameterId = await _scenarios.AnalysisAsync(orderId, analyst, comparison: ResultStatus.OutOfSpecification);
+        await _scenarios.UpdateAsync<ParameterResult>(parameterId, p => p.Unit = "mg");
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var analysis = await arrange.TestAnalyses.SingleAsync(a => a.TestOrderId == orderId);
+            analysis.AnalysisType = WorkflowType.HplcMethodAssay;
+            for (var i = 0; i < locations; i++)
+                arrange.SampleLocations.Add(new SampleLocation { SampleId = seed.Sample.Id, TestOrderId = orderId });
+            await arrange.SaveChangesAsync();
+        }
+        await _scenarios.CompleteReviewAsync(new(reviewer.Id, seed.Sample.Id));
+        if (locations == 1)
+        {
+            await AssertOpenedForOrderAsync(seed.Sample.Id, orderId, reviewer.Id);
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => ApproveAsAsync(new(head.Id, seed.Sample.Id)));
+            Assert.Equal("Oos.InvestigationOpen", error.Code);
+            await using var verify = fixture.CreateDbContext();
+            Assert.Equal("2.5 mg", await verify.OosInvestigationResults.AsNoTracking()
+                .Where(r => r.TestOrderId == orderId).Select(r => r.ResultSummaryAtOpening).SingleAsync());
+        }
+        else
+        {
+            await ApproveAsAsync(new(head.Id, seed.Sample.Id));
+            await AssertApprovedAsync(seed.Sample.Id, head.Id);
+            await using var verify = fixture.CreateDbContext();
+            Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == seed.Sample.Id));
+        }
+    }
+
+    [PostgresFact]
+    public async Task Review_snapshots_active_checklist_and_skips_holiday_in_due_dates()
+    {
+        var section = await _scenarios.SectionAsync();
+        var reviewer = await _scenarios.ReviewerAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+        var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        await RecordResultAsync(seed.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
+        int templateId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var template = new OosInvestigationTemplate { SectionId = section.Id, PhaseOneDueWorkingDays = 1, TotalDueWorkingDays = 2 };
+            arrange.OosInvestigationTemplates.Add(template);
+            arrange.LabCalendarDates.Add(new LabCalendarDate { Date = new(2043, 1, 6), Description = "Holiday" });
+            await arrange.SaveChangesAsync();
+            templateId = template.Id;
+            arrange.OosChecklistItems.AddRange(
+                new OosChecklistItem { TemplateId = templateId, Phase = 1, Key = "equipment", Order = 1, Text = "Check equipment", IsActive = true },
+                new OosChecklistItem { TemplateId = templateId, Phase = 2, Key = "records", Order = 1, Text = "Check records", IsActive = true },
+                new OosChecklistItem { TemplateId = templateId, Phase = 1, Key = "inactive", Order = 2, Text = "Old item" });
+            await arrange.SaveChangesAsync();
+        }
+
+        var clock = new FixedTimeProvider(new DateTimeOffset(2043, 1, 5, 12, 0, 0, TimeSpan.Zero));
+        await using (var act = fixture.CreateDbContext(clock))
+            await TestServiceFactory.SampleReview(act, clock)
+                .CompleteReviewAsync(seed.Sample.Id, reviewer.Id, ActionGuardScenarios.Password, null, null);
+
+        await using var verify = fixture.CreateDbContext();
+        var investigation = await verify.OosInvestigations.AsNoTracking().SingleAsync(i => i.SampleId == seed.Sample.Id);
+        Assert.Equal(new DateOnly(2043, 1, 7), investigation.PhaseOneDueDate);
+        Assert.Equal(new DateOnly(2043, 1, 8), investigation.DueDate);
+        using var snapshot = JsonDocument.Parse(investigation.TemplateSnapshotJson);
+        Assert.Equal(templateId, snapshot.RootElement.GetProperty("templateId").GetInt32());
+        Assert.Equal(new (int, string?, int, string?)[] { (1, "equipment", 1, "Check equipment"), (2, "records", 1, "Check records") },
+            snapshot.RootElement.GetProperty("items").EnumerateArray().Select(i =>
+                (i.GetProperty("phase").GetInt32(), i.GetProperty("key").GetString(), i.GetProperty("order").GetInt32(), i.GetProperty("text").GetString())));
+        var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(OosInvestigation) &&
+            a.EntityId == investigation.Id.ToString() && a.Action == "Create");
+        Assert.Equal(reviewer.Id, audit.UserId);
+        Assert.Contains("2043-01-07", audit.NewValue);
+    }
+
+    [PostgresFact]
+    public async Task Excursion_neither_blocks_gate_nor_is_joined()
+    {
+        var section = await _scenarios.SectionAsync();
+        var reviewer = await _scenarios.ReviewerAsync(section);
+        var analyst = await _scenarios.AnalystAsync(section);
+        var head = await _scenarios.HeadAsync(section);
+        var passing = await _scenarios.UnderApprovalAsync(section, reviewer.Id);
+        var failing = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        await RecordResultAsync(failing.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            arrange.OosInvestigations.AddRange(new[] { passing.Sample.Id, failing.Sample.Id }.Select(id => new OosInvestigation
+            {
+                SampleId = id, SectionId = section.Id, OpenedByUserId = reviewer.Id, Kind = OosInvestigationKind.Excursion,
+                Number = $"EX-{Guid.NewGuid():N}"[..20], TemplateSnapshotJson = "{}"
+            }));
+            await arrange.SaveChangesAsync();
+        }
+        await ApproveAsAsync(new(head.Id, passing.Sample.Id));
+        await AssertApprovedAsync(passing.Sample.Id, head.Id);
+        await _scenarios.CompleteReviewAsync(new(reviewer.Id, failing.Sample.Id));
+        await using var verify = fixture.CreateDbContext();
+        var investigations = await verify.OosInvestigations.AsNoTracking().Include(i => i.Results)
+            .Where(i => i.SampleId == failing.Sample.Id).ToListAsync();
+        Assert.Empty(Assert.Single(investigations, i => i.Kind == OosInvestigationKind.Excursion).Results);
+        var opened = Assert.Single(investigations, i => i.Kind == OosInvestigationKind.Oos);
+        Assert.Equal(failing.Orders[0].Id, Assert.Single(opened.Results).TestOrderId);
+        Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(OosInvestigation) &&
+            a.EntityId == opened.Id.ToString() && a.Action == "Create" && a.UserId == reviewer.Id));
     }
 
     private async Task AssertOpenedForOrderAsync(int sampleId, int orderId, int reviewerId)
@@ -701,29 +895,41 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
         var reviewer = await _scenarios.ReviewerAsync(section);
         var analyst = await _scenarios.AnalystAsync(section);
         var seed = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
-        var other = await _scenarios.UnderReviewAsync(section);
-        var clock = new FixedTimeProvider(new DateTimeOffset(2036, 8, 4, 10, 0, 0, TimeSpan.Zero));
         await RecordResultAsync(seed.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
-        await using (var arrange = fixture.CreateDbContext())
-        {
-            arrange.OosInvestigations.Add(new OosInvestigation
-            {
-                SampleId = other.Sample.Id, SectionId = section.Id, OpenedByUserId = reviewer.Id,
-                Status = OosInvestigationStatus.PhaseOne, Number = "OOS0836002",
-                OpenedAtUtc = clock.GetUtcNow().UtcDateTime, TemplateSnapshotJson = "{}"
-            });
-            await arrange.SaveChangesAsync();
-        }
 
-        await using (var act = fixture.CreateDbContext())
+        var fault = new FailAuditInsert();
+        await using (var act = fixture.CreateDbContext(fault))
         {
-            var error = await Assert.ThrowsAsync<DbUpdateException>(() => TestServiceFactory.SampleReview(act, clock)
+            var error = await Assert.ThrowsAsync<DbUpdateException>(() => TestServiceFactory.SampleReview(act)
                 .CompleteReviewAsync(seed.Sample.Id, reviewer.Id, ActionGuardScenarios.Password, null, null));
-            var postgres = Assert.IsType<Npgsql.PostgresException>(error.InnerException);
-            Assert.Equal(Npgsql.PostgresErrorCodes.UniqueViolation, postgres.SqlState);
-            Assert.Equal("IX_OosInvestigations_Number", postgres.ConstraintName);
+            Assert.Same(fault.Error, error.InnerException);
+            Assert.True(fault.InvestigationInserted);
         }
         await AssertReviewUnchangedAsync(seed.Sample.Id, reviewer.Id);
+    }
+
+    private sealed class FailAuditInsert : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public InvalidOperationException Error { get; } = new("Injected audit insert failure.");
+        public bool InvestigationInserted { get; private set; }
+
+        public override ValueTask<System.Data.Common.DbDataReader> ReaderExecutedAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData eventData,
+            System.Data.Common.DbDataReader result, CancellationToken cancellationToken = default)
+        {
+            InvestigationInserted |= command.CommandText.Contains("INSERT INTO \"OosInvestigations\"", StringComparison.Ordinal);
+            return ValueTask.FromResult(result);
+        }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.Contains("INSERT INTO \"AuditLogs\"", StringComparison.Ordinal))
+                throw Error;
+            return ValueTask.FromResult(result);
+        }
     }
 
     [PostgresFact]
@@ -792,7 +998,7 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
             System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData eventData,
             System.Data.Common.DbDataReader result, CancellationToken cancellationToken = default)
         {
-            // Allocation counts distinct historical sample group codes and investigation numbers.
+            // Allocation reads the union of historical sample group codes and investigation numbers.
             if (command.CommandText.Contains("UNION", StringComparison.Ordinal) &&
                 command.CommandText.Contains("OosGroupCode", StringComparison.Ordinal) &&
                 command.CommandText.Contains("OosInvestigations", StringComparison.Ordinal))

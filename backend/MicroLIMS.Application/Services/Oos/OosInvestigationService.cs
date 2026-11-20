@@ -22,9 +22,9 @@ public sealed class OosInvestigationService(
 
         var open = db.OosInvestigations.Where(i => i.Kind == OosInvestigationKind.Oos &&
             i.SectionId == sectionId && i.Status != OosInvestigationStatus.Concluded);
-        var investigation = await open.SingleOrDefaultAsync(i => i.SampleId == sample.Id, ct);
+        var investigation = await LockOpenAsync(open.Where(i => i.SampleId == sample.Id), ct);
         if (investigation is null && sample.OriginSampleId is not null && sample.OosGroupCode is not null)
-            investigation = await open.SingleOrDefaultAsync(i => i.Number == sample.OosGroupCode, ct);
+            investigation = await LockOpenAsync(open.Where(i => i.Number == sample.OosGroupCode), ct);
 
         var now = time.GetUtcNow().UtcDateTime;
         var existingOrderIds = new HashSet<int>();
@@ -46,8 +46,8 @@ public sealed class OosInvestigationService(
             investigation.Results.Add(new OosInvestigationResult
             {
                 TestOrderId = orderId,
-                OutcomeAtOpening = OosOutcomeMapper.Map(outcome),
-                ResultSummaryAtOpening = outcome.Status.ToString() ?? string.Empty,
+                OutcomeAtOpening = OosOutcomeMapper.Map(outcome.Outcome),
+                ResultSummaryAtOpening = outcome.Summary,
                 AddedAtUtc = now
             });
         }
@@ -55,10 +55,25 @@ public sealed class OosInvestigationService(
         return investigation;
     }
 
+    private async Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default)
+    {
+        if (!db.Database.IsRelational())
+            return await candidates.SingleOrDefaultAsync(ct);
+
+        var id = await candidates.Select(i => (int?)i.Id).SingleOrDefaultAsync(ct);
+        if (id is null) return null;
+
+        // Task 7 conclusion must take the same row lock before reading results or signing.
+        // Recheck status under the lock in case a conclusion committed after the lookup.
+        return await db.OosInvestigations.FromSql(
+            $"""SELECT i.*, i.xmin FROM "OosInvestigations" AS i WHERE i."Id" = {id.Value} AND i."Status" <> {(int)OosInvestigationStatus.Concluded} FOR UPDATE""")
+            .SingleOrDefaultAsync(ct);
+    }
+
     private async Task<OosInvestigation> CreateAsync(
         Sample sample, int sectionId, int reviewerUserId, DateTime now, CancellationToken ct = default)
     {
-        var number = await numbers.GenerateOosCodeAsync(skipReservedLegacyCodes: true, ct);
+        var number = await numbers.GenerateOosCodeAsync(ct);
         var template = await db.OosInvestigationTemplates.AsNoTracking()
             .SingleOrDefaultAsync(t => t.SectionId == sectionId && t.Kind == OosInvestigationKind.Oos, ct);
         var items = template is null ? [] : await db.OosChecklistItems.AsNoTracking()

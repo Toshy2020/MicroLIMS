@@ -166,7 +166,7 @@ public class SupplierStatedAttributeService
     public Task<List<SupplierStatedAttributeDto>> ForSampleAsync(int itemId, string? grade) =>
         ForSampleAsync(_db, itemId, grade);
 
-    public static async Task<List<SupplierStatedAttributeDto>> ForSampleAsync(IMicroLimsDbContext db, int itemId, string? grade)
+    public static async Task<List<SupplierStatedAttributeDto>> ForSampleAsync(IMicroLimsDbContext db, int itemId, string? grade, CancellationToken ct = default)
     {
         var normalizedGrade = SpecificationService.NormalizeGrade(grade);
         var query = db.SupplierStatedAttributes.Where(a => a.ItemId == itemId);
@@ -186,7 +186,7 @@ public class SupplierStatedAttributeService
             .ThenBy(a => a.Name)
             .ThenBy(a => a.Id)
             .Select(a => new SupplierStatedAttributeDto(a.Id, a.ItemId, a.Grade, a.Name, a.StatedValue, a.SortOrder))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     private static (string Name, string StatedValue) ValidateNameAndValue(string? name, string? statedValue)

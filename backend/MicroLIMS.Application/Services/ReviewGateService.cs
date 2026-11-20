@@ -59,11 +59,11 @@ public class ReviewGateService
         ReviewWorkflowEventType eventType, string? comment, ApprovalDecision? decision = null, int? sectionId = null) =>
         ReviewEventLog.LogAsync(_db, entityType, entityId, userId, eventType, comment, decision, sectionId);
 
-    public Task<List<ReviewWorkflowEvent>> GetTimelineAsync(string entityType, int entityId) =>
+    public Task<List<ReviewWorkflowEvent>> GetTimelineAsync(string entityType, int entityId, CancellationToken ct = default) =>
         _db.ReviewWorkflowEvents
             .Where(e => e.EntityType == entityType && e.EntityId == entityId)
             .OrderBy(e => e.Timestamp)
-            .ToListAsync();
+            .ToListAsync(ct);
 }
 
 // The unsigned half of ReviewGateService, needing only the DbContext - so a

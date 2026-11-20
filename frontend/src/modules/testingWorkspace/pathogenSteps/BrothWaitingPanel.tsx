@@ -10,7 +10,7 @@ interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
   current: CurrentStepResponse;
-  onSubmitted: () => void;
+  onSubmitted: (saved?: boolean) => void;
 }
 
 // BrothEnrichment/SelectiveBroth: waiting for the incubation window. Counts

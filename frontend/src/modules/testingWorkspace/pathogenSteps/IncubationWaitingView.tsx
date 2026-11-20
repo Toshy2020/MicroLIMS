@@ -30,7 +30,7 @@ interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
   current: CurrentStepResponse;
-  onSubmitted: () => void;
+  onSubmitted: (saved?: boolean) => void;
   // What unlocks at zero, e.g. "MBP" or "plate reading".
   nextLabel: string;
   // Called once when the minimum incubation has elapsed (countdown at zero,
@@ -82,7 +82,7 @@ export function IncubationWaitingView({ testOrderId, step, current, onSubmitted,
   const handleReached = useCallback(() => setCountdownReached(true), []);
   useEffect(() => {
     if (!countdownReached) countedDown.current = true;
-    else if (countedDown.current) { countedDown.current = false; onSubmitted(); }
+    else if (countedDown.current) { countedDown.current = false; onSubmitted(false); }
   }, [countdownReached, onSubmitted]);
 
   const showCountdown = deadlineMs != null && !alreadyOverridden && !windowNotConfigured;

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Box, Typography, Alert, Button, useTheme } from "@mui/material";
 import { DialogBodySkeleton } from "../../components/DialogBodySkeleton";
+import { noteOwnSave } from "../../hooks/useRecordChanged";
 import { useTranslation } from "../../i18n";
 import { TestWorkflowService } from "./services/TestWorkflowService";
 import { CurrentStepResponse } from "./types/testWorkflowTypes";
@@ -32,20 +33,25 @@ export function PathogenStepDialog({ testOrderId, onClose }: Props) {
   const [current, setCurrent] = useState<CurrentStepResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     try {
-      const data = await TestWorkflowService.getCurrentStep(testOrderId);
-      setCurrent(data);
+      const data = await TestWorkflowService.getCurrentStep(testOrderId, signal);
+      if (!signal?.aborted) setCurrent(data);
     } catch (e) {
-      setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
+      if (!signal?.aborted) setError(workflowErrorDisplayMessage(parseWorkflowError(e)));
     }
-  };
+  }, [testOrderId]);
 
-  useEffect(() => { load(); }, [testOrderId]);
+  useEffect(() => {
+    const controller = new AbortController();
+    void load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
-  const handleSubmitted = () => {
-    load();
+  const handleSubmitted = (saved = true) => {
+    if (saved) noteOwnSave("testOrder", testOrderId);
+    void load();
   };
 
   if (!current) {

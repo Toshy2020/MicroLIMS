@@ -41,7 +41,7 @@ interface Props {
   testOrderId: number;
   step: TestWorkflowStepDto;
   current: CurrentStepResponse;
-  onSubmitted: () => void;
+  onSubmitted: (saved?: boolean) => void;
 }
 
 type Phase = "setup" | "waiting" | "readout" | "decision";
@@ -274,7 +274,7 @@ export function ConfirmatoryPlatingPanel({ testOrderId, step, current, onSubmitt
       }
       const parsed = parseWorkflowError(e);
       if (parsed.code === "CONFIRMATORY_SETUP_ALREADY_SUBMITTED") {
-        onSubmitted();
+        onSubmitted(false);
         return;
       }
       if (parsed.code === "CONFIRMATORY_ALREADY_RECORDED") {

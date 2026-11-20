@@ -163,13 +163,7 @@ public class SystemSettingsService : ISystemSettingsService
                     _securityAudit ?? new SecurityAuditService(_db, new SystemSecurityRequestContext(), _time));
                 var blockers = await ssoMode.GetSwitchOnBlockersAsync(actingUserId, targetMode);
                 if (blockers.Count > 0)
-                {
-                    var blockerMessage = string.Join(" ", blockers);
-                    throw new BusinessRuleException(
-                        MessageCodes.SettingsSsoSwitchOnBlocked,
-                        blockerMessage,
-                        new Dictionary<string, string> { ["message"] = blockerMessage });
-                }
+                    throw BusinessRuleException.FromDetails(blockers);
             }
         }
 

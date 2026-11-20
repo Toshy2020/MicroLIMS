@@ -29,7 +29,6 @@ public static partial class MessageCodes
     public const string MaterialDocumentIntegrityCheckFailed = "Material.DocumentIntegrityCheckFailed";
     public const string MaterialDocumentNotFound = "Material.DocumentNotFound";
     public const string MaterialDocumentNotFoundForMaterial = "Material.DocumentNotFoundForMaterial";
-    public const string MaterialDocumentValidationFailed = "Material.DocumentValidationFailed";
     public const string MaterialExpiryDateRequiredForCategory = "Material.ExpiryDateRequiredForCategory";
     public const string MaterialIndicatorFieldsOnlyForIndicators = "Material.IndicatorFieldsOnlyForIndicators";
     public const string MaterialInsufficientStock = "Material.InsufficientStock";
@@ -114,7 +113,6 @@ public static partial class MessageCodes
         [MaterialDocumentIntegrityCheckFailed] = [],
         [MaterialDocumentNotFound] = ["documentId"],
         [MaterialDocumentNotFoundForMaterial] = ["documentId", "materialId"],
-        [MaterialDocumentValidationFailed] = ["message"],
         [MaterialExpiryDateRequiredForCategory] = ["category"],
         [MaterialIndicatorFieldsOnlyForIndicators] = [],
         [MaterialInsufficientStock] = ["materialName", "batchNumber", "remaining", "unit", "requested"],

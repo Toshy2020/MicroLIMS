@@ -1,3 +1,7 @@
+using System.Globalization;
+using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
+
 namespace MicroLIMS.Application.Services;
 
 // What a discussion post may carry. Posting is open to every signed-in
@@ -45,10 +49,10 @@ public static class DiscussionAttachmentPolicy
 
     // Null when the whole set is acceptable; otherwise the first reason it
     // is not, phrased for the person posting.
-    public static string? Validate(IReadOnlyCollection<(string FileName, byte[] Data)> files)
+    public static ApiError? Validate(IReadOnlyCollection<(string FileName, byte[] Data)> files)
     {
         if (files.Count > MaxFiles)
-            return $"A post can carry at most {MaxFiles} attachments; {files.Count} were attached.";
+            return TooManyFiles(files.Count);
 
         foreach (var (fileName, data) in files)
         {
@@ -56,18 +60,36 @@ public static class DiscussionAttachmentPolicy
             var extension = Path.GetExtension(name);
 
             if (data.Length == 0)
-                return $"'{name}' is empty.";
+                return new ApiError(
+                    MessageCodes.DiscussionAttachmentEmpty,
+                    new Dictionary<string, string> { ["fileName"] = name },
+                    $"'{name}' is empty.");
             if (data.Length > MaxFileBytes)
-                return $"'{name}' is larger than the {MaxFileBytes / 1024 / 1024} MB limit for attachments.";
+                return new ApiError(
+                    MessageCodes.DiscussionAttachmentTooLarge,
+                    new Dictionary<string, string> { ["fileName"] = name, ["maxMb"] = (MaxFileBytes / 1024 / 1024).ToString(CultureInfo.InvariantCulture) },
+                    $"'{name}' is larger than the {MaxFileBytes / 1024 / 1024} MB limit for attachments.");
             if (string.IsNullOrEmpty(extension) || !Allowed.TryGetValue(extension, out var format))
-                return $"'{name}' is not an allowed attachment type. Allowed types: {AllowedExtensionsDisplay}.";
+                return new ApiError(
+                    MessageCodes.DiscussionAttachmentTypeUnsupported,
+                    new Dictionary<string, string> { ["fileName"] = name, ["allowedTypes"] = AllowedExtensionsDisplay },
+                    $"'{name}' is not an allowed attachment type. Allowed types: {AllowedExtensionsDisplay}.");
             if (format.Signatures.Length > 0
                 && !format.Signatures.Any(sig => data.Length >= sig.Length && data.AsSpan(0, sig.Length).SequenceEqual(sig)))
-                return $"'{name}' does not look like a valid {extension.TrimStart('.').ToUpperInvariant()} file. It may be corrupted or misnamed.";
+                return new ApiError(
+                    MessageCodes.DiscussionAttachmentSignatureMismatch,
+                    new Dictionary<string, string> { ["fileName"] = name, ["fileType"] = extension.TrimStart('.').ToUpperInvariant() },
+                    $"'{name}' does not look like a valid {extension.TrimStart('.').ToUpperInvariant()} file. It may be corrupted or misnamed.");
         }
 
         return null;
     }
+
+    public static ApiError TooManyFiles(int fileCount) =>
+        new ApiError(
+            MessageCodes.DiscussionAttachmentCountExceeded,
+            new Dictionary<string, string> { ["maxFiles"] = MaxFiles.ToString(CultureInfo.InvariantCulture), ["fileCount"] = fileCount.ToString(CultureInfo.InvariantCulture) },
+            $"A post can carry at most {MaxFiles} attachments; {fileCount} were attached.");
 
     // The content type the attachment is stored and served with - from the
     // (already validated) extension, never from the client's declaration.

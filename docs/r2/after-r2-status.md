@@ -13,16 +13,16 @@ R2 was merged on 2026-11-19 (#149). The after-R2 work then ran as one pull reque
 | #163 | Page-time scaling test made stable (ANALYZE after seeding, best of 7; budget unchanged) |
 | #166 | `useTrackRecent` test waits for the post instead of racing it |
 
-The five password policy refusals and twelve frequency API refusals have individual codes and Arabic templates. Frequency diagnostics in plan previews and row errors in batch creation still use English text.
+Batch 14 (#170) gave the five password policy refusals and twelve frequency API refusals individual codes and Arabic templates. Batch 15 did the same for material and equipment document validation, discussion attachment validation, and SSO switch-on blockers.
 
 ## Still open
 
 ### Messages Arabic users still see in English
 These refusals pass a runtime list through one `{{message}}` code instead of coding each line at its source:
 - Workflow template validator errors (`WorkflowTemplateValidator`).
-- File validator errors for material and equipment documents, and discussion attachments.
-- SSO switch-on blockers (`SsoModeService.GetSwitchOnBlockersAsync`).
 - Master data workbook reader errors, multi-error label print requests, and the multi-error fallback in `TestStepNavigator`.
+
+Frequency diagnostics in plan previews and row errors in batch creation still use English text.
 
 ### Not counted by the ratchet
 `ActionCheck.No(reason)` and `ActionCheck.Denied(reason)` without a code still produce uncoded refusals; the ratchet counts only `throw new` sites. A follow-up ratchet can count those calls the same way.

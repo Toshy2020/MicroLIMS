@@ -29,6 +29,9 @@ public class RecordingPointCoverageTests
         ["SampleSummaryService.GenerateSummaryWordAsync"] = "The Word document renders a summary projection of existing results.",
         ["SampleSummaryService.BuildReportDocumentAsync"] = "The report projects existing result attribution without recording a result.",
         ["SampleSummaryTestOrderBuilder.Build"] = "The summary builder projects existing values into presentation models.",
+        ["OosInvestigationService.OpenForReviewedSectionAsync"] = "Opens an OOS investigation from a signed review and links existing results; it records no test result (reviewer act, D1 Task 3).",
+        ["OosInvestigationService.AddAnalystStatementAsync"] = "Appends an investigation statement; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute and a performer check.",
+        ["OosInvestigationService.AnswerChecklistAsync"] = "Appends an investigation checklist answer; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute.",
     };
 
     private const string Entities = "ParameterResult|CountTestReading|WorkflowStepResult|PathogenObservation|" +

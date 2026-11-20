@@ -259,6 +259,40 @@ public sealed class OosPhaseOnePostgresTests(PostgresTestFixture fixture) : ICla
     }
 
     [PostgresFact]
+    public async Task Category_audit_stores_reason_inline_through_2000_characters_and_links_a_longer_reason()
+    {
+        var editor = await HeadAsync(await _seed.SectionAsync(), master: true);
+        var originalName = $"Documented cause {Guid.NewGuid():N}";
+        var inlineReason = new string('a', 2000);
+        var longReason = new string('b', 3500);
+        int id;
+        await using (var arrange = fixture.CreateDbContext())
+            id = (await Templates(arrange).SaveAsync(null, new(originalName, true, inlineReason), editor.Id)).Id;
+
+        var revisedName = originalName + " revised";
+        await using (var act = fixture.CreateDbContext())
+            await Templates(act).SaveAsync(id, new(revisedName, false, longReason), editor.Id);
+
+        await using var verify = fixture.CreateDbContext();
+        var category = await verify.OosCauseCategories.AsNoTracking().SingleAsync(c => c.Id == id);
+        Assert.Equal(revisedName, category.Name);
+        Assert.False(category.IsActive);
+
+        var creation = await AuditAsync(verify, nameof(OosCauseCategory), id, editor.Id, "Create");
+        Assert.Null(creation.PreviousValue);
+        Assert.Equal(originalName, Field(creation.NewValue, "Name").GetString());
+        Assert.Equal(inlineReason, creation.Reason);
+        var reasons = verify.Set<AuditEventChange>().AsNoTracking().Where(c => c.FieldName == nameof(AuditLog.Reason));
+        Assert.False(await reasons.AnyAsync(c => c.AuditLogId == creation.Id));
+
+        var edit = await AuditAsync(verify, nameof(OosCauseCategory), id, editor.Id, "Update");
+        Assert.Equal(originalName, Field(edit.PreviousValue, "Name").GetString());
+        Assert.Equal(revisedName, Field(edit.NewValue, "Name").GetString());
+        Assert.Equal("See the Reason audit detail.", edit.Reason);
+        Assert.Equal(longReason, await reasons.Where(c => c.AuditLogId == edit.Id).Select(c => c.NewValue).SingleAsync());
+    }
+
+    [PostgresFact]
     public async Task Checklist_answers_append_with_audit_and_stale_signing_is_refused()
     {
         var world = await OpenAsync();

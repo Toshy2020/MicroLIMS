@@ -1129,3 +1129,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **What the other source says:** Migration 20260810225125 creates the column NOT NULL. Migration 20260818183000 adds the location links and leaves that constraint in place. Migration 20260911154200 only reads the column. The model snapshot declares int? and filters its unique index on WorkflowStepResultId IS NOT NULL.
 - **Question:** How should deployed schemas be reconciled with the intended location-linked plate model?
 - **Date:** 2026-11-20
+
+### CONF-215
+- **Area:** REV
+- **Status:** Open
+- **What the code does:** POST api/water/calculate and LocationPathogenObservationService.RecordPrimaryObservationAsync can write results and have no production caller.
+- **Question:** Remove these paths, or add the competency guard if a production caller appears.
+- **Date:** 2026-11-20

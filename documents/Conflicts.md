@@ -1120,5 +1120,5 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **What the code does:** OOS cause categories are shared across laboratories and have no section ID.
 - **What the other source says:** The OOS design spec §5.1 describes configuration by laboratory.
 - **Question:** Who may edit the shared cause list?
-- **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20).
+- **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20). Phase I signing requires a currently active category, and deactivation preserves existing records (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20

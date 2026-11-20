@@ -1208,6 +1208,7 @@
   "Pathogen.ReturnReasonRequired": "السبب مطلوب عند إعادة نتيجة للتأكيد الكيميائي الحيوي.",
   "Pathogen.SampleNotFound": "العينة #{{sampleId}} غير موجودة.",
   "Pathogen.SessionNotFound": "جلسة العينة #{{sampleId}} غير موجودة.",
+  "Pathogen.ConfirmatoryPrimaryObservationNotFound": "لم يتم العثور على ملاحظة أولية واحدة أو أكثر لهذه العينة.",
   "Pathogen.StepHasNoMedium": "لا يوجد وسط زرعي معيّن للخطوة \"{{step}}\" - أكمل قالب هذه الخطوة في سجل الاختبارات الرئيسي قبل تسجيل النتائج.",
   "Pathogen.StepHasNoOrganism": "لا يوجد كائن مستهدف مهيأ للخطوة \"{{step}}\" - أكمل قالب هذه الخطوة في سجل الاختبارات الرئيسي قبل تسجيل النتائج.",
   "Pathogen.StepHasNoPermittedMedia": "لا توجد أوساط زرعية مسموح بها مهيأة للخطوة \"{{step}}\" - أكمل قالب هذه الخطوة في سجل الاختبارات الرئيسي قبل تسجيل النتائج.",

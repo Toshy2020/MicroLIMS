@@ -1113,3 +1113,19 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** How should existing case-variant active codes be reconciled before enforcing case-insensitive uniqueness in the database?
 - **Decision:** Database enforcement remains open. For D4 Task 2, Item STM retains its first-match behavior and the competency guard reports that the SOP was not checked when more than one active master matches (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20
+
+### CONF-213
+- **Area:** PAT
+- **Status:** Decided
+- **What the code did:** Confirmatory plate readings were loaded by primary observation ID without checking the sample in the URL.
+- **What the other source says:** CLAUDE.md 5.2 requires resource-level scope. FS-PAT-005 describes the prior behavior.
+- **Decision:** Reject the entire request before writing when any observation ID is unavailable for the requested sample. Orchestrator, 2026-11-20. User confirmation is pending at R3 approval. Update FS-PAT-005 in D4 Task 8.
+- **Date:** 2026-11-20
+
+### CONF-214
+- **Area:** PAT
+- **Status:** Open
+- **What the code does:** The pathogen session's confirmatory readout submits to save-confirmatory-readings. Its first plate insert links to a primary observation with no WorkflowStepResultId. On a clean PostgreSQL database migrated from base 22adaa01, the INSERT into public.ConfirmatoryPlateObservations fails with SQLSTATE 23502: null value in column "WorkflowStepResultId" of relation "ConfirmatoryPlateObservations" violates not-null constraint.
+- **What the other source says:** Migration 20260810225125 creates the column NOT NULL. Migration 20260818183000 adds the location links and leaves that constraint in place. Migration 20260911154200 only reads the column. The model snapshot declares int? and filters its unique index on WorkflowStepResultId IS NOT NULL.
+- **Question:** How should deployed schemas be reconciled with the intended location-linked plate model?
+- **Date:** 2026-11-20

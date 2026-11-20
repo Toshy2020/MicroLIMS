@@ -1208,6 +1208,7 @@
   "Pathogen.ReturnReasonRequired": "A reason is required when returning a result for biochemical confirmation.",
   "Pathogen.SampleNotFound": "Sample #{{sampleId}} not found.",
   "Pathogen.SessionNotFound": "Session for sample #{{sampleId}} not found.",
+  "Pathogen.ConfirmatoryPrimaryObservationNotFound": "One or more primary observations were not found for this sample.",
   "Pathogen.StepHasNoMedium": "Step \"{{step}}\" has no assigned medium - complete this step's template in Test Master before recording results.",
   "Pathogen.StepHasNoOrganism": "Step \"{{step}}\" has no target organism configured - complete this step's template in Test Master before recording results.",
   "Pathogen.StepHasNoPermittedMedia": "Step \"{{step}}\" has no permitted media configured - complete this step's template in Test Master before recording results.",

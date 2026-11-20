@@ -620,8 +620,15 @@ public partial class PathogenSessionService
             .Include(o => o.SampleLocation)
             .Include(o => o.TestOrder)
             .Include(o => o.ConfirmatoryPlateObservations)
-            .Where(o => primaryObsIds.Contains(o.Id))
+            .Where(o => primaryObsIds.Contains(o.Id)
+                && o.SampleLocation != null && o.SampleLocation.SampleId == sampleId
+                && o.TestOrder != null && o.TestOrder.SampleId == sampleId)
             .ToListAsync(cancellationToken);
+
+        if (primaryObsList.Count != primaryObsIds.Count)
+            throw new NotFoundException(
+                MessageCodes.PathogenConfirmatoryPrimaryObservationNotFound,
+                "One or more primary observations were not found for this sample.");
 
         var testCodes = primaryObsList.Select(o => o.TestOrder?.TestCode ?? "").Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
@@ -633,8 +640,7 @@ public partial class PathogenSessionService
 
         foreach (var reading in request.Readings)
         {
-            if (!primaryObsMap.TryGetValue(reading.LocationPathogenObservationId, out var primaryObs))
-                continue;
+            var primaryObs = primaryObsMap[reading.LocationPathogenObservationId];
 
             testDefs.TryGetValue(primaryObs.TestOrder?.TestCode ?? "", out var testDef);
             var targetOrganismId = testDef?.Steps

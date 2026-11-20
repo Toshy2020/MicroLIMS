@@ -49,7 +49,7 @@ public sealed record ActionCheck(
             throw new BusinessRuleException(Code, Reason, Params);
         }
         if (Kind == ActionRefusalKind.Denied) throw new UnauthorizedAccessException(Reason);
-        throw new BusinessRuleException(Reason);
+        throw new BusinessRuleException(Code, Reason, Params);
     }
 
     // A guard that refuses by throwing (the section-scope guards the controllers call), read as a check with the

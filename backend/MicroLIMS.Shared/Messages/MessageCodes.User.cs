@@ -21,6 +21,8 @@ public static partial class MessageCodes
     public const string UserAccessReviewPeriodLabelTooLong = "User.AccessReviewPeriodLabelTooLong";
     public const string UserAccessReviewQualityAssuranceOnly = "User.AccessReviewQualityAssuranceOnly";
     public const string UserAccessReviewReportUnreadable = "User.AccessReviewReportUnreadable";
+    public const string UserAdminReasonRequired = "User.AdminReasonRequired";
+    public const string UserAdminReasonTooLong = "User.AdminReasonTooLong";
     public const string UserCannotDisableOwnAccount = "User.CannotDisableOwnAccount";
     public const string UserCannotModifyOwnRole = "User.CannotModifyOwnRole";
     public const string UserCannotModifyOwnRolePermissions = "User.CannotModifyOwnRolePermissions";
@@ -35,6 +37,7 @@ public static partial class MessageCodes
     public const string UserEmergencyMustUseLocalSignIn = "User.EmergencyMustUseLocalSignIn";
     public const string UserEmergencyRequiresActiveMfa = "User.EmergencyRequiresActiveMfa";
     public const string UserFullNameRequired = "User.FullNameRequired";
+    public const string UserLastAdminPermissionHolder = "User.LastAdminPermissionHolder";
     public const string UserNoAssignedLaboratorySection = "User.NoAssignedLaboratorySection";
     public const string UserNoCompanyUsernameToRelink = "User.NoCompanyUsernameToRelink";
     public const string UserNotFound = "User.NotFound";
@@ -77,6 +80,8 @@ public static partial class MessageCodes
         [UserAccessReviewPeriodLabelTooLong] = [],
         [UserAccessReviewQualityAssuranceOnly] = [],
         [UserAccessReviewReportUnreadable] = [],
+        [UserAdminReasonRequired] = ["action"],
+        [UserAdminReasonTooLong] = ["maxLength"],
         [UserCannotDisableOwnAccount] = [],
         [UserCannotModifyOwnRole] = [],
         [UserCannotModifyOwnRolePermissions] = [],
@@ -91,6 +96,7 @@ public static partial class MessageCodes
         [UserEmergencyMustUseLocalSignIn] = [],
         [UserEmergencyRequiresActiveMfa] = [],
         [UserFullNameRequired] = [],
+        [UserLastAdminPermissionHolder] = ["permission"],
         [UserNoAssignedLaboratorySection] = [],
         [UserNoCompanyUsernameToRelink] = [],
         [UserNotFound] = ["userId"],

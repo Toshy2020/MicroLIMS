@@ -3,6 +3,7 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -79,6 +80,9 @@ WHERE r.""UserId"" = {userId}
     private static void RequireKnownType(string recordType)
     {
         if (!RecentRecordTypes.IsKnown(recordType))
-            throw new BusinessRuleException($"Unknown record type. Use one of: {string.Join(", ", RecentRecordTypes.All)}.");
+            throw new BusinessRuleException(
+                MessageCodes.TableViewUnknownRecentRecordType,
+                $"Unknown record type. Use one of: {string.Join(", ", RecentRecordTypes.All)}.",
+                new Dictionary<string, string> { ["allowed"] = string.Join(", ", RecentRecordTypes.All) });
     }
 }

@@ -76,12 +76,12 @@ public sealed class SampleMoistureResolver
             .ToListAsync();
         if (results.Count == 0) return null;
 
-        string refusalCode = role == MoistureRole.LossOnDrying ? MessageCodes.TestLossOnDryingNotNumeric : MessageCodes.TestWaterNotNumeric;
+        string code = role == MoistureRole.LossOnDrying ? MessageCodes.TestLossOnDryingNotNumeric : MessageCodes.TestWaterNotNumeric;
         string refusal = role == MoistureRole.LossOnDrying
             ? "The loss on drying test must report one numeric result."
             : "The water test must report one numeric result.";
         if (results.Count != 1 || results[0].ReportedValue is not decimal percent || percent < 0m || percent >= 100m)
-            throw new BusinessRuleException(refusalCode, refusal);
+            throw new BusinessRuleException(code, refusal);
         return new SampleMoisture(percent, results[0].TestOrderId, results[0].Id, results[0].TestCode, role);
     }
 

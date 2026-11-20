@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.DTOs.DocumentControl;
@@ -68,7 +70,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedCode = request.Code.Trim().ToUpperInvariant();
         if (await _db.DocumentTypes.AnyAsync(t => t.Code == trimmedCode))
-            throw new BusinessRuleException($"Document Type Code '{trimmedCode}' already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentTypeCodeAlreadyExists,
+                $"Document Type Code '{trimmedCode}' already exists.",
+                new Dictionary<string, string> { ["code"] = trimmedCode });
 
         var docType = new DocumentType
         {
@@ -200,7 +205,10 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedCode = request.Code.Trim().ToUpperInvariant();
         if (await _db.DocumentDepartments.AnyAsync(d => d.Code == trimmedCode))
-            throw new BusinessRuleException($"Department Code '{trimmedCode}' already exists.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentDepartmentCodeAlreadyExists,
+                $"Department Code '{trimmedCode}' already exists.",
+                new Dictionary<string, string> { ["code"] = trimmedCode });
 
         var dept = new DocumentDepartment
         {
@@ -322,7 +330,14 @@ public class DocumentConfigurationService : IDocumentConfigurationService
 
         var trimmedName = request.Name.Trim();
         if (await _db.DocumentSections.AnyAsync(s => s.DepartmentId == request.DepartmentId && s.Name.ToLower() == trimmedName.ToLower()))
-            throw new BusinessRuleException($"Section '{trimmedName}' already exists under department '{dept.Name}'.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentSectionAlreadyExistsInDepartment,
+                $"Section '{trimmedName}' already exists under department '{dept.Name}'.",
+                new Dictionary<string, string>
+                {
+                    ["sectionName"] = trimmedName,
+                    ["departmentName"] = dept.Name
+                });
 
         var section = new DocumentSection
         {
@@ -456,8 +471,17 @@ public class DocumentConfigurationService : IDocumentConfigurationService
     {
         if (!impact.HasReferences || confirmed) return;
         throw new BusinessRuleException(
+            MessageCodes.DocumentDeactivationConfirmationRequired,
             $"The {kind} '{name}' still has {impact.ActiveDocuments} active document(s), {impact.ActiveMemberships} active member(s) and {impact.OpenWork} open work item(s). " +
-            "Deactivating it does not delete or move them. Confirm the deactivation to proceed.");
+            "Deactivating it does not delete or move them. Confirm the deactivation to proceed.",
+            new Dictionary<string, string>
+            {
+                ["kind"] = kind,
+                ["name"] = name,
+                ["activeDocuments"] = impact.ActiveDocuments.ToString(CultureInfo.InvariantCulture),
+                ["activeMemberships"] = impact.ActiveMemberships.ToString(CultureInfo.InvariantCulture),
+                ["openWork"] = impact.OpenWork.ToString(CultureInfo.InvariantCulture)
+            });
     }
 
     // ---- Numbering Configuration ----

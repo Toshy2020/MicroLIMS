@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Workflows;
@@ -44,7 +46,10 @@ public class CurrentStepViewService
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
             .FirstOrDefaultAsync(s => s.Id == order.SampleId)
-            ?? throw new NotFoundException($"Test order {testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNotFound,
+                $"Test order {testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         // Media lot, its material and the incubator for every incubation on
         // this order in one query. EF attaches them to the tracked

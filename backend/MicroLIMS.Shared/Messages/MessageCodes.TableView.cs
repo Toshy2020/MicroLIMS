@@ -3,6 +3,7 @@ namespace MicroLIMS.Shared.Messages;
 // TableView.* refusal codes and the placeholders their sentences use (see MessageCodes.cs).
 public static partial class MessageCodes
 {
+    public const string TableViewInvalidSortDirection = "TableView.InvalidSortDirection";
     public const string TableViewMaxPersonalViewsReached = "TableView.MaxPersonalViewsReached";
     public const string TableViewNameAlreadyExistsHere = "TableView.NameAlreadyExistsHere";
     public const string TableViewNameAlreadySharedWithSection = "TableView.NameAlreadySharedWithSection";
@@ -18,11 +19,13 @@ public static partial class MessageCodes
     public const string TableViewSettingsMissingVersion = "TableView.SettingsMissingVersion";
     public const string TableViewSettingsTooLarge = "TableView.SettingsTooLarge";
     public const string TableViewTableNotSupported = "TableView.TableNotSupported";
+    public const string TableViewUnknownRecentRecordType = "TableView.UnknownRecentRecordType";
     public const string TableViewUpdateEmpty = "TableView.UpdateEmpty";
     public const string TableViewWrongTable = "TableView.WrongTable";
 
     private static Dictionary<string, string[]> TableViewParameters() => new()
     {
+        [TableViewInvalidSortDirection] = ["sortDir"],
         [TableViewMaxPersonalViewsReached] = ["max"],
         [TableViewNameAlreadyExistsHere] = ["name"],
         [TableViewNameAlreadySharedWithSection] = ["name"],
@@ -38,6 +41,7 @@ public static partial class MessageCodes
         [TableViewSettingsMissingVersion] = [],
         [TableViewSettingsTooLarge] = ["maxKb"],
         [TableViewTableNotSupported] = [],
+        [TableViewUnknownRecentRecordType] = ["allowed"],
         [TableViewUpdateEmpty] = [],
         [TableViewWrongTable] = [],
     };

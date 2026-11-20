@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -211,7 +212,10 @@ public sealed class TestStepNavigator : TestWorkflowSupport
     {
         var testOrder = await _db.TestOrders
             .FirstOrDefaultAsync(t => t.Id == testOrderId, ct)
-            ?? throw new NotFoundException($"Test order #{testOrderId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.TestOrderNumberNotFound,
+                $"Test order #{testOrderId} not found.",
+                new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
         var siblings = await _db.TestOrders
             .Include(t => t.Sample)
@@ -257,8 +261,20 @@ public sealed class TestStepNavigator : TestWorkflowSupport
             await RequireSamplePreparedAsync(testOrderId, order.SampleId, "Advance", performedByUserId, order.CurrentStep);
         }
 
-        var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        var errors = await ValidateCodedAsync(testOrderId);
+        if (errors.Count == 1)
+        {
+            var (code, message, parameters) = errors[0];
+            throw new BusinessRuleException(code, message, parameters);
+        }
+        if (errors.Count > 1)
+        {
+            var combined = string.Join(" ", errors.Select(e => e.Message));
+            throw new BusinessRuleException(
+                MessageCodes.MonitoringAdvanceValidationFailed,
+                combined,
+                new Dictionary<string, string> { ["message"] = combined });
+        }
 
         var next = order.CurrentStep switch
         {
@@ -271,10 +287,13 @@ public sealed class TestStepNavigator : TestWorkflowSupport
         return await WorkflowStateMachine.TransitionAsync(_db, order, next, performedByUserId, note);
     }
 
-    public async Task<List<string>> ValidateAsync(int testOrderId)
+    public async Task<List<string>> ValidateAsync(int testOrderId) =>
+        (await ValidateCodedAsync(testOrderId)).Select(e => e.Message).ToList();
+
+    private async Task<List<(string Code, string Message, IReadOnlyDictionary<string, string>? Parameters)>> ValidateCodedAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var errors = new List<string>();
+        var errors = new List<(string Code, string Message, IReadOnlyDictionary<string, string>? Parameters)>();
 
         if (order.CurrentStep == WorkflowStep.Waiting)
         {
@@ -290,12 +309,18 @@ public sealed class TestStepNavigator : TestWorkflowSupport
                     isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == order.SampleId);
 
                 if (!isPrepared)
-                    errors.Add($"Test preparation must be completed and confirmed for sample {sample.ReferenceNumber} before the test can be started.");
+                    errors.Add((
+                        MessageCodes.TestPreparationNotConfirmedToStart,
+                        $"Test preparation must be completed and confirmed for sample {sample.ReferenceNumber} before the test can be started.",
+                        new Dictionary<string, string> { ["sampleReference"] = sample.ReferenceNumber }));
                 else if (sample.Category is SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning)
                 {
                     var hasLocations = await _db.SampleLocations.AnyAsync(l => l.TestOrderId == testOrderId);
                     if (!hasLocations)
-                        errors.Add("Preparation not complete - no locations assigned to this test.");
+                        errors.Add((
+                            MessageCodes.TestPreparationLocationsMissing,
+                            "Preparation not complete - no locations assigned to this test.",
+                            null));
                 }
             }
         }
@@ -304,7 +329,10 @@ public sealed class TestStepNavigator : TestWorkflowSupport
         {
             var current = await GetCurrentStepAsync(testOrderId);
             if (!current.AllStepsComplete)
-                errors.Add("Not all workflow steps are complete for this test yet.");
+                errors.Add((
+                    MessageCodes.TestWorkflowStepsIncomplete,
+                    "Not all workflow steps are complete for this test yet.",
+                    null));
         }
 
         return errors;

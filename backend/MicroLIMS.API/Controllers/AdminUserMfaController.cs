@@ -5,6 +5,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -37,7 +38,7 @@ public class AdminUserMfaController : ControllerBase
         {
             "base32" => false,
             "hex" => true,
-            _ => throw new BusinessRuleException("Seed format must be 'base32' or 'hex'.")
+            _ => throw new BusinessRuleException(MessageCodes.AuthMfaTokenSeedFormatInvalid, "Seed format must be 'base32' or 'hex'.")
         };
 
         await _mfaAdminService.AssignHardwareTokenAsync(

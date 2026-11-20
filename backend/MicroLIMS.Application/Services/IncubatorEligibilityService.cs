@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -26,7 +28,10 @@ public class IncubatorEligibilityService
     {
         var stepMedia = await _db.TestWorkflowStepMedias
             .FirstOrDefaultAsync(m => m.Id == stepMediaId, cancellationToken)
-            ?? throw new NotFoundException($"Step media {stepMediaId} not found.");
+            ?? throw new NotFoundException(
+                MessageCodes.SampleStepMediaNotFound,
+                $"Step media {stepMediaId} not found.",
+                new Dictionary<string, string> { ["stepMediaId"] = stepMediaId.ToString(CultureInfo.InvariantCulture) });
 
         var now = _time.GetUtcNow().UtcDateTime;
 

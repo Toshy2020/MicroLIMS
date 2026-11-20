@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,7 @@ using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -48,11 +50,17 @@ public class ExportsController : ControllerBase
     public async Task<IActionResult> Log([FromBody] LogListExportRequest request, CancellationToken ct)
     {
         if (request.Columns is null || request.RecordIds is null)
-            throw new BusinessRuleException("Columns and recordIds are required.");
+            throw new BusinessRuleException(MessageCodes.ExportColumnsAndRecordIdsRequired, "Columns and recordIds are required.");
 
         if (request.RecordIds.Count != request.RowCount)
             throw new BusinessRuleException(
-                $"Export row count ({request.RowCount}) does not match the number of record identifiers ({request.RecordIds.Count}).");
+                MessageCodes.ExportRowCountMismatch,
+                $"Export row count ({request.RowCount}) does not match the number of record identifiers ({request.RecordIds.Count}).",
+                new Dictionary<string, string>
+                {
+                    ["recordIdCount"] = request.RecordIds.Count.ToString(CultureInfo.InvariantCulture),
+                    ["rowCount"] = request.RowCount.ToString(CultureInfo.InvariantCulture)
+                });
 
         JsonElement filtersElement;
         try
@@ -63,7 +71,7 @@ public class ExportsController : ControllerBase
         }
         catch (JsonException)
         {
-            throw new BusinessRuleException("FilterJson must be valid JSON.");
+            throw new BusinessRuleException(MessageCodes.ExportFilterJsonInvalid, "FilterJson must be valid JSON.");
         }
 
         var combinedFilterJson = JsonSerializer.Serialize(new

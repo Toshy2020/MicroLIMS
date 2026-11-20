@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using System;
 using System.Collections.Generic;
@@ -364,7 +365,9 @@ public class DocumentEscalationService : IDocumentEscalationService
     {
         if (string.IsNullOrWhiteSpace(request.ResolutionReason))
         {
-            throw new BusinessRuleException("A resolution reason is mandatory to resolve an escalation record.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentEscalationResolutionReasonRequired,
+                "A resolution reason is mandatory to resolve an escalation record.");
         }
 
         var record = await _db.DocumentEscalationRecords

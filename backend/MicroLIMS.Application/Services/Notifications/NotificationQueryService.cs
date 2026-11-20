@@ -1,9 +1,11 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.Notifications;
@@ -88,7 +90,9 @@ public sealed class NotificationQueryService
             "unread" => query.Where(n => !n.IsRead && n.ResolvedAt == null),
             "read" => query.Where(n => n.IsRead && n.ResolvedAt == null),
             "done" => query.Where(n => n.ResolvedAt != null),
-            _ => throw new BusinessRuleException("State must be one of: unread, read, done, all.")
+            _ => throw new BusinessRuleException(
+                MessageCodes.NotificationInvalidStateFilter,
+                "State must be one of: unread, read, done, all.")
         };
 
         if (!string.IsNullOrWhiteSpace(type))
@@ -182,7 +186,10 @@ public sealed class NotificationQueryService
             .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, ct);
 
         if (log is null)
-            throw new NotFoundException($"Notification {notificationId} was not found.");
+            throw new NotFoundException(
+                MessageCodes.NotificationNotFound,
+                $"Notification {notificationId} was not found.",
+                new Dictionary<string, string> { ["notificationId"] = notificationId.ToString(CultureInfo.InvariantCulture) });
 
         if (!log.IsRead || !log.ReadAt.HasValue)
         {

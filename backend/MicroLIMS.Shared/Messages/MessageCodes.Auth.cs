@@ -5,6 +5,9 @@ public static partial class MessageCodes
 {
     public const string AuthAccountNotAvailable = "Auth.AccountNotAvailable";
     public const string AuthDirectoryOnlyInitialSigningPassword = "Auth.DirectoryOnlyInitialSigningPassword";
+    public const string AuthDirectoryUsernameBlank = "Auth.DirectoryUsernameBlank";
+    public const string AuthDirectoryUsernameInvalidCharacters = "Auth.DirectoryUsernameInvalidCharacters";
+    public const string AuthDirectoryUsernameTooLong = "Auth.DirectoryUsernameTooLong";
     public const string AuthMfaAlreadyActive = "Auth.MfaAlreadyActive";
     public const string AuthMfaAlreadyActiveForHardwareToken = "Auth.MfaAlreadyActiveForHardwareToken";
     public const string AuthMfaAlreadyActiveRemoveFirst = "Auth.MfaAlreadyActiveRemoveFirst";
@@ -19,6 +22,7 @@ public static partial class MessageCodes
     public const string AuthMfaResetReasonRequired = "Auth.MfaResetReasonRequired";
     public const string AuthMfaSetupNotStarted = "Auth.MfaSetupNotStarted";
     public const string AuthMfaTokenAssignReasonRequired = "Auth.MfaTokenAssignReasonRequired";
+    public const string AuthMfaTokenSeedFormatInvalid = "Auth.MfaTokenSeedFormatInvalid";
     public const string AuthMfaTokenSeedInvalid = "Auth.MfaTokenSeedInvalid";
     public const string AuthMfaTokenSerialRequired = "Auth.MfaTokenSerialRequired";
     public const string AuthMfaTotpStepInvalid = "Auth.MfaTotpStepInvalid";
@@ -37,8 +41,10 @@ public static partial class MessageCodes
     public const string AuthRoleDoesNotIncludeAction = "Auth.RoleDoesNotIncludeAction";
     public const string AuthSigningPasswordAlreadySet = "Auth.SigningPasswordAlreadySet";
     public const string AuthSsoChooseProviderToTest = "Auth.SsoChooseProviderToTest";
+    public const string AuthSsoConnectionTestModeRequired = "Auth.SsoConnectionTestModeRequired";
     public const string AuthSsoImportFileEmpty = "Auth.SsoImportFileEmpty";
     public const string AuthSsoImportTooManyRows = "Auth.SsoImportTooManyRows";
+    public const string AuthSsoModeInvalid = "Auth.SsoModeInvalid";
     public const string AuthSsoTestFailedConfigUnreadable = "Auth.SsoTestFailedConfigUnreadable";
     public const string AuthSsoTestFailedDirectoryUnavailable = "Auth.SsoTestFailedDirectoryUnavailable";
     public const string AuthSsoTestFailedIdpTimeout = "Auth.SsoTestFailedIdpTimeout";
@@ -51,6 +57,9 @@ public static partial class MessageCodes
     {
         [AuthAccountNotAvailable] = [],
         [AuthDirectoryOnlyInitialSigningPassword] = [],
+        [AuthDirectoryUsernameBlank] = [],
+        [AuthDirectoryUsernameInvalidCharacters] = [],
+        [AuthDirectoryUsernameTooLong] = ["maxLength"],
         [AuthMfaAlreadyActive] = [],
         [AuthMfaAlreadyActiveForHardwareToken] = [],
         [AuthMfaAlreadyActiveRemoveFirst] = [],
@@ -65,6 +74,7 @@ public static partial class MessageCodes
         [AuthMfaResetReasonRequired] = [],
         [AuthMfaSetupNotStarted] = [],
         [AuthMfaTokenAssignReasonRequired] = [],
+        [AuthMfaTokenSeedFormatInvalid] = [],
         [AuthMfaTokenSeedInvalid] = [],
         [AuthMfaTokenSerialRequired] = [],
         [AuthMfaTotpStepInvalid] = [],
@@ -83,8 +93,10 @@ public static partial class MessageCodes
         [AuthRoleDoesNotIncludeAction] = [],
         [AuthSigningPasswordAlreadySet] = [],
         [AuthSsoChooseProviderToTest] = [],
+        [AuthSsoConnectionTestModeRequired] = [],
         [AuthSsoImportFileEmpty] = [],
         [AuthSsoImportTooManyRows] = ["maxRows", "rowCount"],
+        [AuthSsoModeInvalid] = [],
         [AuthSsoTestFailedConfigUnreadable] = ["reason"],
         [AuthSsoTestFailedDirectoryUnavailable] = ["reason"],
         [AuthSsoTestFailedIdpTimeout] = [],

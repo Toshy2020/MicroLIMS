@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using MicroLIMS.Application.Services.Sso;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
@@ -60,7 +61,7 @@ public class AdminSsoController : ControllerBase
         if (string.IsNullOrWhiteSpace(mode))
             return null;
         if (!SsoModeService.TryParseMode(mode, out var parsed))
-            throw new BusinessRuleException("Mode must be 'Off', 'OpenIdConnect' or 'ActiveDirectory'.");
+            throw new BusinessRuleException(MessageCodes.AuthSsoModeInvalid, "Mode must be 'Off', 'OpenIdConnect' or 'ActiveDirectory'.");
         return parsed;
     }
 }

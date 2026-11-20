@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -145,7 +146,9 @@ public class CriticalAlertService : ICriticalAlertService
                 }
             }
             if (delivered == 0)
-                throw new BusinessRuleException("The alert could not be delivered to any recipient.");
+                throw new BusinessRuleException(
+                    MessageCodes.MonitoringAlertDeliveryFailed,
+                    "The alert could not be delivered to any recipient.");
 
             // Stamped only after at least one send returns. A total failure
             // leaves it null so the next pass retries; the worst case is a

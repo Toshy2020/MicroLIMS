@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -392,7 +393,9 @@ public class PeriodicReviewService : IPeriodicReviewService
             throw new KeyNotFoundException($"Periodic review task {taskId} not found.");
 
         if (task.Status == PeriodicReviewTaskStatus.Completed || task.Status == PeriodicReviewTaskStatus.Cancelled)
-            throw new BusinessRuleException("Cannot add findings to a completed or cancelled review task.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewCannotAddFindingsClosed,
+                "Cannot add findings to a completed or cancelled review task.");
 
         // Hard Segregation of Duties check: Author cannot be Reviewer!
         if (task.DocumentRevision.CreatedByUserId == userId)
@@ -465,7 +468,9 @@ public class PeriodicReviewService : IPeriodicReviewService
             throw new KeyNotFoundException($"Finding {findingId} not found on task {taskId}.");
 
         if (finding.PeriodicReviewTask.Status == PeriodicReviewTaskStatus.Completed)
-            throw new BusinessRuleException("Cannot modify findings on a completed review task.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewCannotModifyFindingsCompleted,
+                "Cannot modify findings on a completed review task.");
 
         // Author cannot resolve/alter reviewer findings directly
         if (finding.PeriodicReviewTask.DocumentRevision.CreatedByUserId == userId)
@@ -505,15 +510,21 @@ public class PeriodicReviewService : IPeriodicReviewService
             throw new KeyNotFoundException($"Periodic review task {taskId} not found.");
 
         if (task.Status == PeriodicReviewTaskStatus.Completed || task.Status == PeriodicReviewTaskStatus.Cancelled)
-            throw new BusinessRuleException("Cannot reassign a completed or cancelled review task.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewCannotReassignClosed,
+                "Cannot reassign a completed or cancelled review task.");
 
         // Check target reviewer exists and is active
         var (targetActive, targetRole) = await GetUserRoleAsync(request.ReviewerUserId);
         if (!targetActive || targetRole == null)
-            throw new BusinessRuleException("Target reviewer is not an active user in the system.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewReviewerInactive,
+                "Target reviewer is not an active user in the system.");
 
         if (!await _auth.CanPerformPeriodicReviewAsync(request.ReviewerUserId))
-            throw new BusinessRuleException("The selected reviewer's role does not hold the Documents.PeriodicReview permission.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewReviewerMissingPermission,
+                "The selected reviewer's role does not hold the Documents.PeriodicReview permission.");
 
         // HARD SEGREGATION OF DUTIES RULE (DC-URS-078, DC-URS-164..169)
         // Author != Reviewer. SystemAdministrator is NOT exempt!
@@ -559,10 +570,14 @@ public class PeriodicReviewService : IPeriodicReviewService
             throw new KeyNotFoundException($"Periodic review task {taskId} not found.");
 
         if (task.Status == PeriodicReviewTaskStatus.Completed)
-            throw new BusinessRuleException("This periodic review task is already completed and cannot be altered.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewAlreadyCompleted,
+                "This periodic review task is already completed and cannot be altered.");
 
         if (task.Status == PeriodicReviewTaskStatus.Cancelled)
-            throw new BusinessRuleException("Cannot complete a cancelled periodic review task.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewCannotCompleteCancelled,
+                "Cannot complete a cancelled periodic review task.");
 
         // Validate user role
         var (isActorActive, actorRole) = await GetUserRoleAsync(userId);
@@ -718,7 +733,9 @@ public class PeriodicReviewService : IPeriodicReviewService
         }
         else
         {
-            throw new BusinessRuleException("Invalid periodic review outcome.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentPeriodicReviewInvalidOutcome,
+                "Invalid periodic review outcome.");
         }
 
         return await GetReviewTaskByIdAsync(taskId, userId);

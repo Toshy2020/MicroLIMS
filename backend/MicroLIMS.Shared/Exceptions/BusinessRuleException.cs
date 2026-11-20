@@ -28,7 +28,7 @@ public class BusinessRuleException : InvalidOperationException, ICodedMessage
 
     public BusinessRuleException(string? message) : base(message) { }
 
-    public BusinessRuleException(string code, string englishMessage, IReadOnlyDictionary<string, string>? parameters = null)
+    public BusinessRuleException(string? code, string? englishMessage, IReadOnlyDictionary<string, string>? parameters = null)
         : base(englishMessage)
     {
         Code = code;

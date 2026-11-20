@@ -498,8 +498,12 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
             }
         }
 
-        var errors = await ValidateAsync(testOrderId);
-        if (errors.Count > 0) throw new BusinessRuleException(string.Join(" ", errors));
+        var errors = await ValidateCodedAsync(testOrderId);
+        if (errors.Count > 0)
+        {
+            var (code, message, parameters) = errors[0];
+            throw new BusinessRuleException(code, message, parameters);
+        }
 
         var next = order.CurrentStep switch
         {
@@ -512,10 +516,13 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
         return await WorkflowStateMachine.TransitionAsync(_db, order, next, performedByUserId, note);
     }
 
-    public async Task<List<string>> ValidateAsync(int testOrderId)
+    public async Task<List<string>> ValidateAsync(int testOrderId) =>
+        (await ValidateCodedAsync(testOrderId)).Select(e => e.Message).ToList();
+
+    private async Task<List<(string Code, string Message, IReadOnlyDictionary<string, string>? Parameters)>> ValidateCodedAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var errors = new List<string>();
+        var errors = new List<(string Code, string Message, IReadOnlyDictionary<string, string>? Parameters)>();
 
         if (order.CurrentStep == WorkflowStep.Waiting && !await PreparationRules.TestOrderSkipsPreparationAsync(_db, testOrderId))
         {
@@ -531,12 +538,18 @@ public class ProductWorkflowEngine : IProductWorkflowEngine
                     isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == order.SampleId);
 
                 if (!isPrepared)
-                    errors.Add($"Test preparation must be completed and confirmed for sample {sample.ReferenceNumber} before testing can start.");
+                    errors.Add((
+                        MessageCodes.TestPreparationNotConfirmed,
+                        $"Test preparation must be completed and confirmed for sample {sample.ReferenceNumber} before testing can start.",
+                        new Dictionary<string, string> { ["sampleReference"] = sample.ReferenceNumber }));
             }
         }
 
         if (order.CurrentStep == WorkflowStep.Running && order.Results.Count == 0)
-            errors.Add("No result has been entered for this test yet.");
+            errors.Add((
+                MessageCodes.TestNoResultEntered,
+                "No result has been entered for this test yet.",
+                null));
         return errors;
     }
 

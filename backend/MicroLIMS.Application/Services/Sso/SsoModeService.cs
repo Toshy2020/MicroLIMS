@@ -11,6 +11,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Sso;
 
@@ -117,7 +118,9 @@ public sealed class SsoModeService
         CancellationToken ct = default)
     {
         if (mode == SsoMode.Off)
-            throw new BusinessRuleException("A connection test applies only to OpenIdConnect or ActiveDirectory.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthSsoConnectionTestModeRequired,
+                "A connection test applies only to OpenIdConnect or ActiveDirectory.");
 
         var metadata = SerializeMetadata(mode, _fingerprint.GetFingerprint(mode));
         _securityAudit.Record(new SecurityEventRequest(
@@ -139,7 +142,9 @@ public sealed class SsoModeService
         CancellationToken ct = default)
     {
         if (mode == SsoMode.Off)
-            throw new BusinessRuleException("A connection test applies only to OpenIdConnect or ActiveDirectory.");
+            throw new BusinessRuleException(
+                MessageCodes.AuthSsoConnectionTestModeRequired,
+                "A connection test applies only to OpenIdConnect or ActiveDirectory.");
 
         var truncatedReason = string.IsNullOrWhiteSpace(technicalReason)
             ? null

@@ -80,6 +80,7 @@ public static partial class MessageCodes
     public const string MaterialTransitionRangeInvalid = "Material.TransitionRangeInvalid";
     public const string MaterialTypeNotOfferedInLab = "Material.TypeNotOfferedInLab";
     public const string MaterialUnexpectedType = "Material.UnexpectedType";
+    public const string MaterialUnknownCatalogGroup = "Material.UnknownCatalogGroup";
     public const string MaterialVoidReasonRequired = "Material.VoidReasonRequired";
     public const string MaterialVoidedDocumentCannotBeSuperseded = "Material.VoidedDocumentCannotBeSuperseded";
     public const string MaterialWorkingStandardCreatedByQualification = "Material.WorkingStandardCreatedByQualification";
@@ -164,6 +165,7 @@ public static partial class MessageCodes
         [MaterialTransitionRangeInvalid] = [],
         [MaterialTypeNotOfferedInLab] = ["typeLabel"],
         [MaterialUnexpectedType] = ["materialName", "expectedType"],
+        [MaterialUnknownCatalogGroup] = ["group", "allowed"],
         [MaterialVoidReasonRequired] = [],
         [MaterialVoidedDocumentCannotBeSuperseded] = [],
         [MaterialWorkingStandardCreatedByQualification] = [],

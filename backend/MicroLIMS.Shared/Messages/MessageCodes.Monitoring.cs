@@ -6,6 +6,7 @@ public static partial class MessageCodes
     public const string MonitoringAdvanceValidationFailed = "Monitoring.AdvanceValidationFailed";
     public const string MonitoringAfterCleaningBatchAndSamplingTimeInvalid = "Monitoring.AfterCleaningBatchAndSamplingTimeInvalid";
     public const string MonitoringAfterCleaningBatchRequired = "Monitoring.AfterCleaningBatchRequired";
+    public const string MonitoringAlertDeliveryFailed = "Monitoring.AlertDeliveryFailed";
     public const string MonitoringApprovedPlanMatchesMasterData = "Monitoring.ApprovedPlanMatchesMasterData";
     public const string MonitoringCalendarDateNotFound = "Monitoring.CalendarDateNotFound";
     public const string MonitoringChooseAtLeastOneDeviation = "Monitoring.ChooseAtLeastOneDeviation";
@@ -138,6 +139,7 @@ public static partial class MessageCodes
         [MonitoringAdvanceValidationFailed] = ["message"],
         [MonitoringAfterCleaningBatchAndSamplingTimeInvalid] = [],
         [MonitoringAfterCleaningBatchRequired] = [],
+        [MonitoringAlertDeliveryFailed] = [],
         [MonitoringApprovedPlanMatchesMasterData] = ["year"],
         [MonitoringCalendarDateNotFound] = ["dateId"],
         [MonitoringChooseAtLeastOneDeviation] = [],

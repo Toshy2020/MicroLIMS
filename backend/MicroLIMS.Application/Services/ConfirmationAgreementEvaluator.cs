@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -20,7 +22,13 @@ public class ConfirmationAgreementEvaluator
         if (platesForLocation.Count != requiredMediaCount)
         {
             throw new BusinessRuleException(
-                $"Expected {requiredMediaCount} confirmatory plate observation(s); got {platesForLocation.Count}.");
+                MessageCodes.PathogenConfirmatoryObservationCountMismatch,
+                $"Expected {requiredMediaCount} confirmatory plate observation(s); got {platesForLocation.Count}.",
+                new Dictionary<string, string>
+                {
+                    ["expected"] = requiredMediaCount.ToString(CultureInfo.InvariantCulture),
+                    ["received"] = platesForLocation.Count.ToString(CultureInfo.InvariantCulture)
+                });
         }
 
         var distinctObservations = platesForLocation

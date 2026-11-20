@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -79,10 +80,16 @@ public static class SpecificationEvaluator
             case LimitType.DissolutionQ:
             case LimitType.DisintegrationTime:
             case LimitType.WeightVariation:
-                throw new BusinessRuleException($"Specification limit type '{spec.LimitType}' is not numeric and cannot be evaluated against a numeric value.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationLimitTypeNotNumeric,
+                    $"Specification limit type '{spec.LimitType}' is not numeric and cannot be evaluated against a numeric value.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
 
             default:
-                throw new BusinessRuleException($"Unsupported specification limit type '{spec.LimitType}'.");
+                throw new BusinessRuleException(
+                    MessageCodes.SpecificationLimitTypeUnsupported,
+                    $"Unsupported specification limit type '{spec.LimitType}'.",
+                    new Dictionary<string, string> { ["limitType"] = spec.LimitType.ToString() });
         }
     }
 }

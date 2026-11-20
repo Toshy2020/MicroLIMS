@@ -1,4 +1,6 @@
+using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Application.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -73,7 +75,10 @@ public class TrainingAssignmentService : ITrainingAssignmentService
 
         var master = revision.DocumentMaster;
         if (master == null)
-            throw new BusinessRuleException($"DocumentMaster missing for Revision {effectiveRevisionId}.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentMasterMissingForRevision,
+                $"DocumentMaster missing for Revision {effectiveRevisionId}.",
+                new Dictionary<string, string> { ["revisionId"] = effectiveRevisionId.ToString(CultureInfo.InvariantCulture) });
 
         // 1. Check DocumentTrainingConfiguration
         var config = await _db.DocumentTrainingConfigurations
@@ -335,7 +340,10 @@ public class TrainingAssignmentService : ITrainingAssignmentService
             throw new KeyNotFoundException($"DocumentRevision {request.DocumentRevisionId} not found.");
 
         if (revision.RevisionStatus != DocumentRevisionStatus.Effective)
-            throw new BusinessRuleException($"Assignments can only be issued for Effective revisions. Current status: {revision.RevisionStatus}.");
+            throw new BusinessRuleException(
+                MessageCodes.DocumentTrainingAssignmentsRequireEffective,
+                $"Assignments can only be issued for Effective revisions. Current status: {revision.RevisionStatus}.",
+                new Dictionary<string, string> { ["status"] = revision.RevisionStatus.ToString() });
 
         var master = revision.DocumentMaster;
         var (gracePeriodDays, dueDateUtc) = await CalculateDueDateAsync(

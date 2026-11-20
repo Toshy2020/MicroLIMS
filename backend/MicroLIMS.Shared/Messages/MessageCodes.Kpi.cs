@@ -8,6 +8,7 @@ public static partial class MessageCodes
     public const string KpiAvailabilityOverlap = "Kpi.AvailabilityOverlap";
     public const string KpiChangeReasonRequired = "Kpi.ChangeReasonRequired";
     public const string KpiDateRangeRequired = "Kpi.DateRangeRequired";
+    public const string KpiDuplicateKey = "Kpi.DuplicateKey";
     public const string KpiEffectiveDateInPast = "Kpi.EffectiveDateInPast";
     public const string KpiEndDateBeforeStart = "Kpi.EndDateBeforeStart";
     public const string KpiEntryCannotMoveAnalyst = "Kpi.EntryCannotMoveAnalyst";
@@ -19,6 +20,7 @@ public static partial class MessageCodes
     public const string KpiStartAfterEnd = "Kpi.StartAfterEnd";
     public const string KpiTestNotInTestMaster = "Kpi.TestNotInTestMaster";
     public const string KpiUnknownKpi = "Kpi.UnknownKpi";
+    public const string KpiUnknownSampleCategory = "Kpi.UnknownSampleCategory";
     public const string KpiValueDecimalPlaces = "Kpi.ValueDecimalPlaces";
     public const string KpiValueMustBePositive = "Kpi.ValueMustBePositive";
     public const string KpiValueTooLarge = "Kpi.ValueTooLarge";
@@ -35,6 +37,7 @@ public static partial class MessageCodes
         [KpiAvailabilityOverlap] = [],
         [KpiChangeReasonRequired] = [],
         [KpiDateRangeRequired] = [],
+        [KpiDuplicateKey] = ["key"],
         [KpiEffectiveDateInPast] = ["effectiveFrom", "today"],
         [KpiEndDateBeforeStart] = [],
         [KpiEntryCannotMoveAnalyst] = [],
@@ -46,6 +49,7 @@ public static partial class MessageCodes
         [KpiStartAfterEnd] = [],
         [KpiTestNotInTestMaster] = ["code"],
         [KpiUnknownKpi] = ["key"],
+        [KpiUnknownSampleCategory] = ["category"],
         [KpiValueDecimalPlaces] = ["label"],
         [KpiValueMustBePositive] = ["label"],
         [KpiValueTooLarge] = ["label", "max"],

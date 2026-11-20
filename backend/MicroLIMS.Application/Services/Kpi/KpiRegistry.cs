@@ -1,4 +1,5 @@
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 namespace MicroLIMS.Application.Services.Kpi;
 
 public class KpiRegistry
@@ -8,7 +9,10 @@ public class KpiRegistry
         var list = all.OrderBy(k => k.Order).ThenBy(k => k.Key, StringComparer.Ordinal).ToList();
         var duplicate = list.GroupBy(k => k.Key, StringComparer.OrdinalIgnoreCase).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
-            throw new BusinessRuleException($"KPI key '{duplicate.Key}' is registered more than once.");
+            throw new BusinessRuleException(
+                MessageCodes.KpiDuplicateKey,
+                $"KPI key '{duplicate.Key}' is registered more than once.",
+                new Dictionary<string, string> { ["key"] = duplicate.Key });
         All = list;
     }
 

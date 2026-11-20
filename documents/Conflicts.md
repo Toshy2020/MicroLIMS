@@ -1133,10 +1133,11 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-215
 - **Area:** PAT
-- **Status:** Open
+- **Status:** Fixed
 - **What the code does:** The pathogen session's confirmatory readout submits to save-confirmatory-readings. Its first plate insert links to a primary observation with no WorkflowStepResultId. On a clean PostgreSQL database migrated from base 22adaa01, the INSERT into public.ConfirmatoryPlateObservations fails with SQLSTATE 23502: null value in column "WorkflowStepResultId" of relation "ConfirmatoryPlateObservations" violates not-null constraint.
 - **What the other source says:** Migration 20260810225125 creates the column NOT NULL. Migration 20260818183000 adds the location links and leaves that constraint in place. Migration 20260911154200 only reads the column. The model snapshot declares int? and filters its unique index on WorkflowStepResultId IS NOT NULL.
 - **Question:** How should deployed schemas be reconciled with the intended location-linked plate model?
+- **Decision:** Fixed by the forward migration `20261120201135_FixConfirmatoryPlateWorkflowStepNullable`: the column is nullable and the unique index is recreated with the filter. Its Down() refuses to run while NULL rows exist and never deletes regulated rows (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20
 
 ### CONF-216

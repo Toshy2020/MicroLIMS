@@ -258,6 +258,8 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<OosCauseCategory> OosCauseCategories => Set<OosCauseCategory>();
 
     // Test Master
+    public DbSet<AnalystQualification> AnalystQualifications => Set<AnalystQualification>();
+    public DbSet<QualificationAttachment> QualificationAttachments => Set<QualificationAttachment>();
     public DbSet<TestDefinition> TestDefinitions => Set<TestDefinition>();
     public DbSet<TestWorkflowStep> TestWorkflowSteps => Set<TestWorkflowStep>();
     public DbSet<TestWorkflowStepMedia> TestWorkflowStepMedias => Set<TestWorkflowStepMedia>();

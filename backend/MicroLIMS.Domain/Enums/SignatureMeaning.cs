@@ -50,5 +50,9 @@ public enum SignatureMeaning
     OosInvestigationConcluded,
     OosInvestigationReopened,
     ExcursionReviewClosed,
-    NewSampleRequested
+    NewSampleRequested,
+    AnalystQualified,
+    AnalystQualificationWithdrawn,
+    CompetencyOverride,
+    CompetencyGateChanged
 }

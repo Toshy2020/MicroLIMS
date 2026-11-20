@@ -22,6 +22,7 @@ public static partial class MessageCodes
         AuthParameters(),
         CalculationParameters(),
         ColumnParameters(),
+        CompetencyParameters(),
         ControlChartParameters(),
         CryovialParameters(),
         DiscussionParameters(),

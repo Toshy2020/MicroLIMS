@@ -27,6 +27,7 @@ public class PermissionEnforcementMigrationPostgresTests
     // this migration never sees them.
     private static readonly string[] AddedByLaterMigrations =
     {
+        PermissionConstants.CompetencyManage,
         PermissionConstants.MaterialCategoriesManage,
         PermissionConstants.MaterialsRelease,
         PermissionConstants.SolutionsPrepare,

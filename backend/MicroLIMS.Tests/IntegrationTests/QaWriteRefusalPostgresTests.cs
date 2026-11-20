@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -20,8 +21,8 @@ namespace MicroLIMS.Tests.IntegrationTests;
 
 /// <summary>
 /// Characterisation test for B4 Task 3 write/execution refusal for the QA system role
-/// across all 27 non-document GxP execution and approval permission codes.
-/// Runs all 27 cases independently and collects every failure before failing.
+/// across non-document GxP execution and approval permission codes.
+/// Runs each implemented endpoint case independently and collects failures.
 /// Uses real PostgreSQL via PostgresTestFixture with separate DbContexts for
 /// Arrange, Act, and AsNoTracking Assert phases.
 /// </summary>
@@ -58,12 +59,14 @@ public sealed class QaWriteRefusalPostgresTests
             .Where(c => c != PermissionConstants.DocumentsReview && c != PermissionConstants.DocumentsApprove)
             .OrderBy(c => c, StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(27, expectedCodes.Count);
+        Assert.Equal(29, expectedCodes.Count);
 
+        // Competency.Override is provisioned in D4 Task 1. Its endpoint is added in Task 5.
+        var endpointCodes = expectedCodes.Where(code => code != PermissionConstants.CompetencyOverride);
         var descriptors = BuildWriteDescriptors();
-        Assert.Equal(expectedCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal).ToList());
+        Assert.Equal(endpointCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal));
 
-        // 1) Fresh DB check: QA role does not hold ANY of the 27 GxP execution/approval codes
+        // 1) Fresh DB check: the QA role holds none of the GxP execution/approval codes
         await using (var assertDb = _fixture.CreateDbContext())
         {
             var qaGrantedCodes = await assertDb.RolePermissions.AsNoTracking()
@@ -75,7 +78,7 @@ public sealed class QaWriteRefusalPostgresTests
                 Assert.DoesNotContain(code, qaGrantedCodes);
         }
 
-        // 2) Independent per-code checks: run ALL 27 cases and collect every failure.
+        // 2) Run the per-code checks for implemented endpoints and collect every failure.
         var failures = new List<string>();
         foreach (var d in descriptors)
         {
@@ -135,7 +138,25 @@ public sealed class QaWriteRefusalPostgresTests
 
     private IReadOnlyList<WriteEndpointDescriptor> BuildWriteDescriptors() => new List<WriteEndpointDescriptor>
     {
-        // --- Service-enforced refusals (13 codes) ---
+        // --- Service-enforced refusals ---
+        new(
+            PermissionConstants.CompetencyManage,
+            typeof(CompetencyController),
+            nameof(CompetencyController.Qualify),
+            "QualificationService.QualifyAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var svc = new QualificationService(actDb, new PermissionService(actDb),
+                    new UserSectionScopeService(actDb), LabClock.Default, _fixture.CreateSequenceHelper(actDb),
+                    new ElectronicSignatureService(actDb), new InMemoryFileStorageService());
+                await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    svc.QualifyAsync(new QualifyRequest(w.AnalystAId, 0, QualificationBasis.ObservedPractice,
+                        "Observed the test", null, LabClock.Default.LabToday, Password), w.QaUserId));
+                await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
+            }),
+
         new(
             PermissionConstants.SamplesReview,
             typeof(SampleReviewController),

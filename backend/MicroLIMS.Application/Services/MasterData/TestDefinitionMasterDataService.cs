@@ -1050,6 +1050,12 @@ public class TestDefinitionMasterDataService
         else if (effectiveWorkflowType == WorkflowType.WeightVariation && !entity.WvCapsuleS2MaxOutside.HasValue) entity.WvCapsuleS2MaxOutside = 6;
         if (request.PerContainer.HasValue) entity.PerContainer = request.PerContainer.Value;
         if (request.MoistureRole.HasValue) entity.MoistureRole = request.MoistureRole.Value;
+        if (request.HasRequalificationMonths)
+        {
+            if (request.RequalificationMonths is < 1 or > 120)
+                throw new BusinessRuleException(MessageCodes.CompetencyIntervalInvalid, "Use a requalification interval from 1 to 120 months, or leave it empty.");
+            entity.RequalificationMonths = request.RequalificationMonths;
+        }
         if (request.CoaDisplayOrder.HasValue) entity.CoaDisplayOrder = CoaDisplayOrderRule.ForUpdate(request.CoaDisplayOrder.Value);
         if (request.HplcMethodId.HasValue) entity.HplcMethodId = request.HplcMethodId;
         if (request.TitrationType.HasValue) entity.TitrationType = request.TitrationType;

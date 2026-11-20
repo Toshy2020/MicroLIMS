@@ -507,6 +507,9 @@ public static class DbSeeder
             (PermissionConstants.MediaRelease, "Release a prepared media lot for use."),
             (PermissionConstants.MaterialCategoriesManage, "Create and change material categories."),
             (PermissionConstants.MaterialsRelease, "Release a received stock lot for use."),
+            (PermissionConstants.CompetencyView, "View analyst qualifications."),
+            (PermissionConstants.CompetencyManage, "Sign and withdraw analyst qualifications."),
+            (PermissionConstants.CompetencyOverride, "Sign a competency override for a test order."),
             (PermissionConstants.OosManage, "Track out-of-specification groups and manage their investigation documents."),
             (PermissionConstants.TestWorkflowSupervise, "Supervisor interventions in a running test: override an incubation's minimum duration, reset a pathogen session."),
             (PermissionConstants.SamplesReceiveOwnLab, "Receive samples for the laboratories the user belongs to."),
@@ -578,6 +581,7 @@ public static class DbSeeder
                 (RoleType.SystemAdministrator, PermissionConstants.SystemAdministratorGrants.ToArray()),
                 (RoleType.SectionHead, new[]
                 {
+                    PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
                     PermissionConstants.AuditView, PermissionConstants.SamplesReview, PermissionConstants.SamplesApprove,
                     PermissionConstants.SamplesReceive, PermissionConstants.SamplesTrackAll,
                     PermissionConstants.SignaturesManage, PermissionConstants.TestWorkflowExecute, PermissionConstants.TestWorkflowBiochemicalDecision,
@@ -608,6 +612,7 @@ public static class DbSeeder
                 }),
                 (RoleType.Reviewer, new[]
                 {
+                    PermissionConstants.CompetencyView,
                     PermissionConstants.SamplesReview, PermissionConstants.TestWorkflowExecute,
                     PermissionConstants.TestWorkflowBiochemicalDecision, PermissionConstants.CryovialsManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
@@ -625,6 +630,7 @@ public static class DbSeeder
                 }),
                 (RoleType.Analyst, new[]
                 {
+                    PermissionConstants.CompetencyView,
                     PermissionConstants.TestWorkflowExecute, PermissionConstants.CryovialsManage,
                     PermissionConstants.MaterialsManage, PermissionConstants.EquipmentManage,
                     PermissionConstants.DiscussionsView, PermissionConstants.DiscussionsCreate,
@@ -644,12 +650,13 @@ public static class DbSeeder
                 })
             };
 
-            // QC Manager: final approval of a not-applicable test, plus only what Reviewer may view or read.
+            // QC Manager: final approval of not-applicable tests and signed qualifications,
+            // with the Reviewer's read access.
             var reviewerReadOnly = grants.First(g => g.Role == RoleType.Reviewer).Codes
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
             grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove)
                 .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport)
-                .Append(PermissionConstants.NotificationsConfigure).ToArray())).ToArray();
+                .Append(PermissionConstants.NotificationsConfigure).Append(PermissionConstants.CompetencyManage).ToArray())).ToArray();
             grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)

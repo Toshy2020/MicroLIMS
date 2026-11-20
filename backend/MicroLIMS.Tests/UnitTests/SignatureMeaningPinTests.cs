@@ -58,6 +58,10 @@ public class SignatureMeaningPinTests
             ("OosInvestigationReopened", 42),
             ("ExcursionReviewClosed", 43),
             ("NewSampleRequested", 44),
+            ("AnalystQualified", 45),
+            ("AnalystQualificationWithdrawn", 46),
+            ("CompetencyOverride", 47),
+            ("CompetencyGateChanged", 48),
         };
 
         var actual = Enum.GetValues<SignatureMeaning>()

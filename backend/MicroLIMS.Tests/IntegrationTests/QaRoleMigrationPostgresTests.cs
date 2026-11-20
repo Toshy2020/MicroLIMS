@@ -21,6 +21,12 @@ public class QaRoleMigrationPostgresTests
         PermissionConstants.AccessReviewSign
     };
 
+    // This suite replays AddQaRole alone. Competency.View was granted by a later migration.
+    private static readonly string[] OriginalQaGrants = PermissionConstants.QaGrants
+        .Where(code => code != PermissionConstants.CompetencyView)
+        .OrderBy(code => code, StringComparer.Ordinal)
+        .ToArray();
+
     private readonly PostgresTestFixture _fixture;
 
     public QaRoleMigrationPostgresTests(PostgresTestFixture fixture) => _fixture = fixture;
@@ -65,7 +71,7 @@ public class QaRoleMigrationPostgresTests
             .Where(rp => rp.RoleId == qaRole.Id)
             .Select(rp => rp.Permission!.Code)
             .ToListAsync();
-        Assert.Equal(PermissionConstants.QaGrants.OrderBy(c => c, StringComparer.Ordinal), grantedCodes.OrderBy(c => c, StringComparer.Ordinal));
+        Assert.Equal(OriginalQaGrants, grantedCodes.OrderBy(c => c, StringComparer.Ordinal));
 
         var newPermissions = await db.Permissions.AsNoTracking()
             .Where(p => QaOnlyCodes.Contains(p.Code))
@@ -123,7 +129,7 @@ public class QaRoleMigrationPostgresTests
             .Select(e => e.GetString()!)
             .OrderBy(c => c, StringComparer.Ordinal)
             .ToList();
-        Assert.Equal(PermissionConstants.QaGrants.OrderBy(c => c, StringComparer.Ordinal), recordedCodes);
+        Assert.Equal(OriginalQaGrants, recordedCodes);
 
         await tx.RollbackAsync();
     }
@@ -203,7 +209,7 @@ public class QaRoleMigrationPostgresTests
     }
 
     [PostgresFact]
-    public async Task Fresh_seed_and_migrated_database_have_same_qa_grants()
+    public async Task Fresh_seed_includes_the_original_qa_migration_grants()
     {
         List<string> freshCodes = new();
         await ScratchPostgresDatabase.RunAsync(async cs =>
@@ -235,8 +241,9 @@ public class QaRoleMigrationPostgresTests
             .Select(rp => rp.Permission!.Code)
             .ToListAsync();
 
-        Assert.Equal(freshCodes.OrderBy(c => c, StringComparer.Ordinal), migratedCodes.OrderBy(c => c, StringComparer.Ordinal));
-        Assert.Equal(PermissionConstants.QaGrants.Count, migratedCodes.Count);
+        Assert.Equal(freshCodes.Where(c => c != PermissionConstants.CompetencyView).OrderBy(c => c, StringComparer.Ordinal),
+            migratedCodes.OrderBy(c => c, StringComparer.Ordinal));
+        Assert.Equal(OriginalQaGrants.Length, migratedCodes.Count);
 
         await tx.RollbackAsync();
     }

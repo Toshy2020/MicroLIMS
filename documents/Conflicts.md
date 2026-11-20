@@ -1086,3 +1086,21 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Which outcomes should open an investigation at review in D1 Task 3?
 - **Decision:** Not decided.
 - **Date:** Not applicable
+
+### CONF-210
+- **Area:** MDM
+- **Status:** Decided
+- **What the code does:** The existing Test Master update requires `MasterData.Manage`, as documented in FS-MDM-001. D4 Task 1 places requalification interval changes in that update path.
+- **What the other source says:** The competency design spec §5.7 says QC Managers can set intervals through `Competency.Manage`.
+- **Question:** Which permission governs changes to the requalification interval?
+- **Decision:** Set the interval only through the existing Test Master update, using `MasterData.Manage` (user, 2026-11-20). Keep the existing master-data grants. QC Managers retain `Competency.Manage` for signing and withdrawing qualifications. Update the design spec §5.7 and the FS wording in D4 Task 8.
+- **Date:** 2026-11-20
+
+### CONF-211
+- **Area:** MDM
+- **Status:** Decided
+- **What the code does:** The Test Master update can move a test to another laboratory.
+- **What the other source says:** D4 links qualifications to a test definition and applies laboratory scope when qualifying an analyst.
+- **Question:** Does a qualification remain valid after its test moves laboratory?
+- **Decision:** The existing qualification stays valid after a move (user, 2026-11-20). Assignment and recording still require membership in the test's current section.
+- **Date:** 2026-11-20

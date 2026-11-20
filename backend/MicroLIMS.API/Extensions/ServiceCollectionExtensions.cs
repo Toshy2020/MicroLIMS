@@ -403,6 +403,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.ActionAvailabilityService>();
         services.AddScoped<MicroLIMS.Application.Services.EntryDefaults.EntryDefaultsService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.QualificationService>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

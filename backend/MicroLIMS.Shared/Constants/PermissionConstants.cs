@@ -104,6 +104,10 @@ public static class PermissionConstants
     public const string MaterialCategoriesManage = "MaterialCategories.Manage";
     // Release a received stock lot whose category requires approval before use.
     public const string MaterialsRelease = "Materials.Release";
+    public const string CompetencyView = "Competency.View";
+    public const string CompetencyManage = "Competency.Manage";
+    public const string CompetencyOverride = "Competency.Override";
+
     public const string OosManage = "Oos.Manage";
     public const string TestWorkflowSupervise = "TestWorkflow.Supervise";
     public const string SamplesReceiveOwnLab = "Samples.ReceiveOwnLab";
@@ -200,6 +204,7 @@ public static class PermissionConstants
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
         TableViewsShare, DataExport,
+        CompetencyView, CompetencyManage, CompetencyOverride,
         NotificationsConfigure
     };
 
@@ -231,7 +236,7 @@ public static class PermissionConstants
         DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
         SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
         KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
-        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -243,6 +248,7 @@ public static class PermissionConstants
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
+        CompetencyManage,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,

@@ -406,6 +406,20 @@ public record UpdateTestDefinitionRequest(
     [JsonConstructor]
     public UpdateTestDefinitionRequest() : this(string.Empty, string.Empty) { }
 
+    private readonly int? _requalificationMonths;
+    internal bool HasRequalificationMonths { get; private init; }
+
+    // An omitted field preserves the stored interval. Explicit null clears it.
+    public int? RequalificationMonths
+    {
+        get => _requalificationMonths;
+        init
+        {
+            _requalificationMonths = value;
+            HasRequalificationMonths = true;
+        }
+    }
+
     // ICP method assay tests (set through init for the same reason as above).
     public IcpTestMode? IcpMode { get; init; }
     public IcpSampleForm? IcpSampleForm { get; init; }

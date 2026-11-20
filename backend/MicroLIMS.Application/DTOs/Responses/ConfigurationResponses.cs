@@ -178,6 +178,7 @@ public class TestDefinitionResponse
     public PhyschemArea? PhyschemArea { get; init; }
     public bool PerContainer { get; init; }
     public MoistureRole MoistureRole { get; init; }
+    public int? RequalificationMonths { get; init; }
     public int? CoaDisplayOrder { get; init; }
     public WorkflowType WorkflowType { get; init; }
     public bool IsActive { get; init; }
@@ -253,6 +254,7 @@ public class TestDefinitionResponse
         PhyschemArea = e.PhyschemArea,
         PerContainer = e.PerContainer,
         MoistureRole = e.MoistureRole,
+        RequalificationMonths = e.RequalificationMonths,
         CoaDisplayOrder = e.CoaDisplayOrder,
         WorkflowType = e.WorkflowType,
         IsActive = e.IsActive,

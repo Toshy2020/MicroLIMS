@@ -35,11 +35,12 @@ public class SampleApprovalService
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
     private readonly ITestOrderOutcomeService _outcomes;
+    private readonly OosGate _oosGate;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes,
+        SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes, OosGate oosGate,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
     {
@@ -53,6 +54,7 @@ public class SampleApprovalService
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
         _outcomes = outcomes;
+        _oosGate = oosGate;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
@@ -170,6 +172,9 @@ public class SampleApprovalService
         if (performed.Count > 0)
             return (ActionCheck.No(MessageCodes.SampleCannotApproveTested, SignoffRefusalSentences.CannotApproveTested), section);
 
+        var oos = await _oosGate.CheckSectionMayBeDecidedAsync(sample, section, decision, ct);
+        if (!oos.Allowed) return (oos, section);
+
         // REQ-FP-033: server-side reject approval of a section if any test in it
         // that requires system suitability lacks a linked PASSED run.
         if (decision == ApprovalDecision.Approve)
@@ -253,22 +258,22 @@ public class SampleApprovalService
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
         string? comment, string? ipAddress, string? certificateRemarks = null,
         List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,
-        int? sectionId = null) =>
-        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(sampleId, sectionHeadUserId, password, decision, comment, ipAddress, certificateRemarks, selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId, sectionId));
+        int? sectionId = null, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(sampleId, sectionHeadUserId, password, decision, comment, ipAddress, certificateRemarks, selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId, sectionId, ct));
 
     private async Task DecideCoreAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
-        string? comment, string? ipAddress, string? certificateRemarks = null,
-        List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,
-        int? sectionId = null)
+        string? comment, string? ipAddress, string? certificateRemarks,
+        List<int>? selectedTestOrderIds, int? newSampleAnalystOneId, int? newSampleAnalystTwoId,
+        int? sectionId, CancellationToken ct = default)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var (check, section) = await CheckDecideAsync(sample, sectionHeadUserId, decision, sectionId);
+        var (check, section) = await CheckDecideAsync(sample, sectionHeadUserId, decision, sectionId, ct);
         check.ThrowIfRefused();
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
         // Every section without its own sign-off row shares the sample's
@@ -333,7 +338,7 @@ public class SampleApprovalService
         CauseOfTesting? retestCause = null;
         if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
         {
-            retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest")
+            retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest", ct)
                 ?? throw new BusinessRuleException(
                     MessageCodes.SampleRetestCauseNotConfigured,
                     "The 'Retest' cause of testing is not configured.");
@@ -442,7 +447,7 @@ public class SampleApprovalService
                     sample.ApprovalDecision = ApprovalDecision.RetestRetainedSample;
 
                 if (sample.OosGroupCode is null)
-                    sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync();
+                    sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync(ct);
 
                 var newSample = BuildRetestSample(sample, await _refNumbers.GenerateAsync(sample.Category), retestCause!.Id, sectionHeadUserId, sample.OosGroupCode);
                 var carriedAnyLocations = false;
@@ -497,7 +502,7 @@ public class SampleApprovalService
                     sample.ApprovalDecision = ApprovalDecision.NewSampleRequest;
 
                 if (sample.OosGroupCode is null)
-                    sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync();
+                    sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync(ct);
 
                 // ReferenceNumberGenerator counts existing rows straight from
                 // the database - it can't see an Add()ed-but-unsaved Sample
@@ -536,7 +541,7 @@ public class SampleApprovalService
                         spinoff.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, spinoff.TestOrders.Select(o => o.SectionId));
 
                     _db.Samples.Add(spinoff);
-                    await _db.SaveChangesAsync();
+                    await _db.SaveChangesAsync(ct);
                 }
 
                 foreach (var order in selectedOrders)
@@ -567,7 +572,7 @@ public class SampleApprovalService
         _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
         _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{sectionHeadUserId}");
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         // Approval happens after every result is already projected, so the
         // ApprovedBy/ApprovedAt/SampleStatus fields on this Sample's
@@ -577,32 +582,32 @@ public class SampleApprovalService
         // version of THIS sample's record to project or archive yet. With
         // several sections, only the decision that closes the sample (its
         // last approval, or any rejection) finalizes it.
-        await FinalizeIfClosedAsync(sample, $"Sample {decision}", sectionHeadUserId);
+        await FinalizeIfClosedAsync(sample, $"Sample {decision}", sectionHeadUserId, ct);
     }
 
     // A sample is final once no lab is still open. The decision that closes it
     // may be another lab's approval after an earlier rejection, so the OOS
     // outcome follows the sample's own final state, not this one decision.
-    internal async Task FinalizeIfClosedAsync(Sample sample, string archiveLabel, int userId)
+    internal async Task FinalizeIfClosedAsync(Sample sample, string archiveLabel, int userId, CancellationToken ct = default)
     {
         if (sample.Status is not (SampleStatus.Approved or SampleStatus.Rejected)) return;
 
         await _resultProjection.RefreshApprovalFieldsAsync(sample.Id);
-        var document = await _summary.BuildReportDocumentAsync(sample.Id);
+        var document = await _summary.BuildReportDocumentAsync(sample.Id, ct);
         if (document is not null)
             await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sample.Id, document, archiveLabel, userId);
 
         var outcome = sample.Status == SampleStatus.Rejected ? ApprovalDecision.Reject : ApprovalDecision.Approve;
-        await PropagateOosOutcomeAsync(sample, outcome, userId);
+        await PropagateOosOutcomeAsync(sample, outcome, userId, ct);
     }
 
-    private async Task PropagateOosOutcomeAsync(Sample sample, ApprovalDecision decision, int sectionHeadUserId)
+    private async Task PropagateOosOutcomeAsync(Sample sample, ApprovalDecision decision, int sectionHeadUserId, CancellationToken ct = default)
     {
         if (sample.OriginSampleId is null)
             return;
 
         var origin = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs)
-            .FirstOrDefaultAsync(s => s.Id == sample.OriginSampleId.Value);
+            .FirstOrDefaultAsync(s => s.Id == sample.OriginSampleId.Value, ct);
         if (origin is null)
             return;
 
@@ -624,7 +629,7 @@ public class SampleApprovalService
         else if (originSignoff.ApprovalDecision == ApprovalDecision.NewSampleRequest)
         {
             var sibling = await _db.Samples.FirstOrDefaultAsync(x => x.OriginSampleId == origin.Id && x.Id != sample.Id
-                && x.TestOrders.Any(t => t.SectionId == section));
+                && x.TestOrders.Any(t => t.SectionId == section), ct);
             if (sibling is null)
                 return;
 
@@ -674,7 +679,7 @@ public class SampleApprovalService
         // finalized here from its own recorded result, independent of the
         // sample-level outcome and of whether it was ever superseded.
         var originOrders = origin.TestOrders.Where(o => o.SectionId == section).ToList();
-        var outcomes = await _outcomes.GetOutcomesAsync(originOrders.Select(o => o.Id).ToArray());
+        var outcomes = await _outcomes.GetOutcomesAsync(originOrders.Select(o => o.Id).ToArray(), ct);
         foreach (var order in originOrders)
         {
             var conforms = !outcomes[order.Id].Fails;
@@ -685,7 +690,7 @@ public class SampleApprovalService
             }
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         // Another section of the origin is still open - it finalizes the
         // origin when it closes.
@@ -693,10 +698,10 @@ public class SampleApprovalService
             return;
 
         await _resultProjection.RefreshApprovalFieldsAsync(origin.Id);
-        var document = await _summary.BuildReportDocumentAsync(origin.Id);
+        var document = await _summary.BuildReportDocumentAsync(origin.Id, ct);
         if (document is not null)
             await _archive.ArchiveAsync(ReviewEntityTypes.Sample, origin.Id, document, $"Sample {outcome} (OOS resolved)", sectionHeadUserId);
 
-        await PropagateOosOutcomeAsync(origin, outcome, sectionHeadUserId);
+        await PropagateOosOutcomeAsync(origin, outcome, sectionHeadUserId, ct);
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -79,17 +80,7 @@ public class ReferenceNumberGenerator
 
     public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)
     {
-        // The production transaction must span allocation and persistence.
-        // In-memory workflow tests use the same sequence without database locks.
-        if (_db.Database.IsRelational())
-        {
-            if (_db.Database.CurrentTransaction is null)
-                throw new InvalidOperationException(
-                    "An OOS number can only be generated inside a database transaction that also saves the record.");
-
-            await _db.Database.ExecuteSqlAsync(
-                $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
-        }
+        await AcquireOosNumberLockAsync(cancellationToken);
 
         var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
         var prefix = FormattableString.Invariant($"OOS{labNow:MMyy}");
@@ -100,7 +91,27 @@ public class ReferenceNumberGenerator
             .Where(i => i.Number.StartsWith(prefix))
             .Select(i => (string?)i.Number);
 
-        var count = await legacyNumbers.Union(investigationNumbers).CountAsync(cancellationToken);
-        return FormattableString.Invariant($"{prefix}{count + 1:D3}");
+        var numbers = await legacyNumbers.Union(investigationNumbers).ToListAsync(cancellationToken);
+        long highest = 0;
+        foreach (var number in numbers)
+        {
+            if (number is not null &&
+                long.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var suffix))
+                highest = Math.Max(highest, suffix);
+        }
+        return FormattableString.Invariant($"{prefix}{highest + 1:D3}");
+    }
+
+    internal async Task AcquireOosNumberLockAsync(CancellationToken cancellationToken = default)
+    {
+        // In-memory workflow tests use the same sequence without database locks.
+        if (!_db.Database.IsRelational()) return;
+
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "An OOS number can only be generated inside a database transaction that also saves the record.");
+
+        await _db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
     }
 }

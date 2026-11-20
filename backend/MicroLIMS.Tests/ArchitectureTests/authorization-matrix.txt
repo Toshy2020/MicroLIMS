@@ -571,7 +571,7 @@ RoleController.GetSodRules(): SystemAdministrator
 RoleController.Update(Int32, UpdateRoleRequest): SystemAdministrator
 RoleController.UpdatePermissions(Int32, UpdateRolePermissionsRequest): SystemAdministrator
 SampleApprovalController.CloseTesting(Int32, Int32, CloseSectionTestingRequest): SectionHead
-SampleApprovalController.Decide(Int32, DecideSampleApprovalRequest): SectionHead
+SampleApprovalController.Decide(Int32, DecideSampleApprovalRequest, CancellationToken): SectionHead
 SampleController.AddLaboratory(Int32, AddLaboratoryRequest): SectionHead
 SampleController.AssignAnalyst(Int32, AssignAnalystRequest): SectionHead
 SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest): SectionHead
@@ -597,11 +597,11 @@ SamplePreparationController.GetLotOptionsForMaster(PreparationMaterialSource, In
 SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SamplePreparationController.Prepare(PrepareSampleHttpRequest): SectionHead,Reviewer,Analyst
 SamplePreparationController.WhereUsed(Nullable`1, Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-SampleReviewController.Complete(Int32, CompleteSampleReviewRequest): SectionHead,Reviewer
+SampleReviewController.Complete(Int32, CompleteSampleReviewRequest, CancellationToken): SectionHead,Reviewer
 SampleReviewController.ReturnTestToAnalyst(Int32, ReturnTestToAnalystRequest): SectionHead,Reviewer
-SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-SampleSummaryController.GetSummaryWord(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleSummaryController.GetSummary(Int32, Boolean, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleSummaryController.GetSummaryPdf(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+SampleSummaryController.GetSummaryWord(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleTrackingController.Get(SampleTrackingFilterDto): SystemAdministrator,SectionHead,Qa
 ScanController.Resolve(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SectionCountersController.Get(String): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

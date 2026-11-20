@@ -29,6 +29,7 @@ public class OosInvestigation : IVersionedEntity
     public int? ConcludedByUserId { get; set; }
     public int? ConclusionSignatureId { get; set; }
     public uint Version { get; set; }
+    public List<OosInvestigationResult> Results { get; set; } = new();
 }
 
 public class OosInvestigationResult

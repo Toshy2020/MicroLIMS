@@ -1,5 +1,7 @@
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -26,32 +28,32 @@ public static class FrequencyRules
 
     // Returns the first problem with the rule, or null when it is valid.
     // A rule with no Type is the "clear" form and is always valid.
-    public static string? Validate(FrequencyRuleDto rule, bool weekdayRequired = false)
+    public static ApiError? Validate(FrequencyRuleDto rule, bool weekdayRequired = false)
     {
         if (rule.Type is null) return null;
         var interval = rule.Interval ?? 1;
         if (rule.Type == FrequencyType.Daily)
         {
-            if (interval != 1) return "A daily frequency cannot have an interval.";
-            if (rule.SamplingWeekday is not null) return "A daily frequency cannot have a sampling weekday.";
-            if (rule.AnchorMonth is not null) return "A daily frequency cannot have an anchor month.";
-            if (rule.WeekOfMonth is not null) return "A daily frequency cannot have a week of the month.";
+            if (interval != 1) return new ApiError(MessageCodes.MonitoringFrequencyDailyIntervalNotAllowed, null, "A daily frequency cannot have an interval.");
+            if (rule.SamplingWeekday is not null) return new ApiError(MessageCodes.MonitoringFrequencyDailyWeekdayNotAllowed, null, "A daily frequency cannot have a sampling weekday.");
+            if (rule.AnchorMonth is not null) return new ApiError(MessageCodes.MonitoringFrequencyDailyAnchorMonthNotAllowed, null, "A daily frequency cannot have an anchor month.");
+            if (rule.WeekOfMonth is not null) return new ApiError(MessageCodes.MonitoringFrequencyDailyWeekOfMonthNotAllowed, null, "A daily frequency cannot have a week of the month.");
             return null;
         }
         if (interval < 1 || interval > 52)
-            return "Frequency interval must be between 1 and 52.";
+            return new ApiError(MessageCodes.MonitoringFrequencyIntervalOutOfRange, null, "Frequency interval must be between 1 and 52.");
         if (rule.Type == FrequencyType.Weekly)
         {
-            if (rule.AnchorMonth is not null) return "A weekly frequency cannot have an anchor month.";
-            if (rule.WeekOfMonth is not null) return "A weekly frequency cannot have a week of the month.";
-            if (weekdayRequired && rule.SamplingWeekday is null) return "A weekly frequency needs a sampling weekday.";
+            if (rule.AnchorMonth is not null) return new ApiError(MessageCodes.MonitoringFrequencyWeeklyAnchorMonthNotAllowed, null, "A weekly frequency cannot have an anchor month.");
+            if (rule.WeekOfMonth is not null) return new ApiError(MessageCodes.MonitoringFrequencyWeeklyWeekOfMonthNotAllowed, null, "A weekly frequency cannot have a week of the month.");
+            if (weekdayRequired && rule.SamplingWeekday is null) return new ApiError(MessageCodes.MonitoringFrequencyWeeklyWeekdayRequired, null, "A weekly frequency needs a sampling weekday.");
         }
         else
         {
-            if (interval > 12) return "A monthly interval cannot exceed 12 months.";
-            if (rule.AnchorMonth is < 1 or > 12) return "Anchor month must be between 1 and 12.";
-            if (rule.AnchorMonth is not null && interval == 1) return "An anchor month only applies to every-N-months rules.";
-            if (rule.WeekOfMonth is < 1 or > 4) return "Week of the month must be between 1 and 4.";
+            if (interval > 12) return new ApiError(MessageCodes.MonitoringFrequencyMonthlyIntervalTooLong, null, "A monthly interval cannot exceed 12 months.");
+            if (rule.AnchorMonth is < 1 or > 12) return new ApiError(MessageCodes.MonitoringFrequencyAnchorMonthOutOfRange, null, "Anchor month must be between 1 and 12.");
+            if (rule.AnchorMonth is not null && interval == 1) return new ApiError(MessageCodes.MonitoringFrequencyAnchorMonthRequiresMultiMonthInterval, null, "An anchor month only applies to every-N-months rules.");
+            if (rule.WeekOfMonth is < 1 or > 4) return new ApiError(MessageCodes.MonitoringFrequencyWeekOfMonthOutOfRange, null, "Week of the month must be between 1 and 4.");
         }
         return null;
     }

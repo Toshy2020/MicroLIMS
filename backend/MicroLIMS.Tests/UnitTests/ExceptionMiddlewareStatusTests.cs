@@ -1,6 +1,8 @@
+using System.Text.Json;
 using MicroLIMS.API.Middleware;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -46,6 +48,34 @@ public class ExceptionMiddlewareStatusTests
 
         context.Response.Body.Position = 0;
         return (context.Response.StatusCode, await new StreamReader(context.Response.Body).ReadToEndAsync());
+    }
+
+    [Fact]
+    public async Task PasswordPolicyRefusal_ReportsEachRuleAndKeepsTheEnglishSummary()
+    {
+        var failures = PasswordPolicy.ValidateCoded(null, minimumLength: 12);
+        var (status, body) = await RunAsync(BusinessRuleException.FromDetails(failures));
+
+        Assert.Equal(StatusCodes.Status400BadRequest, status);
+        using var json = JsonDocument.Parse(body);
+        var details = json.RootElement.GetProperty("errorDetails").EnumerateArray().ToArray();
+        Assert.Equal(new[]
+        {
+            "User.PasswordMinimumLength",
+            "User.PasswordUppercaseRequired",
+            "User.PasswordLowercaseRequired",
+            "User.PasswordDigitRequired",
+            "User.PasswordSpecialCharacterRequired",
+        }, details.Select(detail => detail.GetProperty("code").GetString()));
+        Assert.Equal("12", details[0].GetProperty("params").GetProperty("minimumLength").GetString());
+        Assert.Equal(
+            "Password must be at least 12 characters long. "
+             + "Password must contain at least one uppercase letter. "
+             + "Password must contain at least one lowercase letter. "
+             + "Password must contain at least one digit. "
+             + "Password must contain at least one special (non-alphanumeric) character.",
+            json.RootElement.GetProperty("message").GetString());
+        Assert.Empty(PasswordPolicy.ValidateCoded("StrongP@ss12", minimumLength: 12));
     }
 
     [Fact]

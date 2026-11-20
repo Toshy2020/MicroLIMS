@@ -42,7 +42,11 @@ public static partial class MessageCodes
     public const string UserNoCompanyUsernameToRelink = "User.NoCompanyUsernameToRelink";
     public const string UserNotFound = "User.NotFound";
     public const string UserNotMemberOfSelectedSection = "User.NotMemberOfSelectedSection";
-    public const string UserPasswordPolicyFailed = "User.PasswordPolicyFailed";
+    public const string UserPasswordDigitRequired = "User.PasswordDigitRequired";
+    public const string UserPasswordLowercaseRequired = "User.PasswordLowercaseRequired";
+    public const string UserPasswordMinimumLength = "User.PasswordMinimumLength";
+    public const string UserPasswordSpecialCharacterRequired = "User.PasswordSpecialCharacterRequired";
+    public const string UserPasswordUppercaseRequired = "User.PasswordUppercaseRequired";
     public const string UserPermissionCodesNotAssignable = "User.PermissionCodesNotAssignable";
     public const string UserPermissionCodesUnknown = "User.PermissionCodesUnknown";
     public const string UserRoleAssignedToUsers = "User.RoleAssignedToUsers";
@@ -101,7 +105,11 @@ public static partial class MessageCodes
         [UserNoCompanyUsernameToRelink] = [],
         [UserNotFound] = ["userId"],
         [UserNotMemberOfSelectedSection] = [],
-        [UserPasswordPolicyFailed] = ["message"],
+        [UserPasswordDigitRequired] = [],
+        [UserPasswordLowercaseRequired] = [],
+        [UserPasswordMinimumLength] = ["minimumLength"],
+        [UserPasswordSpecialCharacterRequired] = [],
+        [UserPasswordUppercaseRequired] = [],
         [UserPermissionCodesNotAssignable] = ["codes"],
         [UserPermissionCodesUnknown] = ["codes"],
         [UserRoleAssignedToUsers] = ["roleName", "userCount"],

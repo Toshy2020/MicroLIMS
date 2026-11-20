@@ -91,7 +91,8 @@
     "MonitoringDeviationsOpen": "Open monitoring deviations",
     "MonitoringDueThisMonth": "Monitoring due this month",
     "EquipmentCalibrationOverdue": "Equipment calibration task overdue",
-    "EquipmentPmOverdue": "Equipment preventive maintenance overdue"
+    "EquipmentPmOverdue": "Equipment preventive maintenance overdue",
+    "CompetencyExpiry": "Analyst qualification expiring"
   },
   "mandatory": {
     "title": "Section mandatory notifications",

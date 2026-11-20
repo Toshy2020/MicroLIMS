@@ -38,14 +38,14 @@ public class ElectronicSignatureService : IElectronicSignatureService
         _db = db;
     }
 
-    public async Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress)
+    public async Task<ElectronicSignature> SignAsync(int userId, string password, SignatureMeaning meaning, string entityType, int entityId, string? comment, string? ipAddress, CancellationToken ct = default)
     {
-        var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureMaxFailedAttempts);
-        var failedAttemptWindow = TimeSpan.FromMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureWindowMinutes));
+        var maxFailedAttempts = await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureMaxFailedAttempts, ct);
+        var failedAttemptWindow = TimeSpan.FromMinutes(await _settings.GetIntOrDefaultAsync(SystemSettingKeys.SignatureWindowMinutes, ct));
         var windowStart = _time.GetUtcNow().UtcDateTime - failedAttemptWindow;
         var recentFailures = await _db.AuditLogs.CountAsync(a =>
             a.EntityName == AuditEntityName && a.Action == FailedAction
-            && a.UserId == userId && a.Timestamp >= windowStart);
+            && a.UserId == userId && a.Timestamp >= windowStart, ct);
         if (recentFailures >= maxFailedAttempts)
         {
             _db.AuditLogs.Add(new AuditLog
@@ -57,12 +57,12 @@ public class ElectronicSignatureService : IElectronicSignatureService
                 NewValue = $"Signature attempt ({meaning}) for {entityType} #{entityId} refused: {recentFailures} failed attempts in the last {failedAttemptWindow.TotalMinutes:0} minutes.",
                 TestOrderId = entityType == "TestOrder" ? entityId : null
             });
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
             throw new SignatureVerificationException(
                 $"Too many failed signature attempts. Wait {failedAttemptWindow.TotalMinutes:0} minutes, then try again. The signature was not applied.");
         }
 
-        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId);
+        var user = await _db.Users.Include(u => u.Role).FirstOrDefaultAsync(u => u.Id == userId, ct);
 
         // Same generic failure for "no such user", "inactive", "locked",
         // and "wrong password" - a signature failure must not leak which
@@ -82,7 +82,7 @@ public class ElectronicSignatureService : IElectronicSignatureService
                 NewValue = $"Failed signature attempt ({meaning}) for {entityType} #{entityId}.",
                 TestOrderId = entityType == "TestOrder" ? entityId : null
             });
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
             throw new SignatureVerificationException("Password verification failed. The signature was not applied.");
         }
 

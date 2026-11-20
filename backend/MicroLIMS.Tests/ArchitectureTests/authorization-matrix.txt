@@ -494,6 +494,15 @@ OosInvestigationDocumentController.GetDocuments(String): SectionHead
 OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): SectionHead
 OosInvestigationDocumentController.Upload(String, IFormFile): SectionHead
 OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocumentRequest): SectionHead
+OosInvestigationsController.AddAnalystStatement(Int32, OosAnalystStatementRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.SignPhaseOne(Int32, SignPhaseOneRequest, CancellationToken): SectionHead
+OosTemplatesController.AddCategory(SaveOosCategoryRequest, CancellationToken): SectionHead
+OosTemplatesController.Get(Int32, OosInvestigationKind, CancellationToken): SectionHead
+OosTemplatesController.ListCategories(Int32, Int32, CancellationToken): SectionHead
+OosTemplatesController.Save(Int32, OosInvestigationKind, SaveOosTemplateRequest, CancellationToken): SectionHead
+OosTemplatesController.SaveCategory(Int32, SaveOosCategoryRequest, CancellationToken): SectionHead
 OosTrackingController.Get(): SectionHead
 OrganismMasterDataController.CreateOrganism(CreateOrganismRequest): SystemAdministrator,SectionHead
 OrganismMasterDataController.DeleteOrganism(Int32): SystemAdministrator,SectionHead

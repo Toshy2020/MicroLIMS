@@ -136,9 +136,17 @@ public static class TestServiceFactory
     public static SampleReviewService SampleReview(MicroLimsDbContext db, TimeProvider? time = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db),
             new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)),
-            new OosInvestigationService(db, new OosOpeningRule(db), new ReferenceNumberGenerator(db, time),
-                time ?? TimeProvider.System, time is null ? LabClock.Default : new LabClock(time, LabClock.Default.LabTimeZone)),
+            OosInvestigation(db, time),
             time);
+
+    public static OosInvestigationService OosInvestigation(MicroLimsDbContext db, TimeProvider? time = null, int? actor = null)
+    {
+        if (actor.HasValue)
+            db.CurrentUserId = actor;
+        return new(db, new OosOpeningRule(db), new ReferenceNumberGenerator(db, time),
+            time ?? TimeProvider.System, time is null ? LabClock.Default : new LabClock(time, LabClock.Default.LabTimeZone),
+            new UserSectionScopeService(db), new PermissionService(db), new SegregationOfDutiesGuard(db), new ElectronicSignatureService(db, time));
+    }
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);

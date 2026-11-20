@@ -8,8 +8,9 @@ using MicroLIMS.Domain.Enums;
 
 namespace MicroLIMS.Application.Services.Oos;
 
-public sealed class OosInvestigationService(
-    IMicroLimsDbContext db, OosOpeningRule rule, ReferenceNumberGenerator numbers, TimeProvider time, ILabClock clock)
+public sealed partial class OosInvestigationService(
+    IMicroLimsDbContext db, OosOpeningRule rule, ReferenceNumberGenerator numbers, TimeProvider time, ILabClock clock,
+    IUserSectionScopeService scope, PermissionService permissions, SegregationOfDutiesGuard duties, IElectronicSignatureService signatures)
 {
     public async Task<OosInvestigation?> OpenForReviewedSectionAsync(
         Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
@@ -39,6 +40,9 @@ public sealed class OosInvestigationService(
                 .Where(r => r.InvestigationId == investigation.Id && orderIds.Contains(r.TestOrderId))
                 .Select(r => r.TestOrderId).ToListAsync(ct)).ToHashSet();
         }
+
+        if (investigation.Id != 0 && failing.Keys.Any(id => !existingOrderIds.Contains(id)))
+            db.Entry(investigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
 
         foreach (var (orderId, outcome) in failing)
         {
@@ -75,12 +79,16 @@ public sealed class OosInvestigationService(
     {
         var number = await numbers.GenerateOosCodeAsync(ct);
         var template = await db.OosInvestigationTemplates.AsNoTracking()
-            .SingleOrDefaultAsync(t => t.SectionId == sectionId && t.Kind == OosInvestigationKind.Oos, ct);
-        var items = template is null ? [] : await db.OosChecklistItems.AsNoTracking()
-            .Where(i => i.TemplateId == template.Id && i.IsActive)
-            .OrderBy(i => i.Phase).ThenBy(i => i.Order).ThenBy(i => i.Id)
-            .Select(i => new { phase = i.Phase, key = i.Key, order = i.Order, text = i.Text })
-            .ToListAsync(ct);
+            .Where(t => t.SectionId == sectionId && t.Kind == OosInvestigationKind.Oos)
+            .Select(t => new
+            {
+                t.Id,
+                t.PhaseOneDueWorkingDays,
+                t.TotalDueWorkingDays,
+                Items = db.OosChecklistItems.Where(i => i.TemplateId == t.Id && i.IsActive)
+                    .OrderBy(i => i.Phase).ThenBy(i => i.Order).ThenBy(i => i.Id)
+                    .Select(i => new { phase = i.Phase, key = i.Key, order = i.Order, text = i.Text }).ToList()
+            }).AsSingleQuery().SingleOrDefaultAsync(ct);
 
         var investigation = new OosInvestigation
         {
@@ -91,7 +99,7 @@ public sealed class OosInvestigationService(
             SectionId = sectionId,
             OpenedAtUtc = now,
             OpenedByUserId = reviewerUserId,
-            TemplateSnapshotJson = JsonSerializer.Serialize(new { templateId = template?.Id, items })
+            TemplateSnapshotJson = JsonSerializer.Serialize(new { templateId = template?.Id, items = template?.Items ?? [] })
         };
         if (template is not null && (template.PhaseOneDueWorkingDays.HasValue || template.TotalDueWorkingDays.HasValue))
         {

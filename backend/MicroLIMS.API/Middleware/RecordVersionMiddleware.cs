@@ -18,10 +18,14 @@ public class RecordVersionMiddleware
 
     public async Task InvokeAsync(HttpContext context, MicroLimsDbContext db)
     {
-        var header = context.Request.Headers.IfMatch.ToString().Trim().Trim('"');
-        if (uint.TryParse(header, NumberStyles.None, CultureInfo.InvariantCulture, out var version))
+        if (ParseExpectedVersion(context.Request) is uint version)
             db.ExpectedVersion = version;
-
         await _next(context);
+    }
+
+    public static uint? ParseExpectedVersion(HttpRequest request)
+    {
+        var header = request.Headers.IfMatch.ToString().Trim().Trim('"');
+        return uint.TryParse(header, NumberStyles.None, CultureInfo.InvariantCulture, out var version) ? version : null;
     }
 }

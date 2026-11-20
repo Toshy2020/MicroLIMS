@@ -170,6 +170,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MediaEvaluationService>();
         services.AddScoped<ItemService>();
         services.AddScoped<ItemStmService>();
+        services.AddScoped<ItemSopResolver>();
         services.AddScoped<SpecificationService>();
         services.AddScoped<AdministrationContinuityGuard>();
         services.AddScoped<UserService>();
@@ -404,6 +405,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.EntryDefaults.EntryDefaultsService>();
         services.AddScoped<IMfaAdminService, MicroLIMS.Application.Services.Mfa.MfaAdminService>();
         services.AddScoped<MicroLIMS.Application.Services.Competency.QualificationService>();
+        services.AddScoped<MicroLIMS.Application.Services.Competency.ICompetencyGuard,
+            MicroLIMS.Application.Services.Competency.CompetencyGuard>();
         services.AddScoped<IAuditTrailReviewService, MicroLIMS.Application.Services.AuditTrailReviewService>();
         services.AddScoped<IDatabaseStatsQuery, DatabaseStatsQuery>();
         services.AddScoped<IDatabaseOverviewService, DatabaseOverviewService>();

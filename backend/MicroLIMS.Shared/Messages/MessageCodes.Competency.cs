@@ -13,6 +13,18 @@ public static partial class MessageCodes
     public const string CompetencyAttachmentLimit = "Competency.AttachmentLimit";
     public const string CompetencyWithdrawalReasonRequired = "Competency.WithdrawalReasonRequired";
     public const string CompetencyManageRequired = "Competency.ManageRequired";
+    public const string CompetencyNotQualified = "Competency.NotQualified";
+    public const string CompetencyQualificationExpired = "Competency.QualificationExpired";
+    public const string CompetencyQualificationWithdrawn = "Competency.QualificationWithdrawn";
+    public const string CompetencySopNotAcknowledged = "Competency.SopNotAcknowledged";
+    public const string CompetencyAssigneeNotQualified = "Competency.AssigneeNotQualified";
+    public const string CompetencyAssigneeQualificationExpired = "Competency.AssigneeQualificationExpired";
+    public const string CompetencyAssigneeQualificationWithdrawn = "Competency.AssigneeQualificationWithdrawn";
+    public const string CompetencyAssigneeSopNotAcknowledged = "Competency.AssigneeSopNotAcknowledged";
+    public const string CompetencySopNotCheckedNoSopNumber = "Competency.SopNotCheckedNoSopNumber";
+    public const string CompetencySopNotCheckedNotFound = "Competency.SopNotCheckedNotFound";
+    public const string CompetencySopNotCheckedNoEffectiveRevision = "Competency.SopNotCheckedNoEffectiveRevision";
+    public const string CompetencySopNotCheckedAmbiguous = "Competency.SopNotCheckedAmbiguous";
 
     private static Dictionary<string, string[]> CompetencyParameters() => new()
     {
@@ -26,6 +38,18 @@ public static partial class MessageCodes
         [CompetencyQualificationInvalid] = [],
         [CompetencyQualificationNotFound] = [],
         [CompetencyQualificationSelfSign] = [],
-        [CompetencyWithdrawalReasonRequired] = []
+        [CompetencyWithdrawalReasonRequired] = [],
+        [CompetencyNotQualified] = ["test"],
+        [CompetencyQualificationExpired] = ["test", "date"],
+        [CompetencyQualificationWithdrawn] = ["test", "date"],
+        [CompetencySopNotAcknowledged] = ["documentCode", "revision"],
+        [CompetencyAssigneeNotQualified] = ["analyst", "test"],
+        [CompetencyAssigneeQualificationExpired] = ["analyst", "test", "date"],
+        [CompetencyAssigneeQualificationWithdrawn] = ["analyst", "test", "date"],
+        [CompetencyAssigneeSopNotAcknowledged] = ["analyst", "documentCode", "revision"],
+        [CompetencySopNotCheckedNoSopNumber] = [],
+        [CompetencySopNotCheckedNotFound] = ["sopNumber"],
+        [CompetencySopNotCheckedNoEffectiveRevision] = ["documentCode"],
+        [CompetencySopNotCheckedAmbiguous] = ["sopNumber"],
     };
 }

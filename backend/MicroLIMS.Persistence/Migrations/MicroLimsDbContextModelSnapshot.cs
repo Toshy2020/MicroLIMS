@@ -1303,6 +1303,38 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("ChromatographyColumns");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencySectionSetting", b =>
+                {
+                    b.Property<int>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ChangedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("GateEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int?>("ReminderDaysBeforeExpiry")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("SectionId");
+
+                    b.HasIndex("ChangedByUserId");
+
+                    b.ToTable("CompetencySectionSettings", (string)null);
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.ConfigurationSetting", b =>
                 {
                     b.Property<int>("Id")
@@ -14406,6 +14438,24 @@ namespace MicroLIMS.Persistence.Migrations
                         .HasForeignKey("SectionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencySectionSetting", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "ChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MicroLIMS.Domain.Entities.DocumentSection", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ChangedByUser");
 
                     b.Navigation("Section");
                 });

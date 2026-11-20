@@ -245,6 +245,32 @@ public class ItemStmPostgresIntegrationTests
         Assert.Equal(pdf.Id, r.ControlledPdfFileId);
     }
 
+    [PostgresFact]
+    public async Task CurrentPointerToNonEffectiveRevision_IsNoEffectiveRevision()
+    {
+        int itemId;
+        int masterId;
+        await using (var arrange = _fixture.CreateDbContext())
+        {
+            var code = NewCode();
+            var master = await AddMasterAsync(arrange, code);
+            var draft = await AddRevisionAsync(arrange, master, "01", 1, DocumentRevisionStatus.Draft);
+            await AddPdfAsync(arrange, draft);
+            master.CurrentEffectiveRevisionId = draft.Id;
+            await arrange.SaveChangesAsync();
+            masterId = master.Id;
+            itemId = (await AddItemAsync(arrange, code)).Id;
+        }
+
+        await using var act = _fixture.CreateDbContext();
+        var response = await Service(act).GetForItemAsync(itemId, _fixture.SeededUserId);
+
+        Assert.Equal(ItemStmStatus.NoEffectiveRevision, response.Status);
+        Assert.Equal(masterId, response.DocumentMasterId);
+        Assert.Null(response.RevisionNumber);
+        Assert.Null(response.ControlledPdfFileId);
+    }
+
     private async Task WithDownloadDisabledAsync(MicroLimsDbContext db, Func<Task> body)
     {
         var existing = await db.ConfigurationSettings.FirstOrDefaultAsync(s => s.SettingKey == DownloadKey);

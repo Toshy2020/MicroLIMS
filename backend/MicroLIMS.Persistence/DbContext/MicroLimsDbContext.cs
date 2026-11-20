@@ -290,6 +290,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<DocumentDepartment> DocumentDepartments => Set<DocumentDepartment>();
     public DbSet<DocumentSection> DocumentSections => Set<DocumentSection>();
     public DbSet<SectionSelfAssignmentSetting> SectionSelfAssignmentSettings => Set<SectionSelfAssignmentSetting>();
+    public DbSet<CompetencySectionSetting> CompetencySectionSettings => Set<CompetencySectionSetting>();
     public DbSet<UserOrgMembership> UserOrgMemberships => Set<UserOrgMembership>();
     public DbSet<DocumentNumberingConfiguration> DocumentNumberingConfigurations => Set<DocumentNumberingConfiguration>();
     public DbSet<ConfigurationSetting> ConfigurationSettings => Set<ConfigurationSetting>();

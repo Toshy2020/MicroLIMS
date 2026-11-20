@@ -1,11 +1,8 @@
-using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
-using MicroLIMS.Shared.Exceptions;
-using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services;
 
@@ -13,80 +10,35 @@ namespace MicroLIMS.Application.Services;
 // code and reports whether its effective revision has a controlled PDF.
 public class ItemStmService(IMicroLimsDbContext db)
 {
-    public async Task<ItemStmResponse> GetForItemAsync(int itemId, int userId)
+    private readonly ItemSopResolver _resolver = new(db);
+
+    public async Task<ItemStmResponse> GetForItemAsync(int itemId, int userId, CancellationToken cancellationToken = default)
     {
-        var item = await db.Items.AsNoTracking()
-            .Where(i => i.Id == itemId)
-            .Select(i => new { i.SopNumber })
-            .FirstOrDefaultAsync()
-            ?? throw new NotFoundException(
-                MessageCodes.MonitoringItemNotFound,
-                $"Item {itemId} not found.",
-                new Dictionary<string, string> { ["itemId"] = itemId.ToString(CultureInfo.InvariantCulture) });
-
-        var sop = (item.SopNumber ?? string.Empty).Trim();
+        var sop = await _resolver.GetSopNumberAsync(itemId, cancellationToken);
         if (sop.Length == 0)
-            return Empty(ItemStmStatus.NotLinked, null, false);
+            return new(ItemStmStatus.NotLinked, null, null, null, null, null, null, null, null, null, false);
 
-        var canDownload = await CanDownloadAsync(userId);
-
-        var key = sop.ToUpperInvariant();
-        var master = await db.DocumentMasters.AsNoTracking()
-            .Where(m => m.RecordStatus == DocumentRecordStatus.Active && m.CompanyDocumentCode.ToUpper() == key)
-            .Select(m => new
-            {
-                m.Id,
-                m.CompanyDocumentCode,
-                m.Title,
-                TypeCode = m.DocumentType.Code,
-                Revision = m.CurrentEffectiveRevision == null
-                    || m.CurrentEffectiveRevision.RevisionStatus != DocumentRevisionStatus.Effective
-                    ? null
-                    : new
-                    {
-                        m.CurrentEffectiveRevision.RevisionNumber,
-                        m.CurrentEffectiveRevision.EffectiveDate,
-                        Pdf = m.CurrentEffectiveRevision.Files
-                            .Where(f => f.FileRole == FileRole.ControlledPdf && f.IsActive)
-                            .OrderByDescending(f => f.FileVersion)
-                            .Select(f => new { f.Id, f.FileName })
-                            .FirstOrDefault()
-                    }
-            })
-            .FirstOrDefaultAsync();
-
-        if (master == null)
-            return Empty(ItemStmStatus.NotFound, sop, canDownload);
-
-        if (master.Revision?.Pdf == null)
-            return new ItemStmResponse(ItemStmStatus.NoEffectiveRevision, sop, master.Id, master.CompanyDocumentCode,
-                master.Title, master.TypeCode, null, null, null, null, canDownload);
-
-        return new ItemStmResponse(ItemStmStatus.Effective, sop, master.Id, master.CompanyDocumentCode,
-            master.Title, master.TypeCode, master.Revision.RevisionNumber, master.Revision.EffectiveDate,
-            master.Revision.Pdf.Id, master.Revision.Pdf.FileName, canDownload);
+        var canDownload = await CanDownloadAsync(userId, cancellationToken);
+        return await _resolver.ResolveForItemStmAsync(sop, canDownload, cancellationToken);
     }
-
-    private static ItemStmResponse Empty(ItemStmStatus status, string? sop, bool canDownload) =>
-        new(status, sop, null, null, null, null, null, null, null, null, canDownload);
 
     // Same rule as DocumentFileService (controlled copy policy): download is
     // allowed unless the setting is "false", except for section heads and roles
     // holding Audit.View (read-only oversight; System Administrator is not exempt by role).
-    private async Task<bool> CanDownloadAsync(int userId)
+    private async Task<bool> CanDownloadAsync(int userId, CancellationToken cancellationToken)
     {
         var setting = await db.ConfigurationSettings.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.SettingKey == "DocumentControl.ControlledCopy.DownloadPermitted");
+            .FirstOrDefaultAsync(s => s.SettingKey == "DocumentControl.ControlledCopy.DownloadPermitted", cancellationToken);
         if (setting == null || !string.Equals(setting.SettingValue, "false", StringComparison.OrdinalIgnoreCase))
             return true;
 
         var user = await db.Users.AsNoTracking()
             .Where(u => u.Id == userId && u.IsActive)
             .Select(u => new { u.RoleId, Type = u.Role != null ? (RoleType?)u.Role.Type : null })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
         if (user is null) return false;
         return user.Type == RoleType.SectionHead
             || await db.RolePermissions.AsNoTracking()
-                .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == PermissionConstants.AuditView);
+                .AnyAsync(rp => rp.RoleId == user.RoleId && rp.Permission!.Code == PermissionConstants.AuditView, cancellationToken);
     }
 }

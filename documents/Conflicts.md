@@ -1104,3 +1104,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Does a qualification remain valid after its test moves laboratory?
 - **Decision:** The existing qualification stays valid after a move (user, 2026-11-20). Assignment and recording still require membership in the test's current section.
 - **Date:** 2026-11-20
+
+### CONF-212
+- **Area:** DCM
+- **Status:** Open
+- **What the code does:** Two active document masters can differ only by code case although FS-1a-120 requires case-insensitive uniqueness. The database index compares the stored codes. Item STM uses the first case-insensitive match.
+- **What the other source says:** `documents/DocumentControl/ML-DC-FRS-1A-001.md` FS-1a-120 requires company document codes to be case-insensitively unique among active masters.
+- **Question:** How should existing case-variant active codes be reconciled before enforcing case-insensitive uniqueness in the database?
+- **Decision:** Database enforcement remains open. For D4 Task 2, Item STM retains its first-match behavior and the competency guard reports that the SOP was not checked when more than one active master matches (orchestrator, 2026-11-20).
+- **Date:** 2026-11-20

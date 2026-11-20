@@ -10,6 +10,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services.Competency;
+using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.Application.Services;
 
@@ -203,11 +204,14 @@ public class SamplePreparationService
     private async Task<(IDisposable Recording, List<TestOrder> WaitingOrders)> RequirePreparationCompetencyAsync(
         int sampleId, int userId, CancellationToken ct)
     {
-        var orders = await _db.TestOrders.Where(order => order.SampleId == sampleId).ToListAsync(ct);
         var memberOf = await _scope.GetMemberSectionIdsAsync(userId, ct);
-        var waitingOrders = orders.Where(order => order.CurrentStep == WorkflowStep.Waiting && order.AssignedAnalystId == null &&
-            (memberOf is null || memberOf.Contains(order.SectionId))).ToList();
-        var covered = orders.Where(order => !order.IsSuperseded).Concat(waitingOrders).ToList();
+        var orders = await _db.TestOrders.Include(order => order.Section)
+            .Where(order => order.SampleId == sampleId && memberOf.Contains(order.SectionId) && !order.IsSuperseded
+                && (order.Status == ApprovalStatus.Pending || order.Status == ApprovalStatus.InProgress))
+            .ToListAsync(ct);
+        var waitingOrders = orders.Where(order => order.CurrentStep == WorkflowStep.Waiting && order.AssignedAnalystId == null).ToList();
+        var covered = orders.Where(order => order.Section?.Code != PreparationRules.NoPreparationSectionCode)
+            .Union(waitingOrders).ToList();
         var competency = await _competency.FilterAsync(userId, covered, ct);
         competency.ThrowIfRefused();
         return (AuditReasonScope.Append(_db, competency.SopNotChecked), waitingOrders);

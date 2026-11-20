@@ -101,6 +101,11 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
             Assert.Equal("Competency.RecordingRefused", all.Code);
             Assert.Contains(Refusal(setup.A), all.Message);
             Assert.Contains(Refusal(setup.B), all.Message);
+            var details = Assert.IsType<List<MicroLIMS.Shared.Responses.ApiError>>(all.ErrorDetails);
+            Assert.Equal(2, details.Count);
+            Assert.All(details, detail => Assert.Equal("Competency.NotQualified", detail.Code));
+            Assert.Equal(new[] { setup.A.TestCode, setup.B.TestCode },
+                details.Select(detail => detail.Params!["test"]).Order(StringComparer.Ordinal));
         }
 
         await using var check = fixture.CreateDbContext();
@@ -310,6 +315,113 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
+    public async Task Preparation_checks_only_covered_orders_and_audits_the_qualified_actor()
+    {
+        await PostgresCases.RunAsync(new[] { false, true }, async refuseCoveredOrder =>
+        {
+            var setup = await SeedAsync();
+            await using (var arrange = fixture.CreateDbContext())
+            {
+                var sample = await arrange.Samples.SingleAsync(s => s.Id == setup.SampleId);
+                sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+                var fp = await arrange.DocumentSections.FirstOrDefaultAsync(s => s.Code == "FP")
+                    ?? new DocumentSection { Code = "FP", Name = "Finished Products", DepartmentId = fixture.SeededDepartmentId };
+                var other = new DocumentSection
+                {
+                    Code = $"OTHER-{setup.SampleId}", Name = $"Other lab {setup.SampleId}", DepartmentId = fixture.SeededDepartmentId,
+                };
+                if (fp.Id == 0) arrange.DocumentSections.Add(fp);
+                arrange.DocumentSections.Add(other);
+                await arrange.SaveChangesAsync();
+                if (!await arrange.CompetencySectionSettings.AnyAsync(s => s.SectionId == fp.Id))
+                    arrange.CompetencySectionSettings.Add(new CompetencySectionSetting { SectionId = fp.Id, GateEnabled = true });
+                else
+                    (await arrange.CompetencySectionSettings.SingleAsync(s => s.SectionId == fp.Id)).GateEnabled = true;
+                arrange.CompetencySectionSettings.Add(new CompetencySectionSetting { SectionId = other.Id, GateEnabled = true });
+                // The actor works in FP too, so only the FP rule (no preparation) keeps that order out of the covered set.
+                arrange.UserOrgMemberships.Add(new UserOrgMembership
+                {
+                    UserId = setup.QualifiedId, SectionId = fp.Id, DepartmentId = fp.DepartmentId,
+                });
+                arrange.TestOrders.AddRange(
+                    new TestOrder { SampleId = sample.Id, SectionId = fp.Id, TestCode = "FP-EXCLUDE", AssignedAnalystId = setup.UnqualifiedId },
+                    new TestOrder { SampleId = sample.Id, SectionId = other.Id, TestCode = "OTHER-EXCLUDE" },
+                    new TestOrder { SampleId = sample.Id, SectionId = setup.A.SectionId, TestCode = "CANCELLED-EXCLUDE",
+                        Status = ApprovalStatus.Cancelled });
+                var second = await arrange.TestOrders.SingleAsync(o => o.Id == setup.B.Id);
+                second.Status = refuseCoveredOrder ? ApprovalStatus.Pending : ApprovalStatus.Approved;
+                arrange.ItemPreparationConfigurations.Add(new ItemPreparationConfiguration
+                {
+                    ItemId = sample.ItemId!.Value, Amount = 1, Technique = "PourPlate",
+                    Diluent = "Configured diluent", Neutralizer = "Configured neutralizer",
+                    CreatedByUserId = setup.QualifiedId,
+                });
+                await arrange.SaveChangesAsync();
+            }
+
+            await using (var act = fixture.CreateDbContext())
+            {
+                act.CurrentUserId = setup.QualifiedId;
+                var service = TestServiceFactory.SamplePreparation(act);
+                var request = new ConfirmPreparationRequest(setup.SampleId, setup.QualifiedId, Password);
+                if (refuseCoveredOrder)
+                {
+                    var refusal = await Assert.ThrowsAsync<BusinessRuleException>(() => service.ConfirmFromConfigurationAsync(request));
+                    Assert.Equal("Competency.NotQualified", refusal.Code);
+                    Assert.Equal(Refusal(setup.B), refusal.Message);
+                }
+                else
+                    await service.ConfirmFromConfigurationAsync(request);
+            }
+
+            await using var check = fixture.CreateDbContext();
+            var status = await check.Samples.AsNoTracking().Where(s => s.Id == setup.SampleId)
+                .Select(s => s.PreparationStatus).SingleAsync();
+            var preparations = await check.SamplePreparations.AsNoTracking().Where(p => p.SampleId == setup.SampleId).ToListAsync();
+            if (refuseCoveredOrder)
+            {
+                Assert.Equal(SamplePreparationStatus.NeedsPreparation, status);
+                Assert.Empty(preparations);
+            }
+            else
+            {
+                Assert.Equal(SamplePreparationStatus.Ready, status);
+                var prep = Assert.Single(preparations);
+                Assert.Equal(setup.QualifiedId, prep.PreparedByUserId);
+                Assert.True(prep.WasConfirmedFromConfig);
+                var id = prep.Id.ToString();
+                var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(SamplePreparation) &&
+                    a.EntityId == id && a.Action == "Create");
+                Assert.Equal(setup.QualifiedId, audit.UserId);
+                Assert.Equal("SOP not checked: the item has no SOP number.", audit.Reason);
+                Assert.Contains(nameof(SamplePreparation.PreparedByUserId), audit.NewValue);
+            }
+        });
+    }
+
+    [PostgresFact]
+    public async Task Shared_start_and_matrix_reject_an_all_refused_batch()
+    {
+        var matrix = await SeedAsync();
+        var shared = await SeedAsync();
+        var (media, incubator) = await ArrangeSharedEnrichmentAsync(shared);
+        await using (var act = fixture.CreateDbContext())
+        {
+            var service = TestServiceFactory.PathogenSession(act);
+            var matrixError = await Assert.ThrowsAsync<BusinessRuleException>(() => service.SaveResultMatrixAsync(
+                matrix.SampleId, new([Cell(matrix.B)]), matrix.QualifiedId));
+            Assert.Equal(Refusal(matrix.B), matrixError.Message);
+            var sharedError = await Assert.ThrowsAsync<BusinessRuleException>(() => service.StartSharedTsbAsync(
+                shared.SampleId, new(media, incubator, AnalysedAt), shared.UnqualifiedId));
+            Assert.Contains(Refusal(shared.A), sharedError.Message);
+            Assert.Contains(Refusal(shared.B), sharedError.Message);
+        }
+        await using var check = fixture.CreateDbContext();
+        Assert.False(await check.SampleLocations.AsNoTracking().AnyAsync(l => l.SampleId == matrix.SampleId && l.EnteredAt != null));
+        Assert.False(await check.Incubations.AsNoTracking().AnyAsync(i => i.TestOrderId == shared.A.Id || i.TestOrderId == shared.B.Id));
+    }
+
+    [PostgresFact]
     public async Task Shared_TSB_start_keeps_the_refused_orders_existing_incubation()
     {
         var setup = await SeedAsync();
@@ -344,6 +456,52 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
             .SingleAsync(r => r.TestOrderId == setup.A.Id || r.TestOrderId == setup.B.Id);
         Assert.Equal(setup.A.Id, step.TestOrderId);
         Assert.Equal(setup.QualifiedId, step.SubmittedByUserId);
+    }
+
+    [PostgresFact]
+    public async Task Grouped_start_keeps_different_sop_warnings_on_their_own_orders()
+    {
+        var setup = await SeedAsync();
+        var (mediaId, incubatorId) = await ArrangeSharedEnrichmentAsync(setup);
+        int secondOrderId;
+        var sop = $"UNFILED-{setup.SampleId}";
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var source = await arrange.Samples.AsNoTracking().SingleAsync(s => s.Id == setup.SampleId);
+            var item = await ItemSopResolverPostgresTests.AddItemAsync(arrange, sop);
+            var sample = new Sample
+            {
+                ReferenceNumber = $"REC-SOP-{setup.SampleId}", Category = source.Category, ItemId = item.Id,
+                CauseOfTestingId = source.CauseOfTestingId, ReceivedByUserId = setup.QualifiedId,
+                PreparationStatus = SamplePreparationStatus.Ready, Status = SampleStatus.InTesting,
+            };
+            var second = new TestOrder
+            {
+                Sample = sample, SectionId = setup.A.SectionId, TestCode = setup.A.TestCode,
+                AssignedAnalystId = setup.QualifiedId,
+            };
+            arrange.TestOrders.Add(second);
+            arrange.SamplePreparations.Add(new SamplePreparation { Sample = sample, PreparedByUserId = setup.QualifiedId });
+            await arrange.SaveChangesAsync();
+            secondOrderId = second.Id;
+        }
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = setup.QualifiedId;
+            var response = await TestServiceFactory.GroupedTestAction(act).ExecuteBatchSelectMediaAsync(
+                new([setup.A.Id, secondOrderId], "Broth Enrichment", mediaId, incubatorId), setup.QualifiedId, RoleType.Analyst);
+            Assert.Equal(2, response.SucceededCount);
+            Assert.Empty(response.Skipped);
+            Assert.Null(act.CurrentReason);
+        }
+        await using var check = fixture.CreateDbContext();
+        await AssertOnlyQualifiedIncubationAsync(check, setup, mediaId, incubatorId);
+        var secondIncubation = await check.Incubations.AsNoTracking().SingleAsync(i => i.TestOrderId == secondOrderId);
+        var id = secondIncubation.Id.ToString();
+        var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(Incubation) &&
+            a.EntityId == id && a.Action == "Create");
+        Assert.Equal(setup.QualifiedId, audit.UserId);
+        Assert.Equal($"SOP not checked: {sop} was not found in Document Control.", audit.Reason);
     }
 
     [PostgresFact]
@@ -449,6 +607,33 @@ public class CompetencyRecordingPostgresTests(PostgresTestFixture fixture)
     }
 
     private static string Refusal(TestOrder order) => $"You are not qualified for {order.TestCode}.";
+
+    [PostgresFact]
+    public async Task Stage_recorders_check_section_scope_before_competency()
+    {
+        await PostgresCases.RunAsync(new[] { WorkflowType.Dissolution, WorkflowType.Disintegration, WorkflowType.WeightVariation }, async type =>
+        {
+            var setup = await SeedAsync(type);
+            await using (var arrange = fixture.CreateDbContext())
+            {
+                arrange.UserOrgMemberships.RemoveRange(await arrange.UserOrgMemberships
+                    .Where(m => m.UserId == setup.UnqualifiedId).ToListAsync());
+                await arrange.SaveChangesAsync();
+                setup = setup with { Audits = await arrange.AuditLogs.AsNoTracking().CountAsync() };
+            }
+            await using (var act = fixture.CreateDbContext())
+            {
+                var engine = TestServiceFactory.TestWorkflow(act);
+                await Assert.ThrowsAsync<UnauthorizedAccessException>(() => type switch
+                {
+                    WorkflowType.Dissolution => engine.RecordDissolutionStageAsync(setup.A.Id, new([1], Password), setup.UnqualifiedId),
+                    WorkflowType.Disintegration => engine.RecordDisintegrationStageAsync(setup.A.Id, new([1], Password), setup.UnqualifiedId),
+                    _ => engine.RecordWeightVariationStageAsync(setup.A.Id, new([new(1)], Password), setup.UnqualifiedId),
+                });
+            }
+            await AssertNoAnalysisAsync(setup);
+        });
+    }
 
     [PostgresFact]
     public async Task Analysis_and_stage_recorders_refuse_before_signature_or_persistence()

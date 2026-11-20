@@ -41,7 +41,7 @@ public static partial class MessageCodes
         [CompetencyQualificationSelfSign] = [],
         [CompetencyWithdrawalReasonRequired] = [],
         [CompetencyNotQualified] = ["test"],
-        [CompetencyRecordingRefused] = ["reasons"],
+        [CompetencyRecordingRefused] = [],
         [CompetencyQualificationExpired] = ["test", "date"],
         [CompetencyQualificationWithdrawn] = ["test", "date"],
         [CompetencySopNotAcknowledged] = ["documentCode", "revision"],

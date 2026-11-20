@@ -22,7 +22,7 @@ public sealed class IcpMethodAssayRecorder : TestWorkflowSupport
 
     private async Task<TestWorkflowResult> SubmitCoreAsync(int runSampleId, string password, string? comment, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
-        var c = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, default, _clock);
+        var c = await IcpSampleEntryContext.LoadAsync(_db, runSampleId, cancellationToken, _clock);
         await _sectionScope.EnsureTestOrderAccessAsync(userId, c.Order.Id);
         using var recording = await RequireCompetentAsync(userId, c.Order.Id, cancellationToken);
 

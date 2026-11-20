@@ -261,6 +261,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         RequireOrderNotFinalized(order);
@@ -280,8 +281,6 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
                 MessageCodes.DisintegrationWrongWorkflow,
                 $"Test order {testOrderId} is not a Disintegration workflow.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
-
-        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         var entry = await _db.TestAnalyses
             .Include(e => e.ParameterResults)

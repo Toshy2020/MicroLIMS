@@ -46,12 +46,12 @@ public partial class PathogenSessionService
 
     // GMP gate: a shared TSB start is refused (and the refusal audited) until
     // the sample's test preparation is confirmed.
-    private async Task EnsurePreparedAsync(Sample sample, int userId)
+    private async Task EnsurePreparedAsync(Sample sample, int userId, CancellationToken cancellationToken)
     {
         var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
         if (isPrepared && sample.ItemId != null)
         {
-            isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id);
+            isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, cancellationToken);
         }
 
         if (!isPrepared)
@@ -97,7 +97,7 @@ public partial class PathogenSessionService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             throw new WorkflowStepException(
                 WorkflowErrorCodes.PreparationNotConfirmed,
@@ -175,7 +175,7 @@ public partial class PathogenSessionService
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
@@ -209,7 +209,7 @@ public partial class PathogenSessionService
         competency.ThrowIfAllRefused();
         joining.RemoveAll(j => !competency.Allowed.Contains(j.Order.Id));
         using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
-        await EnsurePreparedAsync(sample, userId);
+        await EnsurePreparedAsync(sample, userId, cancellationToken);
 
         var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
 
@@ -257,7 +257,7 @@ public partial class PathogenSessionService
             });
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         foreach (var (to, tsbStep, inc) in started)
         {
@@ -281,7 +281,7 @@ public partial class PathogenSessionService
             }
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         var session = await GetSessionAsync(sampleId);
         return session!.SharedTsb with { Skipped = Skips(competency) };
@@ -787,7 +787,7 @@ public partial class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
@@ -870,7 +870,7 @@ public partial class PathogenSessionService
             }
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
@@ -889,7 +889,7 @@ public partial class PathogenSessionService
 
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
@@ -943,7 +943,7 @@ public partial class PathogenSessionService
             ReviewWorkflowEventType.SubmittedForReview,
             "Testing session completed - submitted for review");
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return (await GetSessionAsync(sampleId))!;
     }
 

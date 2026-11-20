@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
@@ -77,10 +78,7 @@ public class ReferenceNumberGenerator
         await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
     }
 
-    public Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default) =>
-        GenerateOosCodeAsync(skipReservedLegacyCodes: false, cancellationToken);
-
-    internal async Task<string> GenerateOosCodeAsync(bool skipReservedLegacyCodes, CancellationToken cancellationToken = default)
+    public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)
     {
         await AcquireOosNumberLockAsync(cancellationToken);
 
@@ -93,18 +91,15 @@ public class ReferenceNumberGenerator
             .Where(i => i.Number.StartsWith(prefix))
             .Select(i => (string?)i.Number);
 
-        var sequence = await legacyNumbers.Union(investigationNumbers).CountAsync(cancellationToken);
-        // Gaps can make the count land on a legacy-only group code. That code
-        // is reserved by the old group even though there is no investigation row.
-        var reservedLegacyCodes = legacyNumbers.Except(investigationNumbers);
-        string number;
-        do
+        var numbers = await legacyNumbers.Union(investigationNumbers).ToListAsync(cancellationToken);
+        long highest = 0;
+        foreach (var number in numbers)
         {
-            sequence++;
-            number = FormattableString.Invariant($"{prefix}{sequence:D3}");
-        } while (skipReservedLegacyCodes && await reservedLegacyCodes.ContainsAsync(number, cancellationToken));
-
-        return number;
+            if (number is not null &&
+                long.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var suffix))
+                highest = Math.Max(highest, suffix);
+        }
+        return FormattableString.Invariant($"{prefix}{highest + 1:D3}");
     }
 
     internal async Task AcquireOosNumberLockAsync(CancellationToken cancellationToken = default)

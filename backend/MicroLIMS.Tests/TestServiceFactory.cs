@@ -122,8 +122,8 @@ public static class TestServiceFactory
     public static RecordArchiveService Archive(MicroLimsDbContext db, IFileStorageService? storage = null) =>
         new(db, new PdfGenerator(), storage ?? new InMemoryFileStorageService(), NullLogger<RecordArchiveService>.Instance);
 
-    public static SampleSummaryService SampleSummary(MicroLimsDbContext db) =>
-        new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
+    public static SampleSummaryService SampleSummary(MicroLimsDbContext db, TimeProvider? time = null) =>
+        new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db), new OosGate(db, new OosOpeningRule(db)), time);
 
     public static SampleTrackingService SampleTracking(MicroLimsDbContext db) => new(db);
 
@@ -133,9 +133,12 @@ public static class TestServiceFactory
     public static CryovialSummaryService CryovialSummary(MicroLimsDbContext db) =>
         new(db, new PdfGenerator(), new MicroLIMS.Infrastructure.Word.WordGenerator(), ReviewGate(db));
 
-    public static SampleReviewService SampleReview(MicroLimsDbContext db) =>
+    public static SampleReviewService SampleReview(MicroLimsDbContext db, TimeProvider? time = null) =>
         new(db, new SegregationOfDutiesGuard(db), ReviewGate(db), new UserSectionScopeService(db),
-            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
+            new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)),
+            new OosInvestigationService(db, new OosOpeningRule(db), new ReferenceNumberGenerator(db, time),
+                time ?? TimeProvider.System, time is null ? LabClock.Default : new LabClock(time, LabClock.Default.LabTimeZone)),
+            time);
 
     public static ResultProjectionService ResultProjection(MicroLimsDbContext db) =>
         new(db, NullLogger<ResultProjectionService>.Instance);
@@ -166,7 +169,7 @@ public static class TestServiceFactory
             audit ?? new AuditEventService(db, new MicroLIMS.Persistence.Helpers.DatabaseSequenceHelper(db)));
 
     public static SampleApprovalService SampleApproval(MicroLimsDbContext db, IFileStorageService? storage = null) =>
-        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), new TestOrderOutcomeService(db));
+        new(db, ReviewGate(db), SampleSummary(db), Archive(db, storage), ResultProjection(db), new ReferenceNumberGenerator(db), new UserSectionScopeService(db), new SegregationOfDutiesGuard(db), new TestOrderOutcomeService(db), new OosGate(db, new OosOpeningRule(db)));
 
     public static SectionClosureService SectionClosure(MicroLimsDbContext db) =>
         new(db, ReviewGate(db), new UserSectionScopeService(db), SampleApproval(db));

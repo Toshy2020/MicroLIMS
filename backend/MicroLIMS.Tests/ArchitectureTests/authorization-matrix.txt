@@ -597,7 +597,7 @@ SamplePreparationController.GetLotOptionsForMaster(PreparationMaterialSource, In
 SamplePreparationController.IsPrepared(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SamplePreparationController.Prepare(PrepareSampleHttpRequest): SectionHead,Reviewer,Analyst
 SamplePreparationController.WhereUsed(Nullable`1, Nullable`1, Nullable`1, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-SampleReviewController.Complete(Int32, CompleteSampleReviewRequest): SectionHead,Reviewer
+SampleReviewController.Complete(Int32, CompleteSampleReviewRequest, CancellationToken): SectionHead,Reviewer
 SampleReviewController.ReturnTestToAnalyst(Int32, ReturnTestToAnalystRequest): SectionHead,Reviewer
 SampleSummaryController.GetSummary(Int32, Boolean): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleSummaryController.GetSummaryPdf(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

@@ -38,7 +38,7 @@ public class OosInvestigationResultConfiguration : IEntityTypeConfiguration<OosI
         builder.Property(x => x.ResultSummaryAtOpening).HasMaxLength(500);
         builder.HasIndex(x => new { x.InvestigationId, x.TestOrderId }).IsUnique();
 
-        builder.HasOne<OosInvestigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<OosInvestigation>().WithMany(i => i.Results).HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<TestOrder>().WithMany().HasForeignKey(x => x.TestOrderId).OnDelete(DeleteBehavior.Restrict);
     }
 }

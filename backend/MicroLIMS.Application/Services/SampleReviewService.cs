@@ -10,6 +10,7 @@ using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Services.Notifications;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Workflows;
 
 namespace MicroLIMS.Application.Services;
@@ -29,9 +30,10 @@ public class SampleReviewService
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
     private readonly NotificationRecipients _recipients;
+    private readonly OosInvestigationService _oos;
 
     public SampleReviewService(IMicroLimsDbContext db, SegregationOfDutiesGuard segregationOfDuties, ReviewGateService reviewGate,
-        IUserSectionScopeService scope, IAuditEventService audit,
+        IUserSectionScopeService scope, IAuditEventService audit, OosInvestigationService oos,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null,
         NotificationRecipients? recipients = null)
@@ -42,12 +44,13 @@ public class SampleReviewService
         _reviewGate = reviewGate;
         _scope = scope;
         _audit = audit;
+        _oos = oos;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
         _recipients = recipients ?? new NotificationRecipients(db, segregationOfDuties);
     }
 
-    private Task<Sample?> LoadAsync(int sampleId) =>
-        _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId);
+    private Task<Sample?> LoadAsync(int sampleId, CancellationToken ct = default) =>
+        _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId, ct);
 
     // Only starting an incubation moves a sample off Received, so a sample
     // whose finished tests never incubate (Finished Product) is still
@@ -131,23 +134,23 @@ public class SampleReviewService
         SampleSectionRollup.Apply(sample);
     }
 
-    public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null) =>
-        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit));
+    public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit, ct));
 
-    private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null)
+    private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId, decimal? retentionQuantity, string? retentionUnit, CancellationToken ct = default)
     {
-        var sample = await LoadAsync(sampleId)
+        var sample = await LoadAsync(sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var (check, section) = await CheckCompleteReviewAsync(sample, reviewerUserId, sectionId);
+        var (check, section) = await CheckCompleteReviewAsync(sample, reviewerUserId, sectionId, ct);
         check.ThrowIfRefused();
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
 
         // Checked before anything is signed or written.
-        var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit);
+        var retentionUnitCanonical = await ValidateRetentionAsync(sample, section, retentionQuantity, retentionUnit, ct);
 
         _db.CurrentUserId = reviewerUserId;
 
@@ -200,6 +203,7 @@ public class SampleReviewService
                     entityId: sampleId.ToString(), sampleId: sampleId);
         }
 
+        await _oos.OpenForReviewedSectionAsync(sample, section, currentOrders, reviewerUserId, ct);
         SampleSectionRollup.Apply(sample);
 
         await _publisher.ResolveAsync($"ReviewWaiting:sample:{sampleId}:section:{section}");
@@ -228,7 +232,7 @@ public class SampleReviewService
         _db.QueueSignal(LiveSignalKinds.Record, $"sample:{sampleId}");
         _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerUserId}");
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
     }
 
     // The pre-signing checks of a review, in the order the action applies them: the section (state and membership),
@@ -260,9 +264,9 @@ public class SampleReviewService
 
     // Retention is kept and recorded only by the physicochemical (FP) reviewer of a
     // raw material. Returns the unit in canonical spelling, or null when none applies.
-    private async Task<string?> ValidateRetentionAsync(Sample sample, int sectionId, decimal? quantity, string? unit)
+    private async Task<string?> ValidateRetentionAsync(Sample sample, int sectionId, decimal? quantity, string? unit, CancellationToken ct = default)
     {
-        var sectionCode = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync();
+        var sectionCode = await _db.DocumentSections.Where(s => s.Id == sectionId).Select(s => s.Code).FirstOrDefaultAsync(ct);
         var required = sample.Category == SampleCategory.RawMaterial && string.Equals(sectionCode, PhyschemAreas.SectionCode, StringComparison.OrdinalIgnoreCase);
         if (!required)
         {

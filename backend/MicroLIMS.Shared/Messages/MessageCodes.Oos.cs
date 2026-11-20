@@ -9,6 +9,11 @@ public static partial class MessageCodes
     public const string OosGroupNotFound = "Oos.GroupNotFound";
     public const string OosSupersessionReasonRequired = "Oos.SupersessionReasonRequired";
     public const string OosVoidedDocumentCannotBeSuperseded = "Oos.VoidedDocumentCannotBeSuperseded";
+    public const string OosInvestigationOpen = "Oos.InvestigationOpen";
+    public const string OosFailingResultWithoutInvestigation = "Oos.FailingResultWithoutInvestigation";
+    public const string OosConfirmedCannotBeApproved = "Oos.ConfirmedCannotBeApproved";
+    public const string OosRetestSamplesNotApproved = "Oos.RetestSamplesNotApproved";
+    public const string OosRetestNeedsApprovedPlan = "Oos.RetestNeedsApprovedPlan";
 
     private static Dictionary<string, string[]> OosParameters() => new()
     {
@@ -18,5 +23,10 @@ public static partial class MessageCodes
         [OosGroupNotFound] = ["oosGroupCode"],
         [OosSupersessionReasonRequired] = [],
         [OosVoidedDocumentCannotBeSuperseded] = [],
+        [OosInvestigationOpen] = ["number"],
+        [OosFailingResultWithoutInvestigation] = [],
+        [OosConfirmedCannotBeApproved] = [],
+        [OosRetestSamplesNotApproved] = ["number"],
+        [OosRetestNeedsApprovedPlan] = [],
     };
 }

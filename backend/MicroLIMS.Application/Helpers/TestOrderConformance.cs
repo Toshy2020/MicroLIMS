@@ -11,15 +11,21 @@ public static class TestOrderConformance
 {
     // One verdict per recorded result: each location, each measured
     // parameter, the count reading, or the single qualitative call.
-    public static IEnumerable<ResultConformance> Outcomes(TestOrderSummaryDetailDto t)
+    public static IEnumerable<ResultConformance> Outcomes(TestOrderSummaryDetailDto t) =>
+        Outcomes(t, ResultConformanceRules.FromStatus, (outcome, _) => outcome);
+
+    internal static IEnumerable<T> Outcomes<T>(
+        TestOrderSummaryDetailDto t, Func<ResultStatus?, T> fromStatus,
+        Func<ResultConformance, string?, T> fromQualitative)
     {
         if (t.Locations.Count > 0)
-            return t.Locations.Select(l => ResultConformanceRules.FromStatus(l.Status));
+            return t.Locations.Select(l => fromStatus(l.Status));
         if (t.Analysis is { } analysis)
-            return analysis.ParameterResults.Select(p => ResultConformanceRules.FromStatus(p.ComparisonStatus));
+            return analysis.ParameterResults.Select(p => fromStatus(p.ComparisonStatus));
         if (t.CountTestReadings.Count > 0)
-            return new[] { ResultConformanceRules.FromStatus(t.CountTestReadings[^1].Status) };
-        return new[] { Qualitative(t).Outcome };
+            return new[] { fromStatus(t.CountTestReadings[^1].Status) };
+        var (outcome, result) = Qualitative(t);
+        return new[] { fromQualitative(outcome, result) };
     }
 
     // The test's overall standing: any failure fails it; otherwise it

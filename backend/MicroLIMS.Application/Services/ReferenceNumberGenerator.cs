@@ -77,19 +77,12 @@ public class ReferenceNumberGenerator
         await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
     }
 
-    public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)
-    {
-        // The production transaction must span allocation and persistence.
-        // In-memory workflow tests use the same sequence without database locks.
-        if (_db.Database.IsRelational())
-        {
-            if (_db.Database.CurrentTransaction is null)
-                throw new InvalidOperationException(
-                    "An OOS number can only be generated inside a database transaction that also saves the record.");
+    public Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default) =>
+        GenerateOosCodeAsync(skipReservedLegacyCodes: false, cancellationToken);
 
-            await _db.Database.ExecuteSqlAsync(
-                $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
-        }
+    internal async Task<string> GenerateOosCodeAsync(bool skipReservedLegacyCodes, CancellationToken cancellationToken = default)
+    {
+        await AcquireOosNumberLockAsync(cancellationToken);
 
         var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
         var prefix = FormattableString.Invariant($"OOS{labNow:MMyy}");
@@ -100,7 +93,30 @@ public class ReferenceNumberGenerator
             .Where(i => i.Number.StartsWith(prefix))
             .Select(i => (string?)i.Number);
 
-        var count = await legacyNumbers.Union(investigationNumbers).CountAsync(cancellationToken);
-        return FormattableString.Invariant($"{prefix}{count + 1:D3}");
+        var sequence = await legacyNumbers.Union(investigationNumbers).CountAsync(cancellationToken);
+        // Gaps can make the count land on a legacy-only group code. That code
+        // is reserved by the old group even though there is no investigation row.
+        var reservedLegacyCodes = legacyNumbers.Except(investigationNumbers);
+        string number;
+        do
+        {
+            sequence++;
+            number = FormattableString.Invariant($"{prefix}{sequence:D3}");
+        } while (skipReservedLegacyCodes && await reservedLegacyCodes.ContainsAsync(number, cancellationToken));
+
+        return number;
+    }
+
+    internal async Task AcquireOosNumberLockAsync(CancellationToken cancellationToken = default)
+    {
+        // In-memory workflow tests use the same sequence without database locks.
+        if (!_db.Database.IsRelational()) return;
+
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "An OOS number can only be generated inside a database transaction that also saves the record.");
+
+        await _db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
     }
 }

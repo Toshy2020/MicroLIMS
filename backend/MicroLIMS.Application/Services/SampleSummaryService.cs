@@ -6,6 +6,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.Abstractions.Word;
 using MicroLIMS.Application.Abstractions.Persistence;
+using MicroLIMS.Application.Services.Oos;
 
 namespace MicroLIMS.Application.Services;
 
@@ -20,14 +21,16 @@ public class SampleSummaryService
     private readonly IWordGenerator _wordGenerator;
     private readonly ReviewGateService _reviewGate;
     private readonly TimeProvider _time;
+    private readonly OosGate _oosGate;
 
-    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, TimeProvider? timeProvider = null)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _pdfGenerator = pdfGenerator;
         _wordGenerator = wordGenerator;
         _reviewGate = reviewGate;
+        _oosGate = oosGate;
     }
 
     // A retest can be partial - only the TestCode(s) actually selected for
@@ -81,10 +84,11 @@ public class SampleSummaryService
     // CombinedCoaAvailable), a member of any of its labs may view and print
     // the combined certificate, other labs' results included (user decision,
     // lab separation stage 4). Before that it is as lab-scoped as the summary.
-    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds)
+    public async Task<SampleSummaryDto?> GetCertificateSummaryAsync(int sampleId, IReadOnlyCollection<int>? sectionIds, CancellationToken ct = default)
     {
-        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync();
+        var status = await _db.Samples.Where(s => s.Id == sampleId).Select(s => (SampleStatus?)s.Status).FirstOrDefaultAsync(ct);
         if (status is null) return null;
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var final = status is SampleStatus.Approved or SampleStatus.Rejected;
         return await GetSummaryAsync(sampleId, final ? null : sectionIds);
     }
@@ -391,16 +395,18 @@ public class SampleSummaryService
     // Uses the laid-out renderer (cards, stat boxes, signature blocks) -
     // the same document that gets archived on final decision, so what a
     // user downloads matches the frozen copy exactly.
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryPdfAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary));
         return (FileStemFor(summary), pdf);
     }
 
-    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<(string fileNameStem, byte[] bytes)?> GenerateSummaryWordAsync(int sampleId, IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId, sectionIds);
         if (summary is null) return null;
         var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary));
@@ -410,8 +416,9 @@ public class SampleSummaryService
     // Builds the document that gets frozen at final decision. Separate
     // from the download path only so the archive service can hand the
     // same ReportDocument to storage.
-    public async Task<ReportDocument?> BuildReportDocumentAsync(int sampleId)
+    public async Task<ReportDocument?> BuildReportDocumentAsync(int sampleId, CancellationToken ct = default)
     {
+        await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId);
         return summary is null ? null : ReportDocumentMapper.ForSample(summary);
     }

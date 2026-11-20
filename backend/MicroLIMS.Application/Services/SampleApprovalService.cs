@@ -35,11 +35,12 @@ public class SampleApprovalService
     private readonly TimeProvider _time;
     private readonly INotificationPublisher _publisher;
     private readonly ITestOrderOutcomeService _outcomes;
+    private readonly OosGate _oosGate;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
-        SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes,
+        SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes, OosGate oosGate,
         TimeProvider? timeProvider = null,
         INotificationPublisher? publisher = null)
     {
@@ -53,6 +54,7 @@ public class SampleApprovalService
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
         _outcomes = outcomes;
+        _oosGate = oosGate;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
     }
 
@@ -169,6 +171,9 @@ public class SampleApprovalService
         var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(sectionHeadUserId, orderIds, ct);
         if (performed.Count > 0)
             return (ActionCheck.No(MessageCodes.SampleCannotApproveTested, SignoffRefusalSentences.CannotApproveTested), section);
+
+        var oos = await _oosGate.CheckSectionMayBeDecidedAsync(sample, section, decision, ct);
+        if (!oos.Allowed) return (oos, section);
 
         // REQ-FP-033: server-side reject approval of a section if any test in it
         // that requires system suitability lacks a linked PASSED run.

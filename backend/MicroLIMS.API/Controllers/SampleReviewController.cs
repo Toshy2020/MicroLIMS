@@ -32,10 +32,10 @@ public class SampleReviewController : ControllerBase
     private int CurrentUserId => int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
 
     [HttpPost("complete")]
-    public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request)
+    public async Task<IActionResult> Complete(int id, CompleteSampleReviewRequest request, CancellationToken ct = default)
     {
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId, request.RetentionQuantity, request.RetentionQuantityUnit);
+        await _reviewService.CompleteReviewAsync(id, CurrentUserId, request.Password, request.Comment, ip, request.SectionId, request.RetentionQuantity, request.RetentionQuantityUnit, ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

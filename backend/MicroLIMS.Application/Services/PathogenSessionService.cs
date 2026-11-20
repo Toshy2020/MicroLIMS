@@ -1,6 +1,7 @@
 using MicroLIMS.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Application.Workflows;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -12,220 +13,7 @@ using System.Globalization;
 
 namespace MicroLIMS.Application.Services;
 
-public record StartSharedTsbRequest(
-    int MediaLotId,
-    int IncubatorEquipmentId,
-    DateTime? IncubationStartUtc);
-
-public record RecordSharedStepRequest(
-    int TestOrderId,
-    string StepName,
-    int? MediaLotId,
-    int? IncubatorEquipmentId,
-    decimal? Temperature,
-    int? IncubationHours,
-    DateTime? IncubationStartUtc,
-    GrowthObservation? Observation,
-    string? BiochemicalResultText);
-
-public record MatrixCellInput(
-    int SampleLocationId,
-    string TestCode,
-    string ResultCode,      // "NOT_DETECTED", "DETECTED", or numeric string "6"
-    string ResultDisplay,   // "Not Detected (-)", "Detected (+)", "6 CFU"
-    decimal? NumericValue,
-    string ResultType);     // "Qualitative" or "Quantitative"
-
-public record SaveResultMatrixRequest(List<MatrixCellInput> Cells);
-
-public record PrimaryObservationInput(
-    int SampleLocationId,
-    string TestCode,
-    GrowthObservation Observation,
-    string? SelectiveMediaSnapshot = null);
-
-public record SavePrimaryObservationsRequest(List<PrimaryObservationInput> Observations);
-
-public record EligibleLocationForConfirmationDto(
-    int LocationId,
-    int PrimaryObservationId,
-    string LocationName,
-    int TestOrderId,
-    string TestCode,
-    string TestDisplayName,
-    GrowthObservation GrowthObservation,
-    string GrowthObservationDisplay,
-    int RequiredConfirmatoryMediaCount);
-
-public record BatchConfirmatorySetupRequest(
-    int TestOrderId,
-    List<int> LocationIds,
-    List<int> MediaMaterialIds,
-    List<int>? MediaLotIds,
-    int IncubatorEquipmentId,
-    DateTime? IncubationStartUtc);
-
-public record ResetPathogenSessionRequest(string? Reason);
-
-public record BatchConfirmatoryPlateReadingInput(
-    int LocationPathogenObservationId,
-    int MediumIndex,
-    int MaterialId,
-    GrowthObservation Observation);
-
-public record SaveBatchConfirmatoryPlateReadingsRequest(
-    List<BatchConfirmatoryPlateReadingInput> Readings,
-    string? BiochemicalComment = null);
-
-public record ConfirmatoryPlateObservationDetailDto(
-    int Id,
-    int MediumIndex,
-    int MaterialId,
-    string? MaterialName,
-    string Observation,
-    string? ExpectedAppearanceSnapshot,
-    DateTime RecordedAtUtc,
-    string RecordedByUserName);
-
-public record SessionLocationDto(
-    int Id,
-    int PrimarySampleLocationId,
-    string LocationName,
-    string LocationType,
-    string? GradeClassification,
-    Dictionary<string, int> TestLocationMap); // TestCode -> SampleLocationId
-
-public record CountResultDto(
-    string PlateReadings,
-    decimal DilutionFactor,
-    decimal? Average,
-    decimal? FinalCfu,
-    string ReportedResult,
-    ResultStatus Status,
-    bool HasNonNumericReading,
-    string? NonNumericValue,
-    bool RequiresReview,
-    string Unit
-);
-
-public record SessionAssignedTestDto(
-    int TestOrderId,
-    string TestCode,
-    string DisplayName,
-    string WorkflowType,
-    string Status,
-    string CurrentStep,
-    string? AssignedAnalystName,
-    bool RequiresTsb,
-    string TestSessionState,
-    string TestSessionStateDisplay,
-    bool IsResultEntryAllowed,
-    bool IsWorkflowLocked,
-    string? LockReason,
-    List<SessionWorkflowStepDto> Steps,
-    int ConfirmatoryMediaCount = 1,
-    string WorkflowStatus = "Pending",
-    CountResultDto? CountResult = null);
-
-// MediaTypeId/MediaTypeName predate the Media Configuration Migration -
-// MediaTypeId is now always null (the old class-level concept no longer
-// exists) and MediaTypeName is populated from StepType instead of
-// MediaType.Class, which the frontend's "Broth" substring checks still
-// match correctly (BrothEnrichment/SelectiveBroth). Kept rather than
-// renamed to avoid a frontend type change outside this migration's scope.
-public record SessionWorkflowStepDto(
-    int StepOrder,
-    string StepName,
-    string StepType,
-    int? MediaTypeId,
-    string? MediaTypeName,
-    int IncubationMinHours,
-    int IncubationMaxHours,
-    decimal TemperatureMin,
-    decimal TemperatureMax,
-    bool IsCompleted,
-    string? Outcome,
-    DateTime? CompletedAt);
-
-public record SharedTsbStateDto(
-    bool IsStarted,
-    bool IsIncubating,
-    bool IsCompleted,
-    bool IsLocked,
-    int? MediaLotId,
-    string? MediaLotNumber,
-    string? MediaMaterialName,
-    string? GptStatus,
-    string? SterilityStatus,
-    int? IncubatorEquipmentId,
-    string? IncubatorCode,
-    string? RequiredTemperatureRange,
-    string? RequiredDurationRange,
-    string? Temperature,
-    int? IncubationDurationHours,
-    DateTime? ActualStartUtc,
-    DateTime? MinReadyAt,
-    DateTime? ExpectedCompletionUtc,
-    DateTime? CompletedAtUtc,
-    int? StartedByUserId,
-    string? StartedByUserName,
-    List<string> ApplicableTestCodes,
-    int ApplicableLocationCount,
-    // True when a test's own TSB window can't be resolved from Test Master -
-    // the TSB then never reports ready instead of using a guessed window.
-    bool WindowNotConfigured = false);
-
-public record MatrixCellResultDto(
-    int SampleLocationId,
-    string TestCode,
-    string LocationName,
-    string? ResultCode,
-    string? ResultDisplay,
-    decimal? NumericValue,
-    string ResultType,
-    string? Status,
-    DateTime? EnteredAt,
-    string? EnteredByUserName,
-    bool IsEditable,
-    string CellState,       // "COMPLETED", "AVAILABLE", "LOCKED_PREREQUISITE"
-    string? LockReason,
-    int? PrimaryObservationId = null,
-    string? PrimaryObservation = null,
-    bool IsEligibleForConfirmation = false,
-    string? ConfirmationStatus = null,
-    List<ConfirmatoryPlateObservationDetailDto>? ConfirmatoryPlates = null);
-
-public record MissingResultDto(
-    string LocationName,
-    string TestCode,
-    string TestDisplayName);
-
-public record PathogenTestingSessionDto(
-    string SessionId,
-    int SampleId,
-    string SampleReferenceNumber,
-    string Category,
-    string ProgramName,
-    string DepartmentOrAreaName,
-    string ControlNumber,
-    string? BatchNumber,
-    DateTime SamplingDate,
-    string OverallSessionStatus,
-    string OverallSessionStatusDisplay,
-    int TotalLocations,
-    int TotalAssignedTests,
-    int RequiredResultCount,
-    int CompletedResultCount,
-    int AvailableResultCount,
-    int LockedResultCount,
-    int PendingResultCount,
-    List<SessionLocationDto> Locations,
-    List<SessionAssignedTestDto> AssignedTests,
-    SharedTsbStateDto SharedTsb,
-    List<MatrixCellResultDto> ResultMatrix,
-    List<MissingResultDto> MissingResults);
-
-public class PathogenSessionService
+public partial class PathogenSessionService
 {
     public const int ResetReasonMinLength = 10;
     public const int ResetReasonMaxLength = 500;
@@ -234,6 +22,7 @@ public class PathogenSessionService
     public const string ResetReasonTooLongMessage = "The reason can be at most 500 characters.";
 
     private readonly IMicroLimsDbContext _db;
+    private readonly ICompetencyGuard _competency;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
@@ -241,6 +30,7 @@ public class PathogenSessionService
 
     public PathogenSessionService(
         IMicroLimsDbContext db,
+        ICompetencyGuard competency,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
         IncubatorEligibilityService? incubatorEligibility = null,
@@ -248,222 +38,20 @@ public class PathogenSessionService
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
+        _competency = competency;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
         _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);
     }
 
-    public async Task<PathogenTestingSessionDto?> GetSessionAsync(int sampleId)
-    {
-        var sample = await _db.Samples
-            .Include(s => s.Item)
-            .Include(s => s.Department)
-            .Include(s => s.Machine)
-            .Include(s => s.WaterSamplingPoint)
-            .Include(s => s.WaterDepartment)
-            .Include(s => s.CauseOfTesting)
-            .Include(s => s.TestOrders)
-            .Include(s => s.Locations)
-                .ThenInclude(l => l.RoomTestConfiguration!)
-                .ThenInclude(c => c.Room)
-            .Include(s => s.Locations)
-                .ThenInclude(l => l.MachinePartConfiguration!)
-                .ThenInclude(c => c.MachinePart)
-            .Include(s => s.Locations)
-                .ThenInclude(l => l.WaterSamplingPoint!)
-            .FirstOrDefaultAsync(s => s.Id == sampleId);
-
-        if (sample == null) return null;
-
-        var sessionId = $"SESSION-{sample.ReferenceNumber}";
-        var data = await PathogenSessionData.LoadAsync(_db, sample);
-        var testDefs = data.TestDefs;
-        var UserName = data.UserName;
-        var incubations = data.Incubations;
-        var stepResults = data.StepResults;
-        var primaryObservations = data.PrimaryObservations;
-        var countTestReadings = data.CountTestReadings;
-
-        // Group Locations
-        var groupedLocations = SessionLocationGrouper.Group(sample);
-
-        var primaryObsMap = primaryObservations
-            .ToDictionary(o => (o.SampleLocationId, o.TestOrderId));
-
-        var mediaLookup = incubations
-            .Where(i => i.MediaId.HasValue && i.Media != null)
-            .GroupBy(i => i.MediaId!.Value)
-            .ToDictionary(
-                g => g.Key,
-                g => (MaterialId: g.First().Media!.MaterialId, MediaProductId: g.First().Media!.Material?.MediaProductId));
-
-        var utcNow = _time.GetUtcNow().UtcDateTime;
-
-        var tsb = SharedTsbStateBuilder.Build(sample, data, mediaLookup, groupedLocations.Count, utcNow);
-        var sharedTsbDto = tsb.Dto;
-        var tsbApplicableCodes = tsb.ApplicableCodes;
-        var ownTsbByOrder = tsb.OwnTsbByOrder;
-        var tsbIncubating = tsb.IsIncubating;
-        var tsbCompleted = tsb.IsCompleted;
-
-        // Build Assigned Test DTOs and evaluate test-specific workflow states
-        var assignedTestDtos = new List<SessionAssignedTestDto>();
-
-        foreach (var to in sample.TestOrders)
-        {
-            testDefs.TryGetValue(to.TestCode, out var def);
-            var steps = def?.Steps.OrderBy(s => s.StepOrder).ToList() ?? new List<TestWorkflowStep>();
-
-            var requiresTsb = tsbApplicableCodes.Contains(to.TestCode);
-            var toIncubations = incubations.Where(i => i.TestOrderId == to.Id).ToList();
-            var toStepResults = stepResults.Where(w => w.TestOrderId == to.Id).ToList();
-
-            var confirmatoryMediaCount = RequiredConfirmatoryMediaCount(def);
-
-            var ownTsbComplete = ownTsbByOrder.TryGetValue(to.Id, out var ownTsb) && ownTsb.IsComplete;
-
-            var stepDtos = AssignedTestStepBuilder.Build(steps, toIncubations, toStepResults, requiresTsb, ownTsbComplete, mediaLookup);
-
-            // Determine Test Session State & Result Entry Allowance
-            var stateResult = WorkflowStateResolver.Resolve(to, requiresTsb, toIncubations, stepDtos, _time.GetUtcNow().UtcDateTime, steps, sample.Status, mediaLookup);
-            string testSessionState = stateResult.WorkflowState;
-            string testSessionStateDisplay = stateResult.WorkflowStateDisplay;
-            bool isResultEntryAllowed = stateResult.IsResultEntryAllowed;
-            bool isWorkflowLocked = stateResult.IsWorkflowLocked;
-            string? lockReason = stateResult.LockReason;
-            string workflowStatus = stateResult.WorkflowStatus;
-
-            var countReading = countTestReadings.FirstOrDefault(c => c.TestOrderId == to.Id);
-            var countResultDto = await BuildCountResultAsync(sample, to, countReading);
-
-            assignedTestDtos.Add(new SessionAssignedTestDto(
-                to.Id,
-                to.TestCode,
-                def?.DisplayName ?? to.TestCode,
-                def?.WorkflowType.ToString() ?? "Observation",
-                to.Status.ToString(),
-                to.CurrentStep.ToString(),
-                to.AssignedAnalystId.HasValue ? UserName(to.AssignedAnalystId) : null,
-                requiresTsb,
-                testSessionState,
-                testSessionStateDisplay,
-                isResultEntryAllowed,
-                isWorkflowLocked,
-                lockReason,
-                stepDtos,
-                confirmatoryMediaCount,
-                workflowStatus,
-                countResultDto));
-        }
-
-        var built = ResultMatrixBuilder.Build(groupedLocations, assignedTestDtos, sample, primaryObsMap, UserName);
-        var matrix = built.Matrix;
-        var missingResults = built.Missing;
-        int completedCount = built.Completed;
-        int availableCount = built.Available;
-        int lockedCount = built.Locked;
-
-        int totalRequired = groupedLocations.Count * assignedTestDtos.Count;
-        int pendingCount = availableCount; // Only available and empty cells are truly pending entry
-
-        // Overall Session Status Computation
-        var (sessionStatus, sessionStatusDisplay) = SessionStatusResolver.Resolve(
-            completedCount, totalRequired, sample.Status, tsbIncubating, tsbCompleted, tsbApplicableCodes.Count);
-
-        var programName = sample.Category switch
-        {
-            SampleCategory.AfterCleaning => "After Cleaning Monitoring",
-            SampleCategory.EnvironmentalMonitoring => "Environmental Monitoring",
-            SampleCategory.Water => "Water Monitoring Plan",
-            SampleCategory.FinishedProduct => "Finished Product Testing",
-            _ => $"{sample.Category} Testing"
-        };
-
-        var deptName = sample.Department?.Name
-            ?? sample.Machine?.Name
-            ?? sample.WaterDepartment?.Name
-            ?? sample.WaterSamplingPoint?.Location
-            ?? sample.Item?.Name
-            ?? "Laboratory Workspace";
-
-        return new PathogenTestingSessionDto(
-            sessionId,
-            sample.Id,
-            sample.ReferenceNumber,
-            sample.Category.ToString(),
-            programName,
-            deptName,
-            sample.ControlNumber,
-            sample.BatchNumber,
-            sample.ReceivedAt,
-            sessionStatus,
-            sessionStatusDisplay,
-            groupedLocations.Count,
-            assignedTestDtos.Count,
-            totalRequired,
-            completedCount,
-            availableCount,
-            lockedCount,
-            pendingCount,
-            groupedLocations,
-            assignedTestDtos,
-            sharedTsbDto,
-            matrix,
-            missingResults);
-    }
-
-    // The count test's recorded reading with its reporting unit: the
-    // specification's (or sampling configuration's) unit first, the category
-    // default otherwise.
-    private async Task<CountResultDto?> BuildCountResultAsync(Sample sample, TestOrder to, CountTestReading? countReading)
-    {
-        CountResultDto? countResultDto = null;
-        if (countReading != null)
-        {
-            // Same configured-unit-first pattern as TestWorkflowEngine/
-            // ResultProjectionService - Specification.Unit is required
-            // for Item-based count tests as of the 2026-09 Preparation
-            // Configuration simplification, which removed the old
-            // SamplePreparation.Unit fallback used here.
-            string? configuredUnit = null;
-            if (sample.ItemId is not null)
-            {
-                var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, to.TestCode);
-                configuredUnit = spec?.Unit;
-            }
-            else if (sample.WaterSamplingPointId is not null)
-            {
-                var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == to.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
-                configuredUnit = config?.Unit;
-            }
-
-            var unit = !string.IsNullOrWhiteSpace(configuredUnit)
-                ? (configuredUnit.StartsWith("CFU/", StringComparison.OrdinalIgnoreCase) ? configuredUnit : $"CFU/{configuredUnit}")
-                : TestWorkflowEngine.GetCfuUnit(sample.Category, null);
-            countResultDto = new CountResultDto(
-                countReading.PlateReadings,
-                countReading.DilutionFactor,
-                countReading.Average,
-                countReading.CalculatedResult,
-                countReading.ReportedResult,
-                countReading.Status,
-                countReading.HasNonNumericReading,
-                countReading.NonNumericValue,
-                countReading.RequiresReview,
-                unit);
-        }
-
-        return countResultDto;
-    }
-
     // GMP gate: a shared TSB start is refused (and the refusal audited) until
     // the sample's test preparation is confirmed.
-    private async Task EnsurePreparedAsync(Sample sample, int userId)
+    private async Task EnsurePreparedAsync(Sample sample, int userId, CancellationToken cancellationToken)
     {
         var isPrepared = sample.PreparationStatus == SamplePreparationStatus.Ready;
         if (isPrepared && sample.ItemId != null)
         {
-            isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id);
+            isPrepared = await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, cancellationToken);
         }
 
         if (!isPrepared)
@@ -509,7 +97,7 @@ public class PathogenSessionService
                 });
             }
 
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
 
             throw new WorkflowStepException(
                 WorkflowErrorCodes.PreparationNotConfirmed,
@@ -578,20 +166,20 @@ public class PathogenSessionService
         return joining;
     }
 
-    public Task<SharedTsbStateDto> StartSharedTsbAsync(int sampleId, StartSharedTsbRequest request, int userId) =>
-        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId));
+    public Task<SharedTsbStateDto> StartSharedTsbAsync(
+        int sampleId, StartSharedTsbRequest request, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => StartSharedTsbCoreAsync(sampleId, request, userId, cancellationToken));
 
-    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(int sampleId, StartSharedTsbRequest request, int userId)
+    private async Task<SharedTsbStateDto> StartSharedTsbCoreAsync(
+        int sampleId, StartSharedTsbRequest request, int userId, CancellationToken cancellationToken)
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
-
-        await EnsurePreparedAsync(sample, userId);
 
         var media = await _db.Media
             .Include(m => m.Material)
@@ -616,6 +204,12 @@ public class PathogenSessionService
 
         foreach (var sectionId in joining.Select(j => j.Order.SectionId).Distinct())
             SectionMediaRule.EnsureLot(media, sectionId);
+
+        var competency = await _competency.FilterAsync(userId, joining.Select(j => j.Order).ToList(), cancellationToken);
+        competency.ThrowIfAllRefused();
+        joining.RemoveAll(j => !competency.Allowed.Contains(j.Order.Id));
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await EnsurePreparedAsync(sample, userId, cancellationToken);
 
         var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
 
@@ -663,7 +257,7 @@ public class PathogenSessionService
             });
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         foreach (var (to, tsbStep, inc) in started)
         {
@@ -687,10 +281,10 @@ public class PathogenSessionService
             }
         }
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         var session = await GetSessionAsync(sampleId);
-        return session!.SharedTsb;
+        return session!.SharedTsb with { Skipped = Skips(competency) };
     }
 
     public async Task<List<EligibleLocationForConfirmationDto>> GetEligibleLocationsForConfirmationAsync(
@@ -782,11 +376,17 @@ public class PathogenSessionService
             }
         }
 
+        var touched = request.Observations.Where(o => locationsById.ContainsKey(o.SampleLocationId))
+            .Select(o => testOrdersByCode.GetValueOrDefault(o.TestCode)).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
         foreach (var obs in request.Observations)
         {
-            if (!testOrdersByCode.TryGetValue(obs.TestCode, out var order))
+            if (!testOrdersByCode.TryGetValue(obs.TestCode, out var order) || !competency.Allowed.Contains(order.Id))
                 continue;
 
             if (locationsById.TryGetValue(obs.SampleLocationId, out var loc))
@@ -818,7 +418,7 @@ public class PathogenSessionService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return (await GetSessionAsync(sampleId))!;
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Primary observations for a sample's locations, loaded once and keyed by (location, test order), so a
@@ -902,6 +502,9 @@ public class PathogenSessionService
                 MessageCodes.PathogenTestOrderNotFound,
                 $"TestOrder #{request.TestOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = request.TestOrderId.ToString(CultureInfo.InvariantCulture) });
+        var decision = await _competency.EvaluateAsync(userId, testOrder.Id, cancellationToken);
+        decision.ToActionCheck().ThrowIfRefused();
+        using var recording = AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -1036,8 +639,21 @@ public class PathogenSessionService
             .Include(o => o.SampleLocation)
             .Include(o => o.TestOrder)
             .Include(o => o.ConfirmatoryPlateObservations)
-            .Where(o => primaryObsIds.Contains(o.Id))
+            .Where(o => primaryObsIds.Contains(o.Id)
+                && o.SampleLocation != null && o.SampleLocation.SampleId == sampleId
+                && o.TestOrder != null && o.TestOrder.SampleId == sampleId)
             .ToListAsync(cancellationToken);
+
+        if (primaryObsList.Count != primaryObsIds.Count)
+            throw new NotFoundException(
+                MessageCodes.PathogenConfirmatoryPrimaryObservationNotFound,
+                "One or more primary observations were not found for this sample.");
+
+        var touched = primaryObsList.Select(o => o.TestOrder).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        primaryObsList.RemoveAll(o => !competency.Allowed.Contains(o.TestOrderId));
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
 
         var testCodes = primaryObsList.Select(o => o.TestOrder?.TestCode ?? "").Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
@@ -1114,7 +730,7 @@ public class PathogenSessionService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
-        return (await GetSessionAsync(sampleId))!;
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Decides each primary observation's reported result from how its
@@ -1159,7 +775,8 @@ public class PathogenSessionService
         }
     }
 
-    public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(int sampleId, SaveResultMatrixRequest request, int userId)
+    public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(
+        int sampleId, SaveResultMatrixRequest request, int userId, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
@@ -1170,7 +787,7 @@ public class PathogenSessionService
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations).ThenInclude(l => l.SamplingConfiguration)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSampleNotFound,
                 $"Sample #{sampleId} not found.",
@@ -1192,11 +809,16 @@ public class PathogenSessionService
             }
         }
 
-        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys);
+        var touched = request.Cells.Where(c => locationsById.ContainsKey(c.SampleLocationId))
+            .Select(c => testOrdersByCode.GetValueOrDefault(c.TestCode)).OfType<TestOrder>().ToList();
+        var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
+        competency.ThrowIfAllRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
         foreach (var cell in request.Cells)
         {
-            if (!testOrdersByCode.TryGetValue(cell.TestCode, out var order))
+            if (!testOrdersByCode.TryGetValue(cell.TestCode, out var order) || !competency.Allowed.Contains(order.Id))
                 continue;
 
             if (locationsById.TryGetValue(cell.SampleLocationId, out var loc))
@@ -1248,21 +870,34 @@ public class PathogenSessionService
             }
         }
 
-        await _db.SaveChangesAsync();
-        return (await GetSessionAsync(sampleId))!;
+        await _db.SaveChangesAsync(cancellationToken);
+        return (await GetSessionAsync(sampleId))! with { Skipped = Skips(competency) };
     }
 
     // Same semantics as TestWorkflowEngine's Compare(...) - delegates to shared SpecLimitParser
     private static ResultStatus CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
-    public async Task<PathogenTestingSessionDto> CompleteSessionAsync(int sampleId, int userId)
+    public async Task<PathogenTestingSessionDto> CompleteSessionAsync(
+        int sampleId, int userId, CancellationToken cancellationToken = default)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
                 MessageCodes.PathogenSessionNotFound,
                 $"Session for sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
+
+        var sample = await _db.Samples
+            .Include(s => s.TestOrders)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
+            ?? throw new NotFoundException(
+                MessageCodes.PathogenSampleNotFound,
+                $"Sample #{sampleId} not found.",
+                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
+
+        var competency = await _competency.FilterAsync(userId, sample.TestOrders, cancellationToken);
+        competency.ThrowIfRefused();
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
 
         // 1. Completeness Validation
         if (session.MissingResults.Count > 0)
@@ -1282,14 +917,6 @@ public class PathogenSessionService
                 "PrerequisitesIncomplete",
                 $"Cannot complete testing session: Assigned tests {string.Join(", ", incompleteTests.Select(t => t.TestCode))} have incomplete workflow prerequisites.");
         }
-
-        var sample = await _db.Samples
-            .Include(s => s.TestOrders)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
-            ?? throw new NotFoundException(
-                MessageCodes.PathogenSampleNotFound,
-                $"Sample #{sampleId} not found.",
-                new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
         // 3. Mark TestOrders as completed / ready for review
         foreach (var order in sample.TestOrders)
@@ -1316,9 +943,12 @@ public class PathogenSessionService
             ReviewWorkflowEventType.SubmittedForReview,
             "Testing session completed - submitted for review");
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
         return (await GetSessionAsync(sampleId))!;
     }
+
+    private static List<CompetencySkipDto>? Skips(CompetencyBatch competency) =>
+        competency.Refused.Count == 0 ? null : competency.Refused.ToList();
 
     public async Task<PathogenTestingSessionDto> ResetSessionAsync(int sampleId, string? reason, int userId)
     {

@@ -73,7 +73,7 @@ public class ExceptionMiddleware
         {
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             await CaptureAsync(context, ex, ErrorSource.Backend, ErrorSeverity.Warning);
-            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, DetailsOf(ex)));
+            await WriteResponse(context, ApiResponse<object>.Fail(ex.Message, null, null, ex.ErrorDetails ?? DetailsOf(ex)));
         }
         catch (DbUpdateConcurrencyException ex)
         {

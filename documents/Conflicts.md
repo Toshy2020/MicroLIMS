@@ -1122,3 +1122,33 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Who may edit the shared cause list?
 - **Decision:** Adding, renaming, or deactivating a category requires both `Oos.Manage` and `MasterData.Manage`. Each change requires an audited reason. The list has no section scope. The “No cause found” category keeps its name and stays active. Templates require `Oos.Manage` and Configure access to the section (user, 2026-11-20). Phase I signing requires a currently active category, and deactivation preserves existing records (orchestrator, 2026-11-20).
 - **Date:** 2026-11-20
+
+### CONF-214
+- **Area:** PAT
+- **Status:** Decided
+- **What the code did:** Confirmatory plate readings were loaded by primary observation ID without checking the sample in the URL.
+- **What the other source says:** CLAUDE.md 5.2 requires resource-level scope. FS-PAT-005 describes the prior behavior.
+- **Decision:** Reject the entire request before writing when any observation ID is unavailable for the requested sample. Orchestrator, 2026-11-20. User confirmation is pending at R3 approval. Update FS-PAT-005 in D4 Task 8.
+- **Date:** 2026-11-20
+
+### CONF-215
+- **Area:** PAT
+- **Status:** Open
+- **What the code does:** The pathogen session's confirmatory readout submits to save-confirmatory-readings. Its first plate insert links to a primary observation with no WorkflowStepResultId. On a clean PostgreSQL database migrated from base 22adaa01, the INSERT into public.ConfirmatoryPlateObservations fails with SQLSTATE 23502: null value in column "WorkflowStepResultId" of relation "ConfirmatoryPlateObservations" violates not-null constraint.
+- **What the other source says:** Migration 20260810225125 creates the column NOT NULL. Migration 20260818183000 adds the location links and leaves that constraint in place. Migration 20260911154200 only reads the column. The model snapshot declares int? and filters its unique index on WorkflowStepResultId IS NOT NULL.
+- **Question:** How should deployed schemas be reconciled with the intended location-linked plate model?
+- **Date:** 2026-11-20
+
+### CONF-216
+- **Area:** REV
+- **Status:** Open
+- **What the code does:** POST api/water/calculate is open to SystemAdministrator, SectionHead, Reviewer, Analyst, QcManager, and Qa in the authorization matrix. WaterWorkflowEngine.CalculateAndCompareAsync adds a Result and moves the order to Ready under order.AssignedAnalystId ?? 0, irrespective of the caller. The competency gate does not apply. No production caller was found for the endpoint or for LocationPathogenObservationService.RecordPrimaryObservationAsync.
+- **Question:** User decision pending on whether to remove or guard the water endpoint. Remove or guard the direct observation writer if a production caller appears.
+- **Date:** 2026-11-20
+
+### CONF-217
+- **Area:** PAT
+- **Status:** Open
+- **What the code does:** CompleteSessionAsync evaluates competency for every entry in sample.TestOrders. On completion it marks every entry ResultEntered, including cancelled or superseded orders. Marking every order was existing behavior before the competency change.
+- **Question:** Which orders should participate in session completion, and which should retain their existing status?
+- **Date:** 2026-11-20

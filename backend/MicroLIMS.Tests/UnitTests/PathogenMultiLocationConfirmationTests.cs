@@ -219,7 +219,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task SavePrimaryObservations_NoGrowth_ResolvesDirectlyToNotDetected()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         var request = new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
         {
@@ -250,7 +250,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task GetEligibleLocationsForConfirmation_ExcludesNoGrowthLocations()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
         {
@@ -273,7 +273,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task StartSharedConfirmatorySetup_IneligibleLocation_ThrowsLocationNotEligible()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // Only record NoGrowth for loc0
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
@@ -299,7 +299,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task StartSharedConfirmatorySetup_IncorrectMediaCount_ThrowsInvalidMediaCount()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
         {
@@ -331,7 +331,7 @@ public class PathogenMultiLocationConfirmationTests
         tsi.IncubationMaxHours = 48;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
         {
             new(locIds[1], "Salmonella", GrowthObservation.GrowthConforming)
@@ -360,7 +360,7 @@ public class PathogenMultiLocationConfirmationTests
         tsi.TempMax = 45;
         await db.SaveChangesAsync();
 
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>
         {
             new(locIds[1], "Salmonella", GrowthObservation.GrowthConforming)
@@ -383,7 +383,7 @@ public class PathogenMultiLocationConfirmationTests
     public async Task ConfirmatoryPlateReadings_MultiMediaAgreement_EvaluatesCorrectly()
     {
         var (db, sampleId, orderId, locIds) = SetupSalmonellaBatchEnvironment();
-        var service = new PathogenSessionService(db);
+        var service = TestServiceFactory.PathogenSession(db);
 
         // Record primary observations
         await service.SavePrimaryObservationsAsync(sampleId, new SavePrimaryObservationsRequest(new List<PrimaryObservationInput>

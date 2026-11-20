@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Services.Notifications;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Messages;
 
@@ -30,6 +31,7 @@ public class TestWorkflowSupport
     protected readonly IElectronicSignatureService _signatureService;
     protected readonly IUserSectionScopeService _sectionScope;
     protected readonly ILabClock _clock;
+    protected readonly ICompetencyGuard _competency;
     protected readonly INotificationPublisher _publisher;
 
     public TestWorkflowSupport(TestWorkflowDependencies deps)
@@ -44,14 +46,27 @@ public class TestWorkflowSupport
         _signatureService = deps.SignatureService;
         _sectionScope = deps.SectionScope;
         _clock = deps.Clock;
+        _competency = deps.Competency;
         _publisher = deps.Publisher ?? new NotificationPublisher(deps.Db, deps.TimeProvider);
+    }
+
+    protected async Task<IDisposable> RequireCompetentAsync(int userId, int testOrderId, CancellationToken ct)
+    {
+        var decision = await _competency.EvaluateAsync(userId, testOrderId, ct);
+        decision.ToActionCheck().ThrowIfRefused();
+        return AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
     }
 
     protected async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
-        var definition = await TemplatesWithSteps().FirstOrDefaultAsync(t => t.Code == order.TestCode);
-        return (order, RequireTemplate(order, definition));
+        return (order, await LoadTemplateAsync(order));
+    }
+
+    protected async Task<TestDefinition> LoadTemplateAsync(TestOrder order, CancellationToken cancellationToken = default)
+    {
+        var definition = await TemplatesWithSteps().FirstOrDefaultAsync(t => t.Code == order.TestCode, cancellationToken);
+        return RequireTemplate(order, definition);
     }
 
     protected IQueryable<TestDefinition> TemplatesWithSteps() => _db.TestDefinitions
@@ -409,6 +424,8 @@ public class TestWorkflowSupport
 
         var siblings = await FindSharedTsbSiblingsAsync(sourceOrder, incubation.Media, ct);
         if (siblings.Count == 0) return;
+        var competency = await _competency.FilterAsync(userId, siblings.Select(s => s.Order).ToList(), ct);
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
 
         var brothStepName = "Broth Enrichment";
         var mediaLotNumber = incubation.Media.LotNumber;
@@ -417,6 +434,8 @@ public class TestWorkflowSupport
 
         foreach (var sibling in siblings)
         {
+            if (!competency.Allowed.Contains(sibling.Order.Id)) continue;
+
             var targetStepName = sibling.Step.StepName;
             // Each test keeps its own window from its own TSB medium - the
             // shared TSB only lends the lot, incubator and start.
@@ -952,5 +971,6 @@ public sealed record TestWorkflowDependencies(
     IElectronicSignatureService SignatureService,
     IUserSectionScopeService SectionScope,
     ILabClock Clock,
+    ICompetencyGuard Competency,
     INotificationPublisher? Publisher = null,
     TimeProvider? TimeProvider = null);

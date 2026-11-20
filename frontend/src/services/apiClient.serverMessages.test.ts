@@ -47,6 +47,36 @@ afterEach(async () => {
 });
 
 describe("apiClient coded server messages", () => {
+  it("translates every reason for an aggregate refusal", async () => {
+    await i18n.changeLanguage("ar");
+
+    const { body } = await refusal(400, {
+      message: "You are not qualified for A. You are not qualified for B.",
+      errorDetails: ["A", "B"].map((test) => ({
+        code: "Competency.NotQualified",
+        params: { test },
+        message: `You are not qualified for ${test}.`
+      }))
+    });
+
+    expect(body.message).toBe("أنت غير مؤهل لإجراء A. أنت غير مؤهل لإجراء B.");
+  });
+
+  it("keeps a message that is not the sum of its coded details", async () => {
+    await i18n.changeLanguage("ar");
+
+    const { body } = await refusal(400, {
+      message: "Validation failed.",
+      errorDetails: ["A", "B"].map((test) => ({
+        code: "Competency.NotQualified",
+        params: { test },
+        message: `You are not qualified for ${test}.`
+      }))
+    });
+
+    expect(body.message).toBe("Validation failed.");
+  });
+
   it("shows the Arabic sentence, parameters filled in, when the language is Arabic", async () => {
     await i18n.changeLanguage("ar");
 

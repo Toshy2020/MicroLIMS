@@ -54,7 +54,10 @@ export async function translateServerErrorBody(body: unknown): Promise<string | 
 
   // The server's Message is the sentence of its single coded refusal; a field
   // error or an errors[] entry that repeats it is the same sentence.
-  const primary = details.length === 1 ? translated[0] : null;
+  // An aggregate refusal (several coded reasons whose sentences make up the Message,
+  // e.g. one per test the analyst is not qualified for) is translated as a whole.
+  const isAggregate = details.length > 1 && details.map((d) => d.message).join(" ") === english;
+  const primary = details.length === 1 || isAggregate ? translated.join(" ") : null;
   if (primary !== null) {
     data.message = primary;
     if (Array.isArray(data.errors)) data.errors = data.errors.map((e) => (e === english ? primary : e));

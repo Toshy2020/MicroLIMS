@@ -20,17 +20,18 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
     public WeightVariationRecorder(TestWorkflowDependencies deps) : base(deps) { }
 
     public Task<TestWorkflowResult> RecordWeightVariationResultAsync(
-        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordWeightVariationResultCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordWeightVariationResultCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordWeightVariationResultCoreAsync(
-        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress = null)
+        int testOrderId, WeightVariationPayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (payload.Units == null)
             throw new BusinessRuleException(MessageCodes.WeightVariationUnitsRequired, "Units are required.");
 
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.WeightVariation, userId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         var spec = specById.Values.First();
         if (!spec.DosageForm.HasValue)
@@ -276,11 +277,11 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
     }
 
     public Task<TestWorkflowResult> RecordWeightVariationStageAsync(
-        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null) =>
-        UnitOfWork.RunAsync(_db, () => RecordWeightVariationStageCoreAsync(testOrderId, payload, userId, ipAddress));
+        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => RecordWeightVariationStageCoreAsync(testOrderId, payload, userId, ipAddress, cancellationToken));
 
     private async Task<TestWorkflowResult> RecordWeightVariationStageCoreAsync(
-        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress = null)
+        int testOrderId, WeightVariationStagePayload payload, int userId, string? ipAddress, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(payload.Password))
             throw new BusinessRuleException(MessageCodes.DissolutionPasswordRequired, "Password is required to sign the result.");
@@ -295,6 +296,8 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
+        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
+        using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
 
         RequireOrderNotFinalized(order);
 
@@ -313,8 +316,6 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
                 MessageCodes.WeightVariationWrongWorkflow,
                 $"Test order {testOrderId} is not a WeightVariation workflow.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
-
-        await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
 
         var entry = await _db.TestAnalyses
             .Include(e => e.ParameterResults)

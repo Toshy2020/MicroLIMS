@@ -14,6 +14,7 @@ public static partial class MessageCodes
     public const string CompetencyWithdrawalReasonRequired = "Competency.WithdrawalReasonRequired";
     public const string CompetencyManageRequired = "Competency.ManageRequired";
     public const string CompetencyNotQualified = "Competency.NotQualified";
+    public const string CompetencyRecordingRefused = "Competency.RecordingRefused";
     public const string CompetencyQualificationExpired = "Competency.QualificationExpired";
     public const string CompetencyQualificationWithdrawn = "Competency.QualificationWithdrawn";
     public const string CompetencySopNotAcknowledged = "Competency.SopNotAcknowledged";
@@ -40,6 +41,7 @@ public static partial class MessageCodes
         [CompetencyQualificationSelfSign] = [],
         [CompetencyWithdrawalReasonRequired] = [],
         [CompetencyNotQualified] = ["test"],
+        [CompetencyRecordingRefused] = [],
         [CompetencyQualificationExpired] = ["test", "date"],
         [CompetencyQualificationWithdrawn] = ["test", "date"],
         [CompetencySopNotAcknowledged] = ["documentCode", "revision"],

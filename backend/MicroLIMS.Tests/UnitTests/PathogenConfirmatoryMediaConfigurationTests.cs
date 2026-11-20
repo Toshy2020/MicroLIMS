@@ -30,7 +30,7 @@ public class PathogenConfirmatoryMediaConfigurationTests
         new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(_store).Options);
 
     private static PathogenSessionService Service(MicroLimsDbContext db) =>
-        new(db, timeProvider: new FixedTimeProvider(new DateTimeOffset(Now)));
+        TestServiceFactory.PathogenSession(db, timeProvider: new FixedTimeProvider(new DateTimeOffset(Now)));
 
     // One sample with one pathogen test order and one location whose primary
     // observation shows growth, so the location is eligible for confirmation.

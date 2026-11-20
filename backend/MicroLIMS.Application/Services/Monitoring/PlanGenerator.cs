@@ -1,5 +1,6 @@
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Messages;
 
 namespace MicroLIMS.Application.Services.Monitoring;
 
@@ -65,10 +66,10 @@ public static class PlanGenerator
             var problem = FrequencyRules.Validate(target.Rule, weekdayRequired: target.Category == MonitoringCategory.Water);
             if (problem is not null)
             {
-                var kind = problem.Contains("weekday", StringComparison.OrdinalIgnoreCase)
+                var kind = problem.Code is MessageCodes.MonitoringFrequencyWeeklyWeekdayRequired or MessageCodes.MonitoringFrequencyDailyWeekdayNotAllowed
                     ? PlanExceptionKind.WeeklyWaterNoWeekday
                     : PlanExceptionKind.InvalidFrequency;
-                exceptions.Add(new(kind, target.Category, target.Name, problem));
+                exceptions.Add(new(kind, target.Category, target.Name, problem.Message));
                 continue;
             }
 

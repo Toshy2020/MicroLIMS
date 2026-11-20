@@ -19,12 +19,12 @@ internal sealed class ApprovalQueue : SignoffQueueSource
     protected override string PerformedReason => SignoffRefusalSentences.CannotApproveTested;
 
     // Approval is timed from the section's review, or the sample-level clock for a section with no sign-off row.
-    protected override DateTime StatusSince(Sample sample, SampleSectionSignoff? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks) =>
-        signoff?.ReviewedAt ?? SampleWorkflowQueues.GetApprovalClockStart(sample);
+    protected override DateTime StatusSince(SampleRow sample, SignoffRow? signoff, IReadOnlyDictionary<int, DateTime> reviewClocks) =>
+        signoff?.ReviewedAt ?? sample.ReviewedAt ?? sample.ReceivedAt;
 
     // The decision refuses a section the approver reviewed; a section with no sign-off row falls back to the
     // sample's own reviewer, as the decision does when it creates the row.
-    protected override string? ExtraLockReason(Sample sample, SampleSectionSignoff? signoff, int userId) =>
+    protected override string? ExtraLockReason(SampleRow sample, SignoffRow? signoff, int userId) =>
         (signoff is null ? sample.ReviewedByUserId : signoff.ReviewedByUserId) == userId ? SignoffRefusalSentences.CannotApproveReviewed : null;
 
     public Task<(List<MyWorkItem> Items, int Open, int Locked)> ListAsync(MyWorkContext ctx, int take, CancellationToken ct) => ItemsAsync(ctx, take, ct);

@@ -13,13 +13,13 @@ R2 was merged on 2026-11-19 (#149). The after-R2 work then ran as one pull reque
 | #163 | Page-time scaling test made stable (ANALYZE after seeding, best of 7; budget unchanged) |
 | #166 | `useTrackRecent` test waits for the post instead of racing it |
 
+The five password policy refusals and twelve frequency API refusals have individual codes and Arabic templates. Frequency diagnostics in plan previews and row errors in batch creation still use English text.
+
 ## Still open
 
 ### Messages Arabic users still see in English
 These refusals pass a runtime list through one `{{message}}` code instead of coding each line at its source:
-- Password policy rules (`PasswordPolicy.Validate`, code `User.PasswordPolicyFailed`): five fixed rules, easy to code individually.
 - Workflow template validator errors (`WorkflowTemplateValidator`).
-- Frequency rule errors (`FrequencyRules.Validate`, two codes: `Monitoring.FrequencyValidationFailed`, `Monitoring.FrequencyRuleInvalid`; can be merged into one).
 - File validator errors for material and equipment documents, and discussion attachments.
 - SSO switch-on blockers (`SsoModeService.GetSwitchOnBlockersAsync`).
 - Master data workbook reader errors, multi-error label print requests, and the multi-error fallback in `TestStepNavigator`.

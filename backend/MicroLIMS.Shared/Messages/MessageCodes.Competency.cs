@@ -25,12 +25,18 @@ public static partial class MessageCodes
     public const string CompetencySopNotCheckedNotFound = "Competency.SopNotCheckedNotFound";
     public const string CompetencySopNotCheckedNoEffectiveRevision = "Competency.SopNotCheckedNoEffectiveRevision";
     public const string CompetencySopNotCheckedAmbiguous = "Competency.SopNotCheckedAmbiguous";
+    public const string CompetencyGateReasonRequired = "Competency.GateReasonRequired";
+    public const string CompetencyGateVersionStale = "Competency.GateVersionStale";
+    public const string CompetencySectionScopeDenied = "Competency.SectionScopeDenied";
+    public const string CompetencyViewRequired = "Competency.ViewRequired";
 
     private static Dictionary<string, string[]> CompetencyParameters() => new()
     {
         [CompetencyAttachmentInvalid] = ["detail"],
         [CompetencyAttachmentLimit] = ["maxFiles", "maxFileMb"],
         [CompetencyAttachmentNameTooLong] = [],
+        [CompetencyGateReasonRequired] = [],
+        [CompetencyGateVersionStale] = [],
         [CompetencyIntervalInvalid] = [],
         [CompetencyManageRequired] = [],
         [CompetencyQualificationAlreadyWithdrawn] = [],
@@ -51,5 +57,7 @@ public static partial class MessageCodes
         [CompetencySopNotCheckedNotFound] = ["sopNumber"],
         [CompetencySopNotCheckedNoEffectiveRevision] = ["documentCode"],
         [CompetencySopNotCheckedAmbiguous] = ["sopNumber"],
+        [CompetencySectionScopeDenied] = [],
+        [CompetencyViewRequired] = [],
     };
 }

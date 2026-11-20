@@ -19,17 +19,21 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
 
     public Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateManyAsync(
         int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default) =>
-        EvaluateCoreAsync(userId, testOrderIds, assigneeWording: false, cancellationToken);
+        EvaluateCoreAsync(userId, testOrderIds, assigneeWording: false, ignoreGate: false, cancellationToken);
 
     public Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateAssigneeAsync(
         int assigneeId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default) =>
-        EvaluateCoreAsync(assigneeId, testOrderIds, assigneeWording: true, cancellationToken);
+        EvaluateCoreAsync(assigneeId, testOrderIds, assigneeWording: true, ignoreGate: false, cancellationToken);
+
+    public Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateIgnoringGateAsync(
+        int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default) =>
+        EvaluateCoreAsync(userId, testOrderIds, assigneeWording: true, ignoreGate: true, cancellationToken);
 
     public async Task EnsureAllowedAsync(int userId, int testOrderId, CancellationToken cancellationToken = default) =>
         (await EvaluateAsync(userId, testOrderId, cancellationToken)).ToActionCheck().ThrowIfRefused();
 
     private async Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateCoreAsync(
-        int userId, IReadOnlyCollection<int> testOrderIds, bool assigneeWording, CancellationToken cancellationToken)
+        int userId, IReadOnlyCollection<int> testOrderIds, bool assigneeWording, bool ignoreGate, CancellationToken cancellationToken)
     {
         var decisions = new Dictionary<int, CompetencyDecision>();
         if (testOrderIds.Count == 0)
@@ -48,11 +52,17 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
                     new Dictionary<string, string> { ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture) });
 
         var sectionIds = orders.Values.Select(order => order.SectionId).Distinct().ToArray();
-        var enabledSections = await db.CompetencySectionSettings.AsNoTracking()
-            .Where(setting => sectionIds.Contains(setting.SectionId) && setting.GateEnabled)
-            .Select(setting => setting.SectionId)
-            .ToHashSetAsync(cancellationToken);
-        var gated = orders.Values.Where(order => enabledSections.Contains(order.SectionId)).ToArray();
+        HashSet<int> enabledSections = [];
+        if (!ignoreGate)
+        {
+            enabledSections = await db.CompetencySectionSettings.AsNoTracking()
+                .Where(setting => sectionIds.Contains(setting.SectionId) && setting.GateEnabled)
+                .Select(setting => setting.SectionId)
+                .ToHashSetAsync(cancellationToken);
+        }
+        var gated = ignoreGate
+            ? orders.Values.ToArray()
+            : orders.Values.Where(order => enabledSections.Contains(order.SectionId)).ToArray();
         foreach (var order in orders.Values)
             decisions.Add(order.Id, Allowed);
         if (gated.Length == 0)

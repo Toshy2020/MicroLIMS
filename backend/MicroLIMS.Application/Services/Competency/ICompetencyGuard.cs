@@ -22,5 +22,8 @@ public interface ICompetencyGuard
         int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateAssigneeAsync(
         int assigneeId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default);
+    // Same decision core, but evaluates orders even where the laboratory gate is off (impact preview only).
+    Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateIgnoringGateAsync(
+        int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default);
     Task EnsureAllowedAsync(int userId, int testOrderId, CancellationToken cancellationToken = default);
 }

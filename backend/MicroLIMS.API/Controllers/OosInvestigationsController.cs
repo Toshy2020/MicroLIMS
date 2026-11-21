@@ -11,12 +11,13 @@ using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.API.Controllers;
 
+public sealed record SignRetestPlanRequest(string Password);
 public sealed record OosAnalystStatementRequest(string Text);
 public sealed record OosChecklistAnswerRequest(OosChecklistAnswer Answer, string? Comment);
 
 [ApiController]
 [Route("api/oos-investigations")]
-public sealed class OosInvestigationsController(OosInvestigationService service) : ControllerBase
+public sealed class OosInvestigationsController(OosInvestigationService service, OosRetestPlanService retestPlans) : ControllerBase
 {
     [HttpGet("{id:int}/facts")]
     [Authorize(Policy = PermissionConstants.OosView)]
@@ -47,6 +48,20 @@ public sealed class OosInvestigationsController(OosInvestigationService service)
     public async Task<IActionResult> SignPhaseOne(int id, SignPhaseOneRequest request, CancellationToken ct = default)
     {
         await service.SignPhaseOneAsync(id, request, ExpectedVersion(), Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return NoContent();
+    }
+
+    [HttpPut("{id:int}/retest-plan")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> SaveRetestPlan(int id, SaveRetestPlanRequest request, CancellationToken ct = default) =>
+        Ok(ApiResponse<OosRetestPlanDto>.Ok(await retestPlans.DraftAsync(id, request, ExpectedVersion(), Actor(), ct)));
+
+    [HttpPost("retest-plans/{planId:int}/sign")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> SignRetestPlan(int planId, SignRetestPlanRequest request, CancellationToken ct = default)
+    {
+        await retestPlans.SignAndCreateAsync(planId, request.Password, ExpectedVersion(), Actor(),
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return NoContent();
     }
 

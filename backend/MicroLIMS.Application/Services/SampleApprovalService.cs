@@ -256,7 +256,7 @@ public class SampleApprovalService
         {
             ApprovalDecision.Approve => SignatureMeaning.Approved,
             ApprovalDecision.Reject => SignatureMeaning.Rejected,
-            ApprovalDecision.NewSampleRequest => SignatureMeaning.Rejected,
+            ApprovalDecision.NewSampleRequest => SignatureMeaning.NewSampleRequested,
             ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
             _ => throw new BusinessRuleException(
                 MessageCodes.SampleInvalidApprovalDecision,
@@ -481,6 +481,9 @@ public class SampleApprovalService
         if (sectionIds.Count != 1)
             return;
         var section = sectionIds[0];
+        if (await _db.OosInvestigations.AsNoTracking().AnyAsync(i =>
+                i.SampleId == origin.Id && i.SectionId == section && i.Kind == OosInvestigationKind.Oos, ct))
+            return;
         var originSignoff = origin.SectionSignoffs.FirstOrDefault(s => s.SectionId == section);
         if (originSignoff is null || originSignoff.Status != SectionSignoffStatus.RetestRequested)
             return;

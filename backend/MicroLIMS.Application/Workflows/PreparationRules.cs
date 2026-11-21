@@ -17,14 +17,14 @@ public static class PreparationRules
     public static async Task<bool> TestOrderSkipsPreparationAsync(IMicroLimsDbContext db, int testOrderId) =>
         await db.TestOrders.AnyAsync(t => t.Id == testOrderId && t.Section!.Code == NoPreparationSectionCode);
 
-    public static async Task<SamplePreparationStatus> InitialStatusAsync(IMicroLimsDbContext db, IEnumerable<int> testSectionIds)
+    public static async Task<SamplePreparationStatus> InitialStatusAsync(IMicroLimsDbContext db, IEnumerable<int> testSectionIds, CancellationToken ct = default)
     {
         var ids = testSectionIds.Distinct().ToList();
         if (ids.Count == 0)
             return SamplePreparationStatus.NeedsPreparation;
 
         var needsPreparation = await db.DocumentSections
-            .AnyAsync(s => ids.Contains(s.Id) && s.Code != NoPreparationSectionCode);
+            .AnyAsync(s => ids.Contains(s.Id) && s.Code != NoPreparationSectionCode, ct);
         return needsPreparation ? SamplePreparationStatus.NeedsPreparation : SamplePreparationStatus.Ready;
     }
 }

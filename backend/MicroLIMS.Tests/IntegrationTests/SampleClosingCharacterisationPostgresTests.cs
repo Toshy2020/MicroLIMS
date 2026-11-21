@@ -15,7 +15,9 @@ public sealed class SampleClosingCharacterisationPostgresTests(PostgresTestFixtu
     private readonly ActionGuardScenarios _scenarios = new(fixture);
 
     [PostgresFact]
-    public async Task Approval_close_archives_with_decision_label_and_projects_approval_fields()
+    public Task Approval_close_archives_with_decision_label_and_projects_approval_fields() => AssertApprovalClosureAsync();
+
+    private async Task AssertApprovalClosureAsync()
     {
         var (section, reviewer, head, analyst) = await ActorsAsync();
         var origin = await _scenarios.UnderApprovalAsync(section, reviewer.Id, analystId: analyst.Id);
@@ -33,7 +35,9 @@ public sealed class SampleClosingCharacterisationPostgresTests(PostgresTestFixtu
     }
 
     [PostgresFact]
-    public async Task Legacy_retest_close_archives_origin_with_oos_resolved_label()
+    public Task Legacy_retest_close_archives_origin_with_oos_resolved_label() => AssertLegacyPropagationAsync();
+
+    private async Task AssertLegacyPropagationAsync()
     {
         var (section, reviewer, head, analyst) = await ActorsAsync();
         var origin = await _scenarios.UnderApprovalAsync(section, reviewer.Id, orders: 2, analystId: analyst.Id);
@@ -87,6 +91,52 @@ public sealed class SampleClosingCharacterisationPostgresTests(PostgresTestFixtu
 
     [PostgresFact]
     public Task New_sample_request_creates_two_samples_same_as_before() => AssertCreationAsync(ApprovalDecision.NewSampleRequest);
+
+    [PostgresFact]
+    public Task Legacy_group_without_investigation_still_propagates_as_before() => AssertLegacyPropagationAsync();
+
+    [PostgresFact]
+    public async Task Origin_closed_by_retest_runs_the_same_finalisation()
+    {
+        await AssertApprovalClosureAsync();
+        await AssertLegacyPropagationAsync();
+
+        var source = File.ReadAllText(Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..",
+            "MicroLIMS.Application", "Services", "SampleApprovalService.cs")));
+        const string archiveCall = "_archive.ArchiveAsync(ReviewEntityTypes.Sample";
+        Assert.Equal(2, source.Split(archiveCall, StringSplitOptions.None).Length);
+    }
+
+    private static string SourceDirectory([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>
+        Path.GetDirectoryName(path) ?? throw new InvalidOperationException("Cannot resolve the test source directory.");
+
+    [PostgresFact]
+    public async Task New_sample_decision_on_non_oos_sample_signs_new_meaning()
+    {
+        var (section, reviewer, head, analyst) = await ActorsAsync();
+        var origin = await _scenarios.UnderApprovalAsync(section, reviewer.Id, analystId: analyst.Id);
+        await AddLocationAndProjectionAsync(origin, analyst, ResultStatus.WithinLimits);
+        var first = await _scenarios.AnalystAsync(section);
+        var second = await _scenarios.AnalystAsync(section);
+
+        await DecideAsync(origin.Sample.Id, head.Id, ApprovalDecision.NewSampleRequest, orderIds: [origin.Orders[0].Id],
+            analystOne: first.Id, analystTwo: second.Id);
+        await using var verify = fixture.CreateDbContext();
+        var signature = await verify.ElectronicSignatures.AsNoTracking().SingleAsync(s =>
+            s.EntityType == "Sample" && s.EntityId == origin.Sample.Id);
+        Assert.Equal(SignatureMeaning.NewSampleRequested, signature.MeaningOfSignature);
+        Assert.Equal(head.Id, signature.UserId);
+        var signoff = await verify.SampleSectionSignoffs.AsNoTracking().SingleAsync(s => s.SampleId == origin.Sample.Id);
+        Assert.Equal(signature.Id, signoff.ApprovalSignatureId);
+        Assert.Equal(SectionSignoffStatus.RetestRequested, signoff.Status);
+        Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == origin.Sample.Id));
+        Assert.False(await verify.ArchivedRecords.AsNoTracking().AnyAsync(r => r.EntityType == "Sample" && r.EntityId == origin.Sample.Id));
+        var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(ElectronicSignature) &&
+            a.EntityId == signature.Id.ToString() && a.Action == "Create" && a.UserId == head.Id);
+        Assert.Null(audit.PreviousValue);
+        using var payload = JsonDocument.Parse(Assert.IsType<string>(audit.NewValue));
+        Assert.Equal((int)SignatureMeaning.NewSampleRequested, payload.RootElement.GetProperty(nameof(ElectronicSignature.MeaningOfSignature)).GetInt32());
+    }
 
     private async Task AssertCreationAsync(ApprovalDecision decision)
     {

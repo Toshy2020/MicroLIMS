@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.DocumentControl;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
@@ -522,30 +524,68 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
         var reviewer = await _scenarios.ReviewerAsync(section);
         var analyst = await _scenarios.AnalystAsync(section);
         var origin = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
-        var retest = await _scenarios.UnderReviewAsync(section, analystId: analyst.Id);
+        var head = await _scenarios.UserAsync(RoleType.SectionHead, [PermissionConstants.OosManage], section);
         await RecordResultAsync(origin.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
-        await RecordResultAsync(retest.Orders[0].Id, analyst.Id, nameof(ResultStatus.Detected));
         await _scenarios.CompleteReviewAsync(new(reviewer.Id, origin.Sample.Id));
+        int investigationId;
+        uint version;
         await using (var setup = fixture.CreateDbContext())
         {
-            var investigation = await setup.OosInvestigations.AsNoTracking().SingleAsync(i => i.SampleId == origin.Sample.Id);
-            var child = await setup.Samples.SingleAsync(s => s.Id == retest.Sample.Id);
-            child.OriginSampleId = origin.Sample.Id;
-            child.OosGroupCode = investigation.Number;
+            var investigation = await setup.OosInvestigations.SingleAsync(i => i.SampleId == origin.Sample.Id);
+            var signature = await new ElectronicSignatureService(setup).SignAsync(head.Id, ActionGuardScenarios.Password,
+                SignatureMeaning.OosPhaseOneConcluded, nameof(OosInvestigation), investigation.Id, null, null);
+            if (!await setup.CausesOfTesting.AnyAsync(c => c.Name == "Retest"))
+                setup.CausesOfTesting.Add(new CauseOfTesting { Name = "Retest", IsActive = true });
             await setup.SaveChangesAsync();
+            investigation.PhaseOneSignatureId = signature.Id;
+            investigation.PhaseOneSignedAtUtc = signature.SignedAt;
+            investigation.PhaseOneSignedByUserId = head.Id;
+            investigation.Status = OosInvestigationStatus.AwaitingRetest;
+            await setup.SaveChangesAsync();
+            investigationId = investigation.Id;
+            version = investigation.Version;
         }
 
-        await _scenarios.CompleteReviewAsync(new(reviewer.Id, retest.Sample.Id));
+        OosRetestPlanDto plan;
+        await using (var draft = fixture.CreateDbContext())
+            plan = await OosRetestPlanPostgresTests.Service(draft).DraftAsync(investigationId,
+                new(OosRetestSource.RetainedSample, 1, [origin.Orders[0].Id], [analyst.Id], "Compare the result to its specification.", null),
+                version, head.Id);
+        await using (var sign = fixture.CreateDbContext())
+            await OosRetestPlanPostgresTests.Service(sign).SignAndCreateAsync(plan.Id, ActionGuardScenarios.Password,
+                plan.InvestigationVersion, head.Id, null);
+
+        int retestId;
+        int retestOrderId;
+        await using (var setup = fixture.CreateDbContext())
+        {
+            var link = await setup.OosRetestPlanSamples.AsNoTracking().SingleAsync(l => l.PlanId == plan.Id);
+            var child = await setup.Samples.Include(x => x.TestOrders).SingleAsync(x => x.Id == link.SampleId);
+            child.OosGroupCode = "UNRELATED-GROUP";
+            child.Status = SampleStatus.UnderReview;
+            var order = Assert.Single(child.TestOrders);
+            order.Status = ApprovalStatus.ResultEntered;
+            order.CurrentStep = WorkflowStep.Ready;
+            setup.SampleSectionSignoffs.Add(new SampleSectionSignoff
+            {
+                SampleId = child.Id, SectionId = section.Id, Status = SectionSignoffStatus.UnderReview
+            });
+            await setup.SaveChangesAsync();
+            retestId = child.Id;
+            retestOrderId = order.Id;
+        }
+        await RecordResultAsync(retestOrderId, analyst.Id, nameof(ResultStatus.Detected));
+        await _scenarios.CompleteReviewAsync(new(reviewer.Id, retestId));
         await using var verify = fixture.CreateDbContext();
-        Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == retest.Sample.Id));
+        Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == retestId));
         var persisted = await verify.OosInvestigations.AsNoTracking().Include(i => i.Results)
             .SingleAsync(i => i.SampleId == origin.Sample.Id);
-        Assert.Equal(new[] { origin.Orders[0].Id, retest.Orders[0].Id }, persisted.Results.Select(r => r.TestOrderId).Order());
-        var added = persisted.Results.Single(r => r.TestOrderId == retest.Orders[0].Id);
+        Assert.Equal(new[] { origin.Orders[0].Id, retestOrderId }, persisted.Results.Select(r => r.TestOrderId).Order());
+        var added = persisted.Results.Single(r => r.TestOrderId == retestOrderId);
         Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a =>
             a.EntityName == nameof(OosInvestigationResult) && a.EntityId == added.Id.ToString() && a.UserId == reviewer.Id && a.Action == "Create"));
         Assert.Equal(SampleStatus.UnderApproval, await verify.Samples.AsNoTracking()
-            .Where(s => s.Id == retest.Sample.Id).Select(s => s.Status).SingleAsync());
+            .Where(s => s.Id == retestId).Select(s => s.Status).SingleAsync());
     }
 
     [PostgresFact]

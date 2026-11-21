@@ -132,7 +132,8 @@ public sealed partial class OosInvestigationService
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    private async Task<OosInvestigation> OpenForEditAsync(int id, int actor, string permission, CancellationToken ct = default)
+    internal async Task<OosInvestigation> OpenForEditAsync(int id, int actor, string permission,
+        CancellationToken ct = default, Func<BusinessRuleException>? closed = null)
     {
         if (!await permissions.UserHasPermissionAsync(actor, permission, ct))
             throw new CodedAccessDeniedException(MessageCodes.OosInvestigationAccessDenied, "You do not have permission for this investigation action.");
@@ -142,7 +143,7 @@ public sealed partial class OosInvestigationService
         await EnsureScopeAsync(actor, sectionId, SectionAccess.Write, ct);
 
         return await LockOpenAsync(db.OosInvestigations.Where(i => i.Id == id), ct)
-            ?? throw Closed();
+            ?? throw (closed ?? Closed)();
     }
 
     private async Task EnsureScopeAsync(int actor, int sectionId, SectionAccess access, CancellationToken ct = default)

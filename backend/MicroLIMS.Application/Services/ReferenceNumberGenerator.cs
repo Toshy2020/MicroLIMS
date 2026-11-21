@@ -41,7 +41,7 @@ public class ReferenceNumberGenerator
     // is released at commit or rollback. Other categories and months do not
     // wait. Without a transaction the lock would be released at once, so that
     // is refused. Non-relational providers (unit tests) take no lock.
-    public async Task<string> GenerateAsync(SampleCategory category)
+    public async Task<string> GenerateAsync(SampleCategory category, CancellationToken ct = default)
     {
         var code = CategoryCodes.TryGetValue(category, out var c) ? c : "SM";
         // The month rolls over at lab midnight, not UTC midnight, so a
@@ -53,19 +53,19 @@ public class ReferenceNumberGenerator
         var prefix = $"{code}{mm}{yy}";
 
         var labMonthStart = new DateTime(labNow.Year, labNow.Month, 1, 0, 0, 0, DateTimeKind.Unspecified);
-        await LockAsync(prefix);
+        await LockAsync(prefix, ct);
 
         var monthStart = TimeZoneInfo.ConvertTimeToUtc(labMonthStart, _labClock.LabTimeZone);
         var monthEnd = TimeZoneInfo.ConvertTimeToUtc(labMonthStart.AddMonths(1), _labClock.LabTimeZone);
 
         var countThisMonth = await _db.Samples.CountAsync(s =>
-            s.Category == category && s.ReceivedAt >= monthStart && s.ReceivedAt < monthEnd);
+            s.Category == category && s.ReceivedAt >= monthStart && s.ReceivedAt < monthEnd, ct);
 
         var sequence = (countThisMonth + 1).ToString("D3");
         return $"{prefix}{sequence}";
     }
 
-    private async Task LockAsync(string prefix)
+    private async Task LockAsync(string prefix, CancellationToken ct)
     {
         if (!_db.Database.IsRelational())
             return;
@@ -75,7 +75,7 @@ public class ReferenceNumberGenerator
 
         var key = $"sample-ref:{prefix}";
         var seed = AdvisoryLockKeys.SampleNumber;
-        await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))");
+        await _db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, {seed}))", ct);
     }
 
     public async Task<string> GenerateOosCodeAsync(CancellationToken cancellationToken = default)

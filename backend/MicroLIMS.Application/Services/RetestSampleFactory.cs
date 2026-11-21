@@ -18,7 +18,7 @@ public sealed class RetestSampleFactory(IMicroLimsDbContext db, ReferenceNumberG
     public async Task<Sample> AddRetestSampleAsync(Sample origin, IReadOnlyList<TestOrder> orders,
         Func<TestOrder, int?> analystFor, string oosGroupCode, int causeId, int receivedBy, CancellationToken ct = default)
     {
-        var sample = BuildRetestSample(origin, await numbers.GenerateAsync(origin.Category), causeId, receivedBy, oosGroupCode);
+        var sample = BuildRetestSample(origin, await numbers.GenerateAsync(origin.Category, ct), causeId, receivedBy, oosGroupCode);
         var carriedAnyLocations = false;
         foreach (var order in orders)
         {
@@ -40,7 +40,7 @@ public sealed class RetestSampleFactory(IMicroLimsDbContext db, ReferenceNumberG
         // Batch retests with carried locations already have everything needed for testing.
         sample.PreparationStatus = carriedAnyLocations
             ? SamplePreparationStatus.Ready
-            : await PreparationRules.InitialStatusAsync(db, sample.TestOrders.Select(o => o.SectionId));
+            : await PreparationRules.InitialStatusAsync(db, sample.TestOrders.Select(o => o.SectionId), ct);
         db.Samples.Add(sample);
         return sample;
     }

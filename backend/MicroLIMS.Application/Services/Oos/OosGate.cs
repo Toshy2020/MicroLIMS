@@ -78,7 +78,12 @@ public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
             orders = orders.Where(o => o.SectionId == section);
 
         return investigations.Where(i => (i.SampleId == sampleId && (sectionId == null || i.SectionId == sectionId)) ||
-            i.Results.Any(r => orders.Any(o => o.Id == r.TestOrderId)));
+            i.Results.Any(r => orders.Any(o => o.Id == r.TestOrderId)) ||
+            ((sectionId == null || i.SectionId == sectionId) &&
+                (from link in db.OosRetestPlanSamples
+                 join plan in db.OosRetestPlans on link.PlanId equals plan.Id
+                 where link.SampleId == sampleId && plan.InvestigationId == i.Id && plan.SignedAtUtc != null
+                 select link.SampleId).Any()));
     }
 
     private static Task<string?> FirstOpenNumberAsync(IQueryable<OosInvestigation> investigations, CancellationToken ct) =>

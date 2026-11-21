@@ -4,6 +4,7 @@ using MicroLIMS.Shared.Messages;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 
@@ -34,10 +35,17 @@ public static class AnalystAssignmentRules
     // in these sections when the acting user is the one assigning them.
     public static async Task<User> EnsureAssignableAsync(
         IMicroLimsDbContext db, IUserSectionScopeService scope,
-        int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc)
+        int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc,
+        IReadOnlyCollection<int>? testOrderIds = null, ICompetencyGuard? competency = null, CancellationToken ct = default)
     {
-        var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc);
+        var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc, ct);
         check.ThrowIfRefused();
+        if (competency is not null && testOrderIds is { Count: > 0 })
+        {
+            var decisions = await competency.EvaluateAssigneeAsync(assigneeId, testOrderIds, ct);
+            foreach (var orderId in testOrderIds)
+                decisions[orderId].ToActionCheck().ThrowIfRefused();
+        }
         return user;
     }
 

@@ -32,6 +32,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.WeightVariation, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         var spec = specById.Values.First();
         if (!spec.DosageForm.HasValue)
@@ -298,6 +299,7 @@ public sealed class WeightVariationRecorder : TestWorkflowSupport
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         RequireOrderNotFinalized(order);
 

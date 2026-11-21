@@ -59,6 +59,21 @@ public class TestWorkflowSupport
         return AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
     }
 
+    // The first recorded step of a test order stores the SOP revision in force (Rule 3.1). Called at every recording
+    // point right after the competency guard and before the step's first write, on the tracked order the recorder
+    // loaded, so the values land in the same SaveChanges and transaction as the step. It never refuses a recording:
+    // an SOP that cannot be resolved is stored as a status.
+    protected Task CaptureSopRevisionAsync(TestOrder order, CancellationToken ct) =>
+        _sopCapture.CaptureIfNeededAsync(order, ct);
+
+    // The same for a recorder that has only the order id; the order is the tracked instance when already loaded.
+    protected async Task CaptureSopRevisionAsync(int testOrderId, CancellationToken ct)
+    {
+        var order = await _db.TestOrders.FirstOrDefaultAsync(o => o.Id == testOrderId, ct);
+        if (order is not null)
+            await _sopCapture.CaptureIfNeededAsync(order, ct);
+    }
+
     protected async Task<(TestOrder order, TestDefinition definition)> LoadWithTemplateAsync(int testOrderId)
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
@@ -453,6 +468,8 @@ public class TestWorkflowSupport
                     || !await _incubatorEligibility.IsWithinRangeAsync(sibling.Medium.Id, incubatorId, ct))
                     continue;
 
+                await CaptureSopRevisionAsync(sibling.Order, ct);
+
                 var newInc = new Incubation
                 {
                     TestOrderId = sibling.Order.Id,
@@ -479,6 +496,7 @@ public class TestWorkflowSupport
             {
                 // A test that started its own TSB on another lot is not part of this one.
                 if (sibling.ExistingIncubation.MediaId != incubation.MediaId) continue;
+                await CaptureSopRevisionAsync(sibling.Order, ct);
                 if (window is not null)
                     CopyCompletionOnceOwnMinimumElapsed(incubation, sibling.ExistingIncubation, window);
                 siblingIncId = sibling.ExistingIncubation.Id;

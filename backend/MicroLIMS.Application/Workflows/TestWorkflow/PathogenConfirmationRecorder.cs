@@ -144,6 +144,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         int testOrderId, string stepName, string? observation, int userId, CancellationToken cancellationToken)
     {
         using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType is not (StepType.BrothEnrichment or StepType.SelectiveBroth))
             throw new BusinessRuleException(
@@ -263,6 +264,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
@@ -346,6 +348,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         int testOrderId, string stepName, GrowthObservation observation, string? observedAppearanceNote, int userId, CancellationToken cancellationToken)
     {
         using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.SelectivePlating)
             throw new BusinessRuleException(
@@ -436,6 +439,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         DateTime incubationStartUtc, DateTime incubationEndUtc, int userId, CancellationToken cancellationToken)
     {
         using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         // A second setup for a step that already has a result row mints a
         // fresh Incubation and WorkflowStepResult, and every downstream
         // reader takes the newest row - so the earlier run is silently
@@ -576,6 +580,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         int testOrderId, string stepName, IReadOnlyList<ConfirmatoryObservationInput> observations, int userId, CancellationToken cancellationToken)
     {
         using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.ConfirmatoryPlating)
             throw new BusinessRuleException(
@@ -668,6 +673,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
                 $"Test order {testOrderId} not found.",
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
 
         var confirmatory = await _db.WorkflowStepResults
@@ -739,6 +745,7 @@ public sealed class PathogenConfirmationRecorder : TestWorkflowSupport
         int testOrderId, string stepName, string biochemicalResultText, int? attachmentId, bool organismDetected, int userId, CancellationToken cancellationToken)
     {
         using var recording = await RequireCompetentAsync(userId, testOrderId, cancellationToken);
+        await CaptureSopRevisionAsync(testOrderId, cancellationToken);
         var step = await LoadStepAsync(testOrderId, stepName);
         if (step.StepType != StepType.BiochemicalTest)
             throw new BusinessRuleException(

@@ -33,6 +33,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Disintegration, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         int s1Units = definition.DisintegrationStage1Units ?? 6;
         int s2Units = definition.DisintegrationStage2Units ?? 12;
@@ -263,6 +264,7 @@ public sealed class DisintegrationRecorder : TestWorkflowSupport
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         RequireOrderNotFinalized(order);
 

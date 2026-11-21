@@ -146,6 +146,7 @@ public sealed class OutsourcedRecorder : TestWorkflowSupport
             testOrderId, p.ReportedAt, null, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, workflowType, userId, outsourced: true);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         // the specs of this test, each exactly once (the shared check does not cover every workflow type)
         if (parameters.Count != specById.Count || !specById.Keys.ToHashSet().SetEquals(parameters.Select(x => x.SpecificationId)))

@@ -120,6 +120,38 @@ public class RecordingPointCoverageTests
             UnpairedGuards(sources).Order(StringComparer.Ordinal));
     }
 
+    // The capture must come before the method's first write, so a step that goes on to write is never recorded
+    // without it and a refusal after a write cannot leave a capture behind. Checked in the method that makes the call.
+    [Fact]
+    public void Sop_capture_precedes_the_first_write_in_every_method_that_makes_both()
+    {
+        var findings = CaptureAfterWrite(Sources());
+        Assert.True(findings.Count == 0, string.Join(Environment.NewLine, findings));
+    }
+
+    [Fact]
+    public void Order_scan_flags_a_capture_after_a_write()
+    {
+        string[] sources =
+        [
+            """
+            public class Recorder : Support
+            {
+                public async Task Before() { await CaptureSopRevisionAsync(order, ct); _db.Results.Add(result); }
+                public async Task After() { _db.Results.Add(result); await CaptureSopRevisionAsync(order, ct); }
+                public async Task OnlyCapture() { await CaptureSopRevisionAsync(order, ct); }
+            }
+            """,
+        ];
+        Assert.Equal(new[] { "Recorder.After" }, CaptureAfterWrite(sources));
+    }
+
+    private static List<string> CaptureAfterWrite(IEnumerable<string> sources) =>
+        ReadMethods(sources, out _)
+            .Where(method => DirectCapture.Match(method.Body) is { Success: true } capture
+                && Write.Match(method.Body) is { Success: true } write && write.Index < capture.Index)
+            .Select(method => method.Key).Distinct().ToList();
+
     private static List<string> UnpairedGuards(IEnumerable<string> sources) =>
         ReadMethods(sources, out _)
             .Where(method => method.Name != "RequireCompetentAsync" && DirectGuard.IsMatch(method.Body) && !DirectCapture.IsMatch(method.Body))

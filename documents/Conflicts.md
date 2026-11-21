@@ -1080,12 +1080,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 
 ### CONF-209
 - **Area:** REV
-- **Status:** Open
+- **Status:** Decided
 - **What the code does:** `ResultConformanceRules.FromStatus` classifies `AlertLimitExceeded` and `ActionLimitExceeded` as `DoesNotConform`. D1 Task 1 preserves that behavior for the shared outcome and for approval and retest propagation (user, 2026-11-20). The outcome also exposes the deciding status.
 - **What the other source says:** D1 Task 1 in `docs/superpowers/plans/2026-11-11-oos-investigation.md` called for alert and action limit exceedances to conform.
 - **Question:** Which outcomes should open an investigation at review in D1 Task 3?
-- **Decision:** Not decided.
-- **Date:** Not applicable
+- **Decision:** Only out-of-specification or detected results open an investigation. Alert/action exceedances do not open an investigation (user, 2026-11-20).
+- **Date:** 2026-11-20
 
 ### CONF-210
 - **Area:** MDM
@@ -1153,4 +1153,12 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Status:** Open
 - **What the code does:** CompleteSessionAsync evaluates competency for every entry in sample.TestOrders. On completion it marks every entry ResultEntered, including cancelled or superseded orders. Marking every order was existing behavior before the competency change.
 - **Question:** Which orders should participate in session completion, and which should retain their existing status?
+- **Date:** 2026-11-20
+
+### CONF-218
+- **Area:** REV
+- **Status:** Decided
+- **What the other source says:** The OOS design spec §5.5 requires a signed amendment with a reason for further retests.
+- **Question:** What limits, segregation of duties, and eligible orders apply to a retest plan?
+- **Decision:** Each revision permits 1 to 10 retests, with no cumulative cap. Every amendment requires a reason and a new signature. Assign exactly one analyst to each retest sample in the order specified by the plan. The signer may neither appear in the analyst list nor have performed any investigated order, including orders from earlier planned retests. For a new sample, an analyst who performed any investigated order is ineligible. For a retained-sample retest, the original analyst is eligible. A plan may select only current, non-superseded failing orders linked through OosInvestigationResults (user, 2026-11-20).
 - **Date:** 2026-11-20

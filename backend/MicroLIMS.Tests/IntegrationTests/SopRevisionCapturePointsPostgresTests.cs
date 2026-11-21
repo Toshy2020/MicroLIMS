@@ -1084,7 +1084,7 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
 
         await WaitUntilBlockedOnALockAsync(second);
         await firstTransaction.CommitAsync();
-        await second;
+        await second.WaitAsync(TimeSpan.FromSeconds(30));
 
         await AssertCapturedAsync(a.OrderId, c.Sop, at: firstAt);
         await using var assert = fixture.CreateDbContext();

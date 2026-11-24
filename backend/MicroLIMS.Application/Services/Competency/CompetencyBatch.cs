@@ -24,15 +24,18 @@ internal sealed record CompetencyBatch(
     {
         if (SingleRefusedDecision is { Reasons.Count: 1 } single)
             single.ToActionCheck().ThrowIfRefused();
-        if (Refused.Count != 0)
-        {
-            var reasons = string.Join(" ", Refused.Select(skip => skip.Reason));
-            throw new BusinessRuleException(MessageCodes.CompetencyRecordingRefused, reasons)
+        ThrowIfRefused(MessageCodes.CompetencyRecordingRefused,
+            Refused.SelectMany(skip => skip.Reasons)
+                .Select(reason => new ApiError(reason.Code, reason.Params, reason.Reason)).ToList());
+    }
+
+    internal static void ThrowIfRefused(string code, List<ApiError> errors, string? message = null)
+    {
+        if (errors.Count > 0)
+            throw new BusinessRuleException(code, message ?? string.Join(" ", errors.Select(error => error.Message)))
             {
-                ErrorDetails = Refused.SelectMany(skip => skip.Reasons)
-                    .Select(reason => new ApiError(reason.Code, reason.Params, reason.Reason)).ToList(),
+                ErrorDetails = errors
             };
-        }
     }
 
     internal void ThrowIfAllRefused()
@@ -58,5 +61,32 @@ internal static class CompetencyBatchExtensions
             .Select(decision => decision.SopNotChecked?.Text).OfType<string>().Distinct().ToList();
         var singleRefusal = refused.Count == 1 ? decisions[refused[0].TestOrderId] : null;
         return new CompetencyBatch(allowed, refused, sopNotes.Count == 0 ? null : string.Join(" ", sopNotes), singleRefusal);
+    }
+}
+
+
+internal static class CompetencySubjectAssignments
+{
+    internal static async Task EnsureSubjectsAllowedAsync(this ICompetencyGuard guard, int userId,
+        IReadOnlyCollection<CompetencySubject> subjects, CancellationToken ct)
+    {
+        var decisions = await guard.EvaluateSubjectsAsync(userId, subjects, assigneeWording: false, ct);
+        foreach (var decision in decisions.Values)
+            decision.ToActionCheck().ThrowIfRefused();
+    }
+
+    internal static async Task ClearUnqualifiedAssignmentsAsync(this ICompetencyGuard guard, IEnumerable<TestOrder> orders,
+        int? itemId, CancellationToken ct)
+    {
+        foreach (var group in orders.Where(order => order.AssignedAnalystId.HasValue)
+                     .GroupBy(order => order.AssignedAnalystId.GetValueOrDefault()))
+        {
+            var candidates = group.Select(order => (Order: order, Subject: new CompetencySubject(order.TestCode, order.SectionId, itemId))).ToArray();
+            var decisions = await guard.EvaluateSubjectsAsync(group.Key, candidates.Select(candidate => candidate.Subject).ToArray(),
+                assigneeWording: true, ct);
+            foreach (var (order, subject) in candidates)
+                if (!decisions[subject].Allowed)
+                    order.AssignedAnalystId = null;
+        }
     }
 }

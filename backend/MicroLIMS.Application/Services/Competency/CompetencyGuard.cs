@@ -35,117 +35,159 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
     private async Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateCoreAsync(
         int userId, IReadOnlyCollection<int> testOrderIds, bool assigneeWording, bool ignoreGate, CancellationToken cancellationToken)
     {
-        var decisions = new Dictionary<int, CompetencyDecision>();
-        if (testOrderIds.Count == 0)
-            return decisions;
+        var decisions = await EvaluateOrdersAsync([userId], testOrderIds, assigneeWording, ignoreGate, cancellationToken);
+        return decisions.ToDictionary(pair => pair.Key.TestOrderId, pair => pair.Value);
+    }
 
-        var nowUtc = clock.UtcNow.UtcDateTime;
-        var labToday = DateOnly.FromDateTime(clock.ToLabLocal(nowUtc));
+    public Task<IReadOnlyDictionary<(int UserId, int TestOrderId), CompetencyDecision>> EvaluateCandidatesAsync(
+        IReadOnlyCollection<int> userIds, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default) =>
+        EvaluateOrdersAsync(userIds, testOrderIds, assigneeWording: true, ignoreGate: false, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<CompetencySubject, CompetencyDecision>> EvaluateSubjectsAsync(
+        int userId, IReadOnlyCollection<CompetencySubject> subjects, bool assigneeWording,
+        CancellationToken cancellationToken = default)
+    {
+        var decisions = await EvaluateSubjectsCoreAsync([userId], subjects, assigneeWording, ignoreGate: false, cancellationToken);
+        return decisions.ToDictionary(pair => pair.Key.Subject, pair => pair.Value);
+    }
+
+    private async Task<IReadOnlyDictionary<(int UserId, int TestOrderId), CompetencyDecision>> EvaluateOrdersAsync(
+        IReadOnlyCollection<int> userIds, IReadOnlyCollection<int> testOrderIds, bool assigneeWording, bool ignoreGate,
+        CancellationToken cancellationToken)
+    {
+        if (userIds.Count == 0 || testOrderIds.Count == 0)
+            return new Dictionary<(int, int), CompetencyDecision>();
+
         var orders = await db.TestOrders.AsNoTracking()
             .Where(order => testOrderIds.Contains(order.Id))
-            .Select(order => new { order.Id, order.SectionId, order.TestCode, ItemId = order.Sample == null ? null : order.Sample.ItemId })
-            .ToDictionaryAsync(order => order.Id, cancellationToken);
+            .Select(order => new { order.Id, Subject = new CompetencySubject(order.TestCode, order.SectionId,
+                order.Sample == null ? null : order.Sample.ItemId) })
+            .ToDictionaryAsync(order => order.Id, order => order.Subject, cancellationToken);
 
         foreach (var id in testOrderIds)
             if (!orders.ContainsKey(id))
                 throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {id} not found.",
                     new Dictionary<string, string> { ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture) });
 
-        var sectionIds = orders.Values.Select(order => order.SectionId).Distinct().ToArray();
-        HashSet<int> enabledSections = [];
+        var decisions = await EvaluateSubjectsCoreAsync(userIds, orders.Values, assigneeWording, ignoreGate, cancellationToken);
+        return (from userId in userIds.Distinct()
+                from order in orders
+                select (Key: (userId, order.Key), Decision: decisions[(userId, order.Value)]))
+            .ToDictionary(pair => pair.Key, pair => pair.Decision);
+    }
+
+    private async Task<Dictionary<(int UserId, CompetencySubject Subject), CompetencyDecision>> EvaluateSubjectsCoreAsync(
+        IReadOnlyCollection<int> userIds, IReadOnlyCollection<CompetencySubject> subjects, bool assigneeWording, bool ignoreGate,
+        CancellationToken cancellationToken)
+    {
+        var uniqueSubjects = subjects.Distinct().ToArray();
+        var decisions = (from userId in userIds.Distinct()
+                         from subject in uniqueSubjects
+                         select (userId, subject)).ToDictionary(key => key, _ => Allowed);
+        if (decisions.Count == 0)
+            return decisions;
+
+        var gated = uniqueSubjects;
         if (!ignoreGate)
         {
-            enabledSections = await db.CompetencySectionSettings.AsNoTracking()
+            var sectionIds = uniqueSubjects.Select(subject => subject.SectionId).Distinct().ToArray();
+            var enabledSections = await db.CompetencySectionSettings.AsNoTracking()
                 .Where(setting => sectionIds.Contains(setting.SectionId) && setting.GateEnabled)
                 .Select(setting => setting.SectionId)
                 .ToHashSetAsync(cancellationToken);
+            gated = uniqueSubjects.Where(subject => enabledSections.Contains(subject.SectionId)).ToArray();
         }
-        var gated = ignoreGate
-            ? orders.Values.ToArray()
-            : orders.Values.Where(order => enabledSections.Contains(order.SectionId)).ToArray();
-        foreach (var order in orders.Values)
-            decisions.Add(order.Id, Allowed);
         if (gated.Length == 0)
             return decisions;
 
-        var testCodes = gated.Select(order => order.TestCode).Distinct().ToArray();
+        var nowUtc = clock.UtcNow.UtcDateTime;
+        var labToday = DateOnly.FromDateTime(clock.ToLabLocal(nowUtc));
+        var testCodes = gated.Select(subject => subject.TestCode).Distinct().ToArray();
         var definitions = await db.TestDefinitions.AsNoTracking()
             .Where(definition => testCodes.Contains(definition.Code))
             .Select(definition => new { definition.Code, definition.Id })
             .ToDictionaryAsync(definition => definition.Code, definition => definition.Id, cancellationToken);
         var definitionIds = definitions.Values.ToArray();
         var qualifications = await db.AnalystQualifications.AsNoTracking()
-            .Where(q => q.UserId == userId && definitionIds.Contains(q.TestDefinitionId))
+            .Where(q => userIds.Contains(q.UserId) && definitionIds.Contains(q.TestDefinitionId))
             .ToListAsync(cancellationToken);
-        var latestByDefinition = qualifications.GroupBy(q => q.TestDefinitionId)
+        var latest = qualifications.GroupBy(q => (q.UserId, q.TestDefinitionId))
             .ToDictionary(group => group.Key, group => group.MaxBy(q => q.Id));
 
-        var itemIds = gated.Select(order => order.ItemId).OfType<int>().Distinct().ToArray();
+        var itemIds = gated.Select(subject => subject.ItemId).OfType<int>().Distinct().ToArray();
         var sops = await sopResolver.ResolveManyAsync(itemIds, cancellationToken);
         var revisionIds = sops.Values.SelectMany(sop => new[] { sop.RevisionId, sop.PreviousSupersededRevisionId })
             .OfType<int>().Distinct().ToArray();
-        var assignments = await LoadAssignmentsAsync(userId, revisionIds, cancellationToken);
-        string? analyst = null;
-        if (assigneeWording)
-        {
-            analyst = await db.Users.AsNoTracking().Where(user => user.Id == userId).Select(user => user.FullName)
-                .SingleOrDefaultAsync(cancellationToken) ?? userId.ToString(CultureInfo.InvariantCulture);
-        }
+        var assignments = await LoadAssignmentsAsync(userIds, revisionIds, cancellationToken);
+        var names = assigneeWording
+            ? await db.Users.AsNoTracking().Where(user => userIds.Contains(user.Id))
+                .ToDictionaryAsync(user => user.Id, user => user.FullName, cancellationToken)
+            : null;
 
-        foreach (var order in gated)
+        foreach (var userId in userIds.Distinct())
         {
-            var reasons = new List<CompetencyReason>(2);
-            var qualification = definitions.TryGetValue(order.TestCode, out var definitionId)
-                ? latestByDefinition.GetValueOrDefault(definitionId)
-                : null;
-            if (QualificationReason(qualification, order.TestCode, labToday, analyst) is { } qualificationReason)
-                reasons.Add(qualificationReason);
-
-            CompetencyReason? sopNotChecked = null;
-            if (order.ItemId is { } itemId)
+            var analyst = names?.GetValueOrDefault(userId, userId.ToString(CultureInfo.InvariantCulture));
+            foreach (var subject in gated)
             {
-                var sop = sops[itemId];
-                if (sop.Status != SopResolutionStatus.Effective)
-                    sopNotChecked = SopNotCheckedReason(sop);
-                else if (!HasAcknowledged(sop, assignments, nowUtc))
-                    reasons.Add(SopNotAcknowledgedReason(sop, analyst));
+                var qualification = definitions.TryGetValue(subject.TestCode, out var definitionId)
+                    ? latest.GetValueOrDefault((userId, definitionId))
+                    : null;
+                var sop = subject.ItemId is int itemId ? sops[itemId] : null;
+                decisions[(userId, subject)] = Decide(subject, qualification, sop, assignments, userId, analyst, labToday, nowUtc);
             }
-
-            decisions[order.Id] = new(reasons.Count == 0, reasons, sopNotChecked, null);
         }
 
         return decisions;
     }
 
-    private sealed record Assignment(int RevisionId, TrainingAssignmentStatus Status, DateTime DueDateUtc)
+    private CompetencyDecision Decide(CompetencySubject subject, AnalystQualification? qualification, SopResolution? sop,
+        ILookup<(int UserId, int RevisionId), Assignment> assignments, int userId, string? analyst, DateOnly labToday, DateTime nowUtc)
+    {
+        var reasons = new List<CompetencyReason>(2);
+        if (QualificationReason(qualification, subject.TestCode, labToday, analyst) is { } qualificationReason)
+            reasons.Add(qualificationReason);
+
+        CompetencyReason? sopNotChecked = null;
+        if (sop is not null)
+        {
+            if (sop.Status != SopResolutionStatus.Effective)
+                sopNotChecked = SopNotCheckedReason(sop);
+            else if (!HasAcknowledged(sop, assignments, userId, nowUtc))
+                reasons.Add(SopNotAcknowledgedReason(sop, analyst));
+        }
+
+        return new(reasons.Count == 0, reasons, sopNotChecked, null);
+    }
+
+    private sealed record Assignment(int UserId, int RevisionId, TrainingAssignmentStatus Status, DateTime DueDateUtc)
     {
         public bool Acknowledged => Status is TrainingAssignmentStatus.Acknowledged or TrainingAssignmentStatus.CompletedPassed;
         public bool IsOpen => Status is TrainingAssignmentStatus.Assigned or TrainingAssignmentStatus.Reading or TrainingAssignmentStatus.KafPending;
     }
 
-    private async Task<ILookup<int, Assignment>> LoadAssignmentsAsync(
-        int userId, int[] revisionIds, CancellationToken cancellationToken)
+    private async Task<ILookup<(int, int), Assignment>> LoadAssignmentsAsync(
+        IReadOnlyCollection<int> userIds, int[] revisionIds, CancellationToken cancellationToken)
     {
         List<Assignment> assignments = [];
         if (revisionIds.Length > 0)
         {
             assignments = await db.DocumentTrainingAssignments.AsNoTracking()
-                .Where(a => a.AssignedUserId == userId && revisionIds.Contains(a.DocumentRevisionId))
-                .Select(a => new Assignment(a.DocumentRevisionId, a.Status, a.DueDateUtc))
+                .Where(a => userIds.Contains(a.AssignedUserId) && revisionIds.Contains(a.DocumentRevisionId))
+                .Select(a => new Assignment(a.AssignedUserId, a.DocumentRevisionId, a.Status, a.DueDateUtc))
                 .ToListAsync(cancellationToken);
         }
-        return assignments.ToLookup(assignment => assignment.RevisionId);
+        return assignments.ToLookup(assignment => (assignment.UserId, assignment.RevisionId));
     }
 
-    private static bool HasAcknowledged(SopResolution sop, ILookup<int, Assignment> assignments, DateTime nowUtc)
+    private static bool HasAcknowledged(SopResolution sop, ILookup<(int, int), Assignment> assignments, int userId, DateTime nowUtc)
     {
         if (sop.RevisionId is not { } revisionId)
             return false;
 
-        var current = assignments[revisionId];
+        var current = assignments[(userId, revisionId)];
         return current.Any(assignment => assignment.Acknowledged)
             || (sop.PreviousSupersededRevisionId is { } previousId
-                && assignments[previousId].Any(assignment => assignment.Acknowledged)
+                && assignments[(userId, previousId)].Any(assignment => assignment.Acknowledged)
                 && current.Any(assignment => assignment.IsOpen && assignment.DueDateUtc >= nowUtc));
     }
 

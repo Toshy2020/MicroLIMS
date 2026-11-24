@@ -48,6 +48,8 @@ public class SampleReviewController : ControllerBase
             await OosPostCommitNotification.SendAsync(_oosNotifier.OpenedAsync, opened.InvestigationId, _logger, ct);
         else if (oos is { PhaseTwoStarted: true } phaseTwo)
             await OosPostCommitNotification.SendAsync(_oosNotifier.PhaseTwoStartedAsync, phaseTwo.InvestigationId, _logger, ct);
+        if (oos is { ExcursionOpened: true, ExcursionId: int excursionId })
+            await OosPostCommitNotification.SendAsync(_oosNotifier.OpenedAsync, excursionId, _logger, ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

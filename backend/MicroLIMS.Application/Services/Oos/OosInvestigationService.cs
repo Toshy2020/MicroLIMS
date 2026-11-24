@@ -14,15 +14,28 @@ public sealed partial class OosInvestigationService(
 {
     public async Task<OosInvestigation?> OpenForReviewedSectionAsync(
         Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
-        CancellationToken ct = default) =>
-        (await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, ct)).Investigation;
-
-    internal async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted)> ApplyReviewedSectionAsync(
-        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
         CancellationToken ct = default)
     {
+        var result = await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: true, ct);
+        return result.Investigation ?? result.Excursion;
+    }
+
+    internal async Task<OosInvestigation?> OpenForReviewedOosOnlyAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        CancellationToken ct = default) =>
+        (await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: false, ct)).Investigation;
+
+    internal async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted, OosInvestigation? Excursion, bool ExcursionOpened)> ApplyReviewedSectionAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        CancellationToken ct = default) =>
+        await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: true, ct);
+
+    private async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted, OosInvestigation? Excursion, bool ExcursionOpened)> ApplyReviewedSectionAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        bool includeExcursions, CancellationToken ct)
+    {
         var (failing, excursions) = await rule.ReadReviewOutcomesAsync(reviewedOrders.Select(o => o.Id).ToArray(), ct);
-        if (failing.Count == 0 && excursions.Count == 0) return default;
+        if (failing.Count == 0 && (!includeExcursions || excursions.Count == 0)) return default;
 
         var now = time.GetUtcNow().UtcDateTime;
         OosInvestigation? oosInvestigation = null;
@@ -82,11 +95,10 @@ public sealed partial class OosInvestigationService(
             }
         }
 
-        var (excursion, excursionOpened) = await ApplyReviewedExcursionsAsync(sample, sectionId, reviewerUserId, excursions, now, ct);
-        if (oosInvestigation is not null)
-            return (oosInvestigation, oosOpened, phaseTwoStarted);
-
-        return excursion is null ? default : (excursion, excursionOpened, false);
+        var (excursion, excursionOpened) = includeExcursions
+            ? await ApplyReviewedExcursionsAsync(sample, sectionId, reviewerUserId, excursions, now, ct)
+            : default;
+        return (oosInvestigation, oosOpened, phaseTwoStarted, excursion, excursionOpened);
     }
 
     internal Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default) =>

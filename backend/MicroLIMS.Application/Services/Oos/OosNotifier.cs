@@ -36,7 +36,7 @@ public sealed class OosNotifier(IServiceScopeFactory scopes) : IOosNotifier
         var recipients = scope.ServiceProvider.GetRequiredService<OosRecipientResolver>();
         var publisher = scope.ServiceProvider.GetRequiredService<INotificationPublisher>();
         var investigation = await db.OosInvestigations.AsNoTracking().Where(i => i.Id == id)
-            .Select(i => new { i.Number, i.SampleId, i.SectionId }).SingleAsync(ct);
+            .Select(i => new { i.Kind, i.Number, i.SampleId, i.SectionId }).SingleAsync(ct);
 
         var userIds = (await recipients.ResolveAsync(investigation.SectionId, PermissionConstants.OosManage, ct)).ToHashSet();
         if (!managersOnly)
@@ -47,7 +47,25 @@ public sealed class OosNotifier(IServiceScopeFactory scopes) : IOosNotifier
             userIds.UnionWith(await recipients.ResolvePerformingAnalystsAsync(investigation.SectionId, orders, duties, ct));
         }
 
-        await publisher.PublishAsync(new(type, userIds, $"OOS investigation {investigation.Number} {description}.",
+        var isExcursion = investigation.Kind == Domain.Enums.OosInvestigationKind.Excursion;
+        var notificationType = isExcursion
+            ? eventName switch
+            {
+                "opened" => "ExcursionOpened",
+                "concluded" => "ExcursionConcluded",
+                _ => type
+            }
+            : type;
+        var message = isExcursion
+            ? eventName switch
+            {
+                "opened" => $"Excursion review {investigation.Number} was opened.",
+                "concluded" => $"Excursion review {investigation.Number} was closed.",
+                _ => $"Excursion review {investigation.Number} {description}."
+            }
+            : $"OOS investigation {investigation.Number} {description}.";
+
+        await publisher.PublishAsync(new(notificationType, userIds, message,
             "oos-investigation", id, investigation.SectionId, $"oos:{id}:{eventName}", investigation.SampleId), ct);
         await db.SaveChangesAsync(ct);
     }

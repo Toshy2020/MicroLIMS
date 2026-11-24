@@ -23,12 +23,24 @@ public sealed partial class OosInvestigationService
 
             var order = await db.TestOrders.AsNoTracking()
                 .Where(o => o.Id == testOrderId)
-                .Select(o => new { o.Id, o.SampleId, o.SectionId })
+                .Select(o => new { o.Id, o.SampleId, o.SectionId, o.IsSuperseded, SampleStatus = o.Sample!.Status })
                 .SingleOrDefaultAsync(ct)
                 ?? throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {testOrderId} not found.",
                     new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
 
             await EnsureScopeAsync(userId, order.SectionId, SectionAccess.Write, ct);
+            if (order.IsSuperseded)
+                throw new BusinessRuleException(MessageCodes.OosExcursionOrderSuperseded,
+                    "A superseded test order cannot open an excursion review.");
+            if (order.SampleStatus is SampleStatus.Approved or SampleStatus.Rejected or SampleStatus.Cancelled or SampleStatus.Voided)
+                throw new BusinessRuleException(MessageCodes.OosExcursionSampleClosed,
+                    "An excursion review cannot be opened for a sample that is already decided or cancelled.");
+
+            var (failing, outcomes) = await rule.ReadReviewOutcomesAsync([order.Id], ct);
+            if (failing.ContainsKey(order.Id))
+                throw new BusinessRuleException(MessageCodes.OosExcursionFailingOrderRequiresOos,
+                    "An out-of-specification or detected result must use an OOS investigation.");
+
             await numbers.AcquireOosNumberLockAsync(ct);
 
             var openExcursion = db.OosInvestigations.Where(i => i.Kind == OosInvestigationKind.Excursion &&
@@ -49,7 +61,6 @@ public sealed partial class OosInvestigationService
                 .AnyAsync(r => r.InvestigationId == excursion.Id && r.TestOrderId == order.Id, ct);
             if (!alreadyLinked)
             {
-                var (_, outcomes) = await rule.ReadReviewOutcomesAsync([order.Id], ct);
                 var hasOutcome = outcomes.TryGetValue(order.Id, out var outcome);
                 excursion.Results.Add(new OosInvestigationResult
                 {
@@ -169,7 +180,9 @@ public sealed partial class OosInvestigationService
     private async Task EnsureExcursionChecklistAnsweredAsync(OosInvestigation investigation, CancellationToken ct)
     {
         var keys = ReadChecklistKeys(investigation, 1);
-        if (keys.Count == 0) return;
+        if (keys.Count == 0)
+            throw new BusinessRuleException(MessageCodes.OosExcursionTemplateEmpty,
+                "No excursion checklist is configured for this laboratory.");
 
         var entries = db.OosInvestigationEntrys.AsNoTracking()
             .Where(e => e.InvestigationId == investigation.Id && e.Phase == 1 &&

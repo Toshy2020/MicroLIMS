@@ -2182,5 +2182,10 @@
   "Oos.ExcursionReasonInvalid": "Enter an excursion reason of 1 to 4000 characters.",
   "Oos.ExcursionInvalidState": "This action is only available for an open excursion review.",
   "Oos.ExcursionChecklistIncomplete": "Answer every active excursion checklist item before closing.",
-  "Oos.ExcursionTextInvalid": "Enter a cause description and action taken of 1 to 4000 characters."
+  "Oos.ExcursionTextInvalid": "Enter a cause description and action taken of 1 to 4000 characters.",
+  "Oos.InvestigationKindNotOos": "This action is only available for an OOS investigation.",
+  "Oos.ExcursionTemplateEmpty": "No excursion checklist is configured for this laboratory.",
+  "Oos.ExcursionOrderSuperseded": "A superseded test order cannot open an excursion review.",
+  "Oos.ExcursionSampleClosed": "An excursion review cannot be opened for a sample that is already decided or cancelled.",
+  "Oos.ExcursionFailingOrderRequiresOos": "An out-of-specification or detected result must use an OOS investigation."
 }

@@ -30,6 +30,8 @@ public static class NotificationCatalog
         new("OosPhaseTwoStarted", "info", false, "OOS investigation entered Phase II"),
         new("OosConcluded", "info", false, "OOS investigation concluded"),
         new("OosDeviationRequested", "info", false, "OOS deviation requested"),
+        new("ExcursionOpened", "info", false, "Excursion review opened"),
+        new("ExcursionConcluded", "info", false, "Excursion review closed"),
 
         new("PendingPreparationConfigApproval", "info", false, "Preparation configuration awaiting approval"),
         new("TestReturnedForRevision", "warning", false, "Test returned for revision"),

@@ -80,6 +80,11 @@ public static partial class MessageCodes
     public const string OosExcursionInvalidState = "Oos.ExcursionInvalidState";
     public const string OosExcursionChecklistIncomplete = "Oos.ExcursionChecklistIncomplete";
     public const string OosExcursionTextInvalid = "Oos.ExcursionTextInvalid";
+    public const string OosInvestigationKindNotOos = "Oos.InvestigationKindNotOos";
+    public const string OosExcursionTemplateEmpty = "Oos.ExcursionTemplateEmpty";
+    public const string OosExcursionOrderSuperseded = "Oos.ExcursionOrderSuperseded";
+    public const string OosExcursionSampleClosed = "Oos.ExcursionSampleClosed";
+    public const string OosExcursionFailingOrderRequiresOos = "Oos.ExcursionFailingOrderRequiresOos";
 
     private static Dictionary<string, string[]> OosParameters() => new()
     {
@@ -151,5 +156,10 @@ public static partial class MessageCodes
         [OosExcursionInvalidState] = [],
         [OosExcursionChecklistIncomplete] = [],
         [OosExcursionTextInvalid] = [],
+        [OosInvestigationKindNotOos] = [],
+        [OosExcursionTemplateEmpty] = [],
+        [OosExcursionOrderSuperseded] = [],
+        [OosExcursionSampleClosed] = [],
+        [OosExcursionFailingOrderRequiresOos] = [],
     };
 }

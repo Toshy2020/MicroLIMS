@@ -2182,5 +2182,10 @@
   "Oos.ExcursionReasonInvalid": "أدخل سبب التجاوز من حرف واحد إلى 4000 حرف.",
   "Oos.ExcursionInvalidState": "هذا الإجراء متاح فقط لمراجعة تجاوز مفتوحة.",
   "Oos.ExcursionChecklistIncomplete": "أجب عن جميع بنود قائمة التحقق النشطة للتجاوز قبل الإغلاق.",
-  "Oos.ExcursionTextInvalid": "أدخل وصف السبب والإجراء المتخذ من حرف واحد إلى 4000 حرف."
+  "Oos.ExcursionTextInvalid": "أدخل وصف السبب والإجراء المتخذ من حرف واحد إلى 4000 حرف.",
+  "Oos.InvestigationKindNotOos": "هذا الإجراء متاح فقط لتحقيق خارج المواصفة.",
+  "Oos.ExcursionTemplateEmpty": "لم يتم إعداد قائمة تحقق للتجاوز لهذا المختبر.",
+  "Oos.ExcursionOrderSuperseded": "لا يمكن فتح مراجعة تجاوز لأمر اختبار مستبدل.",
+  "Oos.ExcursionSampleClosed": "لا يمكن فتح مراجعة تجاوز لعينة تم البت فيها أو إلغاؤها بالفعل.",
+  "Oos.ExcursionFailingOrderRequiresOos": "يجب استخدام تحقيق خارج المواصفة للنتائج غير المطابقة أو المكتشفة."
 }

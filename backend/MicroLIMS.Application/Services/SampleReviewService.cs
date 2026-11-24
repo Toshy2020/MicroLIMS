@@ -134,10 +134,10 @@ public class SampleReviewService
         SampleSectionRollup.Apply(sample);
     }
 
-    public Task<(int InvestigationId, bool Opened, bool PhaseTwoStarted)?> CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null, CancellationToken ct = default) =>
+    public Task<(int InvestigationId, bool Opened, bool PhaseTwoStarted, int? ExcursionId, bool ExcursionOpened)?> CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null, CancellationToken ct = default) =>
         UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit, ct), ct);
 
-    private async Task<(int InvestigationId, bool Opened, bool PhaseTwoStarted)?> CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId, decimal? retentionQuantity, string? retentionUnit, CancellationToken ct = default)
+    private async Task<(int InvestigationId, bool Opened, bool PhaseTwoStarted, int? ExcursionId, bool ExcursionOpened)?> CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId, decimal? retentionQuantity, string? retentionUnit, CancellationToken ct = default)
     {
         var sample = await LoadAsync(sampleId, ct)
             ?? throw new NotFoundException(
@@ -162,7 +162,7 @@ public class SampleReviewService
             SignatureMeaning.Reviewed, ReviewWorkflowEventType.ReviewCompleted, comment, ipAddress, sectionId: section);
 
         // A failing review takes the OOS number lock before any sample write, as manual opening does.
-        var (investigation, opened, phaseTwoStarted) = await _oos.ApplyReviewedSectionAsync(sample, section, currentOrders, reviewerUserId, ct);
+        var (investigation, opened, phaseTwoStarted, excursion, excursionOpened) = await _oos.ApplyReviewedSectionAsync(sample, section, currentOrders, reviewerUserId, ct);
 
         var now = _time.GetUtcNow().UtcDateTime;
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
@@ -235,7 +235,9 @@ public class SampleReviewService
         _db.QueueSignal(LiveSignalKinds.MyWork, $"user:{reviewerUserId}");
 
         await _db.SaveChangesAsync(ct);
-        return investigation is null ? null : (investigation.Id, opened, phaseTwoStarted);
+        return investigation is null && excursion is null
+            ? null
+            : (investigation?.Id ?? 0, opened, phaseTwoStarted, excursion?.Id, excursionOpened);
     }
 
     // The pre-signing checks of a review, in the order the action applies them: the section (state and membership),

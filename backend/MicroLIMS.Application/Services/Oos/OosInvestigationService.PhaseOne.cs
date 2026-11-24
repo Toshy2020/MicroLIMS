@@ -18,6 +18,7 @@ public sealed partial class OosInvestigationService
         UnitOfWork.RunAsync(db, async () =>
         {
             var investigation = await OpenForEditAsync(investigationId, userId, PermissionConstants.OosContribute, ct);
+            EnsureOosKind(investigation);
             EnsurePhaseOne(investigation);
             if (string.IsNullOrWhiteSpace(text) || text.Length > 4000)
                 throw new BusinessRuleException(MessageCodes.OosStatementInvalid, "Enter an analyst statement of 1 to 4000 characters.");
@@ -35,6 +36,8 @@ public sealed partial class OosInvestigationService
         UnitOfWork.RunAsync(db, async () =>
         {
             var investigation = await OpenForEditAsync(investigationId, userId, PermissionConstants.OosContribute, ct);
+            if (phase != 1)
+                EnsureOosKind(investigation);
             if (phase == 1)
                 EnsurePhaseOne(investigation);
             if (!Enum.IsDefined(answer) || comment?.Length > 1000 ||
@@ -51,6 +54,7 @@ public sealed partial class OosInvestigationService
         UnitOfWork.RunAsync(db, async () =>
         {
             var investigation = await OpenForEditAsync(investigationId, userId, PermissionConstants.OosManage, ct);
+            EnsureOosKind(investigation);
             EnsurePhaseOne(investigation);
             if (investigation.Version != expectedVersion)
                 throw OosTemplateService.VersionConflict();
@@ -206,6 +210,12 @@ public sealed partial class OosInvestigationService
             ? items.EnumerateArray().Where(i => i.GetProperty("phase").GetInt32() == phase)
                 .Select(i => i.GetProperty("key").GetString()).OfType<string>().ToHashSet(StringComparer.Ordinal)
             : [];
+    }
+
+    private static void EnsureOosKind(OosInvestigation investigation)
+    {
+        if (investigation.Kind != OosInvestigationKind.Oos)
+            throw new BusinessRuleException(MessageCodes.OosInvestigationKindNotOos, "This action is only available for an OOS investigation.");
     }
 
     private static void EnsurePhaseOne(OosInvestigation investigation)

@@ -133,18 +133,27 @@ public sealed partial class OosInvestigationService
         }, ct);
 
     internal async Task<OosInvestigation> OpenForEditAsync(int id, int actor, string permission,
-        CancellationToken ct = default, Func<BusinessRuleException>? closed = null)
+        CancellationToken ct = default, Func<BusinessRuleException>? closed = null, string? alternativePermission = null)
     {
-        if (!await permissions.UserHasPermissionAsync(actor, permission, ct))
-            throw new CodedAccessDeniedException(MessageCodes.OosInvestigationAccessDenied, "You do not have permission for this investigation action.");
+        await EnsureInvestigationPermissionAsync(actor, permission, alternativePermission, ct);
 
         var sectionId = await db.OosInvestigations.AsNoTracking().Where(i => i.Id == id).Select(i => (int?)i.SectionId).SingleOrDefaultAsync(ct)
-            ?? throw new NotFoundException(MessageCodes.OosInvestigationNotFound, "The OOS investigation was not found.");
+            ?? throw InvestigationNotFound();
         await EnsureScopeAsync(actor, sectionId, SectionAccess.Write, ct);
 
         return await LockOpenAsync(db.OosInvestigations.Where(i => i.Id == id), ct)
             ?? throw (closed ?? Closed)();
     }
+
+    private async Task EnsureInvestigationPermissionAsync(int actor, string permission, string? alternative, CancellationToken ct)
+    {
+        if (!await permissions.UserHasPermissionAsync(actor, permission, ct) &&
+            (alternative is null || !await permissions.UserHasPermissionAsync(actor, alternative, ct)))
+            throw new CodedAccessDeniedException(MessageCodes.OosInvestigationAccessDenied, "You do not have permission for this investigation action.");
+    }
+
+    private static NotFoundException InvestigationNotFound() =>
+        new(MessageCodes.OosInvestigationNotFound, "The OOS investigation was not found.");
 
     private async Task EnsureScopeAsync(int actor, int sectionId, SectionAccess access, CancellationToken ct = default)
     {
@@ -166,7 +175,7 @@ public sealed partial class OosInvestigationService
     }
 
     private async Task AppendAsync(OosInvestigation investigation, int phase, OosEntryKind kind, string? key,
-        OosChecklistAnswer? answer, string text, int actor, CancellationToken ct = default)
+        OosChecklistAnswer? answer, string text, int actor, CancellationToken ct = default, int? parentEntryId = null)
     {
         if (db.ExpectedVersion is uint expected && expected != investigation.Version)
             throw OosTemplateService.VersionConflict();
@@ -178,6 +187,7 @@ public sealed partial class OosInvestigationService
             Phase = phase,
             Kind = kind,
             ChecklistItemKey = key,
+            ParentEntryId = parentEntryId,
             Answer = answer,
             Text = text,
             RecordedByUserId = actor,

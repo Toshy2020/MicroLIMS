@@ -9,6 +9,13 @@ namespace MicroLIMS.Application.Services.Oos;
 
 public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
 {
+    internal static async Task LockSampleDecisionAsync(IMicroLimsDbContext context, int sampleId, CancellationToken ct)
+    {
+        if (context.Database.IsRelational())
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"""SELECT 1 FROM "Samples" WHERE "Id" = {sampleId} FOR UPDATE""", ct);
+    }
+
     public async Task<ActionCheck> CheckSectionMayBeDecidedAsync(
         Sample sample, int sectionId, ApprovalDecision decision, CancellationToken ct = default)
     {
@@ -68,6 +75,17 @@ public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
     {
         var number = await FirstOpenNumberAsync(Covering(sampleId, sectionId: null), ct);
         if (number is not null) InvestigationOpen(number).ThrowIfRefused();
+
+        // No approved reporting rule selects a reportable result from several retests.
+        if (await db.OosInvestigations.AsNoTracking()
+            .Where(i => i.SampleId == sampleId && i.Kind == OosInvestigationKind.Oos &&
+                i.Status == OosInvestigationStatus.Concluded && i.Conclusion == OosConclusion.Invalidated)
+            .AnyAsync(i => (from plan in db.OosRetestPlans
+                            join link in db.OosRetestPlanSamples on plan.Id equals link.PlanId
+                            where plan.InvestigationId == i.Id && plan.SignedAtUtc != null
+                            select link.SampleId).Distinct().Count() > 1, ct))
+            ActionCheck.No(MessageCodes.OosCertificateMultipleRetests,
+                "A certificate cannot be issued until the reporting rule for multiple retests is resolved.").ThrowIfRefused();
     }
 
     private IQueryable<OosInvestigation> Covering(int sampleId, int? sectionId)

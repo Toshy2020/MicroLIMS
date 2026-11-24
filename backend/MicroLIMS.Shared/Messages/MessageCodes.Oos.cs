@@ -51,6 +51,24 @@ public static partial class MessageCodes
     public const string OosRetestPlanOrdersInvalid = "Oos.RetestPlanOrdersInvalid";
     public const string OosRetestPlanInvestigationConcluded = "Oos.RetestPlanInvestigationConcluded";
 
+    public const string OosEntryInvalid = "Oos.EntryInvalid";
+    public const string OosEntryParentInvalid = "Oos.EntryParentInvalid";
+    public const string OosConclusionPhaseInvalid = "Oos.ConclusionPhaseInvalid";
+    public const string OosConclusionTextInvalid = "Oos.ConclusionTextInvalid";
+    public const string OosPhaseTwoChecklistIncomplete = "Oos.PhaseTwoChecklistIncomplete";
+    public const string OosConclusionCauseRequired = "Oos.ConclusionCauseRequired";
+    public const string OosConclusionPlanRequired = "Oos.ConclusionPlanRequired";
+    public const string OosConclusionRetestsUnreviewed = "Oos.ConclusionRetestsUnreviewed";
+    public const string OosConclusionPasswordFailed = "Oos.ConclusionPasswordFailed";
+    public const string OosReopenPasswordFailed = "Oos.ReopenPasswordFailed";
+    public const string OosReopenNotConcluded = "Oos.ReopenNotConcluded";
+    public const string OosReopenSectionDecided = "Oos.ReopenSectionDecided";
+    public const string OosReopenReasonInvalid = "Oos.ReopenReasonInvalid";
+    public const string OosManualOpenUnavailable = "Oos.ManualOpenUnavailable";
+    public const string OosConclusionAlreadyInvalidated = "Oos.ConclusionAlreadyInvalidated";
+    public const string OosConclusionFailingRetest = "Oos.ConclusionFailingRetest";
+    public const string OosCertificateMultipleRetests = "Oos.CertificateMultipleRetests";
+
     private static Dictionary<string, string[]> OosParameters() => new()
     {
         [OosDocumentNotFound] = ["documentId"],
@@ -98,5 +116,22 @@ public static partial class MessageCodes
         [OosRetestPlanPhaseOneRequired] = [],
         [OosRetestPlanOrdersInvalid] = [],
         [OosRetestPlanInvestigationConcluded] = [],
+        [OosEntryInvalid] = [],
+        [OosEntryParentInvalid] = [],
+        [OosConclusionPhaseInvalid] = [],
+        [OosConclusionTextInvalid] = [],
+        [OosPhaseTwoChecklistIncomplete] = [],
+        [OosConclusionCauseRequired] = [],
+        [OosConclusionPlanRequired] = [],
+        [OosConclusionRetestsUnreviewed] = [],
+        [OosConclusionPasswordFailed] = [],
+        [OosReopenPasswordFailed] = [],
+        [OosReopenNotConcluded] = [],
+        [OosReopenSectionDecided] = [],
+        [OosReopenReasonInvalid] = [],
+        [OosManualOpenUnavailable] = [],
+        [OosConclusionAlreadyInvalidated] = [],
+        [OosConclusionFailingRetest] = [],
+        [OosCertificateMultipleRetests] = [],
     };
 }

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MicroLIMS.API.Authorization;
 using MicroLIMS.API.Middleware;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Enums;
@@ -14,6 +15,9 @@ namespace MicroLIMS.API.Controllers;
 public sealed record SignRetestPlanRequest(string Password);
 public sealed record OosAnalystStatementRequest(string Text);
 public sealed record OosChecklistAnswerRequest(OosChecklistAnswer Answer, string? Comment);
+
+public sealed record OosEntryRequest(OosEntryKind Kind, string Text, int? ParentEntryId);
+public sealed record OosReopenRequest(string Reason, string Password);
 
 [ApiController]
 [Route("api/oos-investigations")]
@@ -63,6 +67,40 @@ public sealed class OosInvestigationsController(OosInvestigationService service,
         await retestPlans.SignAndCreateAsync(planId, request.Password, ExpectedVersion(), Actor(),
             HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return NoContent();
+    }
+
+    [HttpPost("{id:int}/entries")]
+    [Authorize(Policy = PermissionPolicyProvider.OosContributeOrManage)]
+    public async Task<IActionResult> AddEntry(int id, OosEntryRequest request, CancellationToken ct = default)
+    {
+        _ = ExpectedVersion();
+        await service.AddEntryAsync(id, request.Kind, request.Text, request.ParentEntryId, Actor(), ct);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/conclude")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> Conclude(int id, ConcludeRequest request, CancellationToken ct = default)
+    {
+        await service.ConcludeAsync(id, request, ExpectedVersion(), Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/reopen")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> Reopen(int id, OosReopenRequest request, CancellationToken ct = default)
+    {
+        _ = ExpectedVersion();
+        await service.ReopenAsync(id, request.Reason, request.Password, Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        return NoContent();
+    }
+
+    [HttpPost("for-sample/{sampleId:int}/sections/{sectionId:int}/open")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> OpenManually(int sampleId, int sectionId, CancellationToken ct = default)
+    {
+        var investigation = await service.OpenManuallyAsync(sampleId, sectionId, ExpectedVersion(), Actor(), ct);
+        return Ok(ApiResponse<OosManualOpeningDto>.Ok(investigation));
     }
 
     private uint ExpectedVersion() => RecordVersionMiddleware.ParseExpectedVersion(Request) ?? throw OosApiErrors.MissingVersion();

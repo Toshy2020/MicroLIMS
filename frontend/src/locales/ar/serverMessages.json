@@ -2154,5 +2154,22 @@
   "WorkflowStep.TemplateValidationFailed": "{{message}}",
   "WorkflowStep.TestNotFound": "الاختبار {{id}} غير موجود.",
   "WorkflowStep.TestWorkflowTypeLocked": "نوع سير عمل هذا الاختبار يحدده نوع الاختبار؛ غيّره في إعدادات الاختبار.",
-  "WorkflowStep.WorkflowTypeHasNoSteps": "اختبارات {{workflowType}} لا تحتوي على خطوات سير عمل."
+  "WorkflowStep.WorkflowTypeHasNoSteps": "اختبارات {{workflowType}} لا تحتوي على خطوات سير عمل.",
+  "Oos.EntryInvalid": "اختر إدخالًا مسموحًا به في هذه المرحلة واكتب من حرف واحد إلى 4000 حرف.",
+  "Oos.EntryParentInvalid": "يمكن لنتيجة الفرضية فقط الإشارة إلى فرضية من هذا التحقيق.",
+  "Oos.ConclusionPhaseInvalid": "هذا الاستنتاج غير متاح في المرحلة الحالية من التحقيق.",
+  "Oos.ConclusionTextInvalid": "أدخل ملخص الاستنتاج وأي وصف للسبب في حدود 4000 حرف.",
+  "Oos.PhaseTwoChecklistIncomplete": "أجب عن جميع بنود قائمة التحقق النشطة للمرحلة الثانية قبل إنهاء التحقيق.",
+  "Oos.ConclusionCauseRequired": "يتطلب إبطال النتيجة سببًا محددًا ووصفًا له.",
+  "Oos.ConclusionPlanRequired": "يتطلب إبطال النتيجة خطة إعادة اختبار موقعة وعينات منشأة بموجبها.",
+  "Oos.ConclusionRetestsUnreviewed": "أكمل مراجعة القسم المختبري لكل عينة إعادة اختبار مخطط لها قبل إنهاء التحقيق.",
+  "Oos.ConclusionPasswordFailed": "فشل التحقق من كلمة المرور أو تعذر مؤقتًا. لم يُطبّق التوقيع.",
+  "Oos.ReopenPasswordFailed": "فشل التحقق من كلمة المرور أو تعذر مؤقتًا. لم يُطبّق التوقيع.",
+  "Oos.ReopenNotConcluded": "يمكن إعادة فتح تحقيق خارج المواصفة بعد توقيع استنتاجه فقط.",
+  "Oos.ReopenSectionDecided": "لا يمكن إعادة فتح التحقيق بعد اعتماد القسم المختبري أو رفضه.",
+  "Oos.ReopenReasonInvalid": "أدخل سبب إعادة الفتح من حرف واحد إلى 4000 حرف.",
+  "Oos.ManualOpenUnavailable": "يتطلب الفتح اليدوي قسمًا تمت مراجعته وفيه نتيجة غير مطابقة ولا يوجد لها تحقيق.",
+  "Oos.ConclusionAlreadyInvalidated": "يتطلب تأكيد النتيجة غير المطابقة معالجة النتائج التي سبق إبطالها.",
+  "Oos.ConclusionFailingRetest": "لا يمكن إنهاء التحقيق أثناء انتظار إعادة الاختبار مع وجود نتيجة غير مطابقة لم تُحسم.",
+  "Oos.CertificateMultipleRetests": "لا يمكن إصدار شهادة حتى تُحدد قاعدة الإبلاغ عن نتائج إعادات الاختبار المتعددة."
 }

@@ -451,7 +451,8 @@
       "machineRequired": "Machine is required",
       "causeRequired": "Cause of Testing is required",
       "sampledByRequired": "Sampled By is required",
-      "expAfterMfg": "Expiry Date must be after Manufacturing Date"
+      "expAfterMfg": "Expiry Date must be after Manufacturing Date",
+      "dateIncomplete": "Enter a complete date (DD/MM/YYYY) or clear the field."
     }
   },
   "grid": {

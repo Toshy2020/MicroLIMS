@@ -1195,6 +1195,7 @@ export function MultiSampleEntryGrid({
                             value={row.mfgDate ?? ""}
                             error={Boolean(errors.mfgDate)}
                             onChange={(v) => onChangeRow(idx, "mfgDate", v)}
+                            onIncompleteChange={(b) => onChangeRow(idx, "mfgDateIncomplete", b)}
                             ariaLabel={t("grid.aria.mfgDate", { number: idx + 1 })}
                             ariaDescribedBy={errors.mfgDate ? cellErrorId(idx, "mfgDate") : undefined}
                           />
@@ -1206,6 +1207,7 @@ export function MultiSampleEntryGrid({
                             value={row.expDate ?? ""}
                             error={Boolean(errors.expDate)}
                             onChange={(v) => onChangeRow(idx, "expDate", v)}
+                            onIncompleteChange={(b) => onChangeRow(idx, "expDateIncomplete", b)}
                             ariaLabel={t("grid.aria.expDate", { number: idx + 1 })}
                             ariaDescribedBy={errors.expDate ? cellErrorId(idx, "expDate") : undefined}
                           />

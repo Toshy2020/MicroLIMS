@@ -20,6 +20,9 @@ interface DateFieldProps {
    *  partly typed - the same contract as the native input, so callers that
    *  must not send a half-typed date to the server keep working. */
   onChange: (value: string) => void;
+  /** Called with true when focus leaves a partly typed date (so the form can
+   *  refuse to save it) and false once the date is complete or cleared. */
+  onIncompleteChange?: (incomplete: boolean) => void;
   /** "YYYY-MM-DD" bounds; an empty string means no bound. */
   min?: string;
   max?: string;
@@ -46,7 +49,7 @@ function parse(value: string | undefined): Dayjs | null {
 // same height as the TextFields and Selects beside it, replacing the
 // browser's own "dd----yyyy" placeholder rendering.
 export function DateField({
-  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
+  label, value, onChange, onIncompleteChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
 }: DateFieldProps) {
   const { t, i18n } = useTranslation("common");
   const isRtl = i18n.language === "ar";
@@ -59,7 +62,9 @@ export function DateField({
     if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
     const sections = Array.from(e.currentTarget.querySelectorAll('[role="spinbutton"]'));
     const filled = sections.filter((s) => s.hasAttribute("aria-valuenow")).length;
-    setPartial(filled > 0 && filled < sections.length);
+    const incomplete = filled > 0 && filled < sections.length;
+    setPartial(incomplete);
+    onIncompleteChange?.(incomplete);
   };
   const inputAriaProps =
     ariaLabel || ariaDescribedBy
@@ -91,6 +96,7 @@ export function DateField({
         value={parse(value)}
         onChange={(d) => {
           setPartial(false);
+          onIncompleteChange?.(false);
           onChange(d && d.isValid() ? d.format(VALUE_FORMAT) : "");
         }}
         format={DISPLAY_FORMAT}

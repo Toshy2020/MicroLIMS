@@ -155,6 +155,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [solutions, setSolutions] = useState<UsableSolution[]>([]);
   const additiveKey = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  const [expiryIncomplete, setExpiryIncomplete] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<MediaFieldKey, string>>>({});
   const [saving, setSaving] = useState(false);
   const [keptOffline, setKeptOffline] = useKeptOffline();
@@ -387,6 +388,10 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     }
     if (!form.ph) {
       setError(t("media.preparationDialog.errors.phRequired"));
+      return;
+    }
+    if (expiryIncomplete) {
+      setError(t("media.preparationDialog.errors.expiryIncomplete"));
       return;
     }
     if (!form.expiryDate) {
@@ -764,6 +769,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               label={t("media.preparationDialog.expiryDateLabel")}
               value={form.expiryDate ?? ""}
               onChange={(v) => setField("expiryDate", v)}
+              onIncompleteChange={setExpiryIncomplete}
               error={Boolean(fieldErrors.expiryDate)}
               helperText={fieldErrors.expiryDate}
             />

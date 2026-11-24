@@ -447,7 +447,16 @@ export function NewSampleDialog({ open, onClose, onSuccess, allowedCategories, l
         isValid = false;
       }
 
-      if (row.mfgDate && row.expDate && row.expDate < row.mfgDate) {
+      if (row.mfgDateIncomplete) {
+        errors.mfgDate = t("newSample.validation.dateIncomplete");
+        isValid = false;
+      }
+      if (row.expDateIncomplete) {
+        errors.expDate = t("newSample.validation.dateIncomplete");
+        isValid = false;
+      }
+
+      if (!row.mfgDateIncomplete && !row.expDateIncomplete && row.mfgDate && row.expDate && row.expDate < row.mfgDate) {
         errors.expDate = t("newSample.validation.expAfterMfg");
         isValid = false;
       }

@@ -934,6 +934,7 @@
   "Media.EquipmentNotInService": "معدات {{code}} ليست في الخدمة حاليًا.",
   "Media.EvaluationNotFound": "تقييم أوساط زرعية {{id}} غير موجود.",
   "Media.EvaluationTypeRequired": "نوع تقييم صالح مطلوب.",
+  "Media.ExpiryBeforePreparation": "تاريخ انتهاء الصلاحية {{expiryDate}} يسبق تاريخ التحضير {{preparedOn}}.",
   "Media.GroupedActionResultEntryBlocked": "لا يمكن تنفيذ الإجراءات المجمعة على عمليات إدخال نتيجة التحليل. يجب إدخال كل نتيجة بشكل فردي.",
   "Media.InactiveProductCannotConfigure": "منتج أوساط زرعية \"{{name}}\" غير نشط ولا يمكنه الحصول على إعداد جديد.",
   "Media.IncubationConditionDuplicate": "'{{productName}}' لديه بالفعل شرط حضانة {{minH}}–{{maxH}} ساعة عند {{tMin}}–{{tMax}} °م.",

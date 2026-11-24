@@ -109,6 +109,30 @@ public class MediaAdditivesTests
     }
 
     [Fact]
+    public async Task ExpiryBeforePreparationDate_IsRejected_AndNothingIsConsumedOrSaved()
+    {
+        var f = await SetUpAsync();
+        var past = Request(f) with { ExpiryDate = DateTime.UtcNow.Date.AddDays(-1) };
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.PrepareAsync(past));
+
+        Assert.Equal("Media.ExpiryBeforePreparation", ex.Code);
+        Assert.Empty(await f.Db.Media.ToListAsync());
+        Assert.Equal(500m, (await f.Db.Materials.FindAsync(f.Media.Id))!.QuantityRemaining);
+    }
+
+    [Fact]
+    public async Task ExpiryOnThePreparationDate_IsAccepted()
+    {
+        var f = await SetUpAsync();
+        var sameDay = Request(f) with { ExpiryDate = DateTime.UtcNow.Date };
+
+        var result = await f.Service.PrepareAsync(sameDay);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
     public async Task StockLotAdditive_DeductsStock_AndIsRecordedInLotsOwnUnit()
     {
         var f = await SetUpAsync();

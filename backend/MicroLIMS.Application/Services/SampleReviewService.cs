@@ -255,8 +255,7 @@ public class SampleReviewService
         if (!sectionCheck.Allowed) return (sectionCheck, section);
 
         if (await _segregationOfDuties.DidUserOverrideCompetencyAsync(reviewerUserId, sample.Id, ct))
-            return (ActionCheck.No(MessageCodes.SampleCannotReviewOverrode,
-                "You overrode competency for a test on this sample, so you cannot review it."), section);
+            return (ActionCheck.No(MessageCodes.SampleCannotReviewOverrode, SignoffRefusalSentences.CannotReviewOverrode), section);
 
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(reviewerUserId, currentOrders.Select(o => o.Id).ToList(), ct);

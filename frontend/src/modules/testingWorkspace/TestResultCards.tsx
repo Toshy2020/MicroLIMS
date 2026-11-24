@@ -67,6 +67,7 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
+  const { t } = useTranslation("testingWorkspace");
   const resultCard = test.analysis
     ? <AnalysisCard test={test} />
     : isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
@@ -75,11 +76,11 @@ export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
       {resultCard}
       {test.competencyOverrides?.map((override, index) => (
         <div className="signature-card" key={index}>
-          <div className="sig-meaning">{override.meaning} for {override.analystName}</div>
+          <div className="sig-meaning">{override.meaning} · {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}</div>
           <div className="sig-name">{override.grantedByFullName}</div>
           <div className="sig-time">{dt(override.grantedAtUtc)}</div>
           <div className="sig-comment">{override.reason}</div>
-          {override.endedAtUtc && <div className="sig-time">Ended {dt(override.endedAtUtc)}</div>}
+          {override.endedAtUtc && <div className="sig-time">{t("sampleSummary.testResults.overrideEnded")}: {dt(override.endedAtUtc)}</div>}
         </div>
       ))}
     </>

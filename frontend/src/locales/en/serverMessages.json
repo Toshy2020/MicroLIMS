@@ -122,6 +122,7 @@
   "Competency.OverrideOrderClosed": "This test order is not open for a competency override.",
   "Competency.OverrideAnalystIneligible": "This analyst is not eligible for assignment to the test order.",
   "Competency.OverrideAlreadyActive": "This test order already has an active competency override.",
+  "Competency.OverrideAlreadySignedOff": "You already reviewed or decided approval for this sample, so you cannot grant a competency override.",
   "Competency.OverrideNotNeeded": "A competency override is not needed.",
   "Competency.OverridePasswordFailed": "Signature password verification failed.",
   "Competency.OverrideConcurrencyConflict": "The test changed. Refresh and try again.",

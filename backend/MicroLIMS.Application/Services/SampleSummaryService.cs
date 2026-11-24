@@ -116,6 +116,7 @@ public class SampleSummaryService
 
         var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
 
+        var overrideMeaning = ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.CompetencyOverride));
         var competencyOverrides = await _db.CompetencyOverrides.AsNoTracking()
             .Where(row => testOrderIds.Contains(row.TestOrderId))
             .OrderBy(row => row.GrantedAtUtc).ThenBy(row => row.Id)
@@ -123,7 +124,7 @@ public class SampleSummaryService
             {
                 row.TestOrderId,
                 Manifestation = new CompetencyOverrideDto(row.AnalystUser.FullName, row.Signature.UserFullNameSnapshot,
-                    row.GrantedAtUtc, "Competency override", row.Reason, row.EndedAtUtc)
+                    row.GrantedAtUtc, overrideMeaning, row.Reason, row.EndedAtUtc)
             }).ToListAsync(ct);
 
         var incubations = await _db.Incubations

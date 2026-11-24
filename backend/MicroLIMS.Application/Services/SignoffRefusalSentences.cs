@@ -6,6 +6,8 @@ namespace MicroLIMS.Application.Services;
 public static class SignoffRefusalSentences
 {
     public const string CannotReviewTested = "You cannot review a sample you tested.";
+    public const string CannotReviewOverrode = "You overrode competency for a test on this sample, so you cannot review it.";
     public const string CannotApproveTested = "You cannot approve a sample you tested.";
     public const string CannotApproveReviewed = "You cannot approve a sample you reviewed.";
+    public const string CannotApproveOverrode = "You overrode competency for a test on this sample, so you cannot approve it.";
 }

@@ -17,8 +17,10 @@ internal static class CompetencyOverrideLifecycle
             .Where(row => ids.Contains(row.TestOrderId) && row.EndedAtUtc == null).ToListAsync(ct);
         if (reason == CompetencyOverrideEndReason.Reassigned)
         {
-            var assignments = orders.ToDictionary(order => order.Id, order => order.AssignedAnalystId);
-            active.RemoveAll(row => assignments[row.TestOrderId] is not int assignee || assignee == row.AnalystUserId);
+            var assignments = new Dictionary<int, int?>();
+            foreach (var order in orders)
+                assignments[order.Id] = order.AssignedAnalystId;
+            active.RemoveAll(row => !assignments.TryGetValue(row.TestOrderId, out var assignee) || assignee is null || assignee == row.AnalystUserId);
         }
 
         foreach (var row in active)

@@ -9,6 +9,7 @@ using MicroLIMS.Application.Services.DocumentControl;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Tests.Fixtures;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -321,19 +322,23 @@ public class CompetencyOverridePostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
-    public async Task Grant_racing_review_loses_and_rolls_back_its_signature()
+    public async Task Grant_racing_reassignment_loses_and_rolls_back_its_signature()
     {
         var (sample, head, analyst) = await ArrangeAsync();
         var order = sample.Orders[0];
-        var (_, reviewer, _) = await ReadyForReviewAsync(sample);
+        var section = await ReadSectionAsync(order.SectionId);
+        var replacement = await _seed.AnalystAsync(section);
+        await SeedQualificationAsync(order, replacement.Id, head);
         await using var grantDb = fixture.CreateDbContext();
         var pause = new PausedSignature(new ElectronicSignatureService(grantDb));
         var grant = GrantService(grantDb, pause).GrantAsync(order.Id, analyst, Reason, ActionGuardScenarios.Password, head);
         try
         {
             await pause.Entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
-            await using var reviewDb = fixture.CreateDbContext();
-            await ReviewAsync(reviewDb, sample.Sample.Id, reviewer, order.SectionId);
+            await using var assignDb = fixture.CreateDbContext();
+            var assignSvc = new SampleAssignmentService(assignDb, TestServiceFactory.TestingWorkspace(assignDb),
+                new UserSectionScopeService(assignDb), competency: TestServiceFactory.Competency(assignDb));
+            await assignSvc.AssignTestsAsync(sample.Sample.Id, [new(order.Id, replacement.Id)], head);
         }
         finally
         {
@@ -344,10 +349,370 @@ public class CompetencyOverridePostgresTests(PostgresTestFixture fixture)
         Assert.Equal("Competency.OverrideConcurrencyConflict", conflict.Code);
         await AssertNoGrantAsync(order.Id, head);
         await using var verify = fixture.CreateDbContext();
-        Assert.Equal(ApprovalStatus.Reviewed,
-            await verify.TestOrders.AsNoTracking().Where(t => t.Id == order.Id).Select(t => t.Status).SingleAsync());
-        Assert.True(await verify.ElectronicSignatures.AsNoTracking().AnyAsync(s => s.UserId == reviewer
-            && s.EntityType == "Sample" && s.EntityId == sample.Sample.Id && s.MeaningOfSignature == SignatureMeaning.Reviewed));
+        Assert.Equal(replacement.Id,
+            await verify.TestOrders.AsNoTracking().Where(t => t.Id == order.Id).Select(t => t.AssignedAnalystId).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Recording_through_override_succeeds_and_audits_override_id()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        var order = sample.Orders[0];
+        int specId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var def = new TestDefinition
+            {
+                Code = order.TestCode,
+                DisplayName = order.TestCode,
+                SectionId = order.SectionId,
+                WorkflowType = WorkflowType.Measurement,
+                ReplicateCount = 1,
+                EvaluationBasis = MeasurementEvaluationBasis.Mean
+            };
+            arrange.TestDefinitions.Add(def);
+            var trackedSample = await arrange.Samples.SingleAsync(s => s.Id == sample.Sample.Id);
+            var item = new Item { Code = $"ITEM-{sample.Sample.Id}", Name = "Override Item", Category = SampleCategory.FinishedProduct };
+            arrange.Items.Add(item);
+            await arrange.SaveChangesAsync();
+            trackedSample.ItemId = item.Id;
+            var trackedOrder = await arrange.TestOrders.SingleAsync(t => t.Id == order.Id);
+            trackedOrder.CurrentStep = WorkflowStep.Running;
+            var spec = new Specification
+            {
+                ItemId = item.Id,
+                TestCode = order.TestCode,
+                ParameterName = "pH",
+                Unit = "pH",
+                LowerLimit = 1m,
+                UpperLimit = 14m,
+                LimitType = LimitType.Range
+            };
+            arrange.Specifications.Add(spec);
+            await arrange.SaveChangesAsync();
+            specId = spec.Id;
+        }
+
+        var overrideId = await GrantAsync(order.Id, analyst, head);
+        await using (var act = fixture.CreateDbContext())
+        {
+            await TestServiceFactory.TestWorkflow(act).RecordMeasurementResultAsync(
+                order.Id,
+                new(ActionGuardScenarios.Now, null, [new(specId, [7.0m])], ActionGuardScenarios.Password),
+                analyst);
+        }
+
+        await using var verify = fixture.CreateDbContext();
+        var analysis = await verify.TestAnalyses.AsNoTracking().SingleAsync(a => a.TestOrderId == order.Id);
+        Assert.Equal(analyst, analysis.EnteredByUserId);
+        var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a =>
+            a.EntityName == nameof(TestAnalysis) && a.EntityId == analysis.Id.ToString() && a.Action == "Create");
+        Assert.Contains($"Competency override #{overrideId}", audit.Reason);
+    }
+
+    [PostgresFact]
+    public async Task SampleAssignment_allows_overridden_analyst_on_overridden_order_only()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            foreach (var o in await arrange.TestOrders.Where(t => t.SampleId == sample.Sample.Id).ToListAsync())
+                o.AssignedAnalystId = null;
+            await arrange.SaveChangesAsync();
+        }
+        await GrantAsync(sample.Orders[0].Id, analyst, head);
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            var svc = new SampleAssignmentService(act, TestServiceFactory.TestingWorkspace(act), new UserSectionScopeService(act), competency: TestServiceFactory.Competency(act));
+            await svc.AssignTestsAsync(sample.Sample.Id, [new(sample.Orders[0].Id, analyst)], head);
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            var svc = new SampleAssignmentService(act, TestServiceFactory.TestingWorkspace(act), new UserSectionScopeService(act), competency: TestServiceFactory.Competency(act));
+            var refused = await Assert.ThrowsAsync<BusinessRuleException>(() => svc.AssignAnalystAsync(sample.Sample.Id, analyst, head));
+            Assert.Equal(MessageCodes.CompetencyAssignmentRefused, refused.Code);
+        }
+
+        // Single-order sample with an active override allows sample-level assignment too.
+        var section = await ReadSectionAsync(sample.Orders[0].SectionId);
+        var single = await _seed.SampleAsync(section, SampleStatus.InTesting, ApprovalStatus.InProgress,
+            WorkflowStep.Waiting, orders: 1, analystId: null, testCode: sample.Orders[0].TestCode);
+        await GrantAsync(single.Orders[0].Id, analyst, head);
+        await using (var act = fixture.CreateDbContext())
+        {
+            var svc = new SampleAssignmentService(act, TestServiceFactory.TestingWorkspace(act), new UserSectionScopeService(act), competency: TestServiceFactory.Competency(act));
+            await svc.AssignAnalystAsync(single.Sample.Id, analyst, head);
+        }
+        await using var verify = fixture.CreateDbContext();
+        Assert.Equal(analyst, await verify.TestOrders.AsNoTracking().Where(t => t.Id == single.Orders[0].Id).Select(t => t.AssignedAnalystId).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Override_does_not_carry_over_to_retest()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        var order = sample.Orders[0];
+        await GrantAsync(order.Id, analyst, head);
+
+        await using var verify = fixture.CreateDbContext();
+        var refused = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            AnalystAssignmentRules.EnsureAssignableAsync(verify, new UserSectionScopeService(verify),
+                analyst, head, [order.SectionId], Clock().UtcNow.UtcDateTime,
+                testOrderIds: [order.Id], competency: TestServiceFactory.Competency(verify), allowOrderOverride: false));
+        Assert.Equal(MessageCodes.CompetencyAssignmentRefused, refused.Code);
+    }
+
+    [PostgresFact]
+    public async Task Grant_refused_for_sample_in_oos_retest_plan()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var inv = new OosInvestigation
+            {
+                Number = $"OOS-{sample.Sample.Id}",
+                SampleId = sample.Sample.Id,
+                SectionId = sample.Orders[0].SectionId,
+                Status = OosInvestigationStatus.AwaitingRetest,
+                Kind = OosInvestigationKind.Oos,
+                OpenedByUserId = head,
+                OpenedAtUtc = ActionGuardScenarios.Now,
+                TemplateSnapshotJson = "{}"
+            };
+            arrange.OosInvestigations.Add(inv);
+            await arrange.SaveChangesAsync();
+            var plan = new OosRetestPlan
+            {
+                InvestigationId = inv.Id,
+                Revision = 1,
+                RetestCount = 1,
+                TestOrderIdsJson = "[]",
+                AnalystUserIdsJson = "[]",
+                JudgingRule = "AllMustPass"
+            };
+            arrange.OosRetestPlans.Add(plan);
+            await arrange.SaveChangesAsync();
+            arrange.OosRetestPlanSamples.Add(new OosRetestPlanSample { PlanId = plan.Id, SampleId = sample.Sample.Id });
+            await arrange.SaveChangesAsync();
+        }
+
+        var refused = await Assert.ThrowsAsync<BusinessRuleException>(() => GrantAsync(sample.Orders[0].Id, analyst, head));
+        Assert.Equal(MessageCodes.CompetencyOverrideOrderClosed, refused.Code);
+        await AssertNoGrantAsync(sample.Orders[0].Id, head);
+    }
+
+    [PostgresFact]
+    public async Task Override_ends_on_void_section_close_supersede_self_take_and_preparation()
+    {
+        // 1. Void
+        var (voidSample, voidHead, voidAnalyst) = await ArrangeAsync();
+        var voidOverrideId = await GrantAsync(voidSample.Orders[0].Id, voidAnalyst, voidHead);
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.SampleCorrection(act).VoidAsync(voidSample.Sample.Id, "Voided for test", ActionGuardScenarios.Password, voidHead, null);
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencyOverrides.AsNoTracking().SingleAsync(o => o.Id == voidOverrideId);
+            Assert.NotNull(row.EndedAtUtc);
+            Assert.Equal(CompetencyOverrideEndReason.Cancelled, row.EndReason);
+        }
+
+        // 2. Section close
+        var (closeSample, closeHead, closeAnalyst) = await ArrangeAsync();
+        var closeOverrideId = await GrantAsync(closeSample.Orders[0].Id, closeAnalyst, closeHead);
+        var otherSection = await _seed.SectionAsync();
+        await _seed.AddSectionAsync(closeSample, otherSection, ApprovalStatus.Rejected, WorkflowStep.Ready, SectionSignoffStatus.Rejected);
+        await using (var act = fixture.CreateDbContext())
+        {
+            var scope = new UserSectionScopeService(act);
+            var closure = new SectionClosureService(act, TestServiceFactory.ReviewGate(act), scope, TestServiceFactory.SampleApproval(act));
+            await closure.CloseTestingAsync(closeSample.Sample.Id, closeSample.Orders[0].SectionId, closeHead, ActionGuardScenarios.Password, "Other lab rejected", null);
+        }
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencyOverrides.AsNoTracking().SingleAsync(o => o.Id == closeOverrideId);
+            Assert.NotNull(row.EndedAtUtc);
+            Assert.Equal(CompetencyOverrideEndReason.Cancelled, row.EndReason);
+        }
+
+        // 3. Supersede (RetestRetainedSample)
+        var (supSample, supHead, supAnalyst) = await ArrangeAsync();
+        var supOrder = supSample.Orders[0];
+        var supOverrideId = await GrantAsync(supOrder.Id, supAnalyst, supHead);
+        var (_, supReviewer, supOtherHead) = await ReadyForReviewAsync(supSample);
+        await using (var act = fixture.CreateDbContext())
+            await ReviewAsync(act, supSample.Sample.Id, supReviewer, supOrder.SectionId);
+        // Grant a second override on the second order? No, supOverrideId was ended on review; grant on supSample.Orders[1] is not open after review.
+        // Instead, test supersede directly by setting order to Reviewed while override is still active (e.g. pre-existing active override before approval retest).
+        var (retSample, retHead, retAnalyst) = await ArrangeAsync();
+        var retOrder = retSample.Orders[0];
+        var retOverrideId = await GrantAsync(retOrder.Id, retAnalyst, retHead);
+        var retSection = await ReadSectionAsync(retOrder.SectionId);
+        var retOtherHead = await _seed.HeadAsync(retSection);
+        var retReviewer = await _seed.HeadAsync(retSection);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            if (!await arrange.CausesOfTesting.AnyAsync(c => c.Name == "Retest"))
+                arrange.CausesOfTesting.Add(new CauseOfTesting { Name = "Retest", IsActive = true });
+            var s = await arrange.Samples.Include(x => x.TestOrders).SingleAsync(x => x.Id == retSample.Sample.Id);
+            s.Status = SampleStatus.UnderApproval;
+            foreach (var o in s.TestOrders)
+            {
+                o.Status = ApprovalStatus.Reviewed;
+                o.CurrentStep = WorkflowStep.Reviewed;
+            }
+            arrange.SampleSectionSignoffs.Add(new() { SampleId = s.Id, SectionId = retOrder.SectionId, Status = SectionSignoffStatus.UnderApproval, ReviewedByUserId = retReviewer.Id });
+            await arrange.SaveChangesAsync();
+        }
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.SampleApproval(act).DecideAsync(retSample.Sample.Id, retOtherHead.Id, ActionGuardScenarios.Password,
+                ApprovalDecision.RetestRetainedSample, "Retest needed", null, selectedTestOrderIds: [retOrder.Id], sectionId: retOrder.SectionId);
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencyOverrides.AsNoTracking().SingleAsync(o => o.Id == retOverrideId);
+            Assert.NotNull(row.EndedAtUtc);
+            Assert.Equal(CompetencyOverrideEndReason.Superseded, row.EndReason);
+        }
+
+        // 4. Self-take
+        var (takeSample, takeHead, takeAnalyst) = await ArrangeAsync();
+        var takeOrder = takeSample.Orders[0];
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var o = await arrange.TestOrders.SingleAsync(t => t.Id == takeOrder.Id);
+            o.AssignedAnalystId = null;
+            await arrange.SaveChangesAsync();
+        }
+        var takeOverrideId = await GrantAsync(takeOrder.Id, takeAnalyst, takeHead);
+        var takeSection = await ReadSectionAsync(takeOrder.SectionId);
+        var otherAnalyst = await _seed.UserAsync(RoleType.Analyst, [PermissionConstants.TestsSelfAssign], takeSection);
+        await using (var act = fixture.CreateDbContext())
+            await new TestSelfAssignmentService(act, new UserSectionScopeService(act)).TakeAsync(takeOrder.Id, otherAnalyst.Id);
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencyOverrides.AsNoTracking().SingleAsync(o => o.Id == takeOverrideId);
+            Assert.NotNull(row.EndedAtUtc);
+            Assert.Equal(CompetencyOverrideEndReason.Reassigned, row.EndReason);
+        }
+
+        // 5. Take-at-preparation
+        var (prepSample, prepHead, prepAnalyst) = await ArrangeAsync();
+        var prepOrder = prepSample.Orders[0];
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var item = new Item { Code = $"PREP-{prepSample.Sample.Id}", Name = "Prep Item", Category = SampleCategory.FinishedProduct };
+            arrange.Items.Add(item);
+            await arrange.SaveChangesAsync();
+            var s = await arrange.Samples.Include(x => x.TestOrders).SingleAsync(x => x.Id == prepSample.Sample.Id);
+            s.Category = SampleCategory.FinishedProduct;
+            s.ItemId = item.Id;
+            s.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
+            foreach (var o in s.TestOrders)
+                o.AssignedAnalystId = null;
+            await arrange.SaveChangesAsync();
+        }
+        var prepOverrideId = await GrantAsync(prepOrder.Id, prepAnalyst, prepHead);
+        var prepSection = await ReadSectionAsync(prepOrder.SectionId);
+        var preparer = await _seed.UserAsync(RoleType.Analyst, [PermissionConstants.SamplesPrepare], prepSection);
+        await SeedQualificationAsync(prepOrder, preparer.Id, prepHead);
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.SamplePreparation(act).PrepareAsync(
+                await MicroLIMS.Tests.WorkflowTests.PreparationTestData.ManualRequestAsync(
+                    act, prepSample.Sample.Id, 10m, preparer.Id, ActionGuardScenarios.Password));
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var row = await verify.CompetencyOverrides.AsNoTracking().SingleAsync(o => o.Id == prepOverrideId);
+            Assert.NotNull(row.EndedAtUtc);
+            Assert.Equal(CompetencyOverrideEndReason.Reassigned, row.EndReason);
+        }
+    }
+
+    [PostgresFact]
+    public async Task Grant_refused_when_granter_already_reviewed_or_approved_any_section()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        var (otherSection, _, _) = await ReadyForReviewAsync(sample);
+        var sectionA = await ReadSectionAsync(sample.Orders[0].SectionId);
+        var approver = await _seed.UserAsync(RoleType.SectionHead, [PermissionConstants.CompetencyOverride, ..ActionGuardScenarios.HeadCodes], sectionA);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            arrange.UserOrgMemberships.Add(new() { UserId = head, DepartmentId = otherSection.DepartmentId, SectionId = otherSection.Id });
+            arrange.UserOrgMemberships.Add(new() { UserId = approver.Id, DepartmentId = otherSection.DepartmentId, SectionId = otherSection.Id });
+            foreach (var o in await arrange.TestOrders.Where(t => t.SampleId == sample.Sample.Id && t.SectionId == sample.Orders[0].SectionId).ToListAsync())
+            {
+                o.Status = ApprovalStatus.InProgress;
+                o.CurrentStep = WorkflowStep.Waiting;
+            }
+            await arrange.SaveChangesAsync();
+        }
+
+        // Head reviews section B, then tries to grant on section A.
+        await using (var act = fixture.CreateDbContext())
+            await ReviewAsync(act, sample.Sample.Id, head, otherSection.Id);
+        var afterReview = await Assert.ThrowsAsync<BusinessRuleException>(() => GrantAsync(sample.Orders[0].Id, analyst, head));
+        Assert.Equal(MessageCodes.CompetencyOverrideAlreadySignedOff, afterReview.Code);
+        await AssertNoGrantAsync(sample.Orders[0].Id, head);
+
+        // Approver approves section B, then tries to grant on section A.
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.SampleApproval(act).DecideAsync(sample.Sample.Id, approver.Id, ActionGuardScenarios.Password,
+                ApprovalDecision.Approve, "Approved", null, sectionId: otherSection.Id);
+        var afterApproval = await Assert.ThrowsAsync<BusinessRuleException>(() => GrantAsync(sample.Orders[0].Id, analyst, approver.Id));
+        Assert.Equal(MessageCodes.CompetencyOverrideAlreadySignedOff, afterApproval.Code);
+        await AssertNoGrantAsync(sample.Orders[0].Id, approver.Id);
+    }
+
+    [PostgresFact]
+    public async Task Grant_racing_approval_by_same_user_on_different_sections_allows_exactly_one()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        var (otherSection, reviewer, _) = await ReadyForReviewAsync(sample);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            arrange.UserOrgMemberships.Add(new() { UserId = head, DepartmentId = otherSection.DepartmentId, SectionId = otherSection.Id });
+            foreach (var o in await arrange.TestOrders.Where(t => t.SampleId == sample.Sample.Id && t.SectionId == sample.Orders[0].SectionId).ToListAsync())
+            {
+                o.Status = ApprovalStatus.InProgress;
+                o.CurrentStep = WorkflowStep.Waiting;
+            }
+            var signoff = await arrange.SampleSectionSignoffs.SingleAsync(s => s.SampleId == sample.Sample.Id && s.SectionId == otherSection.Id);
+            signoff.Status = SectionSignoffStatus.UnderApproval;
+            signoff.ReviewedByUserId = reviewer;
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var grantDb = fixture.CreateDbContext();
+        var pause = new PausedSignature(new ElectronicSignatureService(grantDb));
+        var grant = GrantService(grantDb, pause).GrantAsync(sample.Orders[0].Id, analyst, Reason, ActionGuardScenarios.Password, head);
+        Task? approve = null;
+        try
+        {
+            await pause.Entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            approve = Task.Run(async () =>
+            {
+                await using var approveDb = fixture.CreateDbContext();
+                await TestServiceFactory.SampleApproval(approveDb).DecideAsync(
+                    sample.Sample.Id, head, ActionGuardScenarios.Password, ApprovalDecision.Approve, "Approved", null, sectionId: otherSection.Id);
+            });
+            await Task.Delay(150);
+        }
+        finally
+        {
+            pause.Resume.TrySetResult();
+        }
+
+        var overrideId = await grant;
+        Assert.True(overrideId > 0);
+        var refused = await Assert.ThrowsAsync<BusinessRuleException>(() => approve!);
+        Assert.Equal(MessageCodes.SampleCannotApproveOverrode, refused.Code);
+
+        await using var verify = fixture.CreateDbContext();
+        Assert.True(await verify.CompetencyOverrides.AsNoTracking().AnyAsync(o => o.Id == overrideId));
+        var signoffAfter = await verify.SampleSectionSignoffs.AsNoTracking()
+            .SingleAsync(s => s.SampleId == sample.Sample.Id && s.SectionId == otherSection.Id);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, signoffAfter.Status);
+        Assert.Null(signoffAfter.ApprovedByUserId);
     }
 
     private async Task SeedQualificationAsync(TestOrder order, int analyst, int head)

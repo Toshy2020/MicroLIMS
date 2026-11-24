@@ -1,6 +1,7 @@
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -34,9 +35,29 @@ public sealed class CompetencyOverrideService(
                     throw new BusinessRuleException(MessageCodes.CompetencyOverrideReasonRequired,
                         "Enter an override reason of 1 to 2000 characters.");
 
+                var sampleId = await db.TestOrders.AsNoTracking()
+                    .Where(t => t.Id == testOrderId)
+                    .Select(t => (int?)t.SampleId)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {testOrderId} not found.",
+                        new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+
+                await OosGate.LockSampleDecisionAsync(db, sampleId, cancellationToken);
+
                 var order = await db.TestOrders.SingleOrDefaultAsync(t => t.Id == testOrderId, cancellationToken)
                     ?? throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {testOrderId} not found.",
                         new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                var alreadySignedOff = await db.SampleSectionSignoffs.AsNoTracking()
+                    .AnyAsync(s => s.SampleId == order.SampleId && (
+                        s.ReviewedByUserId == actingUserId ||
+                        s.ApprovedByUserId == actingUserId ||
+                        (s.ApprovalSignature != null && s.ApprovalSignature.UserId == actingUserId)), cancellationToken)
+                    || await db.Samples.AsNoTracking()
+                        .AnyAsync(s => s.Id == order.SampleId && (s.ReviewedByUserId == actingUserId || s.ApprovedByUserId == actingUserId), cancellationToken);
+                if (alreadySignedOff)
+                    throw new BusinessRuleException(MessageCodes.CompetencyOverrideAlreadySignedOff,
+                        "You already reviewed or decided approval for this sample, so you cannot grant a competency override.");
+
                 if (order.IsSuperseded || order.OutsourcedToLab is not null ||
                     order.Status is not (ApprovalStatus.Pending or ApprovalStatus.InProgress) ||
                     await db.OosRetestPlanSamples.AsNoTracking().AnyAsync(s => s.SampleId == order.SampleId, cancellationToken))

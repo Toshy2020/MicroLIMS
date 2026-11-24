@@ -21,6 +21,7 @@ public static partial class MessageCodes
     public const string CompetencyOverrideNotNeeded = "Competency.OverrideNotNeeded";
     public const string CompetencyOverridePasswordFailed = "Competency.OverridePasswordFailed";
     public const string CompetencyOverrideConcurrencyConflict = "Competency.OverrideConcurrencyConflict";
+    public const string CompetencyOverrideAlreadySignedOff = "Competency.OverrideAlreadySignedOff";
     public const string CompetencyManageRequired = "Competency.ManageRequired";
     public const string CompetencyNotQualified = "Competency.NotQualified";
     public const string CompetencyAssignmentRefused = "Competency.AssignmentRefused";
@@ -58,6 +59,7 @@ public static partial class MessageCodes
         [CompetencyOverrideNotNeeded] = [],
         [CompetencyOverridePasswordFailed] = [],
         [CompetencyOverrideConcurrencyConflict] = [],
+        [CompetencyOverrideAlreadySignedOff] = [],
         [CompetencyManageRequired] = [],
         [CompetencyQualificationAlreadyWithdrawn] = [],
         [CompetencyQualificationIneligible] = [],

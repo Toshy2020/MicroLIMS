@@ -79,8 +79,7 @@ public class SampleApprovalService
         if (!sectionCheck.Allowed) return (sectionCheck, section);
 
         if (await _segregationOfDuties.DidUserOverrideCompetencyAsync(sectionHeadUserId, sample.Id, ct))
-            return (ActionCheck.No(MessageCodes.SampleCannotApproveOverrode,
-                "You overrode competency for a test on this sample, so you cannot approve it."), section);
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveOverrode, SignoffRefusalSentences.CannotApproveOverrode), section);
 
         if (sectionHeadUserId == SampleSectionRollup.ReviewedByOf(sample, section))
             return (ActionCheck.No(MessageCodes.SampleCannotApproveReviewed, SignoffRefusalSentences.CannotApproveReviewed), section);
@@ -426,8 +425,9 @@ public class SampleApprovalService
             }
         }
 
-        await CompetencyOverrideLifecycle.EndAsync(_db, selectedOrders, _time.GetUtcNow().UtcDateTime,
-            CompetencyOverrideEndReason.Superseded, ct);
+        if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
+            await CompetencyOverrideLifecycle.EndAsync(_db, selectedOrders, _time.GetUtcNow().UtcDateTime,
+                CompetencyOverrideEndReason.Superseded, ct);
 
         // A sample left waiting on a retest carries the retest's decision,
         // whichever section's decision closed the rest of it.

@@ -62,6 +62,20 @@ public class SignatureMeaningPinTests
             ("AnalystQualificationWithdrawn", 46),
             ("CompetencyOverride", 47),
             ("CompetencyGateChanged", 48),
+            ("DeviationAssessed", 49),
+            ("DeviationRejected", 50),
+            ("QualityLabConclusion", 51),
+            ("QualityApproved", 52),
+            ("QualityClosed", 53),
+            ("QualityCancelled", 54),
+            ("CapaPlanApproved", 55),
+            ("CapaCompletionVerified", 56),
+            ("CapaEffectivenessChecked", 57),
+            ("ChangeImpactAssessed", 58),
+            ("ChangeApproved", 59),
+            ("ChangeRejected", 60),
+            ("ComplaintConcluded", 61),
+            ("QualityExtensionDecided", 62),
         };
 
         var actual = Enum.GetValues<SignatureMeaning>()

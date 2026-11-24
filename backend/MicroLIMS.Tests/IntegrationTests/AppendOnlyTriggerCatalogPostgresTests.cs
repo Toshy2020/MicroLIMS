@@ -55,6 +55,12 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["CompetencyOverrides"] = Insert | Update | Delete,
         ["AnalystQualifications"] = Insert | Update | Delete,
         ["QualificationAttachments"] = Insert | Update | Delete,
+        ["QualityRecordSteps"] = Update | Delete,
+        ["QualityChecklistAnswers"] = Update | Delete,
+        ["QualityRecords"] = Delete,
+        ["QualityActions"] = Delete,
+        ["QualityRecordLinks"] = Delete,
+        ["QualityAttachments"] = Delete,
     };
 
     // Non-append-only column guards: the table stays mutable, but these exact

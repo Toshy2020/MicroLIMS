@@ -23,7 +23,8 @@ public class QaRoleMigrationPostgresTests
 
     // This suite replays AddQaRole alone. Exclude the grants from later migrations.
     private static readonly string[] LaterQaGrants =
-        [PermissionConstants.CompetencyView, PermissionConstants.OosView, PermissionConstants.OosRequestDeviation];
+        [PermissionConstants.CompetencyView, PermissionConstants.OosView, PermissionConstants.OosRequestDeviation,
+         PermissionConstants.QualityView, PermissionConstants.QualityRaise, PermissionConstants.QualityApprove];
     private static readonly string[] OriginalQaGrants = PermissionConstants.QaGrants
         .Except(LaterQaGrants)
         .OrderBy(code => code, StringComparer.Ordinal)

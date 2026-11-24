@@ -164,10 +164,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
             PermissionConstants.NotificationsConfigure,
             PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
-            PermissionConstants.OosView, PermissionConstants.OosContribute
+            PermissionConstants.OosView, PermissionConstants.OosContribute,
+            PermissionConstants.QualityView, PermissionConstants.QualityRaise, PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude
         };
 
-        Assert.Equal(68, codes.Count);
+        Assert.Equal(72, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         // Not granted to SectionHead per the catalog:
         Assert.DoesNotContain(PermissionConstants.UsersManage, codes);
@@ -199,10 +200,11 @@ public class RolePermissionSeedDataTests
             // Releases a prepared solution (never one they prepared).
             PermissionConstants.SolutionsRelease,
             // Exports a table to CSV (audited).
-            PermissionConstants.DataExport, PermissionConstants.CompetencyView, PermissionConstants.OosView
+            PermissionConstants.DataExport, PermissionConstants.CompetencyView, PermissionConstants.OosView,
+            PermissionConstants.QualityView, PermissionConstants.QualityRaise
         };
 
-        Assert.Equal(23, codes.Count);
+        Assert.Equal(25, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesApprove, codes);
         // A reviewer does not register documents or edit drafts.
@@ -240,10 +242,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.SamplesPrepare,
             // Takes an unassigned test in their own sections (My Work).
             PermissionConstants.TestsSelfAssign, PermissionConstants.CompetencyView,
-            PermissionConstants.OosView, PermissionConstants.OosContribute
+            PermissionConstants.OosView, PermissionConstants.OosContribute,
+            PermissionConstants.QualityView, PermissionConstants.QualityRaise
         };
 
-        Assert.Equal(22, codes.Count);
+        Assert.Equal(24, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
         Assert.DoesNotContain(PermissionConstants.SamplesReview, codes);
         Assert.DoesNotContain(PermissionConstants.CryovialsApprove, codes);
@@ -266,10 +269,11 @@ public class RolePermissionSeedDataTests
             PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
             // Configures section mandatory notification types, working hours and escalation rules.
             PermissionConstants.NotificationsConfigure,
-            PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.OosView
+            PermissionConstants.CompetencyView, PermissionConstants.CompetencyManage, PermissionConstants.OosView,
+            PermissionConstants.QualityView, PermissionConstants.QualityRaise, PermissionConstants.QualityLabConclude
         };
 
-        Assert.Equal(9, codes.Count);
+        Assert.Equal(12, codes.Count);
         Assert.Equal(expected.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -279,7 +283,7 @@ public class RolePermissionSeedDataTests
         var db = CreateSeededDbContext();
         var codes = await CodesForRole(db, RoleType.Qa);
 
-        Assert.Equal(21, codes.Count);
+        Assert.Equal(24, codes.Count);
         Assert.Equal(PermissionConstants.QaGrants.OrderBy(c => c), codes.OrderBy(c => c));
     }
 
@@ -289,11 +293,11 @@ public class RolePermissionSeedDataTests
         // The System Administrator holds only PermissionConstants.SystemAdministratorGrants
         // (26 system codes, no lab/GxP codes). The total is the sum of the six per-role
         // sets that the tests above assert literally:
-        //   SystemAdministrator 26 + SectionHead 68 + Reviewer 23 + Analyst 22 + QcManager 9 + Qa 21 = 169.
+        //   SystemAdministrator 26 + SectionHead 72 + Reviewer 25 + Analyst 24 + QcManager 12 + Qa 24 = 183.
         // Update this only when a per-role set above changes.
         var db = CreateSeededDbContext();
         var total = await db.RolePermissions.CountAsync();
-        Assert.Equal(169, total);
+        Assert.Equal(183, total);
     }
 
     [Fact]
@@ -303,7 +307,7 @@ public class RolePermissionSeedDataTests
         DbSeeder.SeedPermissionsAndGrants(db); // second call
 
         Assert.Equal(PermissionConstants.All.Count, await db.Permissions.CountAsync());
-        Assert.Equal(169, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
+        Assert.Equal(183, await db.RolePermissions.CountAsync()); // see TotalGrantCount_MatchesTheCatalog
     }
 
     [Fact]

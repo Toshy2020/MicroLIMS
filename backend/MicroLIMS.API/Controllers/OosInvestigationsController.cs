@@ -20,6 +20,7 @@ public sealed record OosEntryRequest(OosEntryKind Kind, string Text, int? Parent
 public sealed record OosReopenRequest(string Reason, string Password);
 public sealed record OosDeviationReasonRequest(string Reason);
 public sealed record OosDeviationAddressRequest(string Comment);
+public sealed record OpenManualExcursionRequest(int TestOrderId, string Reason);
 
 [ApiController]
 [Route("api/oos-investigations")]
@@ -125,6 +126,25 @@ public sealed class OosInvestigationsController(OosInvestigationService service,
         CancellationToken ct = default)
     {
         await service.AddressDeviationRequestAsync(requestId, request.Comment, ExpectedVersion(), Actor(), ct);
+        return NoContent();
+    }
+
+    [HttpPost("excursions/open")]
+    [Authorize(Policy = PermissionPolicyProvider.OosContributeOrManage)]
+    public async Task<IActionResult> OpenManualExcursion(OpenManualExcursionRequest request, CancellationToken ct = default)
+    {
+        var investigation = await service.OpenManualExcursionAsync(request.TestOrderId, request.Reason, Actor(), ct);
+        await OosPostCommitNotification.SendAsync(notifier.OpenedAsync, investigation.Id, logger, ct);
+        return Ok(ApiResponse<OosManualOpeningDto>.Ok(investigation));
+    }
+
+    [HttpPost("{id:int}/excursion/close")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> CloseExcursion(int id, CloseExcursionRequest request, CancellationToken ct = default)
+    {
+        await service.CloseExcursionAsync(id, request, ExpectedVersion(), Actor(),
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        await OosPostCommitNotification.SendAsync(notifier.ConcludedAsync, id, logger, ct);
         return NoContent();
     }
 

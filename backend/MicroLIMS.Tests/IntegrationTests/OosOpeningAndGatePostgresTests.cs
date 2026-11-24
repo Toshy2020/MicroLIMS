@@ -261,7 +261,11 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
             var sample = await verify.Samples.AsNoTracking().SingleAsync(s => s.Id == seed.Sample.Id);
             Assert.Equal(SampleStatus.UnderApproval, sample.Status);
             Assert.Equal(opens, sample.OosGroupCode is not null);
-            Assert.Equal(opens, await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == sample.Id));
+            Assert.Equal(opens, await verify.OosInvestigations.AsNoTracking()
+                .AnyAsync(i => i.SampleId == sample.Id && i.Kind == OosInvestigationKind.Oos));
+            if (status == ResultStatus.ActionLimitExceeded)
+                Assert.True(await verify.OosInvestigations.AsNoTracking()
+                    .AnyAsync(i => i.SampleId == sample.Id && i.Kind == OosInvestigationKind.Excursion));
             Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a =>
                 a.EntityName == nameof(Sample) && a.EntityId == sample.Id.ToString() && a.UserId == reviewer.Id && a.Action == "Update"));
         }

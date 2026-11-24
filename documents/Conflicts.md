@@ -1085,6 +1085,7 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **What the other source says:** D1 Task 1 in `docs/superpowers/plans/2026-11-11-oos-investigation.md` called for alert and action limit exceedances to conform.
 - **Question:** Which outcomes should open an investigation at review in D1 Task 3?
 - **Decision:** Only out-of-specification or detected results open an investigation. Alert/action exceedances do not open an investigation (user, 2026-11-20).
+- **Note (user decision, 2026-11-24):** CONF-209 covers OOS-kind investigations only; Excursion-kind reviews are separate, never block approval or the certificate (`OosGate` ignores `Kind = Excursion`), and are skipped for samples belonging to a monitoring plan occurrence.
 - **Date:** 2026-11-20
 
 ### CONF-210

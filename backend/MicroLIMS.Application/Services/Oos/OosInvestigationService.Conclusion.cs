@@ -186,7 +186,7 @@ public sealed partial class OosInvestigationService
                 throw new BusinessRuleException(MessageCodes.OosManualOpenUnavailable, "Manual opening requires a reviewed failing section without an investigation.");
 
             db.CurrentUserId = userId;
-            var investigation = await OpenForReviewedSectionAsync(sample, sectionId, orders, userId, ct)
+            var investigation = await OpenForReviewedOosOnlyAsync(sample, sectionId, orders, userId, ct)
                 ?? throw new BusinessRuleException(MessageCodes.OosManualOpenUnavailable, "Manual opening requires a reviewed failing section without an investigation.");
             db.Entry(sample).Property(nameof(Sample.OosGroupCode)).IsModified = true;
             await db.SaveChangesAsync(ct);
@@ -282,7 +282,7 @@ public sealed partial class OosInvestigationService
         }
         catch (SignatureVerificationException error)
         {
-            if (meaning == SignatureMeaning.OosInvestigationConcluded)
+            if (meaning is SignatureMeaning.OosInvestigationConcluded or SignatureMeaning.ExcursionReviewClosed)
                 throw new BusinessRuleException(MessageCodes.OosConclusionPasswordFailed, error.Message);
             throw new BusinessRuleException(MessageCodes.OosReopenPasswordFailed, error.Message);
         }

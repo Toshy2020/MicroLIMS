@@ -14,69 +14,91 @@ public sealed partial class OosInvestigationService(
 {
     public async Task<OosInvestigation?> OpenForReviewedSectionAsync(
         Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
-        CancellationToken ct = default) =>
-        (await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, ct)).Investigation;
-
-    internal async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted)> ApplyReviewedSectionAsync(
-        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
         CancellationToken ct = default)
     {
-        var failing = await rule.ReadFailingOrdersAsync(reviewedOrders.Select(o => o.Id).ToArray(), ct);
-        if (failing.Count == 0) return default;
+        var result = await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: true, ct);
+        return result.Investigation ?? result.Excursion;
+    }
 
-        await numbers.AcquireOosNumberLockAsync(ct);
+    internal async Task<OosInvestigation?> OpenForReviewedOosOnlyAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        CancellationToken ct = default) =>
+        (await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: false, ct)).Investigation;
 
-        var open = db.OosInvestigations.Where(i => i.Kind == OosInvestigationKind.Oos &&
-            i.SectionId == sectionId && i.Status != OosInvestigationStatus.Concluded);
-        var investigation = await LockOpenAsync(open.Where(i => i.SampleId == sample.Id), ct);
-        if (investigation is null)
-            investigation = await LockOpenAsync(open.Where(i =>
-                (from link in db.OosRetestPlanSamples
-                 join plan in db.OosRetestPlans on link.PlanId equals plan.Id
-                 where link.SampleId == sample.Id && plan.InvestigationId == i.Id && plan.SignedAtUtc != null
-                 select link.SampleId).Any()), ct);
+    internal async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted, OosInvestigation? Excursion, bool ExcursionOpened)> ApplyReviewedSectionAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        CancellationToken ct = default) =>
+        await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, includeExcursions: true, ct);
 
-        var opened = investigation is null;
-        var phaseTwoStarted = false;
+    private async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted, OosInvestigation? Excursion, bool ExcursionOpened)> ApplyReviewedSectionAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        bool includeExcursions, CancellationToken ct)
+    {
+        var (failing, excursions) = await rule.ReadReviewOutcomesAsync(reviewedOrders.Select(o => o.Id).ToArray(), ct);
+        if (failing.Count == 0 && (!includeExcursions || excursions.Count == 0)) return default;
+
         var now = time.GetUtcNow().UtcDateTime;
-        var existingOrderIds = new HashSet<int>();
-        if (investigation is null)
-        {
-            investigation = await CreateAsync(sample, sectionId, reviewerUserId, now, ct);
-        }
-        else
-        {
-            var orderIds = failing.Keys.ToArray();
-            existingOrderIds = (await db.OosInvestigationResults.AsNoTracking()
-                .Where(r => r.InvestigationId == investigation.Id && orderIds.Contains(r.TestOrderId))
-                .Select(r => r.TestOrderId).ToListAsync(ct)).ToHashSet();
-        }
+        OosInvestigation? oosInvestigation = null;
+        var oosOpened = false;
+        var phaseTwoStarted = false;
 
-        if (investigation.Id != 0 && failing.Keys.Any(id => !existingOrderIds.Contains(id)))
+        if (failing.Count > 0)
         {
-            if (investigation.SampleId != sample.Id && investigation.Status == OosInvestigationStatus.AwaitingRetest)
+            await numbers.AcquireOosNumberLockAsync(ct);
+
+            var open = db.OosInvestigations.Where(i => i.Kind == OosInvestigationKind.Oos &&
+                i.SectionId == sectionId && i.Status != OosInvestigationStatus.Concluded);
+            oosInvestigation = await LockOpenAsync(open.Where(i => i.SampleId == sample.Id), ct);
+            if (oosInvestigation is null)
+                oosInvestigation = await LockOpenAsync(open.Where(i =>
+                    (from link in db.OosRetestPlanSamples
+                     join plan in db.OosRetestPlans on link.PlanId equals plan.Id
+                     where link.SampleId == sample.Id && plan.InvestigationId == i.Id && plan.SignedAtUtc != null
+                     select link.SampleId).Any()), ct);
+
+            oosOpened = oosInvestigation is null;
+            var existingOrderIds = new HashSet<int>();
+            if (oosInvestigation is null)
             {
-                investigation.Status = OosInvestigationStatus.PhaseTwo;
-                phaseTwoStarted = true;
-                db.CurrentUserId = reviewerUserId;
-                db.SetNextAuditReason(investigation, "A failing retest from a signed plan joined the investigation.");
+                oosInvestigation = await CreateAsync(sample, sectionId, OosInvestigationKind.Oos, reviewerUserId, now, ct);
             }
-            db.Entry(investigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
-        }
-
-        foreach (var (orderId, outcome) in failing)
-        {
-            if (existingOrderIds.Contains(orderId)) continue;
-            investigation.Results.Add(new OosInvestigationResult
+            else
             {
-                TestOrderId = orderId,
-                OutcomeAtOpening = OosOutcomeMapper.Map(outcome.Outcome),
-                ResultSummaryAtOpening = outcome.Summary,
-                AddedAtUtc = now
-            });
+                var orderIds = failing.Keys.ToArray();
+                existingOrderIds = (await db.OosInvestigationResults.AsNoTracking()
+                    .Where(r => r.InvestigationId == oosInvestigation.Id && orderIds.Contains(r.TestOrderId))
+                    .Select(r => r.TestOrderId).ToListAsync(ct)).ToHashSet();
+            }
+
+            if (oosInvestigation.Id != 0 && failing.Keys.Any(id => !existingOrderIds.Contains(id)))
+            {
+                if (oosInvestigation.SampleId != sample.Id && oosInvestigation.Status == OosInvestigationStatus.AwaitingRetest)
+                {
+                    oosInvestigation.Status = OosInvestigationStatus.PhaseTwo;
+                    phaseTwoStarted = true;
+                    db.CurrentUserId = reviewerUserId;
+                    db.SetNextAuditReason(oosInvestigation, "A failing retest from a signed plan joined the investigation.");
+                }
+                db.Entry(oosInvestigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
+            }
+
+            foreach (var (orderId, outcome) in failing)
+            {
+                if (existingOrderIds.Contains(orderId)) continue;
+                oosInvestigation.Results.Add(new OosInvestigationResult
+                {
+                    TestOrderId = orderId,
+                    OutcomeAtOpening = OosOutcomeMapper.Map(outcome.Outcome),
+                    ResultSummaryAtOpening = outcome.Summary,
+                    AddedAtUtc = now
+                });
+            }
         }
 
-        return (investigation, opened, phaseTwoStarted);
+        var (excursion, excursionOpened) = includeExcursions
+            ? await ApplyReviewedExcursionsAsync(sample, sectionId, reviewerUserId, excursions, now, ct)
+            : default;
+        return (oosInvestigation, oosOpened, phaseTwoStarted, excursion, excursionOpened);
     }
 
     internal Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default) =>
@@ -116,11 +138,11 @@ public sealed partial class OosInvestigationService(
     }
 
     private async Task<OosInvestigation> CreateAsync(
-        Sample sample, int sectionId, int reviewerUserId, DateTime now, CancellationToken ct = default)
+        Sample sample, int sectionId, OosInvestigationKind kind, int reviewerUserId, DateTime now, CancellationToken ct = default)
     {
         var number = await numbers.GenerateOosCodeAsync(ct);
         var template = await db.OosInvestigationTemplates.AsNoTracking()
-            .Where(t => t.SectionId == sectionId && t.Kind == OosInvestigationKind.Oos)
+            .Where(t => t.SectionId == sectionId && t.Kind == kind)
             .Select(t => new
             {
                 t.Id,
@@ -134,7 +156,7 @@ public sealed partial class OosInvestigationService(
         var investigation = new OosInvestigation
         {
             Number = number,
-            Kind = OosInvestigationKind.Oos,
+            Kind = kind,
             Status = OosInvestigationStatus.PhaseOne,
             SampleId = sample.Id,
             SectionId = sectionId,
@@ -154,7 +176,8 @@ public sealed partial class OosInvestigationService(
                 investigation.DueDate = PlanWindowCalculator.AddWorkingDays(today, totalDays, settings.WorkingWeekdays, holidays);
         }
 
-        sample.OosGroupCode ??= number;
+        if (kind == OosInvestigationKind.Oos)
+            sample.OosGroupCode ??= number;
         db.OosInvestigations.Add(investigation);
         return investigation;
     }

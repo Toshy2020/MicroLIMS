@@ -11,7 +11,6 @@ namespace MicroLIMS.API.Controllers;
 // API for managing controlled documents (Lab Investigation Reports) attached to OOS groups.
 // Gated to SectionHead and SystemAdministrator (same as OOS Tracking).
 [ApiController]
-[Authorize(Policy = PermissionConstants.OosManage)]
 public class OosInvestigationDocumentController : ControllerBase
 {
     private readonly OosInvestigationDocumentService _service;
@@ -27,6 +26,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
     // List all investigation documents for an OOS group.
     [HttpGet("api/oos-tracking/{oosGroupCode}/investigation-documents")]
+    [Authorize(Policy = PermissionConstants.OosView)]
     public async Task<IActionResult> GetDocuments(string oosGroupCode)
     {
         await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode, access: SectionAccess.Read);
@@ -36,6 +36,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
     // Upload a new investigation document to an OOS group.
     [HttpPost("api/oos-tracking/{oosGroupCode}/investigation-documents")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
     [RequestSizeLimit(30 * 1024 * 1024)] // 30 MB server transport ceiling
     public async Task<IActionResult> Upload(string oosGroupCode, IFormFile file)
     {
@@ -59,6 +60,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
     // Retrieve the raw content of an investigation document.
     [HttpGet("api/oos-investigation-documents/{documentId:int}/content")]
+    [Authorize(Policy = PermissionConstants.OosView)]
     public async Task<IActionResult> GetContent(int documentId, [FromQuery] string oosGroupCode)
     {
         await _scopeService.EnsureOosGroupAccessAsync(CurrentUserId, oosGroupCode, access: SectionAccess.Read);
@@ -68,6 +70,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
     // Supersede an existing document with a replacement file.
     [HttpPost("api/oos-investigation-documents/{documentId:int}/supersede")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
     [RequestSizeLimit(30 * 1024 * 1024)]
     public async Task<IActionResult> Supersede(int documentId, [FromQuery] string oosGroupCode, IFormFile file, [FromForm] string reason)
     {
@@ -94,6 +97,7 @@ public class OosInvestigationDocumentController : ControllerBase
 
     // Void a document. The file is retained for audit; document is marked Voided.
     [HttpPost("api/oos-investigation-documents/{documentId:int}/void")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
     public async Task<IActionResult> Void(int documentId, [FromQuery] string oosGroupCode, [FromBody] VoidOosInvestigationDocumentRequest request)
     {
         if (string.IsNullOrWhiteSpace(request?.Reason))

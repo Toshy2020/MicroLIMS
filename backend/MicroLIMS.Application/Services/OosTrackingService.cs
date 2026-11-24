@@ -21,13 +21,16 @@ public class OosTrackingService
     // group is shown when one of its retest samples - which carry only the
     // deciding section's tests - is in those sections; its samples are the
     // ones with tests there.
-    public async Task<List<OosGroupDto>> GetOosGroupsAsync(IReadOnlyCollection<int>? sectionIds = null)
+    public async Task<List<OosGroupDto>> GetOosGroupsAsync(IReadOnlyCollection<int>? sectionIds = null, CancellationToken ct = default)
     {
-        var query = _db.Samples.Where(s => s.OosGroupCode != null);
+        var investigationNumbers = _db.OosInvestigations.AsNoTracking().Select(i => i.Number);
+        var query = _db.Samples.AsNoTracking()
+            .Where(s => s.OosGroupCode != null && !investigationNumbers.Contains(s.OosGroupCode));
         if (sectionIds is not null)
         {
-            var visibleGroups = _db.Samples
+            var visibleGroups = _db.Samples.AsNoTracking()
                 .Where(s => s.OosGroupCode != null && s.OriginSampleId != null
+                    && !investigationNumbers.Contains(s.OosGroupCode)
                     && s.TestOrders.Any(t => sectionIds.Contains(t.SectionId)))
                 .Select(s => s.OosGroupCode);
             query = query.Where(s => visibleGroups.Contains(s.OosGroupCode))
@@ -41,16 +44,16 @@ public class OosTrackingService
             .Include(s => s.Department)
             .Include(s => s.Machine)
             .Include(s => s.TestOrders)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (samples.Count == 0)
             return new List<OosGroupDto>();
 
-        var groupsWithDocs = (await _db.OosInvestigationDocuments
+        var groupsWithDocs = (await _db.OosInvestigationDocuments.AsNoTracking()
             .Where(d => d.Status != MaterialDocumentStatus.Voided)
             .Select(d => d.OosGroupCode)
             .Distinct()
-            .ToListAsync())
+            .ToListAsync(ct))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var analystIds = samples
@@ -60,9 +63,9 @@ public class OosTrackingService
             .Distinct()
             .ToList();
 
-        var analystNames = await _db.Users
+        var analystNames = await _db.Users.AsNoTracking()
             .Where(u => analystIds.Contains(u.Id))
-            .ToDictionaryAsync(u => u.Id, u => u.FullName);
+            .ToDictionaryAsync(u => u.Id, u => u.FullName, ct);
 
         var grouped = samples
             .GroupBy(s => s.OosGroupCode!)

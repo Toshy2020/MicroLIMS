@@ -366,6 +366,33 @@ public class SampleSummaryService
             TestOrders = effectiveTestOrders.Select(order => SampleSummaryTestOrderBuilder.Build(order, data, NameOf)).ToList()
         };
 
+        var oosByOrderId = (await (from r in _db.OosInvestigationResults.AsNoTracking()
+                                   join i in _db.OosInvestigations.AsNoTracking() on r.InvestigationId equals i.Id
+                                   where testOrderIds.Contains(r.TestOrderId) && i.Kind == OosInvestigationKind.Oos
+                                   select new { r.TestOrderId, i.Number, r.IsInvalidated })
+                                  .ToListAsync(ct))
+            .GroupBy(x => x.TestOrderId)
+            .ToDictionary(g => g.Key, g => (Number: g.First().Number, IsInvalidated: g.Any(x => x.IsInvalidated)));
+
+        var oosByTestCode = effectiveTestOrders
+            .Where(o => o.SampleId == sampleId && oosByOrderId.ContainsKey(o.Id))
+            .GroupBy(o => o.TestCode)
+            .ToDictionary(g => g.Key, g => oosByOrderId[g.First().Id].Number);
+
+        foreach (var orderDto in dto.TestOrders)
+        {
+            if (oosByOrderId.TryGetValue(orderDto.TestOrderId, out var info))
+            {
+                orderDto.OosInvestigationNumber = info.Number;
+                orderDto.IsOosInvalidated = info.IsInvalidated;
+            }
+            else if (orderDto.SourceSampleReferenceNumber is not null &&
+                     oosByTestCode.TryGetValue(orderDto.TestCode, out var originNumber))
+            {
+                orderDto.OosInvestigationNumber = originNumber;
+            }
+        }
+
         dto.Sections = SampleSummarySectionsBuilder.Build(sample, sectionIds, sectionRows, NameOf);
         dto.AllSectionsVisible = dto.Sections.All(x => x.CanView);
         dto.OverallStatus = SampleSectionRollup.Overall(sample).ToString();

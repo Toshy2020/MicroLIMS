@@ -61,6 +61,7 @@ public class CoaColumnDto
     public string TestDisplayName { get; set; } = string.Empty;
     public bool IsQuantitative { get; set; }
     public string? Unit { get; set; }
+    public string? OosInvestigationNumber { get; set; }
 }
 
 public class CoaRowDto
@@ -89,6 +90,7 @@ public class CoaTestConclusionDto
     public int TestOrderId { get; set; }
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
+    public string? OosInvestigationNumber { get; set; }
     public bool Conforms { get; set; }
     public List<string> FailingLocationNames { get; set; } = new();
     public List<string> UnconfiguredLocationNames { get; set; } = new();
@@ -112,6 +114,7 @@ public class CoaSimpleRowDto
     public string TestCode { get; set; } = string.Empty;
     public string TestDisplayName { get; set; } = string.Empty;
     public string? Specification { get; set; }
+    public string? OosInvestigationNumber { get; set; }
     public string Result { get; set; } = string.Empty;
     public string? AnalystName { get; set; }
     public DateTime? AnalystAt { get; set; }

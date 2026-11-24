@@ -31,6 +31,7 @@ public interface IMicroLimsDbContext
     // reason). The automatic audit capture copies it into AuditLog.Reason
     // for every row the save produces. Set per operation, never from JSON.
     string? CurrentReason { get; set; }
+    void SetNextAuditReason(object entity, string reason);
 
     // Where the change came from, when the request says so (today: the start
     // time a bench tablet reports for its local draft). The automatic audit

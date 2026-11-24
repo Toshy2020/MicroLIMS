@@ -51,7 +51,7 @@ public sealed partial class OosInvestigationService(
             {
                 investigation.Status = OosInvestigationStatus.PhaseTwo;
                 db.CurrentUserId = reviewerUserId;
-                db.CurrentReason = "A failing retest from a signed plan joined the investigation.";
+                db.SetNextAuditReason(investigation, "A failing retest from a signed plan joined the investigation.");
             }
             db.Entry(investigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
         }

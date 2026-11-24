@@ -1167,7 +1167,7 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Area:** REV
 - **Status:** Decided
 - **Question:** How should a failing planned retest affect an investigation awaiting retest, and how should a reopened invalidation affect the original orders?
-- **Decision:** A failing retest joined through a signed plan moves the investigation from AwaitingRetest to PhaseTwo under the investigation row lock. Audit the transition with the reviewer and reason. Conclusion invalidates and supersedes only investigated orders of the origin sample. A signed reopening reverses those flags in the same transaction, preserves the previous signed conclusion, and allows either conclusion after reassessment (user, 2026-11-24).
+- **Decision:** A failing retest joined through a signed plan moves the investigation from AwaitingRetest to PhaseTwo under the investigation row lock. Audit the transition with the reviewer and reason. Conclusion invalidates and supersedes only investigated orders of the origin sample. A signed reopening reverses those flags in the same transaction, preserves the previous signed conclusion, and allows either conclusion after reassessment. A retest with an out-of-specification result cannot be approved. Signing a Confirmed conclusion reverses any remaining origin invalidation and supersession flags in the same transaction, including flags set during Phase I (user and orchestrator, 2026-11-24).
 - **Date:** 2026-11-24
 
 ### CONF-220

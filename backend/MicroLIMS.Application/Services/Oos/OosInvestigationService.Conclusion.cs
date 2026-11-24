@@ -59,7 +59,7 @@ public sealed partial class OosInvestigationService
             var categoryId = awaitingRetest ? investigation.PhaseOneCauseCategoryId : request.RootCauseCategoryId;
             var description = awaitingRetest ? investigation.PhaseOneCauseDescription : request.RootCauseDescription?.Trim();
             var invalidated = request.Conclusion == OosConclusion.Invalidated;
-            await EnsureConclusionCauseAsync(categoryId, description, invalidated, ct);
+            await EnsureConclusionCauseAsync(categoryId, description, invalidated, requireActive: !awaitingRetest, ct);
             await EnsureRetestsReviewedAsync(investigation, invalidated, ct);
 
             var signature = await SignInvestigationAsync(investigationId, userId, request.Password,
@@ -74,7 +74,15 @@ public sealed partial class OosInvestigationService
             investigation.ConcludedAtUtc = signature.SignedAt;
             investigation.ConclusionSignatureId = signature.Id;
             if (invalidated)
+            {
                 await SetOriginInvalidationAsync(investigation, signature.SignedAt, ct);
+            }
+            else
+            {
+                // Persist the signed Confirmed decision before the trigger checks its evidence.
+                await SaveSignedEvidenceAsync(ct);
+                await SetOriginInvalidationAsync(investigation, invalidatedAtUtc: null, ct);
+            }
             await db.SaveChangesAsync(ct);
         }, ct);
 
@@ -125,8 +133,10 @@ public sealed partial class OosInvestigationService
             });
             if (previous == OosConclusion.Invalidated)
             {
-                await SaveReopeningEvidenceAsync(ct);
+                await SaveSignedEvidenceAsync(ct);
                 await SetOriginInvalidationAsync(investigation, invalidatedAtUtc: null, ct);
+                // The trigger verifies the previous signed conclusion while it is still on the root.
+                await db.SaveChangesAsync(ct);
             }
             investigation.Status = OosInvestigationStatus.PhaseTwo;
             investigation.Conclusion = null;
@@ -193,7 +203,7 @@ public sealed partial class OosInvestigationService
             throw new BusinessRuleException(MessageCodes.OosPhaseTwoChecklistIncomplete, "Answer every active Phase II checklist item before concluding.");
     }
 
-    private async Task EnsureConclusionCauseAsync(int? categoryId, string? description, bool invalidated, CancellationToken ct)
+    private async Task EnsureConclusionCauseAsync(int? categoryId, string? description, bool invalidated, bool requireActive, CancellationToken ct)
     {
         if (description?.Length > 4000)
             throw new BusinessRuleException(MessageCodes.OosConclusionTextInvalid, "Enter a conclusion summary and any cause description within 4000 characters.");
@@ -203,12 +213,12 @@ public sealed partial class OosInvestigationService
         if (categoryId is not int id || !ValidText(description))
             throw new BusinessRuleException(MessageCodes.OosConclusionCauseDetailsRequired, "Select a cause category and enter its description before concluding.");
 
-        if (db.Database.IsRelational())
+        if (requireActive && db.Database.IsRelational())
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"""SELECT 1 FROM "OosCauseCategories" WHERE "Id" = {id} FOR SHARE""", ct);
         var category = await db.OosCauseCategories.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
             ?? throw new BusinessRuleException(MessageCodes.OosCategoryNotFound, "The OOS cause category was not found.");
-        if (!category.IsActive)
+        if (requireActive && !category.IsActive)
             throw new BusinessRuleException(MessageCodes.OosConclusionCauseInactive, "The selected cause category is no longer active.");
         if (invalidated && category.IsNoCauseFound)
             throw new BusinessRuleException(MessageCodes.OosConclusionCauseRequired, "Invalidation requires an assignable cause and a description.");
@@ -279,16 +289,13 @@ public sealed partial class OosInvestigationService
 
         db.CurrentUserId = actor;
         signature.SignedAt = time.GetUtcNow().UtcDateTime;
-        if (meaning == SignatureMeaning.OosInvestigationReopened)
-            await SaveReopeningEvidenceAsync(ct);
-        else
-            await db.SaveChangesAsync(ct);
+        await SaveSignedEvidenceAsync(ct);
         return signature;
     }
 
-    private async Task SaveReopeningEvidenceAsync(CancellationToken ct)
+    private async Task SaveSignedEvidenceAsync(CancellationToken ct)
     {
-        // The verification trigger matches both evidence rows to the top-level transaction ID.
+        // The verification trigger matches the evidence rows to the top-level transaction ID.
         var autoSavepoints = db.Database.AutoSavepointsEnabled;
         db.Database.AutoSavepointsEnabled = false;
         try

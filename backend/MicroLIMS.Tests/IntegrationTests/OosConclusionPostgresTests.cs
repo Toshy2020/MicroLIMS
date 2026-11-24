@@ -4,6 +4,7 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Tests.Fixtures;
@@ -409,6 +410,13 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
             Assert.Equal(OosInvestigationStatus.AwaitingRetest, ReadStatus(audit.PreviousValue));
             Assert.Equal(OosInvestigationStatus.PhaseTwo, ReadStatus(audit.NewValue));
             Assert.Contains("failing retest", audit.Reason);
+            var unrelated = await verify.AuditLogs.AsNoTracking().Where(a => a.UserId == world.Reviewer && a.Action == "Update" &&
+                ((a.EntityName == nameof(SampleSectionSignoff) && a.SampleId == retest.SampleId) ||
+                 (a.EntityName == nameof(Sample) && a.EntityId == retest.SampleId.ToString()) ||
+                 (a.EntityName == nameof(TestOrder) && a.EntityId == retest.OrderId.ToString()))).ToListAsync();
+            Assert.Equal(3, unrelated.Count);
+            Assert.All(unrelated, row => Assert.DoesNotContain("failing retest", row.Reason ?? ""));
+
             var creation = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(OosInvestigationResult) &&
                 a.EntityId == link.Id.ToString() && a.Action == "Create" && a.UserId == world.Reviewer);
             Assert.Null(creation.PreviousValue);
@@ -416,6 +424,92 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
         }
         await ConcludeAsync(world with { Version = moved.Version });
         await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+    }
+
+    [PostgresFact]
+    public async Task Confirmed_reverses_invalidation_from_signed_phase_one_after_failing_retest()
+    {
+        var world = await SignPhaseOneErrorAsync();
+        var bytes = await ResultBytesAsync(world.OrderId);
+        var awaiting = await ReadAsync(world.Id);
+        Assert.Equal(OosInvestigationStatus.AwaitingRetest, awaiting.Status);
+        Assert.NotNull(awaiting.PhaseOneSignatureId);
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseOne, OosInvestigationStatus.AwaitingRetest);
+        int linkId;
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var phaseOneSignature = await verify.ElectronicSignatures.AsNoTracking().SingleAsync(s => s.Id == awaiting.PhaseOneSignatureId);
+            Assert.Equal(SignatureMeaning.OosPhaseOneConcluded, phaseOneSignature.MeaningOfSignature);
+            var link = await verify.OosInvestigationResults.AsNoTracking().SingleAsync(r => r.InvestigationId == world.Id);
+            Assert.True(link.IsInvalidated);
+            linkId = link.Id;
+        }
+        await AssertBooleanAuditAsync(nameof(OosInvestigationResult), linkId, world.Head, nameof(OosInvestigationResult.IsInvalidated));
+        await RefuseRawReversalAsync(linkId);
+        await _seed.UpdateAsync<TestOrder>(world.OrderId, order => order.IsSuperseded = true);
+        var retest = await AddPlanAsync(world, reviewed: false, failing: true);
+        await _seed.CompleteReviewAsync(new(world.Reviewer, retest.SampleId, world.SectionId));
+        var phaseTwo = await ReadAsync(world.Id);
+        Assert.Equal(OosInvestigationStatus.PhaseTwo, phaseTwo.Status);
+        await ConcludeAsync(world with { Version = phaseTwo.Version });
+
+        var closed = await ReadAsync(world.Id);
+        Assert.Equal(OosConclusion.Confirmed, closed.Conclusion);
+        Assert.Equal(world.Head, closed.ConcludedByUserId);
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+        await using var assertDb = fixture.CreateDbContext();
+        var signature = await assertDb.ElectronicSignatures.AsNoTracking().SingleAsync(s => s.Id == closed.ConclusionSignatureId);
+        Assert.Equal(SignatureMeaning.OosInvestigationConcluded, signature.MeaningOfSignature);
+        var persistedLink = await assertDb.OosInvestigationResults.AsNoTracking().SingleAsync(r => r.Id == linkId);
+        Assert.False(persistedLink.IsInvalidated);
+        Assert.Null(persistedLink.InvalidatedAtUtc);
+        Assert.False(await assertDb.TestOrders.AsNoTracking().Where(o => o.Id == world.OrderId).Select(o => o.IsSuperseded).SingleAsync());
+        await AssertBooleanAuditAsync(nameof(TestOrder), world.OrderId, world.Head, nameof(TestOrder.IsSuperseded), from: true);
+        await AssertBooleanAuditAsync(nameof(OosInvestigationResult), linkId, world.Head, nameof(OosInvestigationResult.IsInvalidated), from: true);
+        Assert.Equal(bytes, await ResultBytesAsync(world.OrderId));
+    }
+
+    [PostgresFact]
+    public async Task Awaiting_retest_keeps_the_signed_phase_one_category_after_deactivation()
+    {
+        var world = await SignPhaseOneErrorAsync();
+        var awaiting = await ReadAsync(world.Id);
+        await AddPlanAsync(world);
+        await _seed.UpdateAsync<OosCauseCategory>(world.Category, category => category.IsActive = false);
+        await ConcludeAsync(world with { Version = awaiting.Version }, OosConclusion.Invalidated);
+        var closed = await ReadAsync(world.Id);
+        Assert.Equal(OosConclusion.Invalidated, closed.Conclusion);
+        Assert.Equal(world.Category, closed.RootCauseCategoryId);
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.AwaitingRetest, OosInvestigationStatus.Concluded);
+    }
+
+    private async Task<World> SignPhaseOneErrorAsync()
+    {
+        var world = await ArrangeAsync(status: OosInvestigationStatus.PhaseOne,
+            snapshot: """{"items":[{"phase":1,"key":"check"}]}""");
+        int analyst;
+        await using (var verify = fixture.CreateDbContext())
+            analyst = await verify.Results.AsNoTracking().Where(r => r.TestOrderId == world.OrderId)
+                .Select(r => r.EnteredByUserId).SingleAsync();
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.OosInvestigation(act).AddAnalystStatementAsync(world.Id, Summary, analyst);
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.OosInvestigation(act).AnswerChecklistAsync(world.Id, 1, "check", OosChecklistAnswer.Yes, null, analyst);
+        var current = await ReadAsync(world.Id);
+        await using (var act = fixture.CreateDbContext())
+            await TestServiceFactory.OosInvestigation(act).SignPhaseOneAsync(world.Id,
+                new(OosPhaseOneAssessment.LaboratoryErrorConfirmed, world.Category, Cause, ActionGuardScenarios.Password),
+                current.Version, world.Head, null);
+        return world;
+    }
+
+    private async Task RefuseRawReversalAsync(int linkId)
+    {
+        await using var act = fixture.CreateDbContext();
+        var refused = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+            """));
+        Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, refused.SqlState);
     }
 
     [PostgresFact]
@@ -641,6 +735,136 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
         Assert.Equal(2, links.Count);
         Assert.All(links, link => Assert.True(link.IsInvalidated));
         Assert.False(await verify.OosInvestigationReopenings.AsNoTracking().AnyAsync(r => r.InvestigationId == world.Id));
+    }
+
+    [PostgresFact]
+    public async Task Trigger_refuses_reversal_in_transaction_reopening_a_confirmed_conclusion()
+    {
+        var world = await ArrangeAsync();
+        await ConcludeAsync(world);
+        var closed = await ReadAsync(world.Id);
+        var linkId = await ArrangeInvalidatedLinkAsync(world);
+        await using (var act = fixture.CreateDbContext())
+        {
+            await using var tx = await act.Database.BeginTransactionAsync();
+            act.ExpectedVersion = closed.Version;
+            await TestServiceFactory.OosInvestigation(act).ReopenAsync(world.Id, "New evidence", ActionGuardScenarios.Password, world.Head, null);
+            await AssertTriggerRejectsAsync(act, $"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+                """);
+            await tx.RollbackAsync();
+        }
+        await AssertInvalidationWasNotReversedAsync(world, linkId, closed.Version);
+    }
+
+    [PostgresFact]
+    public async Task Trigger_refuses_changes_to_other_columns_even_with_valid_confirmation_evidence()
+    {
+        var world = await ArrangeAsync();
+        var linkId = await ArrangeInvalidatedLinkAsync(world);
+        await using (var act = fixture.CreateDbContext())
+        {
+            await using var tx = await act.Database.BeginTransactionAsync();
+            await TestServiceFactory.OosInvestigation(act).ConcludeAsync(world.Id,
+                new(OosConclusion.Confirmed, world.Category, Cause, Summary, ActionGuardScenarios.Password),
+                world.Version, world.Head, null);
+            Assert.Equal(1, await act.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = true, "InvalidatedAtUtc" = {ActionGuardScenarios.Now}
+                WHERE "Id" = {linkId}
+                """));
+            await AssertTriggerRejectsAsync(act, $"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL,
+                    "ResultSummaryAtOpening" = 'Changed' WHERE "Id" = {linkId}
+                """);
+            await tx.RollbackAsync();
+        }
+        await AssertInvalidationWasNotReversedAsync(world, linkId, world.Version);
+    }
+
+    [PostgresFact]
+    public async Task Trigger_refuses_forged_confirmation_evidence_with_wrong_signature_meaning()
+    {
+        var world = await ArrangeAsync();
+        var linkId = await ArrangeInvalidatedLinkAsync(world);
+        await using (var act = fixture.CreateDbContext())
+        {
+            await using var tx = await act.Database.BeginTransactionAsync();
+            act.Database.AutoSavepointsEnabled = false;
+            var unrelated = await new ElectronicSignatureService(act).SignAsync(world.Head, ActionGuardScenarios.Password,
+                SignatureMeaning.OosPhaseOneConcluded, nameof(OosInvestigation), world.Id, null, null);
+            await act.SaveChangesAsync();
+
+            Assert.Equal(1, await act.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "OosInvestigations" SET "Status" = {(int)OosInvestigationStatus.Concluded},
+                    "Conclusion" = {(int)OosConclusion.Confirmed}, "ConcludedByUserId" = {world.Head},
+                    "ConclusionSignatureId" = {unrelated.Id} WHERE "Id" = {world.Id}
+                """));
+            await AssertTriggerRejectsAsync(act, $"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+                """);
+            await tx.RollbackAsync();
+        }
+        await AssertInvalidationWasNotReversedAsync(world, linkId, world.Version);
+    }
+
+    [PostgresFact]
+    public async Task Trigger_refuses_forged_reopening_whose_previous_signature_is_from_the_same_transaction()
+    {
+        var world = await ArrangeAsync();
+        await AddPlanAsync(world);
+        var linkId = await ArrangeInvalidatedLinkAsync(world);
+        await using (var act = fixture.CreateDbContext())
+        {
+            await using var tx = await act.Database.BeginTransactionAsync();
+            await TestServiceFactory.OosInvestigation(act).ConcludeAsync(world.Id,
+                new(OosConclusion.Invalidated, world.Category, Cause, Summary, ActionGuardScenarios.Password),
+                world.Version, world.Head, null);
+            var prior = await act.OosInvestigations.AsNoTracking().SingleAsync(i => i.Id == world.Id);
+            act.Database.AutoSavepointsEnabled = false;
+            var signature = await new ElectronicSignatureService(act).SignAsync(world.Head, ActionGuardScenarios.Password,
+                SignatureMeaning.OosInvestigationReopened, nameof(OosInvestigation), world.Id, null, null);
+            await act.SaveChangesAsync();
+            act.OosInvestigationReopenings.Add(new OosInvestigationReopening
+            {
+                InvestigationId = world.Id, PreviousConclusion = OosConclusion.Invalidated,
+                PreviousConclusionSignatureId = prior.ConclusionSignatureId!.Value,
+                SignatureId = signature.Id, Reason = "Forged evidence", ReopenedByUserId = world.Head,
+                ReopenedAtUtc = ActionGuardScenarios.Now
+            });
+            await act.SaveChangesAsync();
+            await AssertTriggerRejectsAsync(act, $"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+                """);
+            await tx.RollbackAsync();
+        }
+        await AssertInvalidationWasNotReversedAsync(world, linkId, world.Version);
+    }
+
+    private async Task<int> ArrangeInvalidatedLinkAsync(World world)
+    {
+        await using var arrange = fixture.CreateDbContext();
+        var link = await arrange.OosInvestigationResults.SingleAsync(r => r.InvestigationId == world.Id);
+        link.IsInvalidated = true;
+        link.InvalidatedAtUtc = ActionGuardScenarios.Now;
+        await arrange.SaveChangesAsync();
+        return link.Id;
+    }
+
+    private async Task AssertInvalidationWasNotReversedAsync(World world, int linkId, uint expectedVersion)
+    {
+        await using var verify = fixture.CreateDbContext();
+        var link = await verify.OosInvestigationResults.AsNoTracking().SingleAsync(r => r.Id == linkId);
+        Assert.True(link.IsInvalidated);
+        Assert.Equal(ActionGuardScenarios.Now, link.InvalidatedAtUtc);
+        Assert.Equal("", link.ResultSummaryAtOpening);
+        Assert.Equal(expectedVersion, (await ReadAsync(world.Id)).Version);
+        Assert.False(await verify.OosInvestigationReopenings.AsNoTracking().AnyAsync(r => r.InvestigationId == world.Id));
+    }
+
+    private static async Task AssertTriggerRejectsAsync(MicroLimsDbContext act, FormattableString sql)
+    {
+        var refused = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlInterpolatedAsync(sql));
+        Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, refused.SqlState);
     }
 
     [PostgresFact]
@@ -871,11 +1095,19 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
         var section = await _seed.SectionAsync();
         var head = await _seed.UserAsync(RoleType.SectionHead, [PermissionConstants.OosManage, ..ActionGuardScenarios.HeadCodes], section);
         var reviewer = await _seed.ReviewerAsync(section);
-        var analyst = await _seed.AnalystAsync(section);
+        var analyst = await _seed.UserAsync(RoleType.Analyst,
+            [PermissionConstants.OosContribute, ..ActionGuardScenarios.AnalystCodes], section);
         var origin = await _seed.UnderApprovalAsync(section, reviewer.Id, analystId: analyst.Id);
         var order = origin.Orders[0];
         await using var arrange = fixture.CreateDbContext();
-        var category = await arrange.OosCauseCategories.AsNoTracking().Where(c => c.IsNoCauseFound == noCause).OrderBy(c => c.Id).FirstAsync();
+        var category = noCause
+            ? await arrange.OosCauseCategories.AsNoTracking().SingleAsync(c => c.IsNoCauseFound)
+            : new OosCauseCategory { Name = $"Cause-{Guid.NewGuid():N}", IsActive = true };
+        if (!noCause)
+        {
+            arrange.OosCauseCategories.Add(category);
+            await arrange.SaveChangesAsync();
+        }
         var investigation = new OosInvestigation
         {
             Number = $"TEST-{Guid.NewGuid():N}"[..20], SampleId = origin.Sample.Id, SectionId = section.Id,

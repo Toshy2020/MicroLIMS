@@ -13,6 +13,7 @@ public class RecordingPointCoverageTests
         ["AfterCleaningWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",
         ["EMWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",
         ["WaterWorkflowEngine.PrepareAsync"] = "Creates empty sampling locations for the batch; no result or reading is recorded.",
+        ["RetestSampleFactory.AddRetestSampleAsync"] = "Clones empty sampling locations for future testing without recording any result or reading.",
         ["SampleApprovalService.DecideAsync"] = "A review decision; the retest clones fresh unread locations without any recorded value.",
         ["SampleCorrectionService.CorrectAsync"] = "Removes the locations of removed tests that have no entered result; it records nothing.",
         ["LocationPathogenObservationService.RecordPrimaryObservationAsync"] = "This direct observation writer has no production caller.",

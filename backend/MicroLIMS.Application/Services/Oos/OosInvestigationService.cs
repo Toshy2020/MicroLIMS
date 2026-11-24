@@ -24,8 +24,12 @@ public sealed partial class OosInvestigationService(
         var open = db.OosInvestigations.Where(i => i.Kind == OosInvestigationKind.Oos &&
             i.SectionId == sectionId && i.Status != OosInvestigationStatus.Concluded);
         var investigation = await LockOpenAsync(open.Where(i => i.SampleId == sample.Id), ct);
-        if (investigation is null && sample.OriginSampleId is not null && sample.OosGroupCode is not null)
-            investigation = await LockOpenAsync(open.Where(i => i.Number == sample.OosGroupCode), ct);
+        if (investigation is null)
+            investigation = await LockOpenAsync(open.Where(i =>
+                (from link in db.OosRetestPlanSamples
+                 join plan in db.OosRetestPlans on link.PlanId equals plan.Id
+                 where link.SampleId == sample.Id && plan.InvestigationId == i.Id && plan.SignedAtUtc != null
+                 select link.SampleId).Any()), ct);
 
         var now = time.GetUtcNow().UtcDateTime;
         var existingOrderIds = new HashSet<int>();
@@ -59,7 +63,7 @@ public sealed partial class OosInvestigationService(
         return investigation;
     }
 
-    private async Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default)
+    internal async Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default)
     {
         if (!db.Database.IsRelational())
             return await candidates.SingleOrDefaultAsync(ct);
@@ -72,6 +76,17 @@ public sealed partial class OosInvestigationService(
         return await db.OosInvestigations.FromSql(
             $"""SELECT i.*, i.xmin FROM "OosInvestigations" AS i WHERE i."Id" = {id.Value} AND i."Status" <> {(int)OosInvestigationStatus.Concluded} FOR UPDATE""")
             .SingleOrDefaultAsync(ct);
+    }
+
+    internal Task<int[]> InvestigationOrderIdsAsync(int investigationId, CancellationToken ct = default)
+    {
+        var investigated = db.OosInvestigationResults.Where(r => r.InvestigationId == investigationId).Select(r => r.TestOrderId);
+        var retestOrders = from plan in db.OosRetestPlans
+                           join link in db.OosRetestPlanSamples on plan.Id equals link.PlanId
+                           join order in db.TestOrders on link.SampleId equals order.SampleId
+                           where plan.InvestigationId == investigationId
+                           select order.Id;
+        return investigated.Union(retestOrders).ToArrayAsync(ct);
     }
 
     private async Task<OosInvestigation> CreateAsync(

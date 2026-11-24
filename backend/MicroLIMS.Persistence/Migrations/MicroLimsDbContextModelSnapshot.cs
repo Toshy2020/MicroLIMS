@@ -9019,6 +9019,10 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("InvestigationId")
+                        .IsUnique()
+                        .HasFilter("\"SignedAtUtc\" IS NULL");
+
                     b.HasIndex("SignatureId");
 
                     b.HasIndex("SignedByUserId");
@@ -9045,7 +9049,8 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasKey("PlanId", "SampleId");
 
-                    b.HasIndex("SampleId");
+                    b.HasIndex("SampleId")
+                        .IsUnique();
 
                     b.ToTable("OosRetestPlanSamples");
                 });

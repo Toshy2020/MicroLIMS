@@ -69,6 +69,7 @@ public class OosRetestPlanConfiguration : IEntityTypeConfiguration<OosRetestPlan
         builder.Property(x => x.JudgingRule).HasMaxLength(4000);
         builder.Property(x => x.AmendmentReason).HasMaxLength(4000);
         builder.HasIndex(x => new { x.InvestigationId, x.Revision }).IsUnique();
+        builder.HasIndex(x => x.InvestigationId).IsUnique().HasFilter("\"SignedAtUtc\" IS NULL");
 
         builder.HasOne<OosInvestigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(x => x.SignedByUserId).OnDelete(DeleteBehavior.Restrict);
@@ -81,6 +82,7 @@ public class OosRetestPlanSampleConfiguration : IEntityTypeConfiguration<OosRete
     public void Configure(EntityTypeBuilder<OosRetestPlanSample> builder)
     {
         builder.HasKey(x => new { x.PlanId, x.SampleId });
+        builder.HasIndex(x => x.SampleId).IsUnique();
 
         builder.HasOne<OosRetestPlan>().WithMany().HasForeignKey(x => x.PlanId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Sample>().WithMany().HasForeignKey(x => x.SampleId).OnDelete(DeleteBehavior.Restrict);

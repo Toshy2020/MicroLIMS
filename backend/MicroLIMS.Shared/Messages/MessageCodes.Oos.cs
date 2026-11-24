@@ -39,6 +39,18 @@ public static partial class MessageCodes
     public const string OosPhaseOneCauseInactive = "Oos.PhaseOneCauseInactive";
     public const string OosPhaseOnePasswordFailed = "Oos.PhaseOnePasswordFailed";
 
+    public const string OosRetestPlanNotFound = "Oos.RetestPlanNotFound";
+    public const string OosRetestPlanAlreadySigned = "Oos.RetestPlanAlreadySigned";
+    public const string OosRetestPlanSignerIsAnalyst = "Oos.RetestPlanSignerIsAnalyst";
+    public const string OosRetestPlanPasswordFailed = "Oos.RetestPlanPasswordFailed";
+    public const string OosRetestPlanAssignmentInvalid = "Oos.RetestPlanAssignmentInvalid";
+    public const string OosRetestPlanJudgingRuleInvalid = "Oos.RetestPlanJudgingRuleInvalid";
+    public const string OosRetestPlanAmendmentReasonRequired = "Oos.RetestPlanAmendmentReasonRequired";
+    public const string OosRetestPlanOriginalAnalyst = "Oos.RetestPlanOriginalAnalyst";
+    public const string OosRetestPlanPhaseOneRequired = "Oos.RetestPlanPhaseOneRequired";
+    public const string OosRetestPlanOrdersInvalid = "Oos.RetestPlanOrdersInvalid";
+    public const string OosRetestPlanInvestigationConcluded = "Oos.RetestPlanInvestigationConcluded";
+
     private static Dictionary<string, string[]> OosParameters() => new()
     {
         [OosDocumentNotFound] = ["documentId"],
@@ -75,5 +87,16 @@ public static partial class MessageCodes
         [OosPhaseOneAssignableCauseRequired] = [],
         [OosPhaseOneCauseInactive] = [],
         [OosPhaseOnePasswordFailed] = [],
+        [OosRetestPlanNotFound] = [],
+        [OosRetestPlanAlreadySigned] = [],
+        [OosRetestPlanSignerIsAnalyst] = [],
+        [OosRetestPlanPasswordFailed] = [],
+        [OosRetestPlanAssignmentInvalid] = [],
+        [OosRetestPlanJudgingRuleInvalid] = [],
+        [OosRetestPlanAmendmentReasonRequired] = [],
+        [OosRetestPlanOriginalAnalyst] = [],
+        [OosRetestPlanPhaseOneRequired] = [],
+        [OosRetestPlanOrdersInvalid] = [],
+        [OosRetestPlanInvestigationConcluded] = [],
     };
 }

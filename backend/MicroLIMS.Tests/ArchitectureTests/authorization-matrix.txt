@@ -502,7 +502,9 @@ OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocum
 OosInvestigationsController.AddAnalystStatement(Int32, OosAnalystStatementRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.SaveRetestPlan(Int32, SaveRetestPlanRequest, CancellationToken): SectionHead
 OosInvestigationsController.SignPhaseOne(Int32, SignPhaseOneRequest, CancellationToken): SectionHead
+OosInvestigationsController.SignRetestPlan(Int32, SignRetestPlanRequest, CancellationToken): SectionHead
 OosTemplatesController.AddCategory(SaveOosCategoryRequest, CancellationToken): SectionHead
 OosTemplatesController.Get(Int32, OosInvestigationKind, CancellationToken): SectionHead
 OosTemplatesController.ListCategories(Int32, Int32, CancellationToken): SectionHead

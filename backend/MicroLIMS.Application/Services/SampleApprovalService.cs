@@ -36,6 +36,7 @@ public class SampleApprovalService
     private readonly INotificationPublisher _publisher;
     private readonly ITestOrderOutcomeService _outcomes;
     private readonly OosGate _oosGate;
+    private readonly RetestSampleFactory _retests;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
@@ -53,98 +54,10 @@ public class SampleApprovalService
         _archive = archive;
         _resultProjection = resultProjection;
         _refNumbers = refNumbers;
+        _retests = new RetestSampleFactory(db, refNumbers, _time);
         _outcomes = outcomes;
         _oosGate = oosGate;
         _publisher = publisher ?? new NotificationPublisher(db, _time);
-    }
-
-    // Copies the physical/identity attributes of a sample onto a fresh OOS
-    // retest spin-off - deliberately does NOT copy SamplePreparation (the
-    // new sample "starts fresh": NeedsPreparation, no prep row) or
-    // TestOrders (the caller adds only the tests actually selected for
-    // retest). OriginSampleId is the only link back to the sample whose
-    // approval decision created it.
-    private Sample BuildRetestSample(Sample original, string referenceNumber, int causeOfTestingId, int receivedByUserId, string oosGroupCode)
-    {
-        return new Sample
-        {
-            ReferenceNumber = referenceNumber,
-            Category = original.Category,
-            ItemId = original.ItemId,
-            WaterSamplingPointId = original.WaterSamplingPointId,
-            DepartmentId = original.DepartmentId,
-            MachineId = original.MachineId,
-            PreviousProductName = original.PreviousProductName,
-            PreviousProductBatchNumber = original.PreviousProductBatchNumber,
-            PreviousProductItemId = original.PreviousProductItemId,
-            CleaningTechniques = original.CleaningTechniques,
-            WaterDepartmentId = original.WaterDepartmentId,
-            ProductionStage = original.ProductionStage,
-            CauseOfTestingId = causeOfTestingId,
-            SampleQuantity = original.SampleQuantity,
-            SampledBy = original.SampledBy,
-            BatchNumber = original.BatchNumber,
-            ControlNumber = original.ControlNumber,
-            MfgDate = original.MfgDate,
-            ExpDate = original.ExpDate,
-            ReceivedByUserId = receivedByUserId,
-            ReceivedAt = _time.GetUtcNow().UtcDateTime,
-            Status = SampleStatus.Received,
-            PreparationStatus = SamplePreparationStatus.NeedsPreparation,
-            OriginSampleId = original.Id,
-            OosGroupCode = oosGroupCode
-        };
-    }
-
-    // Water/EM/After Cleaning TestOrders are batches of per-location
-    // results (SampleLocation rows), not one result per order. A retest
-    // must only ever re-run the locations that actually failed on the
-    // original order - carrying over every assigned location (or worse,
-    // letting the analyst re-pick from the whole department/machine/room
-    // catalog in the Preparation screen) would silently retest points
-    // that already conformed. Returns true if any location was cloned
-    // (signals the caller to skip the Preparation screen for this order's
-    // sample, since it now already has everything it needs).
-    private async Task<bool> CloneFailedLocationsAsync(SampleCategory category, TestOrder originalOrder, Sample newSample, TestOrder newOrder)
-    {
-        if (category is not (SampleCategory.Water or SampleCategory.EnvironmentalMonitoring or SampleCategory.AfterCleaning))
-            return false;
-
-        var originalLocations = await _db.SampleLocations.AsNoTracking()
-            .Where(l => l.TestOrderId == originalOrder.Id)
-            .ToListAsync();
-
-        if (originalLocations.Count == 0)
-            return false;
-
-        // Conforming statuses mirror the test order outcome service. If none of the original locations actually failed (e.g.
-        // the order was sent to retest for a procedural/OOS reason rather
-        // than a location result), fall back to carrying every original
-        // location rather than creating a TestOrder with no locations at
-        // all - an empty batch order can't be tested.
-        var failedLocations = originalLocations.Where(l => l.Status is not (ResultStatus.WithinLimits or ResultStatus.Absent)).ToList();
-        var locationsToClone = failedLocations.Count > 0 ? failedLocations : originalLocations;
-
-        foreach (var loc in locationsToClone)
-        {
-            newSample.Locations.Add(new SampleLocation
-            {
-                TestOrder = newOrder,
-                LocationType = loc.LocationType,
-                RoomTestConfigurationId = loc.RoomTestConfigurationId,
-                MachinePartConfigurationId = loc.MachinePartConfigurationId,
-                WaterSamplingPointId = loc.WaterSamplingPointId,
-                SamplingConfigurationId = loc.SamplingConfigurationId
-                // Deliberately not copying DilutionFactor/CFUResult/
-                // CalculatedResult/ReportedResult/AlertLimit/ActionLimit/
-                // SpecLimit/Status/Unit/RawReadings/EnteredAt/
-                // EnteredByUserId - this is a fresh, unread location on the
-                // retest order; limits get freshly snapshotted when the
-                // analyst records the result, same as any normal batch order.
-            });
-        }
-
-        return true;
     }
 
     // The pre-signing checks of an approval decision, in the order the action applies them: the section (state and
@@ -335,20 +248,15 @@ public class SampleApprovalService
             }
         }
 
-        CauseOfTesting? retestCause = null;
-        if (decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest)
-        {
-            retestCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Name == "Retest", ct)
-                ?? throw new BusinessRuleException(
-                    MessageCodes.SampleRetestCauseNotConfigured,
-                    "The 'Retest' cause of testing is not configured.");
-        }
+        var retestCauseId = decision is ApprovalDecision.RetestRetainedSample or ApprovalDecision.NewSampleRequest
+            ? await _retests.GetRetestCauseIdAsync(ct)
+            : 0;
 
         var meaning = decision switch
         {
             ApprovalDecision.Approve => SignatureMeaning.Approved,
             ApprovalDecision.Reject => SignatureMeaning.Rejected,
-            ApprovalDecision.NewSampleRequest => SignatureMeaning.Rejected,
+            ApprovalDecision.NewSampleRequest => SignatureMeaning.NewSampleRequested,
             ApprovalDecision.RetestRetainedSample => SignatureMeaning.RetestRequested,
             _ => throw new BusinessRuleException(
                 MessageCodes.SampleInvalidApprovalDecision,
@@ -449,25 +357,10 @@ public class SampleApprovalService
                 if (sample.OosGroupCode is null)
                     sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync(ct);
 
-                var newSample = BuildRetestSample(sample, await _refNumbers.GenerateAsync(sample.Category), retestCause!.Id, sectionHeadUserId, sample.OosGroupCode);
-                var carriedAnyLocations = false;
+                await _retests.AddRetestSampleAsync(sample, selectedOrders, order => order.AssignedAnalystId,
+                    sample.OosGroupCode, retestCauseId, sectionHeadUserId, ct);
                 foreach (var order in selectedOrders)
                 {
-                    var newOrder = new TestOrder
-                    {
-                        TestCode = order.TestCode,
-                        SectionId = order.SectionId,
-                        Status = ApprovalStatus.Pending,
-                        CurrentStep = WorkflowStep.Waiting,
-                        AssignedAnalystId = order.AssignedAnalystId,
-                        RoomId = order.RoomId,
-                        IsSuperseded = false
-                    };
-                    newSample.TestOrders.Add(newOrder);
-
-                    if (await CloneFailedLocationsAsync(sample.Category, order, newSample, newOrder))
-                        carriedAnyLocations = true;
-
                     order.IsSuperseded = true;
                     _db.WorkflowHistories.Add(new WorkflowHistory
                     {
@@ -478,19 +371,6 @@ public class SampleApprovalService
                         PerformedByUserId = sectionHeadUserId
                     });
                 }
-
-                // Water/EM/After Cleaning: the failed locations are already
-                // carried onto the new TestOrders above, so this sample
-                // skips the checkbox Preparation screen entirely - it would
-                // otherwise let the analyst freely add back every other
-                // point/room/part (and every test assigned to it), exactly
-                // the "retest everything" bug this exists to prevent.
-                if (carriedAnyLocations)
-                    newSample.PreparationStatus = SamplePreparationStatus.Ready;
-                else
-                    newSample.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, newSample.TestOrders.Select(o => o.SectionId));
-
-                _db.Samples.Add(newSample);
                 break;
             }
 
@@ -513,34 +393,8 @@ public class SampleApprovalService
                 var analystIds = new[] { newSampleAnalystOneId!.Value, newSampleAnalystTwoId!.Value };
                 foreach (var analystId in analystIds)
                 {
-                    var spinoff = BuildRetestSample(sample, await _refNumbers.GenerateAsync(sample.Category), retestCause!.Id, sectionHeadUserId, sample.OosGroupCode);
-                    var carriedAnyLocations = false;
-                    foreach (var order in selectedOrders)
-                    {
-                        var newOrder = new TestOrder
-                        {
-                            TestCode = order.TestCode,
-                            SectionId = order.SectionId,
-                            Status = ApprovalStatus.Pending,
-                            CurrentStep = WorkflowStep.Waiting,
-                            AssignedAnalystId = analystId,
-                            RoomId = order.RoomId,
-                            IsSuperseded = false
-                        };
-                        spinoff.TestOrders.Add(newOrder);
-
-                        if (await CloneFailedLocationsAsync(sample.Category, order, spinoff, newOrder))
-                            carriedAnyLocations = true;
-                    }
-
-                    // See the matching comment in the RetestRetainedSample
-                    // branch above - same reasoning, applied per spinoff.
-                    if (carriedAnyLocations)
-                        spinoff.PreparationStatus = SamplePreparationStatus.Ready;
-                    else
-                        spinoff.PreparationStatus = await PreparationRules.InitialStatusAsync(_db, spinoff.TestOrders.Select(o => o.SectionId));
-
-                    _db.Samples.Add(spinoff);
+                    await _retests.AddRetestSampleAsync(sample, selectedOrders, _ => analystId,
+                        sample.OosGroupCode, retestCauseId, sectionHeadUserId, ct);
                     await _db.SaveChangesAsync(ct);
                 }
 
@@ -592,13 +446,23 @@ public class SampleApprovalService
     {
         if (sample.Status is not (SampleStatus.Approved or SampleStatus.Rejected)) return;
 
-        await _resultProjection.RefreshApprovalFieldsAsync(sample.Id);
-        var document = await _summary.BuildReportDocumentAsync(sample.Id, ct);
-        if (document is not null)
-            await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sample.Id, document, archiveLabel, userId);
+        await FinalizeClosedSampleAsync(sample, archiveLabel, userId, ct);
 
         var outcome = sample.Status == SampleStatus.Rejected ? ApprovalDecision.Reject : ApprovalDecision.Approve;
         await PropagateOosOutcomeAsync(sample, outcome, userId, ct);
+    }
+
+    internal async Task FinalizeClosedSampleAsync(Sample sample, string archiveLabel, int userId, CancellationToken ct = default)
+    {
+        if (sample.Status is not (SampleStatus.Approved or SampleStatus.Rejected))
+            throw new InvalidOperationException("Only a closed sample can be finalised.");
+
+        await _resultProjection.RefreshApprovalFieldsAsync(sample.Id);
+        var document = await _summary.BuildReportDocumentAsync(sample.Id, ct);
+        if (document is not null)
+        {
+            var archived = await _archive.ArchiveAsync(ReviewEntityTypes.Sample, sample.Id, document, archiveLabel, userId);
+        }
     }
 
     private async Task PropagateOosOutcomeAsync(Sample sample, ApprovalDecision decision, int sectionHeadUserId, CancellationToken ct = default)
@@ -617,6 +481,9 @@ public class SampleApprovalService
         if (sectionIds.Count != 1)
             return;
         var section = sectionIds[0];
+        if (await _db.OosInvestigations.AsNoTracking().AnyAsync(i =>
+                i.SampleId == origin.Id && i.SectionId == section && i.Kind == OosInvestigationKind.Oos, ct))
+            return;
         var originSignoff = origin.SectionSignoffs.FirstOrDefault(s => s.SectionId == section);
         if (originSignoff is null || originSignoff.Status != SectionSignoffStatus.RetestRequested)
             return;
@@ -697,10 +564,7 @@ public class SampleApprovalService
         if (!originClosed)
             return;
 
-        await _resultProjection.RefreshApprovalFieldsAsync(origin.Id);
-        var document = await _summary.BuildReportDocumentAsync(origin.Id, ct);
-        if (document is not null)
-            await _archive.ArchiveAsync(ReviewEntityTypes.Sample, origin.Id, document, $"Sample {outcome} (OOS resolved)", sectionHeadUserId);
+        await FinalizeClosedSampleAsync(origin, $"Sample {outcome} (OOS resolved)", sectionHeadUserId, ct);
 
         await PropagateOosOutcomeAsync(origin, outcome, sectionHeadUserId, ct);
     }

@@ -14,10 +14,15 @@ public sealed partial class OosInvestigationService(
 {
     public async Task<OosInvestigation?> OpenForReviewedSectionAsync(
         Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
+        CancellationToken ct = default) =>
+        (await ApplyReviewedSectionAsync(sample, sectionId, reviewedOrders, reviewerUserId, ct)).Investigation;
+
+    internal async Task<(OosInvestigation? Investigation, bool Opened, bool PhaseTwoStarted)> ApplyReviewedSectionAsync(
+        Sample sample, int sectionId, IReadOnlyCollection<TestOrder> reviewedOrders, int reviewerUserId,
         CancellationToken ct = default)
     {
         var failing = await rule.ReadFailingOrdersAsync(reviewedOrders.Select(o => o.Id).ToArray(), ct);
-        if (failing.Count == 0) return null;
+        if (failing.Count == 0) return default;
 
         await numbers.AcquireOosNumberLockAsync(ct);
 
@@ -31,6 +36,8 @@ public sealed partial class OosInvestigationService(
                  where link.SampleId == sample.Id && plan.InvestigationId == i.Id && plan.SignedAtUtc != null
                  select link.SampleId).Any()), ct);
 
+        var opened = investigation is null;
+        var phaseTwoStarted = false;
         var now = time.GetUtcNow().UtcDateTime;
         var existingOrderIds = new HashSet<int>();
         if (investigation is null)
@@ -50,6 +57,7 @@ public sealed partial class OosInvestigationService(
             if (investigation.SampleId != sample.Id && investigation.Status == OosInvestigationStatus.AwaitingRetest)
             {
                 investigation.Status = OosInvestigationStatus.PhaseTwo;
+                phaseTwoStarted = true;
                 db.CurrentUserId = reviewerUserId;
                 db.SetNextAuditReason(investigation, "A failing retest from a signed plan joined the investigation.");
             }
@@ -68,14 +76,14 @@ public sealed partial class OosInvestigationService(
             });
         }
 
-        return investigation;
+        return (investigation, opened, phaseTwoStarted);
     }
 
     internal Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default) =>
         LockInvestigationAsync(candidates, closed: null, ct);
 
     private async Task<OosInvestigation?> LockInvestigationAsync(IQueryable<OosInvestigation> candidates,
-        OosInvestigationStatus? closed, CancellationToken ct)
+        OosInvestigationStatus? closed, CancellationToken ct, bool anyStatus = false)
     {
         if (!db.Database.IsRelational())
             return await candidates.SingleOrDefaultAsync(ct);
@@ -86,12 +94,17 @@ public sealed partial class OosInvestigationService(
         // Check status again after PostgreSQL acquires the lock.
         var locked = db.OosInvestigations.FromSql(
             $"""SELECT i.*, i.xmin FROM "OosInvestigations" AS i WHERE i."Id" = {id.Value} FOR UPDATE""");
-        return await (closed is null
-            ? locked.Where(i => i.Status != OosInvestigationStatus.Concluded)
-            : locked.Where(i => i.Status == closed)).SingleOrDefaultAsync(ct);
+        if (!anyStatus)
+            return await (closed is null
+                ? locked.Where(i => i.Status != OosInvestigationStatus.Concluded)
+                : locked.Where(i => i.Status == closed)).SingleOrDefaultAsync(ct);
+        return await locked.AsNoTracking().SingleOrDefaultAsync(ct);
     }
 
-    internal Task<int[]> InvestigationOrderIdsAsync(int investigationId, CancellationToken ct = default)
+    internal Task<int[]> InvestigationOrderIdsAsync(int investigationId, CancellationToken ct = default) =>
+        InvestigationOrderIds(db, investigationId).ToArrayAsync(ct);
+
+    internal static IQueryable<int> InvestigationOrderIds(IMicroLimsDbContext db, int investigationId)
     {
         var investigated = db.OosInvestigationResults.Where(r => r.InvestigationId == investigationId).Select(r => r.TestOrderId);
         var retestOrders = from plan in db.OosRetestPlans
@@ -99,7 +112,7 @@ public sealed partial class OosInvestigationService(
                            join order in db.TestOrders on link.SampleId equals order.SampleId
                            where plan.InvestigationId == investigationId && plan.SignedAtUtc != null
                            select order.Id;
-        return investigated.Union(retestOrders).ToArrayAsync(ct);
+        return investigated.Union(retestOrders);
     }
 
     private async Task<OosInvestigation> CreateAsync(

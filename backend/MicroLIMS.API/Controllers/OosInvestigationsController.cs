@@ -18,10 +18,13 @@ public sealed record OosChecklistAnswerRequest(OosChecklistAnswer Answer, string
 
 public sealed record OosEntryRequest(OosEntryKind Kind, string Text, int? ParentEntryId);
 public sealed record OosReopenRequest(string Reason, string Password);
+public sealed record OosDeviationReasonRequest(string Reason);
+public sealed record OosDeviationAddressRequest(string Comment);
 
 [ApiController]
 [Route("api/oos-investigations")]
-public sealed class OosInvestigationsController(OosInvestigationService service, OosRetestPlanService retestPlans) : ControllerBase
+public sealed class OosInvestigationsController(OosInvestigationService service, OosRetestPlanService retestPlans,
+    IOosNotifier notifier, ILogger<OosInvestigationsController> logger) : ControllerBase
 {
     [HttpGet("{id:int}/facts")]
     [Authorize(Policy = PermissionConstants.OosView)]
@@ -51,7 +54,8 @@ public sealed class OosInvestigationsController(OosInvestigationService service,
     [Authorize(Policy = PermissionConstants.OosManage)]
     public async Task<IActionResult> SignPhaseOne(int id, SignPhaseOneRequest request, CancellationToken ct = default)
     {
-        await service.SignPhaseOneAsync(id, request, ExpectedVersion(), Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        if (await service.SignPhaseOneAsync(id, request, ExpectedVersion(), Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct))
+            await OosPostCommitNotification.SendAsync(notifier.PhaseTwoStartedAsync, id, logger, ct);
         return NoContent();
     }
 
@@ -83,6 +87,7 @@ public sealed class OosInvestigationsController(OosInvestigationService service,
     public async Task<IActionResult> Conclude(int id, ConcludeRequest request, CancellationToken ct = default)
     {
         await service.ConcludeAsync(id, request, ExpectedVersion(), Actor(), HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
+        await OosPostCommitNotification.SendAsync(notifier.ConcludedAsync, id, logger, ct);
         return NoContent();
     }
 
@@ -100,7 +105,27 @@ public sealed class OosInvestigationsController(OosInvestigationService service,
     public async Task<IActionResult> OpenManually(int sampleId, int sectionId, CancellationToken ct = default)
     {
         var investigation = await service.OpenManuallyAsync(sampleId, sectionId, ExpectedVersion(), Actor(), ct);
+        await OosPostCommitNotification.SendAsync(notifier.OpenedAsync, investigation.Id, logger, ct);
         return Ok(ApiResponse<OosManualOpeningDto>.Ok(investigation));
+    }
+
+    [HttpPost("{id:int}/deviation-requests")]
+    [Authorize(Policy = PermissionConstants.OosRequestDeviation)]
+    public async Task<IActionResult> RequestDeviation(int id, OosDeviationReasonRequest request, CancellationToken ct = default)
+    {
+        _ = ExpectedVersion();
+        var created = await service.RequestDeviationAsync(id, request.Reason, Actor(), ct);
+        await OosPostCommitNotification.SendAsync(notifier.DeviationRequestedAsync, id, logger, ct);
+        return Ok(ApiResponse<OosDeviationRequestDto>.Ok(created));
+    }
+
+    [HttpPost("deviation-requests/{requestId:int}/address")]
+    [Authorize(Policy = PermissionConstants.OosManage)]
+    public async Task<IActionResult> AddressDeviationRequest(int requestId, OosDeviationAddressRequest request,
+        CancellationToken ct = default)
+    {
+        await service.AddressDeviationRequestAsync(requestId, request.Comment, ExpectedVersion(), Actor(), ct);
+        return NoContent();
     }
 
     private uint ExpectedVersion() => RecordVersionMiddleware.ParseExpectedVersion(Request) ?? throw OosApiErrors.MissingVersion();

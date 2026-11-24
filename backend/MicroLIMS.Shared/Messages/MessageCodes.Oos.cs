@@ -51,6 +51,11 @@ public static partial class MessageCodes
     public const string OosRetestPlanOrdersInvalid = "Oos.RetestPlanOrdersInvalid";
     public const string OosRetestPlanInvestigationConcluded = "Oos.RetestPlanInvestigationConcluded";
 
+    public const string OosDeviationReasonInvalid = "Oos.DeviationReasonInvalid";
+    public const string OosDeviationCommentInvalid = "Oos.DeviationCommentInvalid";
+    public const string OosDeviationRequestNotFound = "Oos.DeviationRequestNotFound";
+    public const string OosDeviationAlreadyAddressed = "Oos.DeviationAlreadyAddressed";
+
     public const string OosEntryInvalid = "Oos.EntryInvalid";
     public const string OosEntryParentInvalid = "Oos.EntryParentInvalid";
     public const string OosConclusionPhaseInvalid = "Oos.ConclusionPhaseInvalid";

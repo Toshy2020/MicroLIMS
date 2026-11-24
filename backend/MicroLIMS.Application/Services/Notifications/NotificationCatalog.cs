@@ -25,7 +25,12 @@ public static class NotificationCatalog
         new("ConfigurationApprovalWaiting", "info", false, "Configuration awaiting approval"),
         new("CompetencyExpiry", "warning", false, "Analyst qualification expiring"),
 
-        // Existing types written by Application services
+        // Existing and domain-specific types written by Application services
+        new("OosOpened", "info", false, "OOS investigation opened"),
+        new("OosPhaseTwoStarted", "info", false, "OOS investigation entered Phase II"),
+        new("OosConcluded", "info", false, "OOS investigation concluded"),
+        new("OosDeviationRequested", "info", false, "OOS deviation requested"),
+
         new("PendingPreparationConfigApproval", "info", false, "Preparation configuration awaiting approval"),
         new("TestReturnedForRevision", "warning", false, "Test returned for revision"),
         new("TestReturnedForBiochemical", "warning", false, "Test returned for biochemical confirmation"),

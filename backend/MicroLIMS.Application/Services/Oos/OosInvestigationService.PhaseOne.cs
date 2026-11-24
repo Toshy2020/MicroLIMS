@@ -46,7 +46,7 @@ public sealed partial class OosInvestigationService
             await AppendAsync(investigation, phase, OosEntryKind.ChecklistAnswer, itemKey, answer, comment?.Trim() ?? "", userId, ct);
         }, ct);
 
-    public Task SignPhaseOneAsync(int investigationId, SignPhaseOneRequest request, uint expectedVersion, int userId,
+    public Task<bool> SignPhaseOneAsync(int investigationId, SignPhaseOneRequest request, uint expectedVersion, int userId,
         string? ip, CancellationToken ct = default) =>
         UnitOfWork.RunAsync(db, async () =>
         {
@@ -130,6 +130,7 @@ public sealed partial class OosInvestigationService
             }
 
             await db.SaveChangesAsync(ct);
+            return !confirmed;
         }, ct);
 
     internal async Task<OosInvestigation> OpenForEditAsync(int id, int actor, string permission,

@@ -69,12 +69,14 @@ public sealed partial class OosInvestigationService
             await db.SaveChangesAsync(ct);
         }, ct);
 
-    public async Task<IReadOnlyList<OosOverdueInvestigation>> ListOverdueAsync(DateOnly nowLabDate, CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<OosOverdueInvestigation>> ListOverdueAsync(DateOnly nowLabDate, int take = 100,
+        CancellationToken ct = default) =>
         await db.OosInvestigations.AsNoTracking()
             .Where(i => i.Status != OosInvestigationStatus.Concluded &&
                 (i.DueDate < nowLabDate ||
                  (i.Status == OosInvestigationStatus.PhaseOne && i.PhaseOneDueDate < nowLabDate)))
             .OrderBy(i => i.Id)
+            .Take(Math.Clamp(take, 1, 100))
             .Select(i => new OosOverdueInvestigation(i.Id, i.Number, i.SampleId, i.SectionId, i.Status, i.PhaseOneDueDate, i.DueDate))
             .ToListAsync(ct);
 

@@ -30,7 +30,8 @@ public static class SegregationOfDutiesRules
         PermissionConstants.OosManage, PermissionConstants.OosContribute, PermissionConstants.CompetencyManage, PermissionConstants.CompetencyOverride,
         PermissionConstants.DocumentsReview, PermissionConstants.DocumentsApprove,
         PermissionConstants.SamplesPrepare, PermissionConstants.TestsOutsource, PermissionConstants.TestsSelfAssign,
-        PermissionConstants.NotApplicableTestsManage, PermissionConstants.NotApplicableTestsFinalApprove
+        PermissionConstants.NotApplicableTestsManage, PermissionConstants.NotApplicableTestsFinalApprove,
+        PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude
     };
 
     // Every (administration, GxP) pair the codes contain, in a stable order.
@@ -50,7 +51,8 @@ public static class SegregationOfDutiesRules
     public static readonly IReadOnlySet<string> QaOnlyCodes = new HashSet<string>
     {
         PermissionConstants.AuditReview,
-        PermissionConstants.AccessReviewSign
+        PermissionConstants.AccessReviewSign,
+        PermissionConstants.QualityApprove
     };
 
     public static readonly IReadOnlySet<string> QaForbiddenCodes = AdministrationCodes

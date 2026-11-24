@@ -180,6 +180,13 @@ public static class PermissionConstants
     // Notification centre and escalation (C5): mark notification types mandatory and configure escalation rules and working hours for your section.
     public const string NotificationsConfigure = "Notifications.Configure";
 
+    // Quality events (D2): Deviation, CAPA, Change Control, Complaint.
+    public const string QualityView = "Quality.View";
+    public const string QualityRaise = "Quality.Raise";
+    public const string QualityInvestigate = "Quality.Investigate";
+    public const string QualityLabConclude = "Quality.LabConclude";
+    public const string QualityApprove = "Quality.Approve";
+
     public static readonly IReadOnlyList<string> All = new[]
     {
         UsersManage, RolesManage, AuditView, ReportingAdmin,
@@ -208,7 +215,8 @@ public static class PermissionConstants
         LabelsReprint, LabelsConfigure,
         TableViewsShare, DataExport,
         CompetencyView, CompetencyManage, CompetencyOverride,
-        NotificationsConfigure
+        NotificationsConfigure,
+        QualityView, QualityRaise, QualityInvestigate, QualityLabConclude, QualityApprove
     };
 
     // What the built-in System Administrator role holds. Segregation of duties
@@ -239,7 +247,8 @@ public static class PermissionConstants
         DiscussionsView, MonitoringPlanView, AuditView, AuditReview, AccessReview, AccessReviewSign,
         SectionsViewAll, SamplesTrackAll, DashboardsLabOverview, DashboardsReview,
         KpiView, KpiViewTeam, MessagesUse, SystemViewSecurityAudit,
-        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView, OosView, OosRequestDeviation
+        DocumentsReview, DocumentsApprove, DocumentsPeriodicReview, DocumentsTrainingViewMatrix, CompetencyView, OosView, OosRequestDeviation,
+        QualityView, QualityRaise, QualityApprove
     };
 
     // The codes some endpoint or service actually checks. The rest are
@@ -265,7 +274,8 @@ public static class PermissionConstants
         AuditReview, AccessReviewSign,
         LabelsReprint, LabelsConfigure,
         TableViewsShare, DataExport,
-        NotificationsConfigure
+        NotificationsConfigure,
+        QualityView, QualityRaise, QualityInvestigate, QualityLabConclude, QualityApprove
     };
 
     // Declared and granted, but no feature checks them yet. Kept in the

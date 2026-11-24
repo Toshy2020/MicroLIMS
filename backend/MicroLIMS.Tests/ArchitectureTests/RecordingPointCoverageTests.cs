@@ -33,6 +33,7 @@ public class RecordingPointCoverageTests
         ["OosInvestigationService.AddAnalystStatementAsync"] = "Appends an investigation statement; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute and a performer check.",
         ["OosInvestigationService.AddEntryAsync"] = "Attributes an investigation entry; hypothesis work is investigation evidence and does not record a reportable result.",
         ["OosInvestigationService.OpenManuallyAsync"] = "Opens a scoped investigation for an already reviewed failing order and links the existing result without changing it.",
+        ["OosInvestigationService.OpenManualExcursionAsync"] = "Opens a scoped excursion review for an existing test order and links the existing result without recording a test result.",
         ["OosInvestigationService.AnswerChecklistAsync"] = "Appends an investigation checklist answer; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute.",
     };
 

@@ -503,8 +503,10 @@ OosInvestigationsController.AddAnalystStatement(Int32, OosAnalystStatementReques
 OosInvestigationsController.AddEntry(Int32, OosEntryRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.AddressDeviationRequest(Int32, OosDeviationAddressRequest, CancellationToken): SectionHead
 OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.CloseExcursion(Int32, CloseExcursionRequest, CancellationToken): SectionHead
 OosInvestigationsController.Conclude(Int32, ConcludeRequest, CancellationToken): SectionHead
 OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.OpenManualExcursion(OpenManualExcursionRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.OpenManually(Int32, Int32, CancellationToken): SectionHead
 OosInvestigationsController.Reopen(Int32, OosReopenRequest, CancellationToken): SectionHead
 OosInvestigationsController.RequestDeviation(Int32, OosDeviationReasonRequest, CancellationToken): Qa

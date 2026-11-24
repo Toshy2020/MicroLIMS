@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { startNewLabsSession } from "./myLabsCache";
 import { resetSharedMyLabsRequests, useMyLabs } from "./useMyLabs";
 
 const auth = { role: "Analyst", permissions: [] as string[], username: "sec.head" as string | null };
@@ -148,5 +149,24 @@ describe("useMyLabs", () => {
     }
     const cached = JSON.parse(window.localStorage.getItem("microlims.myLabs.v2:sec.head") ?? "{}");
     expect(cached.labs).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
+  });
+
+  it("discards an answer from a previous session when the same user signs in again while it is pending", async () => {
+    let resolveOld!: (v: unknown) => void;
+    getMySections.mockReturnValueOnce(new Promise((r) => { resolveOld = r; }));
+    const first = renderHook(() => useMyLabs());
+    startNewLabsSession(); // sign-out
+    auth.username = null;
+    first.rerender();
+    startNewLabsSession(); // same user signs in again
+    auth.username = "sec.head";
+    getMySections.mockResolvedValueOnce([{ sectionCode: "FP", physchemAreas: [] }]);
+    const second = renderHook(() => useMyLabs());
+    await waitFor(() => expect(second.result.current.loading).toBe(false));
+    resolveOld([{ sectionCode: "MICRO", physchemAreas: [] }]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(second.result.current.codes).toEqual(["FP"]);
+    expect(first.result.current.codes).not.toContain("MICRO");
+    expect(JSON.parse(window.localStorage.getItem("microlims.myLabs.v2:sec.head") ?? "{}").labs).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
   });
 });

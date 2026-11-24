@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { laboratorySectionService, LaboratorySection } from "../services/laboratorySectionService";
 import { PERMISSIONS } from "../routes/routes";
-import { clearCachedLabs, readCachedLabs, writeCachedLabs } from "./myLabsCache";
+import { clearCachedLabs, currentLabsSession, readCachedLabs, writeCachedLabs } from "./myLabsCache";
 
 // A user holding Sections.ViewAll (the System Administrator by default) gets
 // every active section from /org/my-sections for reading (see
@@ -32,7 +32,7 @@ export function resetSharedMyLabsRequests() {
 const newestRequest = new Map<string, Promise<LaboratorySection[]>>();
 
 function fetchMySectionsShared(username: string | null | undefined): { request: Promise<LaboratorySection[]>; isNewest: () => boolean } {
-  const key = username ?? "";
+  const key = `${currentLabsSession()}:${username ?? ""}`;
   const request = startOrJoin(key);
   return { request, isNewest: () => newestRequest.get(key) === request };
 }
@@ -64,17 +64,19 @@ export function useMyLabs(): {
     let cancelled = false;
     // A different user signed in on this page: never keep the previous user's laboratories.
     setLabs(readCachedLabs(username) ?? []);
+    const session = currentLabsSession();
     const { request, isNewest } = fetchMySectionsShared(username);
+    const sameSession = () => session === currentLabsSession();
     request
       .then((data) => {
-        if (!cancelled) {
+        if (!cancelled && sameSession()) {
           setLabs(data ?? []);
           if (isNewest()) writeCachedLabs(username, data ?? []);
           setLoading(false);
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && sameSession()) {
           clearCachedLabs(username);
           setLabs([]);
           setLoading(false);

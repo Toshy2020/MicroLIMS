@@ -48,3 +48,14 @@ export function clearCachedLabs(username?: string | null) {
     /* ignore */
   }
 }
+
+// Counts sign-ins and sign-outs in this tab. An in-flight laboratories request belongs to the session
+// that started it: after a sign-out or a new sign-in (even by the same user) its answer is discarded.
+// Only a number is kept here, never a token.
+let labsSession = 0;
+export function currentLabsSession() {
+  return labsSession;
+}
+export function startNewLabsSession() {
+  labsSession += 1;
+}

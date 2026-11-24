@@ -8835,11 +8835,28 @@ namespace MicroLIMS.Persistence.Migrations
                     b.Property<int>("InvestigationId")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("PreviousConcludedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("PreviousConcludedByUserId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("PreviousConclusion")
                         .HasColumnType("integer");
 
                     b.Property<int>("PreviousConclusionSignatureId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PreviousConclusionSummary")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<int?>("PreviousRootCauseCategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PreviousRootCauseDescription")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<string>("Reason")
                         .IsRequired()
@@ -8865,7 +8882,11 @@ namespace MicroLIMS.Persistence.Migrations
 
                     b.HasIndex("InvestigationId");
 
+                    b.HasIndex("PreviousConcludedByUserId");
+
                     b.HasIndex("PreviousConclusionSignatureId");
+
+                    b.HasIndex("PreviousRootCauseCategoryId");
 
                     b.HasIndex("ReopenedByUserId");
 
@@ -16867,11 +16888,21 @@ namespace MicroLIMS.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousConcludedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", null)
                         .WithMany()
                         .HasForeignKey("PreviousConclusionSignatureId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.OosCauseCategory", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousRootCauseCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MicroLIMS.Domain.Entities.User", null)
                         .WithMany()

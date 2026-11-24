@@ -102,6 +102,11 @@ public class OosInvestigationReopening
     public string Reason { get; set; } = string.Empty;
     public OosConclusion PreviousConclusion { get; set; }
     public int PreviousConclusionSignatureId { get; set; }
+    public int? PreviousRootCauseCategoryId { get; set; }
+    public string? PreviousRootCauseDescription { get; set; }
+    public string? PreviousConclusionSummary { get; set; }
+    public int? PreviousConcludedByUserId { get; set; }
+    public DateTime? PreviousConcludedAtUtc { get; set; }
     public int ReopenedByUserId { get; set; }
     public DateTime ReopenedAtUtc { get; set; }
     public int SignatureId { get; set; }

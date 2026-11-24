@@ -309,6 +309,39 @@ describe("MediaPreparationDialog", () => {
     expect(EquipmentConfigurationService.getAutoclavePrograms).not.toHaveBeenCalled();
   });
 
+  it("rejects an expiry date before today and does not save", async () => {
+    const user = userEvent.setup();
+    vi.mocked(EquipmentConfigurationService.getAutoclavePrograms).mockResolvedValue([sampleProgram]);
+    vi.mocked(MediaPreparationService.prepare).mockResolvedValue({ id: 900 } as never);
+
+    renderDialog();
+    await screen.findByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" });
+
+    await user.click(screen.getByRole("combobox", { name: "Dehydrated Media Stock (Inventory)" }));
+    await user.click(await screen.findByRole("option", { name: /Tryptic Soy Agar Powder/ }));
+
+    await user.type(screen.getByLabelText(/^Total Weight/i), "40");
+    await user.type(screen.getByLabelText(/^Total Volume/i), "1000 mL");
+
+    await user.click(screen.getByRole("combobox", { name: "Autoclave" }));
+    await user.click(await screen.findByRole("option", { name: /AC-01: Autoclave Alpha/ }));
+
+    await waitFor(() => {
+      expect(EquipmentConfigurationService.getAutoclavePrograms).toHaveBeenCalledWith(41, true);
+    });
+    await user.click(screen.getByRole("combobox", { name: "Autoclave program" }));
+    await user.click(await screen.findByRole("option", { name: /P1: Liquid Standard/ }));
+
+    await user.type(screen.getByLabelText(/^Cycle Number/i), "3");
+    await user.type(screen.getByLabelText(/^pH/i), "7.3");
+    changeDateField(/Expiry Date/i, "2020-01-01");
+
+    await user.click(screen.getByRole("button", { name: "Save Prepared Lot" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("cannot be before today");
+    expect(MediaPreparationService.prepare).not.toHaveBeenCalled();
+  });
+
   it("media payload equals the current twelve fields (materialId ... additives)", async () => {
     const user = userEvent.setup();
     vi.mocked(EquipmentConfigurationService.getAutoclavePrograms).mockResolvedValue([sampleProgram]);

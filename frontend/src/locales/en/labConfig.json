@@ -1234,6 +1234,7 @@
         "cycleNumberRequired": "Please specify the cycle number.",
         "phRequired": "Please specify the pH.",
         "expiryRequired": "Please specify the Expiry Date.",
+        "expiryInPast": "The expiry date cannot be before today.",
         "prepareFailed": "Could not prepare media lot. Please verify all inputs."
       },
       "draftTitleNamed": "Prepare {{name}}",

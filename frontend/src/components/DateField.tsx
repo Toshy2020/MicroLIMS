@@ -1,3 +1,4 @@
+import { useState, type FocusEvent } from "react";
 import { SxProps, Theme } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -49,6 +50,17 @@ export function DateField({
 }: DateFieldProps) {
   const { t, i18n } = useTranslation("common");
   const isRtl = i18n.language === "ar";
+  // The picker never reports a half-typed date (day, month or year missing):
+  // onChange simply isn't called, so the caller keeps its old value and the
+  // typed digits vanish on save. Detect it when focus leaves the field and
+  // say so, instead of dropping the entry silently.
+  const [partial, setPartial] = useState(false);
+  const checkPartial = (e: FocusEvent<HTMLElement>) => {
+    if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+    const sections = Array.from(e.currentTarget.querySelectorAll('[role="spinbutton"]'));
+    const filled = sections.filter((s) => s.hasAttribute("aria-valuenow")).length;
+    setPartial(filled > 0 && filled < sections.length);
+  };
   const inputAriaProps =
     ariaLabel || ariaDescribedBy
       ? {
@@ -77,7 +89,10 @@ export function DateField({
       <DatePicker
         label={label}
         value={parse(value)}
-        onChange={(d) => onChange(d && d.isValid() ? d.format(VALUE_FORMAT) : "")}
+        onChange={(d) => {
+          setPartial(false);
+          onChange(d && d.isValid() ? d.format(VALUE_FORMAT) : "");
+        }}
         format={DISPLAY_FORMAT}
         minDate={parse(min) ?? undefined}
         maxDate={parse(max) ?? undefined}
@@ -89,8 +104,9 @@ export function DateField({
             size,
             fullWidth,
             required,
-            error,
-            helperText,
+            error: error || partial,
+            helperText: partial ? t("datePicker.incomplete") : helperText,
+            onBlur: checkPartial,
             slotProps: inputAriaProps
           }
         }}

@@ -251,7 +251,7 @@ public static class PermissionConstants
         AuditView, CryovialsApprove, CryovialsManage, DashboardsLabOverview, DashboardsReview,
         DiscussionsEditAny, DocumentsApprove, DocumentsConfigManage, DocumentsDraftEdit, DocumentsPeriodicReview, DocumentsReassign, DocumentsRegister, DocumentsReview, DocumentsRevisionCreate, DocumentsTrainingAssign, DocumentsTrainingViewMatrix,
         EquipmentDocumentControl, EquipmentManage, ItemsDocumentUpload, ItemsManage, KpiView, KpiViewTeam, KpiConfigureProfiles,
-        CompetencyManage, CompetencyView,
+        CompetencyManage, CompetencyView, CompetencyOverride,
         MasterDataManage, MaterialsDocumentControl, MaterialsManage, MaterialCategoriesManage, MaterialsRelease, MediaPrepare, MediaRelease, OosManage, OosView, OosContribute, OosRequestDeviation,
         ReportingAdmin, RolesManage, SamplesApprove, SamplesAssignAnalyst, SamplesCorrect, SamplesReceive,
         SamplesReceiveOwnLab, SamplesReview, SamplesTrackAll, SignaturesManage, SystemViewErrorLog, SystemViewSecurityAudit, SystemConfigureSettings,

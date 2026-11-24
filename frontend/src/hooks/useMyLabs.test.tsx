@@ -1,6 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useMyLabs } from "./useMyLabs";
+import { resetSharedMyLabsRequests, useMyLabs } from "./useMyLabs";
 
 const auth = { role: "Analyst", permissions: [] as string[], username: "sec.head" as string | null };
 vi.mock("../contexts/AuthContext", () => ({ useAuth: () => auth }));
@@ -13,6 +13,7 @@ vi.mock("../services/laboratorySectionService", () => ({
 describe("useMyLabs", () => {
   beforeEach(() => {
     getMySections.mockReset();
+    resetSharedMyLabsRequests();
     auth.role = "Analyst";
     auth.permissions = [];
     auth.username = "sec.head";
@@ -26,6 +27,7 @@ describe("useMyLabs", () => {
     expect(result.current.loading).toBe(true);
     expect(result.current.codes).toEqual(["MICRO"]);
 
+    resetSharedMyLabsRequests(); // the first request above never settles; start a new load
     getMySections.mockResolvedValue([{ sectionCode: "FP", physchemAreas: [] }]);
     const second = renderHook(() => useMyLabs());
     await waitFor(() => expect(second.result.current.codes).toEqual(["FP"]));
@@ -59,6 +61,19 @@ describe("useMyLabs", () => {
     auth.username = "someone.else";
     const { result } = renderHook(() => useMyLabs());
     expect(result.current.codes).toEqual([]);
+  });
+
+  it("shares one request between components that ask at the same time, and asks again on the next load", async () => {
+    getMySections.mockResolvedValue([{ sectionCode: "FP", physchemAreas: [] }]);
+    const a = renderHook(() => useMyLabs());
+    const b = renderHook(() => useMyLabs());
+    await waitFor(() => expect(a.result.current.loading).toBe(false));
+    await waitFor(() => expect(b.result.current.loading).toBe(false));
+    expect(getMySections).toHaveBeenCalledTimes(1);
+
+    const c = renderHook(() => useMyLabs());
+    await waitFor(() => expect(c.result.current.loading).toBe(false));
+    expect(getMySections).toHaveBeenCalledTimes(2);
   });
 
   it("shows both laboratories to a user holding Sections.ViewAll, whatever the role and whatever the endpoint returns", async () => {

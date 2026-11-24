@@ -15,6 +15,29 @@ import { clearCachedLabs, readCachedLabs, writeCachedLabs } from "./myLabsCache"
 const VIEW_ALL_LAB_CODES = ["MICRO", "FP"];
 const VIEW_ALL_PHYSCHEM_AREAS: ("fp" | "rmpm")[] = ["fp", "rmpm"];
 
+// Several components on one screen (layout, menu, page) ask for the sections at once. Callers that
+// arrive while a request for the same user is in flight share it; nothing is kept after it settles,
+// so the next load always asks the server again.
+const SHARE_WINDOW_MS = 15_000;
+const inFlight = new Map<string, { startedAt: number; request: Promise<LaboratorySection[]> }>();
+
+/** Test hook: forget any request still being shared. */
+export function resetSharedMyLabsRequests() {
+  inFlight.clear();
+}
+
+function fetchMySectionsShared(username: string | null | undefined): Promise<LaboratorySection[]> {
+  const key = username ?? "";
+  const running = inFlight.get(key);
+  // A request that has hung for a long time is not shared with a newer caller.
+  if (running && Date.now() - running.startedAt < SHARE_WINDOW_MS) return running.request;
+  const request: Promise<LaboratorySection[]> = Promise.resolve(laboratorySectionService.getMySections()).finally(() => {
+    if (inFlight.get(key)?.request === request) inFlight.delete(key);
+  });
+  inFlight.set(key, { startedAt: Date.now(), request });
+  return request;
+}
+
 export function useMyLabs(): {
   labs: LaboratorySection[];
   codes: string[];
@@ -30,8 +53,7 @@ export function useMyLabs(): {
     let cancelled = false;
     // A different user signed in on this page: never keep the previous user's laboratories.
     setLabs(readCachedLabs(username) ?? []);
-    laboratorySectionService
-      .getMySections()
+    fetchMySectionsShared(username)
       .then((data) => {
         if (!cancelled) {
           setLabs(data ?? []);

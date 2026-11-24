@@ -537,14 +537,6 @@ public class CompetencyOverridePostgresTests(PostgresTestFixture fixture)
         }
 
         // 3. Supersede (RetestRetainedSample)
-        var (supSample, supHead, supAnalyst) = await ArrangeAsync();
-        var supOrder = supSample.Orders[0];
-        var supOverrideId = await GrantAsync(supOrder.Id, supAnalyst, supHead);
-        var (_, supReviewer, supOtherHead) = await ReadyForReviewAsync(supSample);
-        await using (var act = fixture.CreateDbContext())
-            await ReviewAsync(act, supSample.Sample.Id, supReviewer, supOrder.SectionId);
-        // Grant a second override on the second order? No, supOverrideId was ended on review; grant on supSample.Orders[1] is not open after review.
-        // Instead, test supersede directly by setting order to Reviewed while override is still active (e.g. pre-existing active override before approval retest).
         var (retSample, retHead, retAnalyst) = await ArrangeAsync();
         var retOrder = retSample.Orders[0];
         var retOverrideId = await GrantAsync(retOrder.Id, retAnalyst, retHead);
@@ -713,6 +705,60 @@ public class CompetencyOverridePostgresTests(PostgresTestFixture fixture)
             .SingleAsync(s => s.SampleId == sample.Sample.Id && s.SectionId == otherSection.Id);
         Assert.Equal(SectionSignoffStatus.UnderApproval, signoffAfter.Status);
         Assert.Null(signoffAfter.ApprovedByUserId);
+    }
+
+    [PostgresFact]
+    public async Task Grant_racing_review_by_same_user_on_different_sections_allows_exactly_one()
+    {
+        var (sample, head, analyst) = await ArrangeAsync();
+        var (otherSection, _, _) = await ReadyForReviewAsync(sample);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            arrange.UserOrgMemberships.Add(new() { UserId = head, DepartmentId = otherSection.DepartmentId, SectionId = otherSection.Id });
+            foreach (var o in await arrange.TestOrders.Where(t => t.SampleId == sample.Sample.Id && t.SectionId == sample.Orders[0].SectionId).ToListAsync())
+            {
+                o.Status = ApprovalStatus.InProgress;
+                o.CurrentStep = WorkflowStep.Waiting;
+            }
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var grantDb = fixture.CreateDbContext();
+        var pause = new PausedSignature(new ElectronicSignatureService(grantDb));
+        var grant = GrantService(grantDb, pause).GrantAsync(sample.Orders[0].Id, analyst, Reason, ActionGuardScenarios.Password, head);
+        Task? review = null;
+        try
+        {
+            await pause.Entered.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            review = Task.Run(async () =>
+            {
+                await using var reviewDb = fixture.CreateDbContext();
+                await ReviewAsync(reviewDb, sample.Sample.Id, head, otherSection.Id);
+            });
+            await Task.Delay(150);
+        }
+        finally
+        {
+            pause.Resume.TrySetResult();
+        }
+
+        var overrideId = await grant;
+        Assert.True(overrideId > 0);
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => review!);
+
+        await using var verify = fixture.CreateDbContext();
+        Assert.True(await verify.CompetencyOverrides.AsNoTracking().AnyAsync(o => o.Id == overrideId));
+        Assert.True(await verify.ElectronicSignatures.AsNoTracking().AnyAsync(s => s.EntityType == nameof(CompetencyOverride) && s.EntityId == overrideId && s.UserId == head));
+        Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(CompetencyOverride) && a.EntityId == overrideId.ToString()));
+
+        var signoffAfter = await verify.SampleSectionSignoffs.AsNoTracking()
+            .SingleAsync(s => s.SampleId == sample.Sample.Id && s.SectionId == otherSection.Id);
+        Assert.Equal(SectionSignoffStatus.UnderReview, signoffAfter.Status);
+        Assert.Null(signoffAfter.ReviewedByUserId);
+        Assert.Null(signoffAfter.ReviewSignatureId);
+        Assert.False(await verify.ElectronicSignatures.AsNoTracking().AnyAsync(s => s.EntityType == ReviewEntityTypes.Sample && s.EntityId == sample.Sample.Id && s.UserId == head));
+        Assert.False(await verify.ReviewWorkflowEvents.AsNoTracking().AnyAsync(e => e.EntityType == ReviewEntityTypes.Sample && e.EntityId == sample.Sample.Id && e.PerformedByUserId == head));
+        Assert.False(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(SampleSectionSignoff) && a.UserId == head));
     }
 
     private async Task SeedQualificationAsync(TestOrder order, int analyst, int head)

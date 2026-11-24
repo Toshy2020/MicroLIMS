@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { renderInArabic, resetLanguage } from "../../i18n/testUtils";
+import { formatDateTimeWithTimeZone, formatLabDateTime } from "../../utils/formatDate";
 import { TestResultCard } from "./TestResultCards";
 import type { TestOrderSummaryDetail } from "./types/sampleSummaryTypes";
 
@@ -75,10 +76,15 @@ describe("TestResultCard competency override display", () => {
     expect(screen.getByText("Competency override · Analyst: Amina Analyst")).toBeTruthy();
     expect(screen.getByText("Hana Head")).toBeTruthy();
     expect(screen.getByText("Supervised execution")).toBeTruthy();
-    expect(screen.getByText(/^Ended: /)).toBeTruthy();
+    const expectedGranted = formatDateTimeWithTimeZone("2026-11-24T09:00:00Z");
+    const expectedEnded = formatDateTimeWithTimeZone("2026-11-24T11:00:00Z");
+    expect(expectedGranted).not.toBe(formatLabDateTime("2026-11-24T09:00:00Z"));
+    expect(expectedEnded).not.toBe(formatLabDateTime("2026-11-24T11:00:00Z"));
+    expect(screen.getByText(expectedGranted)).toBeTruthy();
+    expect(screen.getByText(`Ended: ${expectedEnded}`)).toBeTruthy();
   });
 
-  it("renders translated analyst and ended labels in Arabic", async () => {
+  it("renders translated meaning, analyst and ended labels with timezone in Arabic", async () => {
     const user = userEvent.setup();
     await renderInArabic(
       <PinnedLightTheme>
@@ -91,7 +97,12 @@ describe("TestResultCard competency override display", () => {
 
     await user.click(screen.getByRole("button", { name: /TAMC/i }));
 
-    expect(screen.getByText("Competency override · المحلل: Amina Analyst")).toBeTruthy();
-    expect(screen.getByText(/^انتهى: /)).toBeTruthy();
+    expect(screen.getByText("تجاوز متطلبات الكفاءة · المحلل: Amina Analyst")).toBeTruthy();
+    const expectedGranted = formatDateTimeWithTimeZone("2026-11-24T09:00:00Z");
+    const expectedEnded = formatDateTimeWithTimeZone("2026-11-24T11:00:00Z");
+    expect(expectedGranted).not.toBe(formatLabDateTime("2026-11-24T09:00:00Z"));
+    expect(expectedEnded).not.toBe(formatLabDateTime("2026-11-24T11:00:00Z"));
+    expect(screen.getByText(expectedGranted)).toBeTruthy();
+    expect(screen.getByText(`انتهى: ${expectedEnded}`)).toBeTruthy();
   });
 });

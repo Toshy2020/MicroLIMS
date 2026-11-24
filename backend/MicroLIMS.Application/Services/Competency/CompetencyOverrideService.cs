@@ -47,6 +47,9 @@ public sealed class CompetencyOverrideService(
                 var order = await db.TestOrders.SingleOrDefaultAsync(t => t.Id == testOrderId, cancellationToken)
                     ?? throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {testOrderId} not found.",
                         new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                var sample = await db.Samples.SingleOrDefaultAsync(s => s.Id == sampleId, cancellationToken)
+                    ?? throw new NotFoundException(MessageCodes.SampleNotFound, $"Sample {sampleId} not found.",
+                        new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(System.Globalization.CultureInfo.InvariantCulture) });
                 var alreadySignedOff = await db.SampleSectionSignoffs.AsNoTracking()
                     .AnyAsync(s => s.SampleId == order.SampleId && (
                         s.ReviewedByUserId == actingUserId ||
@@ -96,8 +99,9 @@ public sealed class CompetencyOverrideService(
                 db.CurrentReason = reasonText;
                 try
                 {
-                    // Serialize the grant with competing review, assignment and grant writes on the same order.
+                    // Serialize the grant with competing review, assignment and grant writes on the same order/sample.
                     db.Entry(order).Property(nameof(TestOrder.Status)).IsModified = true;
+                    db.Entry(sample).Property(nameof(Sample.Status)).IsModified = true;
                     await db.SaveChangesAsync(cancellationToken);
 
                     db.CompetencyOverrides.Add(new CompetencyOverride

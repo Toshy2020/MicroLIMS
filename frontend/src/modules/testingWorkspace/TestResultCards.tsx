@@ -74,15 +74,20 @@ export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
   return (
     <>
       {resultCard}
-      {test.competencyOverrides?.map((override, index) => (
-        <div className="signature-card" key={index}>
-          <div className="sig-meaning">{override.meaning} · {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}</div>
-          <div className="sig-name">{override.grantedByFullName}</div>
-          <div className="sig-time">{dt(override.grantedAtUtc)}</div>
-          <div className="sig-comment">{override.reason}</div>
-          {override.endedAtUtc && <div className="sig-time">{t("sampleSummary.testResults.overrideEnded")}: {dt(override.endedAtUtc)}</div>}
-        </div>
-      ))}
+      {test.competencyOverrides?.map((override, index) => {
+        const meaning = override.meaning === "Competency override"
+          ? t("sampleSummary.testResults.competencyOverride")
+          : override.meaning;
+        return (
+          <div className="signature-card" key={index}>
+            <div className="sig-meaning">{meaning} · {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}</div>
+            <div className="sig-name">{override.grantedByFullName}</div>
+            <div className="sig-time">{dt(override.grantedAtUtc)}</div>
+            <div className="sig-comment">{override.reason}</div>
+            {override.endedAtUtc && <div className="sig-time">{t("sampleSummary.testResults.overrideEnded")}: {dt(override.endedAtUtc)}</div>}
+          </div>
+        );
+      })}
     </>
   );
 }

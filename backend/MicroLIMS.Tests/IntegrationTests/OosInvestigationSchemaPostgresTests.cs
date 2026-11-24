@@ -170,7 +170,7 @@ public class OosInvestigationSchemaPostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
-    public async Task Result_invalidated_flag_is_one_way()
+    public async Task Result_link_is_immutable_outside_invalidation_and_signed_reopening()
     {
         var (id, order) = await SeedInvestigationAsync();
         await using (var arrange = fixture.CreateDbContext())
@@ -189,7 +189,7 @@ public class OosInvestigationSchemaPostgresTests(PostgresTestFixture fixture)
                 SELECT ("IsInvalidated" AND "InvalidatedAtUtc" IS NOT NULL AND "ResultSummaryAtOpening" = 'original') AS "Value"
                 FROM "OosInvestigationResults" WHERE "InvestigationId" = {id}
                 """).SingleAsync());
-        await RejectAsync($"""UPDATE "OosInvestigationResults" SET "IsInvalidated" = false WHERE "InvestigationId" = {id}""");
+        await RejectAsync($"""UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "InvestigationId" = {id}""");
         await RejectAsync($"""UPDATE "OosInvestigationResults" SET "InvalidatedAtUtc" = now() WHERE "InvestigationId" = {id}""");
         await RejectAsync($"""DELETE FROM "OosInvestigationResults" WHERE "InvestigationId" = {id}""");
         await RejectAsync($"""TRUNCATE "OosInvestigationResults" """);

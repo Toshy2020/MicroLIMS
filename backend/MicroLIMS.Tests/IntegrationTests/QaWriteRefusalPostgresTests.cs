@@ -61,9 +61,8 @@ public sealed class QaWriteRefusalPostgresTests
             .ToList();
         Assert.Equal(30, expectedCodes.Count);
 
-        // Competency.Override is provisioned in D4 Task 1. Its endpoint is added in Task 5.
         // Oos.Contribute is provisioned in D1 Task 4. Its first endpoint follows in Task 5.
-        var endpointCodes = expectedCodes.Except([PermissionConstants.CompetencyOverride, PermissionConstants.OosContribute]);
+        var endpointCodes = expectedCodes.Except([PermissionConstants.OosContribute]);
         var descriptors = BuildWriteDescriptors();
         Assert.Equal(endpointCodes, descriptors.Select(d => d.PermissionCode).OrderBy(c => c, StringComparer.Ordinal));
 
@@ -140,6 +139,27 @@ public sealed class QaWriteRefusalPostgresTests
     private IReadOnlyList<WriteEndpointDescriptor> BuildWriteDescriptors() => new List<WriteEndpointDescriptor>
     {
         // --- Service-enforced refusals ---
+        new(
+            PermissionConstants.CompetencyOverride,
+            typeof(CompetencyController),
+            nameof(CompetencyController.GrantOverride),
+            "CompetencyOverrideService.GrantAsync",
+            RefusalMechanism.ServiceScopeCheck,
+            async (actDb, w) =>
+            {
+                var beforeAuditId = await MaxAuditLogIdAsync();
+                var svc = new CompetencyOverrideService(actDb, new PermissionService(actDb),
+                    new UserSectionScopeService(actDb), LabClock.Default, _fixture.CreateSequenceHelper(actDb),
+                    new ElectronicSignatureService(actDb), TestServiceFactory.Competency(actDb));
+                var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+                    svc.GrantAsync(w.OrderAId, w.AnalystAId, "QA override", Password, w.QaUserId));
+                Assert.Equal("Competency.OverridePermissionRequired", denied.Code);
+                await using var verify = _fixture.CreateDbContext();
+                Assert.False(await verify.CompetencyOverrides.AsNoTracking().AnyAsync(o => o.TestOrderId == w.OrderAId));
+                Assert.False(await verify.ElectronicSignatures.AsNoTracking().AnyAsync(s => s.UserId == w.QaUserId && s.EntityType == "CompetencyOverride"));
+                await AssertNoNewAuditLogAsync(w.QaUserId, beforeAuditId);
+            }),
+
         new(
             PermissionConstants.CompetencyManage,
             typeof(CompetencyController),

@@ -51,7 +51,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
     public TestWorkflowEngine(
         IMicroLimsDbContext db, SampleReviewService sampleReviewService, ResultProjectionService resultProjection,
         IncubatorEligibilityService incubatorEligibility, MediaAppearanceSnapshotService appearanceSnapshot,
-        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, ICompetencyGuard competency,
+        SegregationOfDutiesGuard sodGuard, ReviewGateService reviewGate, ICompetencyGuard competency, ISopRevisionCapture sopCapture,
         IElectronicSignatureService? signatureService = null,
         IUserSectionScopeService? sectionScope = null,
         ILabClock? clock = null,
@@ -65,6 +65,7 @@ public class TestWorkflowEngine : ITestWorkflowEngine
             sectionScope ?? new UserSectionScopeService(db),
             clock ?? LabClock.Default,
             competency,
+            sopCapture,
             publisher,
             timeProvider);
         _clock = clock ?? LabClock.Default;

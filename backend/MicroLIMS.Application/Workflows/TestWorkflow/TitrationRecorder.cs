@@ -54,6 +54,7 @@ public sealed class TitrationRecorder : TestWorkflowSupport
         var (order, t, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, p.AnalysedAt, p.EquipmentId, p.SpecificationIds, p.Password, WorkflowType.Titration, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         var cfg = TitrationConfig.From(t);
         bool residual = cfg.Mode == TitrationMode.Residual;

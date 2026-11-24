@@ -37,6 +37,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, null, payload.Password, WorkflowType.Dissolution, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         var resolved = await HplcDissolutionStandard.ResolveAsync(_db, order.Id);
         var std = resolved.Standard ?? throw new BusinessRuleException(
@@ -255,6 +256,7 @@ public sealed class DissolutionRecorder : TestWorkflowSupport
                 new Dictionary<string, string> { ["testOrderId"] = testOrderId.ToString(CultureInfo.InvariantCulture) });
         await _sectionScope.EnsureTestOrderAccessAsync(userId, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         RequireOrderNotFinalized(order);
 

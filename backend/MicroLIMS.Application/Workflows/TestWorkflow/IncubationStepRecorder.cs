@@ -27,6 +27,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
@@ -191,6 +192,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
@@ -279,6 +281,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         var step = definition.Steps.FirstOrDefault(s => s.StepName == stepName)
             ?? throw new BusinessRuleException(
@@ -490,6 +493,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         var (incubation, step, stepMedium) = await LoadOpenBatchWindowAsync(testOrderId, definition);
 
@@ -538,6 +542,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(
@@ -664,6 +669,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(
@@ -783,6 +789,7 @@ public sealed class IncubationStepRecorder : TestWorkflowSupport
     {
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         var definition = await LoadTemplateAsync(order, cancellationToken);
         if (order.CurrentStep != WorkflowStep.Incubating)
             throw new BusinessRuleException(

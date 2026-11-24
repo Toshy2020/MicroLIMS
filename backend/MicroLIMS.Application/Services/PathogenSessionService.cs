@@ -23,6 +23,7 @@ public partial class PathogenSessionService
 
     private readonly IMicroLimsDbContext _db;
     private readonly ICompetencyGuard _competency;
+    private readonly ISopRevisionCapture _sopCapture;
     private readonly MediaAppearanceSnapshotService? _appearanceSnapshot;
     private readonly ConfirmationAgreementEvaluator _agreementEvaluator;
     private readonly IncubatorEligibilityService _incubatorEligibility;
@@ -31,6 +32,7 @@ public partial class PathogenSessionService
     public PathogenSessionService(
         IMicroLimsDbContext db,
         ICompetencyGuard competency,
+        ISopRevisionCapture sopCapture,
         MediaAppearanceSnapshotService? appearanceSnapshot = null,
         ConfirmationAgreementEvaluator? agreementEvaluator = null,
         IncubatorEligibilityService? incubatorEligibility = null,
@@ -39,9 +41,19 @@ public partial class PathogenSessionService
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
         _competency = competency;
+        _sopCapture = sopCapture;
         _appearanceSnapshot = appearanceSnapshot;
         _agreementEvaluator = agreementEvaluator ?? new ConfirmationAgreementEvaluator();
         _incubatorEligibility = incubatorEligibility ?? new IncubatorEligibilityService(db);
+    }
+
+    // The first recorded step of an order stores the SOP revision in force: called right after the competency
+    // guard and before the step's first write, for every order the step actually writes for (never for a refused or
+    // skipped one). Ordered by id so two batches over the same orders take their row locks in the same order.
+    private async Task CaptureSopRevisionAsync(IEnumerable<TestOrder> orders, CancellationToken cancellationToken)
+    {
+        foreach (var order in orders.DistinctBy(order => order.Id).OrderBy(order => order.Id))
+            await _sopCapture.CaptureIfNeededAsync(order, cancellationToken);
     }
 
     // GMP gate: a shared TSB start is refused (and the refusal audited) until
@@ -210,6 +222,7 @@ public partial class PathogenSessionService
         joining.RemoveAll(j => !competency.Allowed.Contains(j.Order.Id));
         using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
         await EnsurePreparedAsync(sample, userId, cancellationToken);
+        await CaptureSopRevisionAsync(joining.Select(j => j.Order), cancellationToken);
 
         var startUtc = request.IncubationStartUtc ?? _time.GetUtcNow().UtcDateTime;
 
@@ -340,11 +353,19 @@ public partial class PathogenSessionService
         }).ToList();
     }
 
-    public async Task<PathogenTestingSessionDto> SavePrimaryObservationsAsync(
+    // One transaction, so the SOP revision capture (its row lock) and the step it belongs to commit together.
+    public Task<PathogenTestingSessionDto> SavePrimaryObservationsAsync(
         int sampleId,
         SavePrimaryObservationsRequest request,
         int userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SavePrimaryObservationsCoreAsync(sampleId, request, userId, cancellationToken));
+
+    private async Task<PathogenTestingSessionDto> SavePrimaryObservationsCoreAsync(
+        int sampleId,
+        SavePrimaryObservationsRequest request,
+        int userId,
+        CancellationToken cancellationToken)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
@@ -381,6 +402,7 @@ public partial class PathogenSessionService
         var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
         competency.ThrowIfAllRefused();
         using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await CaptureSopRevisionAsync(touched.Where(o => competency.Allowed.Contains(o.Id)), cancellationToken);
 
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
@@ -483,11 +505,19 @@ public partial class PathogenSessionService
     private static int RequiredConfirmatoryMediaCount(TestDefinition? def) =>
         ConfirmatoryStepOf(def)?.ConfirmatoryMediaCount ?? new TestWorkflowStep().ConfirmatoryMediaCount;
 
-    public async Task<PathogenTestingSessionDto> StartSharedConfirmatorySetupAsync(
+    // One transaction, so the SOP revision capture (its row lock) and the step it belongs to commit together.
+    public Task<PathogenTestingSessionDto> StartSharedConfirmatorySetupAsync(
         int sampleId,
         BatchConfirmatorySetupRequest request,
         int userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => StartSharedConfirmatorySetupCoreAsync(sampleId, request, userId, cancellationToken));
+
+    private async Task<PathogenTestingSessionDto> StartSharedConfirmatorySetupCoreAsync(
+        int sampleId,
+        BatchConfirmatorySetupRequest request,
+        int userId,
+        CancellationToken cancellationToken)
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
@@ -505,6 +535,7 @@ public partial class PathogenSessionService
         var decision = await _competency.EvaluateAsync(userId, testOrder.Id, cancellationToken);
         decision.ToActionCheck().ThrowIfRefused();
         using var recording = AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
+        await CaptureSopRevisionAsync([testOrder], cancellationToken);
 
         var testDef = await _db.TestDefinitions
             .Include(d => d.Steps)
@@ -628,11 +659,19 @@ public partial class PathogenSessionService
         return chosen;
     }
 
-    public async Task<PathogenTestingSessionDto> SaveBatchConfirmatoryPlateReadingsAsync(
+    // One transaction, so the SOP revision capture (its row lock) and the step it belongs to commit together.
+    public Task<PathogenTestingSessionDto> SaveBatchConfirmatoryPlateReadingsAsync(
         int sampleId,
         SaveBatchConfirmatoryPlateReadingsRequest request,
         int userId,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SaveBatchConfirmatoryPlateReadingsCoreAsync(sampleId, request, userId, cancellationToken));
+
+    private async Task<PathogenTestingSessionDto> SaveBatchConfirmatoryPlateReadingsCoreAsync(
+        int sampleId,
+        SaveBatchConfirmatoryPlateReadingsRequest request,
+        int userId,
+        CancellationToken cancellationToken)
     {
         var primaryObsIds = request.Readings.Select(r => r.LocationPathogenObservationId).Distinct().ToList();
         var primaryObsList = await _db.LocationPathogenObservations
@@ -654,6 +693,7 @@ public partial class PathogenSessionService
         competency.ThrowIfAllRefused();
         primaryObsList.RemoveAll(o => !competency.Allowed.Contains(o.TestOrderId));
         using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await CaptureSopRevisionAsync(primaryObsList.Select(o => o.TestOrder).OfType<TestOrder>(), cancellationToken);
 
         var testCodes = primaryObsList.Select(o => o.TestOrder?.TestCode ?? "").Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
@@ -775,8 +815,13 @@ public partial class PathogenSessionService
         }
     }
 
-    public async Task<PathogenTestingSessionDto> SaveResultMatrixAsync(
-        int sampleId, SaveResultMatrixRequest request, int userId, CancellationToken cancellationToken = default)
+    // One transaction, so the SOP revision capture (its row lock) and the step it belongs to commit together.
+    public Task<PathogenTestingSessionDto> SaveResultMatrixAsync(
+        int sampleId, SaveResultMatrixRequest request, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => SaveResultMatrixCoreAsync(sampleId, request, userId, cancellationToken));
+
+    private async Task<PathogenTestingSessionDto> SaveResultMatrixCoreAsync(
+        int sampleId, SaveResultMatrixRequest request, int userId, CancellationToken cancellationToken)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
@@ -814,6 +859,7 @@ public partial class PathogenSessionService
         var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
         competency.ThrowIfAllRefused();
         using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await CaptureSopRevisionAsync(touched.Where(o => competency.Allowed.Contains(o.Id)), cancellationToken);
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
         foreach (var cell in request.Cells)
@@ -878,8 +924,13 @@ public partial class PathogenSessionService
     private static ResultStatus CompareAgainstLimits(decimal value, string? alert, string? action, string? spec) =>
         SpecLimitParser.CompareAgainstLimits(value, alert, action, spec);
 
-    public async Task<PathogenTestingSessionDto> CompleteSessionAsync(
-        int sampleId, int userId, CancellationToken cancellationToken = default)
+    // One transaction, so the SOP revision capture (its row lock) and the step it belongs to commit together.
+    public Task<PathogenTestingSessionDto> CompleteSessionAsync(
+        int sampleId, int userId, CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, () => CompleteSessionCoreAsync(sampleId, userId, cancellationToken));
+
+    private async Task<PathogenTestingSessionDto> CompleteSessionCoreAsync(
+        int sampleId, int userId, CancellationToken cancellationToken)
     {
         var session = await GetSessionAsync(sampleId)
             ?? throw new NotFoundException(
@@ -895,22 +946,31 @@ public partial class PathogenSessionService
                 $"Sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var competency = await _competency.FilterAsync(userId, sample.TestOrders, cancellationToken);
+        var eligibleOrders = sample.TestOrders.Where(o => !o.IsSuperseded
+            && o.Status is not (ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Approved
+                or ApprovalStatus.Rejected or ApprovalStatus.Reviewed or ApprovalStatus.RetestRequested)
+            && o.CurrentStep != WorkflowStep.Reviewed).ToList();
+        if (eligibleOrders.Count == 0)
+            throw new WorkflowStepException("PrerequisitesIncomplete", "No test orders are eligible to complete this session.");
+
+        var competency = await _competency.FilterAsync(userId, eligibleOrders, cancellationToken);
         competency.ThrowIfRefused();
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        var eligibleCodes = eligibleOrders.Select(o => o.TestCode).ToHashSet();
+        var eligibleIds = eligibleOrders.Select(o => o.Id).ToHashSet();
 
         // 1. Completeness Validation
-        if (session.MissingResults.Count > 0)
+        var missingResults = session.MissingResults.Where(m => eligibleCodes.Contains(m.TestCode)).ToList();
+        if (missingResults.Count > 0)
         {
-            var missingList = string.Join(", ", session.MissingResults.Take(5).Select(m => $"{m.LocationName} ({m.TestCode})"));
-            var extra = session.MissingResults.Count > 5 ? $" and {session.MissingResults.Count - 5} more" : "";
+            var missingList = string.Join(", ", missingResults.Take(5).Select(m => $"{m.LocationName} ({m.TestCode})"));
+            var extra = missingResults.Count > 5 ? $" and {missingResults.Count - 5} more" : "";
             throw new WorkflowStepException(
                 "IncompleteResults",
-                $"Cannot complete testing session: {session.MissingResults.Count} required Location × Test result(s) are missing ({missingList}{extra}).");
+                $"Cannot complete testing session: {missingResults.Count} required Location Ã— Test result(s) are missing ({missingList}{extra}).");
         }
 
         // 2. Validate that no test is still in an incomplete incubation or prerequisite state
-        var incompleteTests = session.AssignedTests.Where(t => t.TestSessionState == "TSB_INCUBATING" || !t.IsResultEntryAllowed).ToList();
+        var incompleteTests = session.AssignedTests.Where(t => eligibleIds.Contains(t.TestOrderId) && !t.IsResultEntryAllowed).ToList();
         if (incompleteTests.Count > 0)
         {
             throw new WorkflowStepException(
@@ -918,8 +978,11 @@ public partial class PathogenSessionService
                 $"Cannot complete testing session: Assigned tests {string.Join(", ", incompleteTests.Select(t => t.TestCode))} have incomplete workflow prerequisites.");
         }
 
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await CaptureSopRevisionAsync(eligibleOrders, cancellationToken);
+
         // 3. Mark TestOrders as completed / ready for review
-        foreach (var order in sample.TestOrders)
+        foreach (var order in eligibleOrders)
         {
             order.CurrentStep = WorkflowStep.Ready;
             order.Status = ApprovalStatus.ResultEntered;

@@ -26,6 +26,7 @@ public sealed class HplcMethodAssayRecorder : TestWorkflowSupport
         var c = await HplcSampleEntryContext.LoadAsync(_db, runSampleId);
         await _sectionScope.EnsureTestOrderAccessAsync(userId, c.Order.Id);
         using var recording = await RequireCompetentAsync(userId, c.Order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(c.Order, cancellationToken);
 
         var problem = c.SubmitProblem();
         if (problem != null)

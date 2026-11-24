@@ -22,6 +22,7 @@ public sealed class LocationResultRecorder : TestWorkflowSupport
 
         var order = await WorkflowStateMachine.LoadOrThrowAsync(_db, testOrderId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
         RequireOrderNotFinalized(order);
         if (order.Status is ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Rejected or ApprovalStatus.Approved or ApprovalStatus.Reviewed or ApprovalStatus.ResultEntered)
             throw new BusinessRuleException(

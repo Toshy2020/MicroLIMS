@@ -41,6 +41,7 @@ public sealed class UvRecorder : TestWorkflowSupport
             testOrderId, p.AnalysedAt, p.EquipmentId, parameters.Select(x => x.SpecificationId).ToList(),
             p.Password, WorkflowType.UvSpectrophotometry, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         // ---- test constants (old rows are read defensively; the Test Master refuses these on save) ----
         if (t.EquationType != EquationType.UvSpectrophotometry)

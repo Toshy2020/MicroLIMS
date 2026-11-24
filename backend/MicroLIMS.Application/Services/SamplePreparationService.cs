@@ -48,6 +48,7 @@ public class SamplePreparationService
     private readonly IUserSectionScopeService _scope;
     private readonly PreparationMaterialService _materials;
     private readonly ICompetencyGuard _competency;
+    private readonly ISopRevisionCapture _sopCapture;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
@@ -55,7 +56,8 @@ public class SamplePreparationService
         IElectronicSignatureService signatures,
         IUserSectionScopeService scope,
         PreparationMaterialService materials,
-        ICompetencyGuard competency)
+        ICompetencyGuard competency,
+        ISopRevisionCapture sopCapture)
     {
         _db = db;
         _validator = validator;
@@ -63,6 +65,7 @@ public class SamplePreparationService
         _scope = scope;
         _materials = materials;
         _competency = competency;
+        _sopCapture = sopCapture;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
@@ -214,7 +217,20 @@ public class SamplePreparationService
             .Union(waitingOrders).ToList();
         var competency = await _competency.FilterAsync(userId, covered, ct);
         competency.ThrowIfRefused();
-        return (AuditReasonScope.Append(_db, competency.SopNotChecked), waitingOrders);
+        var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        try
+        {
+            // Preparing starts the testing of every order it covers: each stores the SOP revision in force now (ordered
+            // by id so two preparations over the same orders take their row locks in the same order).
+            foreach (var order in covered.OrderBy(order => order.Id))
+                await _sopCapture.CaptureIfNeededAsync(order, ct);
+        }
+        catch
+        {
+            recording.Dispose();
+            throw;
+        }
+        return (recording, waitingOrders);
     }
 
     private async Task<Sample> LoadPreparableSampleAsync(int sampleId, int userId)

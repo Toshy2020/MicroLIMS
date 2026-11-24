@@ -34,6 +34,10 @@ public class RecordingPointCoverageTests
         ["OosInvestigationService.AnswerChecklistAsync"] = "Appends an investigation checklist answer; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute.",
     };
 
+    // Every competency exemption still applies to the SOP revision capture: a method that records no
+    // laboratory result, reading or observation has no first step to capture a revision for.
+    private static readonly Dictionary<string, string> SopCaptureExempt = new(CompetencyExempt, StringComparer.Ordinal);
+
     private const string Entities = "ParameterResult|CountTestReading|WorkflowStepResult|PathogenObservation|" +
         "ConfirmatoryPlateObservation|LocationPathogenObservation|TestAnalysis|Result|SampleLocation";
     private const string Sets = "ParameterResults|CountTestReadings|WorkflowStepResults|PathogenObservations|" +
@@ -45,6 +49,10 @@ public class RecordingPointCoverageTests
         $@"|\.\s*(?:{Sets}|Set\s*<\s*(?:{Entities})\s*>\s*\(\s*\))\s*\.[^;]*?\bExecute(?:Update|Delete)(?:Async)?\s*\(" +
         @"|\b(?:CFUResult|CalculatedResult|ReportedResult|EnteredByUserId|SubmittedByUserId|ObservedByUserId|RecordedByUserId|AnalystDecisionByUserId|InvalidatedByUserId)\s*(?:\?\?=|=(?!=|>))");
     private static readonly Regex Competency = new(@"\b_competency\b");
+    private static readonly Regex SopCapture = new(@"\b_sopCapture\b");
+    private static readonly Regex DirectGuard = new(
+        @"\b_competency\s*\.\s*(?:EvaluateAsync|EvaluateManyAsync|EvaluateAssigneeAsync|FilterAsync)\s*\(|\bRequireCompetentAsync\s*\(");
+    private static readonly Regex DirectCapture = new(@"\b(?:CaptureSopRevisionAsync|_sopCapture\s*\.\s*CaptureIfNeededAsync)\s*\(");
     private static readonly Regex Class = new(
         @"\bclass\s+(?<name>\w+)(?:\s*\([^{}]*?\))?\s*(?::\s*(?<base>\w+)[^{]*)?\s*\{");
     private static readonly Regex Header = new(
@@ -59,7 +67,11 @@ public class RecordingPointCoverageTests
         public string Key => $"{Owner}.{Name}";
     }
 
-    private static readonly RecordingRule[] Rules = [new("Competency", Write, Competency, CompetencyExempt)];
+    private static readonly RecordingRule[] Rules =
+    [
+        new("Competency", Write, Competency, CompetencyExempt),
+        new("SopCapture", Write, SopCapture, SopCaptureExempt),
+    ];
     public static IEnumerable<object[]> RuleNames => Rules.Select(rule => new object[] { rule.Name });
 
     [Theory]
@@ -70,6 +82,80 @@ public class RecordingPointCoverageTests
         var findings = Inspect(sources, Rules.Single(rule => rule.Name == name));
         Assert.True(findings.Count == 0, string.Join(Environment.NewLine, findings));
     }
+
+    [Fact]
+    public void Sop_capture_exemptions_mirror_the_competency_exemptions()
+    {
+        Assert.Equal(CompetencyExempt.OrderBy(pair => pair.Key, StringComparer.Ordinal),
+            SopCaptureExempt.OrderBy(pair => pair.Key, StringComparer.Ordinal));
+    }
+
+    // 1:1 pairing at the call site: a method that itself calls the competency guard must itself call the
+    // SOP revision capture (the guard helper RequireCompetentAsync only evaluates; it never captures).
+    [Fact]
+    public void Every_competency_guarded_recording_point_is_paired_with_sop_capture()
+    {
+        var findings = UnpairedGuards(Sources());
+        Assert.True(findings.Count == 0, string.Join(Environment.NewLine, findings));
+    }
+
+    [Fact]
+    public void Pairing_scan_flags_a_guard_without_a_capture_and_accepts_a_pair()
+    {
+        string[] sources =
+        [
+            """
+            public class Recorder : Support
+            {
+                public async Task Paired() { using var r = await RequireCompetentAsync(1, 2, ct); await CaptureSopRevisionAsync(order, ct); }
+                public async Task Filtered() { var c = await _competency.FilterAsync(1, orders, ct); await _sopCapture.CaptureIfNeededAsync(o, ct); }
+                public async Task Unpaired() { using var r = await RequireCompetentAsync(1, 2, ct); }
+                public async Task UnpairedFilter() { var c = await _competency.FilterAsync(1, orders, ct); }
+                public async Task Mentioned() { using var r = await RequireCompetentAsync(1, 2, ct); Log("CaptureSopRevisionAsync("); }
+                protected async Task<IDisposable> RequireCompetentAsync(int u, int o, CancellationToken ct) { await _competency.EvaluateAsync(u, o, ct); return null; }
+            }
+            """,
+        ];
+        Assert.Equal(new[] { "Recorder.Mentioned", "Recorder.Unpaired", "Recorder.UnpairedFilter" },
+            UnpairedGuards(sources).Order(StringComparer.Ordinal));
+    }
+
+    // The capture must come before the method's first write, so a step that goes on to write is never recorded
+    // without it and a refusal after a write cannot leave a capture behind. Checked in the method that makes the call.
+    [Fact]
+    public void Sop_capture_precedes_the_first_write_in_every_method_that_makes_both()
+    {
+        var findings = CaptureAfterWrite(Sources());
+        Assert.True(findings.Count == 0, string.Join(Environment.NewLine, findings));
+    }
+
+    [Fact]
+    public void Order_scan_flags_a_capture_after_a_write()
+    {
+        string[] sources =
+        [
+            """
+            public class Recorder : Support
+            {
+                public async Task Before() { await CaptureSopRevisionAsync(order, ct); _db.Results.Add(result); }
+                public async Task After() { _db.Results.Add(result); await CaptureSopRevisionAsync(order, ct); }
+                public async Task OnlyCapture() { await CaptureSopRevisionAsync(order, ct); }
+            }
+            """,
+        ];
+        Assert.Equal(new[] { "Recorder.After" }, CaptureAfterWrite(sources));
+    }
+
+    private static List<string> CaptureAfterWrite(IEnumerable<string> sources) =>
+        ReadMethods(sources, out _)
+            .Where(method => DirectCapture.Match(method.Body) is { Success: true } capture
+                && Write.Match(method.Body) is { Success: true } write && write.Index < capture.Index)
+            .Select(method => method.Key).Distinct().ToList();
+
+    private static List<string> UnpairedGuards(IEnumerable<string> sources) =>
+        ReadMethods(sources, out _)
+            .Where(method => method.Name != "RequireCompetentAsync" && DirectGuard.IsMatch(method.Body) && !DirectCapture.IsMatch(method.Body))
+            .Select(method => method.Key).Distinct().ToList();
 
     [Fact]
     public void Facade_never_calls_the_competency_guard()
@@ -149,6 +235,34 @@ public class RecordingPointCoverageTests
                 "Stale exemption: Recorder.Gone",
             },
             Inspect(sources, rule).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Sop_capture_rule_accepts_the_helper_and_flags_a_recording_point_that_never_captures()
+    {
+        string[] sources =
+        [
+            """
+            public class Recorder : Support
+            {
+                public Task Captures() => UnitOfWork.RunAsync(_db, () => CapturesCore());
+                private async Task CapturesCore() { await CaptureSopRevisionAsync(order, ct); _db.Results.Add(result); }
+                public Task Misses() => UnitOfWork.RunAsync(_db, () => MissesCore());
+                private async Task MissesCore() { using var r = await RequireCompetentAsync(1, 2, ct); _db.Results.Add(result); }
+                public void Exempt() => _db.Results.Add(result);
+                public string Mentions() { _db.Results.Add(result); return "_sopCapture"; }
+            }
+            public class Support
+            {
+                protected Task CaptureSopRevisionAsync(TestOrder order, CancellationToken ct) => _sopCapture.CaptureIfNeededAsync(order, ct);
+            }
+            """,
+        ];
+        var rule = new RecordingRule("SopCapture", Write, SopCapture, new Dictionary<string, string>
+        {
+            ["Recorder.Exempt"] = "An explicitly justified exemption.",
+        });
+        Assert.Equal(new[] { "Recorder.Mentions", "Recorder.Misses" }, Inspect(sources, rule).Order(StringComparer.Ordinal));
     }
 
     private static List<string> Sources([CallerFilePath] string path = "")

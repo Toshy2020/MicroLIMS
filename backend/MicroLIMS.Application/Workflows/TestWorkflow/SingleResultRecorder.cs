@@ -30,6 +30,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Measurement, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         if (!definition.ReplicateCount.HasValue || definition.ReplicateCount.Value < 1 || definition.ReplicateCount.Value > 30)
             throw new BusinessRuleException(
@@ -123,6 +124,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Gravimetric, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         if (definition.EquationType is not (EquationType.GravimetricLoss or EquationType.GravimetricResidue))
             throw new BusinessRuleException(
@@ -305,6 +307,7 @@ public sealed class SingleResultRecorder : TestWorkflowSupport
         var (order, definition, specById, analysedAtUtc) = await ValidateTestAnalysisOrderAsync(
             testOrderId, payload.AnalysedAt, payload.EquipmentId, suppliedSpecIds, payload.Password, WorkflowType.Qualitative, userId);
         using var recording = await RequireCompetentAsync(userId, order.Id, cancellationToken);
+        await CaptureSopRevisionAsync(order, cancellationToken);
 
         if (definition.EquationType != EquationType.Qualitative)
             throw new BusinessRuleException(

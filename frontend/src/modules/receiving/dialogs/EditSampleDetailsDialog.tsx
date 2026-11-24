@@ -108,6 +108,9 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   const hints = getReceivingHints(t);
   const [form, setForm] = useState<FormState | null>(null);
   const [reason, setReason] = useState("");
+  // A date field holds a half-typed date: saving would silently drop it.
+  const [mfgIncomplete, setMfgIncomplete] = useState(false);
+  const [expIncomplete, setExpIncomplete] = useState(false);
   const [signing, setSigning] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [causes, setCauses] = useState<LookupOption[]>([]);
@@ -208,7 +211,8 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     (category === "FinishedProduct" && !form.productionStage.trim()) ||
     (isAfterCleaning && (!form.previousProductName.trim() || !form.previousProductBatchNumber.trim())) ||
     (hasStorage && form.storageCondition === "Refrigerator" && form.storageTimeHours === "");
-  const canSave = canEdit && !missingRequired && reason.trim().length > 0;
+  const dateIncomplete = isProductLike && (mfgIncomplete || expIncomplete);
+  const canSave = canEdit && !missingRequired && !dateIncomplete && reason.trim().length > 0;
   // Says why Sign & Save is disabled - a greyed-out signature button with no
   // explanation leaves the analyst guessing. A locked sample is already
   // explained by the alert at the top of the form.
@@ -216,7 +220,9 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
     ? null
     : missingRequired
       ? t("editSample.completeRequired")
-      : !reason.trim()
+      : dateIncomplete
+        ? t("editSample.incompleteDate")
+        : !reason.trim()
         ? t("editSample.enterReason")
         : null;
 
@@ -477,6 +483,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
                 fullWidth
                 value={form.mfgDate}
                 onChange={(v) => set("mfgDate", v)}
+                onIncompleteChange={setMfgIncomplete}
                 disabled={!canEdit}
               />
               <DateField
@@ -484,6 +491,7 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
                 fullWidth
                 value={form.expDate}
                 onChange={(v) => set("expDate", v)}
+                onIncompleteChange={setExpIncomplete}
                 disabled={!canEdit}
               />
             </>

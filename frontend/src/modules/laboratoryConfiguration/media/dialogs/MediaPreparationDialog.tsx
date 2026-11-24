@@ -71,11 +71,10 @@ interface MediaDraftValues extends MediaPreparationFormState {
 }
 
 // Explicit allow-list of fields stored in the tablet draft.
-function localTodayIso(): string {
-  const d = new Date();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mm}-${dd}`;
+// The server stamps the lot's preparation date from its UTC clock and checks
+// the expiry against that date, so compare against the UTC date here too.
+function utcTodayIso(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function pickMediaDraft(v: MediaDraftValues): Partial<MediaDraftValues> {
@@ -399,7 +398,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       return;
     }
     // The lot is prepared today, so an expiry before today is already expired.
-    if (form.expiryDate < localTodayIso()) {
+    if (form.expiryDate < utcTodayIso()) {
       setError(t("media.preparationDialog.errors.expiryInPast"));
       return;
     }

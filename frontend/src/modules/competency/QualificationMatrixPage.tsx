@@ -27,6 +27,7 @@ import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
 import {
+  DEFAULT_MATRIX_CELL_STATUS,
   competencyService,
   type AnalystQualificationDto,
   type CompetencyMatrixDto,
@@ -312,7 +313,7 @@ export function QualificationMatrixPage() {
                       <TableCell sx={{ fontWeight: 600 }}>{row.analystName}</TableCell>
                       {matrix.tests.map((test) => {
                         const cell = cellByTest.get(test.testDefinitionId);
-                        const status: MatrixCellStatus = cell?.status ?? "NotQualified";
+                        const status: MatrixCellStatus = cell?.status ?? DEFAULT_MATRIX_CELL_STATUS;
                         const sessionQualId = sessionQualIds[`${row.userId}:${test.testDefinitionId}`];
                         const testLabel = `${test.code} — ${test.displayName}`;
                         return (

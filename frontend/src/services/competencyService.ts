@@ -13,6 +13,9 @@ export type MatrixCellStatus =
   | "Expired"
   | "Withdrawn";
 
+/** The cell status used when the matrix has no record for an analyst and a test. */
+export const DEFAULT_MATRIX_CELL_STATUS: MatrixCellStatus = "NotQualified";
+
 export interface SignatureManifestDto {
   userFullName: string;
   username: string;

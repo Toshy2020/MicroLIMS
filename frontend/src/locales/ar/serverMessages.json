@@ -2169,7 +2169,9 @@
   "Oos.ReopenSectionDecided": "لا يمكن إعادة فتح التحقيق بعد اعتماد القسم المختبري أو رفضه.",
   "Oos.ReopenReasonInvalid": "أدخل سبب إعادة الفتح من حرف واحد إلى 4000 حرف.",
   "Oos.ManualOpenUnavailable": "يتطلب الفتح اليدوي قسمًا تمت مراجعته وفيه نتيجة غير مطابقة ولا يوجد لها تحقيق.",
-  "Oos.ConclusionAlreadyInvalidated": "يتطلب تأكيد النتيجة غير المطابقة معالجة النتائج التي سبق إبطالها.",
-  "Oos.ConclusionFailingRetest": "لا يمكن إنهاء التحقيق أثناء انتظار إعادة الاختبار مع وجود نتيجة غير مطابقة لم تُحسم.",
-  "Oos.CertificateMultipleRetests": "لا يمكن إصدار شهادة حتى تُحدد قاعدة الإبلاغ عن نتائج إعادات الاختبار المتعددة."
+  "Oos.CertificateMultipleRetests": "لا يمكن إصدار شهادة حتى تُحدد قاعدة الإبلاغ عن نتائج إعادات الاختبار المتعددة.",
+  "Oos.EntryClosed": "لا يمكن إضافة إدخالات إلى تحقيق منتهٍ.",
+  "Oos.ConclusionCauseDetailsRequired": "اختر فئة السبب وأدخل وصفها قبل إنهاء التحقيق.",
+  "Oos.ConclusionCauseInactive": "فئة السبب المحددة لم تعد نشطة.",
+  "Oos.FailingRetestCannotBeApproved": "لا يمكن اعتماد إعادة اختبار نتيجتها خارج المواصفة."
 }

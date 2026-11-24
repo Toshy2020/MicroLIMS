@@ -21,7 +21,7 @@ public sealed partial class OosInvestigationService
         UnitOfWork.RunAsync(db, async () =>
         {
             var investigation = await OpenForEditAsync(investigationId, userId, PermissionConstants.OosContribute, ct,
-                ConclusionPhaseInvalid, PermissionConstants.OosManage);
+                EntryClosed, PermissionConstants.OosManage);
             if (investigation.Kind != OosInvestigationKind.Oos || kind is not (OosEntryKind.OutsideReview or OosEntryKind.Hypothesis or OosEntryKind.HypothesisOutcome or OosEntryKind.Note) ||
                 !ValidText(text) || (kind != OosEntryKind.Note && investigation.Status != OosInvestigationStatus.PhaseTwo))
                 throw new BusinessRuleException(MessageCodes.OosEntryInvalid, "Choose an entry allowed in this phase and enter 1 to 4000 characters.");
@@ -62,22 +62,6 @@ public sealed partial class OosInvestigationService
             await EnsureConclusionCauseAsync(categoryId, description, invalidated, ct);
             await EnsureRetestsReviewedAsync(investigation, invalidated, ct);
 
-            // The disposition of a failing retest during AwaitingRetest is unresolved.
-            if (awaitingRetest && await (from result in db.OosInvestigationResults
-                                         join order in db.TestOrders on result.TestOrderId equals order.Id
-                                         join link in db.OosRetestPlanSamples on order.SampleId equals link.SampleId
-                                         join plan in db.OosRetestPlans on link.PlanId equals plan.Id
-                                         where result.InvestigationId == investigationId &&
-                                             plan.InvestigationId == investigationId && plan.SignedAtUtc != null
-                                         select result.Id).AnyAsync(ct))
-                throw new BusinessRuleException(MessageCodes.OosConclusionFailingRetest,
-                    "The investigation cannot be concluded while awaiting a retest with an unresolved failing result.");
-
-            if (!invalidated && await db.OosInvestigationResults.AsNoTracking()
-                .AnyAsync(r => r.InvestigationId == investigationId && r.IsInvalidated, ct))
-                throw new BusinessRuleException(MessageCodes.OosConclusionAlreadyInvalidated,
-                    "A confirmed conclusion requires a resolution for the results already marked invalidated.");
-
             var signature = await SignInvestigationAsync(investigationId, userId, request.Password,
                 SignatureMeaning.OosInvestigationConcluded, request.Summary.Trim(), ip, ct);
 
@@ -90,7 +74,7 @@ public sealed partial class OosInvestigationService
             investigation.ConcludedAtUtc = signature.SignedAt;
             investigation.ConclusionSignatureId = signature.Id;
             if (invalidated)
-                await InvalidateOrdersAsync(investigationId, signature.SignedAt, ct);
+                await SetOriginInvalidationAsync(investigation, signature.SignedAt, ct);
             await db.SaveChangesAsync(ct);
         }, ct);
 
@@ -123,6 +107,7 @@ public sealed partial class OosInvestigationService
             var signature = await SignInvestigationAsync(investigationId, userId, password,
                 SignatureMeaning.OosInvestigationReopened, reason.Trim(), ip, ct);
 
+            db.CurrentReason = reason.Trim();
             db.OosInvestigationReopenings.Add(new OosInvestigationReopening
             {
                 InvestigationId = investigationId,
@@ -138,6 +123,11 @@ public sealed partial class OosInvestigationService
                 ReopenedAtUtc = signature.SignedAt,
                 SignatureId = signature.Id
             });
+            if (previous == OosConclusion.Invalidated)
+            {
+                await SaveReopeningEvidenceAsync(ct);
+                await SetOriginInvalidationAsync(investigation, invalidatedAtUtc: null, ct);
+            }
             investigation.Status = OosInvestigationStatus.PhaseTwo;
             investigation.Conclusion = null;
             investigation.RootCauseCategoryId = null;
@@ -208,11 +198,20 @@ public sealed partial class OosInvestigationService
         if (description?.Length > 4000)
             throw new BusinessRuleException(MessageCodes.OosConclusionTextInvalid, "Enter a conclusion summary and any cause description within 4000 characters.");
 
-        var category = await db.OosCauseCategories.AsNoTracking().SingleOrDefaultAsync(c => c.Id == categoryId, ct);
-        if (invalidated && (category is null || category.IsNoCauseFound || !ValidText(description)))
+        if (invalidated && (categoryId is null || !ValidText(description)))
             throw new BusinessRuleException(MessageCodes.OosConclusionCauseRequired, "Invalidation requires an assignable cause and a description.");
-        if (categoryId is not null && category is null)
-            throw new BusinessRuleException(MessageCodes.OosCategoryNotFound, "The OOS cause category was not found.");
+        if (categoryId is not int id || !ValidText(description))
+            throw new BusinessRuleException(MessageCodes.OosConclusionCauseDetailsRequired, "Select a cause category and enter its description before concluding.");
+
+        if (db.Database.IsRelational())
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""SELECT 1 FROM "OosCauseCategories" WHERE "Id" = {id} FOR SHARE""", ct);
+        var category = await db.OosCauseCategories.AsNoTracking().SingleOrDefaultAsync(c => c.Id == id, ct)
+            ?? throw new BusinessRuleException(MessageCodes.OosCategoryNotFound, "The OOS cause category was not found.");
+        if (!category.IsActive)
+            throw new BusinessRuleException(MessageCodes.OosConclusionCauseInactive, "The selected cause category is no longer active.");
+        if (invalidated && category.IsNoCauseFound)
+            throw new BusinessRuleException(MessageCodes.OosConclusionCauseRequired, "Invalidation requires an assignable cause and a description.");
     }
 
     private async Task EnsureRetestsReviewedAsync(OosInvestigation investigation, bool invalidated, CancellationToken ct)
@@ -237,18 +236,23 @@ public sealed partial class OosInvestigationService
             throw new BusinessRuleException(MessageCodes.OosConclusionRetestsUnreviewed, "Complete the laboratory section review for every planned retest sample before concluding.");
     }
 
-    private async Task InvalidateOrdersAsync(int investigationId, DateTime now, CancellationToken ct)
+    private async Task SetOriginInvalidationAsync(OosInvestigation investigation, DateTime? invalidatedAtUtc, CancellationToken ct)
     {
-        var links = await db.OosInvestigationResults.Where(r => r.InvestigationId == investigationId).ToListAsync(ct);
-        foreach (var link in links.Where(r => !r.IsInvalidated))
+        var links = await (from link in db.OosInvestigationResults
+                           join order in db.TestOrders on link.TestOrderId equals order.Id
+                           where link.InvestigationId == investigation.Id && order.SampleId == investigation.SampleId
+                           select new { Link = link, Order = order }).ToListAsync(ct);
+
+        var invalidated = invalidatedAtUtc.HasValue;
+        foreach (var row in links)
         {
-            link.IsInvalidated = true;
-            link.InvalidatedAtUtc = now;
+            if (row.Link.IsInvalidated != invalidated)
+            {
+                row.Link.IsInvalidated = invalidated;
+                row.Link.InvalidatedAtUtc = invalidatedAtUtc;
+            }
+            row.Order.IsSuperseded = invalidated;
         }
-        var ids = links.Select(r => r.TestOrderId).ToArray();
-        var orders = await db.TestOrders.Where(o => ids.Contains(o.Id)).ToListAsync(ct);
-        foreach (var order in orders)
-            order.IsSuperseded = true;
     }
 
     private async Task EnsureIndependentSignerAsync(int investigationId, int actor, CancellationToken ct)
@@ -275,8 +279,26 @@ public sealed partial class OosInvestigationService
 
         db.CurrentUserId = actor;
         signature.SignedAt = time.GetUtcNow().UtcDateTime;
-        await db.SaveChangesAsync(ct);
+        if (meaning == SignatureMeaning.OosInvestigationReopened)
+            await SaveReopeningEvidenceAsync(ct);
+        else
+            await db.SaveChangesAsync(ct);
         return signature;
+    }
+
+    private async Task SaveReopeningEvidenceAsync(CancellationToken ct)
+    {
+        // The verification trigger matches both evidence rows to the top-level transaction ID.
+        var autoSavepoints = db.Database.AutoSavepointsEnabled;
+        db.Database.AutoSavepointsEnabled = false;
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        finally
+        {
+            db.Database.AutoSavepointsEnabled = autoSavepoints;
+        }
     }
 
     private static void CheckVersion(uint current, uint? expected)
@@ -286,6 +308,9 @@ public sealed partial class OosInvestigationService
     }
 
     private static bool ValidText(string? text) => !string.IsNullOrWhiteSpace(text) && text.Length <= 4000;
+
+    private static BusinessRuleException EntryClosed() =>
+        new(MessageCodes.OosEntryClosed, "Entries cannot be added to a concluded investigation.");
 
     private static BusinessRuleException ConclusionPhaseInvalid() =>
         new(MessageCodes.OosConclusionPhaseInvalid, "This conclusion is unavailable in the current investigation phase.");

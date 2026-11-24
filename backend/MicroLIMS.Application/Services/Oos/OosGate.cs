@@ -55,6 +55,15 @@ public sealed class OosGate(IMicroLimsDbContext db, OosOpeningRule rule)
             return ActionCheck.No(MessageCodes.OosConfirmedCannotBeApproved,
                 "A confirmed out-of-specification result cannot be approved.");
 
+        if (failing.Count > 0 && await (from link in db.OosRetestPlanSamples
+                                       join plan in db.OosRetestPlans on link.PlanId equals plan.Id
+                                       join investigation in db.OosInvestigations on plan.InvestigationId equals investigation.Id
+                                       where link.SampleId == sample.Id && plan.SignedAtUtc != null &&
+                                           investigation.SectionId == sectionId
+                                       select link.SampleId).AnyAsync(ct))
+            return ActionCheck.No(MessageCodes.OosFailingRetestCannotBeApproved,
+                "A retest with an out-of-specification result cannot be approved.");
+
         // The origin waits for signed-plan samples to be approved. A joined retest
         // must be able to reach Approved before the origin's prerequisite can pass.
         var invalidatedNumber = await covering

@@ -65,9 +65,12 @@ public static partial class MessageCodes
     public const string OosReopenSectionDecided = "Oos.ReopenSectionDecided";
     public const string OosReopenReasonInvalid = "Oos.ReopenReasonInvalid";
     public const string OosManualOpenUnavailable = "Oos.ManualOpenUnavailable";
-    public const string OosConclusionAlreadyInvalidated = "Oos.ConclusionAlreadyInvalidated";
-    public const string OosConclusionFailingRetest = "Oos.ConclusionFailingRetest";
     public const string OosCertificateMultipleRetests = "Oos.CertificateMultipleRetests";
+
+    public const string OosEntryClosed = "Oos.EntryClosed";
+    public const string OosConclusionCauseDetailsRequired = "Oos.ConclusionCauseDetailsRequired";
+    public const string OosConclusionCauseInactive = "Oos.ConclusionCauseInactive";
+    public const string OosFailingRetestCannotBeApproved = "Oos.FailingRetestCannotBeApproved";
 
     private static Dictionary<string, string[]> OosParameters() => new()
     {
@@ -130,8 +133,10 @@ public static partial class MessageCodes
         [OosReopenSectionDecided] = [],
         [OosReopenReasonInvalid] = [],
         [OosManualOpenUnavailable] = [],
-        [OosConclusionAlreadyInvalidated] = [],
-        [OosConclusionFailingRetest] = [],
         [OosCertificateMultipleRetests] = [],
+        [OosEntryClosed] = [],
+        [OosConclusionCauseDetailsRequired] = [],
+        [OosConclusionCauseInactive] = [],
+        [OosFailingRetestCannotBeApproved] = [],
     };
 }

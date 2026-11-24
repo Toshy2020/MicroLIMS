@@ -2169,7 +2169,9 @@
   "Oos.ReopenSectionDecided": "An investigation cannot be reopened after its laboratory section is approved or rejected.",
   "Oos.ReopenReasonInvalid": "Enter a reopening reason of 1 to 4000 characters.",
   "Oos.ManualOpenUnavailable": "Manual opening requires a reviewed failing section without an investigation.",
-  "Oos.ConclusionAlreadyInvalidated": "A confirmed conclusion requires a resolution for the results already marked invalidated.",
-  "Oos.ConclusionFailingRetest": "The investigation cannot be concluded while awaiting a retest with an unresolved failing result.",
-  "Oos.CertificateMultipleRetests": "A certificate cannot be issued until the reporting rule for multiple retests is resolved."
+  "Oos.CertificateMultipleRetests": "A certificate cannot be issued until the reporting rule for multiple retests is resolved.",
+  "Oos.EntryClosed": "Entries cannot be added to a concluded investigation.",
+  "Oos.ConclusionCauseDetailsRequired": "Select a cause category and enter its description before concluding.",
+  "Oos.ConclusionCauseInactive": "The selected cause category is no longer active.",
+  "Oos.FailingRetestCannotBeApproved": "A retest with an out-of-specification result cannot be approved."
 }

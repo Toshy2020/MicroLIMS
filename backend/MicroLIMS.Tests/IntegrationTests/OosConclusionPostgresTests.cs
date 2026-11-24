@@ -391,20 +391,304 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
     }
 
     [PostgresFact]
-    public async Task Failing_retest_while_awaiting_retest_blocks_conclusion()
+    public async Task Failing_retest_moves_awaiting_investigation_to_phase_two()
     {
         var world = await ArrangeAsync(status: OosInvestigationStatus.AwaitingRetest);
-        var retest = await AddPlanAsync(world, failing: true);
+        var retest = await AddPlanAsync(world, reviewed: false, failing: true);
+        await _seed.CompleteReviewAsync(new(world.Reviewer, retest.SampleId, world.SectionId));
+        var moved = await ReadAsync(world.Id);
+        Assert.Equal(OosInvestigationStatus.PhaseTwo, moved.Status);
+        Assert.NotEqual(world.Version, moved.Version);
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var link = await verify.OosInvestigationResults.AsNoTracking().SingleAsync(r =>
+                r.InvestigationId == world.Id && r.TestOrderId == retest.OrderId);
+            Assert.False(link.IsInvalidated);
+            var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(OosInvestigation) &&
+                a.EntityId == world.Id.ToString() && a.UserId == world.Reviewer && a.Action == "Update");
+            Assert.Equal(OosInvestigationStatus.AwaitingRetest, ReadStatus(audit.PreviousValue));
+            Assert.Equal(OosInvestigationStatus.PhaseTwo, ReadStatus(audit.NewValue));
+            Assert.Contains("failing retest", audit.Reason);
+            var creation = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(OosInvestigationResult) &&
+                a.EntityId == link.Id.ToString() && a.Action == "Create" && a.UserId == world.Reviewer);
+            Assert.Null(creation.PreviousValue);
+            Assert.Contains(nameof(link.TestOrderId), creation.NewValue);
+        }
+        await ConcludeAsync(world with { Version = moved.Version });
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+    }
+
+    [PostgresFact]
+    public async Task Invalidation_leaves_joined_failing_retest_untouched_and_refuses_approval()
+    {
+        var world = await ArrangeAsync();
+        var retest = await AddPlanAsync(world, reviewed: false, failing: true);
+        await _seed.CompleteReviewAsync(new(world.Reviewer, retest.SampleId, world.SectionId));
+        var before = await ReadAsync(world.Id);
+        var bytes = await ResultBytesAsync(retest.OrderId);
+        await ConcludeAsync(world with { Version = before.Version }, OosConclusion.Invalidated);
+
+        await using var verify = fixture.CreateDbContext();
+        var links = await verify.OosInvestigationResults.AsNoTracking().Where(r => r.InvestigationId == world.Id).ToListAsync();
+        var origin = Assert.Single(links, r => r.TestOrderId == world.OrderId);
+        var child = Assert.Single(links, r => r.TestOrderId == retest.OrderId);
+        Assert.True(origin.IsInvalidated);
+        Assert.False(child.IsInvalidated);
+        Assert.Null(child.InvalidatedAtUtc);
+        Assert.False(await verify.TestOrders.AsNoTracking().Where(o => o.Id == retest.OrderId).Select(o => o.IsSuperseded).SingleAsync());
+        Assert.Equal(bytes, await ResultBytesAsync(retest.OrderId));
+        Assert.False(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.EntityName == nameof(OosInvestigationResult) &&
+            a.EntityId == child.Id.ToString() && a.Action == "Update"));
+        await AssertBooleanAuditAsync(nameof(OosInvestigationResult), origin.Id, world.Head, nameof(origin.IsInvalidated));
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+        var refused = await Assert.ThrowsAsync<BusinessRuleException>(() => DecideAsync(world, retest.SampleId, ApprovalDecision.Approve));
+        Assert.Equal("Oos.FailingRetestCannotBeApproved", refused.Code);
+        Assert.Equal(SectionSignoffStatus.UnderApproval, await verify.SampleSectionSignoffs.AsNoTracking()
+            .Where(s => s.SampleId == retest.SampleId).Select(s => s.Status).SingleAsync());
+    }
+
+    [PostgresFact]
+    public Task Reopening_reverses_invalidation_and_allows_confirmation() =>
+        AssertReopenThenConcludeAsync(OosConclusion.Confirmed);
+
+    [PostgresFact]
+    public Task Reopening_reverses_invalidation_and_can_reapply_it() =>
+        AssertReopenThenConcludeAsync(OosConclusion.Invalidated);
+
+    private async Task AssertReopenThenConcludeAsync(OosConclusion next)
+    {
+        var world = await ArrangeAsync();
+        await AddPlanAsync(world);
+        var bytes = await ResultBytesAsync(world.OrderId);
+        await ConcludeAsync(world, OosConclusion.Invalidated);
+        var closed = await ReadAsync(world.Id);
+        await ReopenAsync(world, closed.Version);
+        var reopened = await ReadAsync(world.Id);
+        Assert.Null(reopened.Conclusion);
+        Assert.Equal(OosInvestigationStatus.PhaseTwo, reopened.Status);
+        Assert.NotEqual(closed.Version, reopened.Version);
+        await AssertOriginFlagsAsync(world, false);
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.Concluded, OosInvestigationStatus.PhaseTwo);
+        await using (var verify = fixture.CreateDbContext())
+        {
+            var history = await verify.OosInvestigationReopenings.AsNoTracking().SingleAsync(r => r.InvestigationId == world.Id);
+            Assert.Equal(OosConclusion.Invalidated, history.PreviousConclusion);
+            Assert.Equal(closed.ConclusionSignatureId, history.PreviousConclusionSignatureId);
+            Assert.Equal(closed.ConclusionSummary, history.PreviousConclusionSummary);
+        }
+        await ConcludeAsync(world with { Version = reopened.Version }, next);
+        Assert.Equal(next, (await ReadAsync(world.Id)).Conclusion);
+        await AssertOriginFlagsAsync(world, next == OosConclusion.Invalidated);
+        if (next == OosConclusion.Invalidated)
+        {
+            int linkId;
+            await using (var verify = fixture.CreateDbContext())
+                linkId = await verify.OosInvestigationResults.AsNoTracking().Where(r => r.InvestigationId == world.Id)
+                    .Select(r => r.Id).SingleAsync();
+            await AssertBooleanAuditAsync(nameof(OosInvestigationResult), linkId, world.Head, nameof(OosInvestigationResult.IsInvalidated));
+            await AssertBooleanAuditAsync(nameof(TestOrder), world.OrderId, world.Head, nameof(TestOrder.IsSuperseded));
+
+            await using var act = fixture.CreateDbContext();
+            var refused = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+                """));
+            Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, refused.SqlState);
+            await AssertOriginFlagsAsync(world, true);
+        }
+        Assert.Equal(bytes, await ResultBytesAsync(world.OrderId));
+    }
+
+    [PostgresFact]
+    public async Task Reopening_refusals_preserve_conclusion_signature_and_flags()
+    {
+        var world = await ArrangeAsync();
+        var open = await Assert.ThrowsAsync<BusinessRuleException>(() => ReopenAsync(world, world.Version));
+        Assert.Equal("Oos.ReopenNotConcluded", open.Code);
+        await AssertUnchangedAsync(world);
+
+        await AddPlanAsync(world);
+        await ConcludeAsync(world, OosConclusion.Invalidated);
+        var closed = await ReadAsync(world.Id);
+        var password = await Assert.ThrowsAsync<BusinessRuleException>(() => ReopenAsync(world, closed.Version, "wrong"));
+        Assert.Equal("Oos.ReopenPasswordFailed", password.Code);
+        var stale = await Assert.ThrowsAsync<BusinessRuleException>(() => ReopenAsync(world, world.Version));
+        Assert.Equal("Oos.VersionConflict", stale.Code);
+        var other = await _seed.UserAsync(RoleType.SectionHead, [PermissionConstants.OosManage], await _seed.SectionAsync());
+        var scope = await Assert.ThrowsAsync<CodedAccessDeniedException>(() => ReopenAsync(world, closed.Version, actor: other.Id));
+        Assert.Equal("Oos.SectionAccessDenied", scope.Code);
+
         await using (var arrange = fixture.CreateDbContext())
         {
-            arrange.OosInvestigationResults.Add(new()
-            {
-                InvestigationId = world.Id, TestOrderId = retest.OrderId,
-                OutcomeAtOpening = OosOutcomeClass.Fails, AddedAtUtc = ActionGuardScenarios.Now
-            });
+            arrange.Results.Add(new Result { TestOrderId = world.OrderId, EnteredByUserId = world.Head,
+                InterpretedValue = nameof(ResultStatus.Detected) });
             await arrange.SaveChangesAsync();
         }
-        await RefusedAsync(world, "Oos.ConclusionFailingRetest", OosConclusion.Invalidated);
+        var performer = await Assert.ThrowsAsync<BusinessRuleException>(() => ReopenAsync(world, closed.Version));
+        Assert.Equal("Oos.SignerPerformedTest", performer.Code);
+        var current = await ReadAsync(world.Id);
+        Assert.Equal(closed.Version, current.Version);
+        Assert.Equal(closed.ConclusionSignatureId, current.ConclusionSignatureId);
+        Assert.Equal(closed.Conclusion, current.Conclusion);
+        await AssertOriginFlagsAsync(world, true);
+        await using var verify = fixture.CreateDbContext();
+        Assert.False(await verify.OosInvestigationReopenings.AsNoTracking().AnyAsync(r => r.InvestigationId == world.Id));
+        Assert.False(await verify.ElectronicSignatures.AsNoTracking().AnyAsync(s => s.EntityId == world.Id &&
+            s.EntityType == nameof(OosInvestigation) && s.MeaningOfSignature == SignatureMeaning.OosInvestigationReopened));
+    }
+
+    [PostgresFact]
+    public async Task Entry_refuses_wrong_scope_missing_permission_and_closed_investigation()
+    {
+        var world = await ArrangeAsync();
+        await using var arrange = fixture.CreateDbContext();
+        var section = await arrange.DocumentSections.AsNoTracking().SingleAsync(s => s.Id == world.SectionId);
+        var unauthorized = await _seed.UserAsync(RoleType.Analyst, [], section);
+        var outsider = await _seed.UserAsync(RoleType.SectionHead, [PermissionConstants.OosManage], await _seed.SectionAsync());
+        foreach (var (actor, code) in new[] { (unauthorized.Id, "Oos.InvestigationAccessDenied"), (outsider.Id, "Oos.SectionAccessDenied") })
+        {
+            await using var act = fixture.CreateDbContext();
+            var refused = await Assert.ThrowsAsync<CodedAccessDeniedException>(() => TestServiceFactory.OosInvestigation(act)
+                .AddEntryAsync(world.Id, OosEntryKind.Note, Summary, null, actor));
+            Assert.Equal(code, refused.Code);
+        }
+        await AssertUnchangedAsync(world);
+        await ConcludeAsync(world);
+        var closed = await ReadAsync(world.Id);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => EntryAsync(world with { Version = closed.Version }, OosEntryKind.Note));
+        Assert.Equal("Oos.EntryClosed", error.Code);
+        Assert.Equal(closed.Version, (await ReadAsync(world.Id)).Version);
+        await using var verify = fixture.CreateDbContext();
+        Assert.False(await verify.OosInvestigationEntrys.AsNoTracking().AnyAsync(e => e.InvestigationId == world.Id));
+    }
+
+    [PostgresFact]
+    public async Task Manual_open_refuses_stale_sample_version_and_missing_permission()
+    {
+        var world = await ArrangeAsync(createInvestigation: false);
+        await using var arrange = fixture.CreateDbContext();
+        var section = await arrange.DocumentSections.AsNoTracking().SingleAsync(s => s.Id == world.SectionId);
+        var unauthorized = await _seed.UserAsync(RoleType.Analyst, [], section);
+        var version = await arrange.Samples.AsNoTracking().Where(s => s.Id == world.SampleId).Select(s => s.Version).SingleAsync();
+        await using (var act = fixture.CreateDbContext())
+        {
+            var service = TestServiceFactory.OosInvestigation(act);
+            var denied = await Assert.ThrowsAsync<CodedAccessDeniedException>(() => service.OpenManuallyAsync(world.SampleId, world.SectionId, version, unauthorized.Id));
+            Assert.Equal("Oos.InvestigationAccessDenied", denied.Code);
+        }
+        await using (var act = fixture.CreateDbContext())
+        {
+            var stale = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.OosInvestigation(act)
+                .OpenManuallyAsync(world.SampleId, world.SectionId, version - 1, world.Head));
+            Assert.Equal("Oos.VersionConflict", stale.Code);
+        }
+        await using var verify = fixture.CreateDbContext();
+        Assert.False(await verify.OosInvestigations.AsNoTracking().AnyAsync(i => i.SampleId == world.SampleId));
+        Assert.Equal(version, await verify.Samples.AsNoTracking().Where(s => s.Id == world.SampleId).Select(s => s.Version).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Confirmed_requires_a_described_active_category()
+    {
+        var world = await ArrangeAsync(noCause: true);
+        await using (var act = fixture.CreateDbContext())
+        {
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.OosInvestigation(act)
+                .ConcludeAsync(world.Id, new(OosConclusion.Confirmed, null, null, Summary, ActionGuardScenarios.Password),
+                    world.Version, world.Head, null));
+            Assert.Equal("Oos.ConclusionCauseDetailsRequired", error.Code);
+        }
+        await AssertUnchangedAsync(world);
+        await ConcludeAsync(world);
+        await AssertStatusAuditAsync(world, OosInvestigationStatus.PhaseTwo, OosInvestigationStatus.Concluded);
+    }
+
+    [PostgresFact]
+    public async Task Trigger_refuses_retest_reversal_even_during_origin_reopening()
+    {
+        var world = await ArrangeAsync();
+        var retest = await AddPlanAsync(world, reviewed: false, failing: true);
+        await _seed.CompleteReviewAsync(new(world.Reviewer, retest.SampleId, world.SectionId));
+        var reviewed = await ReadAsync(world.Id);
+        await ConcludeAsync(world with { Version = reviewed.Version }, OosConclusion.Invalidated);
+        var closed = await ReadAsync(world.Id);
+
+        int linkId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var link = await arrange.OosInvestigationResults.SingleAsync(r =>
+                r.InvestigationId == world.Id && r.TestOrderId == retest.OrderId);
+            // Exercise the trigger against a historically invalidated retest link.
+            link.IsInvalidated = true;
+            link.InvalidatedAtUtc = ActionGuardScenarios.Now;
+            await arrange.SaveChangesAsync();
+            linkId = link.Id;
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            await using var transaction = await act.Database.BeginTransactionAsync();
+            act.ExpectedVersion = closed.Version;
+            await TestServiceFactory.OosInvestigation(act).ReopenAsync(world.Id, "New evidence", ActionGuardScenarios.Password, world.Head, null);
+            var refused = await Assert.ThrowsAsync<Npgsql.PostgresException>(() => act.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "OosInvestigationResults" SET "IsInvalidated" = false, "InvalidatedAtUtc" = NULL WHERE "Id" = {linkId}
+                """));
+            Assert.Equal(Npgsql.PostgresErrorCodes.RaiseException, refused.SqlState);
+            await transaction.RollbackAsync();
+        }
+        Assert.Equal(closed.Version, (await ReadAsync(world.Id)).Version);
+        await using var verify = fixture.CreateDbContext();
+        var links = await verify.OosInvestigationResults.AsNoTracking().Where(r => r.InvestigationId == world.Id).ToListAsync();
+        Assert.Equal(2, links.Count);
+        Assert.All(links, link => Assert.True(link.IsInvalidated));
+        Assert.False(await verify.OosInvestigationReopenings.AsNoTracking().AnyAsync(r => r.InvestigationId == world.Id));
+    }
+
+    [PostgresFact]
+    public async Task Inactive_cause_and_missing_description_refuse_conclusion()
+    {
+        var world = await ArrangeAsync();
+        int inactive;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var category = new OosCauseCategory { Name = $"Inactive-{Guid.NewGuid():N}", IsActive = false };
+            arrange.OosCauseCategories.Add(category);
+            await arrange.SaveChangesAsync();
+            inactive = category.Id;
+        }
+        foreach (var (categoryId, description, code) in new[]
+        {
+            (inactive, (string?)Cause, "Oos.ConclusionCauseInactive"),
+            (world.Category, (string?)null, "Oos.ConclusionCauseDetailsRequired")
+        })
+        {
+            await using var act = fixture.CreateDbContext();
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => TestServiceFactory.OosInvestigation(act)
+                .ConcludeAsync(world.Id, new(OosConclusion.Confirmed, categoryId, description, Summary, ActionGuardScenarios.Password),
+                    world.Version, world.Head, null));
+            Assert.Equal(code, error.Code);
+        }
+        await AssertUnchangedAsync(world);
+    }
+
+    private async Task AssertOriginFlagsAsync(World world, bool invalidated)
+    {
+        await using var verify = fixture.CreateDbContext();
+        var link = await verify.OosInvestigationResults.AsNoTracking().SingleAsync(r => r.InvestigationId == world.Id);
+        Assert.Equal(invalidated, link.IsInvalidated);
+        Assert.Equal(invalidated, link.InvalidatedAtUtc.HasValue);
+        Assert.Equal(invalidated, await verify.TestOrders.AsNoTracking().Where(o => o.Id == world.OrderId).Select(o => o.IsSuperseded).SingleAsync());
+        if (!invalidated)
+        {
+            await AssertBooleanAuditAsync(nameof(OosInvestigationResult), link.Id, world.Head, nameof(link.IsInvalidated), from: true);
+            await AssertBooleanAuditAsync(nameof(TestOrder), world.OrderId, world.Head, nameof(TestOrder.IsSuperseded), from: true);
+        }
+    }
+
+    private async Task ReopenAsync(World world, uint version, string password = ActionGuardScenarios.Password, int? actor = null)
+    {
+        await using var act = fixture.CreateDbContext();
+        act.ExpectedVersion = version;
+        await TestServiceFactory.OosInvestigation(act).ReopenAsync(world.Id, "New evidence", password, actor ?? world.Head, null);
     }
 
     [PostgresFact]
@@ -469,15 +753,15 @@ public sealed class OosConclusionPostgresTests(PostgresTestFixture fixture) : IC
             """).ToListAsync()).ToArray();
     }
 
-    private async Task AssertBooleanAuditAsync(string entity, int id, int actor, string field)
+    private async Task AssertBooleanAuditAsync(string entity, int id, int actor, string field, bool from = false)
     {
         await using var verify = fixture.CreateDbContext();
-        var audit = await verify.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == entity &&
-            a.EntityId == id.ToString() && a.UserId == actor && a.Action == "Update");
+        var audit = await verify.AuditLogs.AsNoTracking().Where(a => a.EntityName == entity &&
+            a.EntityId == id.ToString() && a.UserId == actor && a.Action == "Update").OrderByDescending(a => a.Id).FirstAsync();
         using var before = JsonDocument.Parse(Assert.IsType<string>(audit.PreviousValue));
         using var after = JsonDocument.Parse(Assert.IsType<string>(audit.NewValue));
-        Assert.False(before.RootElement.GetProperty(field).GetBoolean());
-        Assert.True(after.RootElement.GetProperty(field).GetBoolean());
+        Assert.Equal(from, before.RootElement.GetProperty(field).GetBoolean());
+        Assert.Equal(!from, after.RootElement.GetProperty(field).GetBoolean());
     }
 
     private async Task<int> OpenAsync(World world)

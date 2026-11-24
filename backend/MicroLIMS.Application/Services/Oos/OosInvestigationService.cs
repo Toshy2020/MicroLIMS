@@ -46,7 +46,15 @@ public sealed partial class OosInvestigationService(
         }
 
         if (investigation.Id != 0 && failing.Keys.Any(id => !existingOrderIds.Contains(id)))
+        {
+            if (investigation.SampleId != sample.Id && investigation.Status == OosInvestigationStatus.AwaitingRetest)
+            {
+                investigation.Status = OosInvestigationStatus.PhaseTwo;
+                db.CurrentUserId = reviewerUserId;
+                db.CurrentReason = "A failing retest from a signed plan joined the investigation.";
+            }
             db.Entry(investigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
+        }
 
         foreach (var (orderId, outcome) in failing)
         {

@@ -187,11 +187,12 @@ public class OosOpeningAndGatePostgresTests(PostgresTestFixture fixture)
         linked.OosGroupCode = investigation.Number;
         arrange.Results.AddRange(origin.Orders.Concat(retest.Orders).Select(o => new Result
         {
-            TestOrderId = o.Id, EnteredByUserId = analyst.Id, InterpretedValue = nameof(ResultStatus.Detected)
+            TestOrderId = o.Id, EnteredByUserId = analyst.Id,
+            InterpretedValue = o.SampleId == origin.Sample.Id ? nameof(ResultStatus.Detected) : nameof(ResultStatus.NotDetected)
         }));
         arrange.OosInvestigations.Add(investigation);
         await arrange.SaveChangesAsync();
-        arrange.OosInvestigationResults.AddRange(origin.Orders.Concat(retest.Orders).Select(o => new OosInvestigationResult
+        arrange.OosInvestigationResults.AddRange(origin.Orders.Select(o => new OosInvestigationResult
         {
             InvestigationId = investigation.Id,
             TestOrderId = o.Id,

@@ -1162,3 +1162,17 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** What limits, segregation of duties, and eligible orders apply to a retest plan?
 - **Decision:** Each revision permits 1 to 10 retests, with no cumulative cap. Every amendment requires a reason and a new signature. Assign exactly one analyst to each retest sample in the order specified by the plan. The signer may neither appear in the analyst list nor have performed any investigated order, including orders from earlier planned retests. For a new sample, an analyst who performed any investigated order is ineligible. For a retained-sample retest, the original analyst is eligible. A plan may select only current, non-superseded failing orders linked through OosInvestigationResults (user, 2026-11-20).
 - **Date:** 2026-11-20
+
+### CONF-219
+- **Area:** REV
+- **Status:** Decided
+- **Question:** How should a failing planned retest affect an investigation awaiting retest, and how should a reopened invalidation affect the original orders?
+- **Decision:** A failing retest joined through a signed plan moves the investigation from AwaitingRetest to PhaseTwo under the investigation row lock. Audit the transition with the reviewer and reason. Conclusion invalidates and supersedes only investigated orders of the origin sample. A signed reopening reverses those flags in the same transaction, preserves the previous signed conclusion, and allows either conclusion after reassessment (user, 2026-11-24).
+- **Date:** 2026-11-24
+
+### CONF-220
+- **Area:** REV
+- **Status:** Open
+- **Question:** Which results should appear on the origin certificate after invalidation when several signed-plan retest samples exist?
+- **Current behavior:** The certificate gate refuses issuance for that origin while the reporting rule is unresolved.
+- **Date:** 2026-11-24

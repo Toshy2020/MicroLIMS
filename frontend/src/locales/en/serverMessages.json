@@ -2178,5 +2178,9 @@
   "Oos.EntryClosed": "Entries cannot be added to a concluded investigation.",
   "Oos.ConclusionCauseDetailsRequired": "Select a cause category and enter its description before concluding.",
   "Oos.ConclusionCauseInactive": "The selected cause category is no longer active.",
-  "Oos.FailingRetestCannotBeApproved": "A retest with an out-of-specification result cannot be approved."
+  "Oos.FailingRetestCannotBeApproved": "A retest with an out-of-specification result cannot be approved.",
+  "Oos.ExcursionReasonInvalid": "Enter an excursion reason of 1 to 4000 characters.",
+  "Oos.ExcursionInvalidState": "This action is only available for an open excursion review.",
+  "Oos.ExcursionChecklistIncomplete": "Answer every active excursion checklist item before closing.",
+  "Oos.ExcursionTextInvalid": "Enter a cause description and action taken of 1 to 4000 characters."
 }

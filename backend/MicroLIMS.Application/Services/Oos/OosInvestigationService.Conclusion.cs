@@ -282,7 +282,7 @@ public sealed partial class OosInvestigationService
         }
         catch (SignatureVerificationException error)
         {
-            if (meaning == SignatureMeaning.OosInvestigationConcluded)
+            if (meaning is SignatureMeaning.OosInvestigationConcluded or SignatureMeaning.ExcursionReviewClosed)
                 throw new BusinessRuleException(MessageCodes.OosConclusionPasswordFailed, error.Message);
             throw new BusinessRuleException(MessageCodes.OosReopenPasswordFailed, error.Message);
         }

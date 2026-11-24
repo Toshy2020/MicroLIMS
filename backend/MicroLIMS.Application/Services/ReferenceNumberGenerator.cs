@@ -92,6 +92,9 @@ public class ReferenceNumberGenerator
             .Select(i => (string?)i.Number);
 
         var numbers = await legacyNumbers.Union(investigationNumbers).ToListAsync(cancellationToken);
+        numbers.AddRange(_db.OosInvestigations.Local
+            .Where(i => i.Number.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(i => (string?)i.Number));
         long highest = 0;
         foreach (var number in numbers)
         {

@@ -76,6 +76,10 @@ public static partial class MessageCodes
     public const string OosConclusionCauseDetailsRequired = "Oos.ConclusionCauseDetailsRequired";
     public const string OosConclusionCauseInactive = "Oos.ConclusionCauseInactive";
     public const string OosFailingRetestCannotBeApproved = "Oos.FailingRetestCannotBeApproved";
+    public const string OosExcursionReasonInvalid = "Oos.ExcursionReasonInvalid";
+    public const string OosExcursionInvalidState = "Oos.ExcursionInvalidState";
+    public const string OosExcursionChecklistIncomplete = "Oos.ExcursionChecklistIncomplete";
+    public const string OosExcursionTextInvalid = "Oos.ExcursionTextInvalid";
 
     private static Dictionary<string, string[]> OosParameters() => new()
     {
@@ -143,5 +147,9 @@ public static partial class MessageCodes
         [OosConclusionCauseDetailsRequired] = [],
         [OosConclusionCauseInactive] = [],
         [OosFailingRetestCannotBeApproved] = [],
+        [OosExcursionReasonInvalid] = [],
+        [OosExcursionInvalidState] = [],
+        [OosExcursionChecklistIncomplete] = [],
+        [OosExcursionTextInvalid] = [],
     };
 }

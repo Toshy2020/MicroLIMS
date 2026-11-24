@@ -501,11 +501,13 @@ OosInvestigationDocumentController.Upload(String, IFormFile): SectionHead
 OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocumentRequest): SectionHead
 OosInvestigationsController.AddAnalystStatement(Int32, OosAnalystStatementRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.AddEntry(Int32, OosEntryRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.AddressDeviationRequest(Int32, OosDeviationAddressRequest, CancellationToken): SectionHead
 OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.Conclude(Int32, ConcludeRequest, CancellationToken): SectionHead
 OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.OpenManually(Int32, Int32, CancellationToken): SectionHead
 OosInvestigationsController.Reopen(Int32, OosReopenRequest, CancellationToken): SectionHead
+OosInvestigationsController.RequestDeviation(Int32, OosDeviationReasonRequest, CancellationToken): Qa
 OosInvestigationsController.SaveRetestPlan(Int32, SaveRetestPlanRequest, CancellationToken): SectionHead
 OosInvestigationsController.SignPhaseOne(Int32, SignPhaseOneRequest, CancellationToken): SectionHead
 OosInvestigationsController.SignRetestPlan(Int32, SignRetestPlanRequest, CancellationToken): SectionHead

@@ -60,13 +60,7 @@ public class PermissionAuthorizationTests
             .Select(f => (string)f.GetRawConstantValue()!)
             .ToHashSet();
 
-        // D1 Task 4 requires these codes to be marked enforced before their endpoint checks land.
-        // Remove each entry when its first check is added.
-        string[] provisionedAheadOfChecks =
-        [
-            PermissionConstants.OosRequestDeviation, // D1 Task 8
-        ];
-        Assert.Equal(provisionedAheadOfChecks, PermissionConstants.Enforced.Except(referenced).Order(StringComparer.Ordinal));
+        Assert.Empty(PermissionConstants.Enforced.Except(referenced).Order(StringComparer.Ordinal));
     }
 
     [Fact]

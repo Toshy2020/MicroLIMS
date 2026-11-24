@@ -24,10 +24,20 @@ const inFlight = new Map<string, { startedAt: number; request: Promise<Laborator
 /** Test hook: forget any request still being shared. */
 export function resetSharedMyLabsRequests() {
   inFlight.clear();
+  newestRequest.clear();
 }
 
-function fetchMySectionsShared(username: string | null | undefined): Promise<LaboratorySection[]> {
+// The newest request started per user. An older request that finishes late (after the share window
+// let a newer one start) must not overwrite the cache the newer answer wrote.
+const newestRequest = new Map<string, Promise<LaboratorySection[]>>();
+
+function fetchMySectionsShared(username: string | null | undefined): { request: Promise<LaboratorySection[]>; isNewest: () => boolean } {
   const key = username ?? "";
+  const request = startOrJoin(key);
+  return { request, isNewest: () => newestRequest.get(key) === request };
+}
+
+function startOrJoin(key: string): Promise<LaboratorySection[]> {
   const running = inFlight.get(key);
   // A request that has hung for a long time is not shared with a newer caller.
   if (running && Date.now() - running.startedAt < SHARE_WINDOW_MS) return running.request;
@@ -35,6 +45,7 @@ function fetchMySectionsShared(username: string | null | undefined): Promise<Lab
     if (inFlight.get(key)?.request === request) inFlight.delete(key);
   });
   inFlight.set(key, { startedAt: Date.now(), request });
+  newestRequest.set(key, request);
   return request;
 }
 
@@ -53,11 +64,12 @@ export function useMyLabs(): {
     let cancelled = false;
     // A different user signed in on this page: never keep the previous user's laboratories.
     setLabs(readCachedLabs(username) ?? []);
-    fetchMySectionsShared(username)
+    const { request, isNewest } = fetchMySectionsShared(username);
+    request
       .then((data) => {
         if (!cancelled) {
           setLabs(data ?? []);
-          writeCachedLabs(username, data ?? []);
+          if (isNewest()) writeCachedLabs(username, data ?? []);
           setLoading(false);
         }
       })

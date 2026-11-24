@@ -119,4 +119,34 @@ describe("useMyLabs", () => {
     expect(result.current.codes).toEqual([]);
     expect(result.current.labs).toEqual([]);
   });
+
+  it("does not write the cache when the user logs out before the answer arrives", async () => {
+    let resolve!: (v: unknown) => void;
+    getMySections.mockReturnValue(new Promise((r) => { resolve = r; }));
+    const { rerender } = renderHook(() => useMyLabs());
+    auth.username = null;
+    rerender();
+    resolve([{ sectionCode: "MICRO", physchemAreas: [] }]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(window.localStorage.getItem("microlims.myLabs.v2:sec.head")).toBeNull();
+  });
+
+  it("does not let a late, older request overwrite the cache written by a newer one", async () => {
+    vi.useFakeTimers();
+    try {
+      let resolveOld!: (v: unknown) => void;
+      getMySections.mockReturnValueOnce(new Promise((r) => { resolveOld = r; }));
+      renderHook(() => useMyLabs());
+      vi.setSystemTime(Date.now() + 20_000); // past the share window: a newer request starts
+      getMySections.mockResolvedValueOnce([{ sectionCode: "FP", physchemAreas: [] }]);
+      renderHook(() => useMyLabs());
+      await vi.advanceTimersByTimeAsync(10);
+      resolveOld([{ sectionCode: "MICRO", physchemAreas: [] }]);
+      await vi.advanceTimersByTimeAsync(10);
+    } finally {
+      vi.useRealTimers();
+    }
+    const cached = JSON.parse(window.localStorage.getItem("microlims.myLabs.v2:sec.head") ?? "{}");
+    expect(cached.labs).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
+  });
 });

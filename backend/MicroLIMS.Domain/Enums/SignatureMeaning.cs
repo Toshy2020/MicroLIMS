@@ -54,5 +54,19 @@ public enum SignatureMeaning
     AnalystQualified,
     AnalystQualificationWithdrawn,
     CompetencyOverride,
-    CompetencyGateChanged
+    CompetencyGateChanged,
+    DeviationAssessed,
+    DeviationRejected,
+    QualityLabConclusion,
+    QualityApproved,
+    QualityClosed,
+    QualityCancelled,
+    CapaPlanApproved,
+    CapaCompletionVerified,
+    CapaEffectivenessChecked,
+    ChangeImpactAssessed,
+    ChangeApproved,
+    ChangeRejected,
+    ComplaintConcluded,
+    QualityExtensionDecided
 }

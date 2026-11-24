@@ -32,6 +32,20 @@ public static class ReportVocabulary
         ["OosInvestigationReopened"] = "Investigation reopened",
         ["ExcursionReviewClosed"] = "Excursion review closed",
         ["NewSampleRequested"] = "New sample requested",
+        ["DeviationAssessed"] = "Deviation assessed",
+        ["DeviationRejected"] = "Deviation rejected",
+        ["QualityLabConclusion"] = "Laboratory conclusion signed",
+        ["QualityApproved"] = "Quality record approved",
+        ["QualityClosed"] = "Quality record closed",
+        ["QualityCancelled"] = "Quality record cancelled",
+        ["CapaPlanApproved"] = "CAPA plan approved",
+        ["CapaCompletionVerified"] = "CAPA completion verified",
+        ["CapaEffectivenessChecked"] = "CAPA effectiveness checked",
+        ["ChangeImpactAssessed"] = "Change impact assessed",
+        ["ChangeApproved"] = "Change control approved",
+        ["ChangeRejected"] = "Change control rejected",
+        ["ComplaintConcluded"] = "Complaint concluded",
+        ["QualityExtensionDecided"] = "Due-date extension decided",
     };
 
     public static string SignatureMeaning(string? meaning) =>

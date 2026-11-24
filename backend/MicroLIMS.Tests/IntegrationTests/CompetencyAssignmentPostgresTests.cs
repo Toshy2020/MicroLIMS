@@ -236,6 +236,126 @@ public class CompetencyAssignmentPostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
+    public Task EM_auto_assignment_assigns_qualified_user() =>
+        AssertAutoAssignmentAsync(SampleCategory.EnvironmentalMonitoring, gate: true, qualified: true);
+
+    [PostgresFact]
+    public Task EM_auto_assignment_assigns_user_when_gate_off() =>
+        AssertAutoAssignmentAsync(SampleCategory.EnvironmentalMonitoring, gate: false, qualified: false);
+
+    [PostgresFact]
+    public Task Water_auto_assignment_assigns_qualified_user() =>
+        AssertAutoAssignmentAsync(SampleCategory.Water, gate: true, qualified: true);
+
+    [PostgresFact]
+    public Task Water_auto_assignment_assigns_user_when_gate_off() =>
+        AssertAutoAssignmentAsync(SampleCategory.Water, gate: false, qualified: false);
+
+    [PostgresFact]
+    public Task After_cleaning_auto_assignment_assigns_qualified_user() =>
+        AssertAutoAssignmentAsync(SampleCategory.AfterCleaning, gate: true, qualified: true);
+
+    [PostgresFact]
+    public Task After_cleaning_auto_assignment_assigns_user_when_gate_off() =>
+        AssertAutoAssignmentAsync(SampleCategory.AfterCleaning, gate: false, qualified: false);
+
+    private async Task AssertAutoAssignmentAsync(SampleCategory category, bool gate, bool qualified)
+    {
+        var section = await _seed.SectionAsync();
+        var analyst = await _seed.AnalystAsync(section);
+        var code = $"TEST-{section.Code}";
+        int sampleId;
+        int configurationId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            if (gate)
+                await EnableAsync(arrange, section.Id);
+            var cause = new CauseOfTesting { Name = code, IsActive = true };
+            arrange.CausesOfTesting.Add(cause);
+            await arrange.SaveChangesAsync();
+            var sample = new Sample
+            {
+                ReferenceNumber = $"AUTO-{section.Code}", Category = category, LabSectionId = section.Id,
+                CauseOfTestingId = cause.Id, ReceivedByUserId = analyst.Id, ReceivedAt = Now.UtcDateTime,
+                PreparationStatus = SamplePreparationStatus.NeedsPreparation
+            };
+            var definition = new TestDefinition { Code = code, DisplayName = code, SectionId = section.Id };
+            arrange.TestDefinitions.Add(definition);
+            arrange.Samples.Add(sample);
+            switch (category)
+            {
+                case SampleCategory.EnvironmentalMonitoring:
+                    var department = new Department { Name = code };
+                    arrange.Departments.Add(department);
+                    await arrange.SaveChangesAsync();
+                    sample.DepartmentId = department.Id;
+                    var config = new RoomTestConfiguration
+                    {
+                        Room = new Room { Name = code, DepartmentId = department.Id }, TestCode = code, TestType = "PassiveAirSample"
+                    };
+                    arrange.RoomTestConfigurations.Add(config);
+                    await arrange.SaveChangesAsync();
+                    configurationId = config.Id;
+                    break;
+                case SampleCategory.Water:
+                    var water = new WaterDepartment { Name = code };
+                    arrange.Add(water);
+                    await arrange.SaveChangesAsync();
+                    sample.WaterDepartmentId = water.Id;
+                    var point = new WaterSamplingPoint { Code = code, WaterDepartmentId = water.Id, AssignedTestCodes = [code] };
+                    arrange.WaterSamplingPoints.Add(point);
+                    await arrange.SaveChangesAsync();
+                    configurationId = point.Id;
+                    break;
+                default:
+                    var machine = new Machine { Name = code };
+                    arrange.Add(machine);
+                    await arrange.SaveChangesAsync();
+                    sample.MachineId = machine.Id;
+                    var part = new MachinePartConfiguration
+                    {
+                        MachinePart = new MachinePart { MachineId = machine.Id, Name = code }, TestType = "Swab", TestCode = code
+                    };
+                    arrange.MachinePartConfigurations.Add(part);
+                    await arrange.SaveChangesAsync();
+                    configurationId = part.Id;
+                    break;
+            }
+            sampleId = sample.Id;
+            await arrange.SaveChangesAsync();
+            if (qualified)
+            {
+                var head = await _seed.HeadAsync(section);
+                await QualifyAsync(arrange, analyst.Id, definition.Id, head.Id);
+                await arrange.SaveChangesAsync();
+            }
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        await using (var services = Services(act))
+        {
+            Task Prepare() => category switch
+            {
+                SampleCategory.EnvironmentalMonitoring => services.GetRequiredService<EMWorkflowEngine>().PrepareAsync(sampleId, [configurationId], analyst.Id),
+                SampleCategory.Water => services.GetRequiredService<WaterWorkflowEngine>().PrepareAsync(sampleId, [configurationId], analyst.Id, "RoomTemperature"),
+                _ => services.GetRequiredService<AfterCleaningWorkflowEngine>().PrepareAsync(sampleId, [configurationId], analyst.Id)
+            };
+            act.CurrentUserId = analyst.Id;
+            await Prepare();
+        }
+
+        await using var verify = fixture.CreateDbContext();
+        Assert.Equal(SamplePreparationStatus.Ready, await verify.Samples.AsNoTracking()
+            .Where(sample => sample.Id == sampleId).Select(sample => sample.PreparationStatus).SingleAsync());
+        var orders = await verify.TestOrders.AsNoTracking().Where(order => order.SampleId == sampleId).ToListAsync();
+        Assert.NotEmpty(orders);
+        Assert.All(orders, order => Assert.Equal(analyst.Id, order.AssignedAnalystId));
+        Assert.True(await verify.SampleLocations.AsNoTracking().AnyAsync(location => location.SampleId == sampleId));
+        Assert.True(await verify.AuditLogs.AsNoTracking().AnyAsync(a => a.SampleId == sampleId &&
+            a.UserId == analyst.Id && a.EntityName == nameof(TestOrder)));
+    }
+
+    [PostgresFact]
     public async Task Correction_creates_new_test_without_unqualified_inherited_analyst()
     {
         var setup = await ArrangeAsync();
@@ -282,6 +402,89 @@ public class CompetencyAssignmentPostgresTests(PostgresTestFixture fixture)
     }
 
     [PostgresFact]
+    public Task Correction_keeps_qualified_carried_analyst_and_clears_unqualified_one() =>
+        AssertCorrectionInheritanceAsync(gate: true, qualified: true);
+
+    [PostgresFact]
+    public Task Correction_gate_off_keeps_unqualified_carried_analyst() =>
+        AssertCorrectionInheritanceAsync(gate: false, qualified: false);
+
+    private async Task AssertCorrectionInheritanceAsync(bool gate, bool qualified)
+    {
+        var setup = await ArrangeAsync(gate: gate);
+        var sampleId = setup.Sample.Id;
+        var keptCode = $"KEPT-{setup.Sample.ReferenceNumber}";
+        var clearedCode = $"CLEARED-{setup.Sample.ReferenceNumber}";
+        int newItemId;
+        int keptAnalystId;
+        int clearedAnalystId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var otherSection = new DocumentSection
+            {
+                Code = $"S-{setup.Sample.ReferenceNumber}", Name = $"Section {setup.Sample.ReferenceNumber}",
+                DepartmentId = fixture.SeededDepartmentId
+            };
+            arrange.DocumentSections.Add(otherSection);
+            var before = new Item { Name = setup.Sample.ReferenceNumber, Code = setup.Sample.ReferenceNumber, Category = SampleCategory.RawMaterial };
+            var after = new Item { Name = keptCode, Code = keptCode, Category = SampleCategory.RawMaterial, IsActive = true };
+            after.AssignedTests.Add(new SampleTest { TestCode = keptCode, DisplayName = keptCode });
+            after.AssignedTests.Add(new SampleTest { TestCode = clearedCode, DisplayName = clearedCode });
+            arrange.AddRange(before, after);
+            await arrange.SaveChangesAsync();
+            arrange.TestDefinitions.AddRange(
+                new() { Code = keptCode, DisplayName = keptCode, SectionId = setup.Orders[0].SectionId },
+                new() { Code = clearedCode, DisplayName = clearedCode, SectionId = otherSection.Id });
+            await arrange.SaveChangesAsync();
+            newItemId = after.Id;
+            if (gate)
+            {
+                arrange.CompetencySectionSettings.Add(new() { SectionId = otherSection.Id, GateEnabled = true, ChangedAt = Now.UtcDateTime });
+                await arrange.SaveChangesAsync();
+            }
+            var clearedAnalyst = await _seed.AnalystAsync(otherSection);
+            clearedAnalystId = clearedAnalyst.Id;
+            keptAnalystId = setup.Analyst.Id;
+            var source = await arrange.Samples.Include(sample => sample.TestOrders).SingleAsync(sample => sample.Id == sampleId);
+            source.ItemId = before.Id;
+            source.Category = SampleCategory.RawMaterial;
+            source.Status = SampleStatus.Received;
+            source.ControlNumber = "CTRL";
+            source.SampledBy = "Sampling analyst";
+            source.BatchNumber = "BATCH";
+            source.TestOrders.Single(order => order.Id == setup.Orders[0].Id).AssignedAnalystId = keptAnalystId;
+            var otherOrder = source.TestOrders.Single(order => order.Id == setup.Orders[1].Id);
+            otherOrder.SectionId = otherSection.Id;
+            otherOrder.AssignedAnalystId = clearedAnalystId;
+            if (qualified)
+            {
+                var definitionId = await arrange.TestDefinitions.AsNoTracking()
+                    .Where(definition => definition.Code == keptCode).Select(definition => definition.Id).SingleAsync();
+                await QualifyAsync(arrange, keptAnalystId, definitionId, setup.Head.Id);
+            }
+            await arrange.SaveChangesAsync();
+        }
+        await using (var act = fixture.CreateDbContext())
+        {
+            var time = new FixedTimeProvider(Now);
+            var service = new SampleCorrectionService(act, new ElectronicSignatureService(act, time),
+                new AuditEventService(act, fixture.CreateSequenceHelper(act), time), time, Guard(act));
+            var request = new SampleCorrectionRequest("CTRL", "Sampling analyst", setup.Sample.CauseOfTestingId, "BATCH", ItemId: newItemId);
+            await service.CorrectAsync(sampleId, request, "Correct the received item", ActionGuardScenarios.Password, setup.Head.Id, null);
+        }
+        await using var verify = fixture.CreateDbContext();
+        var corrected = await verify.Samples.AsNoTracking().Include(sample => sample.TestOrders).SingleAsync(sample => sample.Id == sampleId);
+        Assert.Equal(newItemId, corrected.ItemId);
+        var kept = Assert.Single(corrected.TestOrders, order => order.TestCode == keptCode);
+        Assert.Equal(WorkflowStep.Waiting, kept.CurrentStep);
+        Assert.Equal(keptAnalystId, kept.AssignedAnalystId);
+        var cleared = Assert.Single(corrected.TestOrders, order => order.TestCode == clearedCode);
+        Assert.Equal(WorkflowStep.Waiting, cleared.CurrentStep);
+        int? expectedCleared = gate ? null : clearedAnalystId;
+        Assert.Equal(expectedCleared, cleared.AssignedAnalystId);
+    }
+
+    [PostgresFact]
     public async Task Retained_sample_retest_succeeds_without_unqualified_inherited_analyst()
     {
         var (origin, section, head) = await ArrangeApprovalAsync();
@@ -307,6 +510,69 @@ public class CompetencyAssignmentPostgresTests(PostgresTestFixture fixture)
         var signoff = await verify.SampleSectionSignoffs.AsNoTracking().SingleAsync(s => s.SampleId == origin.Sample.Id);
         Assert.Equal(SectionSignoffStatus.RetestRequested, signoff.Status);
         Assert.NotNull(signoff.ApprovalSignatureId);
+    }
+
+    [PostgresFact]
+    public Task Retained_sample_retest_keeps_qualified_carried_analyst_and_clears_unqualified_one() =>
+        AssertRetestInheritanceAsync(gate: true, qualified: true);
+
+    [PostgresFact]
+    public Task Retained_sample_retest_gate_off_keeps_unqualified_carried_analyst() =>
+        AssertRetestInheritanceAsync(gate: false, qualified: false);
+
+    private async Task AssertRetestInheritanceAsync(bool gate, bool qualified)
+    {
+        var (origin, section, head) = await ArrangeApprovalAsync(gate);
+        var keptAnalyst = await _seed.AnalystAsync(section);
+        var clearedAnalyst = await _seed.AnalystAsync(section);
+        var keptCode = $"KEPT-{Guid.NewGuid():N}"[..14];
+        var clearedCode = $"CLEARED-{Guid.NewGuid():N}"[..15];
+        int secondOrderId;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var keptOrder = await arrange.TestOrders.SingleAsync(order => order.Id == origin.Orders[0].Id);
+            keptOrder.TestCode = keptCode;
+            keptOrder.AssignedAnalystId = keptAnalyst.Id;
+            arrange.TestDefinitions.AddRange(
+                new() { Code = keptCode, DisplayName = keptCode, SectionId = section.Id },
+                new() { Code = clearedCode, DisplayName = clearedCode, SectionId = section.Id });
+            await arrange.SaveChangesAsync();
+            var secondOrder = new TestOrder
+            {
+                SampleId = origin.Sample.Id, TestCode = clearedCode, SectionId = section.Id,
+                Status = ApprovalStatus.Reviewed, CurrentStep = WorkflowStep.Reviewed, AssignedAnalystId = clearedAnalyst.Id
+            };
+            arrange.TestOrders.Add(secondOrder);
+            await arrange.SaveChangesAsync();
+            secondOrderId = secondOrder.Id;
+            if (qualified)
+            {
+                var definitionId = await arrange.TestDefinitions.AsNoTracking()
+                    .Where(definition => definition.Code == keptCode).Select(definition => definition.Id).SingleAsync();
+                await QualifyAsync(arrange, keptAnalyst.Id, definitionId, head.Id);
+                await arrange.SaveChangesAsync();
+            }
+        }
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = head.Id;
+            await Approval(act).DecideAsync(origin.Sample.Id, head.Id, ActionGuardScenarios.Password,
+                ApprovalDecision.RetestRetainedSample, null, null,
+                selectedTestOrderIds: [origin.Orders[0].Id, secondOrderId], sectionId: section.Id);
+        }
+        await using var verify = fixture.CreateDbContext();
+        var retest = await verify.Samples.AsNoTracking().Include(sample => sample.TestOrders)
+            .SingleAsync(sample => sample.OriginSampleId == origin.Sample.Id);
+        Assert.Equal(SampleStatus.Received, retest.Status);
+        var kept = Assert.Single(retest.TestOrders, order => order.TestCode == keptCode);
+        Assert.Equal(WorkflowStep.Waiting, kept.CurrentStep);
+        Assert.Equal(keptAnalyst.Id, kept.AssignedAnalystId);
+        var cleared = Assert.Single(retest.TestOrders, order => order.TestCode == clearedCode);
+        Assert.Equal(WorkflowStep.Waiting, cleared.CurrentStep);
+        int? expectedCleared = gate ? null : clearedAnalyst.Id;
+        Assert.Equal(expectedCleared, cleared.AssignedAnalystId);
+        Assert.True(await verify.TestOrders.AsNoTracking().Where(order => order.Id == origin.Orders[0].Id || order.Id == secondOrderId)
+            .AllAsync(order => order.IsSuperseded));
     }
 
     [PostgresFact]
@@ -452,6 +718,22 @@ public class CompetencyAssignmentPostgresTests(PostgresTestFixture fixture)
     {
         db.CompetencySectionSettings.Add(new() { SectionId = sectionId, GateEnabled = true, ChangedAt = Now.UtcDateTime });
         await db.SaveChangesAsync();
+    }
+
+    private async Task QualifyAsync(MicroLimsDbContext db, int userId, int testDefinitionId, int signedBy)
+    {
+        var id = await fixture.CreateSequenceHelper(db).ReserveIdAsync<AnalystQualification>();
+        db.AnalystQualifications.Add(new()
+        {
+            Id = id, UserId = userId, TestDefinitionId = testDefinitionId,
+            Basis = QualificationBasis.ObservedPractice, Evidence = "Observed testing",
+            QualifiedOn = DateOnly.FromDateTime(Now.UtcDateTime), SignedByUserId = signedBy,
+            Signature = new()
+            {
+                EntityId = id, EntityType = nameof(AnalystQualification), UserId = signedBy,
+                MeaningOfSignature = SignatureMeaning.AnalystQualified, SignedAt = Now.UtcDateTime
+            }
+        });
     }
 
     private static CompetencyGuard Guard(MicroLimsDbContext db) =>

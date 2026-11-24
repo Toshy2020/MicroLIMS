@@ -33,7 +33,7 @@ AdminUserMfaController.Reset(Int32, AdminResetMfaRequest, CancellationToken): Sy
 AdminUserMfaController.RevokeTrustedDevice(Int32, Int32, CancellationToken): SystemAdministrator
 AdminUserSessionsController.List(Int32): SystemAdministrator
 AdminUserSessionsController.Revoke(Int32, RevokeUserSessionsRequest): SystemAdministrator
-AfterCleaningController.Prepare(PrepareAfterCleaningRequest): SectionHead,Reviewer,Analyst
+AfterCleaningController.Prepare(PrepareAfterCleaningRequest, CancellationToken): SectionHead,Reviewer,Analyst
 AfterCleaningController.Receive(ReceiveAfterCleaningRequest): SectionHead,Reviewer,Analyst
 AfterCleaningMasterDataController.CreateMachine(CreateMachineRequest): SystemAdministrator,SectionHead
 AfterCleaningMasterDataController.CreateMachinePart(CreateMachinePartRequest): SystemAdministrator,SectionHead
@@ -209,7 +209,7 @@ DocumentTrainingMatrixController.GetComplianceKpis(Nullable`1): SystemAdministra
 DocumentTrainingMatrixController.GetDocumentCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DocumentTrainingMatrixController.GetTrainingMatrixGrid(TrainingMatrixFilterDto): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DocumentTrainingMatrixController.GetUserCompliance(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-EMController.Prepare(PrepareEMRequest): SectionHead,Reviewer,Analyst
+EMController.Prepare(PrepareEMRequest, CancellationToken): SectionHead,Reviewer,Analyst
 EMController.Receive(ReceiveEMRequest): SectionHead,Reviewer,Analyst
 EntryDefaultsController.Get(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EnvironmentalMonitoringMasterDataController.CreateDepartment(CreateDepartmentRequest): SystemAdministrator,SectionHead
@@ -589,11 +589,11 @@ RoleController.UpdatePermissions(Int32, UpdateRolePermissionsRequest): SystemAdm
 SampleApprovalController.CloseTesting(Int32, Int32, CloseSectionTestingRequest): SectionHead
 SampleApprovalController.Decide(Int32, DecideSampleApprovalRequest, CancellationToken): SectionHead
 SampleController.AddLaboratory(Int32, AddLaboratoryRequest): SectionHead
-SampleController.AssignAnalyst(Int32, AssignAnalystRequest): SectionHead
-SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest): SectionHead
-SampleController.AssignmentOptions(Int32): SectionHead
+SampleController.AssignAnalyst(Int32, AssignAnalystRequest, CancellationToken): SectionHead
+SampleController.AssignTestAnalysts(Int32, AssignTestAnalystsRequest, CancellationToken): SectionHead
+SampleController.AssignmentOptions(Int32, CancellationToken): SectionHead
 SampleController.BulkAssign(BulkAssignRequest, CancellationToken): SectionHead
-SampleController.Correct(Int32, CorrectSampleRequest): SectionHead,Reviewer
+SampleController.Correct(Int32, CorrectSampleRequest, CancellationToken): SectionHead,Reviewer
 SampleController.GetTestSelection(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.ReceiptLabs(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 SampleController.Receive(ReceiveItemBasedSampleRequest): SectionHead,Reviewer,Analyst
@@ -759,7 +759,7 @@ UserUiStateController.GetAll(CancellationToken): SystemAdministrator,SectionHead
 UserUiStateController.Remove(String, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 UserUiStateController.Set(String, SetUiStateRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 WaterController.DailyReport(DateTime): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-WaterController.Prepare(PrepareWaterRequest): SectionHead,Reviewer,Analyst
+WaterController.Prepare(PrepareWaterRequest, CancellationToken): SectionHead,Reviewer,Analyst
 WaterController.Receive(ReceiveWaterRequest): SectionHead,Reviewer,Analyst
 WaterMasterDataController.CreateWaterDepartment(CreateWaterDepartmentRequest): SystemAdministrator,SectionHead
 WaterMasterDataController.CreateWaterSamplingConfiguration(CreateWaterSamplingConfigRequest): SystemAdministrator,SectionHead

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Shared.Messages;
@@ -19,10 +20,12 @@ public sealed class TestSelfAssignmentService
     private readonly IMicroLimsDbContext _db;
     private readonly IUserSectionScopeService _scope;
     private readonly TimeProvider _time;
+    private readonly ICompetencyGuard? _competency;
 
-    public TestSelfAssignmentService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? time = null)
+    public TestSelfAssignmentService(IMicroLimsDbContext db, IUserSectionScopeService scope, TimeProvider? time = null, ICompetencyGuard? competency = null)
     {
         _db = db;
+        _competency = competency;
         _scope = scope;
         _time = time ?? TimeProvider.System;
     }
@@ -181,6 +184,8 @@ public sealed class TestSelfAssignmentService
                     return (ActionCheck.Denied("You do not have access to this Physicochemical Laboratory area."), null);
             }
         }
+        if (assignable.Allowed && _competency is not null)
+            assignable = await AnalystAssignmentRules.CheckCompetencyAsync(_competency, userId, order.Id, ct);
         return (assignable, user);
     }
 

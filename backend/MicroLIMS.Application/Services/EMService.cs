@@ -37,9 +37,9 @@ public class EMService
         return TestingWorkspaceService.ToDto(sample);
     }
 
-    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null)
+    public async Task<SampleDto> PrepareAsync(int sampleId, List<int> roomTestConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default)
     {
-        var sample = await _workflow.PrepareAsync(sampleId, roomTestConfigurationIds, userId, monitoringOccurrenceIds);
+        var sample = await _workflow.PrepareAsync(sampleId, roomTestConfigurationIds, userId, monitoringOccurrenceIds, ct);
         return TestingWorkspaceService.ToDto(sample);
     }
 }

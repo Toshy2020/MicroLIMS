@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
@@ -34,7 +35,7 @@ public interface IAfterCleaningWorkflowEngine : IStatefulWorkflowEngine
     // in this batch is what generates the TestOrders (one per distinct
     // TestCode across the selected parts' configurations) and the
     // SampleLocation rows (one per selected MachinePartConfiguration).
-    Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null);
+    Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default);
 }
 
 public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
@@ -43,13 +44,15 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
     private readonly MonitoringLinkService? _monitoring;
+    private readonly ICompetencyGuard? _competency;
 
-    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
+    public AfterCleaningWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null, ICompetencyGuard? competency = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
         _monitoring = monitoring;
+        _competency = competency;
     }
 
     // Generating the reference number and saving the sample run as one
@@ -216,18 +219,18 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         return sample;
     }
 
-    public Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+    public Task<Sample> PrepareAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default) =>
         monitoringOccurrenceIds is { Count: > 0 }
-            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, monitoringOccurrenceIds))
-            : PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, null);
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, monitoringOccurrenceIds, ct), ct)
+            : PrepareCoreAsync(sampleId, machinePartConfigurationIds, userId, null, ct);
 
-    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds)
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> machinePartConfigurationIds, int userId, IReadOnlyList<int>? monitoringOccurrenceIds, CancellationToken ct)
     {
         var sample = await _db.Samples
             .Include(s => s.TestOrders)
             .Include(s => s.Locations)
             .Include(s => s.PreviousProductItem)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
@@ -246,7 +249,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         var configs = await _db.MachinePartConfigurations
             .Include(c => c.MachinePart)
             .Where(c => machinePartConfigurationIds.Contains(c.Id))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var missing = machinePartConfigurationIds.Except(configs.Select(c => c.Id)).ToList();
         if (missing.Count > 0)
@@ -289,7 +292,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         var testDefs = await _db.TestDefinitions
             .Include(t => t.HplcMethod)
             .Where(t => allCodes.Contains(t.Code))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var allowedDefs = testDefs.Where(t =>
             t.SectionId == labId &&
@@ -335,7 +338,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
                         if (method == null || method.ResultMode != HplcResultMode.CleaningResidue || method.ProductItemId != sample.PreviousProductItemId)
                         {
                             var productName = sample.PreviousProductItem?.Name
-                                ?? (await _db.Items.Where(i => i.Id == sample.PreviousProductItemId).Select(i => i.Name).FirstOrDefaultAsync())
+                                ?? (await _db.Items.Where(i => i.Id == sample.PreviousProductItemId).Select(i => i.Name).FirstOrDefaultAsync(ct))
                                 ?? "the previous product";
                             throw new BusinessRuleException(
                                 MessageCodes.MonitoringNoCleaningHplcMethod,
@@ -348,7 +351,10 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         }
 
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId }, ct: ct);
+
+        if (_competency is not null)
+            await _competency.EnsureSubjectsAllowedAsync(userId, configs.Select(config => new CompetencySubject(config.TestCode, labId, sample.ItemId)).ToArray(), ct);
 
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var config in configs)
@@ -411,7 +417,7 @@ public class AfterCleaningWorkflowEngine : IAfterCleaningWorkflowEngine
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
         return sample;
     }
 

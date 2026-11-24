@@ -37,9 +37,9 @@ public class WaterController : ControllerBase
     // in this batch generates the TestOrders + SampleLocations.
     [HttpPost("prepare")]
     [Authorize(Policy = PermissionConstants.SamplesReceiveOwnLab)]
-    public async Task<IActionResult> Prepare(PrepareWaterRequest request) =>
+    public async Task<IActionResult> Prepare(PrepareWaterRequest request, CancellationToken ct = default) =>
         Ok(ApiResponse<object>.Ok(await _waterService.PrepareAsync(
-            request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours, request.MonitoringOccurrenceIds)));
+            request.SampleId, request.WaterSamplingPointIds, CurrentUserId, request.StorageCondition, request.StorageTimeHours, request.MonitoringOccurrenceIds, ct)));
 
     [HttpGet("daily-report")]
     public async Task<IActionResult> DailyReport([FromQuery] DateTime date) =>

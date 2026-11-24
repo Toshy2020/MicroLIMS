@@ -88,6 +88,14 @@ public class SampleBulkAssignmentService
                 passing.Add((sample, changes));
                 rows.Add(new BulkAssignRowResult(sample.Id, sample.ReferenceNumber, true, null));
             }
+            catch (BusinessRuleException ex) when (ex.Code == MessageCodes.CompetencyAssignmentRefused)
+            {
+                rows.Add(new BulkAssignRowResult(sample.Id, sample.ReferenceNumber, false, ex.Message)
+                {
+                    RefusedCode = ex.Code,
+                    ErrorDetails = ex.ErrorDetails
+                });
+            }
             catch (Exception ex) when (ex is BusinessRuleException or UnauthorizedAccessException or NotFoundException)
             {
                 rows.Add(new BulkAssignRowResult(sample.Id, sample.ReferenceNumber, false, ex.Message));
@@ -102,7 +110,7 @@ public class SampleBulkAssignmentService
                 {
                     await _assignmentService.ApplyAsync(sample, changes, actingUserId, request.Reason, ct);
                 }
-            });
+            }, ct);
         }
 
         return new BulkAssignResult(passing.Count, rows.Count - passing.Count, rows);

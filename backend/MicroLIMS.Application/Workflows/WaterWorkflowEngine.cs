@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Helpers;
@@ -30,7 +31,7 @@ public interface IWaterWorkflowEngine : IStatefulWorkflowEngine
     // storageCondition/storageTimeHours describe how the collected water was
     // held before testing - captured here because this is where a water
     // sample is actually prepared.
-    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null);
+    Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default);
 
     // Calculation engine: averages the entered raw readings and compares
     // against Alert -> Action -> Specification limits, in that order of
@@ -46,13 +47,15 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
     private readonly Application.Services.ReferenceNumberGenerator _refNumbers;
     private readonly IUserSectionScopeService? _scope;
     private readonly MonitoringLinkService? _monitoring;
+    private readonly ICompetencyGuard? _competency;
 
-    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null)
+    public WaterWorkflowEngine(IMicroLimsDbContext db, Application.Services.ReferenceNumberGenerator refNumbers, IUserSectionScopeService? scope = null, MonitoringLinkService? monitoring = null, ICompetencyGuard? competency = null)
     {
         _db = db;
         _refNumbers = refNumbers;
         _scope = scope;
         _monitoring = monitoring;
+        _competency = competency;
     }
 
     // Generating the reference number and saving the sample run as one
@@ -147,14 +150,14 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         return sample;
     }
 
-    public Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null) =>
+    public Task<Sample> PrepareAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition = null, int? storageTimeHours = null, IReadOnlyList<int>? monitoringOccurrenceIds = null, CancellationToken ct = default) =>
         monitoringOccurrenceIds is { Count: > 0 }
-            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds))
-            : PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, null);
+            ? UnitOfWork.RunAsync(_db, () => PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, monitoringOccurrenceIds, ct), ct)
+            : PrepareCoreAsync(sampleId, waterSamplingPointIds, userId, storageCondition, storageTimeHours, null, ct);
 
-    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds)
+    private async Task<Sample> PrepareCoreAsync(int sampleId, List<int> waterSamplingPointIds, int userId, string? storageCondition, int? storageTimeHours, IReadOnlyList<int>? monitoringOccurrenceIds, CancellationToken ct)
     {
-        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId)
+        var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.Locations).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,
                 $"Sample {sampleId} not found.",
@@ -183,7 +186,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         var points = await _db.WaterSamplingPoints
             .Where(p => waterSamplingPointIds.Contains(p.Id))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var missing = waterSamplingPointIds.Except(points.Select(p => p.Id)).ToList();
         if (missing.Count > 0)
@@ -226,7 +229,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         var allCodes = points.SelectMany(p => p.AssignedTestCodes).Distinct().ToList();
         var testDefs = await _db.TestDefinitions
             .Where(t => allCodes.Contains(t.Code))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var allowedDefs = testDefs.Where(t =>
             t.SectionId == labId &&
@@ -247,10 +250,13 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
 
         var configs = await _db.SamplingConfigurations
             .Where(c => waterSamplingPointIds.Contains(c.WaterSamplingPointId))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (_scope is not null)
-            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId });
+            await _scope.EnsureSectionsAccessAsync(userId, new[] { labId }, ct: ct);
+
+        if (_competency is not null)
+            await _competency.EnsureSubjectsAllowedAsync(userId, allowedCodes.Select(code => new CompetencySubject(code, labId, sample.ItemId)).ToArray(), ct);
 
         var testOrdersByCode = new Dictionary<string, TestOrder>();
         foreach (var point in points)
@@ -304,7 +310,7 @@ public class WaterWorkflowEngine : IWaterWorkflowEngine
         }
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
         return sample;
     }
 

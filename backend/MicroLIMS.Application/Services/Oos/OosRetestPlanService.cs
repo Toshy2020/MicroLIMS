@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Persistence;
@@ -19,7 +20,7 @@ public sealed record OosRetestPlanDto(int Id, int Revision, uint InvestigationVe
 
 public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigationService investigations,
     IUserSectionScopeService scope, SegregationOfDutiesGuard duties, IElectronicSignatureService signatures,
-    RetestSampleFactory samples, TimeProvider time)
+    RetestSampleFactory samples, TimeProvider time, ICompetencyGuard? competency = null)
 {
     public Task<OosRetestPlanDto> DraftAsync(int investigationId, SaveRetestPlanRequest r, uint expectedVersion, int userId,
         CancellationToken ct = default) =>
@@ -138,7 +139,7 @@ public sealed class OosRetestPlanService(IMicroLimsDbContext db, OosInvestigatio
         foreach (var analyst in r.AnalystUserIds.Distinct())
         {
             await AnalystAssignmentRules.EnsureAssignableAsync(db, scope, analyst, actor, [investigation.SectionId], now,
-                testOrderIds: r.TestOrderIds, ct: ct);
+                testOrderIds: r.TestOrderIds, competency: competency, ct: ct);
             if (investigatedIds.Length > 0 && (await duties.GetTestOrderIdsPerformedByAsync(analyst, investigatedIds, ct)).Count > 0)
                 throw new BusinessRuleException(MessageCodes.OosRetestPlanOriginalAnalyst,
                     "An analyst who performed a test in this investigation cannot be assigned a new sample.");

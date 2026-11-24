@@ -1,5 +1,7 @@
 namespace MicroLIMS.Application.Services.Competency;
 
+public sealed record CompetencySubject(string TestCode, int SectionId, int? ItemId = null);
+
 public sealed record CompetencyReason(string Code, string Text, IReadOnlyDictionary<string, string> Params);
 
 public sealed record CompetencyDecision(
@@ -25,5 +27,10 @@ public interface ICompetencyGuard
     // Same decision core, but evaluates orders even where the laboratory gate is off (impact preview only).
     Task<IReadOnlyDictionary<int, CompetencyDecision>> EvaluateIgnoringGateAsync(
         int userId, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<CompetencySubject, CompetencyDecision>> EvaluateSubjectsAsync(
+        int userId, IReadOnlyCollection<CompetencySubject> subjects, bool assigneeWording,
+        CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<(int UserId, int TestOrderId), CompetencyDecision>> EvaluateCandidatesAsync(
+        IReadOnlyCollection<int> userIds, IReadOnlyCollection<int> testOrderIds, CancellationToken cancellationToken = default);
     Task EnsureAllowedAsync(int userId, int testOrderId, CancellationToken cancellationToken = default);
 }

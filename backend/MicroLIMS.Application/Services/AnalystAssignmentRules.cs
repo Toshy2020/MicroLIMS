@@ -1,3 +1,4 @@
+using MicroLIMS.Shared.Responses;
 using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
@@ -43,10 +44,25 @@ public static class AnalystAssignmentRules
         if (competency is not null && testOrderIds is { Count: > 0 })
         {
             var decisions = await competency.EvaluateAssigneeAsync(assigneeId, testOrderIds, ct);
-            foreach (var orderId in testOrderIds)
-                decisions[orderId].ToActionCheck().ThrowIfRefused();
+            ThrowIfCompetencyRefused(decisions.Select(pair => (pair.Key, pair.Value)));
         }
         return user;
+    }
+
+    internal static async Task<ActionCheck> CheckCompetencyAsync(
+        ICompetencyGuard competency, int userId, int testOrderId, CancellationToken ct = default) =>
+        (await competency.EvaluateAsync(userId, testOrderId, ct)).ToActionCheck();
+
+    internal static void ThrowIfCompetencyRefused(IEnumerable<(int OrderId, CompetencyDecision Decision)> decisions)
+    {
+        var refusals = decisions.Where(entry => !entry.Decision.Allowed).ToList();
+        var errors = refusals.SelectMany(entry => entry.Decision.Reasons.Select(reason =>
+            new ApiError(reason.Code, new Dictionary<string, string>(reason.Params)
+            {
+                ["testOrderId"] = entry.OrderId.ToString(CultureInfo.InvariantCulture)
+            }, reason.Text))).ToList();
+        var message = string.Join(" ", refusals.Select(entry => $"Test #{entry.OrderId}: {string.Join(" ", entry.Decision.ReasonTexts)}"));
+        CompetencyBatch.ThrowIfRefused(MessageCodes.CompetencyAssignmentRefused, errors, message);
     }
 
     // EnsureAssignableAsync without the throw: the first reason the assignee cannot take tests in these sections,

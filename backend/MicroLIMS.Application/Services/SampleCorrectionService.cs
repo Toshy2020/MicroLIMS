@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
@@ -56,11 +57,13 @@ public class SampleCorrectionService
     private readonly IElectronicSignatureService _signatures;
     private readonly IAuditEventService _audit;
     private readonly TimeProvider _time;
+    private readonly ICompetencyGuard? _competency;
 
-    public SampleCorrectionService(IMicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit, TimeProvider? timeProvider = null)
+    public SampleCorrectionService(IMicroLimsDbContext db, IElectronicSignatureService signatures, IAuditEventService audit, TimeProvider? timeProvider = null, ICompetencyGuard? competency = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
+        _competency = competency;
         _signatures = signatures;
         _audit = audit;
     }
@@ -69,11 +72,11 @@ public class SampleCorrectionService
     public static bool IsCorrectable(SampleStatus status) => status is SampleStatus.Received or SampleStatus.InTesting;
 
     public Task<SampleDto> CorrectAsync(
-        int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => CorrectCoreAsync(sampleId, request, reason, password, actingUserId, ipAddress));
+        int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => CorrectCoreAsync(sampleId, request, reason, password, actingUserId, ipAddress, ct), ct);
 
     private async Task<SampleDto> CorrectCoreAsync(
-        int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress)
+        int sampleId, SampleCorrectionRequest request, string reason, string password, int actingUserId, string? ipAddress, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new BusinessRuleException(
@@ -81,7 +84,7 @@ public class SampleCorrectionService
                 "A reason for the correction is required.");
         var trimmedReason = reason.Trim();
 
-        var sample = await LoadSampleAsync(sampleId);
+        var sample = await LoadSampleAsync(sampleId, ct);
         RecordVersion.EnsureCurrent(_db, sample);
 
         if (!IsCorrectable(sample.Status))
@@ -101,7 +104,7 @@ public class SampleCorrectionService
 
         var category = sample.Category;
         var isItemBased = ItemBasedCategories.Contains(category);
-        var structural = await ResolveItemOrLocationChangeAsync(sample, request);
+        var structural = await ResolveItemOrLocationChangeAsync(sample, request, ct);
         if (sample.AwaitingTestSelection && (structural is not null || request.CauseOfTestingId != sample.CauseOfTestingId))
             throw new BusinessRuleException(
                 MessageCodes.SampleCannotChangeItemOrCauseWhileAwaitingTests,
@@ -116,7 +119,7 @@ public class SampleCorrectionService
 
         if (request.CauseOfTestingId != sample.CauseOfTestingId)
         {
-            var newCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == request.CauseOfTestingId)
+            var newCause = await _db.CausesOfTesting.FirstOrDefaultAsync(c => c.Id == request.CauseOfTestingId, ct)
                 ?? throw new BusinessRuleException(
                     MessageCodes.SampleCauseNotFound,
                     "The selected cause of testing does not exist.");
@@ -152,7 +155,7 @@ public class SampleCorrectionService
             // needs a grade of its own (the old one is not carried over).
             if (effectiveItem is not null && (structural is not null || request.Grade is not null))
             {
-                var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id && !s.IsRetired).ToListAsync();
+                var itemSpecs = await _db.Specifications.AsNoTracking().Where(s => s.ItemId == effectiveItem.Id && !s.IsRetired).ToListAsync(ct);
                 var notApplicable = await NotApplicableTestService.LoadApprovedAsync(_db, effectiveItem.Id);
                 var newGrade = ProductWorkflowEngine.ResolveGrade(
                     itemSpecs, structural is null ? request.Grade ?? sample.Grade : request.Grade);
@@ -169,7 +172,7 @@ public class SampleCorrectionService
                             throw new BusinessRuleException(
                                 MessageCodes.SampleGradeCorrectionRequiresPendingTests,
                                 "The grade can only be corrected while every test is still pending. Void the sample and receive it again.");
-                        gradePlan = await PlanGradeOrdersAsync(sample, gradeContext);
+                        gradePlan = await PlanGradeOrdersAsync(sample, gradeContext, ct);
                     }
                     Track("Grade", sample.Grade, newGrade, v => v, v => sample.Grade = v);
                 }
@@ -247,7 +250,7 @@ public class SampleCorrectionService
                 throw new BusinessRuleException(
                     MessageCodes.SampleRetestCannotChangeItemOrLocation,
                     "A retest sample must test the same item or location as its original sample, so it cannot be changed.");
-            await EnsureNoTestWorkAsync(sample);
+            await EnsureNoTestWorkAsync(sample, ct);
 
             changes.Add(new AuditFieldChange(structural.Field, structural.PreviousName, structural.NewName));
 
@@ -257,7 +260,7 @@ public class SampleCorrectionService
                 : string.Empty; // location categories create their tests at preparation
             if (previousTests != newTests)
                 changes.Add(new AuditFieldChange("Tests", Blank(previousTests), Blank(newTests)));
-            var newPreparationStatus = await PreparationStatusAfterChangeAsync(structural.NewItem, gradeContext);
+            var newPreparationStatus = await PreparationStatusAfterChangeAsync(structural.NewItem, gradeContext, ct);
             if (sample.PreparationStatus != newPreparationStatus)
                 changes.Add(new AuditFieldChange("Preparation Status", sample.PreparationStatus.ToString(), newPreparationStatus.ToString()));
             if (sample.StorageCondition is not null && category == SampleCategory.Water)
@@ -277,16 +280,16 @@ public class SampleCorrectionService
         // the single save inside RecordUserEventAsync below).
         _db.CurrentUserId = actingUserId;
         await _signatures.SignAsync(actingUserId, password, SignatureMeaning.SampleCorrected,
-            ReviewEntityTypes.Sample, sample.Id, trimmedReason, ipAddress);
+            ReviewEntityTypes.Sample, sample.Id, trimmedReason, ipAddress, ct);
 
         foreach (var apply in applies) apply();
         if (structural is not null)
-            await ApplyItemOrLocationChangeAsync(sample, structural, gradeContext);
+            await ApplyItemOrLocationChangeAsync(sample, structural, gradeContext, ct);
         else if (gradePlan is not null)
-            await ApplyGradeChangeAsync(sample, gradePlan);
+            await ApplyGradeChangeAsync(sample, gradePlan, ct);
 
         // Result projection rows copy the sample's identifiers at entry.
-        var records = await _db.ResultRecords.Where(r => r.SampleId == sample.Id).ToListAsync();
+        var records = await _db.ResultRecords.Where(r => r.SampleId == sample.Id).ToListAsync(ct);
         foreach (var record in records)
         {
             record.BatchNumber = sample.BatchNumber;
@@ -299,7 +302,7 @@ public class SampleCorrectionService
             $"{trimmedReason} (changed: {string.Join(", ", changes.Select(c => c.FieldName))})");
 
         await _audit.RecordUserEventAsync(CorrectedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
-            reason: trimmedReason, changes: changes, entityId: sample.Id.ToString(), sampleId: sample.Id);
+            reason: trimmedReason, changes: changes, entityId: sample.Id.ToString(), cancellationToken: ct, sampleId: sample.Id);
 
         return TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }
@@ -376,14 +379,14 @@ public class SampleCorrectionService
 
     private sealed record ItemOrLocationChange(string Field, string? PreviousName, string NewName, Item? NewItem, Action Apply);
 
-    private async Task<ItemOrLocationChange?> ResolveItemOrLocationChangeAsync(Sample sample, SampleCorrectionRequest request)
+    private async Task<ItemOrLocationChange?> ResolveItemOrLocationChangeAsync(Sample sample, SampleCorrectionRequest request, CancellationToken ct)
     {
         switch (sample.Category)
         {
             case SampleCategory.FinishedProduct or SampleCategory.RawMaterial or SampleCategory.PackagingMaterial
                 when request.ItemId is int itemId && itemId != sample.ItemId:
             {
-                var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == itemId)
+                var item = await _db.Items.Include(i => i.AssignedTests).FirstOrDefaultAsync(i => i.Id == itemId, ct)
                     ?? throw new BusinessRuleException(
                         MessageCodes.SampleItemNotFound,
                         "The selected item does not exist.");
@@ -410,18 +413,18 @@ public class SampleCorrectionService
             }
             case SampleCategory.Water when request.WaterDepartmentId is int waterDepartmentId && waterDepartmentId != sample.WaterDepartmentId:
             {
-                var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == waterDepartmentId)
+                var department = await _db.WaterDepartments.FirstOrDefaultAsync(d => d.Id == waterDepartmentId, ct)
                     ?? throw new BusinessRuleException(
                         MessageCodes.SampleWaterDepartmentNotFound,
                         "The selected water department does not exist.");
                 var previous = sample.WaterDepartmentId is int previousId
-                    ? await _db.WaterDepartments.Where(d => d.Id == previousId).Select(d => d.Name).FirstOrDefaultAsync()
+                    ? await _db.WaterDepartments.Where(d => d.Id == previousId).Select(d => d.Name).FirstOrDefaultAsync(ct)
                     : null;
                 return new ItemOrLocationChange("Water Department", previous, department.Name, null, () => sample.WaterDepartmentId = department.Id);
             }
             case SampleCategory.EnvironmentalMonitoring when request.DepartmentId is int departmentId && departmentId != sample.DepartmentId:
             {
-                var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == departmentId)
+                var department = await _db.Departments.FirstOrDefaultAsync(d => d.Id == departmentId, ct)
                     ?? throw new BusinessRuleException(
                         MessageCodes.SampleDepartmentNotFound,
                         "The selected department does not exist.");
@@ -433,7 +436,7 @@ public class SampleCorrectionService
             }
             case SampleCategory.AfterCleaning when request.MachineId is int machineId && machineId != sample.MachineId:
             {
-                var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == machineId)
+                var machine = await _db.Machines.FirstOrDefaultAsync(m => m.Id == machineId, ct)
                     ?? throw new BusinessRuleException(
                         MessageCodes.SampleMachineNotFound,
                         "The selected machine does not exist.");
@@ -451,7 +454,7 @@ public class SampleCorrectionService
     // Tests and results belong to the item / location they were created for.
     // Any recorded work locks the item / location - a wrong one then means a
     // void and a new receipt.
-    private async Task EnsureNoTestWorkAsync(Sample sample)
+    private async Task EnsureNoTestWorkAsync(Sample sample, CancellationToken ct)
     {
         var orderIds = sample.TestOrders.Select(t => t.Id).ToList();
 
@@ -480,7 +483,7 @@ public class SampleCorrectionService
     // sample returns to preparation. A location's tests are created again at
     // preparation. Rows are removed through the change tracker - never left to
     // the database cascade - so the audit capture records every one.
-    private async Task ApplyItemOrLocationChangeAsync(Sample sample, ItemOrLocationChange change, GradeContext? grade)
+    private async Task ApplyItemOrLocationChangeAsync(Sample sample, ItemOrLocationChange change, GradeContext? grade, CancellationToken ct)
     {
         // A new test inherits the analyst already on its laboratory section's
         // tests - never one from another section, who may not belong to it.
@@ -490,9 +493,9 @@ public class SampleCorrectionService
             .ToDictionary(g => g.Key, g => g.First().AssignedAnalystId);
 
         var requiredCodes = change.NewItem?.AssignedTests.Select(t => t.TestCode).Where(c => grade?.Applies(c) ?? true).ToHashSet() ?? new HashSet<string>();
-        await RemoveOrdersAsync(sample, sample.TestOrders.Where(t => !requiredCodes.Contains(t.TestCode)).ToList());
+        await RemoveOrdersAsync(sample, sample.TestOrders.Where(t => !requiredCodes.Contains(t.TestCode)).ToList(), ct);
 
-        var preparation = await _db.SamplePreparations.FirstOrDefaultAsync(p => p.SampleId == sample.Id);
+        var preparation = await _db.SamplePreparations.FirstOrDefaultAsync(p => p.SampleId == sample.Id, ct);
         if (preparation is not null)
             _db.SamplePreparations.Remove(preparation);
         sample.PreparationStatus = SamplePreparationStatus.NeedsPreparation;
@@ -511,32 +514,30 @@ public class SampleCorrectionService
             var newTests = change.NewItem.AssignedTests
                 .Where(t => (grade?.Applies(t.TestCode) ?? true) && sample.TestOrders.All(o => o.TestCode != t.TestCode))
                 .ToList();
-            var testSections = await TestSectionLookup.ResolveAsync(_db, newTests.Select(t => t.TestCode));
-            foreach (var test in newTests)
+            var testSections = await TestSectionLookup.ResolveAsync(_db, newTests.Select(t => t.TestCode), ct);
+            var newOrders = newTests.Select(test => new TestOrder
             {
-                sample.TestOrders.Add(new TestOrder
-                {
-                    TestCode = test.TestCode,
-                    SectionId = testSections[test.TestCode],
-                    Status = ApprovalStatus.Pending,
-                    CurrentStep = WorkflowStep.Waiting,
-                    AssignedAnalystId = analystBySection.GetValueOrDefault(testSections[test.TestCode])
-                });
-            }
+                TestCode = test.TestCode,
+                SectionId = testSections[test.TestCode],
+                Status = ApprovalStatus.Pending,
+                CurrentStep = WorkflowStep.Waiting,
+                AssignedAnalystId = analystBySection.GetValueOrDefault(testSections[test.TestCode])
+            }).ToArray();
+            await AddInheritedOrdersAsync(sample, newOrders, ct);
         }
 
-        sample.PreparationStatus = await PreparationStatusAfterChangeAsync(change.NewItem, grade);
+        sample.PreparationStatus = await PreparationStatusAfterChangeAsync(change.NewItem, grade, ct);
     }
 
     // Location categories create their tests at preparation, so they always
     // need it; an item's tests decide (FP-only items have no preparation).
-    private async Task<SamplePreparationStatus> PreparationStatusAfterChangeAsync(Item? newItem, GradeContext? grade)
+    private async Task<SamplePreparationStatus> PreparationStatusAfterChangeAsync(Item? newItem, GradeContext? grade, CancellationToken ct)
     {
         if (newItem is null)
             return SamplePreparationStatus.NeedsPreparation;
         var sections = await TestSectionLookup.ResolveAsync(_db,
-            newItem.AssignedTests.Select(t => t.TestCode).Where(c => grade?.Applies(c) ?? true));
-        return await PreparationRules.InitialStatusAsync(_db, sections.Values);
+            newItem.AssignedTests.Select(t => t.TestCode).Where(c => grade?.Applies(c) ?? true), ct);
+        return await PreparationRules.InitialStatusAsync(_db, sections.Values, ct);
     }
 
     // The item's specifications read for one grade (see SpecificationLookup).
@@ -554,14 +555,14 @@ public class SampleCorrectionService
         SamplePreparationStatus? PreparationStatus,
         List<AuditFieldChange> Changes);
 
-    private async Task<GradeOrderPlan> PlanGradeOrdersAsync(Sample sample, GradeContext grade)
+    private async Task<GradeOrderPlan> PlanGradeOrdersAsync(Sample sample, GradeContext grade, CancellationToken ct)
     {
         var labs = SampleSectionRollup.SectionIds(sample);
         var removed = sample.TestOrders.Where(o => !grade.Applies(o.TestCode)).ToList();
-        var missing = (await _db.SampleTests.Where(t => t.ItemId == sample.ItemId).Select(t => t.TestCode).ToListAsync())
+        var missing = (await _db.SampleTests.Where(t => t.ItemId == sample.ItemId).Select(t => t.TestCode).ToListAsync(ct))
             .Where(c => grade.Applies(c) && sample.TestOrders.All(o => o.TestCode != c))
             .ToList();
-        var sections = await TestSectionLookup.ResolveAsync(_db, missing);
+        var sections = await TestSectionLookup.ResolveAsync(_db, missing, ct);
         var added = missing.Where(c => labs.Contains(sections[c])).Select(c => (c, sections[c])).ToList();
 
         // Receiving never leaves a lab (or the sample) without tests, so neither may a correction.
@@ -570,7 +571,7 @@ public class SampleCorrectionService
         var emptiedLab = labs.Where(l => !remainingSections.Contains(l)).Cast<int?>().FirstOrDefault();
         if (emptiedLab is int emptied)
         {
-            var labName = await _db.DocumentSections.Where(d => d.Id == emptied).Select(d => d.Name).FirstOrDefaultAsync() ?? $"section {emptied}";
+            var labName = await _db.DocumentSections.Where(d => d.Id == emptied).Select(d => d.Name).FirstOrDefaultAsync(ct) ?? $"section {emptied}";
             throw new BusinessRuleException(
                 MessageCodes.SampleGradeLeavesLabWithNoTests,
                 $"This grade leaves {labName} with no tests; void the sample and receive it again.",
@@ -587,10 +588,10 @@ public class SampleCorrectionService
         // Preparation is kept once it has been done; otherwise the remaining
         // tests decide whether the sample needs it.
         SamplePreparationStatus? prep = null;
-        if (before != after && !await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id))
+        if (before != after && !await _db.SamplePreparations.AnyAsync(p => p.SampleId == sample.Id, ct))
         {
             var status = await PreparationRules.InitialStatusAsync(_db,
-                sample.TestOrders.Except(removed).Select(o => o.SectionId).Concat(added.Select(a => a.Item2)));
+                sample.TestOrders.Except(removed).Select(o => o.SectionId).Concat(added.Select(a => a.Item2)), ct);
             if (status != sample.PreparationStatus)
             {
                 prep = status;
@@ -600,7 +601,7 @@ public class SampleCorrectionService
         return new GradeOrderPlan(removed, added, prep, changes);
     }
 
-    private async Task ApplyGradeChangeAsync(Sample sample, GradeOrderPlan plan)
+    private async Task ApplyGradeChangeAsync(Sample sample, GradeOrderPlan plan, CancellationToken ct)
     {
         // A new test inherits the analyst already on its laboratory's tests.
         var analystBySection = sample.TestOrders
@@ -608,30 +609,36 @@ public class SampleCorrectionService
             .GroupBy(t => t.SectionId)
             .ToDictionary(g => g.Key, g => g.First().AssignedAnalystId);
 
-        await RemoveOrdersAsync(sample, plan.Removed);
-        foreach (var (testCode, sectionId) in plan.Added)
+        await RemoveOrdersAsync(sample, plan.Removed, ct);
+        var newOrders = plan.Added.Select(test => new TestOrder
         {
-            sample.TestOrders.Add(new TestOrder
-            {
-                TestCode = testCode,
-                SectionId = sectionId,
-                Status = ApprovalStatus.Pending,
-                CurrentStep = WorkflowStep.Waiting,
-                AssignedAnalystId = analystBySection.GetValueOrDefault(sectionId)
-            });
-        }
+            TestCode = test.TestCode,
+            SectionId = test.SectionId,
+            Status = ApprovalStatus.Pending,
+            CurrentStep = WorkflowStep.Waiting,
+            AssignedAnalystId = analystBySection.GetValueOrDefault(test.SectionId)
+        }).ToArray();
+        await AddInheritedOrdersAsync(sample, newOrders, ct);
         if (plan.PreparationStatus is { } status)
             sample.PreparationStatus = status;
     }
 
+    private async Task AddInheritedOrdersAsync(Sample sample, IReadOnlyList<TestOrder> orders, CancellationToken ct)
+    {
+        if (_competency is not null)
+            await _competency.ClearUnqualifiedAssignmentsAsync(orders, sample.ItemId, ct);
+        foreach (var order in orders)
+            sample.TestOrders.Add(order);
+    }
+
     // Removes orders with their history and locations through the change
     // tracker, so the audit capture records every row.
-    private async Task RemoveOrdersAsync(Sample sample, List<TestOrder> removedOrders)
+    private async Task RemoveOrdersAsync(Sample sample, List<TestOrder> removedOrders, CancellationToken ct)
     {
         var removedIds = removedOrders.Select(t => t.Id).ToList();
 
         // e.g. a "start refused - not prepared" entry on a test that never ran.
-        var history = await _db.WorkflowHistories.Where(h => removedIds.Contains(h.TestOrderId)).ToListAsync();
+        var history = await _db.WorkflowHistories.Where(h => removedIds.Contains(h.TestOrderId)).ToListAsync(ct);
         _db.WorkflowHistories.RemoveRange(history);
 
         foreach (var location in sample.Locations.Where(l => removedIds.Contains(l.TestOrderId)).ToList())
@@ -646,7 +653,7 @@ public class SampleCorrectionService
         }
     }
 
-    private async Task<Sample> LoadSampleAsync(int sampleId) =>
+    private async Task<Sample> LoadSampleAsync(int sampleId, CancellationToken ct = default) =>
         await _db.Samples
             .Include(s => s.OriginSample)
             .Include(s => s.Item)
@@ -657,7 +664,7 @@ public class SampleCorrectionService
             .Include(s => s.TestOrders)
             .Include(s => s.SectionSignoffs)
             .Include(s => s.Locations)
-            .FirstOrDefaultAsync(s => s.Id == sampleId)
+            .FirstOrDefaultAsync(s => s.Id == sampleId, ct)
         ?? throw new NotFoundException(
             MessageCodes.SampleNotFound,
             $"Sample {sampleId} not found.",

@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
@@ -37,18 +38,20 @@ public class SampleApprovalService
     private readonly ITestOrderOutcomeService _outcomes;
     private readonly OosGate _oosGate;
     private readonly RetestSampleFactory _retests;
+    private readonly ICompetencyGuard? _competency;
 
     public SampleApprovalService(IMicroLimsDbContext db, ReviewGateService reviewGate,
         SampleSummaryService summary, RecordArchiveService archive, ResultProjectionService resultProjection,
         ReferenceNumberGenerator refNumbers, IUserSectionScopeService scope,
         SegregationOfDutiesGuard segregationOfDuties, ITestOrderOutcomeService outcomes, OosGate oosGate,
         TimeProvider? timeProvider = null,
-        INotificationPublisher? publisher = null)
+        INotificationPublisher? publisher = null, ICompetencyGuard? competency = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _scope = scope;
         _segregationOfDuties = segregationOfDuties;
         _db = db;
+        _competency = competency;
         _reviewGate = reviewGate;
         _summary = summary;
         _archive = archive;
@@ -237,7 +240,8 @@ public class SampleApprovalService
             var now = _time.GetUtcNow().UtcDateTime;
             var retestSectionIds = selectedOrders.Select(o => o.SectionId).Distinct().ToList();
             foreach (var analystId in new[] { newSampleAnalystOneId.Value, newSampleAnalystTwoId.Value })
-                newAnalysts.Add(await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, analystId, sectionHeadUserId, retestSectionIds, now));
+                newAnalysts.Add(await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, analystId, sectionHeadUserId, retestSectionIds, now,
+                    testOrderIds: selectedOrders.Select(order => order.Id).ToArray(), competency: _competency, ct: ct));
 
             foreach (var order in selectedOrders)
             {
@@ -357,8 +361,10 @@ public class SampleApprovalService
                 if (sample.OosGroupCode is null)
                     sample.OosGroupCode = await _refNumbers.GenerateOosCodeAsync(ct);
 
-                await _retests.AddRetestSampleAsync(sample, selectedOrders, order => order.AssignedAnalystId,
+                var retest = await _retests.AddRetestSampleAsync(sample, selectedOrders, order => order.AssignedAnalystId,
                     sample.OosGroupCode, retestCauseId, sectionHeadUserId, ct);
+                if (_competency is not null)
+                    await _competency.ClearUnqualifiedAssignmentsAsync(retest.TestOrders, retest.ItemId, ct);
                 foreach (var order in selectedOrders)
                 {
                     order.IsSuperseded = true;

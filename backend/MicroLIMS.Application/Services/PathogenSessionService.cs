@@ -946,23 +946,31 @@ public partial class PathogenSessionService
                 $"Sample #{sampleId} not found.",
                 new Dictionary<string, string> { ["sampleId"] = sampleId.ToString(CultureInfo.InvariantCulture) });
 
-        var competency = await _competency.FilterAsync(userId, sample.TestOrders, cancellationToken);
+        var eligibleOrders = sample.TestOrders.Where(o => !o.IsSuperseded
+            && o.Status is not (ApprovalStatus.Voided or ApprovalStatus.Cancelled or ApprovalStatus.Approved
+                or ApprovalStatus.Rejected or ApprovalStatus.Reviewed or ApprovalStatus.RetestRequested)
+            && o.CurrentStep != WorkflowStep.Reviewed).ToList();
+        if (eligibleOrders.Count == 0)
+            throw new WorkflowStepException("PrerequisitesIncomplete", "No test orders are eligible to complete this session.");
+
+        var competency = await _competency.FilterAsync(userId, eligibleOrders, cancellationToken);
         competency.ThrowIfRefused();
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
-        await CaptureSopRevisionAsync(sample.TestOrders, cancellationToken);
+        var eligibleCodes = eligibleOrders.Select(o => o.TestCode).ToHashSet();
+        var eligibleIds = eligibleOrders.Select(o => o.Id).ToHashSet();
 
         // 1. Completeness Validation
-        if (session.MissingResults.Count > 0)
+        var missingResults = session.MissingResults.Where(m => eligibleCodes.Contains(m.TestCode)).ToList();
+        if (missingResults.Count > 0)
         {
-            var missingList = string.Join(", ", session.MissingResults.Take(5).Select(m => $"{m.LocationName} ({m.TestCode})"));
-            var extra = session.MissingResults.Count > 5 ? $" and {session.MissingResults.Count - 5} more" : "";
+            var missingList = string.Join(", ", missingResults.Take(5).Select(m => $"{m.LocationName} ({m.TestCode})"));
+            var extra = missingResults.Count > 5 ? $" and {missingResults.Count - 5} more" : "";
             throw new WorkflowStepException(
                 "IncompleteResults",
-                $"Cannot complete testing session: {session.MissingResults.Count} required Location × Test result(s) are missing ({missingList}{extra}).");
+                $"Cannot complete testing session: {missingResults.Count} required Location Ã— Test result(s) are missing ({missingList}{extra}).");
         }
 
         // 2. Validate that no test is still in an incomplete incubation or prerequisite state
-        var incompleteTests = session.AssignedTests.Where(t => t.TestSessionState == "TSB_INCUBATING" || !t.IsResultEntryAllowed).ToList();
+        var incompleteTests = session.AssignedTests.Where(t => eligibleIds.Contains(t.TestOrderId) && !t.IsResultEntryAllowed).ToList();
         if (incompleteTests.Count > 0)
         {
             throw new WorkflowStepException(
@@ -970,8 +978,11 @@ public partial class PathogenSessionService
                 $"Cannot complete testing session: Assigned tests {string.Join(", ", incompleteTests.Select(t => t.TestCode))} have incomplete workflow prerequisites.");
         }
 
+        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        await CaptureSopRevisionAsync(eligibleOrders, cancellationToken);
+
         // 3. Mark TestOrders as completed / ready for review
-        foreach (var order in sample.TestOrders)
+        foreach (var order in eligibleOrders)
         {
             order.CurrentStep = WorkflowStep.Ready;
             order.Status = ApprovalStatus.ResultEntered;

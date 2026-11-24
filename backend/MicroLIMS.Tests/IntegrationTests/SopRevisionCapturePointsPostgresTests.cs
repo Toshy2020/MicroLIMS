@@ -126,7 +126,11 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
         var stored = await assert.TestOrders.AsNoTracking().SingleAsync(o => o.Id == orderId);
         Assert.Null(stored.SopCaptureStatus);
         Assert.Null(stored.SopDocumentMasterId);
+        Assert.Null(stored.SopDocumentCode);
+        Assert.Null(stored.SopDocumentTitle);
         Assert.Null(stored.SopRevisionId);
+        Assert.Null(stored.SopRevisionNumber);
+        Assert.Null(stored.SopEffectiveDateUtc);
         Assert.Null(stored.SopCapturedAtUtc);
     }
 
@@ -154,12 +158,12 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
         var a = await AddOrderAsync(c, d =>
         {
             d.WorkflowType = WorkflowType.Gravimetric; d.EquationType = EquationType.GravimetricLoss;
-            d.UsesTare = true; d.ConditionFields = "Temperature (°C), Time (h)";
+            d.UsesTare = true; d.ConditionFields = "Temperature (Â°C), Time (h)";
         }, s => { s.LimitType = LimitType.NotMoreThan; s.LowerLimit = null; s.UpperLimit = 5m; }, EquipmentType.Oven);
 
         await using (var act = fixture.CreateDbContext())
             await Engine(act).RecordGravimetricResultAsync(a.OrderId, new(DateTime.UtcNow, a.EquipmentId,
-                new Dictionary<string, string> { ["Temperature (°C)"] = "105", ["Time (h)"] = "3" },
+                new Dictionary<string, string> { ["Temperature (Â°C)"] = "105", ["Time (h)"] = "3" },
                 [new(a.SpecId, [new(25.1234m, 27.1234m, 27.0334m)])], Password), c.UserId);
 
         await AssertCapturedAsync(a.OrderId, c.Sop);
@@ -479,10 +483,10 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
         Assert.True(await assert.CountTestReadings.AsNoTracking().AnyAsync(r => r.TestOrderId == count.OrderId));
     }
 
-    private sealed record Pathogen(int[] OrderIds, int MediaId, int IncubatorId);
+    private sealed record Pathogen(int[] OrderIds, int MediaId, int IncubatorId, int MaterialId);
 
-    // Tests of the sample that start a shared enrichment broth; the scenario's own order is left alone.
-    private async Task<Pathogen> AddPathogenOrdersAsync(Ctx c, int tests = 2)
+    // The scenario's own order is left alone.
+    private async Task<Pathogen> AddPathogenOrdersAsync(Ctx c, int tests = 2, bool confirmatory = false)
     {
         await using var db = fixture.CreateDbContext();
         var uid = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant();
@@ -509,7 +513,9 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
                 [
                     new TestWorkflowStep
                     {
-                        StepName = "Broth Enrichment", StepOrder = 1, StepType = StepType.BrothEnrichment,
+                        StepName = confirmatory ? "Confirmatory Plating" : "Broth Enrichment",
+                        StepOrder = 1,
+                        StepType = confirmatory ? StepType.ConfirmatoryPlating : StepType.BrothEnrichment,
                         StepMedia =
                         {
                             new TestWorkflowStepMedia
@@ -531,7 +537,7 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
         }
         await ConfirmPreparationAsync(db, c.SampleId);
         await db.SaveChangesAsync();
-        return new Pathogen(orders.Select(o => o.Id).ToArray(), media.Id, incubator.Id);
+        return new Pathogen(orders.Select(o => o.Id).ToArray(), media.Id, incubator.Id, media.MaterialId);
     }
 
     [PostgresFact]
@@ -559,6 +565,213 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
             await AssertCapturedAsync(orderId, c.Sop);
         await using var assert = fixture.CreateDbContext();
         Assert.Equal(p.OrderIds.Length, await assert.Incubations.AsNoTracking().CountAsync(i => i.TestOrderId != null && p.OrderIds.Contains(i.TestOrderId.Value)));
+    }
+
+    private async Task<(int LocationId, int? ObservationId)> AddPathogenLocationAsync(
+        Ctx c, int orderId, bool withGrowth = false)
+    {
+        await using var arrange = fixture.CreateDbContext();
+        var location = new SampleLocation { SampleId = c.SampleId, TestOrderId = orderId };
+        arrange.SampleLocations.Add(location);
+        LocationPathogenObservation? observation = null;
+        if (withGrowth)
+        {
+            observation = new LocationPathogenObservation
+            {
+                SampleLocation = location, TestOrderId = orderId,
+                GrowthObservation = GrowthObservation.GrowthConforming, ObservedByUserId = c.UserId,
+                ObservedAt = CapturedAt.UtcDateTime.AddHours(-24),
+            };
+            arrange.LocationPathogenObservations.Add(observation);
+        }
+        await arrange.SaveChangesAsync();
+        return (location.Id, observation?.Id);
+    }
+
+    private Task<Added> AddObservationOrderAsync(Ctx c) =>
+        AddOrderAsync(c, d => d.WorkflowType = WorkflowType.Observation);
+
+    private async Task AssertPathogenCaptureAsync(Ctx c, int capturedId, params int[] uncapturedIds)
+    {
+        await AssertCapturedAsync(capturedId, c.Sop);
+        foreach (var id in uncapturedIds)
+            await AssertNotCapturedAsync(id);
+
+        await using var assert = fixture.CreateDbContext();
+        var orderId = capturedId.ToString();
+        var updates = await assert.AuditLogs.AsNoTracking()
+            .Where(log => log.EntityName == nameof(TestOrder) && log.EntityId == orderId && log.Action == "Update")
+            .ToListAsync();
+        var audit = Assert.Single(updates, IsCaptureTransition);
+        Assert.Equal(c.UserId, audit.UserId);
+        using var values = JsonDocument.Parse(audit.NewValue!);
+        Assert.Equal(c.Sop.RevisionId, values.RootElement.GetProperty(nameof(TestOrder.SopRevisionId)).GetInt32());
+    }
+
+    [PostgresFact]
+    public async Task Primary_observations_capture_only_valid_touched_orders_allowed_by_competency()
+    {
+        var c = await WithOwnSectionAsync(await NewScenarioAsync());
+        var allowed = await AddObservationOrderAsync(c);
+        var refused = await AddObservationOrderAsync(c);
+        var invalid = await AddObservationOrderAsync(c);
+        var (allowedLocation, _) = await AddPathogenLocationAsync(c, allowed.OrderId);
+        var (refusedLocation, _) = await AddPathogenLocationAsync(c, refused.OrderId);
+        await EnableGateAsync(c.SectionId);
+        await QualifyAsync(c.UserId, allowed.TestCode, c.Sop);
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = c.UserId;
+            var response = await Session(act).SavePrimaryObservationsAsync(c.SampleId, new([
+                new(allowedLocation, allowed.TestCode, GrowthObservation.NoGrowth),
+                new(refusedLocation, refused.TestCode, GrowthObservation.NoGrowth),
+                new(0, invalid.TestCode, GrowthObservation.NoGrowth),
+            ]), c.UserId);
+            Assert.Equal(refused.OrderId, Assert.Single(response.Skipped!).TestOrderId);
+        }
+
+        await AssertPathogenCaptureAsync(c, allowed.OrderId, refused.OrderId, invalid.OrderId, c.S.Order.Id);
+        await using var assert = fixture.CreateDbContext();
+        var observation = Assert.Single(await assert.LocationPathogenObservations.AsNoTracking()
+            .Where(o => o.SampleLocationId == allowedLocation || o.SampleLocationId == refusedLocation).ToListAsync());
+        Assert.Equal(allowed.OrderId, observation.TestOrderId);
+        Assert.Equal(allowedLocation, observation.SampleLocationId);
+        Assert.Equal(GrowthObservation.NoGrowth, observation.GrowthObservation);
+        Assert.Equal(c.UserId, observation.ObservedByUserId);
+        Assert.Equal(CapturedAt.UtcDateTime, observation.ObservedAt);
+    }
+
+    [PostgresFact]
+    public async Task Shared_confirmatory_setup_captures_only_the_order_started()
+    {
+        var c = await NewScenarioAsync();
+        var p = await AddPathogenOrdersAsync(c, confirmatory: true);
+        var (location, _) = await AddPathogenLocationAsync(c, p.OrderIds[0], withGrowth: true);
+        await AddPathogenLocationAsync(c, p.OrderIds[1], withGrowth: true);
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = c.UserId;
+            await Session(act).StartSharedConfirmatorySetupAsync(c.SampleId,
+                new(p.OrderIds[0], [location], [p.MaterialId], [p.MediaId], p.IncubatorId, null), c.UserId);
+        }
+
+        await AssertPathogenCaptureAsync(c, p.OrderIds[0], p.OrderIds[1], c.S.Order.Id);
+        await using var assert = fixture.CreateDbContext();
+        var incubation = await assert.Incubations.AsNoTracking()
+            .SingleAsync(i => i.TestOrderId == p.OrderIds[0] || i.TestOrderId == p.OrderIds[1]);
+        Assert.Equal(p.OrderIds[0], incubation.TestOrderId);
+        Assert.Equal(p.MediaId, incubation.MediaId);
+        Assert.Equal(p.IncubatorId, incubation.IncubatorEquipmentId);
+        Assert.Equal(c.UserId, incubation.StartedByUserId);
+        Assert.Equal(CapturedAt.UtcDateTime, incubation.IncubationStartUtc);
+        Assert.Equal(WorkflowStep.Incubating, await assert.TestOrders.AsNoTracking()
+            .Where(o => o.Id == p.OrderIds[0]).Select(o => o.CurrentStep).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Confirmatory_readings_capture_only_orders_with_submitted_plates()
+    {
+        var c = await NewScenarioAsync();
+        var p = await AddPathogenOrdersAsync(c, confirmatory: true);
+        var (location, observation) = await AddPathogenLocationAsync(c, p.OrderIds[0], withGrowth: true);
+        var (untouchedLocation, _) = await AddPathogenLocationAsync(c, p.OrderIds[1], withGrowth: true);
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = c.UserId;
+            await Session(act).SaveBatchConfirmatoryPlateReadingsAsync(c.SampleId,
+                new([new(observation!.Value, 0, p.MaterialId, GrowthObservation.NoGrowth)]), c.UserId);
+        }
+
+        await AssertPathogenCaptureAsync(c, p.OrderIds[0], p.OrderIds[1], c.S.Order.Id);
+        await using var assert = fixture.CreateDbContext();
+        var plate = await assert.ConfirmatoryPlateObservations.AsNoTracking()
+            .SingleAsync(o => o.SampleLocationId == location || o.SampleLocationId == untouchedLocation);
+        Assert.Equal(observation, plate.LocationPathogenObservationId);
+        Assert.Equal(location, plate.SampleLocationId);
+        Assert.Equal(p.MaterialId, plate.MaterialId);
+        Assert.Equal(GrowthObservation.NoGrowth, plate.Observation);
+        Assert.Equal(c.UserId, plate.RecordedByUserId);
+        Assert.Equal(CapturedAt.UtcDateTime, plate.RecordedAtUtc);
+    }
+
+    [PostgresFact]
+    public async Task Result_matrix_captures_only_orders_with_valid_submitted_cells()
+    {
+        var c = await NewScenarioAsync();
+        var entered = await AddObservationOrderAsync(c);
+        var invalid = await AddObservationOrderAsync(c);
+        var (location, _) = await AddPathogenLocationAsync(c, entered.OrderId);
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = c.UserId;
+            await Session(act).SaveResultMatrixAsync(c.SampleId, new([
+                new(location, entered.TestCode, "DETECTED", "Detected (+)", null, "Qualitative"),
+                new(0, invalid.TestCode, "DETECTED", "Detected (+)", null, "Qualitative"),
+            ]), c.UserId);
+        }
+
+        await AssertPathogenCaptureAsync(c, entered.OrderId, invalid.OrderId, c.S.Order.Id);
+        await using var assert = fixture.CreateDbContext();
+        var result = await assert.SampleLocations.AsNoTracking().SingleAsync(l => l.Id == location);
+        Assert.Equal(ResultStatus.Detected, result.Status);
+        Assert.Equal("Detected (+)", result.ReportedResult);
+        Assert.Equal(c.UserId, result.EnteredByUserId);
+        Assert.Equal(CapturedAt.UtcDateTime, result.EnteredAt);
+    }
+
+    [PostgresFact]
+    public async Task Complete_session_captures_only_eligible_orders_after_results_are_complete()
+    {
+        var c = await NewScenarioAsync();
+        var eligible = await AddObservationOrderAsync(c);
+        var (location, _) = await AddPathogenLocationAsync(c, eligible.OrderId);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var closed = await arrange.TestOrders.SingleAsync(o => o.Id == c.S.Order.Id);
+            closed.Status = ApprovalStatus.Cancelled;
+            await arrange.SaveChangesAsync();
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            var rejected = await Assert.ThrowsAsync<WorkflowStepException>(
+                () => Session(act).CompleteSessionAsync(c.SampleId, c.UserId));
+            Assert.Equal("IncompleteResults", rejected.ErrorCode);
+        }
+        await AssertNotCapturedAsync(eligible.OrderId);
+
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var result = await arrange.SampleLocations.SingleAsync(l => l.Id == location);
+            result.Status = ResultStatus.Absent;
+            result.ReportedResult = "Not Detected (-)";
+            result.EnteredByUserId = c.UserId;
+            result.EnteredAt = CapturedAt.UtcDateTime.AddHours(-1);
+            await arrange.SaveChangesAsync();
+        }
+
+        await using (var act = fixture.CreateDbContext())
+        {
+            act.CurrentUserId = c.UserId;
+            await Session(act).CompleteSessionAsync(c.SampleId, c.UserId);
+        }
+
+        await AssertPathogenCaptureAsync(c, eligible.OrderId, c.S.Order.Id);
+        await using var assert = fixture.CreateDbContext();
+        var orders = await assert.TestOrders.AsNoTracking().Where(o => o.SampleId == c.SampleId).ToDictionaryAsync(o => o.Id);
+        Assert.Equal(ApprovalStatus.ResultEntered, orders[eligible.OrderId].Status);
+        Assert.Equal(WorkflowStep.Ready, orders[eligible.OrderId].CurrentStep);
+        Assert.Equal(ApprovalStatus.Cancelled, orders[c.S.Order.Id].Status);
+        var history = await assert.WorkflowHistories.AsNoTracking()
+            .SingleAsync(h => h.TestOrderId == eligible.OrderId && h.ToStep == WorkflowStep.Ready);
+        Assert.Equal(c.UserId, history.PerformedByUserId);
+        Assert.Equal(CapturedAt.UtcDateTime, history.Timestamp);
+        Assert.Equal(SampleStatus.UnderReview, await assert.Samples.AsNoTracking()
+            .Where(s => s.Id == c.SampleId).Select(s => s.Status).SingleAsync());
     }
 
     [PostgresFact]
@@ -1095,6 +1308,50 @@ public class SopRevisionCapturePointsPostgresTests(PostgresTestFixture fixture)
             .Where(x => x.EntityName == nameof(TestOrder) && x.EntityId == id && x.Action == "Update").ToListAsync())
             .Count(IsCaptureTransition);
         Assert.Equal(1, captures);
+    }
+
+    [PostgresFact]
+    public async Task Adopting_a_capture_preserves_concurrency_for_overlapping_assignment_changes()
+    {
+        await PostgresCases.RunAsync(new[] { true, false }, async editBeforeAdoption =>
+        {
+            var c = await NewScenarioAsync();
+            var a = await AddObservationOrderAsync(c);
+
+            await using (var second = fixture.CreateDbContext())
+            {
+                var stale = await second.TestOrders.SingleAsync(o => o.Id == a.OrderId);
+                Assert.Null(stale.SopCaptureStatus);
+                Assert.Null(stale.AssignedAnalystId);
+                await using (var first = fixture.CreateDbContext())
+                {
+                    first.CurrentUserId = c.UserId;
+                    var winner = await first.TestOrders.SingleAsync(o => o.Id == a.OrderId);
+                    await Capture(first).CaptureIfNeededAsync(winner);
+                    winner.AssignedAnalystId = c.UserId;
+                    await first.SaveChangesAsync();
+                }
+
+                await using var transaction = await second.Database.BeginTransactionAsync();
+                if (editBeforeAdoption)
+                    stale.AssignedAnalystId = fixture.SeededControllerUserId;
+
+                await Capture(second, CapturedAt.AddHours(1)).CaptureIfNeededAsync(stale);
+                Assert.Equal(c.Sop.RevisionId, stale.SopRevisionId);
+                if (!editBeforeAdoption)
+                    stale.AssignedAnalystId = fixture.SeededControllerUserId;
+
+                await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
+            }
+
+            await AssertPathogenCaptureAsync(c, a.OrderId);
+            await using var assert = fixture.CreateDbContext();
+            var persisted = await assert.TestOrders.AsNoTracking().SingleAsync(o => o.Id == a.OrderId);
+            Assert.Equal(c.UserId, persisted.AssignedAnalystId);
+            var orderId = a.OrderId.ToString();
+            Assert.Equal(1, await assert.AuditLogs.AsNoTracking()
+                .CountAsync(log => log.EntityName == nameof(TestOrder) && log.EntityId == orderId && log.Action == "Update"));
+        });
     }
 
     private async Task WaitUntilBlockedOnALockAsync(Task second)

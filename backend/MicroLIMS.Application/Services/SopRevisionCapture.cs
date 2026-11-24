@@ -52,38 +52,46 @@ public sealed class SopRevisionCapture(
         order.SopCapturedAtUtc = clock.GetUtcNow().UtcDateTime;
     }
 
-    // True when another writer already stored the capture: the order then carries those values unchanged (and the row
-    // version they produced), so this step's own save neither overwrites them nor fails on the stale version.
+    // True when another writer already stored the capture. Adopt those values without making them dirty.
     private async Task<bool> AdoptStoredCaptureAsync(TestOrder order, CancellationToken cancellationToken)
     {
-        var stored = await db.TestOrders.AsNoTracking()
-            .Where(o => o.Id == order.Id && o.SopCaptureStatus != null)
-            .Select(o => new
-            {
-                o.SopCaptureStatus, o.SopDocumentMasterId, o.SopDocumentCode, o.SopDocumentTitle, o.SopRevisionId,
-                o.SopRevisionNumber, o.SopEffectiveDateUtc, o.SopCapturedAtUtc,
-                Version = EF.Property<uint>(o, "xmin")
-            })
-            .SingleOrDefaultAsync(cancellationToken);
-        if (stored is null)
+        var entry = db.Entry(order);
+        var stored = await entry.GetDatabaseValuesAsync(cancellationToken);
+        if (stored?[nameof(TestOrder.SopCaptureStatus)] is null)
             return false;
 
-        var entry = db.Entry(order);
-        void Adopt(string name, object? value)
+        // Rebase only a capture-only change. Check both snapshots so a business edit made after
+        // this method returns still cannot overwrite a change already made by the first writer.
+        var canRefreshVersion = true;
+        foreach (var property in entry.Properties)
         {
-            entry.Property(name).CurrentValue = value;
-            entry.Property(name).OriginalValue = value;
-            entry.Property(name).IsModified = false;
+            var name = property.Metadata.Name;
+            switch (name)
+            {
+                case nameof(TestOrder.SopCaptureStatus):
+                case nameof(TestOrder.SopDocumentMasterId):
+                case nameof(TestOrder.SopDocumentCode):
+                case nameof(TestOrder.SopDocumentTitle):
+                case nameof(TestOrder.SopRevisionId):
+                case nameof(TestOrder.SopRevisionNumber):
+                case nameof(TestOrder.SopEffectiveDateUtc):
+                case nameof(TestOrder.SopCapturedAtUtc):
+                    property.CurrentValue = stored[name];
+                    property.OriginalValue = stored[name];
+                    property.IsModified = false;
+                    break;
+                case "xmin":
+                    break;
+                default:
+                    canRefreshVersion &= !property.IsModified
+                        && property.Metadata.GetValueComparer().Equals(property.OriginalValue, property.CurrentValue)
+                        && property.Metadata.GetValueComparer().Equals(property.OriginalValue, stored[name]);
+                    break;
+            }
         }
-        Adopt(nameof(TestOrder.SopCaptureStatus), stored.SopCaptureStatus);
-        Adopt(nameof(TestOrder.SopDocumentMasterId), stored.SopDocumentMasterId);
-        Adopt(nameof(TestOrder.SopDocumentCode), stored.SopDocumentCode);
-        Adopt(nameof(TestOrder.SopDocumentTitle), stored.SopDocumentTitle);
-        Adopt(nameof(TestOrder.SopRevisionId), stored.SopRevisionId);
-        Adopt(nameof(TestOrder.SopRevisionNumber), stored.SopRevisionNumber);
-        Adopt(nameof(TestOrder.SopEffectiveDateUtc), stored.SopEffectiveDateUtc);
-        Adopt(nameof(TestOrder.SopCapturedAtUtc), stored.SopCapturedAtUtc);
-        entry.Property("xmin").OriginalValue = stored.Version;
+
+        if (canRefreshVersion)
+            entry.Property("xmin").OriginalValue = stored["xmin"];
         return true;
     }
 

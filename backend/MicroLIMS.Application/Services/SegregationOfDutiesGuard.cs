@@ -17,6 +17,10 @@ public class SegregationOfDutiesGuard
         _db = db;
     }
 
+    public Task<bool> DidUserOverrideCompetencyAsync(int userId, int sampleId, CancellationToken ct = default) =>
+        _db.CompetencyOverrides.AsNoTracking()
+            .AnyAsync(row => row.GrantedByUserId == userId && row.SampleId == sampleId, ct);
+
     // "Performed" = assigned as the analyst, prepared the sample, or
     // entered/observed any raw result for this test order - Result,
     // CountTestReading, PathogenObservation, WorkflowStepResult,

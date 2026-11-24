@@ -1,3 +1,4 @@
+using MicroLIMS.Application.Services.Competency;
 using System.Globalization;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Shared.Messages;
@@ -135,7 +136,7 @@ public class SampleReviewService
     }
 
     public Task CompleteReviewAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId = null, decimal? retentionQuantity = null, string? retentionUnit = null, CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit, ct));
+        UnitOfWork.RunAsync(_db, () => CompleteReviewCoreAsync(sampleId, reviewerUserId, password, comment, ipAddress, sectionId, retentionQuantity, retentionUnit, ct), ct);
 
     private async Task CompleteReviewCoreAsync(int sampleId, int reviewerUserId, string password, string? comment, string? ipAddress, int? sectionId, decimal? retentionQuantity, string? retentionUnit, CancellationToken ct = default)
     {
@@ -192,6 +193,8 @@ public class SampleReviewService
             });
         }
 
+        await CompetencyOverrideLifecycle.EndAsync(_db, currentOrders, now, CompetencyOverrideEndReason.Reviewed, ct);
+
         if (retentionUnitCanonical is not null)
         {
             var inv = System.Globalization.CultureInfo.InvariantCulture;
@@ -211,7 +214,7 @@ public class SampleReviewService
         await _publisher.ResolveAsync($"ReviewWaiting:sample:{sampleId}:section:{section}");
 
         var orderIds = currentOrders.Select(o => o.Id).ToList();
-        var approvers = (await _recipients.ApproversAsync(section, orderIds))
+        var approvers = (await _recipients.ApproversAsync(section, orderIds, ct))
             .Where(id => id != reviewerUserId)
             .ToList();
         if (approvers.Count > 0)
@@ -250,6 +253,10 @@ public class SampleReviewService
             sample, sectionId, SectionSignoffStatus.UnderReview, userScope,
             "Sample must be under review before it can be reviewed.");
         if (!sectionCheck.Allowed) return (sectionCheck, section);
+
+        if (await _segregationOfDuties.DidUserOverrideCompetencyAsync(reviewerUserId, sample.Id, ct))
+            return (ActionCheck.No(MessageCodes.SampleCannotReviewOverrode,
+                "You overrode competency for a test on this sample, so you cannot review it."), section);
 
         var currentOrders = SampleSectionRollup.CurrentOrders(sample, section);
         var performed = await _segregationOfDuties.GetTestOrderIdsPerformedByAsync(reviewerUserId, currentOrders.Select(o => o.Id).ToList(), ct);

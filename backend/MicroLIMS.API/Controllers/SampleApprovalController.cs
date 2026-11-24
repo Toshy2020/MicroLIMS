@@ -56,10 +56,10 @@ public class SampleApprovalController : ControllerBase
     }
 
     [HttpPost("sections/{sectionId:int}/close")]
-    public async Task<IActionResult> CloseTesting(int id, int sectionId, CloseSectionTestingRequest request)
+    public async Task<IActionResult> CloseTesting(int id, int sectionId, CloseSectionTestingRequest request, CancellationToken ct = default)
     {
         await _closureService.CloseTestingAsync(id, sectionId, CurrentUserId, request.Password, request.Reason,
-            HttpContext.Connection.RemoteIpAddress?.ToString());
+            HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 }

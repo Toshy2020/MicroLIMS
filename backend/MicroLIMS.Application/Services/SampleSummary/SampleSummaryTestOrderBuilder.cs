@@ -1,4 +1,4 @@
-﻿using MicroLIMS.Application.DTOs;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Domain.Enums;
@@ -66,6 +66,7 @@ public static class SampleSummaryTestOrderBuilder
         return new TestOrderSummaryDetailDto
         {
             TestOrderId = order.Id,
+            CompetencyOverrides = d.CompetencyOverrides[order.Id].ToList(),
             SectionId = order.SectionId,
             SectionName = sectionRows.TryGetValue(order.SectionId, out var sectionRow) ? sectionRow.Name : string.Empty,
             SectionCode = sectionRow?.Code ?? string.Empty,

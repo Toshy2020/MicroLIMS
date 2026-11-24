@@ -10,6 +10,10 @@ public sealed record CompetencyDecision(
     CompetencyReason? SopNotChecked,
     int? ViaOverrideId)
 {
+    public string? RecordingAuditReason => ViaOverrideId is int id
+        ? $"Competency override #{id}" + (SopNotChecked is null ? string.Empty : $" {SopNotChecked.Text}")
+        : SopNotChecked?.Text;
+
     public string[] ReasonTexts => Reasons.Select(reason => reason.Text).ToArray();
 
     public ActionCheck ToActionCheck() => Allowed

@@ -125,8 +125,12 @@ public class SamplePreparationSummaryDto
     public DateTime PreparedAt { get; set; }
 }
 
+public sealed record CompetencyOverrideDto(string AnalystName, string GrantedByFullName, DateTime GrantedAtUtc,
+    string Meaning, string Reason, DateTime? EndedAtUtc);
+
 public class TestOrderSummaryDetailDto
 {
+    public IReadOnlyList<CompetencyOverrideDto> CompetencyOverrides { get; init; } = [];
     public int TestOrderId { get; set; }
     public int SectionId { get; set; }
     public string SectionName { get; set; } = string.Empty;

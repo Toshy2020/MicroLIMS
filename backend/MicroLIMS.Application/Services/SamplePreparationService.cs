@@ -49,6 +49,7 @@ public class SamplePreparationService
     private readonly PreparationMaterialService _materials;
     private readonly ICompetencyGuard _competency;
     private readonly ISopRevisionCapture _sopCapture;
+    private readonly TimeProvider _time;
 
     public SamplePreparationService(
         IMicroLimsDbContext db,
@@ -57,7 +58,7 @@ public class SamplePreparationService
         IUserSectionScopeService scope,
         PreparationMaterialService materials,
         ICompetencyGuard competency,
-        ISopRevisionCapture sopCapture)
+        ISopRevisionCapture sopCapture, TimeProvider? time = null)
     {
         _db = db;
         _validator = validator;
@@ -66,6 +67,7 @@ public class SamplePreparationService
         _materials = materials;
         _competency = competency;
         _sopCapture = sopCapture;
+        _time = time ?? TimeProvider.System;
     }
 
     // Manual fallback: writes the sample's preparation AND seeds the Item's
@@ -139,7 +141,7 @@ public class SamplePreparationService
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluent.Choice, diluentLot);
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizer.Choice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep));
+        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep), cancellationToken);
     }
 
     // Confirm-only: every value is copied from the Item's configuration, so
@@ -201,7 +203,7 @@ public class SamplePreparationService
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Diluent, diluentChoice, diluentLot);
         PreparationMaterialService.Snapshot(prep, PreparationMaterialRole.Neutralizer, neutralizerChoice, neutralizerLot);
 
-        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep));
+        return await CommitPreparationAsync(sample, prep, waitingOrders, request.UserId, request.Password, ipAddress, SignatureComment(prep), cancellationToken);
     }
 
     private async Task<(IDisposable Recording, List<TestOrder> WaitingOrders)> RequirePreparationCompetencyAsync(
@@ -217,7 +219,7 @@ public class SamplePreparationService
             .Union(waitingOrders).ToList();
         var competency = await _competency.FilterAsync(userId, covered, ct);
         competency.ThrowIfRefused();
-        var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         try
         {
             // Preparing starts the testing of every order it covers: each stores the SOP revision in force now (ordered
@@ -275,7 +277,7 @@ public class SamplePreparationService
     // to it, and the sample moving to Ready all land together or not at all.
     private async Task<SamplePreparation> CommitPreparationAsync(
         Sample sample, SamplePreparation prep, List<TestOrder> waitingOrders,
-        int userId, string password, string? ipAddress, string? signatureComment = null)
+        int userId, string password, string? ipAddress, string? signatureComment, CancellationToken ct)
     {
         // Signs first - if password verification fails, nothing below is
         // written. Signed against the Sample rather than the SamplePreparation
@@ -284,12 +286,12 @@ public class SamplePreparationService
         // ordering as SampleApprovalService.DecideAsync).
         await _signatures.SignAsync(
             userId, password, SignatureMeaning.PreparationConfirmed,
-            ReviewEntityTypes.Sample, sample.Id, signatureComment, ipAddress);
+            ReviewEntityTypes.Sample, sample.Id, signatureComment, ipAddress, ct);
 
         sample.PreparationStatus = SamplePreparationStatus.Ready;
         _db.SamplePreparations.Add(prep);
 
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         // "Start Testing" - the person who completes preparation takes every
         // unassigned test on this sample that hasn't started yet, in the
@@ -298,7 +300,11 @@ public class SamplePreparationService
         foreach (var order in waitingOrders)
             order.AssignedAnalystId = userId;
         if (waitingOrders.Count > 0)
-            await _db.SaveChangesAsync();
+        {
+            await CompetencyOverrideLifecycle.EndAsync(_db, waitingOrders, _time.GetUtcNow().UtcDateTime,
+                CompetencyOverrideEndReason.Reassigned, ct);
+            await _db.SaveChangesAsync(ct);
+        }
 
         return prep;
     }

@@ -91,8 +91,13 @@ public sealed class NotificationRecipients
         if (candidates.Count == 0 || testOrderIds.Count == 0)
             return candidates;
 
+        var sampleIds = _db.TestOrders.AsNoTracking().Where(t => testOrderIds.Contains(t.Id)).Select(t => t.SampleId);
+        var granters = await _db.CompetencyOverrides.AsNoTracking()
+            .Where(row => sampleIds.Contains(row.SampleId) && candidates.Contains(row.GrantedByUserId))
+            .Select(row => row.GrantedByUserId).ToHashSetAsync(ct);
+
         var eligible = new List<int>(candidates.Count);
-        foreach (var candidateId in candidates)
+        foreach (var candidateId in candidates.Where(id => !granters.Contains(id)))
         {
             var performed = await _sod.GetTestOrderIdsPerformedByAsync(candidateId, testOrderIds, ct);
             if (performed.Count == 0)

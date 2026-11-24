@@ -18,8 +18,16 @@ namespace MicroLIMS.API.Controllers;
 public class CompetencyController(
     QualificationService qualifications,
     CompetencySettingsService settings,
-    CompetencyMatrixService matrix) : ControllerBase
+    CompetencyMatrixService matrix, CompetencyOverrideService overrides) : ControllerBase
 {
+    public sealed record GrantOverrideRequest(int AnalystUserId, string Reason, string Password);
+
+    [HttpPost("~/api/competency/test-orders/{testOrderId:int}/override")]
+    [Authorize(Policy = PermissionConstants.CompetencyOverride)]
+    public async Task<IActionResult> GrantOverride(int testOrderId, GrantOverrideRequest request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<int>.Ok(await overrides.GrantAsync(testOrderId, request.AnalystUserId,
+            request.Reason, request.Password, CurrentUserId, cancellationToken)));
+
     [HttpPost]
     [Authorize(Policy = PermissionConstants.CompetencyManage)]
     [RequestSizeLimit(DiscussionAttachmentPolicy.MaxRequestBytes)]

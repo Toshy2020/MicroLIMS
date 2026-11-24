@@ -111,7 +111,7 @@ public static class TestServiceFactory
         new(db, scope ?? new UserSectionScopeService(db), time);
 
     public static SamplePreparationService SamplePreparation(MicroLimsDbContext db, TimeProvider? time = null) =>
-        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db), SopCapture(db, time));
+        new(db, new PreparationParameterValidator(), new ElectronicSignatureService(db), new UserSectionScopeService(db), PreparationMaterial(db, time), Competency(db), SopCapture(db, time), time);
 
     public static ItemPreparationConfigurationService ItemPreparationConfiguration(MicroLimsDbContext db) =>
         new(db, new PreparationParameterValidator(), PreparationMaterial(db));

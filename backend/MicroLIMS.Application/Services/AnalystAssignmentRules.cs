@@ -37,12 +37,24 @@ public static class AnalystAssignmentRules
     public static async Task<User> EnsureAssignableAsync(
         IMicroLimsDbContext db, IUserSectionScopeService scope,
         int assigneeId, int actingUserId, IEnumerable<int> sectionIds, DateTime nowUtc,
-        IReadOnlyCollection<int>? testOrderIds = null, ICompetencyGuard? competency = null, CancellationToken ct = default)
+        IReadOnlyCollection<int>? testOrderIds = null, ICompetencyGuard? competency = null, CancellationToken ct = default, bool allowOrderOverride = false)
     {
         var (check, user) = await CheckAssignableAsync(db, scope, assigneeId, actingUserId, sectionIds, nowUtc, ct);
         check.ThrowIfRefused();
         if (competency is not null && testOrderIds is { Count: > 0 })
         {
+            // An existing order's override cannot transfer to a retest created from it.
+            if (!allowOrderOverride)
+            {
+                var subjects = await db.TestOrders.AsNoTracking().Where(o => testOrderIds.Contains(o.Id))
+                    .Select(o => new { o.Id, Subject = new CompetencySubject(o.TestCode, o.SectionId, o.Sample == null ? null : o.Sample.ItemId) })
+                    .ToListAsync(ct);
+                var subjectDecisions = await competency.EvaluateSubjectsAsync(assigneeId,
+                    subjects.Select(o => o.Subject).ToArray(), assigneeWording: true, ct);
+                ThrowIfCompetencyRefused(subjects.Select(o => (o.Id, subjectDecisions[o.Subject])));
+                return user;
+            }
+
             var decisions = await competency.EvaluateAssigneeAsync(assigneeId, testOrderIds, ct);
             ThrowIfCompetencyRefused(decisions.Select(pair => (pair.Key, pair.Value)));
         }

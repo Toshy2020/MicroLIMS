@@ -56,7 +56,7 @@ public class TestWorkflowSupport
     {
         var decision = await _competency.EvaluateAsync(userId, testOrderId, ct);
         decision.ToActionCheck().ThrowIfRefused();
-        return AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
+        return AuditReasonScope.Append(_db, decision.RecordingAuditReason);
     }
 
     // The first recorded step of a test order stores the SOP revision in force (Rule 3.1). Called at every recording
@@ -442,7 +442,7 @@ public class TestWorkflowSupport
         var siblings = await FindSharedTsbSiblingsAsync(sourceOrder, incubation.Media, ct);
         if (siblings.Count == 0) return;
         var competency = await _competency.FilterAsync(userId, siblings.Select(s => s.Order).ToList(), ct);
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
 
         var brothStepName = "Broth Enrichment";
         var mediaLotNumber = incubation.Media.LotNumber;

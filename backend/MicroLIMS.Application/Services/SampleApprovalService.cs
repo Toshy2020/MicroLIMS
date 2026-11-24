@@ -78,6 +78,10 @@ public class SampleApprovalService
             "Sample must be under approval before a decision can be made.");
         if (!sectionCheck.Allowed) return (sectionCheck, section);
 
+        if (await _segregationOfDuties.DidUserOverrideCompetencyAsync(sectionHeadUserId, sample.Id, ct))
+            return (ActionCheck.No(MessageCodes.SampleCannotApproveOverrode,
+                "You overrode competency for a test on this sample, so you cannot approve it."), section);
+
         if (sectionHeadUserId == SampleSectionRollup.ReviewedByOf(sample, section))
             return (ActionCheck.No(MessageCodes.SampleCannotApproveReviewed, SignoffRefusalSentences.CannotApproveReviewed), section);
 
@@ -175,7 +179,7 @@ public class SampleApprovalService
         string? comment, string? ipAddress, string? certificateRemarks = null,
         List<int>? selectedTestOrderIds = null, int? newSampleAnalystOneId = null, int? newSampleAnalystTwoId = null,
         int? sectionId = null, CancellationToken ct = default) =>
-        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(sampleId, sectionHeadUserId, password, decision, comment, ipAddress, certificateRemarks, selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId, sectionId, ct));
+        UnitOfWork.RunAsync(_db, () => DecideCoreAsync(sampleId, sectionHeadUserId, password, decision, comment, ipAddress, certificateRemarks, selectedTestOrderIds, newSampleAnalystOneId, newSampleAnalystTwoId, sectionId, ct), ct);
 
     private async Task DecideCoreAsync(
         int sampleId, int sectionHeadUserId, string password, ApprovalDecision decision,
@@ -276,6 +280,7 @@ public class SampleApprovalService
             ReviewEntityTypes.Sample, sampleId, sectionHeadUserId, password,
             meaning, ReviewWorkflowEventType.ApprovalDecisionMade, comment, ipAddress, decision, section);
 
+        _db.CurrentUserId = sectionHeadUserId;
         signoff.ApprovalSignature = signature;
         signoff.ApprovalDecision = decision;
 
@@ -420,6 +425,9 @@ public class SampleApprovalService
                 break;
             }
         }
+
+        await CompetencyOverrideLifecycle.EndAsync(_db, selectedOrders, _time.GetUtcNow().UtcDateTime,
+            CompetencyOverrideEndReason.Superseded, ct);
 
         // A sample left waiting on a retest carries the retest's decision,
         // whichever section's decision closed the rest of it.

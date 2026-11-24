@@ -243,10 +243,10 @@ public class CompetencySettingsAndMatrixPostgresTests(PostgresTestFixture fixtur
         var d = setup.AnalystIds[3]; // withdrawn
         var e = setup.AnalystIds[4]; // not qualified
 
-        await AddQualificationAsync(a, setup.TestId, LabToday.AddMonths(2), setup.HeadId);
-        await AddQualificationAsync(b, setup.TestId, LabToday.AddDays(7), setup.HeadId);
-        await AddQualificationAsync(c, setup.TestId, LabToday.AddDays(-1), setup.HeadId);
-        await AddQualificationAsync(d, setup.TestId, LabToday.AddMonths(2), setup.HeadId, withdrawn: true);
+        var qualA = await AddQualificationAsync(a, setup.TestId, LabToday.AddMonths(2), setup.HeadId);
+        var qualB = await AddQualificationAsync(b, setup.TestId, LabToday.AddDays(7), setup.HeadId);
+        var qualC = await AddQualificationAsync(c, setup.TestId, LabToday.AddDays(-1), setup.HeadId);
+        var qualD = await AddQualificationAsync(d, setup.TestId, LabToday.AddMonths(2), setup.HeadId, withdrawn: true);
 
         await using var act = fixture.CreateDbContext();
         var matrix = await Matrix(act).GetMatrixAsync(setup.SectionId, new MatrixFilters(), setup.HeadId);
@@ -260,10 +260,48 @@ public class CompetencySettingsAndMatrixPostgresTests(PostgresTestFixture fixtur
         var cells = matrix.Analysts.ToDictionary(row => row.UserId,
             row => Assert.Single(row.Cells, cell => cell.TestDefinitionId == setup.TestId));
         Assert.Equal(MatrixCellStatus.Qualified, cells[a].Status);
+        Assert.Equal(qualA, cells[a].QualificationId);
         Assert.Equal(MatrixCellStatus.ExpiringSoon, cells[b].Status);
+        Assert.Equal(qualB, cells[b].QualificationId);
         Assert.Equal(MatrixCellStatus.Expired, cells[c].Status);
+        Assert.Equal(qualC, cells[c].QualificationId);
         Assert.Equal(MatrixCellStatus.Withdrawn, cells[d].Status);
+        Assert.Equal(qualD, cells[d].QualificationId);
         Assert.Equal(MatrixCellStatus.NotQualified, cells[e].Status);
+        Assert.Null(cells[e].QualificationId);
+    }
+
+    [PostgresFact]
+    public async Task Matrix_filters_by_status_before_paging()
+    {
+        var setup = await ArrangeBaseAsync();
+        await AddSettingAsync(setup.SectionId, false, 7, setup.HeadId);
+        var a = setup.AnalystIds[0]; // qualified
+        var b = setup.AnalystIds[1]; // expired
+        var c = setup.AnalystIds[2]; // expired
+
+        await AddQualificationAsync(a, setup.TestId, LabToday.AddMonths(2), setup.HeadId);
+        await AddQualificationAsync(b, setup.TestId, LabToday.AddDays(-1), setup.HeadId);
+        await AddQualificationAsync(c, setup.TestId, LabToday.AddDays(-2), setup.HeadId);
+
+        await using var act = fixture.CreateDbContext();
+        var page1 = await Matrix(act).GetMatrixAsync(
+            setup.SectionId,
+            new MatrixFilters { Status = MatrixCellStatus.Expired, Page = 1, PageSize = 1 },
+            setup.HeadId);
+
+        Assert.Equal(2, page1.TotalCount);
+        var row1 = Assert.Single(page1.Analysts);
+        Assert.Equal(b, row1.UserId);
+
+        var page2 = await Matrix(act).GetMatrixAsync(
+            setup.SectionId,
+            new MatrixFilters { Status = MatrixCellStatus.Expired, Page = 2, PageSize = 1 },
+            setup.HeadId);
+
+        Assert.Equal(2, page2.TotalCount);
+        var row2 = Assert.Single(page2.Analysts);
+        Assert.Equal(c, row2.UserId);
     }
 
     [PostgresFact]

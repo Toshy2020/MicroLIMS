@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../theme";
@@ -102,5 +103,50 @@ describe("QualifyDialog", () => {
       )
     );
     expect(onQualified).toHaveBeenCalled();
+  });
+
+  it("requires evidence before advancing to signature", async () => {
+    const user = userEvent.setup();
+    renderDialog();
+
+    await user.click(screen.getByRole("button", { name: "Continue to Sign" }));
+
+    expect(await screen.findByText("Evidence is required.")).toBeTruthy();
+    expect(competencyService.qualify).not.toHaveBeenCalled();
+  });
+
+  it("shows server error and wrong password error in the signature dialog", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.qualify)
+      .mockRejectedValueOnce(
+        new AxiosError("Unauthorized", "401", undefined, undefined, {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: {},
+          config: {} as never,
+          data: { message: "Invalid signing password." }
+        } as AxiosResponse)
+      )
+      .mockRejectedValueOnce(
+        new AxiosError("Bad Request", "400", undefined, undefined, {
+          status: 400,
+          statusText: "Bad Request",
+          headers: {},
+          config: {} as never,
+          data: { message: "Section Head cannot qualify themselves." }
+        } as AxiosResponse)
+      );
+
+    renderDialog();
+    await user.type(screen.getByRole("textbox", { name: /^Evidence/i }), "Observed 3 runs");
+    await user.click(screen.getByRole("button", { name: "Continue to Sign" }));
+
+    await user.type(await screen.findByLabelText(/Password/i), "wrong");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+    expect(await screen.findByText("Invalid signing password.")).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+    expect(await screen.findByText("Section Head cannot qualify themselves.")).toBeTruthy();
   });
 });

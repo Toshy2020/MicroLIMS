@@ -96,8 +96,8 @@ describe("MeasurementPanel recording refusal", () => {
     await user.click(screen.getByRole("button", { name: "Sign" }));
 
     await waitFor(() => {
-      const refusalAlerts = screen.getAllByText("You are not qualified for PH.");
-      expect(refusalAlerts.length).toBeGreaterThanOrEqual(1);
+      const alert = screen.getByRole("alert");
+      expect(alert.textContent).toBe("You are not qualified for PH.");
     });
   });
 });

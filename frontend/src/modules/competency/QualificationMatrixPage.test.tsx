@@ -54,16 +54,16 @@ const sampleMatrix: CompetencyMatrixDto = {
       userId: 101,
       analystName: "Mona Ali",
       cells: [
-        { userId: 101, testDefinitionId: 10, status: "Qualified", expiresOn: "2027-05-01" },
-        { userId: 101, testDefinitionId: 11, status: "ExpiringSoon", expiresOn: "2026-12-01" }
+        { userId: 101, testDefinitionId: 10, status: "Qualified", expiresOn: "2027-05-01", qualificationId: 101 },
+        { userId: 101, testDefinitionId: 11, status: "ExpiringSoon", expiresOn: "2026-12-01", qualificationId: 102 }
       ]
     },
     {
       userId: 102,
       analystName: "Omar Saleh",
       cells: [
-        { userId: 102, testDefinitionId: 10, status: "Expired", expiresOn: "2026-01-15" },
-        { userId: 102, testDefinitionId: 11, status: "Withdrawn", expiresOn: null }
+        { userId: 102, testDefinitionId: 10, status: "Expired", expiresOn: "2026-01-15", qualificationId: 103 },
+        { userId: 102, testDefinitionId: 11, status: "Withdrawn", expiresOn: null, qualificationId: 104 }
       ]
     }
   ]
@@ -157,5 +157,67 @@ describe("QualificationMatrixPage", () => {
 
     expect(await screen.findByText("Mona Ali")).toBeTruthy();
     expect(screen.getByRole("button", { name: /next page/i })).toBeTruthy();
+  });
+
+  it("renders translated status filter options and passes selected status to getMatrix", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText("Mona Ali")).toBeTruthy();
+    await user.click(screen.getByRole("combobox", { name: "Status" }));
+    await user.click(screen.getByRole("option", { name: "Expiring Soon" }));
+
+    await waitFor(() =>
+      expect(competencyService.getMatrix).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ status: "ExpiringSoon" }),
+        expect.any(AbortSignal)
+      )
+    );
+  });
+
+  it("opens WithdrawDialog from a matrix cell and posts to withdraw with the cell qualificationId", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.withdraw).mockResolvedValue({
+      id: 101,
+      version: 2,
+      userId: 101,
+      testDefinitionId: 10,
+      basis: "ObservedPractice",
+      evidence: "Initial",
+      evidenceSampleId: null,
+      qualifiedOn: "2026-11-01",
+      expiresOn: "2027-05-01",
+      signature: {
+        userFullName: "Hana Head",
+        username: "hana",
+        roleName: "Section Head",
+        meaningOfSignature: "AnalystQualified",
+        signedAt: "2026-11-01T10:00:00Z",
+        comment: "Initial"
+      },
+      withdrawnOn: "2026-11-24T12:00:00Z",
+      withdrawnReason: "Retraining",
+      withdrawalSignature: null,
+      attachments: []
+    });
+
+    renderPage();
+
+    const withdrawBtn = await screen.findByRole("button", {
+      name: "Withdraw qualification for Mona Ali on TAMC — Total Aerobic Microbial Count"
+    });
+    await user.click(withdrawBtn);
+
+    await user.type(await screen.findByLabelText(/Reason for withdrawal/i), "Retraining");
+    await user.type(screen.getByLabelText(/Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() =>
+      expect(competencyService.withdraw).toHaveBeenCalledWith(101, {
+        reason: "Retraining",
+        password: "Secret123!"
+      })
+    );
   });
 });

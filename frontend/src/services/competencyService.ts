@@ -111,6 +111,7 @@ export interface MatrixCellDto {
   testDefinitionId: number;
   status: MatrixCellStatus;
   expiresOn: string | null;
+  qualificationId: number | null;
 }
 
 export interface MatrixSopDto {
@@ -134,6 +135,7 @@ export interface MatrixRowDto {
 export interface MatrixFilters {
   analystSearch?: string;
   testSearch?: string;
+  status?: MatrixCellStatus;
   page?: number;
   pageSize?: number;
 }

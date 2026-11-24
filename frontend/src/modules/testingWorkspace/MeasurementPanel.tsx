@@ -294,12 +294,6 @@ export function MeasurementPanel({
         </Alert>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
       <Stack spacing={2.5}>
         {/* Section 1: Run metadata */}
         <ResultSection

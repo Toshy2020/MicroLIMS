@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../theme";
@@ -99,5 +100,38 @@ describe("WithdrawDialog", () => {
       })
     );
     expect(onWithdrawn).toHaveBeenCalled();
+  });
+
+  it("shows wrong password and server errors in the dialog", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.withdraw)
+      .mockRejectedValueOnce(
+        new AxiosError("Unauthorized", "401", undefined, undefined, {
+          status: 401,
+          statusText: "Unauthorized",
+          headers: {},
+          config: {} as never,
+          data: { message: "Invalid signing password." }
+        } as AxiosResponse)
+      )
+      .mockRejectedValueOnce(
+        new AxiosError("Bad Request", "400", undefined, undefined, {
+          status: 400,
+          statusText: "Bad Request",
+          headers: {},
+          config: {} as never,
+          data: { message: "Qualification is already withdrawn." }
+        } as AxiosResponse)
+      );
+
+    renderDialog();
+    await user.type(screen.getByLabelText(/Reason for withdrawal/i), "Retraining");
+    await user.type(screen.getByLabelText(/Password/i), "wrong");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+    expect(await screen.findByText("Invalid signing password.")).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+    expect(await screen.findByText("Qualification is already withdrawn.")).toBeTruthy();
   });
 });

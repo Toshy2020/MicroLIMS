@@ -46,7 +46,7 @@ export function MyQualificationsPage() {
 
     const [matrixResult, sopsResult] = await Promise.allSettled([
       competencyService.getMyMatrix(signal),
-      trainingAssignmentService.getMyAssignments()
+      trainingAssignmentService.getMyAssignments(undefined, signal)
     ]);
 
     if (signal?.aborted) return;
@@ -74,8 +74,10 @@ export function MyQualificationsPage() {
     return () => controller.abort();
   }, [loadAll]);
 
+  const isNonAnalyst = matrix !== null && matrix.analysts.length === 0;
+
   const qualificationRows = useMemo(() => {
-    if (!matrix) return [];
+    if (!matrix || matrix.analysts.length === 0) return [];
     const ownRow = matrix.analysts[0];
     const cellsByTest = new Map((ownRow?.cells ?? []).map((c) => [c.testDefinitionId, c]));
     return matrix.tests.map((test) => {
@@ -114,6 +116,13 @@ export function MyQualificationsPage() {
             <Paper variant="outlined" sx={{ p: 2, mt: 1 }}>
               <Skeleton variant="rectangular" height={120} />
             </Paper>
+          ) : isNonAnalyst ? (
+            <Paper variant="outlined" sx={{ mt: 1 }}>
+              <EmptyState
+                title={t("my.notApplicableTitle")}
+                description={t("my.notApplicableDescription")}
+              />
+            </Paper>
           ) : qualificationRows.length === 0 ? (
             <Paper variant="outlined" sx={{ mt: 1 }}>
               <EmptyState
@@ -136,7 +145,7 @@ export function MyQualificationsPage() {
                   <TableBody>
                     {qualificationRows.map((row) => (
                       <TableRow key={row.testDefinitionId} hover>
-                        <TableCell>
+                        <TableCell component="th" scope="row">
                           <Typography variant="body2" sx={{ fontWeight: 700 }}>
                             <Ltr>{row.code}</Ltr>
                           </Typography>
@@ -148,7 +157,7 @@ export function MyQualificationsPage() {
                           <StatusBadge status={row.status} />
                         </TableCell>
                         <TableCell sx={{ fontVariantNumeric: "tabular-nums" }}>
-                          {row.expiresOn ? <Ltr>{row.expiresOn}</Ltr> : t("matrix.noExpiry")}
+                          {row.expiresOn ? formatLabCalendarDate(row.expiresOn) : t("matrix.noExpiry")}
                         </TableCell>
                         <TableCell>
                           {row.sop
@@ -195,7 +204,7 @@ export function MyQualificationsPage() {
                   <TableBody>
                     {pendingSops.map((sop) => (
                       <TableRow key={sop.id} hover>
-                        <TableCell>
+                        <TableCell component="th" scope="row">
                           <Typography variant="body2" sx={{ fontWeight: 600 }}>
                             <Ltr>{sop.companyDocumentCode}</Ltr> — {sop.documentTitle}
                           </Typography>

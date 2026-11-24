@@ -104,6 +104,25 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
     }
   };
 
+  const handleOpenGateDialog = async () => {
+    if (!setting) return;
+    if (!setting.gateEnabled) {
+      setImpactLoading(true);
+      setImpactError(null);
+      try {
+        const freshImpact = await competencyService.getImpact(sectionId);
+        setImpact(freshImpact);
+      } catch (err: unknown) {
+        setImpact(null);
+        setImpactError(getErrorMessage(err, t("gate.impactError")));
+        return;
+      } finally {
+        setImpactLoading(false);
+      }
+    }
+    setSigningOpen(true);
+  };
+
   if (loading) {
     return (
       <Card variant="outlined">
@@ -118,10 +137,22 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
   }
 
   if (error || !setting) {
-    return error ? <Alert severity="error">{error}</Alert> : null;
+    return error ? (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" size="small" onClick={() => void loadData()}>
+            {t("common:actions.retry")}
+          </Button>
+        }
+      >
+        {error}
+      </Alert>
+    ) : null;
   }
 
   const nextEnabled = !setting.gateEnabled;
+  const enableBlocked = !setting.gateEnabled && (impactLoading || Boolean(impactError) || !impact);
 
   return (
     <Card variant="outlined">
@@ -138,7 +169,8 @@ export function GateSettingsCard({ sectionId, onChanged, onLoadError }: GateSett
             <Button
               variant={setting.gateEnabled ? "outlined" : "contained"}
               color={setting.gateEnabled ? "warning" : "primary"}
-              onClick={() => setSigningOpen(true)}
+              disabled={enableBlocked}
+              onClick={() => void handleOpenGateDialog()}
             >
               {setting.gateEnabled ? t("gate.disableButton") : t("gate.enableButton")}
             </Button>

@@ -52,7 +52,7 @@ describe("MyQualificationsPage", () => {
         {
           userId: 101,
           analystName: "Mona Ali",
-          cells: [{ userId: 101, testDefinitionId: 10, status: "ExpiringSoon", expiresOn: "2026-12-15" }]
+          cells: [{ userId: 101, testDefinitionId: 10, status: "ExpiringSoon", expiresOn: "2026-12-15", qualificationId: 101 }]
         }
       ]
     });
@@ -91,8 +91,35 @@ describe("MyQualificationsPage", () => {
 
     expect(await screen.findByText("TAMC")).toBeTruthy();
     expect(screen.getByText("Expiring Soon")).toBeTruthy();
-    expect(screen.getByText("2026-12-15")).toBeTruthy();
+    expect(screen.getByText("15 Dec 2026")).toBeTruthy();
     expect(screen.getByText(/Microbial Enumeration Procedure/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "Open My Reading List" })).toBeTruthy();
+    expect(trainingAssignmentService.getMyAssignments).toHaveBeenCalledWith(
+      undefined,
+      expect.any(AbortSignal)
+    );
+  });
+
+  it("shows Not applicable empty state when GetMyAsync returns no analyst row", async () => {
+    vi.mocked(competencyService.getMyMatrix).mockResolvedValue({
+      sectionId: 1,
+      page: 1,
+      pageSize: 50,
+      totalCount: 0,
+      tests: [
+        {
+          testDefinitionId: 10,
+          code: "TAMC",
+          displayName: "Total Aerobic Microbial Count",
+          sop: null
+        }
+      ],
+      analysts: []
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Not applicable")).toBeTruthy();
+    expect(screen.queryByText("Not Qualified")).toBeNull();
   });
 });

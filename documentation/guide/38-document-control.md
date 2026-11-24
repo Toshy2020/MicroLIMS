@@ -872,13 +872,13 @@ Some Document Control functions run automatically or have no screen:
 ### 38.16 Qualification Matrix
 
 #### Purpose
-View analyst qualifications per test and current SOP status for a laboratory section, record or withdraw qualifications, and manage the laboratory competency gate.
+View analyst qualifications per test and effective SOP code and revision for a laboratory section, record or withdraw qualifications, and manage the laboratory competency gate.
 
 #### Who can use it
 Users with **Competency View** (Section Head, Reviewer, QC Manager, QA) can view the matrix; users with **Competency Manage** (Section Head, QC Manager) can sign or withdraw qualifications and switch the laboratory competency gate on or off. A Section Head cannot qualify themselves.
 
 #### What you see
-- **Filters and matrix**: Select a laboratory section and filter by analyst, test, or qualification status. Each cell shows the analyst's qualification status (**Qualified** with expiry date, **Expiring soon**, **Expired**, **Withdrawn**, or **Not qualified**) alongside the SOP status for the test's item.
+- **Filters and matrix**: Select a laboratory section and filter by analyst, test, or qualification status. Each cell shows the analyst's qualification status (**Qualified** with expiry date, **Expiring soon**, **Expired**, **Withdrawn**, or **Not qualified**) alongside the effective SOP code and revision for the test's item.
 - **Competency gate**: The gate is **off by default** for each laboratory so qualifications can be entered before enforcement starts. Before switching the gate on, an impact preview shows how many open assigned test orders would be blocked and for whom. Switching the gate on or off requires a reason and an electronic signature.
 
 ---

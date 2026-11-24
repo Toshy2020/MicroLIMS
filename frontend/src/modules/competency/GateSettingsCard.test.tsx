@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { AxiosError, type AxiosResponse } from "axios";
 import { MemoryRouter } from "react-router-dom";
 import { ThemeProvider } from "@mui/material";
 import { lightTheme } from "../../theme";
@@ -99,5 +100,57 @@ describe("GateSettingsCard", () => {
         expectedVersion: 2
       })
     );
+  });
+
+  it("blocks enabling when impact preview fails to load", async () => {
+    vi.mocked(competencyService.getImpact).mockRejectedValue(new Error("Network error"));
+    renderCard();
+
+    expect(await screen.findByText("Gate Disabled")).toBeTruthy();
+    expect(await screen.findByText(/Failed to load impact preview/i)).toBeTruthy();
+    const enableBtn = screen.getByRole("button", { name: "Turn Gate On" }) as HTMLButtonElement;
+    expect(enableBtn.disabled).toBe(true);
+  });
+
+  it("shows stale-version error from the server in the signature dialog", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.setGate).mockRejectedValue(
+      new AxiosError("Conflict", "409", undefined, undefined, {
+        status: 409,
+        statusText: "Conflict",
+        headers: {},
+        config: {} as never,
+        data: { message: "Gate settings changed by another user. Reload and try again." }
+      } as AxiosResponse)
+    );
+    renderCard();
+
+    expect(await screen.findByText("Gate Disabled")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Turn Gate On" }));
+
+    await user.type(await screen.findByLabelText(/Reason for changing gate/i), "Enabling");
+    await user.type(screen.getByLabelText(/Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    expect(await screen.findByText("Gate settings changed by another user. Reload and try again.")).toBeTruthy();
+  });
+
+  it("shows Retry on settings load failure and reloads when clicked", async () => {
+    const user = userEvent.setup();
+    vi.mocked(competencyService.getSettings)
+      .mockRejectedValueOnce(new Error("Server error"))
+      .mockResolvedValueOnce({
+        sectionId: 1,
+        gateEnabled: false,
+        reminderDaysBeforeExpiry: 30,
+        changedAt: null,
+        changedByName: null,
+        version: 2
+      });
+    renderCard();
+
+    expect(await screen.findByText(/Failed to load competency gate settings/i)).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(await screen.findByText("Gate Disabled")).toBeTruthy();
   });
 });

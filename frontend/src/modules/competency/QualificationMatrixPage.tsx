@@ -26,10 +26,11 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "../../i18n";
 import { PERMISSIONS } from "../../routes/routes";
 import { tableHeadSx } from "../../theme";
+import { statusLabel } from "../../theme/statusTokens";
+import { formatLabCalendarDate } from "../../utils/formatDate";
 import {
   DEFAULT_MATRIX_CELL_STATUS,
   competencyService,
-  type AnalystQualificationDto,
   type CompetencyMatrixDto,
   type MatrixCellStatus
 } from "../../services/competencyService";
@@ -75,6 +76,8 @@ export function QualificationMatrixPage() {
 
   const [analystSearch, setAnalystSearch] = useState("");
   const [testSearch, setTestSearch] = useState("");
+  const [debouncedAnalystSearch, setDebouncedAnalystSearch] = useState("");
+  const [debouncedTestSearch, setDebouncedTestSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<MatrixCellStatus | "ALL">("ALL");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -83,7 +86,22 @@ export function QualificationMatrixPage() {
   const [loading, setLoading] = useState(true);
   const [qualifyTarget, setQualifyTarget] = useState<QualifyTarget | null>(null);
   const [withdrawTarget, setWithdrawTarget] = useState<WithdrawTarget | null>(null);
-  const [sessionQualIds, setSessionQualIds] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedAnalystSearch(analystSearch);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [analystSearch]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedTestSearch(testSearch);
+      setPage(1);
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [testSearch]);
 
   const loadSections = useCallback(async (signal?: AbortSignal) => {
     setSectionsFailed(false);
@@ -120,8 +138,9 @@ export function QualificationMatrixPage() {
         const data = await competencyService.getMatrix(
           sectionId,
           {
-            analystSearch: analystSearch.trim() || undefined,
-            testSearch: testSearch.trim() || undefined,
+            analystSearch: debouncedAnalystSearch.trim() || undefined,
+            testSearch: debouncedTestSearch.trim() || undefined,
+            status: statusFilter === "ALL" ? undefined : statusFilter,
             page,
             pageSize
           },
@@ -137,7 +156,7 @@ export function QualificationMatrixPage() {
         if (!signal?.aborted) setLoading(false);
       }
     },
-    [sectionId, analystSearch, testSearch, page, pageSize]
+    [sectionId, debouncedAnalystSearch, debouncedTestSearch, statusFilter, page, pageSize]
   );
 
   useEffect(() => {
@@ -147,13 +166,7 @@ export function QualificationMatrixPage() {
     return () => controller.abort();
   }, [sectionId, loadMatrix]);
 
-  const filteredAnalysts = useMemo(() => {
-    if (!matrix) return [];
-    if (statusFilter === "ALL") return matrix.analysts;
-    return matrix.analysts.filter((row) =>
-      row.cells.some((cell) => cell.status === statusFilter)
-    );
-  }, [matrix, statusFilter]);
+  const analysts = matrix?.analysts ?? [];
 
   const outageSources = useMemo(() => {
     const sources: string[] = [];
@@ -163,20 +176,11 @@ export function QualificationMatrixPage() {
     return sources;
   }, [sectionsFailed, settingsFailed, matrixFailed, t]);
 
-  const handleQualified = (qualification: AnalystQualificationDto) => {
-    setSessionQualIds((prev) => ({
-      ...prev,
-      [`${qualification.userId}:${qualification.testDefinitionId}`]: qualification.id
-    }));
+  const handleQualified = () => {
     void loadMatrix();
   };
 
-  const handleWithdrawn = (qualification: AnalystQualificationDto) => {
-    setSessionQualIds((prev) => {
-      const next = { ...prev };
-      delete next[`${qualification.userId}:${qualification.testDefinitionId}`];
-      return next;
-    });
+  const handleWithdrawn = () => {
     void loadMatrix();
   };
 
@@ -211,20 +215,14 @@ export function QualificationMatrixPage() {
             size="small"
             label={t("matrix.analystSearch")}
             value={analystSearch}
-            onChange={(e) => {
-              setAnalystSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setAnalystSearch(e.target.value)}
           />
 
           <TextField
             size="small"
             label={t("matrix.testSearch")}
             value={testSearch}
-            onChange={(e) => {
-              setTestSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setTestSearch(e.target.value)}
           />
 
           <FormControl size="small" sx={{ minWidth: 180 }}>
@@ -233,12 +231,15 @@ export function QualificationMatrixPage() {
               labelId="matrix-status-filter-label"
               label={t("matrix.statusFilter")}
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as MatrixCellStatus | "ALL")}
+              onChange={(e) => {
+                setStatusFilter(e.target.value as MatrixCellStatus | "ALL");
+                setPage(1);
+              }}
             >
               <MenuItem value="ALL">{t("matrix.allStatuses")}</MenuItem>
               {CELL_STATUSES.map((status) => (
                 <MenuItem key={status} value={status}>
-                  {status}
+                  {statusLabel(status, t)}
                 </MenuItem>
               ))}
             </Select>
@@ -263,7 +264,7 @@ export function QualificationMatrixPage() {
       )}
 
       <Typography variant="caption" color="text.secondary" aria-live="polite">
-        {t("matrix.resultsCount", { count: filteredAnalysts.length })}
+        {t("matrix.resultsCount", { count: matrix?.totalCount ?? analysts.length })}
       </Typography>
 
       {loading ? (
@@ -274,7 +275,7 @@ export function QualificationMatrixPage() {
             <Skeleton variant="rectangular" height={48} />
           </Stack>
         </Paper>
-      ) : !matrix || filteredAnalysts.length === 0 || matrix.tests.length === 0 ? (
+      ) : !matrix || analysts.length === 0 || matrix.tests.length === 0 ? (
         <Paper variant="outlined">
           <EmptyState title={t("matrix.emptyTitle")} description={t("matrix.emptyDescription")} />
         </Paper>
@@ -306,15 +307,17 @@ export function QualificationMatrixPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredAnalysts.map((row) => {
+                {analysts.map((row) => {
                   const cellByTest = new Map(row.cells.map((c) => [c.testDefinitionId, c]));
                   return (
                     <TableRow key={row.userId} hover>
-                      <TableCell sx={{ fontWeight: 600 }}>{row.analystName}</TableCell>
+                      <TableCell component="th" scope="row" sx={{ fontWeight: 600 }}>
+                        {row.analystName}
+                      </TableCell>
                       {matrix.tests.map((test) => {
                         const cell = cellByTest.get(test.testDefinitionId);
                         const status: MatrixCellStatus = cell?.status ?? DEFAULT_MATRIX_CELL_STATUS;
-                        const sessionQualId = sessionQualIds[`${row.userId}:${test.testDefinitionId}`];
+                        const qualificationId = cell?.qualificationId ?? null;
                         const testLabel = `${test.code} — ${test.displayName}`;
                         return (
                           <TableCell key={test.testDefinitionId}>
@@ -326,15 +329,16 @@ export function QualificationMatrixPage() {
                                   color="text.secondary"
                                   sx={{ fontVariantNumeric: "tabular-nums" }}
                                 >
-                                  <Ltr>{t("matrix.expiresOn", { date: cell.expiresOn })}</Ltr>
+                                  {t("matrix.expiresOn", { date: formatLabCalendarDate(cell.expiresOn) })}
                                 </Typography>
                               )}
                               {canManage && (
-                                <Box sx={{ display: "flex", gap: 0.5 }}>
+                                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
                                   <Button
                                     size="small"
                                     variant="text"
-                                    sx={{ minWidth: 0, px: 0.5, py: 0, textTransform: "none", fontSize: 12 }}
+                                    aria-label={t("matrix.qualifyAria", { analyst: row.analystName, test: testLabel })}
+                                    sx={{ minWidth: 44, minHeight: 28, px: 1, textTransform: "none", fontSize: 12 }}
                                     onClick={() =>
                                       setQualifyTarget({
                                         userId: row.userId,
@@ -346,15 +350,16 @@ export function QualificationMatrixPage() {
                                   >
                                     {t("matrix.qualifyAction")}
                                   </Button>
-                                  {sessionQualId && status !== "Withdrawn" && (
+                                  {qualificationId != null && status !== "Withdrawn" && (
                                     <Button
                                       size="small"
                                       color="warning"
                                       variant="text"
-                                      sx={{ minWidth: 0, px: 0.5, py: 0, textTransform: "none", fontSize: 12 }}
+                                      aria-label={t("matrix.withdrawAria", { analyst: row.analystName, test: testLabel })}
+                                      sx={{ minWidth: 44, minHeight: 28, px: 1, textTransform: "none", fontSize: 12 }}
                                       onClick={() =>
                                         setWithdrawTarget({
-                                          qualificationId: sessionQualId,
+                                          qualificationId,
                                           analystName: row.analystName,
                                           testLabel
                                         })

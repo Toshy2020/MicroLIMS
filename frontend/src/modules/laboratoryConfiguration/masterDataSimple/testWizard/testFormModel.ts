@@ -164,6 +164,7 @@ export interface TestFormModel {
   code: string;
   displayName: string;
   coaDisplayOrder: string;
+  requalificationMonths: string;
   sectionId: number | "";
   workflowType: string;
   equationType: string;
@@ -226,6 +227,7 @@ export const TEST_DRAFT_FIELDS: readonly (keyof TestFormModel)[] = [
   "code",
   "displayName",
   "coaDisplayOrder",
+  "requalificationMonths",
   "sectionId",
   "workflowType",
   "equationType",
@@ -288,6 +290,7 @@ export function createEmptyTestFormModel(overrides: Partial<TestFormModel> = {})
     code: "",
     displayName: "",
     coaDisplayOrder: "",
+    requalificationMonths: "",
     sectionId: "",
     workflowType: defaultWorkflowType,
     equationType: isFp ? "HplcMethodAssay" : "None",
@@ -395,6 +398,7 @@ export function fromTestDefinition(
     code: t.code,
     displayName: t.displayName,
     coaDisplayOrder: t.coaDisplayOrder != null ? String(t.coaDisplayOrder) : "",
+    requalificationMonths: t.requalificationMonths != null ? String(t.requalificationMonths) : "",
     sectionId: t.sectionId ?? context.defaultSectionId ?? "",
     workflowType,
     equationType,
@@ -557,6 +561,7 @@ export function duplicateFromTestDefinition(
     code: "",
     displayName: "",
     coaDisplayOrder: "",
+    requalificationMonths: "",
     sectionId: options.canUseSourceSection ? base.sectionId : options.mySingleSectionId,
     icp: {
       ...base.icp,
@@ -781,6 +786,13 @@ export function validateStep(
     const trimmedCoaOrder = model.coaDisplayOrder.trim();
     if (trimmedCoaOrder !== "" && !/^[1-9]\d{0,3}$/.test(trimmedCoaOrder)) {
       errors.coaDisplayOrder = t("testWizard.validation.coaOrderInvalid");
+    }
+    const trimmedRequal = model.requalificationMonths.trim();
+    if (trimmedRequal !== "") {
+      const parsed = Number(trimmedRequal);
+      if (!/^\d+$/.test(trimmedRequal) || parsed < 1 || parsed > 120) {
+        errors.requalificationMonths = t("testWizard.validation.requalificationMonthsInvalid");
+      }
     }
     return errors;
   }
@@ -1100,6 +1112,8 @@ export function toTestPayload(
   const trimmedDisplayName = model.displayName.trim();
   const trimmedCoaOrder = model.coaDisplayOrder.trim();
   const coaOrderValue = trimmedCoaOrder === "" ? null : Number(trimmedCoaOrder);
+  const trimmedRequal = model.requalificationMonths.trim();
+  const requalificationMonthsValue = trimmedRequal === "" ? null : Number(trimmedRequal);
   const chosenSectionId = model.sectionId === "" ? null : Number(model.sectionId);
 
   const { workflowType, equationType } = model;
@@ -1252,9 +1266,13 @@ export function toTestPayload(
       isFp ? model.physchemArea : null,
       model.moistureRole
     );
+    const hadRequal = model.editingTest?.requalificationMonths != null;
     const updatePayload: UpdateTestDefinitionPayload = {
       // 0 clears a previously set order on the server.
       coaDisplayOrder: coaOrderValue ?? 0,
+      ...(requalificationMonthsValue !== null || hadRequal
+        ? { requalificationMonths: requalificationMonthsValue }
+        : {}),
       ...shared,
       changeReason: reasonCheck.payload
     };
@@ -1263,6 +1281,9 @@ export function toTestPayload(
 
   const createPayload: CreateTestDefinitionPayload = {
     coaDisplayOrder: coaOrderValue,
+    ...(requalificationMonthsValue !== null
+      ? { requalificationMonths: requalificationMonthsValue }
+      : {}),
     ...shared
   };
   return createPayload;

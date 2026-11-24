@@ -160,6 +160,10 @@ const STATUS_TONE: Record<string, StatusTone> = {
   // Calibration runs withdrawn after the fact.
   Withdrawn: "inconclusive",
 
+  // Analyst competency matrix cell states (D4).
+  ExpiringSoon: "action",
+  NotQualified: "pending",
+
   // Audit trail review & finding states.
   Signed: "notDetected",
   NoFindings: "notDetected",
@@ -291,6 +295,8 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   Removed: "statuses.Removed",
   RequiresReview: "statuses.RequiresReview",
   Withdrawn: "statuses.Withdrawn",
+  ExpiringSoon: "statuses.ExpiringSoon",
+  NotQualified: "statuses.NotQualified",
   Signed: "statuses.Signed",
   NoFindings: "statuses.NoFindings",
   FindingsRecorded: "statuses.FindingsRecorded",

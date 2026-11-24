@@ -367,7 +367,12 @@ export function MeasurementPanel({
         />
 
         {/* Action button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          {error && (
+            <Typography role="alert" variant="caption" color="error">
+              {error}
+            </Typography>
+          )}
           <Button
             variant="contained"
             disabled={!isFormValid}

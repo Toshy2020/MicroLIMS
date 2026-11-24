@@ -98,6 +98,8 @@ const TrainingMatrixPage = lazy(() => import("../modules/documentControl/pages/T
 const ComplianceDashboardPage = lazy(() => import("../modules/documentControl/pages/ComplianceDashboardPage").then((m) => ({ default: m.ComplianceDashboardPage })));
 const DocumentDetailPage = lazy(() => import("../modules/documentControl/pages/DocumentDetailPage").then((m) => ({ default: m.DocumentDetailPage })));
 const DocumentConfigurationPage = lazy(() => import("../modules/documentControl/pages/DocumentConfigurationPage").then((m) => ({ default: m.DocumentConfigurationPage })));
+const QualificationMatrixPage = lazy(() => import("../modules/competency/QualificationMatrixPage").then((m) => ({ default: m.QualificationMatrixPage })));
+const MyQualificationsPage = lazy(() => import("../modules/competency/MyQualificationsPage").then((m) => ({ default: m.MyQualificationsPage })));
 const AccessReviewPage = lazy(() => import("../modules/admin/AccessReviewPage").then((m) => ({ default: m.AccessReviewPage })));
 const SettingsPage = lazy(() => import("../modules/admin/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const IntegrationsPage = lazy(() => import("../modules/admin/IntegrationsPage").then((m) => ({ default: m.IntegrationsPage })));
@@ -328,6 +330,10 @@ export function AppRoutes() {
 
             <Route element={<PermissionRoute code={PERMISSIONS.DOCUMENTS_CONFIG_MANAGE} />}>
               <Route path="/document-control/configuration" element={<DocumentConfigurationPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.COMPETENCY_VIEW} />}>
+              <Route path="/competency/matrix" element={<QualificationMatrixPage />} />
+              <Route path="/competency/my" element={<MyQualificationsPage />} />
             </Route>
             {/* Hand over a deactivated user's document responsibilities: ConfigManage anywhere, Reassign within one's departments (the server decides per item). */}
             <Route element={<PermissionRoute code={[PERMISSIONS.DOCUMENTS_CONFIG_MANAGE, PERMISSIONS.DOCUMENTS_REASSIGN]} />}>

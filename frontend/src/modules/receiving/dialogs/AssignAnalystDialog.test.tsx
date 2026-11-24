@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { AssignAnalystDialog } from "./AssignAnalystDialog";
 import { ReceiveService } from "../services/ReceiveService";
 import { SampleAssignmentOptions, SampleRecord } from "../types/receivingTypes";
@@ -51,9 +52,9 @@ function renderDialog(onAssigned = vi.fn(), onClose = vi.fn()) {
   return { onAssigned, onClose };
 }
 
-function pick(comboboxName: string, optionName: string) {
-  fireEvent.mouseDown(screen.getByRole("combobox", { name: comboboxName }));
-  fireEvent.click(within(screen.getByRole("listbox")).getByRole("option", { name: optionName }));
+async function pick(user: ReturnType<typeof userEvent.setup>, comboboxName: string, optionName: string) {
+  await user.click(screen.getByRole("combobox", { name: comboboxName }));
+  await user.click(within(screen.getByRole("listbox")).getByRole("option", { name: optionName }));
 }
 
 describe("AssignAnalystDialog", () => {
@@ -68,6 +69,7 @@ describe("AssignAnalystDialog", () => {
   });
 
   it("offers each test only the people who may take it and locks tests outside the user's laboratory", async () => {
+    const user = userEvent.setup();
     renderDialog();
     await screen.findByRole("combobox", { name: "Analyst for TAMC" });
 
@@ -75,19 +77,63 @@ describe("AssignAnalystDialog", () => {
     expect(screen.queryByRole("combobox", { name: "Analyst for ASSAY" })).toBeNull();
     expect(within(screen.getByTestId("assign-row-ASSAY")).getByText("Not your laboratory")).toBeTruthy();
 
-    fireEvent.mouseDown(screen.getByRole("combobox", { name: "Analyst for TYMC" }));
+    await user.click(screen.getByRole("combobox", { name: "Analyst for TYMC" }));
     const offered = within(screen.getByRole("listbox")).getAllByRole("option").map((o) => o.textContent);
     expect(offered).toEqual(["Unassigned", "Hana Head (Section Head)", "Mona Ali (Analyst)"]);
   });
 
+  it("orders qualified analysts first and disables refused analysts with the server reason", async () => {
+    const user = userEvent.setup();
+    vi.mocked(ReceiveService.getAssignmentOptions).mockResolvedValue({
+      ...options,
+      tests: [
+        {
+          testOrderId: 1,
+          testCode: "TAMC",
+          sectionId: 1,
+          sectionName: "Microbiology",
+          status: "Pending",
+          assignedAnalystId: null,
+          assignedAnalystName: null,
+          canAssign: true,
+          eligibleUserIds: [1, 3, 4],
+          competencyRefusals: [
+            {
+              userId: 1,
+              code: "Competency.AssigneeNotQualified",
+              params: { analyst: "Hana Head", test: "TAMC" },
+              reason: "Hana Head is not qualified for TAMC."
+            }
+          ]
+        }
+      ]
+    });
+
+    renderDialog();
+    await screen.findByRole("combobox", { name: "Analyst for TAMC" });
+    await user.click(screen.getByRole("combobox", { name: "Analyst for TAMC" }));
+
+    const listbox = screen.getByRole("listbox");
+    const opts = within(listbox).getAllByRole("option");
+    expect(opts.map((o) => o.textContent)).toEqual([
+      "Unassigned",
+      "Mona Ali (Analyst)",
+      "Omar Saleh (Reviewer)",
+      "Hana Head (Section Head)Hana Head is not qualified for TAMC."
+    ]);
+    const hanaOption = opts[3];
+    expect(hanaOption.getAttribute("aria-disabled")).toBe("true");
+  });
+
   it("saves a different analyst per test, sending only the tests that changed", async () => {
+    const user = userEvent.setup();
     const { onAssigned, onClose } = renderDialog();
     await screen.findByRole("combobox", { name: "Analyst for TAMC" });
 
-    pick("Analyst for TAMC", "Omar Saleh (Reviewer)");
-    pick("Analyst for TYMC", "Hana Head (Section Head)");
-    fireEvent.change(screen.getByLabelText(/Reason for Assignment/), { target: { value: "Workload" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));
+    await pick(user, "Analyst for TAMC", "Omar Saleh (Reviewer)");
+    await pick(user, "Analyst for TYMC", "Hana Head (Section Head)");
+    await user.type(screen.getByLabelText(/Reason for Assignment/), "Workload");
+    await user.click(screen.getByRole("button", { name: "Save Assignment" }));
 
     await waitFor(() => expect(onAssigned).toHaveBeenCalledWith(sample));
     expect(ReceiveService.assignTestAnalysts).toHaveBeenCalledWith(7, [
@@ -98,11 +144,12 @@ describe("AssignAnalystDialog", () => {
   });
 
   it("'Assign all tests to' fills only the tests that person may take", async () => {
+    const user = userEvent.setup();
     renderDialog();
     await screen.findByRole("combobox", { name: "Analyst for TAMC" });
 
-    pick("Assign all tests to", "Omar Saleh (Reviewer)");
-    fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));
+    await pick(user, "Assign all tests to", "Omar Saleh (Reviewer)");
+    await user.click(screen.getByRole("button", { name: "Save Assignment" }));
 
     await waitFor(() => expect(ReceiveService.assignTestAnalysts).toHaveBeenCalled());
     // Omar is eligible for TAMC only; TYMC stays unassigned and is not sent.
@@ -110,10 +157,11 @@ describe("AssignAnalystDialog", () => {
   });
 
   it("closes without saving when nothing changed", async () => {
+    const user = userEvent.setup();
     const { onClose } = renderDialog();
     await screen.findByRole("combobox", { name: "Analyst for TAMC" });
 
-    fireEvent.click(screen.getByRole("button", { name: "Save Assignment" }));
+    await user.click(screen.getByRole("button", { name: "Save Assignment" }));
 
     expect(onClose).toHaveBeenCalled();
     expect(ReceiveService.assignTestAnalysts).not.toHaveBeenCalled();

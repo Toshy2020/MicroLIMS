@@ -80,6 +80,10 @@ export const APP_ROUTES = {
   DOCUMENT_CONTROL_CONFIGURATION: "/document-control/configuration",
   DOCUMENT_CONTROL_REASSIGNMENTS: "/document-control/reassignments",
 
+  // Competency Gate (D4)
+  COMPETENCY_MATRIX: "/competency/matrix",
+  MY_QUALIFICATIONS: "/competency/my",
+
   // Audit
   AUDIT_SEARCH: "/admin/audit",
   AUDIT_TRAIL_REVIEWS: "/audit-trail-reviews",
@@ -289,7 +293,10 @@ export const PERMISSIONS = {
   LABELS_CONFIGURE: "Labels.Configure",
   TABLE_VIEWS_SHARE: "TableViews.Share",
   DATA_EXPORT: "Data.Export",
-  NOTIFICATIONS_CONFIGURE: "Notifications.Configure"
+  NOTIFICATIONS_CONFIGURE: "Notifications.Configure",
+  COMPETENCY_VIEW: "Competency.View",
+  COMPETENCY_MANAGE: "Competency.Manage",
+  COMPETENCY_OVERRIDE: "Competency.Override"
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

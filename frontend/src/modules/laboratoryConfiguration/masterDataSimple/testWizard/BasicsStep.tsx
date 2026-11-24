@@ -83,6 +83,22 @@ function BasicsStepView({ model, set, errors, mode, lookup }: BasicsViewProps) {
         }
       />
 
+      <TextField
+        size="small"
+        name="requalificationMonths"
+        label={t("testWizard.basics.requalificationMonthsLabel")}
+        placeholder={t("testWizard.basics.requalificationMonthsPlaceholder")}
+        value={model.requalificationMonths}
+        onChange={(e) => set({ requalificationMonths: e.target.value })}
+        fullWidth
+        slotProps={{ htmlInput: { inputMode: "numeric", dir: "ltr" } }}
+        error={Boolean(errors.requalificationMonths)}
+        helperText={
+          errors.requalificationMonths ||
+          t("testWizard.basics.requalificationMonthsHelper")
+        }
+      />
+
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <FormControl
           size="small"
@@ -162,6 +178,7 @@ export function createBasicsStep(
         { label: t("testWizard.basics.summary.code"), value: model.code.trim() || "—", field: "code" },
         { label: t("testWizard.basics.summary.displayName"), value: model.displayName.trim() || "—", field: "displayName" },
         { label: t("testWizard.basics.summary.coaOrder"), value: model.coaDisplayOrder.trim() || "—", field: "coaDisplayOrder" },
+        { label: t("testWizard.basics.summary.requalificationMonths"), value: model.requalificationMonths.trim() || "—", field: "requalificationMonths" },
         { label: t("testWizard.basics.summary.section"), value: sectionLabel(selectableSections, model.sectionId, t), field: "sectionId" },
         {
           label: t("testWizard.basics.summary.workflowType"),

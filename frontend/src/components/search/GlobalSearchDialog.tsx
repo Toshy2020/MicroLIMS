@@ -410,8 +410,8 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                         primary={item.title}
                         secondary={item.subtitle}
                         slotProps={{
-                          primary: { sx: { fontWeight: 600, fontSize: 14 } },
-                          secondary: { sx: { fontSize: 12 } }
+                          primary: { sx: { fontWeight: 600, fontSize: 14, overflowWrap: "anywhere" } },
+                          secondary: { sx: { fontSize: 12, overflowWrap: "anywhere" } }
                         }}
                       />
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

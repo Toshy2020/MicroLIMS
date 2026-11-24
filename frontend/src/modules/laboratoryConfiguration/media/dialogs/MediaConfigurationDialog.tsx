@@ -198,6 +198,11 @@ export function MediaConfigurationDialog({
       }
     }
 
+    if (selectedOrganismId != null) {
+      setError(t("media.configurationDialog.pendingOrganismError"));
+      return;
+    }
+
     const payload = {
       mediaProductId: product.id,
       evaluationType,

@@ -78,6 +78,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const showIdentityText = useMediaQuery(theme.breakpoints.up("md"));
+  // Phones: shrink the two switches so the bell and account button stay inside the bar.
+  const isCompactHeader = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
   const { username, fullName, jobTitle, role, roleName, logout } = useAuth();
   const { status: liveStatus } = useLive();
@@ -243,7 +245,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         </Box>
       </ButtonBase>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 0.75, md: 1.5 }, minWidth: 0 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.75, md: 1.5 }, minWidth: 0, flexShrink: 0 }}>
         <Tooltip title={t("header.searchButton")}>
           <IconButton
             onClick={() => setSearchOpen(true)}
@@ -256,6 +258,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         </Tooltip>
         <Tooltip title={t("header.benchModeTooltip")}>
           <Switch
+            size={isCompactHeader ? "small" : "medium"}
             checked={benchMode}
             onChange={(_, checked) => setBenchMode(checked)}
             sx={{
@@ -268,6 +271,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         </Tooltip>
         <Tooltip title={mode === "dark" ? t("header.switchToLight") : t("header.switchToDark")}>
           <Switch
+            size={isCompactHeader ? "small" : "medium"}
             checked={mode === "dark"}
             onChange={toggleMode}
             icon={<LightModeIcon sx={{ fontSize: 15, color: "#f2b705", p: "1.5px" }} />}

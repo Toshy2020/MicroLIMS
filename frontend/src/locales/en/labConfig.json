@@ -1118,6 +1118,7 @@
         "indication": "Indication"
       },
       "organismFallback": "Organism #{{id}}",
+      "pendingOrganismError": "An organism is selected but not added. Press \"Add Organism\" to include it, or clear the selection, before saving.",
       "duplicateOrganismError": "This organism and role combination is already staged for this configuration.",
       "conditionRequiredError": "Choose an incubation condition.",
       "recoveryRangeError": "Recovery % min cannot exceed max.",

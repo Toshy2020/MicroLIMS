@@ -1174,6 +1174,7 @@
         "indication": "استدلال"
       },
       "organismFallback": "كائن #{{id}}",
+      "pendingOrganismError": "تم اختيار كائن دقيق ولم تتم إضافته. اضغط \"إضافة كائن\" لإدراجه أو امسح الاختيار قبل الحفظ.",
       "duplicateOrganismError": "هذا الكائن والدور مضافان بالفعل لهذه التهيئة.",
       "conditionRequiredError": "اختر شرط حضانة.",
       "recoveryRangeError": "لا يمكن أن يتجاوز الحد الأدنى لنسبة الاسترداد الحد الأقصى.",

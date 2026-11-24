@@ -1,4 +1,5 @@
 using System.Reflection;
+using MicroLIMS.API.Authorization;
 using System.Text.RegularExpressions;
 using MicroLIMS.Shared.Constants;
 using Microsoft.AspNetCore.Authorization;
@@ -40,7 +41,8 @@ public class PermissionAuthorizationTests
         // The edge-agent policy is not a user permission; it is guarded by the AgentKey scheme.
         var used = AuthorizeAttributes()
             .Where(x => x.Attribute.Policy != MicroLIMS.API.Authorization.AgentKeyDefaults.Policy)
-            .Select(x => x.Attribute.Policy).OfType<string>().ToHashSet();
+            .Select(x => x.Attribute.Policy).OfType<string>()
+            .SelectMany(PermissionPolicyProvider.PermissionsFor).ToHashSet();
         Assert.Empty(used.Except(PermissionConstants.Enforced));
     }
 

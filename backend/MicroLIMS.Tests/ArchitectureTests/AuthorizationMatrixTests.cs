@@ -1,4 +1,5 @@
 using System.Reflection;
+using MicroLIMS.API.Authorization;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -71,8 +72,10 @@ public class AuthorizationMatrixTests
                 allowed.IntersectWith(attribute.Roles.Split(',').Select(r => Enum.Parse<RoleType>(r.Trim())));
             if (!string.IsNullOrEmpty(attribute.Policy))
             {
-                Assert.True(PermissionConstants.All.Contains(attribute.Policy), $"{controller.Name}.{action.Name}: unknown policy {attribute.Policy}");
-                allowed.IntersectWith(Grants.Value.GetValueOrDefault(attribute.Policy) ?? new HashSet<RoleType>());
+                var permissions = PermissionPolicyProvider.PermissionsFor(attribute.Policy);
+                Assert.All(permissions, code => Assert.True(PermissionConstants.All.Contains(code),
+                    $"{controller.Name}.{action.Name}: unknown permission {code}"));
+                allowed.IntersectWith(permissions.SelectMany(code => Grants.Value.GetValueOrDefault(code) ?? []));
             }
         }
         return allowed;

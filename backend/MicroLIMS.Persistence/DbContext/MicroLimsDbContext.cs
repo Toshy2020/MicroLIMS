@@ -29,6 +29,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public string? CurrentSystemProcessName { get; set; }
     public uint? ExpectedVersion { get; set; }
     public string? CurrentReason { get; set; }
+    private readonly Dictionary<object, string> _nextAuditReasons = new(ReferenceEqualityComparer.Instance);
+
+    public void SetNextAuditReason(object entity, string reason) => _nextAuditReasons[entity] = reason;
 
     // Set by DraftContextMiddleware; copied to AuditLog.SourceContext for the
     // rows the automatic capture builds. Never changes the audit timestamp.
@@ -811,6 +814,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry Entry,
         string Action,
         string? PreviousValue,
+        string? Reason,
         AuditLog? Completed);
 
     // Entity types the automatic capture skips. Public so the redaction
@@ -854,19 +858,20 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
         var pending = new List<PendingAuditEntry>(entries.Count);
         foreach (var entry in entries)
         {
+            _nextAuditReasons.Remove(entry.Entity, out var reason);
             switch (entry.State)
             {
                 case EntityState.Added:
-                    pending.Add(new PendingAuditEntry(entry, "Create", null, null));
+                    pending.Add(new PendingAuditEntry(entry, "Create", null, reason, null));
                     break;
                 case EntityState.Modified:
-                    pending.Add(new PendingAuditEntry(entry, "Update", SerializeValues(entry.OriginalValues), null));
+                    pending.Add(new PendingAuditEntry(entry, "Update", SerializeValues(entry.OriginalValues), reason, null));
                     break;
                 case EntityState.Deleted:
                     // A deleted row already has its real key, and after the
                     // save the tracker lets go of it - finish it now.
                     var previousValue = SerializeValues(entry.OriginalValues);
-                    pending.Add(new PendingAuditEntry(entry, "Delete", previousValue, BuildAuditLog(entry, "Delete", previousValue, null)));
+                    pending.Add(new PendingAuditEntry(entry, "Delete", previousValue, reason, BuildAuditLog(entry, "Delete", previousValue, null, reason)));
                     break;
             }
         }
@@ -877,7 +882,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     {
         foreach (var p in pending)
         {
-            AuditLogs.Add(p.Completed ?? BuildAuditLog(p.Entry, p.Action, p.PreviousValue, SerializeValues(p.Entry.CurrentValues)));
+            AuditLogs.Add(p.Completed ?? BuildAuditLog(p.Entry, p.Action, p.PreviousValue, SerializeValues(p.Entry.CurrentValues), p.Reason));
         }
     }
 
@@ -895,8 +900,9 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             p => p.Name,
             p => IsAuditRedacted(p) ? AuditRedactedAttribute.RedactedValue : values[p]));
 
-    private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue)
+    private AuditLog BuildAuditLog(Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry, string action, string? previousValue, string? newValue, string? reasonOverride)
     {
+        var auditReason = reasonOverride ?? CurrentReason;
         var idProperty = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "Id");
         var entityId = idProperty?.CurrentValue?.ToString();
         if (entityId is null && entry.Metadata.FindPrimaryKey() is { Properties: { Count: > 0 } pk })
@@ -923,7 +929,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             ActorType = bySystem ? Domain.Enums.ActorType.System : null,
             SystemProcessName = byAgent ? $"InstrumentAgent:{CurrentAgentCode}" : byProcess ? CurrentSystemProcessName : null,
             Timestamp = _clock.GetUtcNow().UtcDateTime,
-            Reason = CurrentReason is { Length: > 2000 } ? "See the Reason audit detail." : CurrentReason,
+            Reason = auditReason is { Length: > 2000 } ? "See the Reason audit detail." : auditReason,
             SourceContext = CurrentSourceContext,
             BatchNumber = GetPropertyAsString(entry, "BatchNumber"),
             ControlNumber = GetPropertyAsString(entry, "ControlNumber"),
@@ -934,7 +940,7 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
             SampleId = GetPropertyAsInt(entry, "SampleId") ?? (entry.Entity is Sample ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var sid) ? sid : null : null),
             TestOrderId = GetPropertyAsInt(entry, "TestOrderId") ?? (entry.Entity is TestOrder ? int.TryParse(idProperty?.CurrentValue?.ToString(), out var tid) ? tid : null : null)
         };
-        if (CurrentReason is { Length: > 2000 } reason)
+        if (auditReason is { Length: > 2000 } reason)
             audit.Changes.Add(new AuditEventChange { FieldName = nameof(AuditLog.Reason), NewValue = reason });
         return audit;
     }

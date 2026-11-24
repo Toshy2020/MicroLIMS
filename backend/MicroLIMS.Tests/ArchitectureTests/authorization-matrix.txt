@@ -500,8 +500,12 @@ OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): 
 OosInvestigationDocumentController.Upload(String, IFormFile): SectionHead
 OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocumentRequest): SectionHead
 OosInvestigationsController.AddAnalystStatement(Int32, OosAnalystStatementRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.AddEntry(Int32, OosEntryRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
+OosInvestigationsController.Conclude(Int32, ConcludeRequest, CancellationToken): SectionHead
 OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.OpenManually(Int32, Int32, CancellationToken): SectionHead
+OosInvestigationsController.Reopen(Int32, OosReopenRequest, CancellationToken): SectionHead
 OosInvestigationsController.SaveRetestPlan(Int32, SaveRetestPlanRequest, CancellationToken): SectionHead
 OosInvestigationsController.SignPhaseOne(Int32, SignPhaseOneRequest, CancellationToken): SectionHead
 OosInvestigationsController.SignRetestPlan(Int32, SignRetestPlanRequest, CancellationToken): SectionHead

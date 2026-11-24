@@ -110,6 +110,10 @@ public class OosInvestigationReopeningConfiguration : IEntityTypeConfiguration<O
 
         builder.HasOne<OosInvestigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(x => x.PreviousConclusionSignatureId).OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.PreviousRootCauseDescription).HasMaxLength(4000);
+        builder.Property(x => x.PreviousConclusionSummary).HasMaxLength(4000);
+        builder.HasOne<OosCauseCategory>().WithMany().HasForeignKey(x => x.PreviousRootCauseCategoryId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<User>().WithMany().HasForeignKey(x => x.PreviousConcludedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<User>().WithMany().HasForeignKey(x => x.ReopenedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<ElectronicSignature>().WithMany().HasForeignKey(x => x.SignatureId).OnDelete(DeleteBehavior.Restrict);
     }

@@ -161,6 +161,9 @@ public class SampleReviewService
             ReviewEntityTypes.Sample, sampleId, reviewerUserId, password,
             SignatureMeaning.Reviewed, ReviewWorkflowEventType.ReviewCompleted, comment, ipAddress, sectionId: section);
 
+        // A failing review takes the OOS number lock before any sample write, as manual opening does.
+        await _oos.OpenForReviewedSectionAsync(sample, section, currentOrders, reviewerUserId, ct);
+
         var now = _time.GetUtcNow().UtcDateTime;
         var signoff = SampleSectionRollup.GetOrAdd(sample, section);
         signoff.Status = SectionSignoffStatus.UnderApproval;
@@ -200,10 +203,9 @@ public class SampleReviewService
                 await _audit.RecordUserEventAsync("RetentionQuantityRecorded", AuditActionCategory.Review, ReviewEntityTypes.Sample,
                     reason: "Retention quantity recorded at physicochemical review",
                     changes: new[] { new AuditFieldChange("RetentionQuantity", previous, string.Create(inv, $"{retentionQuantity:0.######} {retentionUnitCanonical}")) },
-                    entityId: sampleId.ToString(), sampleId: sampleId);
+                    entityId: sampleId.ToString(), cancellationToken: ct, sampleId: sampleId);
         }
 
-        await _oos.OpenForReviewedSectionAsync(sample, section, currentOrders, reviewerUserId, ct);
         SampleSectionRollup.Apply(sample);
 
         await _publisher.ResolveAsync($"ReviewWaiting:sample:{sampleId}:section:{section}");

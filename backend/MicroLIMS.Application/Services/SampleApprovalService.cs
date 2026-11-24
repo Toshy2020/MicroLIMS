@@ -183,6 +183,7 @@ public class SampleApprovalService
         List<int>? selectedTestOrderIds, int? newSampleAnalystOneId, int? newSampleAnalystTwoId,
         int? sectionId, CancellationToken ct = default)
     {
+        await OosGate.LockSampleDecisionAsync(_db, sampleId, ct);
         var sample = await _db.Samples.Include(s => s.TestOrders).Include(s => s.SectionSignoffs).FirstOrDefaultAsync(s => s.Id == sampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.SampleNotFound,

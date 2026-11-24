@@ -31,6 +31,8 @@ public class RecordingPointCoverageTests
         ["SampleSummaryTestOrderBuilder.Build"] = "The summary builder projects existing values into presentation models.",
         ["OosInvestigationService.OpenForReviewedSectionAsync"] = "Opens an OOS investigation from a signed review and links existing results; it records no test result (reviewer act, D1 Task 3).",
         ["OosInvestigationService.AddAnalystStatementAsync"] = "Appends an investigation statement; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute and a performer check.",
+        ["OosInvestigationService.AddEntryAsync"] = "Attributes an investigation entry; hypothesis work is investigation evidence and does not record a reportable result.",
+        ["OosInvestigationService.OpenManuallyAsync"] = "Opens a scoped investigation for an already reviewed failing order and links the existing result without changing it.",
         ["OosInvestigationService.AnswerChecklistAsync"] = "Appends an investigation checklist answer; RecordedByUserId attributes an investigation entry, guarded by Oos.Contribute.",
     };
 

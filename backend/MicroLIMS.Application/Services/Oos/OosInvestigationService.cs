@@ -46,7 +46,15 @@ public sealed partial class OosInvestigationService(
         }
 
         if (investigation.Id != 0 && failing.Keys.Any(id => !existingOrderIds.Contains(id)))
+        {
+            if (investigation.SampleId != sample.Id && investigation.Status == OosInvestigationStatus.AwaitingRetest)
+            {
+                investigation.Status = OosInvestigationStatus.PhaseTwo;
+                db.CurrentUserId = reviewerUserId;
+                db.SetNextAuditReason(investigation, "A failing retest from a signed plan joined the investigation.");
+            }
             db.Entry(investigation).Property(nameof(OosInvestigation.Status)).IsModified = true;
+        }
 
         foreach (var (orderId, outcome) in failing)
         {
@@ -63,7 +71,11 @@ public sealed partial class OosInvestigationService(
         return investigation;
     }
 
-    internal async Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default)
+    internal Task<OosInvestigation?> LockOpenAsync(IQueryable<OosInvestigation> candidates, CancellationToken ct = default) =>
+        LockInvestigationAsync(candidates, closed: null, ct);
+
+    private async Task<OosInvestigation?> LockInvestigationAsync(IQueryable<OosInvestigation> candidates,
+        OosInvestigationStatus? closed, CancellationToken ct)
     {
         if (!db.Database.IsRelational())
             return await candidates.SingleOrDefaultAsync(ct);
@@ -71,11 +83,12 @@ public sealed partial class OosInvestigationService(
         var id = await candidates.Select(i => (int?)i.Id).SingleOrDefaultAsync(ct);
         if (id is null) return null;
 
-        // Task 7 conclusion must take the same row lock before reading results or signing.
-        // Recheck status under the lock in case a conclusion committed after the lookup.
-        return await db.OosInvestigations.FromSql(
-            $"""SELECT i.*, i.xmin FROM "OosInvestigations" AS i WHERE i."Id" = {id.Value} AND i."Status" <> {(int)OosInvestigationStatus.Concluded} FOR UPDATE""")
-            .SingleOrDefaultAsync(ct);
+        // Check status again after PostgreSQL acquires the lock.
+        var locked = db.OosInvestigations.FromSql(
+            $"""SELECT i.*, i.xmin FROM "OosInvestigations" AS i WHERE i."Id" = {id.Value} FOR UPDATE""");
+        return await (closed is null
+            ? locked.Where(i => i.Status != OosInvestigationStatus.Concluded)
+            : locked.Where(i => i.Status == closed)).SingleOrDefaultAsync(ct);
     }
 
     internal Task<int[]> InvestigationOrderIdsAsync(int investigationId, CancellationToken ct = default)
@@ -84,7 +97,7 @@ public sealed partial class OosInvestigationService(
         var retestOrders = from plan in db.OosRetestPlans
                            join link in db.OosRetestPlanSamples on plan.Id equals link.PlanId
                            join order in db.TestOrders on link.SampleId equals order.SampleId
-                           where plan.InvestigationId == investigationId
+                           where plan.InvestigationId == investigationId && plan.SignedAtUtc != null
                            select order.Id;
         return investigated.Union(retestOrders).ToArrayAsync(ct);
     }

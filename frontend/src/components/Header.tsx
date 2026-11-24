@@ -245,7 +245,7 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
         </Box>
       </ButtonBase>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.75, md: 1.5 }, minWidth: 0, flexShrink: 0 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.25, sm: 0.75, md: 1.5 }, minWidth: 0, flexShrink: 0, "& .MuiIconButton-root": { p: { xs: 0.5, sm: 1 } } }}>
         <Tooltip title={t("header.searchButton")}>
           <IconButton
             onClick={() => setSearchOpen(true)}
@@ -256,12 +256,14 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
             <SearchIcon />
           </IconButton>
         </Tooltip>
+        {/* Phones: the bench-mode switch is dropped from the bar so the bell and account button fit; the touch-screen prompt still offers bench mode. */}
         <Tooltip title={t("header.benchModeTooltip")}>
           <Switch
             size={isCompactHeader ? "small" : "medium"}
             checked={benchMode}
             onChange={(_, checked) => setBenchMode(checked)}
             sx={{
+              display: { xs: "none", sm: "inline-flex" },
               "& .MuiSwitch-track": { backgroundColor: theme.custom.chrome.topbarSwitchTrack, opacity: 1 },
               "& .MuiSwitch-thumb": { backgroundColor: "common.white", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" },
               "& .Mui-checked+.MuiSwitch-track": { backgroundColor: `${theme.custom.chrome.topbarSwitchTrack} !important`, opacity: 1 }
@@ -321,7 +323,8 @@ export function Header({ onToggleSidebar, sidebarCollapsed, labCodes, unsavedDra
               }}
             >
               <CloudOffOutlinedIcon aria-hidden="true" sx={{ fontSize: 14 }} />
-              {t("header.liveUpdatesPaused")}
+              {/* Phones: icon only; the status role keeps its accessible name and the tooltip carries the text. */}
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>{t("header.liveUpdatesPaused")}</Box>
             </Box>
           </Tooltip>
         )}

@@ -409,6 +409,7 @@ export function GlobalSearchDialog({ open, onClose }: GlobalSearchDialogProps) {
                       <ListItemText
                         primary={item.title}
                         secondary={item.subtitle}
+                        sx={{ minWidth: 0 }}
                         slotProps={{
                           primary: { sx: { fontWeight: 600, fontSize: 14, overflowWrap: "anywhere" } },
                           secondary: { sx: { fontSize: 12, overflowWrap: "anywhere" } }

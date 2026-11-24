@@ -2,7 +2,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useMyLabs } from "./useMyLabs";
 
-const auth = { role: "Analyst", permissions: [] as string[] };
+const auth = { role: "Analyst", permissions: [] as string[], username: "sec.head" as string | null };
 vi.mock("../contexts/AuthContext", () => ({ useAuth: () => auth }));
 
 const getMySections = vi.fn();
@@ -15,6 +15,21 @@ describe("useMyLabs", () => {
     getMySections.mockReset();
     auth.role = "Analyst";
     auth.permissions = [];
+    auth.username = "sec.head";
+    window.localStorage.clear();
+  });
+
+  it("shows the last known laboratories on the first render while the fresh answer loads, then replaces them", async () => {
+    window.localStorage.setItem("microlims.myLabs.v1:sec.head", JSON.stringify([{ sectionCode: "MICRO", physchemAreas: [] }]));
+    getMySections.mockReturnValue(new Promise(() => {}));
+    const { result } = renderHook(() => useMyLabs());
+    expect(result.current.loading).toBe(true);
+    expect(result.current.codes).toEqual(["MICRO"]);
+
+    getMySections.mockResolvedValue([{ sectionCode: "FP", physchemAreas: [] }]);
+    const second = renderHook(() => useMyLabs());
+    await waitFor(() => expect(second.result.current.codes).toEqual(["FP"]));
+    expect(JSON.parse(window.localStorage.getItem("microlims.myLabs.v1:sec.head") ?? "[]")).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
   });
 
   // The server answers Sections.ViewAll with every section for reading; the hook mirrors the permission, not the role.

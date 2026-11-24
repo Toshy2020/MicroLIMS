@@ -185,6 +185,11 @@ export function MediaConfigurationDialog({
   const handleSave = async () => {
     setError(null);
 
+    if (selectedOrganismId != null) {
+      setError(t("media.configurationDialog.pendingOrganismError"));
+      return;
+    }
+
     if (conditionId === "") {
       setError(t("media.configurationDialog.conditionRequiredError"));
       return;
@@ -196,11 +201,6 @@ export function MediaConfigurationDialog({
           return;
         }
       }
-    }
-
-    if (selectedOrganismId != null) {
-      setError(t("media.configurationDialog.pendingOrganismError"));
-      return;
     }
 
     const payload = {

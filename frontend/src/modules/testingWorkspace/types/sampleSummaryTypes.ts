@@ -96,7 +96,17 @@ export interface SampleLocationDetail {
   enteredAt: string | null;
 }
 
+export interface CompetencyOverrideManifestation {
+  analystName: string;
+  grantedByFullName: string;
+  grantedAtUtc: string;
+  meaning: string;
+  reason: string;
+  endedAtUtc: string | null;
+}
+
 export interface TestOrderSummaryDetail {
+  competencyOverrides?: CompetencyOverrideManifestation[];
   testOrderId: number;
   testCode: string;
   testDisplayName: string;

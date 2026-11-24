@@ -52,6 +52,8 @@ public sealed class TestSelfAssignmentService
         _db.AuditLogs.Add(SampleAssignmentService.BuildAssignmentAudit(order.Sample!, order, TestReleaseRules.TakenAction,
             $"{order.TestCode}: Unassigned", $"{order.TestCode}: {user.FullName}", userId, now));
         order.AssignedAnalystId = userId;
+        _db.CurrentUserId = userId;
+        await CompetencyOverrideLifecycle.EndAsync(_db, [order], now, CompetencyOverrideEndReason.Reassigned, ct);
         _db.QueueSignal(LiveSignalKinds.Counters, $"section:{order.SectionId}");
         _db.QueueSignal(LiveSignalKinds.Record, $"testOrder:{order.Id}");
         _db.QueueSignal(LiveSignalKinds.Record, $"sample:{order.SampleId}");

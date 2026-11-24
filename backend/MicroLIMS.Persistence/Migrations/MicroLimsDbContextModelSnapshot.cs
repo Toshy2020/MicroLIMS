@@ -1303,6 +1303,67 @@ namespace MicroLIMS.Persistence.Migrations
                     b.ToTable("ChromatographyColumns");
                 });
 
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencyOverride", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnalystUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("EndReason")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("GrantedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("GrantedByUserId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("SampleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SignatureId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TestOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnalystUserId");
+
+                    b.HasIndex("GrantedByUserId");
+
+                    b.HasIndex("SignatureId")
+                        .IsUnique();
+
+                    b.HasIndex("SampleId", "GrantedByUserId");
+
+                    b.HasIndex(new[] { "TestOrderId" }, "IX_CompetencyOverrides_ActiveOrder")
+                        .IsUnique()
+                        .HasFilter(" \"EndedAtUtc\" IS NULL ");
+
+                    b.ToTable("CompetencyOverrides");
+                });
+
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencySectionSetting", b =>
                 {
                     b.Property<int>("SectionId")
@@ -14490,6 +14551,45 @@ namespace MicroLIMS.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencyOverride", b =>
+                {
+                    b.HasOne("MicroLIMS.Domain.Entities.User", "AnalystUser")
+                        .WithMany()
+                        .HasForeignKey("AnalystUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("GrantedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.Sample", null)
+                        .WithMany()
+                        .HasForeignKey("SampleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.ElectronicSignature", "Signature")
+                        .WithOne()
+                        .HasForeignKey("MicroLIMS.Domain.Entities.CompetencyOverride", "SignatureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MicroLIMS.Domain.Entities.TestOrder", "TestOrder")
+                        .WithMany()
+                        .HasForeignKey("TestOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AnalystUser");
+
+                    b.Navigation("Signature");
+
+                    b.Navigation("TestOrder");
                 });
 
             modelBuilder.Entity("MicroLIMS.Domain.Entities.CompetencySectionSetting", b =>

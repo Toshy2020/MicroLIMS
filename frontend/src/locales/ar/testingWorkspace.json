@@ -132,6 +132,10 @@
       "worstStatus": "أسوأ حالة:"
     },
     "testResults": {
+      "competencyOverride": "تجاوز متطلبات الكفاءة",
+      "overrideAnalyst": "المحلل: {{analyst}}",
+      "overrideSignedBy": "وقّع {{signer}}",
+      "overrideEnded": "انتهى",
       "title": "نتائج الاختبار",
       "overallStatus": "الحالة العامة:",
       "returnToAnalyst": "إعادة إلى المحلل",

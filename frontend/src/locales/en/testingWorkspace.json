@@ -124,6 +124,10 @@
       "worstStatus": "Worst status:"
     },
     "testResults": {
+      "competencyOverride": "Competency override",
+      "overrideAnalyst": "Analyst: {{analyst}}",
+      "overrideSignedBy": "Signed by {{signer}}",
+      "overrideEnded": "Ended",
       "title": "Test Results",
       "overallStatus": "Overall Status:",
       "returnToAnalyst": "Return to Analyst",

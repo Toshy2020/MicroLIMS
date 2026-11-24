@@ -317,10 +317,10 @@ public class SampleCorrectionService
     internal static ActionCheck CheckVoid(Sample sample) =>
         sample.Status == SampleStatus.Voided ? ActionCheck.No("Sample is already voided.") : ActionCheck.Ok;
 
-    public Task<SampleDto> VoidAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress) =>
-        UnitOfWork.RunAsync(_db, () => VoidCoreAsync(sampleId, reason, password, actingUserId, ipAddress));
+    public Task<SampleDto> VoidAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress, CancellationToken ct = default) =>
+        UnitOfWork.RunAsync(_db, () => VoidCoreAsync(sampleId, reason, password, actingUserId, ipAddress, ct), ct);
 
-    private async Task<SampleDto> VoidCoreAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress)
+    private async Task<SampleDto> VoidCoreAsync(int sampleId, string reason, string password, int actingUserId, string? ipAddress, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(reason))
             throw new BusinessRuleException(
@@ -328,14 +328,14 @@ public class SampleCorrectionService
                 "A reason for voiding is required.");
         var trimmedReason = reason.Trim();
 
-        var sample = await LoadSampleAsync(sampleId);
+        var sample = await LoadSampleAsync(sampleId, ct);
 
         CheckVoid(sample).ThrowIfRefused();
 
         // Signs first - a failed verification voids nothing.
         _db.CurrentUserId = actingUserId;
         await _signatures.SignAsync(actingUserId, password, SignatureMeaning.SampleVoided,
-            ReviewEntityTypes.Sample, sample.Id, trimmedReason, ipAddress);
+            ReviewEntityTypes.Sample, sample.Id, trimmedReason, ipAddress, ct);
 
         var previousStatus = sample.Status;
         sample.Status = SampleStatus.Voided;
@@ -349,6 +349,9 @@ public class SampleCorrectionService
             order.Status = ApprovalStatus.Voided;
         }
 
+        await CompetencyOverrideLifecycle.EndAsync(_db, voidedOrders, _time.GetUtcNow().UtcDateTime,
+            CompetencyOverrideEndReason.Cancelled, ct);
+
         // Voiding strikes the whole sample, so every section's sign-off
         // closes with it (who reviewed/approved it stays on the row).
         foreach (var sectionId in SampleSectionRollup.SectionIds(sample))
@@ -357,7 +360,7 @@ public class SampleCorrectionService
         }
 
         // Reports read the sample status off each result projection row.
-        var records = await _db.ResultRecords.Where(r => r.SampleId == sampleId).ToListAsync();
+        var records = await _db.ResultRecords.Where(r => r.SampleId == sampleId).ToListAsync(ct);
         foreach (var record in records)
         {
             record.SampleStatus = SampleStatus.Voided;
@@ -372,7 +375,7 @@ public class SampleCorrectionService
             changes.Add(new AuditFieldChange("Tests Voided", null, TestCodes(voidedOrders)));
 
         await _audit.RecordUserEventAsync(VoidedActionCode, AuditActionCategory.Other, ReviewEntityTypes.Sample,
-            reason: trimmedReason, changes: changes, entityId: sampleId.ToString(), sampleId: sampleId);
+            reason: trimmedReason, changes: changes, entityId: sampleId.ToString(), sampleId: sampleId, cancellationToken: ct);
 
         return TestingWorkspaceService.ToDto(sample, nowUtc: _time.GetUtcNow().UtcDateTime);
     }

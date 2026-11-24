@@ -119,7 +119,7 @@ public class SampleAssignmentService
             // of them throws the "not a member" reason.
             await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId,
                 (targets.Count > 0 ? targets : open).Select(t => t.SectionId), _time.GetUtcNow().UtcDateTime,
-                testOrderIds: targets.Select(t => t.Id).ToArray(), competency: _competency, ct: ct);
+                testOrderIds: targets.Select(t => t.Id).ToArray(), competency: _competency, ct: ct, allowOrderOverride: true);
         }
 
         return targets.Select(t => (t, analystUserId)).ToList();
@@ -171,7 +171,7 @@ public class SampleAssignmentService
                 try
                 {
                     await AnalystAssignmentRules.EnsureAssignableAsync(_db, _scope, assigneeId, actingUserId,
-                        [order.SectionId], now, testOrderIds: [order.Id], competency: _competency, ct: ct);
+                        [order.SectionId], now, testOrderIds: [order.Id], competency: _competency, ct: ct, allowOrderOverride: true);
                 }
                 catch (BusinessRuleException error) when (error.Code == MessageCodes.CompetencyAssignmentRefused)
                 {
@@ -344,7 +344,20 @@ public class SampleAssignmentService
         }
 
         if (changed.Count > 0)
-            await _db.SaveChangesAsync(ct);
+        {
+            var priorActor = _db.CurrentUserId;
+            _db.CurrentUserId = actingUserId;
+            try
+            {
+                await CompetencyOverrideLifecycle.EndAsync(_db, changed.Select(c => c.Order), timestamp,
+                    CompetencyOverrideEndReason.Reassigned, ct);
+                await _db.SaveChangesAsync(ct);
+            }
+            finally
+            {
+                _db.CurrentUserId = priorActor;
+            }
+        }
     }
 
     private async Task<SampleDto> LoadDtoAsync(Sample sample)

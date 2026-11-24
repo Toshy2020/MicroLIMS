@@ -214,6 +214,7 @@ public interface IMicroLimsDbContext
     DbSet<OosInvestigationTemplate> OosInvestigationTemplates { get; }
     DbSet<OosChecklistItem> OosChecklistItems { get; }
     DbSet<OosCauseCategory> OosCauseCategories { get; }
+    DbSet<CompetencyOverride> CompetencyOverrides { get; }
     DbSet<AnalystQualification> AnalystQualifications { get; }
     DbSet<QualificationAttachment> QualificationAttachments { get; }
     DbSet<TestDefinition> TestDefinitions { get; }

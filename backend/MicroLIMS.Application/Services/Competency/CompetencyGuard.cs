@@ -47,7 +47,7 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
         int userId, IReadOnlyCollection<CompetencySubject> subjects, bool assigneeWording,
         CancellationToken cancellationToken = default)
     {
-        var decisions = await EvaluateSubjectsCoreAsync([userId], subjects, assigneeWording, ignoreGate: false, cancellationToken);
+        var (decisions, _) = await EvaluateSubjectsCoreAsync([userId], subjects, assigneeWording, ignoreGate: false, cancellationToken);
         return decisions.ToDictionary(pair => pair.Key.Subject, pair => pair.Value);
     }
 
@@ -69,14 +69,35 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
                 throw new NotFoundException(MessageCodes.TestOrderNotFound, $"Test order {id} not found.",
                     new Dictionary<string, string> { ["testOrderId"] = id.ToString(CultureInfo.InvariantCulture) });
 
-        var decisions = await EvaluateSubjectsCoreAsync(userIds, orders.Values, assigneeWording, ignoreGate, cancellationToken);
+        var (decisions, gated) = await EvaluateSubjectsCoreAsync(userIds, orders.Values, assigneeWording, ignoreGate, cancellationToken);
+        var gatedOrderIds = orders.Where(order => gated.Contains(order.Value)).Select(order => order.Key).ToArray();
+        var overrides = await LoadOverridesAsync(gatedOrderIds, cancellationToken);
+
         return (from userId in userIds.Distinct()
                 from order in orders
-                select (Key: (userId, order.Key), Decision: decisions[(userId, order.Value)]))
+                let decision = decisions[(userId, order.Value)]
+                select (Key: (userId, order.Key), Decision: overrides.TryGetValue(order.Key, out var grant) && grant.AnalystId == userId
+                    ? Allowed with { ViaOverrideId = grant.OverrideId, SopNotChecked = decision.SopNotChecked }
+                    : decision))
             .ToDictionary(pair => pair.Key, pair => pair.Decision);
     }
 
-    private async Task<Dictionary<(int UserId, CompetencySubject Subject), CompetencyDecision>> EvaluateSubjectsCoreAsync(
+    private async Task<Dictionary<int, (int AnalystId, int OverrideId)>> LoadOverridesAsync(
+        int[] testOrderIds, CancellationToken cancellationToken)
+    {
+        if (testOrderIds.Length == 0)
+            return [];
+
+        return await db.CompetencyOverrides.AsNoTracking()
+            .Where(row => testOrderIds.Contains(row.TestOrderId)
+                && row.EndedAtUtc == null && !row.TestOrder.IsSuperseded
+                && row.TestOrder.Status != ApprovalStatus.Reviewed && row.TestOrder.Status != ApprovalStatus.Approved
+                && row.TestOrder.Status != ApprovalStatus.Rejected && row.TestOrder.Status != ApprovalStatus.Voided
+                && row.TestOrder.Status != ApprovalStatus.Cancelled)
+            .ToDictionaryAsync(row => row.TestOrderId, row => (row.AnalystUserId, row.Id), cancellationToken);
+    }
+
+    private async Task<(Dictionary<(int UserId, CompetencySubject Subject), CompetencyDecision> Decisions, HashSet<CompetencySubject> Gated)> EvaluateSubjectsCoreAsync(
         IReadOnlyCollection<int> userIds, IReadOnlyCollection<CompetencySubject> subjects, bool assigneeWording, bool ignoreGate,
         CancellationToken cancellationToken)
     {
@@ -85,7 +106,7 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
                          from subject in uniqueSubjects
                          select (userId, subject)).ToDictionary(key => key, _ => Allowed);
         if (decisions.Count == 0)
-            return decisions;
+            return (decisions, []);
 
         var gated = uniqueSubjects;
         if (!ignoreGate)
@@ -98,7 +119,7 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
             gated = uniqueSubjects.Where(subject => enabledSections.Contains(subject.SectionId)).ToArray();
         }
         if (gated.Length == 0)
-            return decisions;
+            return (decisions, []);
 
         var nowUtc = clock.UtcNow.UtcDateTime;
         var labToday = DateOnly.FromDateTime(clock.ToLabLocal(nowUtc));
@@ -137,7 +158,7 @@ public sealed class CompetencyGuard(IMicroLimsDbContext db, ILabClock clock, Ite
             }
         }
 
-        return decisions;
+        return (decisions, gated.ToHashSet());
     }
 
     private CompetencyDecision Decide(CompetencySubject subject, AnalystQualification? qualification, SopResolution? sop,

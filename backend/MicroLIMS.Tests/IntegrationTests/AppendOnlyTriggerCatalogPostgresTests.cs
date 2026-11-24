@@ -52,6 +52,7 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["OosInvestigationReopenings"] = Update | Delete,
         ["OosRetestPlans"] = Update | Delete,
         ["OosRetestPlanSamples"] = Update | Delete,
+        ["CompetencyOverrides"] = Insert | Update | Delete,
         ["AnalystQualifications"] = Insert | Update | Delete,
         ["QualificationAttachments"] = Insert | Update | Delete,
     };

@@ -175,11 +175,11 @@ public class SampleController : ControllerBase
 
     [HttpPost("{id}/void")]
     [Authorize(Policy = PermissionConstants.SamplesCorrect)]
-    public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request)
+    public async Task<IActionResult> Void(int id, [FromBody] VoidSampleRequest request, CancellationToken ct = default)
     {
-        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id);
+        await _scopeService.EnsureSampleAccessAsync(CurrentUserId, id, ct);
         var sample = await _correctionService.VoidAsync(
-            id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString());
+            id, request.Reason, request.Password, CurrentUserId, HttpContext.Connection.RemoteIpAddress?.ToString(), ct);
         return Ok(ApiResponse<object>.Ok(sample));
     }
 

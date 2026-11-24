@@ -147,6 +147,7 @@
     "Preparation": null,
     "TestOrders": [
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 11,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -420,6 +421,7 @@
     "Preparation": null,
     "TestOrders": [
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 12,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -472,6 +474,7 @@
         "Locations": []
       },
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 13,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -524,6 +527,7 @@
         "Locations": []
       },
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 14,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -557,6 +561,7 @@
         "Locations": []
       },
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 15,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -609,6 +614,7 @@
         "Locations": []
       },
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 16,
         "SectionId": 1,
         "SectionName": "Microbiology",
@@ -661,6 +667,7 @@
         "Locations": []
       },
       {
+        "CompetencyOverrides": [],
         "TestOrderId": 17,
         "SectionId": 1,
         "SectionName": "Microbiology",

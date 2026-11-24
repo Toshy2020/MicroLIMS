@@ -12,6 +12,7 @@ import { TestOrderSummaryDetail } from "../types/sampleSummaryTypes";
 import { humanize } from "../SampleReportPage";
 import { IncubationStageBlock } from "./SummaryCards";
 import { FinalResultBlock } from "./FinalResultBlock";
+import { formatExactTime } from "./summaryFormatting";
 
 // Return to Analyst for one test order, gated by the server's answer for that order.
 function ReturnToAnalystAction({
@@ -149,6 +150,24 @@ export function TestResultsSection({
               </AccordionSummary>
               <AccordionDetails sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
+                  {order.competencyOverrides?.map((override, index) => (
+                    <Box key={index} sx={{ borderInlineStart: "2px solid", borderColor: "divider", paddingInlineStart: 2 }}>
+                      <Typography variant="subtitle2">{t("sampleSummary.testResults.competencyOverride")}</Typography>
+                      <Typography variant="body2">
+                        {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}
+                      </Typography>
+                      <Typography variant="body2">
+                        {t("sampleSummary.testResults.overrideSignedBy", { signer: override.grantedByFullName })}
+                        {" "}<Ltr>{formatExactTime(override.grantedAtUtc)}</Ltr>
+                      </Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>{override.reason}</Typography>
+                      {override.endedAtUtc && (
+                        <Typography variant="body2" color="text.secondary">
+                          {t("sampleSummary.testResults.overrideEnded")} <Ltr>{formatExactTime(override.endedAtUtc)}</Ltr>
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
                   {/* Incubation Stages */}
                   {order.incubations.map((inc, idx) => (
                     <IncubationStageBlock

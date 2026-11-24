@@ -27,7 +27,7 @@ public class PermissionEnforcementMigrationPostgresTests
     // this migration never sees them.
     private static readonly string[] AddedByLaterMigrations =
     {
-        PermissionConstants.CompetencyManage, PermissionConstants.CompetencyView, // View: IsEnforced is set by the seeder
+        PermissionConstants.CompetencyManage, PermissionConstants.CompetencyView, PermissionConstants.CompetencyOverride, // View: IsEnforced is set by the seeder
         PermissionConstants.OosView, PermissionConstants.OosContribute, PermissionConstants.OosRequestDeviation,
         PermissionConstants.MaterialCategoriesManage,
         PermissionConstants.MaterialsRelease,

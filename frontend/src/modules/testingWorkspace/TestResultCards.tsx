@@ -67,8 +67,29 @@ function isQuantitative(test: TestOrderSummaryDetail): boolean {
 // result is conceptually a qualitative call too ("the recorded value"),
 // never a computed CFU.
 export function TestResultCard({ test }: { test: TestOrderSummaryDetail }) {
-  if (test.analysis) return <AnalysisCard test={test} />;
-  return isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+  const { t } = useTranslation("testingWorkspace");
+  const resultCard = test.analysis
+    ? <AnalysisCard test={test} />
+    : isQuantitative(test) ? <CountTestCard test={test} /> : <DetectionTestCard test={test} />;
+  return (
+    <>
+      {resultCard}
+      {test.competencyOverrides?.map((override, index) => {
+        const meaning = override.meaning === "Competency override"
+          ? t("sampleSummary.testResults.competencyOverride")
+          : override.meaning;
+        return (
+          <div className="signature-card" key={index}>
+            <div className="sig-meaning">{meaning} · {t("sampleSummary.testResults.overrideAnalyst", { analyst: override.analystName })}</div>
+            <div className="sig-name">{override.grantedByFullName}</div>
+            <div className="sig-time">{dt(override.grantedAtUtc)}</div>
+            <div className="sig-comment">{override.reason}</div>
+            {override.endedAtUtc && <div className="sig-time">{t("sampleSummary.testResults.overrideEnded")}: {dt(override.endedAtUtc)}</div>}
+          </div>
+        );
+      })}
+    </>
+  );
 }
 
 // Generic TestAnalysis: headline parameter results, conditions, and per-parameter raw readings.

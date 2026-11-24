@@ -116,6 +116,17 @@ public class SampleSummaryService
 
         var testOrderIds = effectiveTestOrders.Select(t => t.Id).ToList();
 
+        var overrideMeaning = ReportVocabulary.SignatureMeaning(nameof(SignatureMeaning.CompetencyOverride));
+        var competencyOverrides = await _db.CompetencyOverrides.AsNoTracking()
+            .Where(row => testOrderIds.Contains(row.TestOrderId))
+            .OrderBy(row => row.GrantedAtUtc).ThenBy(row => row.Id)
+            .Select(row => new
+            {
+                row.TestOrderId,
+                Manifestation = new CompetencyOverrideDto(row.AnalystUser.FullName, row.Signature.UserFullNameSnapshot,
+                    row.GrantedAtUtc, overrideMeaning, row.Reason, row.EndedAtUtc)
+            }).ToListAsync(ct);
+
         var incubations = await _db.Incubations
             .Where(i => i.TestOrderId != null && testOrderIds.Contains(i.TestOrderId.Value))
             .Include(i => i.Media).ThenInclude(m => m!.Material)
@@ -249,6 +260,7 @@ public class SampleSummaryService
         {
             Sample = sample,
             EffectiveTestOrders = effectiveTestOrders,
+            CompetencyOverrides = competencyOverrides.ToLookup(row => row.TestOrderId, row => row.Manifestation),
             SourceRefByOrderId = sourceRefByOrderId,
             SectionRows = sectionRows,
             Incubations = incubations,
@@ -478,6 +490,15 @@ public class SampleSummaryService
         foreach (var order in s.TestOrders)
         {
             lines.Add($"{order.TestCode} - {order.TestDisplayName} [{order.Status}]{(order.IsSuperseded ? " (superseded)" : "")}");
+
+            foreach (var competencyOverride in order.CompetencyOverrides)
+            {
+                lines.Add($"  {competencyOverride.Meaning} for {competencyOverride.AnalystName}");
+                lines.Add($"  Signed by {competencyOverride.GrantedByFullName} at {competencyOverride.GrantedAtUtc:dd-MMM-yyyy HH:mm:ss} UTC");
+                lines.Add($"  Reason: {competencyOverride.Reason}");
+                if (competencyOverride.EndedAtUtc is { } endedAt)
+                    lines.Add($"  Ended at {endedAt:dd-MMM-yyyy HH:mm:ss} UTC");
+            }
 
             foreach (var inc in order.Incubations)
             {

@@ -220,7 +220,7 @@ public partial class PathogenSessionService
         var competency = await _competency.FilterAsync(userId, joining.Select(j => j.Order).ToList(), cancellationToken);
         competency.ThrowIfAllRefused();
         joining.RemoveAll(j => !competency.Allowed.Contains(j.Order.Id));
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         await EnsurePreparedAsync(sample, userId, cancellationToken);
         await CaptureSopRevisionAsync(joining.Select(j => j.Order), cancellationToken);
 
@@ -401,7 +401,7 @@ public partial class PathogenSessionService
             .Select(o => testOrdersByCode.GetValueOrDefault(o.TestCode)).OfType<TestOrder>().ToList();
         var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
         competency.ThrowIfAllRefused();
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         await CaptureSopRevisionAsync(touched.Where(o => competency.Allowed.Contains(o.Id)), cancellationToken);
 
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
@@ -534,7 +534,7 @@ public partial class PathogenSessionService
                 new Dictionary<string, string> { ["testOrderId"] = request.TestOrderId.ToString(CultureInfo.InvariantCulture) });
         var decision = await _competency.EvaluateAsync(userId, testOrder.Id, cancellationToken);
         decision.ToActionCheck().ThrowIfRefused();
-        using var recording = AuditReasonScope.Append(_db, decision.SopNotChecked?.Text);
+        using var recording = AuditReasonScope.Append(_db, decision.RecordingAuditReason);
         await CaptureSopRevisionAsync([testOrder], cancellationToken);
 
         var testDef = await _db.TestDefinitions
@@ -692,7 +692,7 @@ public partial class PathogenSessionService
         var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
         competency.ThrowIfAllRefused();
         primaryObsList.RemoveAll(o => !competency.Allowed.Contains(o.TestOrderId));
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         await CaptureSopRevisionAsync(primaryObsList.Select(o => o.TestOrder).OfType<TestOrder>(), cancellationToken);
 
         var testCodes = primaryObsList.Select(o => o.TestOrder?.TestCode ?? "").Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
@@ -858,7 +858,7 @@ public partial class PathogenSessionService
             .Select(c => testOrdersByCode.GetValueOrDefault(c.TestCode)).OfType<TestOrder>().ToList();
         var competency = await _competency.FilterAsync(userId, touched, cancellationToken);
         competency.ThrowIfAllRefused();
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         await CaptureSopRevisionAsync(touched.Where(o => competency.Allowed.Contains(o.Id)), cancellationToken);
         var primaryObservations = await LoadPrimaryObservationsAsync(locationsById.Keys, cancellationToken);
 
@@ -978,7 +978,7 @@ public partial class PathogenSessionService
                 $"Cannot complete testing session: Assigned tests {string.Join(", ", incompleteTests.Select(t => t.TestCode))} have incomplete workflow prerequisites.");
         }
 
-        using var recording = AuditReasonScope.Append(_db, competency.SopNotChecked);
+        using var recording = AuditReasonScope.Append(_db, competency.RecordingAuditReason);
         await CaptureSopRevisionAsync(eligibleOrders, cancellationToken);
 
         // 3. Mark TestOrders as completed / ready for review

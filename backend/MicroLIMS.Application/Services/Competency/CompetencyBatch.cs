@@ -17,7 +17,7 @@ public sealed record CompetencySkipDto(
 internal sealed record CompetencyBatch(
     IReadOnlySet<int> Allowed,
     IReadOnlyList<CompetencySkipDto> Refused,
-    string? SopNotChecked,
+    string? RecordingAuditReason,
     CompetencyDecision? SingleRefusedDecision)
 {
     internal void ThrowIfRefused()
@@ -58,7 +58,7 @@ internal static class CompetencyBatchExtensions
             .Select(pair => new CompetencySkipDto(pair.Key, testCodes[pair.Key], pair.Value.Reasons
                 .Select(reason => new CompetencyRefusalReasonDto(reason.Code, reason.Params, reason.Text)).ToList())).ToList();
         var sopNotes = decisions.Values.Where(decision => decision.Allowed)
-            .Select(decision => decision.SopNotChecked?.Text).OfType<string>().Distinct().ToList();
+            .Select(decision => decision.RecordingAuditReason).OfType<string>().Distinct().ToList();
         var singleRefusal = refused.Count == 1 ? decisions[refused[0].TestOrderId] : null;
         return new CompetencyBatch(allowed, refused, sopNotes.Count == 0 ? null : string.Join(" ", sopNotes), singleRefusal);
     }

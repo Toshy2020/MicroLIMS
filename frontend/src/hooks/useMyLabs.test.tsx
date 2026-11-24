@@ -20,7 +20,7 @@ describe("useMyLabs", () => {
   });
 
   it("shows the last known laboratories on the first render while the fresh answer loads, then replaces them", async () => {
-    window.localStorage.setItem("microlims.myLabs.v1:sec.head", JSON.stringify([{ sectionCode: "MICRO", physchemAreas: [] }]));
+    window.localStorage.setItem("microlims.myLabs.v2:sec.head", JSON.stringify({ savedAt: Date.now(), labs: [{ sectionCode: "MICRO", physchemAreas: [] }] }));
     getMySections.mockReturnValue(new Promise(() => {}));
     const { result } = renderHook(() => useMyLabs());
     expect(result.current.loading).toBe(true);
@@ -29,10 +29,38 @@ describe("useMyLabs", () => {
     getMySections.mockResolvedValue([{ sectionCode: "FP", physchemAreas: [] }]);
     const second = renderHook(() => useMyLabs());
     await waitFor(() => expect(second.result.current.codes).toEqual(["FP"]));
-    expect(JSON.parse(window.localStorage.getItem("microlims.myLabs.v1:sec.head") ?? "[]")).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
+    expect(JSON.parse(window.localStorage.getItem("microlims.myLabs.v2:sec.head") ?? "{}").labs).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
   });
 
   // The server answers Sections.ViewAll with every section for reading; the hook mirrors the permission, not the role.
+  it("ignores and removes a corrupt, malformed or expired cache entry", () => {
+    getMySections.mockReturnValue(new Promise(() => {}));
+    const key = "microlims.myLabs.v2:sec.head";
+    for (const bad of ["{not json", JSON.stringify({ savedAt: Date.now(), labs: [null] }), JSON.stringify({ savedAt: Date.now() - 13 * 3600 * 1000, labs: [{ sectionCode: "FP" }] }), JSON.stringify([{ sectionCode: "FP" }])]) {
+      window.localStorage.setItem(key, bad);
+      const { result, unmount } = renderHook(() => useMyLabs());
+      expect(result.current.codes).toEqual([]);
+      unmount();
+    }
+  });
+
+  it("drops the kept answer and shows no laboratories when the fresh request fails", async () => {
+    window.localStorage.setItem("microlims.myLabs.v2:sec.head", JSON.stringify({ savedAt: Date.now(), labs: [{ sectionCode: "MICRO", physchemAreas: [] }] }));
+    getMySections.mockRejectedValue(new Error("403"));
+    const { result } = renderHook(() => useMyLabs());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.codes).toEqual([]);
+    expect(window.localStorage.getItem("microlims.myLabs.v2:sec.head")).toBeNull();
+  });
+
+  it("does not show one user's kept laboratories to another user", () => {
+    window.localStorage.setItem("microlims.myLabs.v2:sec.head", JSON.stringify({ savedAt: Date.now(), labs: [{ sectionCode: "MICRO", physchemAreas: [] }] }));
+    getMySections.mockReturnValue(new Promise(() => {}));
+    auth.username = "someone.else";
+    const { result } = renderHook(() => useMyLabs());
+    expect(result.current.codes).toEqual([]);
+  });
+
   it("shows both laboratories to a user holding Sections.ViewAll, whatever the role and whatever the endpoint returns", async () => {
     getMySections.mockResolvedValue([]);
     auth.role = "Analyst";

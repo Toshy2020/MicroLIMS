@@ -35,6 +35,8 @@
     "PreviousProductName": "Zinc Cream",
     "PreviousProductBatchNumber": "B-77",
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
@@ -44,6 +46,7 @@
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -90,6 +93,8 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
@@ -99,6 +104,7 @@
     "CombinedCoaAvailable": true,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -145,8 +151,12 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 11,
         "SectionId": 1,
@@ -225,6 +235,7 @@
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": {
           "Columns": [
             {
@@ -280,6 +291,7 @@
           "SectionId": 1,
           "SectionName": "Microbiology",
           "Scope": {
+            "MethodDocuments": [],
             "Matrix": {
               "Columns": [
                 {
@@ -370,6 +382,8 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": null,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [],
     "Timeline": [],
     "Signatures": [],
@@ -379,6 +393,7 @@
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": null,
         "SupportingRows": [],
@@ -425,8 +440,12 @@
     "PreviousProductName": null,
     "PreviousProductBatchNumber": null,
     "Preparation": null,
+    "ItemId": 1,
+    "LabTimeZoneId": "UTC",
     "TestOrders": [
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 12,
         "SectionId": 1,
@@ -482,6 +501,8 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 13,
         "SectionId": 1,
@@ -537,6 +558,8 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 14,
         "SectionId": 1,
@@ -573,6 +596,8 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 15,
         "SectionId": 1,
@@ -628,6 +653,8 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 16,
         "SectionId": 1,
@@ -683,6 +710,8 @@
         "Locations": []
       },
       {
+        "SopCapture": null,
+        "NewerSopRevision": null,
         "CompetencyOverrides": [],
         "TestOrderId": 17,
         "SectionId": 1,
@@ -764,6 +793,7 @@
     "CombinedCoaAvailable": false,
     "Certificate": {
       "Sample": {
+        "MethodDocuments": [],
         "Matrix": null,
         "Simple": {
           "Rows": [
@@ -825,6 +855,7 @@
           "SectionId": 1,
           "SectionName": "Microbiology",
           "Scope": {
+            "MethodDocuments": [],
             "Matrix": null,
             "Simple": {
               "Rows": [

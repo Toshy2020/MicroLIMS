@@ -901,7 +901,8 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 ### CONF-189
 - **Area:** SEC
 - **Status:** Decided
-- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`). Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
+- **What the code does:** As first recorded: `SystemSettingDefinitions` sets the default value of `security.mfa.requiredRoles` to `"SystemAdministrator,SectionHead,QcManager"`, which does not include the `Qa` (`Quality Assurance`) role introduced in B4. Location: `backend/MicroLIMS.Application/Services/SystemSettingDefinitions.cs` (`security.mfa.requiredRoles`).
+ Changed 2026-11-13 (commit `0be29e45`): the default is now `"SystemAdministrator,SectionHead,QcManager,Qa"`. The default applies only where no saved value exists; sites that saved the setting keep their value.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.3 lists `SystemAdministrator`, `SectionHead`, and `QcManager` as the default required roles (authored before B4 added `Qa` with `Audit.Review`, `Access.Review.Sign`, `Documents.Review`, and `Documents.Approve`).
 - **Question:** Should `Qa` be added to the default value of `security.mfa.requiredRoles` (or configured per site in System Settings)?
 - **Decision:** Decided by the user 2026-11-13: add `Qa` to the default required roles.
@@ -910,7 +911,8 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 ### CONF-190
 - **Area:** SEC
 - **Status:** Decided
-- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695). Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
+- **What the code does:** As first recorded: `MfaService.StartEnrolmentCoreAsync` checks only for an `Active` credential and then deletes all `Pending` `UserMfaCredential` rows for the user before creating a `Pending` `AuthenticatorApp` credential, without checking whether the pending row is an administrator-assigned `HardwareToken`. A signed-in user (for example during the enrolment grace period) can overwrite and delete an admin-assigned `Pending` hardware token by starting self-enrolment (`POST api/auth/mfa/enrol/start`). Location: `backend/MicroLIMS.Application/Services/Mfa/MfaService.cs` — `StartEnrolmentCoreAsync` (lines 679–695).
+ Changed 2026-11-13 (commit `0be29e45`): `StartEnrolmentCoreAsync` refuses self-enrolment while a `Pending` `HardwareToken` exists, keeps the token, shows "A hardware token has been assigned to you; activate it, or ask an administrator to reset your two-factor setup, before setting up an authenticator app." and records `MFA_FAILED`. A user's own pending authenticator app is still replaced; an administrator reset still works.
 - **What the other source says:** Design specification `docs/superpowers/specs/2026-11-10-multi-factor-authentication-design.md` Section 5.7 describes administrator hardware token assignment followed by user confirmation on first sign-in.
 - **Question:** Should `StartEnrolmentCoreAsync` block or require an administrator reset when a `Pending` `HardwareToken` is already assigned to the user?
 - **Decision:** Decided by the user 2026-11-13: block self-enrolment while an administrator-assigned hardware token is pending.
@@ -1184,4 +1186,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Who may add or remove quality record links, upload or void attachments, and add comments?
 - **Decision:** A user who can read the record and holds `Quality.Raise` may add links, upload attachments, and add comments. This includes raisers, owners, and action holders who meet both conditions. A user who can read the record may remove a link or void an attachment if they hold `Quality.Investigate` or own the record. Links may be removed only before the first signed step. Voiding an attachment requires a reason and preserves the attachment row. Audit every change.
 - **Availability:** Anyone who can read the record may download a voided attachment. The attachment metadata identifies it as voided and displays the reason, actor, and timestamp.
+
+### CONF-222
+- **Area:** RPT / MDM
+- **Status:** Decided
+- **Question:** When does the test record show a newer SOP revision notice?
+- **Decision:** The current effective revision must belong to the captured document master and follow the captured revision. Its effective date must precede test completion, or the test must still be open. Reassigning an item to a different SOP does not trigger the notice.
 - **Date:** 2026-11-25

@@ -61,6 +61,17 @@ public static class CertificateOfAnalysisBuilder
 
         return new CoaScopeDto
         {
+            MethodDocuments = testOrders
+                .Where(t => !t.IsSuperseded && !t.IsOosInvalidated)
+                .Select(t => t.SopCapture)
+                .OfType<SopCaptureDto>()
+                .Where(s => s.Status == nameof(SopCaptureStatus.Captured) && s.RevisionId.HasValue &&
+                    s.DocumentCode != null && s.Title != null && s.RevisionNumber != null)
+                .DistinctBy(s => s.RevisionId)
+                .OrderBy(s => s.DocumentCode, StringComparer.Ordinal)
+                .ThenBy(s => s.RevisionNumber, StringComparer.Ordinal)
+                .Select(s => new CoaMethodDocumentDto(s.DocumentCode ?? "", s.Title ?? "", s.RevisionNumber ?? "", s.EffectiveDateUtc))
+                .ToList(),
             Matrix = matrix,
             Simple = simple,
             SupportingRows = supportingRows?.ToList() ?? new(),

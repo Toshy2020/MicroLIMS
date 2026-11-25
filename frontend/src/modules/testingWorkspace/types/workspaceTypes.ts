@@ -1,4 +1,6 @@
-export interface TestOrderSummary {
+import type { TestOrderSop } from "./sopCaptureTypes";
+
+export interface TestOrderSummary extends TestOrderSop {
   testOrderId: number;
   testCode: string;
   status: string;
@@ -29,6 +31,7 @@ export interface TestOrderSummary {
 
 // Mirrors backend SampleDto (backend/MicroLIMS.Application/DTOs/SampleDto.cs)
 export interface SampleCard {
+  labTimeZoneId?: string;
   sampleId: number;
   itemId?: number | null;
   referenceNumber: string;

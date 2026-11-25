@@ -639,6 +639,8 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
             {/* 2. Test Results */}
             <TestResultsSection
               testOrders={summary.testOrders}
+              showSop={summary.itemId != null}
+              labTimeZoneId={summary.labTimeZoneId}
               overallStatus={overallStatus}
               onReturnTest={(order) => setReturningTestOrder(order)}
             />

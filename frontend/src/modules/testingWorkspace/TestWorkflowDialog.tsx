@@ -46,6 +46,8 @@ import { OfflineDraftNotice, classifySaveFailure, draftHeaderArgs, serverMessage
 import type { IncubatorEquipmentItem, ReleasedMediaItem } from "../../services/lookupCache";
 import type { CountPreviewResult, CurrentStepResponse, PreviousStepDetail, TestWorkflowStepDto } from "./types/testWorkflowTypes";
 import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
+import { SopMethodDetails } from "./components/SopMethodDetails";
+import type { TestOrderSop } from "./types/sopCaptureTypes";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
@@ -171,7 +173,8 @@ function isAbortError(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { name?: unknown }).name === "AbortError";
 }
 
-interface Props {
+interface Props extends TestOrderSop {
+  labTimeZoneId?: string;
   testOrderId: number;
   testCode: string;
   category: string;
@@ -200,16 +203,25 @@ type Phase = "loading" | "select-media" | "awaiting-result" | "transfer-stage-2"
 // only hand off to LocationResultGridDialog/PathogenLocationResultGrid-
 // Dialog for their per-location batch result entry, exactly as today.
 export function TestWorkflowDialog(props: Props) {
+  const [loadedSop, setLoadedSop] = useState<(TestOrderSop & { testOrderId: number }) | null>(null);
+  const sop = loadedSop?.testOrderId === props.testOrderId ? loadedSop : props;
   // Samples with no item (water, environmental monitoring, after cleaning) get no Open SOP action.
   return (
     <>
-      {props.itemId != null && <OpenSopAction itemId={props.itemId} />}
-      <TestWorkflowDialogBody {...props} />
+      {props.itemId != null && (
+        <>
+          <OpenSopAction itemId={props.itemId} />
+          <SopMethodDetails sopCapture={sop.sopCapture} newerSopRevision={sop.newerSopRevision} timeZone={props.labTimeZoneId} />
+        </>
+      )}
+      <TestWorkflowDialogBody {...props} onSopLoaded={setLoadedSop} />
     </>
   );
 }
 
-function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose }: Props) {
+function TestWorkflowDialogBody({
+  testOrderId, testCode, category, displayName, itemId, sampleId, status, outsourcedToLab, onClose, onSopLoaded
+}: Props & { onSopLoaded: (sop: TestOrderSop & { testOrderId: number }) => void }) {
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
@@ -244,6 +256,8 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
     try {
       const data = await TestWorkflowService.getCurrentStep(testOrderId);
       setCurrent(data);
+      if (data.sopCapture !== undefined)
+        onSopLoaded({ testOrderId, sopCapture: data.sopCapture, newerSopRevision: data.newerSopRevision });
       setMediaId(""); setIncubatorId(""); setStage2IncubatorId("");
       lotLastChoice.reset();
       incubatorLastChoice.reset();

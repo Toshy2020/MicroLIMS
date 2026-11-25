@@ -226,7 +226,8 @@ export function SampleReportPage() {
             <div className="section-label">test results</div>
             <div className="line" />
           </div>
-          {s.testOrders.map((t) => <TestResultCard key={t.testOrderId} test={t} />)}
+          {s.testOrders.map((t) => <TestResultCard key={t.testOrderId} test={t}
+            showSop={s.itemId != null} labTimeZoneId={s.labTimeZoneId} />)}
           {s.testOrders.length === 0 && (
             <div className="section-card"><span style={{ fontSize: 13, color: "#888" }}>No tests recorded.</span></div>
           )}

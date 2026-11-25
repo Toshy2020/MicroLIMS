@@ -28,12 +28,15 @@ public class CurrentStepViewService
         _engine = engine;
     }
 
-    public async Task<object> GetAsync(int testOrderId)
+    public async Task<object> GetAsync(int testOrderId, CancellationToken ct = default)
     {
         var details = await _engine.GetCurrentStepDetailsAsync(testOrderId);
         var current = details.Result;
         var order = details.Order;
         var facts = details.Facts;
+        var sopCapture = TestOrderSopDisplay.Capture(order);
+        var newerSopRevision = (await TestOrderSopDisplay.ReadNoticesAsync(
+            _db, [order], _time.GetUtcNow().UtcDateTime, ct)).GetValueOrDefault(order.Id);
 
         // Sample's "name" has no single field - it is whichever of
         // Item/WaterSamplingPoint/Department/Machine is set for this
@@ -45,7 +48,7 @@ public class CurrentStepViewService
             .Include(s => s.Department)
             .Include(s => s.Machine)
             .Include(s => s.CauseOfTesting)
-            .FirstOrDefaultAsync(s => s.Id == order.SampleId)
+            .FirstOrDefaultAsync(s => s.Id == order.SampleId, ct)
             ?? throw new NotFoundException(
                 MessageCodes.TestOrderNotFound,
                 $"Test order {testOrderId} not found.",
@@ -58,19 +61,19 @@ public class CurrentStepViewService
             .Where(i => i.TestOrderId == testOrderId)
             .Include(i => i.Media).ThenInclude(m => m!.Material)
             .Include(i => i.IncubatorEquipment)
-            .LoadAsync();
+            .LoadAsync(ct);
 
         string? configuredUnit = null;
         decimal? configuredDilutionFactor = null;
         if (sample.ItemId is not null)
         {
-            var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode);
+            var spec = await SpecificationLookup.PrimaryAsync(_db, sample.Id, sample.ItemId.Value, order.TestCode, ct);
             configuredUnit = spec?.Unit;
             configuredDilutionFactor = spec?.DilutionFactor;
         }
         else if (sample.WaterSamplingPointId is not null)
         {
-            var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId);
+            var config = await _db.SamplingConfigurations.FirstOrDefaultAsync(c => c.TestCode == order.TestCode && c.WaterSamplingPointId == sample.WaterSamplingPointId, ct);
             configuredUnit = config?.Unit;
         }
 
@@ -214,14 +217,14 @@ public class CurrentStepViewService
               ?? await _db.Incubations
                   .Include(i => i.Media).ThenInclude(m => m!.Material)
                   .Include(i => i.IncubatorEquipment)
-                  .FirstOrDefaultAsync(i => i.Id == sharedTsbResult.IncubationId);
+                  .FirstOrDefaultAsync(i => i.Id == sharedTsbResult.IncubationId, ct);
 
         if (sharedTsbResult != null && tsbIncubation != null)
         {
             var inc = tsbIncubation;
             var tsbStepName = sharedTsbResult.StepName;
             var startedUser = inc.StartedByUserId.HasValue
-                ? await _db.Users.Where(u => u.Id == inc.StartedByUserId.Value).Select(u => u.Username).FirstOrDefaultAsync()
+                ? await _db.Users.Where(u => u.Id == inc.StartedByUserId.Value).Select(u => u.Username).FirstOrDefaultAsync(ct)
                 : null;
 
             var tsbStep = await _db.TestWorkflowSteps
@@ -229,7 +232,7 @@ public class CurrentStepViewService
                 .Include(s => s.StepMedia).ThenInclude(m => m.IncubationCondition)
                 .Where(s => s.TestDefinition != null && s.TestDefinition.Code == order.TestCode && (s.StepName == tsbStepName || s.StepType == StepType.BrothEnrichment || s.StepName.Contains("TSB")))
                 .OrderBy(s => s.StepName == tsbStepName ? 0 : 1)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
             // This test's own TSB medium decides its window - never a default.
             var tsbWindow = tsbStep is null ? null : IncubationWindowResolver.ForIncubation(tsbStep, inc);
 
@@ -263,7 +266,7 @@ public class CurrentStepViewService
         var incMax = shownWindow?.MaxHours ?? 0;
 
         var returnInfo = await TestReturnHelper.GetPendingReturnAsync(_db, testOrderId, hasActiveReadings: facts.ActiveCountReadings.Count > 0);
-        var perContainer = await _db.TestDefinitions.AsNoTracking().Where(t => t.Code == order.TestCode).Select(t => t.PerContainer).FirstOrDefaultAsync();
+        var perContainer = await _db.TestDefinitions.AsNoTracking().Where(t => t.Code == order.TestCode).Select(t => t.PerContainer).FirstOrDefaultAsync(ct);
 
         var sampleLocations = await _db.SampleLocations
             .Include(l => l.WaterSamplingPoint)
@@ -271,7 +274,7 @@ public class CurrentStepViewService
             .Include(l => l.MachinePartConfiguration!).ThenInclude(c => c.MachinePart!).ThenInclude(p => p.Machine)
             .Where(l => l.TestOrderId == testOrderId)
             .OrderBy(l => l.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         foreach (var loc in sampleLocations)
         {
@@ -279,20 +282,20 @@ public class CurrentStepViewService
             {
                 loc.SamplingConfiguration = await _db.SamplingConfigurations
                     .Include(c => c.WaterSamplingPoint)
-                    .FirstOrDefaultAsync(c => c.Id == loc.SamplingConfigurationId);
+                    .FirstOrDefaultAsync(c => c.Id == loc.SamplingConfigurationId, ct);
             }
             else if (loc.SamplingConfiguration == null && loc.WaterSamplingPointId != null)
             {
                 loc.SamplingConfiguration = await _db.SamplingConfigurations
                     .Include(c => c.WaterSamplingPoint)
-                    .FirstOrDefaultAsync(c => c.WaterSamplingPointId == loc.WaterSamplingPointId && c.TestCode == order.TestCode);
+                    .FirstOrDefaultAsync(c => c.WaterSamplingPointId == loc.WaterSamplingPointId && c.TestCode == order.TestCode, ct);
             }
 
             if (loc.MachinePartConfiguration == null && loc.MachinePartConfigurationId != null)
             {
                 loc.MachinePartConfiguration = await _db.MachinePartConfigurations
                     .Include(c => c.MachinePart!).ThenInclude(p => p.Machine)
-                    .FirstOrDefaultAsync(c => c.Id == loc.MachinePartConfigurationId);
+                    .FirstOrDefaultAsync(c => c.Id == loc.MachinePartConfigurationId, ct);
             }
         }
 
@@ -367,6 +370,8 @@ public class CurrentStepViewService
             return new
             {
                 testOrderId,
+                sopCapture,
+                newerSopRevision,
                 step = current.Step is null ? null : new
                 {
                     current.Step.Id, current.Step.StepOrder, current.Step.StepName,
@@ -425,6 +430,8 @@ public class CurrentStepViewService
         return new
         {
             testOrderId,
+            sopCapture,
+            newerSopRevision,
             step = current.Step is null ? null : new
             {
                 current.Step.Id, current.Step.StepOrder, current.Step.StepName,

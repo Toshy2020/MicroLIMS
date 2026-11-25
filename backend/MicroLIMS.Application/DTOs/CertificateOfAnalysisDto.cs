@@ -19,8 +19,11 @@ public class CoaSectionScopeDto
     public CoaScopeDto Scope { get; set; } = new();
 }
 
+public sealed record CoaMethodDocumentDto(string DocumentCode, string Title, string RevisionNumber, DateTime? EffectiveDateUtc);
+
 public class CoaScopeDto
 {
+    public List<CoaMethodDocumentDto> MethodDocuments { get; set; } = new();
     // Water/EM/After Cleaning: a location x test grid. Null when none of
     // the scope's tests has locations.
     public CoaMatrixDto? Matrix { get; set; }

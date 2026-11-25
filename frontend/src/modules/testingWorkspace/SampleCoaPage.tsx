@@ -18,6 +18,7 @@ import {
   TestOrderSummaryDetail,
   SampleSectionSummaryDetail
 } from "./types/sampleSummaryTypes";
+import { SopMethodLine, SopRevisionNotice } from "./components/SopMethodDetails";
 import { reportStyles } from "./reportStyles";
 import { SIGNATURE_STATEMENTS } from "./sampleSummary/summaryFormatting";
 import { dt, d, humanize } from "./SampleReportPage";
@@ -560,6 +561,14 @@ export function SampleCoaPage() {
               Generated {generatedAt}
             </div>
           </div>
+
+          {(activeSection ? sectionScope(s.certificate, activeSection.sectionId) : certificate)?.methodDocuments?.map((document, index) => (
+            <SopMethodLine key={index} document={document} timeZone={s.labTimeZoneId} />
+          ))}
+          {s.testOrders.filter((order) => !order.isSuperseded && !order.isOosInvalidated &&
+            (!activeSection || order.sectionId === activeSection.sectionId) && order.newerSopRevision).map((order) => (
+              <SopRevisionNotice key={order.testOrderId} newerSopRevision={order.newerSopRevision} timeZone={s.labTimeZoneId} />
+          ))}
 
           {!isMultiSection ? (
             /* Single-section sample (sections.length <= 1) - EXACTLY as today */

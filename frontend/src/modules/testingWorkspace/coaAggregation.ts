@@ -79,6 +79,7 @@ export interface CoaSimpleResult {
 }
 
 export interface CoaScope {
+  methodDocuments?: { documentCode: string; title: string; revisionNumber: string; effectiveDateUtc: string | null }[];
   matrix: CoaMatrix | null;
   simple: CoaSimpleResult | null;
   supportingRows: CoaSimpleRow[];

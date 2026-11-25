@@ -51,8 +51,12 @@
     "PreparedByName": "Bob Reviewer",
     "PreparedAt": "2026-03-02T10:00:00Z"
   },
+  "ItemId": 1,
+  "LabTimeZoneId": "UTC",
   "TestOrders": [
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 1,
       "SectionId": 1,
@@ -215,6 +219,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 2,
       "SectionId": 1,
@@ -429,6 +435,8 @@
       ]
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 3,
       "SectionId": 2,
@@ -552,6 +560,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 4,
       "SectionId": 1,
@@ -660,6 +670,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 5,
       "SectionId": 1,
@@ -730,6 +742,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 6,
       "SectionId": 2,
@@ -803,6 +817,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 7,
       "SectionId": 1,
@@ -858,6 +874,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 8,
       "SectionId": 1,
@@ -931,6 +949,8 @@
       "Locations": []
     },
     {
+      "SopCapture": null,
+      "NewerSopRevision": null,
       "CompetencyOverrides": [],
       "TestOrderId": 9,
       "SectionId": 1,
@@ -1088,6 +1108,7 @@
   "CombinedCoaAvailable": true,
   "Certificate": {
     "Sample": {
+      "MethodDocuments": [],
       "Matrix": {
         "Columns": [
           {
@@ -1261,6 +1282,7 @@
         "SectionId": 1,
         "SectionName": "Microbiology",
         "Scope": {
+          "MethodDocuments": [],
           "Matrix": {
             "Columns": [
               {
@@ -1434,6 +1456,7 @@
         "SectionId": 2,
         "SectionName": "Physicochemical",
         "Scope": {
+          "MethodDocuments": [],
           "Matrix": null,
           "Simple": {
             "Rows": [

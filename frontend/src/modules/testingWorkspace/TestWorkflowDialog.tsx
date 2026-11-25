@@ -49,13 +49,10 @@ import { resolveWorkflowPanelKind } from "./utils/workflowPanelMapping";
 import { SopMethodDetails } from "./components/SopMethodDetails";
 import type { TestOrderSop } from "./types/sopCaptureTypes";
 import { formatDateTimeWithTimeZone } from "../../utils/formatDate";
-import { useOptionalAuth } from "../../contexts/AuthContext";
-import { PERMISSIONS } from "../../routes/routes";
-import { OverrideDialog } from "../competency/OverrideDialog";
 
 function isCompetencyRefusalError(e: unknown): boolean {
-  const resp = (e as { response?: { status?: number; data?: { code?: string } } } | null)?.response;
-  return resp?.status === 403 || Boolean(resp?.data?.code?.startsWith("Competency."));
+  const resp = (e as { response?: { data?: { code?: string } } } | null)?.response;
+  return Boolean(resp?.data?.code?.startsWith("Competency."));
 }
 
 type StepMediaRow = TestWorkflowStepDto["stepMedia"][number];
@@ -232,14 +229,11 @@ function TestWorkflowDialogBody({
 }: Props & { onSopLoaded: (sop: TestOrderSop & { testOrderId: number }) => void }) {
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
-  const auth = useOptionalAuth();
-  const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
   const isEmOrAfterCleaning = category === "EnvironmentalMonitoring" || category === "AfterCleaning";
   const [phase, setPhase] = useState<Phase>("loading");
   const [current, setCurrent] = useState<WorkflowStepState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
-  const [overrideOpen, setOverrideOpen] = useState(false);
   const [showLocationGrid, setShowLocationGrid] = useState(false);
   const [outsourcedLab, setOutsourcedLab] = useState<string | null>(outsourcedToLab ?? null);
 
@@ -1170,18 +1164,13 @@ function TestWorkflowDialogBody({
         </Alert>
       )}
       {error && !(benchCount && phase === "enter-result") && (
-        <Alert
-          severity="error"
-          sx={{ mb: 2 }}
-          action={
-            isCompetencyRefusal && canOverride ? (
-              <Button color="inherit" size="small" onClick={() => setOverrideOpen(true)}>
-                {t("testWorkflow.grantOverride")}
-              </Button>
-            ) : undefined
-          }
-        >
-          {error}
+        <Alert severity="error" sx={{ mb: 2 }}>
+          <Box>{error}</Box>
+          {isCompetencyRefusal && (
+            <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+              {t("testWorkflow.competencyOverrideHint")}
+            </Typography>
+          )}
         </Alert>
       )}
 
@@ -1414,17 +1403,13 @@ function TestWorkflowDialogBody({
             <DraftRestoreNotice startedAt={draft.restoredStartedAt} onRestore={restoreDraft} onDiscard={() => void draft.discard()} />
             {keptOffline && <OfflineDraftNotice onTryAgain={() => setKeptOffline(false)} />}
             {error && (
-              <Alert
-                severity="error"
-                action={
-                  isCompetencyRefusal && canOverride ? (
-                    <Button color="inherit" size="small" onClick={() => setOverrideOpen(true)}>
-                      {t("testWorkflow.grantOverride")}
-                    </Button>
-                  ) : undefined
-                }
-              >
-                {error}
+              <Alert severity="error">
+                <Box>{error}</Box>
+                {isCompetencyRefusal && (
+                  <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+                    {t("testWorkflow.competencyOverrideHint")}
+                  </Typography>
+                )}
               </Alert>
             )}
           {countEntryFields}
@@ -1473,28 +1458,6 @@ function TestWorkflowDialogBody({
           </StepActionBar>
         </Stack>
       )}
-      <OverrideDialog
-        open={overrideOpen}
-        testOrderId={testOrderId}
-        testLabel={`${testCode} — ${displayName}`}
-        candidates={
-          auth?.userId != null
-            ? [
-                {
-                  userId: auth.userId,
-                  fullName: auth.fullName ?? auth.username ?? String(auth.userId),
-                  reason: error ?? undefined
-                }
-              ]
-            : []
-        }
-        onClose={() => setOverrideOpen(false)}
-        onGranted={() => {
-          setOverrideOpen(false);
-          setError(null);
-          setIsCompetencyRefusal(false);
-        }}
-      />
     </Box>
   );
 }

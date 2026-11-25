@@ -100,9 +100,10 @@ describe("MeasurementPanel recording refusal", () => {
       expect(alert.textContent).toBe("You are not qualified for PH.");
     });
     expect(screen.queryByRole("button", { name: /Grant Override/i })).toBeNull();
+    expect(screen.queryByText("A Section Head can grant a competency override for this test.")).toBeNull();
   });
 
-  it("shows Grant Override beside the refusal only when the user holds Competency.Override", async () => {
+  it("shows Section Head hint on Competency.* refusal and never renders Grant Override on recording screen", async () => {
     const user = userEvent.setup();
     localStorage.setItem("microlims_permissions", JSON.stringify(["Competency.Override"]));
     localStorage.setItem("microlims_user_id", "12");
@@ -141,8 +142,11 @@ describe("MeasurementPanel recording refusal", () => {
     await user.type(passwordInput, "Secret123!");
     await user.click(screen.getByRole("button", { name: "Sign" }));
 
-    const overrideBtn = await screen.findByRole("button", { name: /Grant Override/i });
-    await user.click(overrideBtn);
-    expect(await screen.findByRole("textbox", { name: /Reason for override/i })).toBeTruthy();
+    await waitFor(() => {
+      const alert = screen.getByRole("alert");
+      expect(alert.textContent).toContain("You are not qualified for PH.");
+    });
+    expect(await screen.findByText("A Section Head can grant a competency override for this test.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Grant Override/i })).toBeNull();
   });
 });

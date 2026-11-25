@@ -418,9 +418,10 @@ describe("TestWorkflowDialog count test", () => {
       const alerts = await screen.findAllByText("You are not qualified for TAMC.");
       expect(alerts.length).toBeGreaterThanOrEqual(1);
       expect(screen.queryByRole("button", { name: /Grant override/i })).toBeNull();
+      expect(screen.queryByText("A Section Head can grant a competency override for this test.")).toBeNull();
     });
 
-    it("shows Grant Override on competency refusal only when user holds Competency.Override", async () => {
+    it("shows Section Head hint on Competency.* refusal and never renders Grant override on recording screen", async () => {
       const user = userEvent.setup();
       localStorage.setItem("microlims_user_id", "12");
       localStorage.setItem("microlims_full_name", "Hana Head");
@@ -445,9 +446,9 @@ describe("TestWorkflowDialog count test", () => {
       });
 
       await user.click(screen.getByRole("button", { name: "Calculate" }));
-      const overrideButtons = await screen.findAllByRole("button", { name: /Grant override/i });
-      await user.click(overrideButtons[0]);
-      expect(await screen.findByRole("textbox", { name: /Reason for override/i })).toBeTruthy();
+      expect((await screen.findAllByText("You are not qualified for TAMC.")).length).toBeGreaterThanOrEqual(1);
+      expect((await screen.findAllByText("A Section Head can grant a competency override for this test.")).length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByRole("button", { name: /Grant override/i })).toBeNull();
     });
   });
 

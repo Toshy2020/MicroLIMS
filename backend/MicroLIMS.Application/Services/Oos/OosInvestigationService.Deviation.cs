@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Helpers;
+using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
@@ -50,24 +51,37 @@ public sealed partial class OosInvestigationService
                 .Select(r => (int?)r.InvestigationId).SingleOrDefaultAsync(ct) ?? throw DeviationRequestNotFound();
             await LockForDeviationAsync(investigationId, userId, SectionAccess.Write, ct);
 
-            var request = await db.OosDeviationRequests.SingleOrDefaultAsync(r => r.Id == requestId, ct)
-                ?? throw DeviationRequestNotFound();
-            // A caller may already be tracking the request. Refresh it only after acquiring the investigation lock.
-            await db.Entry(request).ReloadAsync(ct);
-            CheckVersion(request.Version, expectedVersion);
-            if (request.Status != OosDeviationRequestStatus.Open)
-                throw new BusinessRuleException(MessageCodes.OosDeviationAlreadyAddressed, "This deviation request has already been addressed.");
-            if (!ValidText(comment))
-                throw new BusinessRuleException(MessageCodes.OosDeviationCommentInvalid, "Enter an addressing comment of 1 to 4000 characters.");
-
-            request.Status = OosDeviationRequestStatus.Addressed;
-            request.AddressedComment = comment.Trim();
-            request.AddressedByUserId = userId;
-            request.AddressedAtUtc = time.GetUtcNow().UtcDateTime;
-            db.CurrentUserId = userId;
-            db.SetNextAuditReason(request, request.AddressedComment);
-            await db.SaveChangesAsync(ct);
+            var request = await LoadOpenDeviationRequestAsync(db, requestId, expectedVersion, ct);
+            await MarkDeviationRequestAddressedAsync(db, request, comment, userId, time.GetUtcNow().UtcDateTime, ct);
         }, ct);
+
+    internal static async Task<OosDeviationRequest> LoadOpenDeviationRequestAsync(IMicroLimsDbContext db,
+        int requestId, uint expectedVersion, CancellationToken ct)
+    {
+        var request = await db.OosDeviationRequests.SingleOrDefaultAsync(r => r.Id == requestId, ct)
+            ?? throw DeviationRequestNotFound();
+        // A caller may already be tracking the request. Refresh it only after acquiring the investigation lock.
+        await db.Entry(request).ReloadAsync(ct);
+        CheckVersion(request.Version, expectedVersion);
+        if (request.Status != OosDeviationRequestStatus.Open)
+            throw new BusinessRuleException(MessageCodes.OosDeviationAlreadyAddressed, "This deviation request has already been addressed.");
+        return request;
+    }
+
+    internal static async Task MarkDeviationRequestAddressedAsync(IMicroLimsDbContext db, OosDeviationRequest request,
+        string comment, int userId, DateTime now, CancellationToken ct)
+    {
+        if (!ValidText(comment))
+            throw new BusinessRuleException(MessageCodes.OosDeviationCommentInvalid, "Enter an addressing comment of 1 to 4000 characters.");
+
+        request.Status = OosDeviationRequestStatus.Addressed;
+        request.AddressedComment = comment.Trim();
+        request.AddressedByUserId = userId;
+        request.AddressedAtUtc = now;
+        db.CurrentUserId = userId;
+        db.SetNextAuditReason(request, request.AddressedComment);
+        await db.SaveChangesAsync(ct);
+    }
 
     public async Task<IReadOnlyList<OosOverdueInvestigation>> ListOverdueAsync(DateOnly nowLabDate, int take = 100,
         CancellationToken ct = default) =>

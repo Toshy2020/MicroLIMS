@@ -26,6 +26,8 @@ public class QualityRecordsController(QualityRecordCore core, QualityLinkService
     public async Task<IActionResult> Create(QualityRecordType type, CreateQualityRecordRequest request,
         CancellationToken ct = default)
     {
+        if (type == QualityRecordType.Deviation)
+            throw new BusinessRuleException(MessageCodes.DeviationRaiseRoute, "Raise the deviation with its occurrence and immediate action.");
         var record = await core.CreateDtoAsync(type, request, Actor, ct);
         return CreatedAtAction(nameof(GetById), new { id = record.Id }, ApiResponse<QualityRecordDto>.Ok(record));
     }

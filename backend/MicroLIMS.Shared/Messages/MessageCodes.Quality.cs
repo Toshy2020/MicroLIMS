@@ -16,8 +16,33 @@ public static partial class MessageCodes
     public const string QualitySignedLink = "Quality.SignedLink";
     public const string QualityInvalidAttachment = "Quality.InvalidAttachment";
 
+    public const string DeviationRaiseRoute = "Deviation.RaiseRoute";
+    public const string DeviationOccurrenceUtc = "Deviation.OccurrenceUtc";
+    public const string DeviationUseReject = "Deviation.UseReject";
+    public const string DeviationClassification = "Deviation.Classification";
+    public const string DeviationCause = "Deviation.Cause";
+    public const string DeviationOwnerLabConclusion = "Deviation.OwnerLabConclusion";
+    public const string DeviationIncomplete = "Deviation.Incomplete";
+    public const string DeviationCapaRequired = "Deviation.CapaRequired";
+    public const string DeviationUnfinishedActions = "Deviation.UnfinishedActions";
+    public const string DeviationInvalidOwner = "Deviation.InvalidOwner";
+    public const string DeviationAnalystOwner = "Deviation.AnalystOwner";
+    public const string DeviationWrongState = "Deviation.WrongState";
+
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
+        [DeviationRaiseRoute] = [],
+        [DeviationOccurrenceUtc] = [],
+        [DeviationUseReject] = [],
+        [DeviationClassification] = [],
+        [DeviationCause] = [],
+        [DeviationOwnerLabConclusion] = [],
+        [DeviationIncomplete] = [],
+        [DeviationCapaRequired] = [],
+        [DeviationUnfinishedActions] = [],
+        [DeviationInvalidOwner] = [],
+        [DeviationAnalystOwner] = [],
+        [DeviationWrongState] = [],
         [QualityNotFound] = [],
         [QualityAccessDenied] = [],
         [QualityInvalidType] = [],

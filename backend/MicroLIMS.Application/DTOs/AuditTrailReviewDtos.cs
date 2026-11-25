@@ -34,7 +34,11 @@ public record AuditTrailReviewFindingDto(
     DateTime? ClosedAtUtc,
     int RecordedByUserId,
     string? RecordedByName,
-    DateTime RecordedAtUtc);
+    DateTime RecordedAtUtc)
+{
+    // Findings are immutable except for the one transition from Open to Closed.
+    public uint Version => (uint)Status;
+}
 
 public record AuditTrailReviewListItemDto(
     int Id,

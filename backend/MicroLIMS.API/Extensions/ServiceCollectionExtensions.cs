@@ -280,6 +280,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<OosInvestigationDocumentService>();
         services.AddScoped<ResultProjectionService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityRecordCore>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.DeviationService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityLinkService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityAttachmentService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityCommentService>();

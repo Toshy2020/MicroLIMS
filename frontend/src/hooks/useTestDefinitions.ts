@@ -68,6 +68,7 @@ export interface TestDefinitionOption extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   coaDisplayOrder?: number | null;
+  requalificationMonths?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;

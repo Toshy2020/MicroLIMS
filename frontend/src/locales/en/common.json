@@ -706,6 +706,8 @@
     "Removed": "Removed",
     "RequiresReview": "RequiresReview",
     "Withdrawn": "Withdrawn",
+    "ExpiringSoon": "Expiring Soon",
+    "NotQualified": "Not Qualified",
     "Signed": "Signed",
     "NoFindings": "No Findings",
     "FindingsRecorded": "Findings Recorded",

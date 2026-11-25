@@ -1186,11 +1186,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
 
           <StepActionBar
             note={
-              lotLastChoice.saveBlockedReason
-                ? lotLastChoice.saveBlockedReason
-                : mediaId && incubatorId
-                  ? t("testWorkflow.noteAuditTrail")
-                  : t("testWorkflow.noteSelectLotIncubator")
+              error
+                ? error
+                : lotLastChoice.saveBlockedReason
+                  ? lotLastChoice.saveBlockedReason
+                  : mediaId && incubatorId
+                    ? t("testWorkflow.noteAuditTrail")
+                    : t("testWorkflow.noteSelectLotIncubator")
             }
           >
             <Button
@@ -1330,7 +1332,13 @@ function TestWorkflowDialogBody({ testOrderId, testCode, category, displayName, 
             </Alert>
           )}
           <StepActionBar
-            note={readings.every((r) => r.trim() === "") ? t("testWorkflow.noteEnterPlateCount") : t("testWorkflow.noteResultAuditTrail")}
+            note={
+              error
+                ? error
+                : readings.every((r) => r.trim() === "")
+                  ? t("testWorkflow.noteEnterPlateCount")
+                  : t("testWorkflow.noteResultAuditTrail")
+            }
           >
             <Button
               variant="contained"

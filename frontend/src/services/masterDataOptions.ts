@@ -159,6 +159,7 @@ export interface CreateTestDefinitionPayload extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   coaDisplayOrder?: number | null;
+  requalificationMonths?: number | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;
   uvTotalVolumeMl?: number | null;
@@ -213,6 +214,7 @@ export interface UpdateTestDefinitionPayload extends TitrationDefinitionFields {
   perContainer?: boolean;
   moistureRole?: MoistureRole;
   coaDisplayOrder?: number | null;
+  requalificationMonths?: number | null;
   changeReason?: string | null;
   uvCalculationMode?: UvCalculationMode | null;
   uvSpecificAbsorbance?: number | null;

@@ -1624,6 +1624,9 @@
       "coaOrderLabel": "CoA order (optional)",
       "coaOrderPlaceholder": "e.g. 1, 2, 3",
       "coaOrderHelper": "Position on the Certificate of Analysis inside this test's group (1–9999); tests without an order follow alphabetically.",
+      "requalificationMonthsLabel": "Requalification interval (months, optional)",
+      "requalificationMonthsPlaceholder": "e.g. 12",
+      "requalificationMonthsHelper": "Number of months before an analyst's qualification expires (1–120); leave empty for no expiry.",
       "sectionLabel": "Section",
       "selectSection": "Select a section",
       "sectionChangeHint": "Existing test orders keep their current section.",
@@ -1632,6 +1635,7 @@
         "code": "Code",
         "displayName": "Display Name",
         "coaOrder": "CoA order",
+        "requalificationMonths": "Requalification interval",
         "section": "Section",
         "workflowType": "Workflow Type"
       }
@@ -1821,6 +1825,7 @@
       "codeAndNameRequired": "Both Code and Display Name are required.",
       "sectionRequired": "Laboratory section is required.",
       "coaOrderInvalid": "CoA order must be a whole number from 1 to 9999, or empty.",
+      "requalificationMonthsInvalid": "Requalification interval must be a whole number from 1 to 120 months, or empty.",
       "methodAbbreviationRequired": "Method abbreviation is required when system suitability is enabled.",
       "methodAbbreviationInvalid": "Method abbreviation must be 1-20 uppercase alphanumeric characters or hyphens.",
       "dissolutionOffsetsNonNegative": "Dissolution stage offsets must be greater than or equal to zero.",

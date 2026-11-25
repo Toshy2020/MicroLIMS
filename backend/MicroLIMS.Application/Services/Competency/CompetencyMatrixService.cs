@@ -11,7 +11,7 @@ namespace MicroLIMS.Application.Services.Competency;
 
 public enum MatrixCellStatus { NotQualified, Qualified, ExpiringSoon, Expired, Withdrawn }
 
-public sealed record MatrixCellDto(int UserId, int TestDefinitionId, MatrixCellStatus Status, DateOnly? ExpiresOn);
+public sealed record MatrixCellDto(int UserId, int TestDefinitionId, MatrixCellStatus Status, DateOnly? ExpiresOn, int? QualificationId = null);
 
 public sealed record MatrixSopDto(string DocumentCode, string RevisionNumber);
 
@@ -23,6 +23,7 @@ public sealed record MatrixFilters
 {
     public string? AnalystSearch { get; init; }
     public string? TestSearch { get; init; }
+    public MatrixCellStatus? Status { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = CompetencyMatrixService.DefaultPageSize;
 }
@@ -134,6 +135,12 @@ public sealed class CompetencyMatrixService(
             var search = filters.AnalystSearch.Trim();
             ordered = ordered.Where(id => names[id].Contains(search, StringComparison.OrdinalIgnoreCase)).ToList();
         }
+        if (filters.Status is { } wantedStatus)
+        {
+            ordered = ordered
+                .Where(userId => tests.Any(test => Cell(userId, test.Id, test.SectionId).Status == wantedStatus))
+                .ToList();
+        }
         var totalCount = ordered.Count;
         var paged = ordered.Skip((page - 1) * pageSize).Take(pageSize).ToArray();
 
@@ -167,6 +174,7 @@ public sealed class CompetencyMatrixService(
         MatrixCellDto Cell(int userId, int testId, int sectionId)
         {
             DateOnly? expiresOn = null;
+            int? qualificationId = null;
             MatrixCellStatus status;
             if (!latest.TryGetValue(new { UserId = userId, TestDefinitionId = testId }, out var qualification))
             {
@@ -174,6 +182,7 @@ public sealed class CompetencyMatrixService(
             }
             else
             {
+                qualificationId = qualification.Id;
                 expiresOn = qualification.ExpiresOn;
                 if (qualification.WithdrawnOn is not null)
                     status = MatrixCellStatus.Withdrawn;
@@ -187,7 +196,7 @@ public sealed class CompetencyMatrixService(
                 else
                     status = MatrixCellStatus.Qualified;
             }
-            return new MatrixCellDto(userId, testId, status, expiresOn);
+            return new MatrixCellDto(userId, testId, status, expiresOn, qualificationId);
         }
     }
 

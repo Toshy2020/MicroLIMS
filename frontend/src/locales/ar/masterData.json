@@ -1644,6 +1644,9 @@
       "coaOrderLabel": "ترتيب شهادة التحليل (اختياري)",
       "coaOrderPlaceholder": "مثال: 1، 2، 3",
       "coaOrderHelper": "الموضع في شهادة التحليل داخل مجموعة هذا الاختبار (1–9999)؛ تتبع الاختبارات بدون ترتيب أبجديًا.",
+      "requalificationMonthsLabel": "فترة إعادة التأهيل (بالأشهر، اختياري)",
+      "requalificationMonthsPlaceholder": "مثال: 12",
+      "requalificationMonthsHelper": "عدد الأشهر قبل انتهاء الصلاحية لتأهيل المحلل (1–120)؛ اتركه فارغًا لعدم الانتهاء.",
       "sectionLabel": "القسم",
       "selectSection": "اختر قسمًا",
       "sectionChangeHint": "تحتفظ أوامر الاختبار الحالية بقسمها الحالي.",
@@ -1652,6 +1655,7 @@
         "code": "الرمز",
         "displayName": "اسم العرض",
         "coaOrder": "ترتيب شهادة التحليل",
+        "requalificationMonths": "فترة إعادة التأهيل",
         "section": "القسم",
         "workflowType": "نوع سير العمل"
       }
@@ -1841,6 +1845,7 @@
       "codeAndNameRequired": "الرمز واسم العرض مطلوبان معًا.",
       "sectionRequired": "قسم المختبر مطلوب.",
       "coaOrderInvalid": "يجب أن يكون ترتيب شهادة التحليل عددًا صحيحًا من 1 إلى 9999، أو فارغًا.",
+      "requalificationMonthsInvalid": "يجب أن تكون فترة إعادة التأهيل عددًا صحيحًا من 1 إلى 120 شهرًا، أو فارغة.",
       "methodAbbreviationRequired": "اختصار الطريقة مطلوب عند تفعيل ملاءمة النظام.",
       "methodAbbreviationInvalid": "يجب أن يتكون اختصار الطريقة من 1 إلى 20 حرفًا أبجديًا رقميًا كبيرًا أو واصلة.",
       "dissolutionOffsetsNonNegative": "يجب أن تكون إزاحات مراحل الذوبان أكبر من أو تساوي الصفر.",

@@ -78,6 +78,8 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/document-control/audit": { chapterId: "38-document-control" },
   "/document-control/reassignments": { chapterId: "38-document-control" },
   "/document-control/configuration": { chapterId: "38-document-control" },
+  "/competency/matrix": { chapterId: "38-document-control", heading: "38.16 Qualification Matrix" },
+  "/competency/my": { chapterId: "38-document-control", heading: "38.17 My Qualifications" },
   "/reports": { chapterId: "34-reports-kpis" },
   "/monitoring-plan": { chapterId: "23-environmental-monitoring" },
   "/oos-tracking": { chapterId: "20-oos-tracking" },

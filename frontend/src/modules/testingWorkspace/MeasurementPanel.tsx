@@ -294,12 +294,6 @@ export function MeasurementPanel({
         </Alert>
       )}
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
-        </Alert>
-      )}
-
       <Stack spacing={2.5}>
         {/* Section 1: Run metadata */}
         <ResultSection
@@ -367,7 +361,12 @@ export function MeasurementPanel({
         />
 
         {/* Action button */}
-        <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+        <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+          {error && (
+            <Typography role="alert" variant="caption" color="error">
+              {error}
+            </Typography>
+          )}
           <Button
             variant="contained"
             disabled={!isFormValid}

@@ -392,6 +392,32 @@ describe("TestWorkflowDialog count test", () => {
       await user.click(screen.getByRole("button", { name: "Calculate" }));
       expect(service.recordCountResult).not.toHaveBeenCalled();
     });
+
+    it("shows the server competency refusal message when recording a count result is refused", async () => {
+      const user = userEvent.setup();
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.recordCountResult.mockRejectedValue(
+        new AxiosError("Forbidden", "403", undefined, undefined, {
+          status: 403,
+          statusText: "Forbidden",
+          headers: {},
+          config: {} as never,
+          data: { message: "You are not qualified for TAMC." }
+        } as AxiosResponse)
+      );
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "25");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      const alerts = await screen.findAllByText("You are not qualified for TAMC.");
+      expect(alerts.length).toBeGreaterThanOrEqual(1);
+    });
   });
 
   describe("Arabic RTL", () => {

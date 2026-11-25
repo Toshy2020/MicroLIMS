@@ -867,6 +867,34 @@ Some Document Control functions run automatically or have no screen:
 - **Role Curriculum Management**: MicroLIMS does not provide a user interface screen for defining or maintaining role-to-document training curricula or per-document grace periods. (GAP-809, GAP-819)
 - **Permissions that have no effect**: The permissions *Document Draft Editing*, *Document Revision Creation*, *Document Technical Review*, *Document Revision Approval*, *Document Periodic Review* and *Training Matrix Viewing* do not change what anyone can do. Authority follows the user's role type and the per-document assignments; voiding is for Section Heads only. (GAP-015)
 
+---
+
+### 38.16 Qualification Matrix
+
+#### Purpose
+View analyst qualifications per test and effective SOP code and revision for a laboratory section, record or withdraw qualifications, and manage the laboratory competency gate.
+
+#### Who can use it
+Users with **Competency View** (Section Head, Reviewer, QC Manager, QA) can view the matrix; users with **Competency Manage** (Section Head, QC Manager) can sign or withdraw qualifications and switch the laboratory competency gate on or off. A Section Head cannot qualify themselves.
+
+#### What you see
+- **Filters and matrix**: Select a laboratory section and filter by analyst, test, or qualification status. Each cell shows the analyst's qualification status (**Qualified** with expiry date, **Expiring soon**, **Expired**, **Withdrawn**, or **Not qualified**) alongside the effective SOP code and revision for the test's item.
+- **Competency gate**: The gate is **off by default** for each laboratory so qualifications can be entered before enforcement starts. Before switching the gate on, an impact preview shows how many open assigned test orders would be blocked and for whom. Switching the gate on or off requires a reason and an electronic signature.
+
+---
+
+### 38.17 My Qualifications
+
+#### Purpose
+View your own test qualifications, expiry dates, and pending SOP reading assignments.
+
+#### Who can use it
+Signed-in users with **Competency View** (analysts for their own qualifications).
+
+#### What you see
+- **Test qualifications**: Your recorded qualifications with their status and expiry dates.
+- **SOPs to read**: Pending SOP reading assignments in Document Control with their due dates. When the laboratory competency gate is enabled, both a valid qualification and acknowledgement of the current effective SOP revision (or an open reading assignment within its grace period) are required at assignment and result entry.
+
 <!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->
 <!-- Phase 13 (agy): applied F-C06, F-C15 -->
 

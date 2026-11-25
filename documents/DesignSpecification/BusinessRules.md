@@ -368,3 +368,101 @@ Media Preparation → Sterility → Recovery → Release (or Rejected)
 - **Immutable evaluation context (Rule 3.1):** When a sample has an `ItemId`, the item's effective SOP revision is captured once on each `TestOrder` (`SopRevisionCapture.CaptureIfNeededAsync`) at its first recorded step and never changes afterward. The PostgreSQL trigger `test_orders_sop_capture_immutable` rejects any modification to the eight capture columns once `SopCaptureStatus` is set; concurrent first-step writers lock the `TestOrders` row (`FOR UPDATE` on Npgsql) and adopt the already-stored capture (`AdoptStoredCaptureAsync`).
 - **Ambiguous / unresolved SOPs:** If `ItemSopResolver` returns `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (case-variant active document masters, CONF-212), the status and capture timestamp are recorded without blocking testing, and displays show `"SOP not recorded: {reason}"`.
 - **Newer-revision notice (CONF-222):** Later effective revisions on the captured `DocumentMasterId` (with higher `RevisionSequence`, effective date after `SopCapturedAtUtc` and on or before `nowUtc`, while the test is open or before its `Ready` transition) never alter the captured test-order record; they only surface a non-blocking notice on the test workflow dialog, review screen, sample report, and Certificate of Analysis. Reassigning the item to a different SOP does not trigger a notice.
+---
+
+## 15. Quality Records (D2) *(Draft — pending approval)*
+
+**Files:** `Application/Services/Quality/*` (`QualityRecordCore`, `DeviationService`, `CapaService`, `ChangeControlService`, `ComplaintService`, `QualityConfigService`, `QualityLinkService`, `QualityAttachmentService`, `QualityCommentService`, `QualityDueDateService`), `Domain/Entities/Quality/*`, `Domain/Enums/QualityEnums.cs`, `API/Controllers/Quality/*`, `API/Controllers/QualityRecordsController.cs`, `Shared/Constants/SegregationOfDutiesRules.cs`, `Persistence/Migrations/20261124201920_AddQualityRecords.cs`. Specification: `FS-QLT`; conflicts: CONF-223 to CONF-226 and CONF-228 to CONF-240.
+
+Scope of this section: the merged D2 Tasks 1 to 8. Master-data change-control gate: see part 2 (D2 Task 9). Queries, reports, trending, notifications, the overdue job and the screens are not described here.
+
+### 15.1 Types, numbers and status paths
+- Four types, one root row (`QualityRecord`) and one detail row each (`DeviationDetail`, `CapaDetail`, `ChangeControlDetail`, `ComplaintDetail`). Numbers are `DEV-`, `CAPA-`, `CC-` and `CMP-` followed by the laboratory year and a four-digit sequence, counted per type and year under a per-type advisory lock (`ReferenceNumberGenerator.GenerateQualityNumberAsync`).
+- The typed services create their records. The generic route `POST api/quality/{type}` also accepts Capa, ChangeControl and Complaint and writes no detail row (CONF-230); it is not a supported path.
+- **Deviation:** Raised → Assess → Investigation → lab conclusion → LabConcluded → Approve → Approved → Close → Closed. Raised → Reject → Rejected (final). LabConcluded → Return → Investigation.
+- **CAPA:** Plan → approve plan → PlanApproved → verify completion → CompletionVerified → effectiveness check → Closed (for either result). Plan → return plan → Plan.
+- **Change control:** Proposed → sign assessment → Assessed → Approve → ApprovedForImplementation → Close → Closed. Proposed or Assessed → Reject → Rejected (final).
+- **Complaint:** Received → request investigation → Investigation → sign lab report → LabReported → Conclude → Concluded → Close → Closed.
+- **Cancel:** `Quality.Approve` (QA by default), with reason and signature. Allowed from Raised, Investigation, LabConcluded and Approved (deviation; CONF-224); from any status except Closed and Cancelled (CAPA); from any status except Closed, Rejected and Cancelled (change control); from Received, Investigation, LabReported and Concluded (complaint). The record stays visible with `IsCancelled` and the reason (`QualityRecordCore.CancelAsync`).
+- **Terminal states:** `QualityConfigService.IsOpenExpression` treats as not open: any cancelled record, deviation Rejected, Closed or Cancelled, CAPA Closed or Cancelled, change control Closed, Rejected or Cancelled, and complaint Closed or Cancelled. Checklist answers and extension requests refuse a record that is not open (`Quality.RecordTerminal`). The type's state steps refuse a cancelled record with the type's wrong-state message. Links, attachments and comments do not check the state (CONF-238).
+
+### 15.2 Who may do each step
+- Permissions: `Quality.View` (read), `Quality.Raise`, `Quality.Investigate`, `Quality.LabConclude`, `Quality.Approve`. Defaults are in FS-QLT-017. `Quality.Approve` is held by QA only; `Quality.Investigate` and `Quality.LabConclude` may not be held by QA (`SegregationOfDutiesRules.QaOnlyCodes`, `GxpExecutionAndApprovalCodes`).
+- Raise a deviation, comment, link, upload: `Quality.Raise` (Section Head, Reviewer, Analyst, QC Manager, QA by default).
+- Propose a change control: `Quality.Raise` and role Section Head, QC Manager or QA.
+- Create a CAPA: `Quality.Investigate` or `Quality.Approve`. Receive a complaint: `Quality.Approve`.
+- Assess, reject, return, approve, close and cancel a deviation, a CAPA step, a change-control step or a complaint step (except the lab report): `Quality.Approve`.
+- Save the deviation investigation or complaint findings: the owner, or `Quality.Investigate` when the caller does not hold `Quality.Approve`.
+- Lab conclusion (deviation) and lab report (complaint): `Quality.LabConclude` (Section Head and QC Manager by default).
+- Save a CAPA plan and complete a CAPA action: the owner of the CAPA; the responsible person of the action.
+- Save and sign a change-control assessment: `Quality.Investigate` (Section Head by default; CONF-236). Complete a change task: the responsible person.
+- Request an extension: the record owner (record due date) or the action's responsible user (action due date) (CONF-237). Decide an extension: `Quality.Approve`.
+- Remove a link or void an attachment: the record owner or `Quality.Investigate`.
+- Save site checklist templates, classifications and due rules: `Quality.Approve`. Save a section checklist template: `Quality.Investigate` with configure scope for the section.
+- The role types allowed per endpoint are listed in `backend/MicroLIMS.Tests/ArchitectureTests/authorization-matrix.txt`. Policies are necessary but not sufficient: the service refuses where it makes the decision.
+
+### 15.3 Separation rules
+- **Raiser or owner cannot approve or close.** `QualityRecordCore.EnsureNotRaiserOrOwner` refuses with `Quality.RaiserOrOwner` on: deviation approve, return and close; CAPA plan approve and return, completion verification and effectiveness check; change control approve, reject and close; complaint conclude and close. It is not applied to deviation assessment or rejection, to any cancellation, or to the extension decision (CONF-228, CONF-229).
+- A null `RaisedByUserId` never matches a user, so a record with no raising person (treated as "System") excludes no one.
+- **Owner cannot sign the laboratory part.** `Deviation.OwnerLabConclusion` and `Complaint.OwnerLabReport`. Another user holding `Quality.LabConclude` signs. QA approval does not replace the laboratory signature (specification section 9, item 4).
+- **Analyst cannot own a result-based deviation.** `Deviation.AnalystOwner`, when the analyst performed a linked test order or an investigated OOS order (`SegregationOfDutiesGuard`).
+- **QA cannot own or act in the laboratory.** An owner or responsible person with role QA is refused (`Deviation.InvalidOwner`, `Complaint.InvalidOwner`, `Capa.InvalidOwner`, `Capa.ActionResponsibleInvalid`). A change-control owner must be an active Section Head or QC Manager.
+- **Extension self-decision.** The requester cannot decide the request (`Quality.ExtensionSelfDecision`).
+
+### 15.4 Signed steps and signature meanings
+- A signed step calls `IElectronicSignatureService` with the user's identity and password, the meaning, the optional comment (4000 characters), and a snapshot of the content. It writes one append-only `QualityRecordStep` bound to the signature (FS-QLT-003, FS-QLT-004). Signed step rows, and signed extension requests, cannot be updated or deleted.
+- **Deviation:** Assess → `DeviationAssessed`; Reject → `DeviationRejected`; lab conclusion → `QualityLabConclusion`; Approve → `QualityApproved`; Close → `QualityClosed`; cancel → `QualityCancelled`.
+- **CAPA:** plan approval → `CapaPlanApproved`; verification → `CapaCompletionVerified`; effectiveness → `CapaEffectivenessChecked`; cancel → `QualityCancelled`.
+- **Change control:** assessment → `ChangeImpactAssessed`; approval → `ChangeApproved`; rejection → `ChangeRejected`; closure → `QualityClosed`; cancel → `QualityCancelled`.
+- **Complaint:** lab report → `QualityLabConclusion`; conclusion → `ComplaintConcluded`; closure → `QualityClosed`; cancel → `QualityCancelled`.
+- **Extension decision:** `QualityExtensionDecided`.
+- Not signed: receipt, investigation and findings saves, deviation return (the comment is kept as a `QualityComment`), CAPA plan save and return, action completion, change-control assessment save, task completion, extension request, links, attachments and comments.
+
+### 15.5 Concurrency
+- Every change to an existing record needs the current version in `If-Match`. A different version is refused with `Quality.Stale`. The record row is locked (`SELECT … FOR UPDATE`) before the version is read, and again inside every signed step.
+- A missing `If-Match` is refused with `Quality.VersionRequired`.
+
+### 15.6 Deviation rules
+- Occurrence time must be UTC and not in the future (`Deviation.OccurrenceUtc`, `Deviation.FutureOccurrence`). Immediate action is required. Location is optional, up to 200 characters.
+- Assessment requires `Accept = true`, an active classification and a valid owner. The due date is the one entered (not before the laboratory date) or the due rule's date (FS-QLT-007).
+- The laboratory conclusion requires a complete investigation: impact assessment, root cause category (an active `OosCauseCategory`, shared with OOS), root cause description and proposed actions.
+- **CAPA required (CONF-223).** Closure with `CapaRequired` needs a non-cancelled linked CAPA in PlanApproved, CompletionVerified or Closed. A cancelled CAPA never qualifies, even if its plan was signed before cancellation.
+- Closure is refused while any action of the record is unfinished (`Deviation.UnfinishedActions`).
+- **Source raises (CONF-224).** One non-cancelled deviation per monitoring deviation, audit finding, or already-addressed OOS request. A second raise is refused and the existing deviation is named.
+
+### 15.7 CAPA rules
+- A plan needs at least one action. Each action is Corrective or Preventive, has a responsible laboratory user and a due date not before the laboratory date. Effectiveness criteria, method and a planned date are required. The planned date must be after the latest action due date (`Capa.EffectivenessDateOrder`). Actions cannot be removed (`Capa.ActionCannotBeRemoved`).
+- After the plan is approved, the planned fields of each action are protected by a database trigger (`ProtectApprovedCapaActions`), and so are the completion fields once recorded.
+- Only the responsible person completes an action; completion needs evidence and may cite an evidence link of the same record. An action cannot be completed twice.
+- Verification needs every action complete.
+- The effectiveness check cannot be signed before the planned date by the laboratory date (`Capa.EffectivenessEarly`). A NotEffective result needs a new non-cancelled CAPA whose `SourceRecordId` is this CAPA (`Capa.NewCapaRequired`).
+
+### 15.8 Change-control rules
+- Affected records are of type Item, Specification, TestDefinition, Equipment or DocumentMaster. Workflow steps and document revisions cannot be selected as affected records (CONF-235). An existing record must be readable; a new one is named by a record code (up to 100 characters). Duplicates are refused.
+- The affected list is frozen when the impact assessment is signed (CONF-226). The refusal is `ChangeControl.AffectedFrozen`; its English and Arabic texts currently say "after approval" (CONF-231).
+- Assessment requires a saved impact summary and an answer to every active checklist item (`ChangeControl.ChecklistIncomplete`). Checklist answers are refused after signing (`ChangeControl.AssessmentAlreadySigned`).
+- Tasks are laboratory users with due dates. Completion is by the responsible person with evidence. Closure needs every task complete and a post-change review.
+- **Closure and unchanged records.** Closure needs an unchanged justification when a listed Specification or TestDefinition has no `ChangedAtUtc`. No merged code writes `ChangedAtUtc`, so in the merged build every such change control needs the justification (CONF-232).
+- Writes to test workflow steps and to test freeze or unfreeze check laboratory scope (`TestConfigurationScope`). Updates, moves and deletes of steps, and the freeze and unfreeze, also check the record version (`RecordVersion.EnsureCurrent`). This is the Task 8 fix, commit 9ed6ced.
+- Master-data change-control gate: see part 2 (D2 Task 9).
+
+### 15.9 Complaint rules
+- Receipt is by QA. The received date cannot be in the future (`Complaint.FutureReceivedOn`). An item, when given, must be active. The lot is free text (CONF-233).
+- The laboratory report needs findings and a signer who is not the owner. The conclusion needs an outcome (Justified, NotJustified or Inconclusive) and a summary. The conclusion does not record a follow-up deviation or CAPA (CONF-234).
+- Closure needs no unfinished action.
+
+### 15.10 Due dates, classifications and extensions
+- A due date is computed in working days from the rule for the record's type and classification, or the site rule. Working weekdays come from the monitoring settings and holidays from the laboratory calendar. With no rule, or an empty rule, there is no due date. A classification rule with an empty value does not fall back to the site rule (CONF-239).
+- Classifications and due rules are set by `Quality.Approve`; every change is audited (CONF-225). Seeded classifications: Minor, Major, Critical.
+- An extension is requested with a reason and a later date. QA decides with a signature. Approval replaces the record's or the action's due date in the same transaction. The request and its decision are kept; a decided request cannot change.
+- Overdue listing: open records whose due date is before the laboratory date, and unfinished actions whose due date is before it. Notifications are not part of the merged code.
+
+### 15.11 Links, attachments and comments
+- A link is chosen from the system and its target must be readable by the user. A duplicate link is refused. Links can be removed only before the first signed step, and after that the core target columns are fixed by a database trigger.
+- A link to a target the reader cannot read shows its number only.
+- Attachments: allowed types with a content check, at most 10 MB, SHA-256 stored. A download is audited, and an integrity failure blocks delivery and is audited. Voiding keeps the row and the reason. Nothing is deleted.
+- Comments: up to 2000 characters, no edit and no delete.
+- Links, attachments and comments are not refused on a closed or cancelled record (CONF-238).
+
+### 15.12 Reading scope
+- A user reads a quality record with `Quality.View` and when the record is site-wide or in a laboratory section the user may read. A user without `Quality.Investigate`, `Quality.LabConclude` or `Quality.Approve` whose role is Analyst reads only the records they raised, own, or hold an action in. A record outside that scope is reported as not found (`Quality.NotFound`).

@@ -61,7 +61,7 @@ Each requirement is a need that the code as built serves. Gaps found in the code
 **Requirement:** The system shall let a user average a list of readings for a water test order and compare the average with the limits configured for the sample's sampling point, as the earlier single-point way of entering water results.
 **GxP:** Yes
 **Serves:** USP <1231> (to be confirmed by QA)
-**Status:** Removed (user, 2026-11-20, CONF-216)
+**Status:** Withdrawn (user, 2026-11-20, CONF-216)
 
 ### URS-WAT-008
 **Requirement:** The system shall give a daily summary of the water results entered on a date, limited to the laboratory sections the user may read.

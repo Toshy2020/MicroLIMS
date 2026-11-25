@@ -62,14 +62,6 @@
 **Verified by:** reading (not run)
 **Conflicts:** CONF-010, CONF-011
 
-### FS-WAT-006
-**Satisfies:** URS-WAT-007
-**Function:** Removed (user, 2026-11-20, CONF-216). The single-point calculation (`POST api/water/calculate`) and `WaterWorkflowEngine.CalculateAndCompareAsync` no longer exist. Description of the removed behaviour, kept for history: the endpoint needed only a logged-in user (no permission policy), then calls `EnsureTestOrderAccessAsync` (write scope). Inputs: test order ID, a list of decimal readings. `WaterWorkflowEngine.CalculateAndCompareAsync` refuses an empty list. It refuses if the test order has any sample location, which is the case for every order created by FS-WAT-003. For an order without locations it reads the sampling configuration for the order's test code and the sample's `WaterSamplingPointId`; in Application and API code no place was found that sets `Sample.WaterSamplingPointId`, and `ReceiveAsync` (FS-WAT-001) does not. With no point, the limits are all empty and the status is LimitsNotConfigured. The average is the arithmetic mean of the readings, not rounded. A `Result` row is added with the readings joined by commas and the text "average (status)" where the average is formatted with at most two decimals (`0.##`, using the current culture of the process); the entered-by user is not set on the row. The order is moved to Ready by `WorkflowStateMachine.TransitionAsync` for the order's assigned analyst (or user 0 when none). The method does not check the order's current step, so any step except a closed or superseded one is moved to Ready. `AutoSubmitForReviewIfReadyAsync` is not called. No explicit transaction is used; the result is added and saved by the state machine call. Readings are not checked for being whole numbers or non-negative.
-**Code:** Removed.
-**Calculations:** CALC-011
-**Verified by:** reading (not run)
-**Conflicts:** CONF-064, CONF-216
-
 ### FS-WAT-007
 **Satisfies:** URS-WAT-008
 **Function:** Daily water report (`GET api/water/daily-report?date=`). Permission: logged-in user only. The read scope of the user (`GetReadableSectionIdsAsync`; null means all sections) limits the test orders. The engine selects all `Result` rows whose entered date (date part of `EnteredAt`, as stored) equals the requested date and whose test order belongs to a Water sample, loads them into memory (no paging) and, for each, reads the average and the status back out of the text field `InterpretedValue` by splitting on brackets; a value that is not a number becomes 0 and a missing status becomes "Unknown". The "exceeded limit" field is always empty. The result rows written by the batch method (FS-WAT-005) have the text "n locations: ... (worst: status)" in that field, so for them the parsed average is 0 and the status text is "worst: status". The date is compared without conversion to the laboratory time zone.

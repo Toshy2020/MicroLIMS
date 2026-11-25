@@ -1150,6 +1150,7 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** User decision pending on whether to remove or guard the water endpoint. Remove or guard the direct observation writer if a production caller appears.
 - **Decision:** Removed (user, 2026-11-20). The endpoint POST api/water/calculate, WaterService.CalculateAsync and WaterWorkflowEngine.CalculateAndCompareAsync were deleted. The direct observation writer is unchanged and remains open if a production caller appears.
 - **Date:** 2026-11-20
+- **Documents:** URS-WAT-007 is Withdrawn and FS-WAT-006 was removed from FS-WAT.md (2026-11-25); the removed function description remains in git history.
 
 ### CONF-217
 - **Area:** PAT

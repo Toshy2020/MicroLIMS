@@ -4,8 +4,8 @@
 |---|---|
 | Document number | FS-REV |
 | Title | Sample review, approval and segregation of duties functional specification |
-| Version | 0.2 |
-| Status | Draft |
+| Version | 0.3 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-18 | AI coding agent, draft from code | Enforced segregation of duties on Return to Analyst (`CheckReturnToAnalystAsync` / `ReturnToAnalystCoreAsync`) so a user who performed the test cannot return it (FS-REV-002). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added `OosGate` approval checks and OOS-investigation non-propagation rule (FS-REV-011; Draft — pending approval). |
 
 ## Scope and reading notes
 
@@ -95,3 +96,12 @@
 **Function:** Role-level separation of administration and GxP work. `SegregationOfDutiesRules` defines two sets of permission codes: administration (`Users.Manage`, `Roles.Manage` through `PermissionConstants`) and a list of GxP execution and approval codes (review, approve, correct and receive samples, workflow execute, biochemical decision, supervise, HPLC operate, solutions, working standards, media, materials, cryovials, monitoring and equipment plan approval, OOS manage, documents review and approve, sample preparation, outsourcing, not-applicable tests). `FindConflicts` returns every pair of (administration code, GxP code) found in a set of permission codes. `SegregationOfDutiesViolationException` carries the pairs; its message names the first pair and the number of others. The comment in the file says `RoleService` enforces the rule when a role's permissions are set and that the API reports it as HTTP 409. `RoleService` and the controller mapping were not read for this entry (see FS-ADM).
 **Code:** `backend/MicroLIMS.Shared/Constants/SegregationOfDutiesRules.cs` — `FindConflicts`; `backend/MicroLIMS.Application/Services/SegregationOfDutiesViolationException.cs` — `SegregationOfDutiesViolationException`
 **Verified by:** reading (not run)
+
+
+### FS-REV-011
+*(Draft — pending approval)*
+**Satisfies:** URS-REV-013
+**Function:** OOS approval gate and non-propagation. `SampleApprovalService.CheckDecideAsync` calls `OosGate.CheckSectionMayBeDecidedAsync(sample, sectionId, decision)`: direct `RetestRetainedSample` / `NewSampleRequest` decisions are refused (`Oos.RetestNeedsApprovedPlan`) when any `Oos`-kind investigation covers `(sample, section)`; `Approve` / `Reject` are refused (`Oos.InvestigationOpen`) while any covering `Oos` investigation is not `Concluded`; any current failing reviewed order without an `Oos`-kind `OosInvestigationResults` link blocks decisions (`Oos.FailingResultWithoutInvestigation`); and `Approve` is refused on `Confirmed` (`Oos.ConfirmedCannotBeApproved`), on a failing order of a signed retest plan (`Oos.FailingRetestCannotBeApproved`), or on `Invalidated` while any signed-plan sample is not `Approved` (`Oos.RetestSamplesNotApproved`). `Excursion`-kind reviews are ignored by `OosGate`. `SampleApprovalService.PropagateOosOutcomeAsync` returns without modifying the origin when an `Oos`-kind `OosInvestigation` exists for `(origin.Id, section)`.
+**Code:** `backend/MicroLIMS.Application/Services/Oos/OosGate.cs` — `CheckSectionMayBeDecidedAsync`; `backend/MicroLIMS.Application/Services/SampleApprovalService.cs` — `CheckDecideAsync`, `FinalizeIfClosedAsync`, `PropagateOosOutcomeAsync`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-209, CONF-219

@@ -4,8 +4,8 @@
 |---|---|
 | Document number | URS-REV |
 | Title | Sample review, approval and segregation of duties user requirements |
-| Version | 0.2 |
-| Status | Draft |
+| Version | 0.3 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-18 | AI coding agent, draft from code | Required segregation of duties when returning a test to the analyst (URS-REV-004). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added OOS investigation approval gate and non-propagation requirement (URS-REV-013; Draft — pending approval). |
 
 ## Requirements
 
@@ -92,4 +93,12 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall identify a role that holds both a system-administration permission and a GxP execution or approval permission, so that such a role can be refused.
 **GxP:** Yes
 **Serves:** 21 CFR 11.10(d), 11.10(g); EU GMP Annex 11 clause 12 (to be confirmed by QA)
+**Status:** Active
+
+
+### URS-REV-013
+*(Draft — pending approval)*
+**Requirement:** The system shall block section approval and rejection while a covering OOS investigation is open or when a failing reviewed test order lacks an investigation; shall block approval when an OOS investigation is concluded as `Confirmed`, when a failing test order belongs to a signed retest plan, or when an `Invalidated` investigation's planned retest samples are not all approved; shall refuse direct retest decisions when an OOS investigation covers the section; and shall skip automatic retest outcome propagation when an OOS investigation exists for the origin sample and section.
+**GxP:** Yes
+**Serves:** 21 CFR 211.192; EU GMP Annex 11 clause 9 (to be confirmed by QA)
 **Status:** Active

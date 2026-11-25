@@ -170,18 +170,31 @@ Media Preparation → Sterility → Recovery → Release (or Rejected)
 
 ## 9. Approval Engine
 
-**File:** `Application/Services/ApprovalService.cs`
+**Files:** `Application/Services/SampleApprovalService.cs`, `Application/Services/Oos/OosGate.cs`, `Application/Services/Oos/OosRetestPlanService.cs`, `Application/Services/Oos/OosInvestigationService.cs` (and partial files `.PhaseOne.cs`, `.Conclusion.cs`, `.Excursion.cs`)
 
-- A test order cannot be decided before its status is `Reviewed` —
-  throws otherwise.
-- Full decision set (`ApprovalDecision` enum): `Approve`, `Reject`,
-  `RetestRetainedSample`, `NewSampleRequest`, `Investigation`,
-  `OOSInvestigation`.
-- **`Investigation` and `OOSInvestigation` require a non-blank comment**
-  — this is enforced server-side, not just as a UI hint, because it's
-  a GMP documentation requirement.
-- Every decision is recorded in `WorkflowHistory` regardless of type,
-  so the decision trail and the workflow-step trail are one unified feed.
+*Draft — pending approval (updated 2026-11-25 to match the code as built, including D1 OOS investigation and CONF-209..220).*
+
+- **Per-section decision (`DecideCoreAsync`):** A laboratory section cannot be decided before its `SampleSectionSignoff` status is `UnderApproval` and the acting user is a member of that section (`SampleSectionRollup.CheckSection`).
+- **Reachable decisions:** Only four of the six `ApprovalDecision` enum values are reachable at sample approval: `Approve`, `Reject`, `RetestRetainedSample`, and `NewSampleRequest`. `Investigation` and `OOSInvestigation` remain in the `ApprovalDecision` enum as persisted integer values for historical records and `PathogenConfirmationRecorder` workflow events, but are not offered on the approval screen and are rejected by `DecideCoreAsync` (`Sample.InvalidApprovalDecision`).
+- **Comments and signatures:** Comments are optional on all four approval decisions. Every decision records a `ReviewWorkflowEvent` (`ApprovalDecisionMade`) and an `ElectronicSignature` (`Approved`, `Rejected`, `RetestRequested`, or `NewSampleRequested`) in the same transaction before state changes are saved.
+- **Segregation of duties:** The decider cannot have overridden competency on the sample, cannot be the section's reviewer (`ReviewedByUserId`), and cannot have performed any current test order in the section (`SegregationOfDutiesGuard`).
+- **OOS gate (`OosGate.CheckSectionMayBeDecidedAsync`):** Before signing, the gate enforces:
+  - Direct `RetestRetainedSample` and `NewSampleRequest` decisions are refused (`Oos.RetestNeedsApprovedPlan`) when any `Oos`-kind investigation covers the sample and section; retests must go through a signed `OosRetestPlan` instead.
+  - `Approve` and `Reject` are refused (`Oos.InvestigationOpen`) while any covering `Oos`-kind investigation is not `Concluded`.
+  - Any current reviewed test order in the section with outcome `Fails` (`OosOpeningRule.ReadFailingOrdersAsync`) that lacks an `Oos`-kind `OosInvestigationResults` link blocks approval/rejection (`Oos.FailingResultWithoutInvestigation`).
+  - For `Approve` only:
+    - Refused if any covering `Oos`-kind investigation is `Concluded` with `Confirmed` (`Oos.ConfirmedCannotBeApproved`).
+    - Refused if any current test order fails and the sample is linked to a signed `OosRetestPlan` for that section (`Oos.FailingRetestCannotBeApproved`, CONF-219).
+    - Refused if any `Oos`-kind investigation on the sample and section is `Concluded` with `Invalidated` while any sample linked to its signed retest plan(s) is not `SampleStatus.Approved` (`Oos.RetestSamplesNotApproved`).
+- **Excursions are separate:** `Excursion`-kind reviews (`OosInvestigationKind.Excursion`) are opened for `ActionLimitExceeded` (and `AlertLimitExceeded` when enabled on the section's Excursion template, unless the sample belongs to a `MonitoringOccurrence`) or manually via `OpenManualExcursionAsync`. `OosGate` filters strictly on `OosInvestigationKind.Oos`; excursion reviews never block sample approval or certificates (CONF-209).
+- **Approval-only technical checks:** When `decision == Approve`, every test requiring system suitability must be an HPLC workspace test (`HplcMethodAssay` or `Dissolution`) with a passed SST run, and every analysis test must have an active `TestAnalysis` with no `NextStageRequired` parameter results.
+- **Signed retest plans (`OosRetestPlanService`):** For an `Oos`-kind investigation in `AwaitingRetest` or `PhaseTwo` (after Phase I is signed), `DraftAsync` saves a plan of 1 to 10 retests per revision (no cumulative cap, CONF-218) on current, non-superseded failing orders linked via `OosInvestigationResults`, with a judging rule and one assignable analyst per sample (for `NewSample`, no analyst who performed an investigated order; for `RetainedSample`, the original analyst is eligible). Amendments (`Revision > 1`) require an `AmendmentReason`. `SignAndCreateAsync` signs `OosRetestPlanApproved` (signer cannot be in the analyst list or have performed any investigated or retest order) and creates the linked retest samples with `OosGroupCode = investigation.Number` via `RetestSampleFactory` without superseding original orders or changing the origin section signoff status. If a planned retest sample later fails at review, it joins the investigation and moves `AwaitingRetest` to `PhaseTwo` (CONF-219).
+- **Signed conclusion replacing automatic finalisation:** `SampleApprovalService.FinalizeIfClosedAsync` calls `FinalizeClosedSampleAsync` (refreshing result projection approval fields and archiving the report document when `Sample.Status` is `Approved` or `Rejected`) and then `PropagateOosOutcomeAsync`. `PropagateOosOutcomeAsync` is skipped when the origin sample and section have an `Oos`-kind `OosInvestigation` row — closing retest samples does not automatically approve, reject, or finalise the origin sample. Instead, an independent Section Head must sign the investigation conclusion (`OosInvestigationService.ConcludeAsync`, meaning `OosInvestigationConcluded`):
+  - `Invalidated` (requires a signed retest plan with created samples, all planned retest samples' section reviews completed, and an assignable cause category other than `IsNoCauseFound`) marks only the origin sample's investigated orders `IsSuperseded = true` and `OosInvestigationResults.IsInvalidated = true` (CONF-219).
+  - `Confirmed` reverses any remaining origin invalidation and supersession flags (CONF-219), leaving `Approve` blocked and `Reject` allowed.
+  - A signed conclusion can be reopened (`ReopenAsync`, meaning `OosInvestigationReopened`) only while the origin section is not yet `Approved` or `Rejected`, reversing origin invalidation/supersession flags and returning the investigation to `PhaseTwo` while preserving the prior conclusion in `OosInvestigationReopenings` (CONF-219).
+  - For legacy retest chains without an `Oos`-kind `OosInvestigation` row, `PropagateOosOutcomeAsync` still mirrors the closed retest outcome to the origin section and calls `FinalizeClosedSampleAsync` when the origin closes.
+- **Certificate gate (`OosGate.EnsureCertificateAllowedAsync`):** Certificates are blocked while any covering `Oos`-kind investigation is not `Concluded`, and also when a `Concluded`/`Invalidated` investigation on the sample has more than one distinct sample linked across signed retest plans (CONF-220: reporting rule for multiple retests is open).
 
 ---
 

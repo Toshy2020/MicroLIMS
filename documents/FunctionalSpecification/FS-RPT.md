@@ -4,8 +4,8 @@
 |---|---|
 | Document number | FS-RPT |
 | Title | Reporting, Certificate of Analysis and trending functional specification |
-| Version | 0.2 |
-| Status | Draft |
+| Version | 0.3 |
+| Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
 | Approver | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-17 | AI coding agent, draft from code | Added row selection and audited CSV export specification (FS-RPT-009). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added `OosGate.EnsureCertificateAllowedAsync` and OOS reporting fields (FS-RPT-010; Draft — pending approval). |
 
 ## Scope and reading notes
 
@@ -90,3 +91,12 @@
 **Code:** `frontend/src/components/lab/table/useRowSelection.ts`; `frontend/src/components/lab/table/BulkActionBar.tsx`; `frontend/src/components/lab/table/exportCsv.ts`; `frontend/src/components/lab/table/services/`; `frontend/src/components/lab/RegisterTable.tsx`; `frontend/src/modules/reports/components/ReportResultsTable.tsx`; `backend/MicroLIMS.API/Controllers/ExportsController.cs`; `backend/MicroLIMS.Application/Services/DataExportAuditService.cs`
 **Verified by:** reading (not run); tests present: `useRowSelection.test.tsx`, `exportCsv.test.ts`, `RegisterTableSelectionExport.test.tsx`, `ReportResultsTable.test.tsx`; backend `ListExportPostgresTests.cs` (5 PostgresFact tests)
 **Not verified:** that the CSV opens in a spreadsheet with the protected cells shown as text (not run); the Reports results' own server-side export (not changed here, not read).
+
+
+### FS-RPT-010
+*(Draft — pending approval)*
+**Satisfies:** URS-RPT-011
+**Function:** Certificate OOS gate and report rendering. `OosGate.EnsureCertificateAllowedAsync` is called by `SampleSummaryService` on certificate summary (`forCertificate`), PDF, Word, and archive paths; it refuses while any covering `Oos`-kind investigation is not `Concluded` (`Oos.InvestigationOpen`) and while a `Concluded`/`Invalidated` investigation on the sample has more than one distinct sample linked across signed retest plans (`Oos.CertificateMultipleRetests`, CONF-220). `SampleSummaryService` populates `OosInvestigationNumber` and `IsOosInvalidated` on test order DTOs, and `ReportDocumentMapper` renders the investigation number and marks invalidated rows `"Invalidated"` / `"INVALIDATED (OOS)"` rather than reporting the invalidated value.
+**Code:** `backend/MicroLIMS.Application/Services/Oos/OosGate.cs` — `EnsureCertificateAllowedAsync`; `backend/MicroLIMS.Application/Services/SampleSummaryService.cs` — `GetCertificateSummaryAsync`, `GenerateSummaryPdfAsync`; `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs`
+**Verified by:** reading (not run)
+**Conflicts:** CONF-220

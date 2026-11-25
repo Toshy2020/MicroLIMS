@@ -1177,3 +1177,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Which results should appear on the origin certificate after invalidation when several signed-plan retest samples exist?
 - **Current behavior:** The certificate gate refuses issuance for that origin while the reporting rule is unresolved.
 - **Date:** 2026-11-24
+
+### CONF-222
+- **Area:** RPT / MDM
+- **Status:** Decided
+- **Question:** When does the test record show a newer SOP revision notice?
+- **Decision:** The current effective revision must belong to the captured document master and follow the captured revision. Its effective date must precede test completion, or the test must still be open. Reassigning an item to a different SOP does not trigger the notice.
+- **Date:** 2026-11-25

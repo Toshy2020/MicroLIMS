@@ -22,6 +22,8 @@ public sealed class ComplaintService(
     public Task<ComplaintDto> ReceiveAsync(ReceiveComplaintRequest request, int userId,
         CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
     {
+        await RequirePermissionAsync(userId, PermissionConstants.QualityApprove, ct);
+
         var source = QualityRecordCore.RequiredText(request.Source, 200);
         if (request.ReceivedOn == default || request.ReceivedOn > clock.LabToday)
             throw new BusinessRuleException(MessageCodes.ComplaintFutureReceivedOn,

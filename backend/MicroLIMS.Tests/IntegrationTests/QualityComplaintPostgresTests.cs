@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -8,6 +10,7 @@ using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Entities.Quality;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Migrations;
 using MicroLIMS.Persistence.Seed;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
@@ -118,8 +121,8 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
         var item = new Item { Code = $"ITM-{Guid.NewGuid():N}"[..16], Name = "Complaint Product", Category = SampleCategory.FinishedProduct, IsActive = true };
         db.Items.Add(item);
 
-        var cause = await db.CausesOfTesting.AsNoTracking().FirstOrDefaultAsync(c => c.Name == "Complaint")
-            ?? db.CausesOfTesting.Add(new CauseOfTesting { Name = "Complaint", IsActive = true }).Entity;
+        var cause = await db.CausesOfTesting.AsNoTracking().FirstOrDefaultAsync(c => c.Name == DbSeeder.ComplaintCause)
+            ?? db.CausesOfTesting.Add(new CauseOfTesting { Name = DbSeeder.ComplaintCause, IsActive = true }).Entity;
         await db.SaveChangesAsync();
 
         var otherSectionId = await db.DocumentSections.AsNoTracking()
@@ -451,8 +454,9 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
         }
 
         // Cannot cancel an already cancelled complaint
-        await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.QaApprover, s =>
+        var exDoubleCancel = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.QaApprover, s =>
             s.CancelAsync(cancelled.Id, "Again", Password, cancelled.Version, w.QaApprover)));
+        Assert.Equal(MessageCodes.ComplaintWrongState, exDoubleCancel.Code);
 
         // Cannot cancel a closed complaint
         var open = await ReceiveAsync(clock, w);
@@ -480,12 +484,12 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
             await using var db = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>()
                 .UseNpgsql(connectionString).Options);
             await db.Database.MigrateAsync();
-            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == "Complaint"));
+            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == DbSeeder.ComplaintCause));
 
             DbSeeder.Seed(db);
             DbSeeder.Seed(db);
-            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == "Complaint"));
-            var cause = await db.CausesOfTesting.AsNoTracking().SingleAsync(c => c.Name == "Complaint");
+            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == DbSeeder.ComplaintCause));
+            var cause = await db.CausesOfTesting.AsNoTracking().SingleAsync(c => c.Name == DbSeeder.ComplaintCause);
             Assert.True(cause.IsActive);
             Assert.False(cause.RequiresTestSelection);
         }
@@ -551,6 +555,7 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
             {
                 var ex = await Assert.ThrowsAsync<PostgresException>(() => afterDb.Database.ExecuteSqlInterpolatedAsync(sql));
                 Assert.Equal("P0001", ex.SqlState);
+                Assert.Contains("Change control task", ex.Message);
                 Assert.Contains("planned fields cannot be modified", ex.Message);
             }
 
@@ -558,6 +563,7 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
             var cancelEx = await Assert.ThrowsAsync<PostgresException>(() => afterDb.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE \"QualityActions\" SET \"Description\" = 'Tampered cancelled' WHERE \"Id\" = {cancelledTaskId}"));
             Assert.Equal("P0001", cancelEx.SqlState);
+            Assert.Contains("Change control task", cancelEx.Message);
             Assert.Contains("planned fields cannot be modified", cancelEx.Message);
         }
 
@@ -574,12 +580,78 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
             var modEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE \"QualityActions\" SET \"Evidence\" = 'Tampered evidence' WHERE \"Id\" = {taskId}"));
             Assert.Equal("P0001", modEx.SqlState);
+            Assert.Contains("Change control task", modEx.Message);
             Assert.Contains("completion fields cannot be modified or cleared", modEx.Message);
 
             var clearEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
                 $"UPDATE \"QualityActions\" SET \"DoneAtUtc\" = NULL WHERE \"Id\" = {taskId}"));
             Assert.Equal("P0001", clearEx.SqlState);
+            Assert.Contains("Change control task", clearEx.Message);
             Assert.Contains("completion fields cannot be modified or cleared", clearEx.Message);
+        }
+    }
+
+    [PostgresFact]
+    public async Task Unauthorized_receive_with_invalid_input_returns_access_denied()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() => ActAsync(clock, w.Analyst, s => s.ReceiveAsync(
+            new("", "", Today.AddDays(10), null, -999, null, "", fixture.SeededSectionId),
+            w.Analyst)));
+    }
+
+    [PostgresFact]
+    public async Task Complaint_cause_migration_is_idempotent_when_row_exists_and_down_preserves_referenced_cause()
+    {
+        var admin = PostgresTestConfiguration.AdminConnectionString!;
+        var name = PostgresTestConfiguration.NewTestDatabaseName();
+        var connectionString = PostgresTestConfiguration.BuildTestConnectionString(admin, name);
+
+        await ExecuteSqlAsync(admin, $"CREATE DATABASE \"{name}\";");
+        try
+        {
+            await using var db = new MicroLimsDbContext(new DbContextOptionsBuilder<MicroLimsDbContext>()
+                .UseNpgsql(connectionString).Options);
+
+            // Migrate to the migration immediately before AddComplaintCauseOfTesting,
+            // pre-insert "Complaint" manually, then apply AddComplaintCauseOfTesting.
+            var migrator = db.GetService<IMigrator>();
+            await migrator.MigrateAsync("20261125191721_ProtectApprovedCapaActions");
+            db.CausesOfTesting.Add(new CauseOfTesting { Name = DbSeeder.ComplaintCause, IsActive = true });
+            await db.SaveChangesAsync();
+
+            await db.Database.MigrateAsync();
+            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == DbSeeder.ComplaintCause));
+
+            // Down() cleanup must not delete the cause row when referenced by a Sample.
+            DbSeeder.Seed(db, "Init-Admin-123!");
+            var cause = await db.CausesOfTesting.AsNoTracking().SingleAsync(c => c.Name == DbSeeder.ComplaintCause);
+            var section = await db.DocumentSections.AsNoTracking().FirstAsync();
+            var user = await db.Users.AsNoTracking().FirstAsync();
+            db.Samples.Add(new Sample
+            {
+                ReferenceNumber = $"SMP-{Guid.NewGuid():N}"[..16],
+                Category = SampleCategory.FinishedProduct,
+                CauseOfTestingId = cause.Id,
+                ControlNumber = "LOT-DOWN-1",
+                SampledBy = "QA",
+                ReceivedByUserId = user.Id,
+                ReceivedAt = BaseNow,
+                Status = SampleStatus.Received,
+                LabSectionId = section.Id
+            });
+            await db.SaveChangesAsync();
+
+            await db.Database.ExecuteSqlRawAsync(AddComplaintCauseOfTesting.DeleteComplaintCauseSql);
+            Assert.Equal(1, await db.CausesOfTesting.CountAsync(c => c.Name == DbSeeder.ComplaintCause));
+        }
+        finally
+        {
+            NpgsqlConnection.ClearAllPools();
+            PostgresTestConfiguration.EnsureSafeToDrop(name, admin);
+            await ExecuteSqlAsync(admin, $"DROP DATABASE IF EXISTS \"{name}\";");
         }
     }
 

@@ -6,6 +6,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Quality;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -25,6 +26,7 @@ public class TestDefinitionMasterDataService
     private readonly ChangeReasonGuard _reasonGuard;
     private readonly TestWorkflowStepMasterDataService _stepService;
     private readonly TestStageReplicateMasterDataService _stageReplicateService;
+    private readonly ChangeControlGate _gate;
 
     public TestDefinitionMasterDataService(
         IMicroLimsDbContext db,
@@ -32,14 +34,16 @@ public class TestDefinitionMasterDataService
         IAuditEventService audit,
         ChangeReasonGuard? reasonGuard = null,
         TestWorkflowStepMasterDataService? stepService = null,
-        TestStageReplicateMasterDataService? stageReplicateService = null)
+        TestStageReplicateMasterDataService? stageReplicateService = null,
+        ChangeControlGate? changeControlGate = null)
     {
         _db = db;
         _scope = scope;
         _audit = audit;
+        _gate = changeControlGate ?? new ChangeControlGate(db, NullChangeControlContext.Instance, TimeProvider.System);
         _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
-        _stepService = stepService ?? new TestWorkflowStepMasterDataService(db, scope);
-        _stageReplicateService = stageReplicateService ?? new TestStageReplicateMasterDataService(db, scope);
+        _stepService = stepService ?? new TestWorkflowStepMasterDataService(db, scope, _gate);
+        _stageReplicateService = stageReplicateService ?? new TestStageReplicateMasterDataService(db, scope, _gate);
     }
 
     // The canonical Code/DisplayName list backing every TestCode picker
@@ -52,15 +56,21 @@ public class TestDefinitionMasterDataService
     public Task<string[]> GetEditableCodesAsync(int currentUserId, CancellationToken ct = default) =>
         TestCodeOwnership.GetEditableCodesOrAllActiveAsync(_db, _scope, currentUserId, ct);
 
-    public async Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request)
+    public Task<TestDefinitionResponse> CreateTestDefinitionAsync(int currentUserId, CreateTestDefinitionRequest request) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var entity = await PrepareCreateTestDefinitionAsync(currentUserId, request, dryRun: false, CancellationToken.None);
+        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, null, entity.Code);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         _db.TestDefinitions.Add(entity);
         await _db.SaveChangesAsync();
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture));
+        if (grant is not null)
+            _gate.Context.SetScopedGrant(QualityLinkTargetType.TestDefinition, entity.Id, grant);
         return TestDefinitionResponse.From(entity);
-    }
+    });
 
     public async Task<TestDefinitionResponse> CreateTestWithStepsAsync(
         int currentUserId,
@@ -568,6 +578,14 @@ public class TestDefinitionMasterDataService
         var effectiveReason = changeReason ?? request.ChangeReason;
         await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Edit, effectiveReason, currentUserId, cancellationToken);
 
+        var currentSectionId = entity.SectionId;
+        var targetSectionId = request.SectionId.HasValue && request.SectionId.Value != entity.SectionId
+            ? await _scope.ResolveSectionForCreateAsync(currentUserId, request.SectionId, access: SectionAccess.Configure)
+            : currentSectionId;
+        var grant = await _gate.EnsureAllowedForSectionsAsync(
+            [currentSectionId, targetSectionId], QualityLinkTargetType.TestDefinition, id, entity.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
+
         var titrationBefore = entity.WorkflowType == WorkflowType.Titration
             ? JsonSerializer.Serialize(TitrationDefinitionRules.Snapshot(entity), SnapshotJson.Options) : null;
         var moistureRoleBefore = entity.MoistureRole;
@@ -601,21 +619,24 @@ public class TestDefinitionMasterDataService
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
 
         if (titrationAudit is { } a)
         {
             _db.CurrentUserId = currentUserId;
+            var titrationReason = grant is null ? a.Reason : $"{a.Reason} Change control {grant.Number}";
             await _audit.RecordUserEventAsync("TestDefinition.TitrationChanged", AuditActionCategory.Configuration,
                 "TestDefinition", entityId: entity.Id.ToString(),
-                changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: a.Reason);
+                changes: new[] { new AuditFieldChange("Titration", a.Before, a.After) }, reason: titrationReason);
         }
 
         if (roleAudit is { } r)
         {
             _db.CurrentUserId = currentUserId;
+            var roleReason = grant is null ? r.Reason : $"{r.Reason} Change control {grant.Number}";
             await _audit.RecordUserEventAsync("TestDefinition.MoistureRoleChanged", AuditActionCategory.Configuration,
                 "TestDefinition", entityId: entity.Id.ToString(),
-                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: r.Reason);
+                changes: new[] { new AuditFieldChange("MoistureRole", r.Before.ToString(), entity.MoistureRole.ToString()) }, reason: roleReason);
         }
 
         return TestDefinitionResponse.From(entity);
@@ -1374,11 +1395,12 @@ public class TestDefinitionMasterDataService
         };
     }
 
-    public async Task<TestDefinitionResponse> FreezeTestDefinitionAsync(
+    public Task<TestDefinitionResponse> FreezeTestDefinitionAsync(
         int currentUserId,
         int id,
         CancellationToken cancellationToken = default,
-        string? changeReason = null)
+        string? changeReason = null) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -1388,18 +1410,22 @@ public class TestDefinitionMasterDataService
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
         await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Freeze, changeReason, currentUserId, cancellationToken);
+        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, id, entity.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
         entity.IsActive = false;
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return TestDefinitionResponse.From(entity);
-    }
+    }, cancellationToken);
 
-    public async Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(
+    public Task<TestDefinitionResponse> UnfreezeTestDefinitionAsync(
         int currentUserId,
         int id,
         CancellationToken cancellationToken = default,
-        string? changeReason = null)
+        string? changeReason = null) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var entity = await _db.TestDefinitions.Include(t => t.IcpElements).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -1409,12 +1435,15 @@ public class TestDefinitionMasterDataService
         await TestConfigurationScope.EnsureCanConfigureAsync(_scope, currentUserId, entity.SectionId, cancellationToken);
         RecordVersion.EnsureCurrent(_db, entity);
         await _reasonGuard.EnsureAsync(MasterRecordType.TestDefinition, id, ChangeKind.Unfreeze, changeReason, currentUserId, cancellationToken);
+        var grant = await _gate.EnsureAllowedAsync(entity.SectionId, QualityLinkTargetType.TestDefinition, id, entity.Code, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
         entity.IsActive = true;
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(TestDefinition), entity.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return TestDefinitionResponse.From(entity);
-    }
+    }, cancellationToken);
 
     // Equation Types (REQ-FP-030/042)
     public IReadOnlyList<EquationTypeDto> GetEquationTypes()

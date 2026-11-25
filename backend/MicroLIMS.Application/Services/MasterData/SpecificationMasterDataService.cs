@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.DTOs.Responses;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
+using MicroLIMS.Application.Services.Quality;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Constants;
@@ -24,6 +25,7 @@ public class SpecificationMasterDataService
     private readonly MasterDataBatchService _batch;
     private readonly ChangeReasonGuard _reasonGuard;
     private readonly TimeProvider _time;
+    private readonly ChangeControlGate _gate;
 
     public SpecificationMasterDataService(
         IMicroLimsDbContext db,
@@ -31,7 +33,8 @@ public class SpecificationMasterDataService
         SpecificationService? specificationService = null,
         MasterDataBatchService? batchService = null,
         ChangeReasonGuard? reasonGuard = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        ChangeControlGate? changeControlGate = null)
     {
         _db = db;
         _scope = scope;
@@ -39,6 +42,7 @@ public class SpecificationMasterDataService
         _batch = batchService ?? new MasterDataBatchService(db);
         _reasonGuard = reasonGuard ?? new ChangeReasonGuard(db, new MasterDataUsageService(db, scope));
         _time = timeProvider ?? TimeProvider.System;
+        _gate = changeControlGate ?? new ChangeControlGate(db, NullChangeControlContext.Instance, _time);
     }
 
     public async Task<object> GetSpecificationsAsync(int currentUserId, int itemId) =>
@@ -94,9 +98,17 @@ public class SpecificationMasterDataService
         return rows;
     }
 
-    public async Task<SpecificationResponse> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request)
+    public Task<SpecificationResponse> CreateSpecificationAsync(int currentUserId, CreateSpecificationRequest request) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
+
+        var testDefInfo = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == request.TestCode)
+            .Select(t => new { t.Id, t.SectionId, t.DisplayName })
+            .FirstAsync();
+        var grant = await _gate.EnsureSpecificationCreateAllowedAsync(testDefInfo.SectionId, request.ItemId, testDefInfo.Id);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         var limitType = request.LimitType ?? LimitType.CountTiered;
         var paramName = request.ParameterName;
@@ -109,8 +121,7 @@ public class SpecificationMasterDataService
         }
         if (string.IsNullOrWhiteSpace(paramName))
         {
-            var testDef = await _db.TestDefinitions.FirstOrDefaultAsync(t => t.Code == request.TestCode);
-            paramName = !string.IsNullOrWhiteSpace(testDef?.DisplayName) ? testDef.DisplayName : request.TestCode;
+            paramName = !string.IsNullOrWhiteSpace(testDefInfo.DisplayName) ? testDefInfo.DisplayName : request.TestCode;
         }
 
         var spec = new Specification
@@ -160,8 +171,9 @@ public class SpecificationMasterDataService
 
         _db.Specifications.Add(spec);
         await _db.SaveChangesAsync();
+        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture));
         return SpecificationResponse.From(spec);
-    }
+    });
 
     public Task<IReadOnlyList<SpecificationResponse>> CreateSpecificationsBatchAsync(
         int currentUserId,
@@ -205,12 +217,13 @@ public class SpecificationMasterDataService
         return errors;
     }
 
-    public async Task<SpecificationResponse> UpdateSpecificationAsync(
+    public Task<SpecificationResponse> UpdateSpecificationAsync(
         int currentUserId,
         int id,
         UpdateSpecificationRequest request,
         string? changeReason = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -230,6 +243,14 @@ public class SpecificationMasterDataService
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, spec.TestCode);
         await SpecificationOwnership.EnsureCanEditAsync(_db, _scope, currentUserId, request.TestCode);
         await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Edit, changeReason, currentUserId, cancellationToken);
+
+        var oldSectionId = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == spec.TestCode).Select(t => t.SectionId).FirstAsync(cancellationToken);
+        var newSectionId = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == request.TestCode).Select(t => t.SectionId).FirstAsync(cancellationToken);
+        var grant = await _gate.EnsureAllowedForSectionsAsync(
+            [oldSectionId, newSectionId], QualityLinkTargetType.Specification, id, null, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
 
         spec.TestCode = request.TestCode;
         if (request.ParameterName != null)
@@ -287,17 +308,19 @@ public class SpecificationMasterDataService
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return SpecificationResponse.From(spec);
-    }
+    }, cancellationToken);
 
     // A specification referred to by any recorded result (ParameterResult.SpecificationId
     // or a projected ResultRecord for that item and test) is retired rather than
     // deleted so historical traceability survives intact; unused rows are deleted.
-    public async Task<SpecificationDeleteOutcome> DeleteSpecificationAsync(
+    public Task<SpecificationDeleteOutcome> DeleteSpecificationAsync(
         int currentUserId,
         int id,
         string? changeReason = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var spec = await _db.Specifications.FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -316,30 +339,39 @@ public class SpecificationMasterDataService
             || await _db.ResultRecords.AsNoTracking()
                 .AnyAsync(r => r.TestCode == spec.TestCode && r.Sample != null && r.Sample.ItemId == spec.ItemId, cancellationToken);
 
+        await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id,
+            hasResults ? ChangeKind.Retire : ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
+
+        var sectionId = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == spec.TestCode).Select(t => t.SectionId).FirstAsync(cancellationToken);
+        var grant = await _gate.EnsureAllowedAsync(sectionId, QualityLinkTargetType.Specification, id, null, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
+
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
 
         if (hasResults)
         {
-            await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Retire, changeReason, currentUserId, cancellationToken);
             spec.IsRetired = true;
             spec.RetiredAt = _time.GetUtcNow().UtcDateTime;
             spec.RetiredByUserId = currentUserId;
             await _db.SaveChangesAsync(cancellationToken);
+            await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
             return new SpecificationDeleteOutcome("retired", id);
         }
 
-        await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Delete, changeReason, currentUserId, cancellationToken);
         _db.Specifications.Remove(spec);
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return new SpecificationDeleteOutcome("deleted", id);
-    }
+    }, cancellationToken);
 
-    public async Task<SpecificationResponse> ReinstateSpecificationAsync(
+    public Task<SpecificationResponse> ReinstateSpecificationAsync(
         int currentUserId,
         int id,
         string? changeReason = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        UnitOfWork.RunAsync(_db, async () =>
     {
         var spec = await _db.Specifications.Include(s => s.Stages).FirstOrDefaultAsync(s => s.Id == id, cancellationToken)
             ?? throw new NotFoundException(
@@ -355,6 +387,11 @@ public class SpecificationMasterDataService
 
         await _reasonGuard.EnsureAsync(MasterRecordType.Specification, id, ChangeKind.Retire, changeReason, currentUserId, cancellationToken);
 
+        var sectionId = await _db.TestDefinitions.AsNoTracking()
+            .Where(t => t.Code == spec.TestCode).Select(t => t.SectionId).FirstAsync(cancellationToken);
+        var grant = await _gate.EnsureAllowedAsync(sectionId, QualityLinkTargetType.Specification, id, null, cancellationToken);
+        using var _ = AuditReasonScope.Append(_db, grant is null ? null : $"Change control {grant.Number}");
+
         spec.IsRetired = false;
         spec.RetiredAt = null;
         spec.RetiredByUserId = null;
@@ -364,8 +401,9 @@ public class SpecificationMasterDataService
         if (_db.CurrentUserId is null && currentUserId > 0)
             _db.CurrentUserId = currentUserId;
         await _db.SaveChangesAsync(cancellationToken);
+        await _gate.RecordAppliedAsync(grant, nameof(Specification), spec.Id.ToString(CultureInfo.InvariantCulture), cancellationToken);
         return SpecificationResponse.From(spec);
-    }
+    }, cancellationToken);
 
     public async Task<IReadOnlyList<FieldError>> ValidateSpecificationAsync(
         int currentUserId,

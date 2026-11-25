@@ -43,8 +43,41 @@ public static partial class MessageCodes
     public const string DeviationFinalCancellation = "Deviation.FinalCancellation";
     public const string DeviationDuplicateSource = "Deviation.DuplicateSource";
 
+    public const string CapaPlanEmpty = "Capa.PlanEmpty";
+    public const string CapaActionKindInvalid = "Capa.ActionKindInvalid";
+    public const string CapaActionResponsibleInvalid = "Capa.ActionResponsibleInvalid";
+    public const string CapaActionPastDueDate = "Capa.ActionPastDueDate";
+    public const string CapaActionCannotBeRemoved = "Capa.ActionCannotBeRemoved";
+    public const string CapaEffectivenessDateOrder = "Capa.EffectivenessDateOrder";
+    public const string CapaPlanIncomplete = "Capa.PlanIncomplete";
+    public const string CapaActionAlreadyDone = "Capa.ActionAlreadyDone";
+    public const string CapaActionEvidenceLinkInvalid = "Capa.ActionEvidenceLinkInvalid";
+    public const string CapaUnfinishedActions = "Capa.UnfinishedActions";
+    public const string CapaEffectivenessEarly = "Capa.EffectivenessEarly";
+    public const string CapaEffectivenessResultInvalid = "Capa.EffectivenessResultInvalid";
+    public const string CapaNewCapaRequired = "Capa.NewCapaRequired";
+    public const string CapaInvalidOwner = "Capa.InvalidOwner";
+    public const string CapaWrongState = "Capa.WrongState";
+    public const string CapaFinalCancellation = "Capa.FinalCancellation";
+
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
+        [CapaPlanEmpty] = [],
+        [CapaActionKindInvalid] = [],
+        [CapaActionResponsibleInvalid] = [],
+        [CapaActionPastDueDate] = [],
+        [CapaActionCannotBeRemoved] = [],
+        [CapaEffectivenessDateOrder] = [],
+        [CapaPlanIncomplete] = [],
+        [CapaActionAlreadyDone] = [],
+        [CapaActionEvidenceLinkInvalid] = [],
+        [CapaUnfinishedActions] = ["action"],
+        [CapaEffectivenessEarly] = [],
+        [CapaEffectivenessResultInvalid] = [],
+        [CapaNewCapaRequired] = [],
+        [CapaInvalidOwner] = [],
+        [CapaWrongState] = [],
+        [CapaFinalCancellation] = [],
         [DeviationRaiseRoute] = [],
         [DeviationOccurrenceUtc] = [],
         [DeviationUseReject] = [],

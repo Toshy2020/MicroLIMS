@@ -70,7 +70,8 @@ public class AppendOnlyTriggerCatalogPostgresTests
         new Dictionary<string, (string, int)>
         {
             ["test_orders_sop_capture_immutable"] = ("TestOrders", Update),
-            ["trg_qualityrecordlinks_columns_immutable"] = ("QualityRecordLinks", Update)
+            ["trg_qualityrecordlinks_columns_immutable"] = ("QualityRecordLinks", Update),
+            ["trg_qualityactions_capa_immutable"] = ("QualityActions", Update)
         };
 
     private sealed record TriggerRow(string Table, string Name, int Type, char Enabled);

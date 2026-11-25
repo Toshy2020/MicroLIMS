@@ -160,7 +160,8 @@ describe("useMyLabs", () => {
     first.rerender();
     startNewLabsSession(); // same user signs in again
     auth.username = "sec.head";
-    getMySections.mockResolvedValueOnce([{ sectionCode: "FP", physchemAreas: [] }]);
+    // Not "Once": the stale first hook asks again once its old answer is discarded.
+    getMySections.mockResolvedValue([{ sectionCode: "FP", physchemAreas: [] }]);
     const second = renderHook(() => useMyLabs());
     await waitFor(() => expect(second.result.current.loading).toBe(false));
     resolveOld([{ sectionCode: "MICRO", physchemAreas: [] }]);
@@ -168,5 +169,34 @@ describe("useMyLabs", () => {
     expect(second.result.current.codes).toEqual(["FP"]);
     expect(first.result.current.codes).not.toContain("MICRO");
     expect(JSON.parse(window.localStorage.getItem("microlims.myLabs.v2:sec.head") ?? "{}").labs).toEqual([{ sectionCode: "FP", physchemAreas: [] }]);
+  });
+
+  it("goes back to loading when another user signs in while the hook stays mounted", async () => {
+    getMySections.mockResolvedValueOnce([{ sectionCode: "MICRO", physchemAreas: [] }]);
+    const { result, rerender } = renderHook(() => useMyLabs());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    let resolveB!: (v: unknown) => void;
+    getMySections.mockReturnValueOnce(new Promise((r) => { resolveB = r; }));
+    auth.username = "other.user";
+    rerender();
+    expect(result.current.loading).toBe(true);
+    expect(result.current.codes).toEqual([]);
+
+    resolveB([{ sectionCode: "FP", physchemAreas: [] }]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.codes).toEqual(["FP"]);
+  });
+
+  it("asks again for the current session when its pending answer belongs to an older one", async () => {
+    let resolveOld!: (v: unknown) => void;
+    getMySections.mockReturnValueOnce(new Promise((r) => { resolveOld = r; }));
+    const { result } = renderHook(() => useMyLabs());
+    startNewLabsSession(); // the same user signs in again; the username does not change
+    getMySections.mockResolvedValueOnce([{ sectionCode: "FP", physchemAreas: [] }]);
+    resolveOld([{ sectionCode: "MICRO", physchemAreas: [] }]);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.codes).toEqual(["FP"]);
+    expect(getMySections).toHaveBeenCalledTimes(2);
   });
 });

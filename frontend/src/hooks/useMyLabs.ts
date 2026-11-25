@@ -59,33 +59,45 @@ export function useMyLabs(): {
   const viewsEverySection = permissions.includes(PERMISSIONS.SECTIONS_VIEW_ALL);
   const [labs, setLabs] = useState<LaboratorySection[]>(() => readCachedLabs(username) ?? []);
   const [loading, setLoading] = useState(true);
+  // Bumped when an answer arrives for an older sign-in session: re-runs the load for the current one.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     // A different user signed in on this page: never keep the previous user's laboratories.
     setLabs(readCachedLabs(username) ?? []);
+    // The new user's answer is still to come: show skeletons, not the previous user's "loaded" state.
+    setLoading(true);
     const session = currentLabsSession();
     const { request, isNewest } = fetchMySectionsShared(username);
     const sameSession = () => session === currentLabsSession();
     request
       .then((data) => {
-        if (!cancelled && sameSession()) {
-          setLabs(data ?? []);
-          if (isNewest()) writeCachedLabs(username, data ?? []);
-          setLoading(false);
+        if (cancelled) return;
+        if (!sameSession()) {
+          // A sign-in or sign-out happened while this request was in flight: its answer is not
+          // for the current session. Ask again instead of leaving the menu loading forever.
+          setReloadKey((k) => k + 1);
+          return;
         }
+        setLabs(data ?? []);
+        if (isNewest()) writeCachedLabs(username, data ?? []);
+        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled && sameSession()) {
-          clearCachedLabs(username);
-          setLabs([]);
-          setLoading(false);
+        if (cancelled) return;
+        if (!sameSession()) {
+          setReloadKey((k) => k + 1);
+          return;
         }
+        clearCachedLabs(username);
+        setLabs([]);
+        setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, reloadKey]);
 
   // Memoized so callers can use it as a hook dependency.
   const codes = useMemo(

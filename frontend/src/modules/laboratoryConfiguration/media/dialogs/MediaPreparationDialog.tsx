@@ -173,6 +173,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     if (open) {
       setError(null);
       setFieldErrors({});
+      setExpiryIncomplete(false);
       setKeptOffline(false);
       setActiveSection(0);
       setForm({});

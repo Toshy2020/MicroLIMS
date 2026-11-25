@@ -124,6 +124,8 @@ export function EditSampleDetailsDialog({ open, sample, onClose, onSuccess }: Pr
   useEffect(() => {
     if (open && sample) {
       setForm(initialForm(sample));
+      setMfgIncomplete(false);
+      setExpIncomplete(false);
       setReason("");
       setSigning(false);
     }

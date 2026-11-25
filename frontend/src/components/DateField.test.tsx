@@ -48,4 +48,36 @@ describe("DateField incomplete date feedback", () => {
     await leaveField();
     expect(screen.queryByText(/complete date/i)).toBeNull();
   });
+
+  it("reports a half-typed date while still focused, before any blur (Enter-to-submit)", async () => {
+    const onIncompleteChange = vi.fn();
+    render(<DateField label="Mfg" value="" onChange={() => {}} onIncompleteChange={onIncompleteChange} />);
+    await typeIntoSection("Month", "03");
+    expect(onIncompleteChange).toHaveBeenLastCalledWith(true);
+    expect(screen.getByText(/complete date/i)).toBeTruthy();
+  });
+
+  it("reports incomplete when one section of a complete date is erased", async () => {
+    const onIncompleteChange = vi.fn();
+    function Holder() {
+      const [v, setV] = useState("2026-03-15");
+      return <DateField label="Mfg" value={v} onChange={setV} onIncompleteChange={onIncompleteChange} />;
+    }
+    render(<Holder />);
+    await userEvent.click(screen.getByRole("spinbutton", { name: "Day" }));
+    await userEvent.keyboard("{Backspace}");
+    expect(onIncompleteChange).toHaveBeenLastCalledWith(true);
+    expect(onIncompleteChange).not.toHaveBeenCalledWith(false);
+    expect(screen.getByText(/complete date/i)).toBeTruthy();
+  });
+
+  it("clears the incomplete state when a complete date is set from outside", async () => {
+    const onIncompleteChange = vi.fn();
+    const { rerender } = render(<DateField label="Mfg" value="" onChange={() => {}} onIncompleteChange={onIncompleteChange} />);
+    await typeIntoSection("Month", "03");
+    expect(onIncompleteChange).toHaveBeenLastCalledWith(true);
+    rerender(<DateField label="Mfg" value="2026-03-15" onChange={() => {}} onIncompleteChange={onIncompleteChange} />);
+    expect(onIncompleteChange).toHaveBeenLastCalledWith(false);
+    expect(screen.queryByText(/complete date/i)).toBeNull();
+  });
 });

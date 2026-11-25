@@ -26,6 +26,7 @@
   "Capa.ActionEvidenceLinkInvalid": "رابط الدليل المحدد لا ينتمي إلى هذا الـ CAPA.",
   "Capa.UnfinishedActions": "أكمل الإجراء غير المكتمل قبل التحقق: {{action}}",
   "Capa.EffectivenessEarly": "لا يمكن توقيع فحص الفعالية قبل تاريخه المخطط.",
+  "Capa.EffectivenessResultInvalid": "اختر ما إذا كان الـ CAPA فعالًا أم غير فعال.",
   "Capa.NewCapaRequired": "يتطلب CAPA غير الفعال ربط CAPA جديد منشأ من هذا السجل.",
   "Capa.InvalidOwner": "اختر مستخدمًا نشطًا في المختبر ضمن قسم CAPA ليكون المالك.",
   "Capa.WrongState": "هذه الخطوة غير متاحة في الحالة الحالية لـ CAPA.",

@@ -26,6 +26,7 @@
   "Capa.ActionEvidenceLinkInvalid": "The selected evidence link does not belong to this CAPA.",
   "Capa.UnfinishedActions": "Complete the unfinished action before verification: {{action}}",
   "Capa.EffectivenessEarly": "The effectiveness check cannot be signed before its planned date.",
+  "Capa.EffectivenessResultInvalid": "Select whether the CAPA was effective or not effective.",
   "Capa.NewCapaRequired": "A not-effective CAPA requires a linked new CAPA created from this record.",
   "Capa.InvalidOwner": "Select an active laboratory user in the CAPA's section as the owner.",
   "Capa.WrongState": "This step is unavailable in the CAPA's current state.",

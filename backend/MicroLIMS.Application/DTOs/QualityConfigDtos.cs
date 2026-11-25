@@ -22,3 +22,5 @@ public sealed record OverdueQualityRecordDto(int RecordId, string Number, string
 public sealed record OverdueQualityActionDto(int RecordId, string Number, int ActionId, string Description,
     DateOnly DueDate, int ResponsibleUserId);
 public sealed record QualityOverdueDto(IReadOnlyList<OverdueQualityRecordDto> Records, IReadOnlyList<OverdueQualityActionDto> Actions);
+public sealed record QualitySectionSettingDto(int SectionId, bool ChangeControlRequired, uint Version);
+public sealed record UpdateQualitySectionSettingRequest(bool ChangeControlRequired, string Reason, string Password);

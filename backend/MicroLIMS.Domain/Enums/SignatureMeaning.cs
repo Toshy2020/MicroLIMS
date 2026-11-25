@@ -68,5 +68,6 @@ public enum SignatureMeaning
     ChangeApproved,
     ChangeRejected,
     ComplaintConcluded,
-    QualityExtensionDecided
+    QualityExtensionDecided,
+    ChangeControlGateChanged
 }

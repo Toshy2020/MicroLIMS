@@ -30,6 +30,7 @@ public static class ApplicationBuilderExtensions
         app.UseMiddleware<AuditMiddleware>();
         app.UseMiddleware<DraftContextMiddleware>();
         app.UseMiddleware<RecordVersionMiddleware>();
+        app.UseMiddleware<ChangeControlHeaderMiddleware>();
         return app;
     }
 }

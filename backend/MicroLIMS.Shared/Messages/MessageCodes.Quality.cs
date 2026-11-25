@@ -77,6 +77,14 @@ public static partial class MessageCodes
     public const string ChangeControlFinalCancellation = "ChangeControl.FinalCancellation";
     public const string ChangeControlInvalidOwner = "ChangeControl.InvalidOwner";
     public const string ChangeControlAssessmentAlreadySigned = "ChangeControl.AssessmentAlreadySigned";
+    public const string ChangeControlHeaderInvalid = "ChangeControl.HeaderInvalid";
+    public const string ChangeControlGateRequired = "ChangeControl.GateRequired";
+    public const string ChangeControlGateNotFound = "ChangeControl.GateNotFound";
+    public const string ChangeControlGateNotApproved = "ChangeControl.GateNotApproved";
+    public const string ChangeControlGateWrongLaboratory = "ChangeControl.GateWrongLaboratory";
+    public const string ChangeControlGateRecordNotListed = "ChangeControl.GateRecordNotListed";
+    public const string ChangeControlGateReasonRequired = "ChangeControl.GateReasonRequired";
+    public const string ChangeControlGateVersionStale = "ChangeControl.GateVersionStale";
 
     public const string ComplaintFutureReceivedOn = "Complaint.FutureReceivedOn";
     public const string ComplaintClassification = "Complaint.Classification";
@@ -103,6 +111,14 @@ public static partial class MessageCodes
         [ComplaintFinalCancellation] = [],
         [ChangeControlInvalidOwner] = [],
         [ChangeControlAssessmentAlreadySigned] = [],
+        [ChangeControlHeaderInvalid] = [],
+        [ChangeControlGateRequired] = [],
+        [ChangeControlGateNotFound] = ["number"],
+        [ChangeControlGateNotApproved] = ["number"],
+        [ChangeControlGateWrongLaboratory] = ["number"],
+        [ChangeControlGateRecordNotListed] = ["number"],
+        [ChangeControlGateReasonRequired] = [],
+        [ChangeControlGateVersionStale] = [],
         [ChangeControlInvalidAffectedType] = [],
         [ChangeControlInvalidAffectedTarget] = [],
         [ChangeControlDuplicateAffected] = [],

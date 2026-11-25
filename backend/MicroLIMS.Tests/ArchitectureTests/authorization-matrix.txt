@@ -561,6 +561,19 @@ PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,Secti
 PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 PreparationConfigurationQueueController.Pending(): SystemAdministrator,SectionHead
 PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionHead
+QualityConfigController.Answer(Int32, String, SaveQualityAnswerRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.CreateClassification(SaveQualityClassificationRequest, CancellationToken): Qa
+QualityConfigController.DecideExtension(Int32, DecideQualityExtensionRequest, CancellationToken): Qa
+QualityConfigController.GetTemplate(QualityRecordType, Nullable`1, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.ListAnswers(Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.ListClassifications(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.ListDueRules(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.ListExtensions(Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.ListOverdue(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.RequestExtension(Int32, RequestQualityExtensionRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityConfigController.SaveClassification(Int32, SaveQualityClassificationRequest, CancellationToken): Qa
+QualityConfigController.SaveDueRule(QualityRecordType, SaveQualityDueRuleRequest, CancellationToken): Qa
+QualityConfigController.SaveTemplate(QualityRecordType, Nullable`1, SaveQualityTemplateRequest, CancellationToken): SectionHead,Qa
 QualityRecordsController.AddComment(Int32, AddQualityCommentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.AddLink(Int32, QualityLinkRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 QualityRecordsController.Create(QualityRecordType, CreateQualityRecordRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

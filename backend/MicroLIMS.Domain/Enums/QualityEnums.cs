@@ -103,7 +103,8 @@ public enum QualityStepKind
     ComplaintLabReport = 12,
     ComplaintConcluded = 13,
     ComplaintClosed = 14,
-    QualityCancelled = 15
+    QualityCancelled = 15,
+    QualityExtensionDecided = 16
 }
 
 public enum QualityExtensionDecision

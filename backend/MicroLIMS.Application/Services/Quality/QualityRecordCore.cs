@@ -195,7 +195,8 @@ public class QualityRecordCore(
     }
 
     internal async Task<QualityRecordStep> SignStepAsync(QualityRecord record, QualityStepKind kind, SignatureMeaning meaning,
-        object snapshot, string password, string? comment, int userId, string? ip, CancellationToken ct = default)
+        object snapshot, string password, string? comment, int userId, string? ip, CancellationToken ct = default,
+        Action? afterVerification = null)
     {
         if (db.Database.CurrentTransaction is null)
             throw new BusinessRuleException(MessageCodes.QualityTransactionRequired, "Signing requires a quality record transaction.");
@@ -212,6 +213,7 @@ public class QualityRecordCore(
         var data = JsonSerializer.SerializeToElement(snapshot);
         if (comment is not null) comment = RequiredText(comment, 4000);
         var signature = await signatures.SignAsync(userId, password, meaning, nameof(QualityRecord), record.Id, comment, ip, ct);
+        afterVerification?.Invoke();
         AdvanceVersion(tracked);
         signature.SignedAt = clock.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(ct);

@@ -3,7 +3,6 @@ using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
-using MicroLIMS.Application.Services.Monitoring;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Entities.Quality;
@@ -15,7 +14,8 @@ using MicroLIMS.Shared.Messages;
 namespace MicroLIMS.Application.Services.Quality;
 
 public sealed partial class DeviationService(IMicroLimsDbContext db, QualityRecordCore core,
-    PermissionService permissions, IUserSectionScopeService scope, SegregationOfDutiesGuard duties, ILabClock clock)
+    PermissionService permissions, IUserSectionScopeService scope, SegregationOfDutiesGuard duties, ILabClock clock,
+    QualityDueDateService dueDates)
 {
     public Task<DeviationDto> RaiseAsync(RaiseDeviationRequest request, uint? expectedVersion, int userId,
         string? ip = null, CancellationToken ct = default) => UnitOfWork.RunAsync(db,
@@ -55,7 +55,8 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             await EnsureOwnerAsync(record, request.OwnerUserId, ct);
             if (request.DueDate is DateOnly requestedDate && requestedDate < clock.LabToday)
                 throw new BusinessRuleException(MessageCodes.DeviationPastDueDate, "The due date cannot be before the current laboratory date.");
-            var dueDate = request.DueDate ?? await DefaultDueDateAsync(request.ClassificationId, ct);
+            var dueDate = request.DueDate ?? await dueDates.ComputeDueAsync(QualityRecordType.Deviation, request.ClassificationId,
+                clock.LabToday, ct);
             record.ClassificationId = request.ClassificationId;
             record.OwnerUserId = request.OwnerUserId;
             record.DueDate = dueDate;
@@ -210,20 +211,6 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
             .ToListAsync(ct);
         if ((await duties.GetTestOrderIdsPerformedByAsync(ownerId, orders, ct)).Count > 0)
             throw new BusinessRuleException(MessageCodes.DeviationAnalystOwner, "The analyst who produced the result cannot own this deviation.");
-    }
-
-    private async Task<DateOnly?> DefaultDueDateAsync(int classificationId, CancellationToken ct)
-    {
-        var days = await db.QualityDueRules.AsNoTracking().Where(r => r.Type == QualityRecordType.Deviation
-                && (r.ClassificationId == classificationId || r.ClassificationId == null))
-            .OrderByDescending(r => r.ClassificationId == classificationId).Select(r => r.WorkingDays).FirstOrDefaultAsync(ct);
-        if (days is null) return null;
-        var weekdays = await db.MonitoringSettings.AsNoTracking().Select(r => (int?)r.WorkingWeekdays).FirstOrDefaultAsync(ct)
-            ?? new MonitoringSettings().WorkingWeekdays;
-        var today = clock.LabToday;
-        var holidays = (await db.LabCalendarDates.AsNoTracking().Where(d => d.Date >= today)
-            .Select(d => d.Date).ToListAsync(ct)).ToHashSet();
-        return PlanWindowCalculator.AddWorkingDays(today, days.Value, weekdays, holidays);
     }
 
     private async Task<int?> FindApprovedCapaAsync(int id, int userId, CancellationToken ct)

@@ -1210,3 +1210,9 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Decision:** An audit-finding deviation description identifies the finding by number or ID. The finding note stays in the audit review. The link shows only the reference number to users without Audit.View.
 - **Decision:** Refuse a source raise when a non-cancelled deviation already links the monitoring deviation, audit finding or already-addressed OOS request. Name the existing deviation in the refusal.
 - **Date:** 2026-11-25
+
+### CONF-225
+- **Area:** Quality records
+- **Status:** Decided
+- **Decision:** Only QA users holding `Quality.Approve` may administer the site-wide quality classification list and due rules. Every change is audited.
+- **Date:** 2026-11-25

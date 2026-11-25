@@ -99,5 +99,54 @@ describe("MeasurementPanel recording refusal", () => {
       const alert = screen.getByRole("alert");
       expect(alert.textContent).toBe("You are not qualified for PH.");
     });
+    expect(screen.queryByRole("button", { name: /Grant Override/i })).toBeNull();
+    expect(screen.queryByText("A Section Head can grant a competency override for this test.")).toBeNull();
+  });
+
+  it("shows Section Head hint on Competency.* refusal and never renders Grant Override on recording screen", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("microlims_permissions", JSON.stringify(["Competency.Override"]));
+    localStorage.setItem("microlims_user_id", "12");
+    vi.mocked(TestWorkflowService.recordMeasurementResult).mockRejectedValue(
+      new AxiosError("Forbidden", "403", undefined, undefined, {
+        status: 403,
+        statusText: "Forbidden",
+        headers: {},
+        config: {} as never,
+        data: { code: "Competency.NotQualified", message: "You are not qualified for PH." }
+      } as AxiosResponse)
+    );
+
+    render(
+      <ThemeProvider theme={lightTheme}>
+        <AuthProvider>
+          <MemoryRouter>
+            <MeasurementPanel
+              testOrderId={1}
+              displayName="pH"
+              testCode="PH"
+              itemId={5}
+              current={{ testName: "PH", allStepsComplete: false }}
+              onRecorded={vi.fn()}
+            />
+          </MemoryRouter>
+        </AuthProvider>
+      </ThemeProvider>
+    );
+
+    const input = await screen.findByRole("textbox", { name: "Rep 1 pH" });
+    await user.type(input, "7.0");
+    await user.click(screen.getByRole("button", { name: "Sign and record result" }));
+
+    const passwordInput = await screen.findByLabelText(/Password/i);
+    await user.type(passwordInput, "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      const alert = screen.getByRole("alert");
+      expect(alert.textContent).toContain("You are not qualified for PH.");
+    });
+    expect(await screen.findByText("A Section Head can grant a competency override for this test.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Grant Override/i })).toBeNull();
   });
 });

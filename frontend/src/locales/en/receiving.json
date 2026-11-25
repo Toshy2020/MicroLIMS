@@ -335,7 +335,9 @@
     "assignAllUnassigned": "Unassigned (Open for any authorized analyst to prepare)",
     "noOpenTests": "This sample has no open tests in your laboratories to assign.",
     "reasonLabel": "Reason for Assignment / Reassignment (recorded in Audit Trail)",
-    "reasonPlaceholder": "e.g. Workload balancing, primary analyst on leave, sectional scheduling"
+    "reasonPlaceholder": "e.g. Workload balancing, primary analyst on leave, sectional scheduling",
+    "grantOverride": "Grant Override",
+    "grantOverrideAria": "Grant competency override for {{testCode}}"
   },
   "bulkAssign": {
     "actionLabel": "Assign analyst",
@@ -359,7 +361,9 @@
     "selectedHint": "Open tests in your laboratory sections on each selected sample will be assigned to the chosen analyst.",
     "pickerLabel": "Assign analyst",
     "reasonLabel": "Reason for Assignment / Reassignment (recorded in Audit Trail)",
-    "reasonPlaceholder": "e.g. Workload balancing, primary analyst on leave, sectional scheduling"
+    "reasonPlaceholder": "e.g. Workload balancing, primary analyst on leave, sectional scheduling",
+    "grantOverride": "Grant Override",
+    "grantOverrideAria": "Grant competency override for {{testCode}}"
   },
   "editSample": {
     "title": "Edit Sample Details",

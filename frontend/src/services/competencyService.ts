@@ -106,6 +106,12 @@ export interface GateChangePayload {
   expectedVersion: number | null;
 }
 
+export interface GrantOverridePayload {
+  analystUserId: number;
+  reason: string;
+  password: string;
+}
+
 export interface MatrixCellDto {
   userId: number;
   testDefinitionId: number;
@@ -210,6 +216,15 @@ export const competencyService = {
 
   getMyMatrix: async (signal?: AbortSignal): Promise<CompetencyMatrixDto> => {
     const res = await apiClient.get("/competency/matrix/my", { signal });
+    return res.data.data;
+  },
+
+  grantOverride: async (
+    testOrderId: number,
+    payload: GrantOverridePayload,
+    signal?: AbortSignal
+  ): Promise<number> => {
+    const res = await apiClient.post(`/competency/test-orders/${testOrderId}/override`, payload, { signal });
     return res.data.data;
   }
 };

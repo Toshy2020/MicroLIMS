@@ -66,6 +66,7 @@ export function MeasurementPanel({
   const { t } = useTranslation("testingWorkspace");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
 
   const [testDef, setTestDef] = useState<TestDefinitionOption | null>(null);
   const [specs, setSpecs] = useState<SpecificationDto[]>([]);
@@ -209,6 +210,7 @@ export function MeasurementPanel({
 
   const submit = async (password: string) => {
     setError(null);
+    setIsCompetencyRefusal(false);
     try {
       const payload = {
         analysedAt: new Date(analysedAt).toISOString(),
@@ -231,9 +233,9 @@ export function MeasurementPanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        t("measurement.recordFailed");
+      const resp = (err as { response?: { status?: number; data?: { code?: string; message?: string } } })?.response;
+      const msg = resp?.data?.message ?? t("measurement.recordFailed");
+      setIsCompetencyRefusal(Boolean(resp?.data?.code?.startsWith("Competency.")));
       setError(msg);
     }
   };
@@ -363,9 +365,16 @@ export function MeasurementPanel({
         {/* Action button */}
         <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           {error && (
-            <Typography role="alert" variant="caption" color="error">
-              {error}
-            </Typography>
+            <Stack spacing={0.25} sx={{ alignItems: "flex-end" }}>
+              <Typography role="alert" variant="caption" color="error">
+                {error}
+              </Typography>
+              {isCompetencyRefusal && (
+                <Typography variant="caption" color="text.secondary">
+                  {t("measurement.competencyOverrideHint")}
+                </Typography>
+              )}
+            </Stack>
           )}
           <Button
             variant="contained"

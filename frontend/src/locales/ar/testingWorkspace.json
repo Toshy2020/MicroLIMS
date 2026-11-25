@@ -565,6 +565,7 @@
     }
   },
   "testWorkflow": {
+    "competencyOverrideHint": "يمكن لرئيس القسم منح تجاوز لمتطلبات الكفاءة لهذا الاختبار.",
     "countStepHelp": "ازرع العينة على وسط زرعي مسموح به وابدأ الحضانة. بعد انقضاء الحد الأدنى للحضانة، عُدّ المستعمرات على كل طبق؛ النتيجة هي متوسط العدد مضروبًا في معامل التخفيف.",
     "invalidReading": "أدخل عددًا صحيحًا باستخدام الأرقام فقط، أو TNTC أو Uncountable.",
     "bothFlagsError": "لا يمكن أن تحتوي مجموعة القراءات على TNTC وUncountable معًا. اختر أحدهما.",
@@ -772,6 +773,8 @@
     "countHelper": "{{count}}/500 حرف (الحد الأدنى 10)"
   },
   "assignedCard": {
+    "grantOverride": "منح تجاوز",
+    "grantOverrideAria": "منح تجاوز متطلبات الكفاءة لاختبار {{testCode}}",
     "readyToRead": "جاهز للقراءة",
     "remainingHours": "متبقٍ {{hours}} ساعة و{{minutes}} دقيقة",
     "remainingMinutes": "متبقٍ {{minutes}} دقيقة و{{seconds}} ثانية",
@@ -930,6 +933,7 @@
     "tryAgain": "إعادة محاولة الحفظ"
   },
   "measurement": {
+    "competencyOverrideHint": "يمكن لرئيس القسم منح تجاوز لمتطلبات الكفاءة لهذا الاختبار.",
     "noSpecsConfigured": "لم تُضبط مواصفات لاختبار {{testCode}}.",
     "loadConfigFailed": "تعذّر تحميل إعدادات اختبار القياس أو المواصفات.",
     "parameterFallback": "المعامل",

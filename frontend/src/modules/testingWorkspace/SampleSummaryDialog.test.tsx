@@ -452,6 +452,110 @@ describe("SampleSummaryDialog gated actions", () => {
       77, "secret123", "Approve", undefined, undefined, undefined, undefined, undefined, 10
     );
   }, 15000);
+
+  it("blocks review and approval via action-availability for Sample.CannotReviewOverrode / Sample.CannotApproveOverrode and shows override time with timezone and ended text", async () => {
+    const reviewRefusal = "You overrode competency for a test on this sample, so you cannot review it.";
+    const approveRefusal = "You overrode competency for a test on this sample, so you cannot approve it.";
+    const base = createSample({ category: "FinishedProduct" });
+    const overriddenOrder = {
+      testOrderId: 101,
+      testCode: "TAMC",
+      testDisplayName: "Total Aerobic Microbial Count",
+      specificationText: "< 100 CFU/g",
+      sectionName: "Physicochemical",
+      status: "ResultEntered",
+      currentStep: "ResultEntered",
+      isSuperseded: false,
+      outsourcedToLab: null,
+      cancelledAtStep: null,
+      cancelledAtStage: null,
+      locations: [],
+      incubations: [],
+      results: [],
+      countTestReadings: [],
+      pathogenObservations: [],
+      biochemicalResults: [],
+      workflowHistory: [],
+      analysis: null,
+      competencyOverrides: [
+        {
+          analystName: "Amina Analyst",
+          grantedByFullName: "Hana Head",
+          grantedAtUtc: "2026-11-24T09:00:00Z",
+          meaning: "Competency override",
+          reason: "Supervised batch release",
+          endedAtUtc: "2026-11-24T11:00:00Z"
+        }
+      ]
+    };
+    mockGetSummary.mockResolvedValue({
+      ...base,
+      testOrders: [overriddenOrder]
+    });
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "review.complete",
+        allowed: false,
+        reasonCode: "Sample.CannotReviewOverrode",
+        reason: reviewRefusal
+      }
+    ]);
+    const user = userEvent.setup();
+
+    mount();
+
+    const reviewReason = await screen.findByText(reviewRefusal);
+    const reviewButton = screen.getByRole("button", { name: /Submit Review/i });
+    expect(reviewButton.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(reviewButton.getAttribute("aria-describedby") ?? "")?.contains(reviewReason)).toBe(true);
+    expect(vi.mocked(actionAvailabilityService.get)).toHaveBeenCalledWith("sample", 77, 10, expect.any(AbortSignal));
+    await user.click(reviewButton);
+    expect(mockCompleteReview).not.toHaveBeenCalled();
+
+    // TestResultsSection renders override time with timezone and ended text
+    const { formatDateTimeWithTimeZone } = await import("../../utils/formatDate");
+    const expectedGranted = formatDateTimeWithTimeZone("2026-11-24T09:00:00Z", { seconds: true });
+    const expectedEnded = formatDateTimeWithTimeZone("2026-11-24T11:00:00Z", { seconds: true });
+    expect(screen.getByText(expectedGranted)).toBeTruthy();
+    expect(screen.getByText(/Ended/)).toBeTruthy();
+    expect(screen.getByText(expectedEnded)).toBeTruthy();
+
+    cleanup();
+    mockGetSummary.mockResolvedValue({
+      ...base,
+      status: "UnderApproval",
+      certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+      sections: (base.sections ?? []).map((section) => ({ ...section, status: "UnderApproval" })),
+      testOrders: [
+        {
+          ...overriddenOrder,
+          status: "Reviewed"
+        }
+      ]
+    });
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "approval.approve",
+        allowed: false,
+        reasonCode: "Sample.CannotApproveOverrode",
+        reason: approveRefusal
+      },
+      {
+        action: "approval.reject",
+        allowed: false,
+        reasonCode: "Sample.CannotApproveOverrode",
+        reason: approveRefusal
+      }
+    ]);
+
+    mount();
+
+    expect((await screen.findAllByText(approveRefusal)).length).toBeGreaterThan(0);
+    const approveButton = screen.getByRole("button", { name: /Submit Decision/i });
+    expect(approveButton.getAttribute("aria-disabled")).toBe("true");
+    await user.click(approveButton);
+    expect(mockDecideApproval).not.toHaveBeenCalled();
+  }, 15000);
 });
 
 describe("SampleSummaryDialog in Arabic RTL", () => {

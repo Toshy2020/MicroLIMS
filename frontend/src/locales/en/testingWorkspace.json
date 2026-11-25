@@ -553,6 +553,7 @@
     }
   },
   "testWorkflow": {
+    "competencyOverrideHint": "A Section Head can grant a competency override for this test.",
     "countStepHelp": "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.",
     "invalidReading": "Enter a whole number using digits only, or TNTC or Uncountable.",
     "bothFlagsError": "A reading set cannot contain both TNTC and Uncountable. Choose one.",
@@ -760,6 +761,8 @@
     "countHelper": "{{count}}/500 characters (minimum 10)"
   },
   "assignedCard": {
+    "grantOverride": "Grant Override",
+    "grantOverrideAria": "Grant competency override for {{testCode}}",
     "readyToRead": "Ready to read",
     "remainingHours": "{{hours}}h {{minutes}}m remaining",
     "remainingMinutes": "{{minutes}}m {{seconds}}s remaining",
@@ -918,6 +921,7 @@
     "tryAgain": "Try saving again"
   },
   "measurement": {
+    "competencyOverrideHint": "A Section Head can grant a competency override for this test.",
     "noSpecsConfigured": "No specifications configured for test {{testCode}}.",
     "loadConfigFailed": "Could not load measurement test configuration or specifications.",
     "parameterFallback": "Parameter",

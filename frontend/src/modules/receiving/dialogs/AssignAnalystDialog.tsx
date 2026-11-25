@@ -28,6 +28,9 @@ import { translateServerDetail } from "../../../i18n/serverMessages";
 import { assignedAnalystNames } from "../utils/assignedAnalysts";
 import axios from "axios";
 import { getErrorMessage } from "../../../utils/errorMessage";
+import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
+import { OverrideDialog, type OverrideCandidate } from "../../competency/OverrideDialog";
 
 interface AssignAnalystDialogProps {
   open: boolean;
@@ -110,6 +113,13 @@ export function AssignAnalystDialog({
 }: AssignAnalystDialogProps) {
   const theme = useTheme();
   const { t } = useTranslation("receiving");
+  const auth = useOptionalAuth();
+  const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
+  const [overrideTarget, setOverrideTarget] = useState<{
+    testOrderId: number;
+    testLabel: string;
+    candidates: OverrideCandidate[];
+  } | null>(null);
   const [options, setOptions] = useState<SampleAssignmentOptions | null>(null);
   const [selections, setSelections] = useState<Record<number, string>>({});
   const [allTestsValue, setAllTestsValue] = useState<string>("");
@@ -227,11 +237,16 @@ export function AssignAnalystDialog({
     // Whoever is on the test now stays visible even when the signed-in user
     // could not pick them (e.g. another Section Head).
     const keepsCurrent = test.assignedAnalystId != null && !test.eligibleUserIds.includes(test.assignedAnalystId);
+    const overrideCandidates: OverrideCandidate[] = Array.from(refusalByUserId.entries()).map(([userId, reasonText]) => ({
+      userId,
+      fullName: usersById.get(userId)?.fullName ?? String(userId),
+      reason: reasonText
+    }));
 
     return (
       <Box
         key={test.testOrderId}
-        sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1 }}
+        sx={{ display: "flex", alignItems: "center", gap: 1.5, py: 1, flexWrap: "wrap" }}
         data-testid={`assign-row-${test.testCode}`}
       >
         <Box sx={{ width: 150, flexShrink: 0 }}>
@@ -280,6 +295,22 @@ export function AssignAnalystDialog({
             </Typography>
             <Chip size="small" label={LOCKED_STATUSES.includes(test.status) ? test.status : t("assignAnalyst.notYourLab")} />
           </Box>
+        )}
+        {test.canAssign && canOverride && overrideCandidates.length > 0 && (
+          <Button
+            size="small"
+            variant="outlined"
+            aria-label={t("assignAnalyst.grantOverrideAria", { testCode: test.testCode })}
+            onClick={() =>
+              setOverrideTarget({
+                testOrderId: test.testOrderId,
+                testLabel: test.testCode,
+                candidates: overrideCandidates
+              })
+            }
+          >
+            {t("assignAnalyst.grantOverride")}
+          </Button>
         )}
       </Box>
     );
@@ -415,6 +446,20 @@ export function AssignAnalystDialog({
             rows={2}
           />
         </Box>
+
+        {canOverride && overrideTarget !== null && (
+          <OverrideDialog
+            open
+            testOrderId={overrideTarget.testOrderId}
+            testLabel={overrideTarget.testLabel}
+            candidates={overrideTarget.candidates}
+            onClose={() => setOverrideTarget(null)}
+            onGranted={() => {
+              setOverrideTarget(null);
+              void loadOptions();
+            }}
+          />
+        )}
     </FloatingDialog>
   );
 }

@@ -274,5 +274,56 @@
     "upload": "Failed to upload document.",
     "download": "Failed to download document content.",
     "supersede": "Failed to supersede document."
+  },
+  "banner": {
+    "openInvestigation": "Open investigation",
+    "opening": "Opening..."
+  },
+  "templates": {
+    "title": "OOS & Excursion Templates",
+    "subtitle": "Configure per-laboratory investigation checklists, working-day targets, and assignable cause categories.",
+    "tabs": {
+      "checklist": "Checklist Templates",
+      "categories": "Cause Categories"
+    },
+    "section": "Laboratory Section",
+    "kind": "Investigation Kind",
+    "phaseOneDays": "Phase I due (working days)",
+    "totalDays": "Total due (working days)",
+    "alertOpensExcursion": "Alert limit opens excursion review",
+    "itemsHeading": "Checklist Items",
+    "emptyItems": "No checklist items configured yet. Add items below.",
+    "phase": "Phase",
+    "phaseN": "Phase {{phase}}",
+    "itemText": "Checklist item text",
+    "active": "Active",
+    "inactive": "Inactive",
+    "moveUp": "Move item up",
+    "moveDown": "Move item down",
+    "newItemText": "New checklist item text",
+    "addItem": "Add item",
+    "saveTemplate": "Save Template",
+    "saved": "Template saved.",
+    "categories": {
+      "addHeading": "Add Cause Category",
+      "editHeading": "Edit Cause Category",
+      "name": "Category name",
+      "reason": "Reason for change",
+      "add": "Add Category",
+      "save": "Save Category",
+      "edit": "Edit",
+      "status": "Status",
+      "actions": "Actions",
+      "locked": "Locked",
+      "added": "Cause category added.",
+      "updated": "Cause category updated."
+    },
+    "errors": {
+      "loadSections": "Failed to load sections.",
+      "loadTemplate": "Failed to load template.",
+      "saveTemplate": "Failed to save template.",
+      "loadCategories": "Failed to load cause categories.",
+      "saveCategory": "Failed to save category."
+    }
   }
 }

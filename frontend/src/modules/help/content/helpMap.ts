@@ -67,6 +67,7 @@ export const HELP_MAP: Record<string, HelpTarget> = {
   "/laboratory-configuration/after-cleaning": { chapterId: "25-after-cleaning" },
   "/laboratory-configuration/working-hours": { chapterId: "32-laboratory-configuration" },
   "/laboratory-configuration/escalation-rules": { chapterId: "32-laboratory-configuration" },
+  "/laboratory-configuration/oos-templates": { chapterId: "20-oos-tracking" },
 
   // Quality and compliance
   "/sections/document-control": { chapterId: "38-document-control" },

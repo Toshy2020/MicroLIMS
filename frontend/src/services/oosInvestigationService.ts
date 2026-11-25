@@ -323,6 +323,41 @@ export interface OosCategoryDto {
   version: number;
 }
 
+export interface OosTemplateItem {
+  key: string | null;
+  phase: number;
+  order: number;
+  text: string;
+  isActive: boolean;
+}
+
+export interface OosTemplateDto {
+  version: number;
+  phaseOneDueWorkingDays: number | null;
+  totalDueWorkingDays: number | null;
+  alertOpensExcursionReview: boolean;
+  items: OosTemplateItem[];
+}
+
+export interface SaveOosTemplateRequest {
+  phaseOneDueWorkingDays: number | null;
+  totalDueWorkingDays: number | null;
+  alertOpensExcursionReview: boolean;
+  items: OosTemplateItem[];
+}
+
+export interface SaveOosCategoryRequest {
+  name: string;
+  isActive: boolean;
+  reason: string;
+}
+
+export interface OosManualOpeningDto {
+  id: number;
+  number: string;
+  version: number;
+}
+
 export const oosInvestigationService = {
   async list(
     filter: OosInvestigationFilter = {},
@@ -495,6 +530,86 @@ export const oosInvestigationService = {
       await apiClient.get("/oos-templates/categories", {
         params: { page, pageSize },
         signal
+      })
+    ).data.data;
+  },
+
+  async getTemplate(
+    sectionId: number,
+    kind: OosInvestigationKind,
+    signal?: AbortSignal
+  ): Promise<OosTemplateDto> {
+    return (
+      await apiClient.get(`/oos-templates/${sectionId}/${kind}`, { signal })
+    ).data.data;
+  },
+
+  async saveTemplate(
+    sectionId: number,
+    kind: OosInvestigationKind,
+    request: SaveOosTemplateRequest,
+    version: number
+  ): Promise<OosTemplateDto> {
+    return (
+      await apiClient.put(
+        `/oos-templates/${sectionId}/${kind}`,
+        request,
+        ifMatch(version)
+      )
+    ).data.data;
+  },
+
+  async addCategory(request: SaveOosCategoryRequest): Promise<OosCategoryDto> {
+    return (await apiClient.post("/oos-templates/categories", request)).data.data;
+  },
+
+  async saveCategory(
+    categoryId: number,
+    request: SaveOosCategoryRequest,
+    version: number
+  ): Promise<OosCategoryDto> {
+    return (
+      await apiClient.put(
+        `/oos-templates/categories/${categoryId}`,
+        request,
+        ifMatch(version)
+      )
+    ).data.data;
+  },
+
+  async getForSample(
+    sampleId: number,
+    signal?: AbortSignal
+  ): Promise<OosInvestigationListItemDto[]> {
+    return (
+      await apiClient.get(`/oos-investigations/for-sample/${sampleId}`, {
+        signal
+      })
+    ).data.data;
+  },
+
+  async openManually(
+    sampleId: number,
+    sectionId: number,
+    version: number
+  ): Promise<OosManualOpeningDto> {
+    return (
+      await apiClient.post(
+        `/oos-investigations/for-sample/${sampleId}/sections/${sectionId}/open`,
+        {},
+        ifMatch(version)
+      )
+    ).data.data;
+  },
+
+  async openManualExcursion(
+    testOrderId: number,
+    reason: string
+  ): Promise<OosManualOpeningDto> {
+    return (
+      await apiClient.post("/oos-investigations/excursions/open", {
+        testOrderId,
+        reason
       })
     ).data.data;
   }

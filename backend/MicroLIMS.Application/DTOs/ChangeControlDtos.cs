@@ -6,7 +6,7 @@ namespace MicroLIMS.Application.DTOs;
 public sealed record ChangeControlAffectedInput(QualityLinkTargetType TargetType, int? TargetId, string? NewRecordCode);
 
 public sealed record ProposeChangeControlRequest(string Title, string Description, string Reason, int? SectionId,
-    IReadOnlyList<ChangeControlAffectedInput>? Affected);
+    IReadOnlyList<ChangeControlAffectedInput>? Affected, int? OwnerUserId = null);
 
 public sealed record ChangeControlTaskInput(string Description, int ResponsibleUserId, DateOnly DueDate);
 

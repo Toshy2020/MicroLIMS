@@ -31,9 +31,9 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
                     "Affected records must be an item, specification, test definition, equipment, or controlled document.");
             var detail = await db.ChangeControlDetails.AsNoTracking().SingleOrDefaultAsync(d => d.RecordId == recordId, ct)
                 ?? throw QualityRecordCore.Missing();
-            if (detail.Status is not (ChangeControlStatus.Proposed or ChangeControlStatus.Assessed))
+            if (detail.Status != ChangeControlStatus.Proposed)
                 throw new BusinessRuleException(MessageCodes.ChangeControlAffectedFrozen,
-                    "Affected records cannot be added after change control approval.");
+                    "Affected records cannot be added after the impact assessment is signed.");
         }
 
         var target = await _targets.EnsureReadableAsync(targetType, targetId, userId, ct);

@@ -75,9 +75,13 @@ public static partial class MessageCodes
     public const string ChangeControlUnchangedJustificationRequired = "ChangeControl.UnchangedJustificationRequired";
     public const string ChangeControlWrongState = "ChangeControl.WrongState";
     public const string ChangeControlFinalCancellation = "ChangeControl.FinalCancellation";
+    public const string ChangeControlInvalidOwner = "ChangeControl.InvalidOwner";
+    public const string ChangeControlAssessmentAlreadySigned = "ChangeControl.AssessmentAlreadySigned";
 
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
+        [ChangeControlInvalidOwner] = [],
+        [ChangeControlAssessmentAlreadySigned] = [],
         [ChangeControlInvalidAffectedType] = [],
         [ChangeControlInvalidAffectedTarget] = [],
         [ChangeControlDuplicateAffected] = [],

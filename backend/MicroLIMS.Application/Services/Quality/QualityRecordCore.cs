@@ -71,8 +71,7 @@ public class QualityRecordCore(
         {
             QualityRecordType.Deviation => await HoldsAsync(userId, PermissionConstants.QualityRaise, ct),
             QualityRecordType.ChangeControl => await HoldsAsync(userId, PermissionConstants.QualityRaise, ct)
-                && await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.Role != null &&
-                    (u.Role.Type == RoleType.SectionHead || u.Role.Type == RoleType.QcManager || u.Role.Type == RoleType.Qa), ct),
+                && await IsChangeControlProposerRoleAsync(userId, ct),
             QualityRecordType.Capa => await HoldsAsync(userId, PermissionConstants.QualityInvestigate, ct)
                 || await HoldsAsync(userId, PermissionConstants.QualityApprove, ct),
             QualityRecordType.Complaint => await HoldsAsync(userId, PermissionConstants.QualityApprove, ct),
@@ -80,6 +79,10 @@ public class QualityRecordCore(
         };
         if (!allowed) throw Denied();
     }
+
+    internal Task<bool> IsChangeControlProposerRoleAsync(int userId, CancellationToken ct) =>
+        db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsActive && u.Role != null && u.Role.IsActive &&
+            (u.Role.Type == RoleType.SectionHead || u.Role.Type == RoleType.QcManager || u.Role.Type == RoleType.Qa), ct);
 
     internal async Task EnsureViewAsync(int userId, CancellationToken ct)
     {

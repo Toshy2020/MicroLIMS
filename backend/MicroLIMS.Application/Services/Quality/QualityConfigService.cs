@@ -199,6 +199,9 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
             throw QualityRecordCore.Denied();
         await EnsureMemberAsync(record, userId, ct);
         await EnsureOpenAsync(recordId, ct);
+        if (record.Type == QualityRecordType.ChangeControl && core.IsStepSigned(record, QualityStepKind.ChangeImpactAssessed))
+            throw new BusinessRuleException(MessageCodes.ChangeControlAssessmentAlreadySigned,
+                "Checklist answers cannot be changed after the impact assessment is signed.");
 
         var key = QualityRecordCore.RequiredText(itemKey, 36);
         var entry = await RecordAnswerInternalAsync(record, key, answer, comment, userId, ct);

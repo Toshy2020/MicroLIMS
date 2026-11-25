@@ -32,8 +32,12 @@ public sealed class ChangeControlService(
     {
         db.CurrentUserId = userId;
         var reason = QualityRecordCore.RequiredText(request.Reason, 4000);
+        var ownerId = request.OwnerUserId ?? userId;
         var record = await core.CreateAsync(QualityRecordType.ChangeControl,
             new(request.Title, request.Description, request.SectionId, null), userId, ct);
+
+        await EnsureChangeControlOwnerAsync(ownerId, record.SectionId, ct);
+        record.OwnerUserId = ownerId;
 
         var targets = new QualityLinkTargets(db, permissions, scope, core);
         var affectedLinks = new List<QualityRecordLink>();
@@ -64,9 +68,12 @@ public sealed class ChangeControlService(
         int userId, CancellationToken ct = default) =>
         ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityRaise, async (record, detail) =>
         {
-            if (detail.Status is not (ChangeControlStatus.Proposed or ChangeControlStatus.Assessed))
+            if (record.RaisedByUserId != userId && record.OwnerUserId != userId &&
+                !await core.IsChangeControlProposerRoleAsync(userId, ct))
+                throw QualityRecordCore.Denied();
+            if (detail.Status != ChangeControlStatus.Proposed)
                 throw new BusinessRuleException(MessageCodes.ChangeControlAffectedFrozen,
-                    "Affected records cannot be added after change control approval.");
+                    "Affected records cannot be added after the impact assessment is signed.");
 
             var targets = new QualityLinkTargets(db, permissions, scope, core);
             var link = await BuildAffectedLinkAsync(id, input, userId, clock.UtcNow.UtcDateTime, targets, ct);
@@ -132,7 +139,6 @@ public sealed class ChangeControlService(
                 await config.RecordAnswerInternalAsync(record, answer.ItemKey, answer.Answer, answer.Comment, userId, ct);
 
             detail.ImpactSummary = impactSummary;
-            record.OwnerUserId ??= userId;
             core.AdvanceVersion(record);
             await db.SaveChangesAsync(ct);
         }, ct);
@@ -164,9 +170,14 @@ public sealed class ChangeControlService(
                 .Select(a => new { a.ItemKey, a.ItemText, a.Answer, a.Comment })
                 .ToListAsync(ct);
 
-            record.OwnerUserId ??= userId;
+            var affected = await db.QualityRecordLinks.AsNoTracking()
+                .Where(l => l.RecordId == id && l.IsAffectedByChange)
+                .OrderBy(l => l.Id)
+                .Select(l => new { l.TargetType, l.TargetId, l.NewRecordCode })
+                .ToListAsync(ct);
+
             await core.SignStepAsync(record, QualityStepKind.ChangeImpactAssessed, SignatureMeaning.ChangeImpactAssessed,
-                new { detail.ImpactSummary, Tasks = tasks, Answers = answers }, password, null, userId, ip, ct);
+                new { detail.ImpactSummary, Affected = affected, Tasks = tasks, Answers = answers }, password, null, userId, ip, ct);
 
             detail.Status = ChangeControlStatus.Assessed;
             await db.SaveChangesAsync(ct);
@@ -362,6 +373,16 @@ public sealed class ChangeControlService(
             .Where(a => a.RecordId == record.Id && a.Kind == QualityActionKind.ChangeTask)
             .OrderBy(a => a.Id).ToListAsync(ct);
         return ChangeControlDto.From(record, detail, affectedLinks, tasks);
+    }
+
+    private async Task EnsureChangeControlOwnerAsync(int ownerUserId, int? sectionId, CancellationToken ct)
+    {
+        var validRole = await db.Users.AsNoTracking().AnyAsync(u =>
+            u.Id == ownerUserId && u.IsActive && u.Role != null && u.Role.IsActive &&
+            (u.Role.Type == RoleType.SectionHead || u.Role.Type == RoleType.QcManager), ct);
+        if (!validRole || (sectionId is int section && !(await scope.GetMemberSectionIdsAsync(ownerUserId, ct)).Contains(section)))
+            throw new BusinessRuleException(MessageCodes.ChangeControlInvalidOwner,
+                "Select an active Section Head or QC Manager in the change control's section as the owner.");
     }
 
     private async Task EnsureLaboratoryMemberAsync(int targetUserId, int? sectionId, string code, string message, CancellationToken ct)

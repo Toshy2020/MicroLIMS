@@ -285,6 +285,16 @@ public class QualityChangeControlPostgresTests(PostgresTestFixture fixture)
         var assessed = await SignAssessmentAsync(clock, w, saved);
         await AssertStepTriadAsync(clock, assessed.Id, QualityStepKind.ChangeImpactAssessed,
             SignatureMeaning.ChangeImpactAssessed, w.Assessor, ChangeControlStatus.Assessed);
+        await using (var snapDb = Context(clock))
+        {
+            var step = await snapDb.QualityRecordSteps.AsNoTracking()
+                .SingleAsync(s => s.RecordId == assessed.Id && s.Kind == QualityStepKind.ChangeImpactAssessed);
+            using var snap = JsonDocument.Parse(step.SnapshotJson);
+            var affectedSnap = snap.RootElement.GetProperty("Data").GetProperty("Affected");
+            Assert.Equal(1, affectedSnap.GetArrayLength());
+            Assert.Equal((int)QualityLinkTargetType.TestDefinition, affectedSnap[0].GetProperty("TargetType").GetInt32());
+            Assert.Equal(w.TestDefId, affectedSnap[0].GetProperty("TargetId").GetInt32());
+        }
 
         clock.UtcNow = BaseNow.AddHours(3);
         var approved = await ApproveAsync(clock, w, assessed);
@@ -411,7 +421,10 @@ public class QualityChangeControlPostgresTests(PostgresTestFixture fixture)
     {
         var clock = new MutableClock(BaseNow);
         var w = await ArrangeAsync(clock);
-        var proposed = await ProposeAsync(clock, w, actor: w.Qa);
+        var proposed = await ActAsync(clock, w.Qa, s => s.ProposeAsync(
+            new("Update test specification", "Revise acceptance criteria", "Method update", fixture.SeededSectionId,
+                [new(QualityLinkTargetType.TestDefinition, w.TestDefId, null)], w.Assessor),
+            w.Qa));
         var saved = await SaveAssessmentAsync(clock, w, proposed);
         var assessed = await SignAssessmentAsync(clock, w, saved);
 
@@ -477,5 +490,140 @@ public class QualityChangeControlPostgresTests(PostgresTestFixture fixture)
         var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => ProposeAsync(clock, w,
             affected: [new(QualityLinkTargetType.Sample, w.SampleId, null)]));
         Assert.Equal(MessageCodes.ChangeControlInvalidAffectedType, ex.Code);
+    }
+
+    [PostgresFact]
+    public async Task Affected_list_frozen_at_assessed()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var proposed = await ProposeAsync(clock, w);
+        var saved = await SaveAssessmentAsync(clock, w, proposed);
+        var assessed = await SignAssessmentAsync(clock, w, saved);
+
+        var exService = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Raiser, s =>
+            s.AddAffectedAsync(assessed.Id, new(QualityLinkTargetType.Specification, w.SpecId, null),
+                assessed.Version, w.Raiser)));
+        Assert.Equal(MessageCodes.ChangeControlAffectedFrozen, exService.Code);
+
+        await using var linkDb = Context(clock, w.Raiser);
+        var exLink = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            Links(linkDb, clock).AddAsync(assessed.Id, QualityLinkTargetType.Specification, w.SpecId,
+                w.Raiser, assessed.Version, isAffectedByChange: true));
+        Assert.Equal(MessageCodes.ChangeControlAffectedFrozen, exLink.Code);
+    }
+
+    [PostgresFact]
+    public async Task AddAffected_by_analyst_refused()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var proposed = await ProposeAsync(clock, w);
+        var saved = await SaveAssessmentAsync(clock, w, proposed);
+
+        var ex = await Assert.ThrowsAsync<CodedAccessDeniedException>(() => ActAsync(clock, w.TaskOwner, s =>
+            s.AddAffectedAsync(saved.Id, new(QualityLinkTargetType.Specification, w.SpecId, null),
+                saved.Version, w.TaskOwner)));
+        Assert.Equal(MessageCodes.QualityAccessDenied, ex.Code);
+    }
+
+    [PostgresFact]
+    public async Task Owner_validation_enforced_and_defaults_to_proposer()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+
+        var defaulted = await ProposeAsync(clock, w);
+        Assert.Equal(w.Raiser, defaulted.Record.OwnerUserId);
+
+        var exAnalyst = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Raiser, s =>
+            s.ProposeAsync(new("Title", "Desc", "Reason", fixture.SeededSectionId, null, w.Analyst), w.Raiser)));
+        Assert.Equal(MessageCodes.ChangeControlInvalidOwner, exAnalyst.Code);
+
+        var exOutside = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Raiser, s =>
+            s.ProposeAsync(new("Title", "Desc", "Reason", fixture.SeededSectionId, null, w.OutsideHead), w.Raiser)));
+        Assert.Equal(MessageCodes.ChangeControlInvalidOwner, exOutside.Code);
+    }
+
+    [PostgresFact]
+    public async Task Checklist_answers_refused_after_assessment_signed()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock, withChecklist: true);
+        var proposed = await ProposeAsync(clock, w);
+        var saved = await SaveAssessmentAsync(clock, w, proposed,
+            [new("val-impact", QualityChecklistAnswerValue.No, "Initial answer")]);
+        var assessed = await SignAssessmentAsync(clock, w, saved);
+
+        await using var cfgDb = Context(clock, w.Assessor);
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => Config(cfgDb, clock).AnswerAsync(
+            assessed.Id, "val-impact", QualityChecklistAnswerValue.Yes, "Late edit", assessed.Version, w.Assessor));
+        Assert.Equal(MessageCodes.ChangeControlAssessmentAlreadySigned, ex.Code);
+    }
+
+    [PostgresFact]
+    public async Task Task_completion_guards_enforced()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var proposed = await ProposeAsync(clock, w);
+        var saved = await SaveAssessmentAsync(clock, w, proposed);
+
+        // Before approval
+        var exBefore = await Assert.ThrowsAsync<BusinessRuleException>(() => CompleteTaskAsync(clock, w, saved));
+        Assert.Equal(MessageCodes.ChangeControlWrongState, exBefore.Code);
+
+        var assessed = await SignAssessmentAsync(clock, w, saved);
+        var approved = await ApproveAsync(clock, w, assessed);
+
+        // Non-responsible user
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() => CompleteTaskAsync(clock, w, approved, actor: w.Assessor));
+
+        // Stale version
+        await Assert.ThrowsAnyAsync<DbUpdateConcurrencyException>(() => ActAsync(clock, w.TaskOwner, s =>
+            s.CompleteTaskAsync(approved.Tasks[0].Id, new("Done"), proposed.Version, w.TaskOwner)));
+
+        // Valid completion
+        var completed = await CompleteTaskAsync(clock, w, approved);
+
+        // Cannot complete twice
+        var exTwice = await Assert.ThrowsAsync<BusinessRuleException>(() => CompleteTaskAsync(clock, w, completed));
+        Assert.Equal(MessageCodes.ChangeControlTaskAlreadyDone, exTwice.Code);
+    }
+
+    [PostgresFact]
+    public async Task Cancel_allowed_while_open_with_triad_and_refused_when_closed_or_rejected()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+
+        // Cancel while open
+        var open = await ProposeAsync(clock, w);
+        clock.UtcNow = BaseNow.AddHours(1);
+        var cancelled = await ActAsync(clock, w.Qa, s => s.CancelAsync(
+            open.Id, "No longer needed", Password, open.Version, w.Qa));
+        await AssertStepTriadAsync(clock, cancelled.Id, QualityStepKind.QualityCancelled,
+            SignatureMeaning.QualityCancelled, w.Qa, ChangeControlStatus.Cancelled);
+
+        // Refused when rejected
+        var p2 = await ProposeAsync(clock, w);
+        var s2 = await SaveAssessmentAsync(clock, w, p2);
+        var a2 = await SignAssessmentAsync(clock, w, s2);
+        var rejected = await ActAsync(clock, w.Qa, s => s.RejectAsync(a2.Id, "Not justified", Password, a2.Version, w.Qa));
+        var exRejected = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Qa, s =>
+            s.CancelAsync(rejected.Id, "Cancel", Password, rejected.Version, w.Qa)));
+        Assert.Equal(MessageCodes.ChangeControlFinalCancellation, exRejected.Code);
+
+        // Refused when closed
+        var p3 = await ProposeAsync(clock, w);
+        var s3 = await SaveAssessmentAsync(clock, w, p3);
+        var a3 = await SignAssessmentAsync(clock, w, s3);
+        var ap3 = await ApproveAsync(clock, w, a3);
+        var c3 = await CompleteTaskAsync(clock, w, ap3);
+        var closed = await ActAsync(clock, w.Qa, s => s.CloseAsync(
+            c3.Id, new("Post review", "Justified", Password), c3.Version, w.Qa));
+        var exClosed = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Qa, s =>
+            s.CancelAsync(closed.Id, "Cancel", Password, closed.Version, w.Qa)));
+        Assert.Equal(MessageCodes.ChangeControlFinalCancellation, exClosed.Code);
     }
 }

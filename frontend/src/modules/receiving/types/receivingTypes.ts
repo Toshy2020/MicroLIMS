@@ -301,6 +301,9 @@ export interface ReceiveRowItem {
   controlNumber?: string;
   mfgDate?: string;
   expDate?: string;
+  // UI-only: the date field holds a half-typed date. Blocks save; never sent.
+  mfgDateIncomplete?: boolean;
+  expDateIncomplete?: boolean;
   // Choose-mode only: labs picked for this row (Laboratories column).
   // undefined until the item's receipt-labs have loaded and defaulted.
   targetSectionIds?: number[];

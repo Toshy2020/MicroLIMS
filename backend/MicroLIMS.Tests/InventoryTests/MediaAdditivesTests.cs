@@ -4,6 +4,9 @@ using MicroLIMS.Application.Services;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
+using MicroLIMS.Persistence.Helpers;
+using MicroLIMS.Application.DTOs.Responses;
+using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
 namespace MicroLIMS.Tests.InventoryTests;
@@ -106,6 +109,60 @@ public class MediaAdditivesTests
 
         var withEmptyList = await f.Service.PrepareAsync(Request(f) with { Additives = new() });
         Assert.Empty(withEmptyList.Additives);
+    }
+
+    // The service clock is fixed so the "expiry vs today" boundary cannot move across UTC midnight.
+    private static readonly DateTimeOffset FixedNow = new(2026, 11, 25, 10, 30, 0, TimeSpan.Zero);
+
+    // Act context: a fresh DbContext on the same store as the arranged data.
+    private static MicroLimsDbContext NewActDb(Fixture f) =>
+        new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(f.DbName).Options) { CurrentUserId = 1 };
+
+    private static MediaPreparationService NewActService(MicroLimsDbContext db) => new(
+        db, new MaterialService(db, new UserSectionScopeService(db), new DatabaseSequenceHelper(db)),
+        TestServiceFactory.ReviewGate(db), new FixedTimeProvider(FixedNow));
+
+    private static MicroLimsDbContext NewAssertDb(Fixture f) =>
+        new(new DbContextOptionsBuilder<MicroLimsDbContext>().UseInMemoryDatabase(f.DbName).Options);
+
+    [Fact]
+    public async Task ExpiryBeforePreparationDate_IsRejected_AndNothingIsConsumedOrSaved()
+    {
+        var f = await SetUpAsync();
+        var past = Request(f) with { ExpiryDate = FixedNow.UtcDateTime.Date.AddDays(-1) };
+
+        BusinessRuleException ex;
+        await using (var actDb = NewActDb(f))
+            ex = await Assert.ThrowsAsync<BusinessRuleException>(() => NewActService(actDb).PrepareAsync(past));
+
+        Assert.Equal("Media.ExpiryBeforePreparation", ex.Code);
+        await using var assertDb = NewAssertDb(f);
+        Assert.Empty(await assertDb.Media.AsNoTracking().ToListAsync());
+        var stock = await assertDb.Materials.AsNoTracking().SingleAsync(m => m.Id == f.Media.Id);
+        Assert.Equal(500m, stock.QuantityRemaining);
+        Assert.DoesNotContain(await assertDb.AuditLogs.AsNoTracking().ToListAsync(), a => a.EntityName == nameof(Media));
+    }
+
+    [Fact]
+    public async Task ExpiryOnThePreparationDate_IsAccepted_AndPersistedWithAnAuditEntry()
+    {
+        var f = await SetUpAsync();
+        var expiry = FixedNow.UtcDateTime.Date;
+        var sameDay = Request(f) with { ExpiryDate = expiry };
+
+        MediaResponse result;
+        await using (var actDb = NewActDb(f))
+            result = await NewActService(actDb).PrepareAsync(sameDay);
+
+        await using var assertDb = NewAssertDb(f);
+        var saved = await assertDb.Media.AsNoTracking().SingleAsync();
+        Assert.Equal(result.Id, saved.Id);
+        Assert.Equal(expiry, saved.ExpiryDate.Date);
+        var stock = await assertDb.Materials.AsNoTracking().SingleAsync(m => m.Id == f.Media.Id);
+        Assert.True(stock.QuantityRemaining < 500m);
+        var audit = await assertDb.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityName == nameof(Media) && a.EntityId == saved.Id.ToString() && a.Action == "Create");
+        Assert.Equal(1, audit.UserId);
     }
 
     [Fact]

@@ -390,6 +390,7 @@
     "subtitle": "عينة #<ltr>{{sampleId}}</ltr>: {{displayName}} (<ltr>{{referenceNumber}}</ltr>)",
     "loadFailed": "فشل تحميل قوائم الاختيار. أغلق النافذة وحاول مرة أخرى.",
     "completeRequired": "أكمل الحقول المطلوبة للتوقيع.",
+    "incompleteDate": "أدخل تاريخًا كاملًا أو امسح حقل التاريخ للتوقيع.",
     "enterReason": "أدخل سبب التصحيح للتوقيع.",
     "cancel": "إلغاء",
     "signAndSave": "توقيع وحفظ",
@@ -483,7 +484,8 @@
       "machineRequired": "الماكينة مطلوبة",
       "causeRequired": "سبب الاختبار مطلوب",
       "sampledByRequired": "حقل سُحب بواسطة مطلوب",
-      "expAfterMfg": "يجب أن يكون تاريخ انتهاء الصلاحية بعد تاريخ التصنيع"
+      "expAfterMfg": "يجب أن يكون تاريخ انتهاء الصلاحية بعد تاريخ التصنيع",
+      "dateIncomplete": "أدخل تاريخًا كاملًا (يوم/شهر/سنة) أو امسح الحقل."
     }
   },
   "grid": {

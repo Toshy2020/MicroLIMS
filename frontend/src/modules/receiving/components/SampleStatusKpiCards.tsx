@@ -141,7 +141,7 @@ export function SampleStatusKpiCards({ counts, activeKey, onSelect, onClear, all
           tile.key,
           t(`kpi.${tile.key}.label`),
           t(`kpi.${tile.key}.hint`),
-          counts?.[tile.key] ?? 0,
+          counts ? (counts[tile.key] ?? 0) : null, // null while loading: blank, not a false zero
           tile.tone,
           activeKey === tile.key,
           () => onSelect(tile.key)

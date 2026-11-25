@@ -934,6 +934,7 @@
   "Media.EquipmentNotInService": "Equipment {{code}} is not currently in service.",
   "Media.EvaluationNotFound": "Media evaluation {{id}} not found.",
   "Media.EvaluationTypeRequired": "Valid evaluation type is required.",
+  "Media.ExpiryBeforePreparation": "The expiry date {{expiryDate}} is before the preparation date {{preparedOn}}.",
   "Media.GroupedActionResultEntryBlocked": "Grouped actions cannot be executed against analytical result-entry operations. Result entry must be performed individually.",
   "Media.InactiveProductCannotConfigure": "Media product \"{{name}}\" is inactive and can't get a new configuration.",
   "Media.IncubationConditionDuplicate": "'{{productName}}' already has an incubation condition of {{minH}}–{{maxH}} h at {{tMin}}–{{tMax}} °C.",

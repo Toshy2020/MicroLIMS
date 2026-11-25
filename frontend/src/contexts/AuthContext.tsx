@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { clearCachedLabs, startNewLabsSession } from "../hooks/myLabsCache";
 import { apiClient } from "../services/apiClient";
 import { authenticationService } from "../modules/authentication/services/authenticationService";
 import { readTokenClaims, TOKEN_REFRESHED_EVENT } from "../modules/authentication/tokenClaims";
@@ -108,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (data: LoginData) => {
+    startNewLabsSession();
     localStorage.setItem("microlims_token", data.token);
     localStorage.setItem("microlims_refresh_token", data.refreshToken);
     localStorage.setItem("microlims_username", data.username);
@@ -148,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearLocalState = () => {
     // Device trust (microlims_device_token) is intentionally kept across logout
     // and idle timeout; it is cleared only when the server ignores it at login.
+    startNewLabsSession();
+    clearCachedLabs();
     localStorage.removeItem("microlims_token");
     localStorage.removeItem("microlims_refresh_token");
     localStorage.removeItem("microlims_username");

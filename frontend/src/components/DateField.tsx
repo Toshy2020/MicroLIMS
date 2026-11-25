@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { SxProps, Theme } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -19,6 +20,9 @@ interface DateFieldProps {
    *  partly typed - the same contract as the native input, so callers that
    *  must not send a half-typed date to the server keep working. */
   onChange: (value: string) => void;
+  /** Called with true when focus leaves a partly typed date (so the form can
+   *  refuse to save it) and false once the date is complete or cleared. */
+  onIncompleteChange?: (incomplete: boolean) => void;
   /** "YYYY-MM-DD" bounds; an empty string means no bound. */
   min?: string;
   max?: string;
@@ -45,10 +49,46 @@ function parse(value: string | undefined): Dayjs | null {
 // same height as the TextFields and Selects beside it, replacing the
 // browser's own "dd----yyyy" placeholder rendering.
 export function DateField({
-  label, value, onChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
+  label, value, onChange, onIncompleteChange, min, max, error, helperText, fullWidth, required, disabled, size = "small", ariaLabel, ariaDescribedBy, sx
 }: DateFieldProps) {
   const { t, i18n } = useTranslation("common");
   const isRtl = i18n.language === "ar";
+  // The picker never reports a half-typed date (day, month or year missing):
+  // onChange simply isn't called, so the caller keeps its old value and the
+  // typed digits vanish on save. Measure the sections after every key press
+  // and when focus leaves the field (so a submit that never blurs, such as
+  // Enter, still sees it), and say so instead of dropping the entry silently.
+  const [partial, setPartial] = useState(false);
+  const partialRef = useRef(false);
+  const popoverOpenRef = useRef(false);
+  const fieldRef = useRef<HTMLElement | null>(null);
+  const onIncompleteChangeRef = useRef(onIncompleteChange);
+  useEffect(() => {
+    onIncompleteChangeRef.current = onIncompleteChange;
+  }, [onIncompleteChange]);
+  const report = useCallback((incomplete: boolean) => {
+    if (partialRef.current === incomplete) return;
+    partialRef.current = incomplete;
+    setPartial(incomplete);
+    onIncompleteChangeRef.current?.(incomplete);
+  }, []);
+  // A complete date set from outside (form reset, loaded record) ends any half-typed state.
+  useEffect(() => {
+    if (parse(value)) report(false);
+  }, [value, report]);
+  const measure = (root: HTMLElement) => {
+    fieldRef.current = root;
+    const sections = Array.from(root.querySelectorAll('[role="spinbutton"]'));
+    const filled = sections.filter((s) => s.hasAttribute("aria-valuenow")).length;
+    report(filled > 0 && filled < sections.length);
+  };
+  const checkOnBlur = (e: FocusEvent<HTMLElement>) => {
+    if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return;
+    // Focus moving into the calendar popover: the user is choosing a date there.
+    if (popoverOpenRef.current) return;
+    measure(e.currentTarget);
+  };
+  const checkOnKeyUp = (e: KeyboardEvent<HTMLElement>) => measure(e.currentTarget);
   const inputAriaProps =
     ariaLabel || ariaDescribedBy
       ? {
@@ -77,7 +117,19 @@ export function DateField({
       <DatePicker
         label={label}
         value={parse(value)}
-        onChange={(d) => onChange(d && d.isValid() ? d.format(VALUE_FORMAT) : "")}
+        onChange={(d) => {
+          // An invalid date means a section was erased from a complete date:
+          // the field is half-typed now, not cleared.
+          report(d !== null && !d.isValid());
+          onChange(d && d.isValid() ? d.format(VALUE_FORMAT) : "");
+        }}
+        onOpen={() => {
+          popoverOpenRef.current = true;
+        }}
+        onClose={() => {
+          popoverOpenRef.current = false;
+          if (fieldRef.current) measure(fieldRef.current);
+        }}
         format={DISPLAY_FORMAT}
         minDate={parse(min) ?? undefined}
         maxDate={parse(max) ?? undefined}
@@ -89,8 +141,10 @@ export function DateField({
             size,
             fullWidth,
             required,
-            error,
-            helperText,
+            error: error || partial,
+            helperText: partial ? t("datePicker.incomplete") : helperText,
+            onBlur: checkOnBlur,
+            onKeyUp: checkOnKeyUp,
             slotProps: inputAriaProps
           }
         }}

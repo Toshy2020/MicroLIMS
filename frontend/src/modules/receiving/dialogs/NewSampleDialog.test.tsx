@@ -197,6 +197,40 @@ describe("NewSampleDialog — characterisation per category", () => {
     });
   });
 
+  it("Product row with a half-typed Mfg Date is not saved (Save clicked while focus is in the date field)", async () => {
+    const user = userEvent.setup();
+    renderDialog({
+      allowedCategories: ["product"],
+      labMode: { kind: "choose" }
+    });
+
+    await user.click(await screen.findByText("Product"));
+    await user.click(screen.getByRole("button", { name: /Next/i }));
+
+    await user.click(await screen.findByLabelText("Sample 1 item"));
+    await user.click(await screen.findByRole("option", { name: "Paracetamol 500mg" }));
+
+    await user.click(screen.getByLabelText("Sample 1 production stage"));
+    await user.click(await screen.findByRole("option", { name: "Bulk" }));
+
+    await user.click(screen.getByLabelText("Sample 1 cause of testing"));
+    await user.click(await screen.findByRole("option", { name: "Routine" }));
+
+    await user.type(screen.getByLabelText("Sample 1 quantity"), "50g");
+    await user.type(screen.getByPlaceholderText("Sampled By"), "Analyst Alice");
+    await user.type(screen.getByLabelText("Sample 1 batch number"), "BATCH-P1");
+    await user.type(screen.getByLabelText("Sample 1 control number"), "CTRL-P1");
+
+    const mfg = screen.getByRole("group", { name: /Sample 1 manufacturing date/i });
+    await user.click(mfg.querySelector('[role="spinbutton"][aria-label="Month"]') as HTMLElement);
+    await user.keyboard("03");
+
+    await user.click(screen.getByRole("button", { name: /Save All Samples/i }));
+
+    expect(await screen.findAllByText(/Enter a complete date/i)).not.toHaveLength(0);
+    expect(ReceiveService.receiveBatch).not.toHaveBeenCalled();
+  });
+
   it("Raw Material row payload matches single-request body", async () => {
     const user = userEvent.setup();
     vi.mocked(masterDataOptions.getItems).mockResolvedValue([

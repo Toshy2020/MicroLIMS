@@ -71,6 +71,12 @@ interface MediaDraftValues extends MediaPreparationFormState {
 }
 
 // Explicit allow-list of fields stored in the tablet draft.
+// The server stamps the lot's preparation date from its UTC clock and checks
+// the expiry against that date, so compare against the UTC date here too.
+function utcTodayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function pickMediaDraft(v: MediaDraftValues): Partial<MediaDraftValues> {
   return {
     materialId: v.materialId,
@@ -148,6 +154,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
   const [solutions, setSolutions] = useState<UsableSolution[]>([]);
   const additiveKey = useRef(0);
   const [error, setError] = useState<string | null>(null);
+  const [expiryIncomplete, setExpiryIncomplete] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<MediaFieldKey, string>>>({});
   const [saving, setSaving] = useState(false);
   const [keptOffline, setKeptOffline] = useKeptOffline();
@@ -166,6 +173,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
     if (open) {
       setError(null);
       setFieldErrors({});
+      setExpiryIncomplete(false);
       setKeptOffline(false);
       setActiveSection(0);
       setForm({});
@@ -382,8 +390,17 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
       setError(t("media.preparationDialog.errors.phRequired"));
       return;
     }
+    if (expiryIncomplete) {
+      setError(t("media.preparationDialog.errors.expiryIncomplete"));
+      return;
+    }
     if (!form.expiryDate) {
       setError(t("media.preparationDialog.errors.expiryRequired"));
+      return;
+    }
+    // The lot is prepared today, so an expiry before today is already expired.
+    if (form.expiryDate < utcTodayIso()) {
+      setError(t("media.preparationDialog.errors.expiryInPast"));
       return;
     }
 
@@ -752,6 +769,7 @@ export function MediaPreparationDialog({ open, onClose, onSuccess }: Props) {
               label={t("media.preparationDialog.expiryDateLabel")}
               value={form.expiryDate ?? ""}
               onChange={(v) => setField("expiryDate", v)}
+              onIncompleteChange={setExpiryIncomplete}
               error={Boolean(fieldErrors.expiryDate)}
               helperText={fieldErrors.expiryDate}
             />

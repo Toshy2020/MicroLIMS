@@ -22,8 +22,9 @@ public class SampleSummaryService
     private readonly ReviewGateService _reviewGate;
     private readonly TimeProvider _time;
     private readonly OosGate _oosGate;
+    private readonly TimeZoneInfo? _labZone;
 
-    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null)
+    public SampleSummaryService(IMicroLimsDbContext db, IPdfGenerator pdfGenerator, IWordGenerator wordGenerator, ReviewGateService reviewGate, OosGate oosGate, TimeProvider? timeProvider = null, Interfaces.ILabClock? labClock = null)
     {
         _time = timeProvider ?? TimeProvider.System;
         _db = db;
@@ -31,6 +32,7 @@ public class SampleSummaryService
         _wordGenerator = wordGenerator;
         _reviewGate = reviewGate;
         _oosGate = oosGate;
+        _labZone = labClock?.LabTimeZone;
     }
 
     // A retest can be partial - only the TestCode(s) actually selected for
@@ -308,6 +310,8 @@ public class SampleSummaryService
             SampleId = sample.Id,
             ReferenceNumber = sample.ReferenceNumber,
             Category = sample.Category.ToString(),
+            ItemId = sample.ItemId,
+            LabTimeZoneId = TestOrderSopDisplay.LabTimeZoneId(_labZone),
             DisplayName = summaryDisplayName,
             ProductionStage = sample.ProductionStage,
             CauseOfTesting = sample.CauseOfTesting?.Name ?? string.Empty,
@@ -365,6 +369,10 @@ public class SampleSummaryService
                 }).ToList(),
             TestOrders = effectiveTestOrders.Select(order => SampleSummaryTestOrderBuilder.Build(order, data, NameOf)).ToList()
         };
+
+        var sopNotices = await TestOrderSopDisplay.ReadNoticesAsync(_db, effectiveTestOrders, data.Now, ct);
+        foreach (var orderDto in dto.TestOrders)
+            orderDto.NewerSopRevision = sopNotices.GetValueOrDefault(orderDto.TestOrderId);
 
         var oosByOrderId = (await (from r in _db.OosInvestigationResults.AsNoTracking()
                                    join i in _db.OosInvestigations.AsNoTracking() on r.InvestigationId equals i.Id
@@ -439,7 +447,7 @@ public class SampleSummaryService
         await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId, sectionIds, ct);
         if (summary is null) return null;
-        var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary));
+        var pdf = await _pdfGenerator.GenerateReportAsync(ReportDocumentMapper.ForSample(summary, _labZone));
         return (FileStemFor(summary), pdf);
     }
 
@@ -448,7 +456,7 @@ public class SampleSummaryService
         await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId, sectionIds, ct);
         if (summary is null) return null;
-        var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary));
+        var doc = await _wordGenerator.GenerateFromLinesAsync(TitleFor(summary), BuildReportLines(summary, _labZone));
         return (FileStemFor(summary), doc);
     }
 
@@ -459,7 +467,7 @@ public class SampleSummaryService
     {
         await _oosGate.EnsureCertificateAllowedAsync(sampleId, ct);
         var summary = await GetSummaryAsync(sampleId, ct: ct);
-        return summary is null ? null : ReportDocumentMapper.ForSample(summary);
+        return summary is null ? null : ReportDocumentMapper.ForSample(summary, _labZone);
     }
 
     private static string TitleFor(SampleSummaryDto s) => $"Sample Summary - {s.ReferenceNumber}";
@@ -469,7 +477,7 @@ public class SampleSummaryService
     // SimpleDocxWriter expects - same shape as the 5
     // sections SampleSummaryDialog.tsx renders, so the export reads as
     // the same document, just on paper/in Word instead of a floating page.
-    public static List<string> BuildReportLines(SampleSummaryDto s)
+    public static List<string> BuildReportLines(SampleSummaryDto s, TimeZoneInfo? labZone = null)
     {
         var lines = new List<string>
         {
@@ -493,6 +501,8 @@ public class SampleSummaryService
         if (s.StorageCondition is not null)
             lines.Add($"Storage Condition: {s.StorageCondition}" + (s.StorageCondition == "Refrigerator" ? $" ({s.StorageTimeHours ?? 0}h)" : ""));
         lines.Add($"Status: {s.Status}");
+        foreach (var method in s.Certificate.Sample.MethodDocuments)
+            lines.Add($"Method: {ReportDocumentMapper.SopMethodText(method.DocumentCode, method.Title, method.RevisionNumber, method.EffectiveDateUtc, labZone)}");
         lines.Add("");
 
         if (s.Preparation is not null)
@@ -517,6 +527,9 @@ public class SampleSummaryService
         foreach (var order in s.TestOrders)
         {
             lines.Add($"{order.TestCode} - {order.TestDisplayName} [{order.Status}]{(order.IsSuperseded ? " (superseded)" : "")}");
+
+            if (order.SopCapture is not null || s.ItemId.HasValue)
+                lines.Add($"  {ReportDocumentMapper.SopCaptureText(order.SopCapture, labZone)}");
 
             foreach (var competencyOverride in order.CompetencyOverrides)
             {

@@ -707,7 +707,7 @@ TestStageReplicateMasterDataController.UpdateTestDefinitionStageReplicate(Int32,
 TestWorkflowController.BatchSelectMedia(BatchSelectMediaRequest, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.CloseIncubationWindow(Int32, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.GetActionableGroups(String, String, String, CancellationToken): SectionHead,Reviewer,Analyst
-TestWorkflowController.GetCurrentStep(Int32): SectionHead,Reviewer,Analyst
+TestWorkflowController.GetCurrentStep(Int32, CancellationToken): SectionHead,Reviewer,Analyst
 TestWorkflowController.GetEligibleIncubators(Int32, Int32): SectionHead,Reviewer,Analyst
 TestWorkflowController.GetLocations(Int32): SectionHead,Reviewer,Analyst
 TestWorkflowController.GetMoisture(Int32, SampleMoistureResolver, CancellationToken): SectionHead,Reviewer,Analyst

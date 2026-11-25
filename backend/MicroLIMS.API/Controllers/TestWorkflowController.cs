@@ -105,10 +105,10 @@ public class TestWorkflowController : ControllerBase
     }
 
     [HttpGet("{testOrderId}/current-step")]
-    public async Task<IActionResult> GetCurrentStep(int testOrderId)
+    public async Task<IActionResult> GetCurrentStep(int testOrderId, CancellationToken ct = default)
     {
-        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, access: SectionAccess.Read);
-        return await RunAsync(() => _currentStepView.GetAsync(testOrderId));
+        await _scopeService.EnsureTestOrderAccessAsync(CurrentUserId, testOrderId, ct, access: SectionAccess.Read);
+        return await RunAsync(() => _currentStepView.GetAsync(testOrderId, ct));
     }
 
     [HttpGet("{testOrderId}/sibling-pathogen-orders")]

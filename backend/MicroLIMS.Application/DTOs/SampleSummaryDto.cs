@@ -54,6 +54,8 @@ public class SampleSummaryDto
     public string? PreviousProductBatchNumber { get; set; }
 
     public SamplePreparationSummaryDto? Preparation { get; set; }
+    public int? ItemId { get; set; }
+    public string LabTimeZoneId { get; set; } = "UTC";
     public List<TestOrderSummaryDetailDto> TestOrders { get; set; } = new();
     public List<SampleWorkflowEventDto> Timeline { get; set; } = new();
     public List<SignatureDto> Signatures { get; set; } = new();
@@ -130,6 +132,8 @@ public sealed record CompetencyOverrideDto(string AnalystName, string GrantedByF
 
 public class TestOrderSummaryDetailDto
 {
+    public SopCaptureDto? SopCapture { get; set; }
+    public NewerSopRevisionDto? NewerSopRevision { get; set; }
     public IReadOnlyList<CompetencyOverrideDto> CompetencyOverrides { get; init; } = [];
     public int TestOrderId { get; set; }
     public int SectionId { get; set; }

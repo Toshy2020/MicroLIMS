@@ -57,7 +57,27 @@ public static class ReportDocumentMapper
         )).ToList()
     };
 
-    public static ReportDocument ForSample(SampleSummaryDto s)
+    internal static string SopMethodText(string code, string? title, string number, DateTime? effective, TimeZoneInfo? labZone)
+    {
+        var label = string.IsNullOrEmpty(title) ? "" : $" · {title}";
+        var date = effective is { } utc
+            ? $" · Effective {TimeZoneInfo.ConvertTime(new DateTimeOffset(utc, TimeSpan.Zero), labZone ?? TimeZoneInfo.Utc):dd-MMM-yyyy HH:mm zzz}"
+            : "";
+        return $"{code} rev. {number}{label}{date}";
+    }
+
+    internal static string SopCaptureText(SopCaptureDto? capture, TimeZoneInfo? labZone) => capture?.Status switch
+    {
+        nameof(SopCaptureStatus.Captured) => SopMethodText(capture.DocumentCode ?? "", capture.Title,
+            capture.RevisionNumber ?? "", capture.EffectiveDateUtc, labZone),
+        nameof(SopCaptureStatus.NoSopNumber) => "SOP not recorded: No SOP number on this item",
+        nameof(SopCaptureStatus.NotFound) => "SOP not recorded: SOP not found in Document Control",
+        nameof(SopCaptureStatus.NoEffectiveRevision) => "SOP not recorded: No effective revision",
+        nameof(SopCaptureStatus.Ambiguous) => "SOP not recorded: Multiple documents match the SOP number",
+        _ => "SOP not recorded"
+    };
+
+    public static ReportDocument ForSample(SampleSummaryDto s, TimeZoneInfo? labZone = null)
     {
         var tone = s.Status switch
         {
@@ -121,6 +141,16 @@ public static class ReportDocumentMapper
             RightLabel = "dates & personnel", Right = dates
         });
 
+        if (s.Certificate.Sample.MethodDocuments.Count > 0)
+        {
+            doc.Blocks.Add(new ListBlock
+            {
+                Label = "methods",
+                Rows = s.Certificate.Sample.MethodDocuments.Select(m =>
+                    ("Method", SopMethodText(m.DocumentCode, m.Title, m.RevisionNumber, m.EffectiveDateUtc, labZone))).ToList()
+            });
+        }
+
         if (s.Preparation is not null)
         {
             var p = s.Preparation;
@@ -144,7 +174,10 @@ public static class ReportDocumentMapper
         doc.Blocks.Add(new HeadingBlock { Text = "test results" });
         foreach (var t in s.TestOrders)
         {
-            doc.Blocks.Add(ToTestCard(t));
+            var card = ToTestCard(t);
+            if (t.SopCapture is not null || s.ItemId.HasValue)
+                card.MetaLines.Add(SopCaptureText(t.SopCapture, labZone));
+            doc.Blocks.Add(card);
             doc.Blocks.AddRange(ToReadingsTables(t));
         }
         if (s.TestOrders.Count == 0)

@@ -7,5 +7,5 @@ public interface ITestWorkspaceService
 {
     Task<PagedResult<SampleDto>> GetActiveSamplesAsync(TestingWorkspaceFilterDto filter, int? currentUserId = null, CancellationToken cancellationToken = default);
     Task<WorkspaceTileCountsDto> GetWorkloadCountsAsync(int? currentUserId = null, int? labSectionId = null, string? area = null);
-    Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null);
+    Task<SampleDto?> GetSampleAsync(int sampleId, int? currentUserId = null, int? labSectionId = null, string? area = null, CancellationToken cancellationToken = default);
 }

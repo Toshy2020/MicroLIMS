@@ -2,6 +2,8 @@ namespace MicroLIMS.Application.DTOs;
 
 public class TestOrderSummaryDto
 {
+    public SopCaptureDto? SopCapture { get; set; }
+    public NewerSopRevisionDto? NewerSopRevision { get; set; }
     public int TestOrderId { get; set; }
     public int SectionId { get; set; }
     public string TestCode { get; set; } = string.Empty;
@@ -38,6 +40,7 @@ public class TestOrderSummaryDto
 // domain/persistence details (Frozen Principle #3).
 public class SampleDto
 {
+    public string LabTimeZoneId { get; set; } = "UTC";
     public int SampleId { get; set; }
     // Alias for SampleId so creation/receipt responses expose `id` alongside
     // `referenceNumber` without renaming `sampleId` for existing callers.

@@ -1,5 +1,8 @@
 using System.Data.Common;
+using MicroLIMS.Application.Abstractions.Pdf;
+using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
@@ -264,6 +267,187 @@ public class SopRevisionCapturePostgresTests(PostgresTestFixture fixture)
             for (var i = 0; i < CapturedColumns.Length; i++)
                 Assert.True(reader.IsDBNull(i), $"{CapturedColumns[i]} must stay null");
         }
+    }
+
+    [PostgresFact]
+    public async Task Display_uses_stored_values_not_live_lookup()
+    {
+        var setup = await ArrangeAsync("effective");
+        await CaptureAndSaveAsync(setup.OrderId);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var order = await arrange.TestOrders.Include(o => o.Sample).ThenInclude(s => s!.Item)
+                .SingleAsync(o => o.Id == setup.OrderId);
+            var replacement = await AddMasterAsync(arrange, fixture, NewCode());
+            var revision = await AddRevisionAsync(arrange, fixture, replacement, 4, DocumentRevisionStatus.Effective, current: true);
+            revision.EffectiveDate = CapturedAt.UtcDateTime.AddDays(1);
+            order.Sample!.Item!.SopNumber = replacement.CompanyDocumentCode;
+            await arrange.SaveChangesAsync();
+        }
+
+        var dto = await ReadDisplayAsync(setup.OrderId);
+        Assert.Equal(setup.MasterId, dto.SopCapture?.DocumentMasterId);
+        Assert.Equal(setup.RevisionId, dto.SopCapture?.RevisionId);
+        Assert.Equal(setup.Code, dto.SopCapture?.DocumentCode);
+        Assert.Equal(setup.Code, dto.SopCapture?.Title);
+        Assert.Equal("3", dto.SopCapture?.RevisionNumber);
+        Assert.Equal(RevisionEffective, dto.SopCapture?.EffectiveDateUtc);
+        Assert.Equal(CapturedAt.UtcDateTime, dto.SopCapture?.CapturedAtUtc);
+        Assert.Null(dto.NewerSopRevision);
+
+        await using var workspace = fixture.CreateDbContext();
+        var sampleId = await GetSampleIdAsync(setup.OrderId);
+        var service = new TestingWorkspaceService(workspace, new UserSectionScopeService(workspace),
+            new FixedTimeProvider(CapturedAt.AddDays(2)));
+        var workspaceOrder = Assert.Single((await service.GetSampleAsync(sampleId))!.AssignedTests);
+        Assert.Equal(dto.SopCapture, workspaceOrder.SopCapture);
+        Assert.Null(workspaceOrder.NewerSopRevision);
+    }
+
+    [PostgresFact]
+    public async Task Old_tests_show_not_recorded()
+    {
+        var setup = await ArrangeAsync("effective");
+        var summary = await ReadSummaryAsync(setup.OrderId);
+        var dto = Assert.Single(summary.TestOrders);
+        Assert.Null(dto.SopCapture);
+        Assert.Null(dto.NewerSopRevision);
+        Assert.Contains("  SOP not recorded", SampleSummaryService.BuildReportLines(summary));
+    }
+
+    [PostgresFact]
+    public async Task Later_same_document_revision_shows_notice_for_open_test()
+    {
+        var setup = await ArrangeAsync("effective");
+        await CaptureAndSaveAsync(setup.OrderId);
+        await ArrangeNewerRevisionAsync(setup, completed: false);
+
+        var dto = await ReadDisplayAsync(setup.OrderId);
+        Assert.Equal("3", dto.SopCapture?.RevisionNumber);
+        Assert.Equal("4", dto.NewerSopRevision?.RevisionNumber);
+    }
+
+    [PostgresFact]
+    public async Task Revision_effective_at_completion_does_not_show_notice()
+    {
+        var setup = await ArrangeAsync("effective");
+        await CaptureAndSaveAsync(setup.OrderId);
+        await ArrangeNewerRevisionAsync(setup, completed: true);
+
+        Assert.Null((await ReadDisplayAsync(setup.OrderId)).NewerSopRevision);
+    }
+
+    [PostgresFact]
+    public async Task Revision_effective_before_completion_shows_notice()
+    {
+        var setup = await ArrangeAsync("effective");
+        await CaptureAndSaveAsync(setup.OrderId);
+        await ArrangeNewerRevisionAsync(setup, completed: true, completionOffsetHours: 1);
+
+        var dto = await ReadDisplayAsync(setup.OrderId);
+        Assert.Equal(new NewerSopRevisionDto("4", CapturedAt.UtcDateTime.AddDays(1)), dto.NewerSopRevision);
+    }
+
+    [PostgresFact]
+    public async Task Certificate_lists_each_distinct_revision()
+    {
+        var setup = await ArrangeAsync("effective");
+        var sampleId = await GetSampleIdAsync(setup.OrderId);
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            var sectionId = await arrange.TestOrders.AsNoTracking()
+                .Where(o => o.Id == setup.OrderId).Select(o => o.SectionId).SingleAsync();
+            arrange.TestOrders.AddRange(
+                CapturedOrder(sampleId, sectionId, "SOP-B", "1", 4),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "2", 2),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "1", 1),
+                CapturedOrder(sampleId, sectionId, "SOP-A", "2", 2),
+                CapturedOrder(sampleId, sectionId, "SOP-C", "3", 5, superseded: true));
+            await arrange.SaveChangesAsync();
+        }
+
+        var summary = await ReadSummaryAsync(setup.OrderId);
+        Assert.Equal(new[] { ("SOP-A", "1"), ("SOP-A", "2"), ("SOP-B", "1") },
+            summary.Certificate.Sample.MethodDocuments.Select(m => (m.DocumentCode, m.RevisionNumber)));
+        Assert.All(summary.Certificate.Sample.MethodDocuments, m => Assert.Equal(RevisionEffective, m.EffectiveDateUtc));
+
+        var report = ReportDocumentMapper.ForSample(summary, TimeZoneInfo.Utc);
+        var header = Assert.Single(report.Blocks.OfType<ListBlock>(), b => b.Label == "methods");
+        Assert.Equal(summary.Certificate.Sample.MethodDocuments.Count, header.Rows.Count);
+        Assert.Contains(report.Blocks.OfType<CardBlock>(), card =>
+            card.MetaLines.Any(line => line.StartsWith("SOP-A rev. 2", StringComparison.Ordinal)));
+    }
+
+    [PostgresFact]
+    public async Task Certificate_omits_unresolved()
+    {
+        var setup = await ArrangeAsync("missing");
+        await CaptureAndSaveAsync(setup.OrderId);
+
+        var summary = await ReadSummaryAsync(setup.OrderId);
+        Assert.Equal(nameof(SopCaptureStatus.NotFound), Assert.Single(summary.TestOrders).SopCapture?.Status);
+        Assert.Empty(summary.Certificate.Sample.MethodDocuments);
+    }
+
+    private static TestOrder CapturedOrder(int sampleId, int sectionId, string code, string number, int revisionId,
+        bool superseded = false) => new()
+    {
+        SampleId = sampleId,
+        SectionId = sectionId,
+        TestCode = NewCode(),
+        IsSuperseded = superseded,
+        SopCaptureStatus = SopCaptureStatus.Captured,
+        SopDocumentMasterId = int.MaxValue - revisionId,
+        SopDocumentCode = code,
+        SopDocumentTitle = code,
+        SopRevisionId = int.MaxValue - revisionId,
+        SopRevisionNumber = number,
+        SopEffectiveDateUtc = RevisionEffective,
+        SopCapturedAtUtc = CapturedAt.UtcDateTime
+    };
+
+    private async Task ArrangeNewerRevisionAsync(Setup setup, bool completed, int completionOffsetHours = 0)
+    {
+        await using var arrange = fixture.CreateDbContext();
+        var master = await arrange.DocumentMasters.SingleAsync(m => m.Id == setup.MasterId);
+        var previous = await arrange.DocumentRevisions.SingleAsync(r => r.Id == setup.RevisionId);
+        previous.RevisionStatus = DocumentRevisionStatus.Superseded;
+        await arrange.SaveChangesAsync();
+        var revision = await AddRevisionAsync(arrange, fixture, master, 4, DocumentRevisionStatus.Effective, current: true);
+        revision.EffectiveDate = CapturedAt.UtcDateTime.AddDays(1);
+        if (completed)
+        {
+            var order = await arrange.TestOrders.SingleAsync(o => o.Id == setup.OrderId);
+            order.CurrentStep = WorkflowStep.Ready;
+            order.Status = ApprovalStatus.ResultEntered;
+            order.WorkflowHistory.Add(new WorkflowHistory
+            {
+                FromStep = WorkflowStep.Running,
+                ToStep = WorkflowStep.Ready,
+                Timestamp = revision.EffectiveDate.Value.AddHours(completionOffsetHours),
+                PerformedByUserId = fixture.SeededUserId
+            });
+        }
+        await arrange.SaveChangesAsync();
+    }
+
+    private async Task<TestOrderSummaryDetailDto> ReadDisplayAsync(int orderId) =>
+        Assert.Single((await ReadSummaryAsync(orderId)).TestOrders);
+
+    private async Task<int> GetSampleIdAsync(int orderId)
+    {
+        await using var assert = fixture.CreateDbContext();
+        return await assert.TestOrders.AsNoTracking().Where(o => o.Id == orderId)
+            .Select(o => o.SampleId).SingleAsync();
+    }
+
+    private async Task<SampleSummaryDto> ReadSummaryAsync(int orderId)
+    {
+        var sampleId = await GetSampleIdAsync(orderId);
+        await using var act = fixture.CreateDbContext();
+        var service = new SampleSummaryService(act, null!, null!, new ReviewGateService(act, null!),
+            new OosGate(act, new OosOpeningRule(act)), new FixedTimeProvider(CapturedAt.AddDays(2)));
+        return Assert.IsType<SampleSummaryDto>(await service.GetSummaryAsync(sampleId));
     }
 
     private sealed record Setup(int OrderId, int? MasterId, int? RevisionId, string? Code);

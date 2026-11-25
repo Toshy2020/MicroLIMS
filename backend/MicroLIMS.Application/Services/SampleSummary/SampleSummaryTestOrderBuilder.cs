@@ -66,6 +66,7 @@ public static class SampleSummaryTestOrderBuilder
         return new TestOrderSummaryDetailDto
         {
             TestOrderId = order.Id,
+            SopCapture = TestOrderSopDisplay.Capture(order),
             CompetencyOverrides = d.CompetencyOverrides[order.Id].ToList(),
             SectionId = order.SectionId,
             SectionName = sectionRows.TryGetValue(order.SectionId, out var sectionRow) ? sectionRow.Name : string.Empty,

@@ -39,7 +39,8 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         var scope = new UserSectionScopeService(db);
         var core = new QualityRecordCore(db, permissions, scope, new ReferenceNumberGenerator(db, Clock),
             new ElectronicSignatureService(db, Clock), Clock);
-        return new(db, core, permissions, scope, new SegregationOfDutiesGuard(db), new LabClock(Clock, TimeZoneInfo.Utc));
+        return new(db, core, permissions, scope, new SegregationOfDutiesGuard(db), new LabClock(Clock, TimeZoneInfo.Utc),
+            new QualityDueDateService(db));
     }
 
     private async Task<int> ActorAsync(MicroLimsDbContext db, RoleType role, bool member = true, bool auditView = true)

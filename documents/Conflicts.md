@@ -1216,3 +1216,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Status:** Decided
 - **Decision:** Only QA users holding `Quality.Approve` may administer the site-wide quality classification list and due rules. Every change is audited.
 - **Date:** 2026-11-25
+
+### CONF-226
+- **Area:** Quality records (Change control)
+- **Status:** Decided
+- **Decision:** The change-control affected list is frozen once the impact assessment is signed (`Assessed` onwards), not only after approval. The signed `ChangeImpactAssessed` snapshot includes the affected links (`TargetType`, `TargetId`, `NewRecordCode`). Both `ChangeControlService.AddAffectedAsync` and `QualityLinkService.AddAsync(..., isAffectedByChange: true)` refuse additions from `Assessed` onwards; link removal remains blocked after the first signed step.
+- **Decision:** The change-control owner is named explicitly when proposing (`OwnerUserId`, optional and defaulting to the proposer). The owner must be an active user with role type `SectionHead` or `QcManager` who is a member of the record's section when a section is set, and the assignment is audited.
+- **Date:** 2026-11-25

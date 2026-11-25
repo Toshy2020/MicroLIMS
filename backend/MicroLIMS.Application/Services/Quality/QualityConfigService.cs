@@ -199,7 +199,20 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
             throw QualityRecordCore.Denied();
         await EnsureMemberAsync(record, userId, ct);
         await EnsureOpenAsync(recordId, ct);
+        if (record.Type == QualityRecordType.ChangeControl && core.IsStepSigned(record, QualityStepKind.ChangeImpactAssessed))
+            throw new BusinessRuleException(MessageCodes.ChangeControlAssessmentAlreadySigned,
+                "Checklist answers cannot be changed after the impact assessment is signed.");
 
+        var key = QualityRecordCore.RequiredText(itemKey, 36);
+        var entry = await RecordAnswerInternalAsync(record, key, answer, comment, userId, ct);
+        core.AdvanceVersion(record);
+        await db.SaveChangesAsync(ct);
+        return new QualityAnswerDto(entry.Id, key, entry.ItemText, answer, entry.Comment, userId, entry.AnsweredAtUtc, record.Version);
+    }, ct);
+
+    internal async Task<QualityChecklistAnswer> RecordAnswerInternalAsync(QualityRecord record, string itemKey,
+        QualityChecklistAnswerValue answer, string? comment, int userId, CancellationToken ct)
+    {
         var key = QualityRecordCore.RequiredText(itemKey, 36);
         if (!Enum.IsDefined(answer))
             throw new BusinessRuleException(MessageCodes.QualityInvalidAnswer, "Choose a valid checklist answer.");
@@ -208,15 +221,24 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
             ?? throw QualityRecordCore.Missing();
         var entry = new QualityChecklistAnswer
         {
-            RecordId = recordId, ItemKey = key, ItemText = text, Answer = answer,
+            RecordId = record.Id, ItemKey = key, ItemText = text, Answer = answer,
             Comment = comment is null ? null : QualityRecordCore.RequiredText(comment, 2000),
             AnsweredByUserId = userId, AnsweredAtUtc = clock.GetUtcNow().UtcDateTime
         };
         db.QualityChecklistAnswers.Add(entry);
-        core.AdvanceVersion(record);
-        await db.SaveChangesAsync(ct);
-        return new QualityAnswerDto(entry.Id, key, text, answer, entry.Comment, userId, entry.AnsweredAtUtc, record.Version);
-    }, ct);
+        return entry;
+    }
+
+    internal async Task<bool> AreAllActiveItemsAnsweredAsync(QualityRecord record, CancellationToken ct)
+    {
+        var activeKeys = await EffectiveTemplates(record.Type, record.SectionId).SelectMany(t => t.Items)
+            .Where(i => i.IsActive).Select(i => i.Key).ToListAsync(ct);
+        if (activeKeys.Count == 0) return true;
+        var answeredKeys = await db.QualityChecklistAnswers.AsNoTracking()
+            .Where(a => a.RecordId == record.Id && activeKeys.Contains(a.ItemKey))
+            .Select(a => a.ItemKey).Distinct().ToListAsync(ct);
+        return answeredKeys.Count == activeKeys.Count;
+    }
 
     public async Task<IReadOnlyList<QualityAnswerDto>> ListAnswersAsync(int recordId, int page, int pageSize, int userId,
         CancellationToken ct = default)

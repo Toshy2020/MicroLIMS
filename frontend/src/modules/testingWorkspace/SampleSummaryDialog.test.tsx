@@ -523,6 +523,32 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
     expect(screen.queryByRole("radio", { name: /New Sample Required/i })).toBeNull();
   }, 15000);
 
+  it("never offers Investigation or OOS Investigation as approval decision options", async () => {
+    const base = createSample();
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: [{ ...base.sections![0], status: "UnderApproval" }]
+      })
+    );
+
+    render(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole("radio", { name: /Approve/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Not Conform/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: /^Investigation$/i })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /OOS Investigation/i })).toBeNull();
+  }, 15000);
+
   it("keeps retest and new-sample options present when no investigation exists and allows manual open on blocked approval", async () => {
     const user = userEvent.setup();
     mockGetSummary.mockResolvedValue(

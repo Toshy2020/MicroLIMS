@@ -1,4 +1,19 @@
-import { Button, Grid, Typography, Box, Divider , useTheme} from "@mui/material";
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  Grid,
+  Stack,
+  TextField,
+  Typography,
+  useTheme
+} from "@mui/material";
+import { toast } from "sonner";
 import { ResultRecordItem } from "../types/reportingTypes";
 import { StatusBadge, CategoryBadge } from "../../../components/StatusBadge";
 import { useState } from "react";
@@ -7,6 +22,10 @@ import { FloatingDialog } from "../../../components/FloatingDialog";
 import { withUnit } from "../../../utils/reportedValue";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
 import { useTranslation } from "../../../i18n";
+import { useOptionalAuth } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
+import { oosInvestigationService } from "../../../services/oosInvestigationService";
+import { serverMessage } from "../../../utils/errorMessage";
 
 interface RecordDetailDialogProps {
   open: boolean;
@@ -17,9 +36,37 @@ interface RecordDetailDialogProps {
 export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialogProps) {
   const { t } = useTranslation("reports");
   const theme = useTheme();
+  const auth = useOptionalAuth();
+  const canOpenExcursion =
+    !auth ||
+    auth.permissions.includes(PERMISSIONS.OOS_CONTRIBUTE) ||
+    auth.permissions.includes(PERMISSIONS.OOS_MANAGE);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [excursionOpen, setExcursionOpen] = useState(false);
+  const [excursionReason, setExcursionReason] = useState("");
+  const [excursionError, setExcursionError] = useState<string | null>(null);
+  const [openingExcursion, setOpeningExcursion] = useState(false);
 
   if (!record) return null;
+
+  const handleOpenExcursion = async () => {
+    const trimmed = excursionReason.trim();
+    if (!trimmed) return;
+    setOpeningExcursion(true);
+    setExcursionError(null);
+    try {
+      const opened = await oosInvestigationService.openManualExcursion(record.testOrderId, trimmed);
+      toast.success(opened.number);
+      setExcursionOpen(false);
+      setExcursionReason("");
+    } catch (e) {
+      const msg = serverMessage(e) ?? t("recordDetail.excursionError", { defaultValue: "Failed to open excursion review." });
+      setExcursionError(msg);
+      toast.error(msg);
+    } finally {
+      setOpeningExcursion(false);
+    }
+  };
 
   return (
     <>
@@ -45,10 +92,26 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
           </Box>
         }
         actions={
-          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
-            <Button variant="outlined" size="small" onClick={() => setAuditOpen(true)}>
-              {t("recordDetail.viewAuditTrail")}
-            </Button>
+          <Box sx={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 1, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+              <Button variant="outlined" size="small" onClick={() => setAuditOpen(true)}>
+                {t("recordDetail.viewAuditTrail")}
+              </Button>
+              {canOpenExcursion && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  onClick={() => {
+                    setExcursionReason("");
+                    setExcursionError(null);
+                    setExcursionOpen(true);
+                  }}
+                >
+                  {t("recordDetail.openExcursionReview", { defaultValue: "Open excursion review" })}
+                </Button>
+              )}
+            </Box>
             <Button variant="contained" size="small" onClick={onClose}>
               {t("recordDetail.close")}
             </Button>
@@ -225,6 +288,51 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
         entityName="ResultRecord"
         entityId={record.id}
       />
+
+      <Dialog
+        open={excursionOpen}
+        onClose={() => setExcursionOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle component="div">
+          <Typography component="span" variant="h6">
+            {t("recordDetail.openExcursionReview", { defaultValue: "Open excursion review" })}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            {excursionError && (
+              <Alert severity="error" role="alert">
+                {excursionError}
+              </Alert>
+            )}
+            <TextField
+              fullWidth
+              required
+              multiline
+              rows={3}
+              size="small"
+              label={t("recordDetail.excursionReason", { defaultValue: "Reason" })}
+              value={excursionReason}
+              onChange={(e) => setExcursionReason(e.target.value)}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setExcursionOpen(false)}>
+            {t("recordDetail.close")}
+          </Button>
+          <Button
+            variant="contained"
+            color="warning"
+            disabled={openingExcursion || !excursionReason.trim()}
+            onClick={() => void handleOpenExcursion()}
+          >
+            {t("recordDetail.confirmExcursionReview", { defaultValue: "Confirm Excursion Review" })}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

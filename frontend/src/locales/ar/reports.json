@@ -685,7 +685,11 @@
     "sectionAttribution": "الإسناد والتوقيت وسلسلة المراجعة",
     "enteredByAnalyst": "أُدخلت النتيجة بواسطة (محلل)",
     "approvedBySectionHead": "اعتماد بواسطة (رئيس القسم / المراجع)",
-    "pendingApproval": "بانتظار الاعتماد"
+    "pendingApproval": "بانتظار الاعتماد",
+    "openExcursionReview": "فتح مراجعة تجاوز",
+    "excursionReason": "السبب",
+    "confirmExcursionReview": "تأكيد مراجعة التجاوز",
+    "excursionError": "تعذّر فتح مراجعة التجاوز."
   },
   "compare": {
     "loadError": "تعذر تحميل بيانات المقارنة لرمز الاختبار هذا.",

@@ -21,6 +21,11 @@ import { reportStyles } from "./reportStyles";
 import { SIGNATURE_STATEMENTS } from "./sampleSummary/summaryFormatting";
 import { dt, d, humanize } from "./SampleReportPage";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { OosBanner } from "../oosTracking/components/OosBanner";
+import {
+  oosInvestigationService,
+  type OosInvestigationListItemDto
+} from "../../services/oosInvestigationService";
 
 // Certificate-only print overrides, deliberately kept out of reportStyles:
 // that stylesheet is shared with the media and cryovial reports, and this
@@ -308,13 +313,19 @@ export function SampleCoaPage() {
   const { id } = useParams();
   const [summary, setSummary] = useState<SampleSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [investigations, setInvestigations] = useState<OosInvestigationListItemDto[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    SampleSummaryService.getSummary(Number(id), { forCertificate: true })
+    const sampleId = Number(id);
+    SampleSummaryService.getSummary(sampleId, { forCertificate: true })
       .then(setSummary)
       .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the certificate of analysis."));
+    oosInvestigationService
+      .getForSample(sampleId)
+      .then(setInvestigations)
+      .catch(() => setInvestigations([]));
   }, [id]);
 
   const isMultiSection = Boolean(summary?.sections && summary.sections.length > 1);
@@ -365,9 +376,9 @@ export function SampleCoaPage() {
   if (error) {
     return (
       <PinnedLightTheme>
-        <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>
-          {error}
-        </div>
+        <Box sx={{ maxWidth: 800, margin: "40px auto", px: 3 }}>
+          <OosBanner investigations={investigations} blockReason={error} />
+        </Box>
       </PinnedLightTheme>
     );
   }

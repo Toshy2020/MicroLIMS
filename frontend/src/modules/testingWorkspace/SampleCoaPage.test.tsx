@@ -2,11 +2,16 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SampleCoaPage } from "./SampleCoaPage";
+import { oosInvestigationService } from "../../services/oosInvestigationService";
 
 const mockGetSummary = vi.fn();
 
 vi.mock("./services/SampleSummaryService", () => ({
   SampleSummaryService: { getSummary: (...args: unknown[]) => mockGetSummary(...args) }
+}));
+
+vi.mock("../../services/oosInvestigationService", () => ({
+  oosInvestigationService: { getForSample: vi.fn().mockResolvedValue([]) }
 }));
 
 const row = (over: Record<string, unknown>) => ({
@@ -147,5 +152,45 @@ describe("SampleCoaPage supporting rows", () => {
 
     await waitFor(() => expect(screen.getByText("Not applicable (QC form NA-01)")).toBeTruthy());
     expect(screen.getAllByText("Not applicable (QC form NA-01)").length).toBe(1);
+  });
+
+  it("shows the server block reason and investigation link when certificate is blocked", async () => {
+    mockGetSummary.mockRejectedValue({
+      response: { data: { message: "A certificate cannot be issued until the reporting rule for multiple retests is resolved." } }
+    });
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([
+      {
+        id: 42,
+        number: "OOS-2026-0042",
+        kind: "Oos",
+        status: "PhaseOne",
+        sampleId: 1,
+        sampleReferenceNumber: "RM-1",
+        sampleDisplayName: "Sorbitol",
+        batchNumber: null,
+        sectionId: 1,
+        sectionName: "Microbiology",
+        openedAtUtc: "2026-11-20T10:00:00Z",
+        openedByName: "Reviewer",
+        phaseOneDueDate: null,
+        dueDate: null,
+        isOverdue: false,
+        conclusion: null,
+        concludedAtUtc: null,
+        rootCauseCategoryName: null,
+        testCodes: ["TAMC"],
+        version: 1
+      }
+    ]);
+
+    renderPage();
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("A certificate cannot be issued until the reporting rule for multiple retests is resolved.")
+      ).toBeTruthy()
+    );
+    const link = screen.getByRole("link", { name: /OOS-2026-0042/i });
+    expect(link.getAttribute("href")).toBe("/oos-tracking/42");
   });
 });

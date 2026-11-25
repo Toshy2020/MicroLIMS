@@ -14,6 +14,8 @@ import { SampleSummary, SampleSectionSummaryDetail } from "../types/sampleSummar
 import { isRawMaterialPhyschemReview, isRetentionValid, RETENTION_UNITS } from "../utils/moistureRetentionHelpers";
 import { UserRecord } from "../../users/services/UserService";
 import { DECISION_OPTIONS, SIGNATURE_STATEMENTS, formatExactTime, isTestOrderNonPassing } from "./summaryFormatting";
+import { OosBanner } from "../../oosTracking/components/OosBanner";
+import type { OosInvestigationListItemDto } from "../../../services/oosInvestigationService";
 
 // 3. Bottom Information Area: Column 3 - Approval & Electronic Signatures
 export function ApprovalSignaturesCard({
@@ -53,7 +55,13 @@ export function ApprovalSignaturesCard({
   closableSections,
   closingSectionId,
   onClosingSectionChange,
-  onCloseTestingClick
+  onCloseTestingClick,
+  oosInvestigations = [],
+  sectionHasInvestigation = false,
+  canOpenInvestigation = false,
+  openingInvestigation = false,
+  openInvestigationError = null,
+  onOpenInvestigation
 }: {
   summary: SampleSummary;
   // Whether one of the viewer's sections is waiting for a review / a decision. Whether the viewer may act is
@@ -96,6 +104,12 @@ export function ApprovalSignaturesCard({
   closingSectionId: number | "";
   onClosingSectionChange: (id: number | "") => void;
   onCloseTestingClick: () => void;
+  oosInvestigations?: OosInvestigationListItemDto[];
+  sectionHasInvestigation?: boolean;
+  canOpenInvestigation?: boolean;
+  openingInvestigation?: boolean;
+  openInvestigationError?: string | null;
+  onOpenInvestigation?: () => void;
 }) {
   const { t } = useTranslation("testingWorkspace");
   const theme = useTheme();
@@ -157,6 +171,23 @@ export function ApprovalSignaturesCard({
       failingList: uniqueFailing.join(", ")
     };
   }, [decision, effectiveApprovalSectionId, approvableSections, summary.certificate]);
+
+  const visibleDecisionOptions = useMemo(
+    () =>
+      sectionHasInvestigation
+        ? DECISION_OPTIONS.filter(
+            (opt) => opt.value !== "RetestRetainedSample" && opt.value !== "NewSampleRequest"
+          )
+        : DECISION_OPTIONS,
+    [sectionHasInvestigation]
+  );
+
+  const approveEntry = approvalAvailability.get("approval.approve");
+  const rejectEntry = approvalAvailability.get("approval.reject");
+  const approvalBlockedReason =
+    (approveEntry && !approveEntry.allowed ? approveEntry.reason : null) ??
+    (rejectEntry && !rejectEntry.allowed ? rejectEntry.reason : null) ??
+    null;
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -387,7 +418,7 @@ export function ApprovalSignaturesCard({
             onChange={(e) => setDecision(e.target.value as SampleApprovalDecision)}
             sx={{ mb: 1.5 }}
           >
-            {DECISION_OPTIONS.map((opt) => (
+            {visibleDecisionOptions.map((opt) => (
               <FormControlLabel
                 key={opt.value}
                 value={opt.value}
@@ -396,6 +427,17 @@ export function ApprovalSignaturesCard({
               />
             ))}
           </RadioGroup>
+          {(oosInvestigations.length > 0 || (canOpenInvestigation && !sectionHasInvestigation && approvalBlockedReason)) && (
+            <Box sx={{ mb: 1.5 }}>
+              <OosBanner
+                investigations={oosInvestigations}
+                canOpenManually={canOpenInvestigation && !sectionHasInvestigation && Boolean(approvalBlockedReason)}
+                openingInvestigation={openingInvestigation}
+                openError={openInvestigationError}
+                onOpenInvestigation={onOpenInvestigation}
+              />
+            </Box>
+          )}
           {decision === "Approve" && (
             <TextField
               fullWidth

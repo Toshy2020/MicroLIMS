@@ -141,7 +141,7 @@ public class ItemMassAssignmentTests
     [Fact]
     public void NoControllerAction_BindsADomainEntity()
     {
-        var entityNamespace = typeof(Domain.Entities.Item).Namespace;
+        var entityNamespace = typeof(Domain.Entities.Item).Namespace!;
         var controllers = typeof(API.Controllers.ItemController).Assembly.GetTypes()
             .Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract);
 
@@ -151,7 +151,7 @@ public class ItemMassAssignmentTests
         var offenders = controllers
             .SelectMany(c => c.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .SelectMany(m => m.GetParameters().Select(p => (Controller: c, Method: m, Parameter: p))))
-            .Where(x => Element(x.Parameter.ParameterType).Namespace == entityNamespace)
+            .Where(x => Element(x.Parameter.ParameterType).Namespace?.StartsWith(entityNamespace, StringComparison.Ordinal) ?? false)
             .Select(x => $"{x.Controller.Name}.{x.Method.Name}({x.Parameter.ParameterType.Name} {x.Parameter.Name})")
             .ToList();
 

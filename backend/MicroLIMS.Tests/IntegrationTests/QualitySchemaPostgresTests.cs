@@ -163,6 +163,36 @@ public class QualitySchemaPostgresTests
         Assert.Equal("CC-2082-0001", cc2082First);
         Assert.Equal("CMP-2082-0001", cmp2082First);
         Assert.Equal("DEV-2083-0001", dev2083First);
+
+        await using var assertDb = _fixture.CreateDbContext();
+        var persisted = await assertDb.QualityRecords.AsNoTracking()
+            .Where(r => r.Number.StartsWith("DEV-2082-") || r.Number.StartsWith("CAPA-2082-") || r.Number.StartsWith("CC-2082-") || r.Number.StartsWith("CMP-2082-") || r.Number.StartsWith("DEV-2083-"))
+            .OrderBy(r => r.Number)
+            .Select(r => r.Number)
+            .ToListAsync();
+        Assert.Equal(["CAPA-2082-0001", "CC-2082-0001", "CMP-2082-0001", "DEV-2082-0001", "DEV-2082-0002", "DEV-2083-0001"], persisted);
+    }
+
+    [PostgresFact]
+    public async Task Number_uses_lab_local_year_across_utc_midnight()
+    {
+        // 2084-12-31 22:30 UTC is 2085-01-01 00:30 in Africa/Cairo (UTC+2).
+        var clock = new FixedClock(new DateTimeOffset(2084, 12, 31, 22, 30, 0, TimeSpan.Zero));
+        string generated;
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            await using var tx = await actDb.Database.BeginTransactionAsync();
+            generated = await new ReferenceNumberGenerator(actDb, clock)
+                .GenerateQualityNumberAsync(QualityRecordType.Deviation);
+            actDb.QualityRecords.Add(NewQualityRecord(generated, QualityRecordType.Deviation, _fixture.SeededUserId, clock.GetUtcNow().UtcDateTime));
+            await actDb.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+
+        Assert.Equal("DEV-2085-0001", generated);
+        await using var assertDb = _fixture.CreateDbContext();
+        Assert.True(await assertDb.QualityRecords.AsNoTracking().AnyAsync(r => r.Number == "DEV-2085-0001"));
     }
 
     [PostgresFact]
@@ -241,7 +271,7 @@ public class QualitySchemaPostgresTests
     [PostgresFact]
     public async Task Record_delete_rejected()
     {
-        int recordId;
+        int childlessRecordId;
         int actionId;
         int linkId;
         int attachmentId;
@@ -249,8 +279,9 @@ public class QualitySchemaPostgresTests
 
         await using (var arrangeDb = _fixture.CreateDbContext())
         {
+            var childlessRecord = NewQualityRecord($"DEV-NOC-{Guid.NewGuid():N}"[..20], QualityRecordType.Deviation, _fixture.SeededUserId, now);
             var record = NewQualityRecord($"DEV-DEL-{Guid.NewGuid():N}"[..20], QualityRecordType.Deviation, _fixture.SeededUserId, now);
-            arrangeDb.QualityRecords.Add(record);
+            arrangeDb.QualityRecords.AddRange(childlessRecord, record);
             await arrangeDb.SaveChangesAsync();
 
             var sig = new ElectronicSignature
@@ -314,32 +345,273 @@ public class QualitySchemaPostgresTests
 
             await arrangeDb.SaveChangesAsync();
 
-            recordId = record.Id;
+            childlessRecordId = childlessRecord.Id;
             actionId = action.Id;
             linkId = link.Id;
             attachmentId = attachment.Id;
         }
 
         await using var actDb = _fixture.CreateDbContext();
-        await Assert.ThrowsAsync<PostgresException>(() =>
-            actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityRecords\" WHERE \"Id\" = {recordId}"));
-        await Assert.ThrowsAsync<PostgresException>(() =>
+
+        var recDelEx = await Assert.ThrowsAsync<PostgresException>(() =>
+            actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityRecords\" WHERE \"Id\" = {childlessRecordId}"));
+        Assert.Equal("P0001", recDelEx.SqlState);
+        Assert.Contains("Table QualityRecords is append-only", recDelEx.Message);
+
+        var recTruncEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityRecords\" CASCADE"));
+        Assert.Equal("P0001", recTruncEx.SqlState);
+        Assert.Contains("Table QualityRecords is append-only: TRUNCATE", recTruncEx.Message);
 
-        await Assert.ThrowsAsync<PostgresException>(() =>
+        var actDelEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityActions\" WHERE \"Id\" = {actionId}"));
-        await Assert.ThrowsAsync<PostgresException>(() =>
+        Assert.Equal("P0001", actDelEx.SqlState);
+        Assert.Contains("Table QualityActions is append-only", actDelEx.Message);
+
+        var actTruncEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityActions\" CASCADE"));
+        Assert.Equal("P0001", actTruncEx.SqlState);
+        Assert.Contains("Table QualityActions is append-only: TRUNCATE", actTruncEx.Message);
 
-        await Assert.ThrowsAsync<PostgresException>(() =>
+        var linkDelEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityRecordLinks\" WHERE \"Id\" = {linkId}"));
-        await Assert.ThrowsAsync<PostgresException>(() =>
-            actDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityRecordLinks\" CASCADE"));
+        Assert.Equal("P0001", linkDelEx.SqlState);
+        Assert.Contains("cannot be deleted after a step has been signed", linkDelEx.Message);
 
-        await Assert.ThrowsAsync<PostgresException>(() =>
+        var linkTruncEx = await Assert.ThrowsAsync<PostgresException>(() =>
+            actDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityRecordLinks\" CASCADE"));
+        Assert.Equal("P0001", linkTruncEx.SqlState);
+        Assert.Contains("Table QualityRecordLinks is append-only: TRUNCATE", linkTruncEx.Message);
+
+        var attDelEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityAttachments\" WHERE \"Id\" = {attachmentId}"));
-        await Assert.ThrowsAsync<PostgresException>(() =>
+        Assert.Equal("P0001", attDelEx.SqlState);
+        Assert.Contains("Table QualityAttachments is append-only", attDelEx.Message);
+
+        var attTruncEx = await Assert.ThrowsAsync<PostgresException>(() =>
             actDb.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityAttachments\""));
+        Assert.Equal("P0001", attTruncEx.SqlState);
+        Assert.Contains("Table QualityAttachments is append-only: TRUNCATE", attTruncEx.Message);
+    }
+
+    [PostgresFact]
+    public async Task Link_delete_allowed_before_signed_step_and_rejected_after()
+    {
+        int recordId;
+        int link1Id;
+        int link2Id;
+        var now = DateTime.UtcNow;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var record = NewQualityRecord($"DEV-LNK-{Guid.NewGuid():N}"[..20], QualityRecordType.Deviation, _fixture.SeededUserId, now);
+            arrangeDb.QualityRecords.Add(record);
+            await arrangeDb.SaveChangesAsync();
+
+            var link1 = new QualityRecordLink { RecordId = record.Id, TargetType = QualityLinkTargetType.Item, TargetId = 10, AddedByUserId = _fixture.SeededUserId, AddedAtUtc = now };
+            var link2 = new QualityRecordLink { RecordId = record.Id, TargetType = QualityLinkTargetType.Item, TargetId = 11, AddedByUserId = _fixture.SeededUserId, AddedAtUtc = now };
+            arrangeDb.QualityRecordLinks.AddRange(link1, link2);
+            await arrangeDb.SaveChangesAsync();
+
+            recordId = record.Id;
+            link1Id = link1.Id;
+            link2Id = link2.Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var deleted = await actDb.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityRecordLinks\" WHERE \"Id\" = {link1Id}");
+            Assert.Equal(1, deleted);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            Assert.False(await assertDb.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.Id == link1Id));
+        }
+
+        await using (var signDb = _fixture.CreateDbContext())
+        {
+            var sig = new ElectronicSignature
+            {
+                UserId = _fixture.SeededUserId,
+                UserFullNameSnapshot = "Seeded User",
+                UsernameSnapshot = "seeded",
+                RoleSnapshot = "Qa",
+                MeaningOfSignature = SignatureMeaning.DeviationAssessed,
+                EntityType = nameof(QualityRecord),
+                EntityId = recordId,
+                SignedAt = now,
+                Comment = "Sign step"
+            };
+            signDb.ElectronicSignatures.Add(sig);
+            await signDb.SaveChangesAsync();
+
+            signDb.QualityRecordSteps.Add(new QualityRecordStep
+            {
+                RecordId = recordId,
+                Kind = QualityStepKind.DeviationAssessed,
+                SignedByUserId = _fixture.SeededUserId,
+                SignedAtUtc = now,
+                SignatureId = sig.Id,
+                SnapshotJson = "{}"
+            });
+            await signDb.SaveChangesAsync();
+        }
+
+        await using (var actDb2 = _fixture.CreateDbContext())
+        {
+            var ex = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM \"QualityRecordLinks\" WHERE \"Id\" = {link2Id}"));
+            Assert.Equal("P0001", ex.SqlState);
+            Assert.Contains("cannot be deleted after a step has been signed", ex.Message);
+        }
+    }
+
+    [PostgresFact]
+    public async Task Link_core_columns_mutable_before_signed_step_and_immutable_after()
+    {
+        int recordId;
+        int linkId;
+        var now = DateTime.UtcNow;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var record = NewQualityRecord($"CC-CGD-{Guid.NewGuid():N}"[..20], QualityRecordType.ChangeControl, _fixture.SeededUserId, now);
+            arrangeDb.QualityRecords.Add(record);
+            await arrangeDb.SaveChangesAsync();
+
+            var link = new QualityRecordLink
+            {
+                RecordId = record.Id,
+                TargetType = QualityLinkTargetType.Specification,
+                TargetId = 100,
+                IsAffectedByChange = true,
+                AddedByUserId = _fixture.SeededUserId,
+                AddedAtUtc = now
+            };
+            arrangeDb.QualityRecordLinks.Add(link);
+            await arrangeDb.SaveChangesAsync();
+
+            recordId = record.Id;
+            linkId = link.Id;
+        }
+
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var updated = await actDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityRecordLinks\" SET \"TargetId\" = 101 WHERE \"Id\" = {linkId}");
+            Assert.Equal(1, updated);
+        }
+
+        await using (var signDb = _fixture.CreateDbContext())
+        {
+            var sig = new ElectronicSignature
+            {
+                UserId = _fixture.SeededUserId,
+                UserFullNameSnapshot = "Seeded User",
+                UsernameSnapshot = "seeded",
+                RoleSnapshot = "SectionHead",
+                MeaningOfSignature = SignatureMeaning.ChangeImpactAssessed,
+                EntityType = nameof(QualityRecord),
+                EntityId = recordId,
+                SignedAt = now,
+                Comment = "Assess"
+            };
+            signDb.ElectronicSignatures.Add(sig);
+            await signDb.SaveChangesAsync();
+
+            signDb.QualityRecordSteps.Add(new QualityRecordStep
+            {
+                RecordId = recordId,
+                Kind = QualityStepKind.ChangeImpactAssessed,
+                SignedByUserId = _fixture.SeededUserId,
+                SignedAtUtc = now,
+                SignatureId = sig.Id,
+                SnapshotJson = "{}"
+            });
+            await signDb.SaveChangesAsync();
+        }
+
+        await using (var actDb2 = _fixture.CreateDbContext())
+        {
+            var exTarget = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"QualityRecordLinks\" SET \"TargetId\" = 102 WHERE \"Id\" = {linkId}"));
+            Assert.Equal("P0001", exTarget.SqlState);
+            Assert.Contains("core target columns cannot be modified", exTarget.Message);
+
+            var exCode = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"QualityRecordLinks\" SET \"NewRecordCode\" = 'X' WHERE \"Id\" = {linkId}"));
+            Assert.Equal("P0001", exCode.SqlState);
+
+            var applied = await actDb2.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityRecordLinks\" SET \"ChangedAtUtc\" = {now}, \"ChangeAuditLogId\" = 55 WHERE \"Id\" = {linkId}");
+            Assert.Equal(1, applied);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var persisted = await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
+            Assert.Equal(101, persisted.TargetId);
+            Assert.Equal(55, persisted.ChangeAuditLogId);
+            Assert.NotNull(persisted.ChangedAtUtc);
+        }
+    }
+
+    [PostgresFact]
+    public async Task Extension_request_allows_single_decision_then_rejects_update_delete_and_truncate()
+    {
+        int requestId;
+        var now = DateTime.UtcNow;
+
+        await using (var arrangeDb = _fixture.CreateDbContext())
+        {
+            var record = NewQualityRecord($"DEV-EXT-{Guid.NewGuid():N}"[..20], QualityRecordType.Deviation, _fixture.SeededUserId, now);
+            arrangeDb.QualityRecords.Add(record);
+            await arrangeDb.SaveChangesAsync();
+
+            var req = new QualityExtensionRequest
+            {
+                RecordId = record.Id,
+                RequestedDueDate = DateOnly.FromDateTime(now.AddDays(14)),
+                Reason = "Need vendor data",
+                RequestedByUserId = _fixture.SeededUserId,
+                RequestedAtUtc = now
+            };
+            arrangeDb.QualityExtensionRequests.Add(req);
+            await arrangeDb.SaveChangesAsync();
+            requestId = req.Id;
+        }
+
+        // NULL -> Decided once is allowed.
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var req = await actDb.QualityExtensionRequests.SingleAsync(r => r.Id == requestId);
+            req.Decision = QualityExtensionDecision.Approved;
+            req.DecidedByUserId = _fixture.SeededUserId;
+            req.DecidedAtUtc = now;
+            req.DecisionComment = "Approved";
+            await actDb.SaveChangesAsync();
+        }
+
+        await using (var actDb2 = _fixture.CreateDbContext())
+        {
+            var updEx = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE \"QualityExtensionRequests\" SET \"DecisionComment\" = 'Tampered' WHERE \"Id\" = {requestId}"));
+            Assert.Equal("P0001", updEx.SqlState);
+            Assert.Contains("already decided and immutable", updEx.Message);
+
+            var delEx = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM \"QualityExtensionRequests\" WHERE \"Id\" = {requestId}"));
+            Assert.Equal("P0001", delEx.SqlState);
+            Assert.Contains("cannot be deleted", delEx.Message);
+
+            var truncEx = await Assert.ThrowsAsync<PostgresException>(() =>
+                actDb2.Database.ExecuteSqlRawAsync("TRUNCATE TABLE \"QualityExtensionRequests\""));
+            Assert.Equal("P0001", truncEx.SqlState);
+            Assert.Contains("Table QualityExtensionRequests is append-only: TRUNCATE", truncEx.Message);
+        }
     }
 
     [PostgresFact]
@@ -456,7 +728,7 @@ public class QualitySchemaPostgresTests
             var lastAuditId = await beforeDb.AuditLogs.AsNoTracking().MaxAsync(log => (int?)log.Id) ?? 0;
 
             await using (var migrateDb = ScratchPostgresDatabase.NewContext(connection))
-                await migrateDb.Database.MigrateAsync();
+                await migrateDb.Database.MigrateAsync("20261124202014_AddQualityPermissions");
 
             await using var afterDb = ScratchPostgresDatabase.NewContext(connection);
             var catalog = await CatalogAsync(afterDb);
@@ -520,17 +792,47 @@ public class QualitySchemaPostgresTests
 
         foreach (var forbidden in new[] { PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude })
         {
-            await using var actDb = _fixture.CreateDbContext();
-            var service = new RoleService(actDb, new PermissionService(actDb));
-            var requested = PermissionConstants.QaGrants
-                .Where(c => !PermissionConstants.Hidden.Contains(c))
-                .Append(forbidden)
-                .ToList();
+            int auditCountBefore;
+            List<string> grantsBefore;
+            await using (var checkDb = _fixture.CreateDbContext())
+            {
+                auditCountBefore = await checkDb.AuditLogs.AsNoTracking()
+                    .CountAsync(a => a.EntityName == nameof(Role) && a.EntityId == qaRoleId.ToString());
+                grantsBefore = (await checkDb.RolePermissions.AsNoTracking()
+                    .Where(rp => rp.RoleId == qaRoleId)
+                    .Select(rp => rp.Permission!.Code)
+                    .ToListAsync())
+                    .OrderBy(c => c, StringComparer.Ordinal)
+                    .ToList();
+            }
 
-            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-                service.UpdatePermissionsAsync(qaRoleId, requested, adminId, $"Attempt {forbidden}", AdminPassword));
+            await using (var actDb = _fixture.CreateDbContext())
+            {
+                var service = new RoleService(actDb, new PermissionService(actDb));
+                var requested = PermissionConstants.QaGrants
+                    .Where(c => !PermissionConstants.Hidden.Contains(c))
+                    .Append(forbidden)
+                    .ToList();
 
-            Assert.Equal($"A Quality Assurance role cannot hold: {forbidden}.", ex.Message);
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                    service.UpdatePermissionsAsync(qaRoleId, requested, adminId, $"Attempt {forbidden}", AdminPassword));
+
+                Assert.Equal($"A Quality Assurance role cannot hold: {forbidden}.", ex.Message);
+            }
+
+            await using (var assertDb = _fixture.CreateDbContext())
+            {
+                var grantsAfter = (await assertDb.RolePermissions.AsNoTracking()
+                    .Where(rp => rp.RoleId == qaRoleId)
+                    .Select(rp => rp.Permission!.Code)
+                    .ToListAsync())
+                    .OrderBy(c => c, StringComparer.Ordinal)
+                    .ToList();
+                Assert.Equal(grantsBefore, grantsAfter);
+                var auditCountAfter = await assertDb.AuditLogs.AsNoTracking()
+                    .CountAsync(a => a.EntityName == nameof(Role) && a.EntityId == qaRoleId.ToString());
+                Assert.Equal(auditCountBefore, auditCountAfter);
+            }
         }
     }
 
@@ -539,6 +841,7 @@ public class QualitySchemaPostgresTests
     {
         int adminId;
         int sectionHeadCustomId;
+        int auditCountBefore;
 
         await using (var arrangeDb = _fixture.CreateDbContext())
         {
@@ -558,19 +861,36 @@ public class QualitySchemaPostgresTests
                 .SingleAsync(p => p.Code == PermissionConstants.SamplesReview);
             arrangeDb.RolePermissions.Add(new RolePermission { RoleId = role.Id, PermissionId = perm.Id });
             await arrangeDb.SaveChangesAsync();
+
+            auditCountBefore = await arrangeDb.AuditLogs.AsNoTracking()
+                .CountAsync(a => a.EntityName == nameof(Role) && a.EntityId == sectionHeadCustomId.ToString());
         }
 
-        await using var actDb = _fixture.CreateDbContext();
-        var service = new RoleService(actDb, new PermissionService(actDb));
-        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            service.UpdatePermissionsAsync(
-                sectionHeadCustomId,
-                new List<string> { PermissionConstants.SamplesReview, PermissionConstants.QualityApprove },
-                adminId,
-                "Attempt to grant Quality.Approve with lab code",
-                AdminPassword));
+        await using (var actDb = _fixture.CreateDbContext())
+        {
+            var service = new RoleService(actDb, new PermissionService(actDb));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                service.UpdatePermissionsAsync(
+                    sectionHeadCustomId,
+                    new List<string> { PermissionConstants.SamplesReview, PermissionConstants.QualityApprove },
+                    adminId,
+                    "Attempt to grant Quality.Approve with lab code",
+                    AdminPassword));
 
-        Assert.Equal("A Quality Assurance role cannot hold: Samples.Review.", ex.Message);
+            Assert.Equal("A Quality Assurance role cannot hold: Samples.Review.", ex.Message);
+        }
+
+        await using (var assertDb = _fixture.CreateDbContext())
+        {
+            var grantsAfter = await assertDb.RolePermissions.AsNoTracking()
+                .Where(rp => rp.RoleId == sectionHeadCustomId)
+                .Select(rp => rp.Permission!.Code)
+                .ToListAsync();
+            Assert.Equal([PermissionConstants.SamplesReview], grantsAfter);
+            var auditCountAfter = await assertDb.AuditLogs.AsNoTracking()
+                .CountAsync(a => a.EntityName == nameof(Role) && a.EntityId == sectionHeadCustomId.ToString());
+            Assert.Equal(auditCountBefore, auditCountAfter);
+        }
     }
 
     private static async Task<int> CreateActingAdminAsync(MicroLimsDbContext db)

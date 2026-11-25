@@ -71,6 +71,8 @@ public class PermissionAuthorizationTests
             .ToHashSet();
 
         Assert.Empty(PermissionConstants.Enforced.Except(referenced).Except(ProvisionedAheadOfEnforcement).Order(StringComparer.Ordinal));
+        // Must be emptied as Tasks 2-7 wire up endpoint/service checks for each Quality.* code.
+        Assert.Empty(ProvisionedAheadOfEnforcement.Intersect(referenced).Order(StringComparer.Ordinal));
     }
 
     [Fact]

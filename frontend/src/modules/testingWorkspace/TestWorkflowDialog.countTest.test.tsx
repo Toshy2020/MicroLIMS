@@ -417,6 +417,37 @@ describe("TestWorkflowDialog count test", () => {
       await user.click(screen.getByRole("button", { name: "Calculate" }));
       const alerts = await screen.findAllByText("You are not qualified for TAMC.");
       expect(alerts.length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByRole("button", { name: /Grant override/i })).toBeNull();
+    });
+
+    it("shows Grant Override on competency refusal only when user holds Competency.Override", async () => {
+      const user = userEvent.setup();
+      localStorage.setItem("microlims_user_id", "12");
+      localStorage.setItem("microlims_full_name", "Hana Head");
+      localStorage.setItem("microlims_permissions", JSON.stringify(["Competency.Override"]));
+      service.getCurrentStep.mockResolvedValue(incubating(0));
+      service.recordCountResult.mockRejectedValue(
+        new AxiosError("Forbidden", "403", undefined, undefined, {
+          status: 403,
+          statusText: "Forbidden",
+          headers: {},
+          config: {} as never,
+          data: { code: "Competency.NotQualified", message: "You are not qualified for TAMC." }
+        } as AxiosResponse)
+      );
+      renderDialog();
+
+      await user.click(await screen.findByRole("button", { name: "Record Result" }));
+      await user.type(screen.getByLabelText("Plate 1"), "25");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400);
+      });
+
+      await user.click(screen.getByRole("button", { name: "Calculate" }));
+      const overrideButtons = await screen.findAllByRole("button", { name: /Grant override/i });
+      await user.click(overrideButtons[0]);
+      expect(await screen.findByRole("textbox", { name: /Reason for override/i })).toBeTruthy();
     });
   });
 

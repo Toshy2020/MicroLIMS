@@ -5,11 +5,18 @@ import { AssignAnalystDialog } from "./AssignAnalystDialog";
 import { ReceiveService } from "../services/ReceiveService";
 import { SampleAssignmentOptions, SampleRecord } from "../types/receivingTypes";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../../contexts/AuthContext";
+import { competencyService } from "../../../services/competencyService";
 
 vi.mock("../services/ReceiveService", () => ({
   ReceiveService: {
     getAssignmentOptions: vi.fn(),
     assignTestAnalysts: vi.fn()
+  }
+}));
+vi.mock("../../../services/competencyService", () => ({
+  competencyService: {
+    grantOverride: vi.fn()
   }
 }));
 
@@ -46,7 +53,9 @@ const options: SampleAssignmentOptions = {
 function renderDialog(onAssigned = vi.fn(), onClose = vi.fn()) {
   render(
     <PinnedLightTheme>
-      <AssignAnalystDialog open sample={sample} onClose={onClose} onAssigned={onAssigned} />
+      <AuthProvider>
+        <AssignAnalystDialog open sample={sample} onClose={onClose} onAssigned={onAssigned} />
+      </AuthProvider>
     </PinnedLightTheme>
   );
   return { onAssigned, onClose };
@@ -66,6 +75,7 @@ describe("AssignAnalystDialog", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it("offers each test only the people who may take it and locks tests outside the user's laboratory", async () => {
@@ -165,5 +175,61 @@ describe("AssignAnalystDialog", () => {
 
     expect(onClose).toHaveBeenCalled();
     expect(ReceiveService.assignTestAnalysts).not.toHaveBeenCalled();
+  });
+
+  it("hides Grant Override when user lacks Competency.Override and shows it when permitted", async () => {
+    const user = userEvent.setup();
+    vi.mocked(ReceiveService.getAssignmentOptions).mockResolvedValue({
+      ...options,
+      tests: [
+        {
+          testOrderId: 1,
+          testCode: "TAMC",
+          sectionId: 1,
+          sectionName: "Microbiology",
+          status: "Pending",
+          assignedAnalystId: null,
+          assignedAnalystName: null,
+          canAssign: true,
+          eligibleUserIds: [1, 3],
+          competencyRefusals: [
+            {
+              userId: 3,
+              code: "Competency.AssigneeNotQualified",
+              params: { analyst: "Mona Ali", test: "TAMC" },
+              reason: "Mona Ali is not qualified for TAMC."
+            }
+          ]
+        }
+      ]
+    });
+    vi.mocked(competencyService.grantOverride).mockResolvedValue(88);
+
+    localStorage.setItem("microlims_permissions", JSON.stringify([]));
+    renderDialog();
+    await screen.findByRole("combobox", { name: "Analyst for TAMC" });
+    expect(screen.queryByRole("button", { name: /Grant override/i })).toBeNull();
+
+    cleanup();
+    localStorage.setItem("microlims_full_name", "Hana Head");
+    localStorage.setItem("microlims_role", "SectionHead");
+    localStorage.setItem("microlims_permissions", JSON.stringify(["Competency.Override"]));
+    renderDialog();
+    const overrideBtn = await screen.findByRole("button", { name: /Grant competency override for TAMC/i });
+    await user.click(overrideBtn);
+
+    await user.type(await screen.findByRole("textbox", { name: /Reason for override/i }), "Supervised run");
+    await user.click(screen.getByRole("button", { name: "Continue to Sign" }));
+    await user.type(await screen.findByLabelText(/Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() =>
+      expect(competencyService.grantOverride).toHaveBeenCalledWith(1, {
+        analystUserId: 3,
+        reason: "Supervised run",
+        password: "Secret123!"
+      })
+    );
+    await waitFor(() => expect(ReceiveService.getAssignmentOptions).toHaveBeenCalledTimes(3));
   });
 });

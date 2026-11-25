@@ -27,6 +27,9 @@ import { masterDataOptions } from "../../services/masterDataOptions";
 import { TestDefinitionOption } from "../../hooks/useTestDefinitions";
 import { EquipmentConfigurationService, ConfiguredEquipmentSummary } from "../laboratoryConfiguration/masterDataSimple/services/EquipmentConfigurationService";
 import { getSections, LaboratorySection } from "../../services/laboratorySectionService";
+import { useOptionalAuth } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
+import { OverrideDialog } from "../competency/OverrideDialog";
 
 interface Props {
   testOrderId: number;
@@ -64,8 +67,12 @@ export function MeasurementPanel({
   onRecorded
 }: Props) {
   const { t } = useTranslation("testingWorkspace");
+  const auth = useOptionalAuth();
+  const canOverride = auth?.permissions.includes(PERMISSIONS.COMPETENCY_OVERRIDE) ?? false;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCompetencyRefusal, setIsCompetencyRefusal] = useState(false);
+  const [overrideOpen, setOverrideOpen] = useState(false);
 
   const [testDef, setTestDef] = useState<TestDefinitionOption | null>(null);
   const [specs, setSpecs] = useState<SpecificationDto[]>([]);
@@ -209,6 +216,7 @@ export function MeasurementPanel({
 
   const submit = async (password: string) => {
     setError(null);
+    setIsCompetencyRefusal(false);
     try {
       const payload = {
         analysedAt: new Date(analysedAt).toISOString(),
@@ -231,9 +239,11 @@ export function MeasurementPanel({
       await onRecorded();
     } catch (err: unknown) {
       setSigning(false);
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        t("measurement.recordFailed");
+      const resp = (err as { response?: { status?: number; data?: { code?: string; message?: string } } })?.response;
+      const msg = resp?.data?.message ?? t("measurement.recordFailed");
+      setIsCompetencyRefusal(
+        resp?.status === 403 || Boolean(resp?.data?.code?.startsWith("Competency."))
+      );
       setError(msg);
     }
   };
@@ -367,6 +377,15 @@ export function MeasurementPanel({
               {error}
             </Typography>
           )}
+          {error && isCompetencyRefusal && canOverride && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setOverrideOpen(true)}
+            >
+              {t("measurement.grantOverride")}
+            </Button>
+          )}
           <Button
             variant="contained"
             disabled={!isFormValid}
@@ -384,6 +403,29 @@ export function MeasurementPanel({
         meaningStatementTranslation={t("measurement.signatureMeaning")}
         onCancel={() => setSigning(false)}
         onConfirm={submit}
+      />
+
+      <OverrideDialog
+        open={overrideOpen}
+        testOrderId={testOrderId}
+        testLabel={testCode ? `${testCode} — ${displayName}` : displayName}
+        candidates={
+          auth?.userId != null
+            ? [
+                {
+                  userId: auth.userId,
+                  fullName: auth.fullName ?? auth.username ?? String(auth.userId),
+                  reason: error ?? undefined
+                }
+              ]
+            : []
+        }
+        onClose={() => setOverrideOpen(false)}
+        onGranted={() => {
+          setOverrideOpen(false);
+          setError(null);
+          setIsCompetencyRefusal(false);
+        }}
       />
     </Box>
   );

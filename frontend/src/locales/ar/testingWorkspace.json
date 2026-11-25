@@ -565,6 +565,7 @@
     }
   },
   "testWorkflow": {
+    "grantOverride": "منح تجاوز",
     "countStepHelp": "ازرع العينة على وسط زرعي مسموح به وابدأ الحضانة. بعد انقضاء الحد الأدنى للحضانة، عُدّ المستعمرات على كل طبق؛ النتيجة هي متوسط العدد مضروبًا في معامل التخفيف.",
     "invalidReading": "أدخل عددًا صحيحًا باستخدام الأرقام فقط، أو TNTC أو Uncountable.",
     "bothFlagsError": "لا يمكن أن تحتوي مجموعة القراءات على TNTC وUncountable معًا. اختر أحدهما.",
@@ -930,6 +931,7 @@
     "tryAgain": "إعادة محاولة الحفظ"
   },
   "measurement": {
+    "grantOverride": "منح تجاوز",
     "noSpecsConfigured": "لم تُضبط مواصفات لاختبار {{testCode}}.",
     "loadConfigFailed": "تعذّر تحميل إعدادات اختبار القياس أو المواصفات.",
     "parameterFallback": "المعامل",

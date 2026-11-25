@@ -553,6 +553,7 @@
     }
   },
   "testWorkflow": {
+    "grantOverride": "Grant Override",
     "countStepHelp": "Plate the sample on the permitted medium and start incubation. Once the minimum incubation has passed, count the colonies on each plate; the result is the average count multiplied by the dilution factor.",
     "invalidReading": "Enter a whole number using digits only, or TNTC or Uncountable.",
     "bothFlagsError": "A reading set cannot contain both TNTC and Uncountable. Choose one.",
@@ -918,6 +919,7 @@
     "tryAgain": "Try saving again"
   },
   "measurement": {
+    "grantOverride": "Grant Override",
     "noSpecsConfigured": "No specifications configured for test {{testCode}}.",
     "loadConfigFailed": "Could not load measurement test configuration or specifications.",
     "parameterFallback": "Parameter",

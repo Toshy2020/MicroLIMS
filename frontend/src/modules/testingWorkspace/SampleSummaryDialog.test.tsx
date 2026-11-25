@@ -452,6 +452,90 @@ describe("SampleSummaryDialog gated actions", () => {
       77, "secret123", "Approve", undefined, undefined, undefined, undefined, undefined, 10
     );
   }, 15000);
+
+  it("shows override notice (who, when with timezone, reason) and server refusal when granter tries to review or approve", async () => {
+    const reviewRefusal = "You overrode competency for a test on this sample, so you cannot review it.";
+    const approveRefusal = "You overrode competency for a test on this sample, so you cannot approve it.";
+    const base = createSample({ category: "FinishedProduct" });
+    const overriddenOrder = {
+      testOrderId: 101,
+      testCode: "TAMC",
+      testDisplayName: "Total Aerobic Microbial Count",
+      specificationText: "< 100 CFU/g",
+      sectionName: "Physicochemical",
+      status: "ResultEntered",
+      currentStep: "ResultEntered",
+      isSuperseded: false,
+      outsourcedToLab: null,
+      cancelledAtStep: null,
+      cancelledAtStage: null,
+      locations: [],
+      incubations: [],
+      results: [],
+      countTestReadings: [],
+      pathogenObservations: [],
+      biochemicalResults: [],
+      workflowHistory: [],
+      analysis: null,
+      competencyOverrides: [
+        {
+          analystName: "Amina Analyst",
+          grantedByFullName: "Hana Head",
+          grantedAtUtc: "2026-11-24T09:00:00Z",
+          meaning: "Competency override",
+          reason: "Supervised batch release",
+          endedAtUtc: null
+        }
+      ]
+    };
+    mockGetSummary.mockResolvedValue({
+      ...base,
+      testOrders: [overriddenOrder]
+    });
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "review.complete", allowed: false, reason: reviewRefusal }
+    ]);
+
+    mount();
+
+    expect(await screen.findByText(/Amina Analyst/)).toBeTruthy();
+    expect(screen.getByText(/Hana Head/)).toBeTruthy();
+    expect(screen.getByText("Supervised batch release")).toBeTruthy();
+    expect(await screen.findByText(reviewRefusal)).toBeTruthy();
+
+    cleanup();
+    mockGetSummary.mockResolvedValue({
+      ...base,
+      status: "UnderApproval",
+      certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+      sections: (base.sections ?? []).map((section) => ({ ...section, status: "UnderApproval" })),
+      testOrders: [
+        {
+          ...overriddenOrder,
+          status: "Reviewed",
+          competencyOverrides: [
+            {
+              analystName: "Amina Analyst",
+              grantedByFullName: "Hana Head",
+              grantedAtUtc: "2026-11-24T09:00:00Z",
+              meaning: "Competency override",
+              reason: "Supervised batch release",
+              endedAtUtc: "2026-11-24T11:00:00Z"
+            }
+          ]
+        }
+      ]
+    });
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "approval.approve", allowed: false, reason: approveRefusal },
+      { action: "approval.reject", allowed: false, reason: approveRefusal }
+    ]);
+
+    mount();
+
+    expect((await screen.findAllByText(approveRefusal)).length).toBeGreaterThan(0);
+    expect(screen.getByText("Supervised batch release")).toBeTruthy();
+  }, 15000);
 });
 
 describe("SampleSummaryDialog in Arabic RTL", () => {

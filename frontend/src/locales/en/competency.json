@@ -99,5 +99,20 @@
     "dueDate": "Due {{date}}",
     "outageQualifications": "qualifications",
     "outageSops": "SOP reading list"
+  },
+  "override": {
+    "title": "Grant Competency Override",
+    "testLabel": "Test",
+    "analystLabel": "Analyst",
+    "reasonLabel": "Reason for override",
+    "reasonPlaceholder": "Explain why this test order requires a one-time competency override.",
+    "continueToSign": "Continue to Sign",
+    "meaningStatement": "I am granting a one-time competency override for {{analyst}} on {{test}} and acknowledge I cannot review or approve this sample.",
+    "meaningStatementAr": "أمنح تجاوزًا لمتطلبات الكفاءة لمرة واحدة للمحلل {{analyst}} في اختبار {{test}} وأقر بأنني لا أستطيع مراجعة هذه العينة أو اعتمادها.",
+    "success": "Competency override granted.",
+    "validation": {
+      "analystRequired": "Select an analyst.",
+      "reasonRequired": "Override reason is required."
+    }
   }
 }

@@ -118,6 +118,18 @@ DashboardController.GetStatusDistribution(String): SystemAdministrator,SectionHe
 DashboardController.MarkAllNotificationsRead(): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DashboardController.MarkNotificationRead(Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DatabaseOverviewController.Get(CancellationToken): SystemAdministrator
+DeviationsController.Approve(Int32, ApproveDeviationRequest, CancellationToken): Qa
+DeviationsController.Assess(Int32, AssessDeviationRequest, CancellationToken): Qa
+DeviationsController.Cancel(Int32, DeviationReasonRequest, CancellationToken): Qa
+DeviationsController.Close(Int32, DeviationPasswordRequest, CancellationToken): Qa
+DeviationsController.EscalateMonitoringDeviation(Int32, RaiseDeviationFromSourceRequest, CancellationToken): SectionHead,Qa
+DeviationsController.Raise(RaiseDeviationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+DeviationsController.RaiseFromAuditFinding(Int32, RaiseDeviationFromSourceRequest, CancellationToken): Qa
+DeviationsController.RaiseFromOosRequest(Int32, RaiseDeviationFromSourceRequest, CancellationToken): Qa
+DeviationsController.Reject(Int32, DeviationReasonRequest, CancellationToken): Qa
+DeviationsController.Return(Int32, ReturnDeviationRequest, CancellationToken): Qa
+DeviationsController.SaveInvestigation(Int32, SaveDeviationInvestigationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+DeviationsController.SignLabConclusion(Int32, DeviationPasswordRequest, CancellationToken): SectionHead,QcManager
 DiscussionController.AddComment(Int32, CreateDiscussionCommentRequest): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DiscussionController.CreatePost(CreatePostForm): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 DiscussionController.DeleteComment(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

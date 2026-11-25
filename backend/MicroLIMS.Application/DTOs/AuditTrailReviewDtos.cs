@@ -34,7 +34,11 @@ public record AuditTrailReviewFindingDto(
     DateTime? ClosedAtUtc,
     int RecordedByUserId,
     string? RecordedByName,
-    DateTime RecordedAtUtc);
+    DateTime RecordedAtUtc)
+{
+    // The database permits only the Open-to-Closed edit, so status is the source-raise version token.
+    public uint Version => (uint)Status;
+}
 
 public record AuditTrailReviewListItemDto(
     int Id,

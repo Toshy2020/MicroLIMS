@@ -15,10 +15,14 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 {
     public const string OosContributeOrManage = "Oos.ContributeOrManage";
 
-    public static IReadOnlyList<string> PermissionsFor(string policyName) =>
-        policyName == OosContributeOrManage
-            ? [PermissionConstants.OosContribute, PermissionConstants.OosManage]
-            : [policyName];
+    public const string QualityApproveOrInvestigate = "Quality.ApproveOrInvestigate";
+
+    public static IReadOnlyList<string> PermissionsFor(string policyName) => policyName switch
+    {
+        OosContributeOrManage => [PermissionConstants.OosContribute, PermissionConstants.OosManage],
+        QualityApproveOrInvestigate => [PermissionConstants.QualityApprove, PermissionConstants.QualityInvestigate],
+        _ => [policyName]
+    };
 
     private readonly DefaultAuthorizationPolicyProvider _fallback;
 
@@ -33,7 +37,7 @@ public class PermissionPolicyProvider : IAuthorizationPolicyProvider
 
     public Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
-        if (policyName == OosContributeOrManage)
+        if (policyName is OosContributeOrManage or QualityApproveOrInvestigate)
         {
             var permissions = PermissionsFor(policyName);
             return Task.FromResult<AuthorizationPolicy?>(new AuthorizationPolicyBuilder()

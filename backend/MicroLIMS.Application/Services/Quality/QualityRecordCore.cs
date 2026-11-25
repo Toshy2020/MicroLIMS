@@ -24,9 +24,12 @@ public class QualityRecordCore(
         int userId, CancellationToken ct = default) => QualityRecordDto.From(await CreateAsync(type, request, userId, ct));
 
     public Task<QualityRecord> CreateAsync(QualityRecordType type, CreateQualityRecordRequest request, int userId,
-        CancellationToken ct = default) => UnitOfWork.RunAsync(db, async () =>
+        CancellationToken ct = default) => CreateAsync(type, request, userId, ct, null, false);
+
+    internal Task<QualityRecord> CreateAsync(QualityRecordType type, CreateQualityRecordRequest request, int userId,
+        CancellationToken ct, DeviationDetail? initialDeviation, bool fromSource) => UnitOfWork.RunAsync(db, async () =>
     {
-        await EnsureCreateAccessAsync(type, userId, ct);
+        if (!fromSource) await EnsureCreateAccessAsync(type, userId, ct);
         if (request.SectionId is int sectionId)
         {
             var memberSections = await scope.GetMemberSectionIdsAsync(userId, ct);
@@ -42,7 +45,8 @@ public class QualityRecordCore(
             Description = RequiredText(request.Description, 4000),
             SectionId = request.SectionId,
             RaisedByUserId = userId,
-            RaisedAtUtc = clock.GetUtcNow().UtcDateTime
+            RaisedAtUtc = clock.GetUtcNow().UtcDateTime,
+            DeviationDetail = initialDeviation
         };
         var targetReader = new QualityLinkTargets(db, permissions, scope, this);
         foreach (var link in (request.Links ?? []).Distinct())
@@ -156,10 +160,7 @@ public class QualityRecordCore(
     internal Task<T> MutateAsync<T>(int id, uint expectedVersion, int userId, bool destructive,
         Func<QualityRecord, Task<T>> command, CancellationToken ct) => UnitOfWork.RunAsync(db, async () =>
     {
-        var readable = await ReadableRecordsAsync(userId, ct);
-        if (!await readable.AnyAsync(r => r.Id == id, ct)) throw Missing();
-        await LockAsync(id, ct);
-        var record = await LoadForWriteAsync(id, expectedVersion, userId, ct);
+        var record = await LockForWriteAsync(id, expectedVersion, userId, ct);
         if (destructive)
         {
             if (record.OwnerUserId != userId && !await HoldsAsync(userId, PermissionConstants.QualityInvestigate, ct))
@@ -169,10 +170,29 @@ public class QualityRecordCore(
             throw Denied();
 
         // A child edit advances the aggregate's xmin, even when no header value changes.
-        db.ChangeTracker.Entries<QualityRecord>().Single(e => e.Entity == record)
-            .Property(r => r.Title).IsModified = true;
+        AdvanceVersion(record);
         return await command(record);
     }, ct);
+
+    internal async Task<QualityRecord> LockForWriteAsync(int id, uint expectedVersion, int userId, CancellationToken ct)
+    {
+        var readable = await ReadableRecordsAsync(userId, ct);
+        if (!await readable.AnyAsync(r => r.Id == id, ct)) throw Missing();
+        await LockAsync(id, ct);
+        return await LoadForWriteAsync(id, expectedVersion, userId, ct);
+    }
+
+    internal void AdvanceVersion(QualityRecord record) => db.Entry(record).Property(r => r.Title).IsModified = true;
+
+    internal Task<QualityRecordStep> CancelAsync(QualityRecord record, string reason, string password, int userId,
+        string? ip, CancellationToken ct)
+    {
+        record.CancelReason = RequiredText(reason, 4000);
+        record.IsCancelled = true;
+        db.SetNextAuditReason(record, record.CancelReason);
+        return SignStepAsync(record, QualityStepKind.QualityCancelled, SignatureMeaning.QualityCancelled,
+            new { record.CancelReason }, password, record.CancelReason, userId, ip, ct);
+    }
 
     internal async Task<QualityRecordStep> SignStepAsync(QualityRecord record, QualityStepKind kind, SignatureMeaning meaning,
         object snapshot, string password, string? comment, int userId, string? ip, CancellationToken ct = default)
@@ -192,8 +212,7 @@ public class QualityRecordCore(
         var data = JsonSerializer.SerializeToElement(snapshot);
         if (comment is not null) comment = RequiredText(comment, 4000);
         var signature = await signatures.SignAsync(userId, password, meaning, nameof(QualityRecord), record.Id, comment, ip, ct);
-        db.ChangeTracker.Entries<QualityRecord>().Single(e => e.Entity == tracked)
-            .Property(r => r.Title).IsModified = true;
+        AdvanceVersion(tracked);
         signature.SignedAt = clock.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(ct);
         var step = new QualityRecordStep
@@ -238,11 +257,11 @@ public class QualityRecordCore(
         public IReadOnlyDictionary<string, string>? Parameters => null;
     }
 
-    private static DbUpdateConcurrencyException Stale() => new StaleQualityRecordException();
-    private static CodedAccessDeniedException Denied() => new(MessageCodes.QualityAccessDenied, "You do not have permission for this quality record operation.");
+    internal static DbUpdateConcurrencyException Stale() => new StaleQualityRecordException();
+    internal static CodedAccessDeniedException Denied() => new(MessageCodes.QualityAccessDenied, "You do not have permission for this quality record operation.");
     private Task<bool> HoldsAsync(int userId, string permission, CancellationToken ct) =>
         permissions.UserHasPermissionAsync(userId, permission, ct);
 
-    private Task LockAsync(int id, CancellationToken ct) => db.Database.ExecuteSqlInterpolatedAsync(
+    internal Task LockAsync(int id, CancellationToken ct) => db.Database.ExecuteSqlInterpolatedAsync(
         $"""SELECT "Id" FROM "QualityRecords" WHERE "Id" = {id} FOR UPDATE""", ct);
 }

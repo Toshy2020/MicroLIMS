@@ -1193,3 +1193,19 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** When does the test record show a newer SOP revision notice?
 - **Decision:** The current effective revision must belong to the captured document master and follow the captured revision. Its effective date must precede test completion, or the test must still be open. Reassigning an item to a different SOP does not trigger the notice.
 - **Date:** 2026-11-25
+
+### CONF-223
+- **Area:** Quality records
+- **Status:** Decided
+- **Question:** Which linked CAPA states satisfy the closure requirement for a deviation that requires a CAPA?
+- **Decision:** A linked CAPA qualifies when it is not cancelled and its status is PlanApproved, CompletionVerified, or Closed. A cancelled CAPA never qualifies, even when its plan was signed before cancellation (user, 2026-11-25).
+- **Date:** 2026-11-25
+
+### CONF-224
+- **Area:** Quality records
+- **Status:** Decided
+- **Decision:** For source-raised deviations, the caller supplies the title, occurrence time and immediate action. Validate those fields as on a manual raise.
+- **Decision:** QA can cancel a deviation only in Raised, Investigation, LabConcluded or Approved. Closed and Rejected are final.
+- **Decision:** An audit-finding deviation description identifies the finding by number or ID. The finding note stays in the audit review. The link shows only the reference number to users without Audit.View.
+- **Decision:** Refuse a source raise when a non-cancelled deviation already links the monitoring deviation, audit finding or already-addressed OOS request. Name the existing deviation in the refusal.
+- **Date:** 2026-11-25

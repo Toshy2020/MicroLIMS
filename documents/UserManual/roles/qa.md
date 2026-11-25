@@ -5,8 +5,8 @@
 | Field | Value |
 |---|---|
 | Title | Quality Assurance (QA) Role Guide |
-| Version | 0.1 |
-| Status | Draft |
+| Version | 0.2 |
+| Status | Draft — pending approval |
 | Author | AI coding agent, draft from code |
 | Reviewer | |
 | Approver | |
@@ -15,7 +15,8 @@
 ## 1. What QA can see and do
 
 - **Dashboard (`Quality Assurance Command Center`):** When you sign in as QA, **Dashboard** opens three summary tiles: **Audit trail reviews in progress**, **Open findings**, and **Documents waiting for my approval**.
-- **Read-only oversight across all laboratories:** QA holds `Sections.ViewAll` and has no laboratory section membership, so the section filter does not hide other laboratories from you. What you can open still depends on the view permissions granted to the QA role (sample tracking, laboratory and review dashboards, KPIs, monitoring plan, audit trail, security audit).
+- **Read-only oversight across all laboratories:** QA holds `Sections.ViewAll` and has no laboratory section membership, so the section filter does not hide other laboratories from you. What you can open still depends on the view permissions granted to the QA role (sample tracking, laboratory and review dashboards, KPIs, monitoring plan, OOS tracking, audit trail, security audit).
+- **OOS investigation oversight and deviation requests (`Oos.View`, `Oos.RequestDeviation`):** *(Draft — pending approval)* View OOS investigations and excursion reviews across all sections and submit a **Request Deviation** on an investigation in any status. Open deviation requests do not block investigation conclusion; a Section Head addresses them in the investigation page.
 - **Audit trail reviews:** Start, inspect, record findings on, close findings on, export PDFs for, and electronically sign periodic audit trail reviews (**Audit Trail Reviews**).
 - **Access reviews:** Generate/view periodic user access reviews, record or update findings, and electronically sign reviews (**Access Review**).
 - **Controlled documents:** Read controlled documents, review drafts when assigned, and approve revisions when assigned (**Document Control**).

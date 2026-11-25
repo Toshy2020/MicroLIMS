@@ -36,7 +36,7 @@ public record AuditTrailReviewFindingDto(
     string? RecordedByName,
     DateTime RecordedAtUtc)
 {
-    // Findings are immutable except for the one transition from Open to Closed.
+    // The database permits only the Open-to-Closed edit, so status is the source-raise version token.
     public uint Version => (uint)Status;
 }
 

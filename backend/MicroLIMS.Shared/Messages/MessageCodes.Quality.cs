@@ -29,6 +29,11 @@ public static partial class MessageCodes
     public const string DeviationAnalystOwner = "Deviation.AnalystOwner";
     public const string DeviationWrongState = "Deviation.WrongState";
 
+    public const string DeviationFutureOccurrence = "Deviation.FutureOccurrence";
+    public const string DeviationPastDueDate = "Deviation.PastDueDate";
+    public const string DeviationFinalCancellation = "Deviation.FinalCancellation";
+    public const string DeviationDuplicateSource = "Deviation.DuplicateSource";
+
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
         [DeviationRaiseRoute] = [],
@@ -39,7 +44,11 @@ public static partial class MessageCodes
         [DeviationOwnerLabConclusion] = [],
         [DeviationIncomplete] = [],
         [DeviationCapaRequired] = [],
-        [DeviationUnfinishedActions] = [],
+        [DeviationFutureOccurrence] = [],
+        [DeviationPastDueDate] = [],
+        [DeviationFinalCancellation] = [],
+        [DeviationDuplicateSource] = ["number"],
+        [DeviationUnfinishedActions] = ["action"],
         [DeviationInvalidOwner] = [],
         [DeviationAnalystOwner] = [],
         [DeviationWrongState] = [],

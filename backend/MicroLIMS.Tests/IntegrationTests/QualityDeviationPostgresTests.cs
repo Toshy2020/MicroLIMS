@@ -9,6 +9,7 @@ using MicroLIMS.Domain.Enums;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
+using MicroLIMS.Shared.Messages;
 using MicroLIMS.Tests.Fixtures;
 using Xunit;
 
@@ -41,7 +42,7 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         return new(db, core, permissions, scope, new SegregationOfDutiesGuard(db), new LabClock(Clock, TimeZoneInfo.Utc));
     }
 
-    private async Task<int> ActorAsync(MicroLimsDbContext db, RoleType role, bool member = true)
+    private async Task<int> ActorAsync(MicroLimsDbContext db, RoleType role, bool member = true, bool auditView = true)
     {
         var key = Guid.NewGuid().ToString("N");
         var user = new User
@@ -53,7 +54,8 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         db.Users.Add(user);
         await db.SaveChangesAsync();
         var codes = new List<string> { PermissionConstants.QualityView, PermissionConstants.QualityRaise };
-        if (role == RoleType.Qa) codes.AddRange([PermissionConstants.QualityApprove, PermissionConstants.OosView, PermissionConstants.MonitoringPlanView, PermissionConstants.AuditView]);
+        if (role == RoleType.Qa) codes.AddRange([PermissionConstants.QualityApprove, PermissionConstants.OosView, PermissionConstants.MonitoringPlanView, PermissionConstants.AuditReview]);
+        if (role == RoleType.Qa && auditView) codes.Add(PermissionConstants.AuditView);
         if (!member && role == RoleType.Qa) codes.Add(PermissionConstants.SectionsViewAll);
         if (role == RoleType.SectionHead)
             codes.AddRange([PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude]);
@@ -169,6 +171,9 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         var closed = await CloseAsync(w, approved);
         await AssertSignedAsync(closed, QualityDeviationStatus.Approved, QualityDeviationStatus.Closed,
             QualityStepKind.DeviationClosed, SignatureMeaning.QualityClosed, w.Qa);
+        var final = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(w.Qa,
+            s => s.CancelAsync(closed.Id, "Duplicate", Password, closed.Version, w.Qa)));
+        Assert.Equal(MessageCodes.DeviationFinalCancellation, final.Code);
     }
 
     [PostgresFact]
@@ -217,7 +222,19 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         var w = await ArrangeAsync();
         var d = await ConcludeAsync(w, await InvestigateAsync(w, await AssessAsync(w, await RaiseAsync(w))));
         d = await ActAsync(w.Qa, s => s.ReturnAsync(d.Id, "Recheck scope", d.Version, w.Qa));
-        await Assert.ThrowsAsync<BusinessRuleException>(() => ApproveAsync(w, d));
+        var returned = await Assert.ThrowsAsync<BusinessRuleException>(() => ApproveAsync(w, d));
+        Assert.Equal(MessageCodes.DeviationWrongState, returned.Code);
+        Assert.Equal("This step is unavailable in the deviation's current state.", returned.Message);
+        await using (var check = Context())
+        {
+            Assert.Equal(QualityDeviationStatus.Investigation, await check.DeviationDetails.AsNoTracking()
+                .Where(x => x.RecordId == d.Id).Select(x => x.Status).SingleAsync());
+            var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(DeviationDetail)
+                && a.EntityId == d.Id.ToString() && a.Reason == "Recheck scope");
+            Assert.Equal(w.Qa, audit.UserId);
+            Assert.Contains("\"Status\":2", audit.PreviousValue);
+            Assert.Contains("\"Status\":1", audit.NewValue);
+        }
         d = await ConcludeAsync(w, await InvestigateAsync(w, d));
         await using var db = Context();
         Assert.Equal(2, await db.QualityRecordSteps.AsNoTracking().CountAsync(s => s.RecordId == d.Id &&
@@ -245,14 +262,18 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
             QualityStepKind.DeviationClosed, SignatureMeaning.QualityClosed, w.Qa);
     }
 
-    private async Task SeedCapaAsync(int deviationId, int qa, bool cancelled)
+    private async Task SeedCapaAsync(int deviationId, int qa, bool cancelled, bool? capaLinksToDeviation = null, int? sectionId = null)
     {
         await using var db = Context(qa);
         var capa = new QualityRecord
         {
             Type = QualityRecordType.Capa, Number = $"CAPA-{Guid.NewGuid():N}"[..20],
             Title = "CAPA", Description = "Test CAPA", RaisedAtUtc = Now, RaisedByUserId = qa,
-            CapaDetail = new CapaDetail { SourceRecordId = deviationId, Status = CapaStatus.PlanApproved }
+            SectionId = sectionId,
+            CapaDetail = new CapaDetail
+            {
+                SourceRecordId = capaLinksToDeviation is null ? deviationId : null, Status = CapaStatus.PlanApproved
+            }
         };
         db.QualityRecords.Add(capa);
         await db.SaveChangesAsync();
@@ -261,14 +282,104 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
                 new ReferenceNumberGenerator(db, Clock), new ElectronicSignatureService(db, Clock), Clock)
             .SignStepAsync(capa, QualityStepKind.CapaPlanApproved, SignatureMeaning.CapaPlanApproved, new { capa.Id },
                 Password, null, qa, null));
+        if (capaLinksToDeviation is bool reverse)
+        {
+            db.QualityRecordLinks.Add(new QualityRecordLink
+            {
+                RecordId = reverse ? capa.Id : deviationId, TargetId = reverse ? deviationId : capa.Id,
+                TargetType = QualityLinkTargetType.QualityRecord, AddedByUserId = qa, AddedAtUtc = Now
+            });
+            await db.SaveChangesAsync();
+        }
         if (cancelled)
         {
             Assert.NotNull(capa.CapaDetail);
-            capa.CapaDetail.Status = CapaStatus.Cancelled;
             capa.IsCancelled = true;
             capa.CancelReason = "CAPA superseded";
             await db.SaveChangesAsync();
         }
+    }
+
+    [PostgresFact]
+    public async Task Both_CAPA_link_directions_qualify_only_with_read_access()
+    {
+        var w = await ArrangeAsync();
+        int otherSection;
+        await using (var arrange = Context())
+            otherSection = await arrange.UserOrgMemberships.AsNoTracking().Where(m => m.UserId == w.Outside)
+                .Select(m => m.SectionId.GetValueOrDefault()).SingleAsync();
+        foreach (var reverse in new[] { false, true })
+        {
+            var d = await ApproveAsync(w,
+                await ConcludeAsync(w, await InvestigateAsync(w, await AssessAsync(w, await RaiseAsync(w)))), capa: true);
+            await SeedCapaAsync(d.Id, w.Qa, cancelled: false, reverse, otherSection);
+            Assert.Equal(MessageCodes.DeviationCapaRequired,
+                (await Assert.ThrowsAsync<BusinessRuleException>(() => CloseAsync(w, d))).Code);
+            await SeedCapaAsync(d.Id, w.Qa, cancelled: false, reverse);
+            var closed = await CloseAsync(w, d);
+            await AssertSignedAsync(closed, QualityDeviationStatus.Approved, QualityDeviationStatus.Closed,
+                QualityStepKind.DeviationClosed, SignatureMeaning.QualityClosed, w.Qa);
+        }
+    }
+
+    [PostgresFact]
+    public async Task Investigation_is_audited_and_QA_and_unassigned_analysts_cannot_edit_it()
+    {
+        var w = await ArrangeAsync();
+        var d = await AssessAsync(w, await RaiseAsync(w));
+        var fields = new SaveDeviationInvestigationRequest("Impact", w.Cause, "Cause", "Actions");
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() => ActAsync(w.Raiser,
+            s => s.SaveInvestigationAsync(d.Id, fields, d.Version, w.Raiser)));
+        var investigated = await InvestigateAsync(w, d);
+        await using (var check = Context())
+        {
+            var detail = await check.DeviationDetails.AsNoTracking().SingleAsync(x => x.RecordId == d.Id);
+            Assert.Equal(fields.ImpactAssessment, detail.ImpactAssessment);
+            Assert.Equal(fields.RootCauseCategoryId, detail.RootCauseCategoryId);
+            Assert.Equal(fields.RootCauseDescription, detail.RootCauseDescription);
+            Assert.Equal(fields.ProposedActions, detail.ProposedActions);
+            var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == nameof(DeviationDetail)
+                && a.EntityId == d.Id.ToString() && a.Action == "Update" && a.UserId == w.Owner);
+            Assert.Equal(w.Owner, audit.UserId);
+            Assert.Contains("\"ImpactAssessment\":null", audit.PreviousValue);
+            Assert.Contains("\"ImpactAssessment\":\"Impact\"", audit.NewValue);
+        }
+        // A legacy assignment must still enforce the QA investigation prohibition.
+        uint legacyVersion;
+        await using (var arrange = Context())
+        {
+            var header = await arrange.QualityRecords.SingleAsync(r => r.Id == investigated.Id);
+            header.OwnerUserId = w.Qa;
+            await arrange.SaveChangesAsync();
+            legacyVersion = header.Version;
+        }
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() => ActAsync(w.Qa,
+            s => s.SaveInvestigationAsync(d.Id, fields with { ImpactAssessment = "Disallowed" }, legacyVersion, w.Qa)));
+    }
+
+    [PostgresFact]
+    public async Task Closure_names_the_unfinished_action_and_keeps_the_deviation_approved()
+    {
+        var w = await ArrangeAsync();
+        var d = await ApproveAsync(w,
+            await ConcludeAsync(w, await InvestigateAsync(w, await AssessAsync(w, await RaiseAsync(w)))));
+        await using (var arrange = Context())
+        {
+            arrange.QualityActions.Add(new QualityAction
+            {
+                RecordId = d.Id, Description = "Verify the corrective work", ResponsibleUserId = w.Owner,
+                DueDate = DateOnly.FromDateTime(Now)
+            });
+            await arrange.SaveChangesAsync();
+        }
+        var failure = await Assert.ThrowsAsync<BusinessRuleException>(() => CloseAsync(w, d));
+        Assert.Equal(MessageCodes.DeviationUnfinishedActions, failure.Code);
+        Assert.Equal("Complete the unfinished action before closure: Verify the corrective work", failure.Message);
+        await using var check = Context();
+        Assert.Equal(QualityDeviationStatus.Approved, await check.DeviationDetails.AsNoTracking()
+            .Where(r => r.RecordId == d.Id).Select(r => r.Status).SingleAsync());
+        Assert.False(await check.QualityRecordSteps.AsNoTracking().AnyAsync(s => s.RecordId == d.Id &&
+            s.Kind == QualityStepKind.DeviationClosed));
     }
 
     [PostgresFact]
@@ -279,6 +390,9 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
         var rejected = await ActAsync(w.Qa, s => s.RejectAsync(raised.Id, "Outside scope", Password, raised.Version, w.Qa));
         await AssertSignedAsync(rejected, QualityDeviationStatus.Raised, QualityDeviationStatus.Rejected,
             QualityStepKind.DeviationRejected, SignatureMeaning.DeviationRejected, w.Qa);
+        var final = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(w.Qa,
+            s => s.CancelAsync(rejected.Id, "Duplicate", Password, rejected.Version, w.Qa)));
+        Assert.Equal(MessageCodes.DeviationFinalCancellation, final.Code);
         raised = await RaiseAsync(w);
         var cancelled = await ActAsync(w.Qa, s => s.CancelAsync(raised.Id, "Duplicate", Password, raised.Version, w.Qa));
         await AssertSignedAsync(cancelled, QualityDeviationStatus.Raised, QualityDeviationStatus.Cancelled,
@@ -322,7 +436,16 @@ public partial class QualityDeviationPostgresTests(PostgresTestFixture fixture)
     {
         var w = await ArrangeAsync();
         var raised = await RaiseAsync(w);
-        await Assert.ThrowsAsync<BusinessRuleException>(() => AssessAsync(w, raised, w.Outside));
+        foreach (var invalidOwner in new[] { w.Outside, w.Qa })
+        {
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => AssessAsync(w, raised, invalidOwner));
+            Assert.Equal(MessageCodes.DeviationInvalidOwner, error.Code);
+            Assert.Equal("Select an active laboratory owner who can raise quality records and belongs to the deviation's section.", error.Message);
+        }
+        var past = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(w.Qa,
+            s => s.AssessAsync(raised.Id, new(true, w.Classification, w.Owner, DateOnly.FromDateTime(Now).AddDays(-1), Password),
+                raised.Version, w.Qa)));
+        Assert.Equal(MessageCodes.DeviationPastDueDate, past.Code);
         await Assert.ThrowsAsync<MicroLIMS.Application.Interfaces.SignatureVerificationException>(() => AssessAsync(w, raised, password: "incorrect"));
         var withoutQa = w with { Qa = w.Head };
         await Assert.ThrowsAsync<CodedAccessDeniedException>(() => AssessAsync(withoutQa, raised));

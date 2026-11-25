@@ -126,13 +126,16 @@ public sealed partial class OosInvestigationService(
     internal Task<int[]> InvestigationOrderIdsAsync(int investigationId, CancellationToken ct = default) =>
         InvestigationOrderIds(db, investigationId).ToArrayAsync(ct);
 
-    internal static IQueryable<int> InvestigationOrderIds(IMicroLimsDbContext db, int investigationId)
+    internal static IQueryable<int> InvestigationOrderIds(IMicroLimsDbContext db, int investigationId) =>
+        InvestigationOrderIds(db, db.OosInvestigations.Where(i => i.Id == investigationId).Select(i => i.Id));
+
+    internal static IQueryable<int> InvestigationOrderIds(IMicroLimsDbContext db, IQueryable<int> investigationIds)
     {
-        var investigated = db.OosInvestigationResults.Where(r => r.InvestigationId == investigationId).Select(r => r.TestOrderId);
+        var investigated = db.OosInvestigationResults.Where(r => investigationIds.Contains(r.InvestigationId)).Select(r => r.TestOrderId);
         var retestOrders = from plan in db.OosRetestPlans
                            join link in db.OosRetestPlanSamples on plan.Id equals link.PlanId
                            join order in db.TestOrders on link.SampleId equals order.SampleId
-                           where plan.InvestigationId == investigationId && plan.SignedAtUtc != null
+                           where investigationIds.Contains(plan.InvestigationId) && plan.SignedAtUtc != null
                            select order.Id;
         return investigated.Union(retestOrders);
     }

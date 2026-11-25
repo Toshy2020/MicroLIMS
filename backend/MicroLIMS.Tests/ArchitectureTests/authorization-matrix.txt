@@ -122,10 +122,10 @@ DeviationsController.Approve(Int32, ApproveDeviationRequest, CancellationToken):
 DeviationsController.Assess(Int32, AssessDeviationRequest, CancellationToken): Qa
 DeviationsController.Cancel(Int32, DeviationReasonRequest, CancellationToken): Qa
 DeviationsController.Close(Int32, DeviationPasswordRequest, CancellationToken): Qa
-DeviationsController.EscalateMonitoringDeviation(Int32, CancellationToken): SectionHead,Qa
+DeviationsController.EscalateMonitoringDeviation(Int32, RaiseDeviationFromSourceRequest, CancellationToken): SectionHead,Qa
 DeviationsController.Raise(RaiseDeviationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
-DeviationsController.RaiseFromAuditFinding(Int32, CancellationToken): Qa
-DeviationsController.RaiseFromOosRequest(Int32, CancellationToken): Qa
+DeviationsController.RaiseFromAuditFinding(Int32, RaiseDeviationFromSourceRequest, CancellationToken): Qa
+DeviationsController.RaiseFromOosRequest(Int32, RaiseDeviationFromSourceRequest, CancellationToken): Qa
 DeviationsController.Reject(Int32, DeviationReasonRequest, CancellationToken): Qa
 DeviationsController.Return(Int32, ReturnDeviationRequest, CancellationToken): Qa
 DeviationsController.SaveInvestigation(Int32, SaveDeviationInvestigationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

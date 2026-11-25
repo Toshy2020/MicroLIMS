@@ -4,6 +4,7 @@ using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Helpers;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services.Monitoring;
+using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Entities.Quality;
 using MicroLIMS.Domain.Enums;
@@ -25,6 +26,8 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
     {
         if (request.OccurredAtUtc == default || request.OccurredAtUtc.Kind != DateTimeKind.Utc)
             throw new BusinessRuleException(MessageCodes.DeviationOccurrenceUtc, "Enter the deviation occurrence time in UTC.");
+        if (request.OccurredAtUtc > clock.UtcNow.UtcDateTime)
+            throw new BusinessRuleException(MessageCodes.DeviationFutureOccurrence, "The deviation occurrence time cannot be in the future.");
         var detail = new DeviationDetail
         {
             Status = QualityDeviationStatus.Raised,
@@ -50,6 +53,8 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
                 throw new BusinessRuleException(MessageCodes.DeviationClassification, "Select an active deviation classification.");
 
             await EnsureOwnerAsync(record, request.OwnerUserId, ct);
+            if (request.DueDate is DateOnly requestedDate && requestedDate < clock.LabToday)
+                throw new BusinessRuleException(MessageCodes.DeviationPastDueDate, "The due date cannot be before the current laboratory date.");
             var dueDate = request.DueDate ?? await DefaultDueDateAsync(request.ClassificationId, ct);
             record.ClassificationId = request.ClassificationId;
             record.OwnerUserId = request.OwnerUserId;
@@ -147,12 +152,15 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
         {
             RequireStatus(detail, QualityDeviationStatus.Approved);
             core.EnsureNotRaiserOrOwner(record, userId);
-            var capaId = detail.CapaRequired == true ? await FindApprovedCapaAsync(id, ct) : null;
+            var capaId = detail.CapaRequired == true ? await FindApprovedCapaAsync(id, userId, ct) : null;
             if (detail.CapaRequired == true && capaId is null)
                 throw new BusinessRuleException(MessageCodes.DeviationCapaRequired, "A CAPA with an approved plan is required before closure.");
 
-            if (await db.QualityActions.AsNoTracking().AnyAsync(a => a.RecordId == id && a.DoneAtUtc == null, ct))
-                throw new BusinessRuleException(MessageCodes.DeviationUnfinishedActions, "Complete the deviation's open actions before closure.");
+            var unfinishedAction = await db.QualityActions.AsNoTracking().Where(a => a.RecordId == id && a.DoneAtUtc == null)
+                .OrderBy(a => a.Id).Select(a => a.Description).FirstOrDefaultAsync(ct);
+            if (unfinishedAction is not null)
+                throw new BusinessRuleException(MessageCodes.DeviationUnfinishedActions, $"Complete the unfinished action before closure: {unfinishedAction}",
+                    new Dictionary<string, string> { ["action"] = unfinishedAction });
 
             detail.Status = QualityDeviationStatus.Closed;
             await core.SignStepAsync(record, QualityStepKind.DeviationClosed, SignatureMeaning.QualityClosed,
@@ -163,6 +171,9 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
         string? ip = null, CancellationToken ct = default) =>
         ChangeAsync(id, expectedVersion, userId, PermissionConstants.QualityApprove, async (record, detail) =>
         {
+            if (detail.Status is not (QualityDeviationStatus.Raised or QualityDeviationStatus.Investigation
+                or QualityDeviationStatus.LabConcluded or QualityDeviationStatus.Approved))
+                throw new BusinessRuleException(MessageCodes.DeviationFinalCancellation, "A closed or rejected deviation cannot be cancelled.");
             detail.Status = QualityDeviationStatus.Cancelled;
             await core.CancelAsync(record, reason, password, userId, ip, ct);
         }, ct);
@@ -192,16 +203,13 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
                 "Select an active laboratory owner who can raise quality records and belongs to the deviation's section.");
 
         var links = db.QualityRecordLinks.AsNoTracking().Where(l => l.RecordId == record.Id && l.TargetId.HasValue);
-        var orders = await db.OosInvestigationResults.AsNoTracking()
-            .Where(r => links.Any(l => l.TargetType == QualityLinkTargetType.OosInvestigation && l.TargetId == r.InvestigationId))
-            .Select(r => r.TestOrderId)
+        var investigations = links.Where(l => l.TargetType == QualityLinkTargetType.OosInvestigation)
+            .Select(l => l.TargetId.GetValueOrDefault());
+        var orders = await OosInvestigationService.InvestigationOrderIds(db, investigations)
             .Union(links.Where(l => l.TargetType == QualityLinkTargetType.TestOrder).Select(l => l.TargetId.GetValueOrDefault()))
             .ToListAsync(ct);
-        foreach (var order in orders)
-        {
-            if (await duties.DidUserPerformTestAsync(order, ownerId, ct))
-                throw new BusinessRuleException(MessageCodes.DeviationAnalystOwner, "The analyst who produced the result cannot own this deviation.");
-        }
+        if ((await duties.GetTestOrderIdsPerformedByAsync(ownerId, orders, ct)).Count > 0)
+            throw new BusinessRuleException(MessageCodes.DeviationAnalystOwner, "The analyst who produced the result cannot own this deviation.");
     }
 
     private async Task<DateOnly?> DefaultDueDateAsync(int classificationId, CancellationToken ct)
@@ -218,9 +226,10 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
         return PlanWindowCalculator.AddWorkingDays(today, days.Value, weekdays, holidays);
     }
 
-    private async Task<int?> FindApprovedCapaAsync(int id, CancellationToken ct)
+    private async Task<int?> FindApprovedCapaAsync(int id, int userId, CancellationToken ct)
     {
-        var linked = db.QualityRecords.AsNoTracking().Where(r => r.Type == QualityRecordType.Capa && r.CapaDetail != null &&
+        var readable = await core.ReadableRecordsAsync(userId, ct);
+        var linked = readable.Where(r => r.Type == QualityRecordType.Capa && r.CapaDetail != null &&
             (r.CapaDetail.SourceRecordId == id || r.Links.Any(l => l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId == id)
                 || db.QualityRecordLinks.Any(l => l.RecordId == id && l.TargetType == QualityLinkTargetType.QualityRecord && l.TargetId == r.Id)));
 
@@ -228,6 +237,7 @@ public sealed partial class DeviationService(IMicroLimsDbContext db, QualityReco
                 (r.CapaDetail.Status == CapaStatus.PlanApproved || r.CapaDetail.Status == CapaStatus.CompletionVerified ||
                  r.CapaDetail.Status == CapaStatus.Closed));
         var candidates = await eligible.OrderBy(r => r.Id).Select(r => r.Id).ToListAsync(ct);
+        // ChangeAsync already holds the deviation lock. Always acquire CAPA locks after it.
         foreach (var candidate in candidates)
         {
             await core.LockAsync(candidate, ct);

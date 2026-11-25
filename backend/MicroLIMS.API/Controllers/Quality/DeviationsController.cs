@@ -68,18 +68,18 @@ public sealed class DeviationsController(DeviationService service) : ControllerB
 
     [HttpPost("from-oos-request/{id:int}")]
     [Authorize(Policy = PermissionConstants.QualityApprove)]
-    public async Task<IActionResult> RaiseFromOosRequest(int id, CancellationToken ct = default) =>
-        CreatedDeviation(await service.RaiseFromOosRequestAsync(id, Version(), Actor, Ip, ct));
+    public async Task<IActionResult> RaiseFromOosRequest(int id, RaiseDeviationFromSourceRequest request, CancellationToken ct = default) =>
+        CreatedDeviation(await service.RaiseFromOosRequestAsync(id, request, Version(), Actor, Ip, ct));
 
     [HttpPost("from-monitoring-deviation/{id:int}")]
     [Authorize(Policy = PermissionPolicyProvider.QualityApproveOrInvestigate)]
-    public async Task<IActionResult> EscalateMonitoringDeviation(int id, CancellationToken ct = default) =>
-        CreatedDeviation(await service.EscalateMonitoringDeviationAsync(id, Version(), Actor, Ip, ct));
+    public async Task<IActionResult> EscalateMonitoringDeviation(int id, RaiseDeviationFromSourceRequest request, CancellationToken ct = default) =>
+        CreatedDeviation(await service.EscalateMonitoringDeviationAsync(id, request, Version(), Actor, Ip, ct));
 
     [HttpPost("from-audit-finding/{id:int}")]
     [Authorize(Policy = PermissionConstants.QualityApprove)]
-    public async Task<IActionResult> RaiseFromAuditFinding(int id, CancellationToken ct = default) =>
-        CreatedDeviation(await service.RaiseFromAuditFindingAsync(id, Version(), Actor, Ip, ct));
+    public async Task<IActionResult> RaiseFromAuditFinding(int id, RaiseDeviationFromSourceRequest request, CancellationToken ct = default) =>
+        CreatedDeviation(await service.RaiseFromAuditFindingAsync(id, request, Version(), Actor, Ip, ct));
 
     private IActionResult CreatedDeviation(DeviationDto deviation) =>
         CreatedAtAction(nameof(QualityRecordsController.GetById), "QualityRecords",

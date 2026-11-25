@@ -6,6 +6,8 @@ namespace MicroLIMS.Application.DTOs;
 public sealed record RaiseDeviationRequest(string Title, string Description, DateTime OccurredAtUtc,
     string? Location, string ImmediateAction, int? SectionId, IReadOnlyList<QualityLinkRequest>? Links);
 
+public sealed record RaiseDeviationFromSourceRequest(string Title, DateTime OccurredAtUtc, string ImmediateAction);
+
 public sealed record AssessDeviationRequest(bool Accept, int ClassificationId, int OwnerUserId, DateOnly? DueDate,
     string Password);
 

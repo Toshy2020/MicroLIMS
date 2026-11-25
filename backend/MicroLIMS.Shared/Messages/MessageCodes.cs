@@ -49,6 +49,7 @@ public static partial class MessageCodes
         OrganizationParameters(),
         OutsourcedParameters(),
         PathogenParameters(),
+        QualityParameters(),
         ReceivingParameters(),
         ReferenceListParameters(),
         ReportParameters(),

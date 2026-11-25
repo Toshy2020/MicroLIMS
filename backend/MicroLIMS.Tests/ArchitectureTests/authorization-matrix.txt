@@ -549,6 +549,17 @@ PeriodicReviewController.ResolveFinding(Int32, Int32): SystemAdministrator,Secti
 PeriodicReviewController.TriggerGenerationManually(Nullable`1): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 PreparationConfigurationQueueController.Pending(): SystemAdministrator,SectionHead
 PreparationConfigurationQueueController.Unmapped(): SystemAdministrator,SectionHead
+QualityRecordsController.AddComment(Int32, AddQualityCommentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.AddLink(Int32, QualityLinkRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.Create(QualityRecordType, CreateQualityRecordRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.DownloadAttachment(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.ForTarget(QualityLinkTargetType, Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.GetById(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.ListComments(Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.RemoveLink(Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.ResolveLinks(Int32, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.UploadAttachment(Int32, IFormFile, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+QualityRecordsController.VoidAttachment(Int32, Int32, VoidQualityAttachmentRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 RecentRecordsController.Clear(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 RecentRecordsController.List(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 RecentRecordsController.Touch(TouchRecentRecordRequest, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa

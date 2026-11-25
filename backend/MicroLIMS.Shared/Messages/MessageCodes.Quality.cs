@@ -78,8 +78,29 @@ public static partial class MessageCodes
     public const string ChangeControlInvalidOwner = "ChangeControl.InvalidOwner";
     public const string ChangeControlAssessmentAlreadySigned = "ChangeControl.AssessmentAlreadySigned";
 
+    public const string ComplaintFutureReceivedOn = "Complaint.FutureReceivedOn";
+    public const string ComplaintClassification = "Complaint.Classification";
+    public const string ComplaintInvalidOwner = "Complaint.InvalidOwner";
+    public const string ComplaintPastDueDate = "Complaint.PastDueDate";
+    public const string ComplaintOwnerLabReport = "Complaint.OwnerLabReport";
+    public const string ComplaintIncomplete = "Complaint.Incomplete";
+    public const string ComplaintOutcomeInvalid = "Complaint.OutcomeInvalid";
+    public const string ComplaintUnfinishedActions = "Complaint.UnfinishedActions";
+    public const string ComplaintWrongState = "Complaint.WrongState";
+    public const string ComplaintFinalCancellation = "Complaint.FinalCancellation";
+
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
+        [ComplaintFutureReceivedOn] = [],
+        [ComplaintClassification] = [],
+        [ComplaintInvalidOwner] = [],
+        [ComplaintPastDueDate] = [],
+        [ComplaintOwnerLabReport] = [],
+        [ComplaintIncomplete] = [],
+        [ComplaintOutcomeInvalid] = [],
+        [ComplaintUnfinishedActions] = ["action"],
+        [ComplaintWrongState] = [],
+        [ComplaintFinalCancellation] = [],
         [ChangeControlInvalidOwner] = [],
         [ChangeControlAssessmentAlreadySigned] = [],
         [ChangeControlInvalidAffectedType] = [],

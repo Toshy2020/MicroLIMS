@@ -39,13 +39,13 @@ function renderDialog(onGranted = vi.fn(), onClose = vi.fn()) {
   );
 }
 
-function makeServerError(status: number, message: string): AxiosError {
+function makeServerError(status: number, message: string, code?: string): AxiosError {
   return new AxiosError("Error", String(status), undefined, undefined, {
     status,
     statusText: "Error",
     headers: {},
     config: {} as never,
-    data: { message }
+    data: code ? { code, message } : { message }
   } as AxiosResponse);
 }
 
@@ -99,16 +99,19 @@ describe("OverrideDialog", () => {
   });
 
   it.each([
-    ["not needed", 400, "A competency override is not needed."],
-    ["already active", 400, "This test order already has an active competency override."],
-    ["self-override", 400, "You cannot override your own competency."],
-    ["closed order", 400, "This test order is not open for a competency override."],
-    ["wrong password", 401, "Signature password verification failed."]
-  ])("shows server refusal (%s) inline and keeps the dialog open", async (_label, status, serverMessage) => {
+    ["not needed", 400, "Competency.OverrideNotNeeded", "A competency override is not needed."],
+    ["already active", 400, "Competency.OverrideAlreadyActive", "This test order already has an active competency override."],
+    ["self-override", 400, "Competency.OverrideSelf", "You cannot override your own competency."],
+    ["closed order", 400, "Competency.OverrideOrderClosed", "This test order is not open for a competency override."],
+    ["already signed off", 400, "Competency.OverrideAlreadySignedOff", "You already reviewed or decided approval for this sample, so you cannot grant a competency override."],
+    ["analyst ineligible", 400, "Competency.OverrideAnalystIneligible", "This analyst is not eligible for assignment to the test order."],
+    ["concurrency conflict", 400, "Competency.OverrideConcurrencyConflict", "The test changed. Refresh and try again."],
+    ["wrong password", 400, "Competency.OverridePasswordFailed", "Signature password verification failed."]
+  ])("shows server refusal (%s) inline and keeps the dialog open", async (_label, status, code, serverMessage) => {
     const user = userEvent.setup();
     const onGranted = vi.fn();
     const onClose = vi.fn();
-    vi.mocked(competencyService.grantOverride).mockRejectedValueOnce(makeServerError(status, serverMessage));
+    vi.mocked(competencyService.grantOverride).mockRejectedValueOnce(makeServerError(status, serverMessage, code));
 
     renderDialog(onGranted, onClose);
     await user.type(screen.getByRole("textbox", { name: /Reason for override/i }), "Supervised execution");

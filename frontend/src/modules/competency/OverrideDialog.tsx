@@ -59,8 +59,6 @@ export function OverrideDialog({
     setSigningOpen(false);
   }, [open, defaultAnalystUserId, candidates]);
 
-  const selectedCandidate = candidates.find((c) => c.userId === analystUserId);
-
   const handleFormSubmit = () => {
     const nextErrors: { analyst?: string; reason?: string } = {};
     if (analystUserId === "") {
@@ -148,15 +146,8 @@ export function OverrideDialog({
       {open && signingOpen && (
         <SignatureDialog
           open
-          meaningStatement={t("override.meaningStatement", {
-            lng: "en",
-            analyst: selectedCandidate?.fullName ?? "",
-            test: testLabel
-          })}
-          meaningStatementTranslation={t("override.meaningStatementAr", {
-            analyst: selectedCandidate?.fullName ?? "",
-            test: testLabel
-          })}
+          meaningStatement={t("override.meaningStatement", { lng: "en" })}
+          meaningStatementTranslation={t("override.meaningStatementAr")}
           onCancel={() => setSigningOpen(false)}
           onConfirm={handleSignConfirm}
         />

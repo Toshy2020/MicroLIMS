@@ -107,8 +107,8 @@
     "reasonLabel": "Reason for override",
     "reasonPlaceholder": "Explain why this test order requires a one-time competency override.",
     "continueToSign": "Continue to Sign",
-    "meaningStatement": "I am granting a one-time competency override for {{analyst}} on {{test}} and acknowledge I cannot review or approve this sample.",
-    "meaningStatementAr": "أمنح تجاوزًا لمتطلبات الكفاءة لمرة واحدة للمحلل {{analyst}} في اختبار {{test}} وأقر بأنني لا أستطيع مراجعة هذه العينة أو اعتمادها.",
+    "meaningStatement": "Competency override",
+    "meaningStatementAr": "تجاوز متطلبات الكفاءة",
     "success": "Competency override granted.",
     "validation": {
       "analystRequired": "Select an analyst.",

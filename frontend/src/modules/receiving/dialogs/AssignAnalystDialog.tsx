@@ -447,7 +447,7 @@ export function AssignAnalystDialog({
           />
         </Box>
 
-        {overrideTarget !== null && (
+        {canOverride && overrideTarget !== null && (
           <OverrideDialog
             open
             testOrderId={overrideTarget.testOrderId}

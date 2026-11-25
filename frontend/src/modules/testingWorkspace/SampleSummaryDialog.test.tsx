@@ -453,7 +453,7 @@ describe("SampleSummaryDialog gated actions", () => {
     );
   }, 15000);
 
-  it("shows override notice (who, when with timezone, reason) and server refusal when granter tries to review or approve", async () => {
+  it("blocks review and approval via action-availability for Sample.CannotReviewOverrode / Sample.CannotApproveOverrode and shows override time with timezone and ended text", async () => {
     const reviewRefusal = "You overrode competency for a test on this sample, so you cannot review it.";
     const approveRefusal = "You overrode competency for a test on this sample, so you cannot approve it.";
     const base = createSample({ category: "FinishedProduct" });
@@ -484,7 +484,7 @@ describe("SampleSummaryDialog gated actions", () => {
           grantedAtUtc: "2026-11-24T09:00:00Z",
           meaning: "Competency override",
           reason: "Supervised batch release",
-          endedAtUtc: null
+          endedAtUtc: "2026-11-24T11:00:00Z"
         }
       ]
     };
@@ -493,15 +493,32 @@ describe("SampleSummaryDialog gated actions", () => {
       testOrders: [overriddenOrder]
     });
     vi.mocked(actionAvailabilityService.get).mockResolvedValue([
-      { action: "review.complete", allowed: false, reason: reviewRefusal }
+      {
+        action: "review.complete",
+        allowed: false,
+        reasonCode: "Sample.CannotReviewOverrode",
+        reason: reviewRefusal
+      }
     ]);
+    const user = userEvent.setup();
 
     mount();
 
-    expect(await screen.findByText(/Amina Analyst/)).toBeTruthy();
-    expect(screen.getByText(/Hana Head/)).toBeTruthy();
-    expect(screen.getByText("Supervised batch release")).toBeTruthy();
-    expect(await screen.findByText(reviewRefusal)).toBeTruthy();
+    const reviewReason = await screen.findByText(reviewRefusal);
+    const reviewButton = screen.getByRole("button", { name: /Submit Review/i });
+    expect(reviewButton.getAttribute("aria-disabled")).toBe("true");
+    expect(document.getElementById(reviewButton.getAttribute("aria-describedby") ?? "")?.contains(reviewReason)).toBe(true);
+    expect(vi.mocked(actionAvailabilityService.get)).toHaveBeenCalledWith("sample", 77, 10, expect.any(AbortSignal));
+    await user.click(reviewButton);
+    expect(mockCompleteReview).not.toHaveBeenCalled();
+
+    // TestResultsSection renders override time with timezone and ended text
+    const { formatDateTimeWithTimeZone } = await import("../../utils/formatDate");
+    const expectedGranted = formatDateTimeWithTimeZone("2026-11-24T09:00:00Z", { seconds: true });
+    const expectedEnded = formatDateTimeWithTimeZone("2026-11-24T11:00:00Z", { seconds: true });
+    expect(screen.getByText(expectedGranted)).toBeTruthy();
+    expect(screen.getByText(/Ended/)).toBeTruthy();
+    expect(screen.getByText(expectedEnded)).toBeTruthy();
 
     cleanup();
     mockGetSummary.mockResolvedValue({
@@ -512,29 +529,32 @@ describe("SampleSummaryDialog gated actions", () => {
       testOrders: [
         {
           ...overriddenOrder,
-          status: "Reviewed",
-          competencyOverrides: [
-            {
-              analystName: "Amina Analyst",
-              grantedByFullName: "Hana Head",
-              grantedAtUtc: "2026-11-24T09:00:00Z",
-              meaning: "Competency override",
-              reason: "Supervised batch release",
-              endedAtUtc: "2026-11-24T11:00:00Z"
-            }
-          ]
+          status: "Reviewed"
         }
       ]
     });
     vi.mocked(actionAvailabilityService.get).mockResolvedValue([
-      { action: "approval.approve", allowed: false, reason: approveRefusal },
-      { action: "approval.reject", allowed: false, reason: approveRefusal }
+      {
+        action: "approval.approve",
+        allowed: false,
+        reasonCode: "Sample.CannotApproveOverrode",
+        reason: approveRefusal
+      },
+      {
+        action: "approval.reject",
+        allowed: false,
+        reasonCode: "Sample.CannotApproveOverrode",
+        reason: approveRefusal
+      }
     ]);
 
     mount();
 
     expect((await screen.findAllByText(approveRefusal)).length).toBeGreaterThan(0);
-    expect(screen.getByText("Supervised batch release")).toBeTruthy();
+    const approveButton = screen.getByRole("button", { name: /Submit Decision/i });
+    expect(approveButton.getAttribute("aria-disabled")).toBe("true");
+    await user.click(approveButton);
+    expect(mockDecideApproval).not.toHaveBeenCalled();
   }, 15000);
 });
 

@@ -22,6 +22,8 @@ public sealed partial class OosInvestigationService
 
         if (filter.Status is OosInvestigationStatus status)
             query = query.Where(i => i.Status == status);
+        if (filter.OpenOnly == true)
+            query = query.Where(i => i.Status != OosInvestigationStatus.Concluded);
         if (filter.Kind is OosInvestigationKind kind)
             query = query.Where(i => i.Kind == kind);
         if (filter.SectionId is int sectionId)

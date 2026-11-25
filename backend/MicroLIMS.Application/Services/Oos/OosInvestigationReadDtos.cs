@@ -10,7 +10,8 @@ public sealed record OosInvestigationFilter(
     DateTime? From = null,
     DateTime? To = null,
     int Page = 1,
-    int PageSize = 25);
+    int PageSize = 25,
+    bool? OpenOnly = null);
 
 public sealed record OosInvestigationListItemDto(
     int Id,

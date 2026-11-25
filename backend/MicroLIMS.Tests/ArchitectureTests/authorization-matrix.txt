@@ -511,7 +511,7 @@ OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Revi
 OosInvestigationsController.GetForSample(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.GetPdf(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.GetTrends(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
-OosInvestigationsController.List(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.List(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, Nullable`1, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.OpenManualExcursion(OpenManualExcursionRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.OpenManually(Int32, Int32, CancellationToken): SectionHead
 OosInvestigationsController.Reopen(Int32, OosReopenRequest, CancellationToken): SectionHead

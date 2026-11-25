@@ -14,7 +14,9 @@ namespace MicroLIMS.Application.Services.Quality;
 internal sealed class QualityLinkTargets(IMicroLimsDbContext db, PermissionService permissions,
     IUserSectionScopeService scope, QualityRecordCore core)
 {
-    internal sealed record Target(string Number, string Label, string Route, int? ScopeId = null);
+    internal sealed record Target(int Id, string Number, string Label, string Route, int? ScopeId,
+        DocumentRecordStatus? DocumentStatus = null, List<int>? SampleOrderSections = null,
+        bool AwaitingTestSelection = false, string? PendingTargetSectionIds = null);
 
     internal async Task<Target> EnsureReadableAsync(QualityLinkTargetType type, int id, int userId, CancellationToken ct)
     {
@@ -30,7 +32,7 @@ internal sealed class QualityLinkTargets(IMicroLimsDbContext db, PermissionServi
         return target;
     }
 
-    internal async Task EnsureAccessAsync(QualityLinkTargetType type, int id, Target target, int userId, CancellationToken ct)
+    private async Task EnsureAccessAsync(QualityLinkTargetType type, int id, Target target, int userId, CancellationToken ct)
     {
         switch (type)
         {
@@ -100,44 +102,107 @@ internal sealed class QualityLinkTargets(IMicroLimsDbContext db, PermissionServi
             throw QualityRecordCore.Missing();
     }
 
-    internal Task<Target?> FindAsync(QualityLinkTargetType type, int id, CancellationToken ct)
+    internal async Task<Dictionary<int, (Target Target, bool IsReadable)>> ResolveBatchAsync(
+        QualityLinkTargetType type, int[] ids, int userId, QualityRecordCore.ReadAccess access, CancellationToken ct)
     {
-        var number = id.ToString(CultureInfo.InvariantCulture);
+        var targets = await FindAllAsync(type, ids, ct);
+        switch (type)
+        {
+            case QualityLinkTargetType.QualityRecord:
+                var qualityIds = await core.ReadableRecords(userId, access).Where(r => ids.Contains(r.Id))
+                    .Select(r => r.Id).ToListAsync(ct);
+                return Map(targets, qualityIds.ToHashSet().Contains);
+            case QualityLinkTargetType.OosInvestigation:
+                if (!access.Holds(PermissionConstants.OosView)) return Map(targets, _ => false);
+                if (access.Role == RoleType.Analyst && !access.Holds(PermissionConstants.OosManage))
+                {
+                    var ownedIds = await Oos.OosInvestigationService.FilterAnalystOwned(db,
+                            db.OosInvestigations.AsNoTracking().Where(i => ids.Contains(i.Id)), userId)
+                        .Select(i => i.Id).ToListAsync(ct);
+                    var owned = ownedIds.ToHashSet();
+                    return targets.ToDictionary(t => t.Id, t => (t, access.ReadsSection(t.ScopeId) && owned.Contains(t.Id)));
+                }
+                break;
+            case QualityLinkTargetType.Specification:
+                if (access.Sections is { } sections)
+                {
+                    var codes = targets.Select(t => t.Number).Distinct().ToArray();
+                    var readable = (await db.TestDefinitions.AsNoTracking()
+                        .Where(t => codes.Contains(t.Code) && sections.Contains(t.SectionId))
+                        .Select(t => t.Code).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
+                    return targets.ToDictionary(t => t.Id, t => (t, readable.Contains(t.Number)));
+                }
+                break;
+        }
+
+        return targets.ToDictionary(t => t.Id, t => (t, type switch
+        {
+            QualityLinkTargetType.Sample => ReadsSample(t, access),
+            QualityLinkTargetType.DocumentMaster or QualityLinkTargetType.DocumentRevision =>
+                t.DocumentStatus != DocumentRecordStatus.Void || access.Role == RoleType.SectionHead ||
+                    access.Holds(PermissionConstants.AuditView),
+            QualityLinkTargetType.AuditTrailReviewFinding => access.Holds(PermissionConstants.AuditView),
+            QualityLinkTargetType.MonitoringDeviation =>
+                access.Holds(PermissionConstants.MonitoringPlanView) && access.ReadsSection(t.ScopeId),
+            _ => access.ReadsSection(t.ScopeId)
+        }));
+    }
+
+    private static Dictionary<int, (Target Target, bool IsReadable)> Map(
+        IEnumerable<Target> targets, Func<int, bool> isReadable) =>
+        targets.ToDictionary(t => t.Id, t => (t, isReadable(t.Id)));
+
+    private static bool ReadsSample(Target target, QualityRecordCore.ReadAccess access) =>
+        access.Sections is not { } sections ||
+        (target.ScopeId is int sectionId && sections.Contains(sectionId)) ||
+        (target.SampleOrderSections ?? []).Concat(
+            SampleSectionRollup.PendingSectionIds(target.AwaitingTestSelection, target.PendingTargetSectionIds))
+            .Any(sections.Contains);
+
+    private static string FormatId(int id) => id.ToString(CultureInfo.InvariantCulture);
+
+    private async Task<Target?> FindAsync(QualityLinkTargetType type, int id, CancellationToken ct) =>
+        (await FindAllAsync(type, [id], ct)).SingleOrDefault();
+
+    private Task<List<Target>> FindAllAsync(QualityLinkTargetType type, int[] ids, CancellationToken ct)
+    {
         var query = type switch
         {
-            QualityLinkTargetType.Sample => db.Samples.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.ReferenceNumber, x.ReferenceNumber, RecordNavigationTargets.Sample(id), null)),
-            QualityLinkTargetType.TestOrder => db.TestOrders.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(number, x.TestCode, RecordNavigationTargets.TestOrder(x.SampleId, id), null)),
-            QualityLinkTargetType.OosInvestigation => db.OosInvestigations.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Number, x.Number, "/oos-tracking?investigationId=" + number, x.SectionId)),
-            QualityLinkTargetType.MonitoringDeviation => db.MonitoringDeviations.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Number, x.Number, "/monitoring-plan?deviationId=" + number,
+            QualityLinkTargetType.Sample => db.Samples.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.ReferenceNumber, x.ReferenceNumber, RecordNavigationTargets.Sample(x.Id), x.LabSectionId, null,
+                    x.TestOrders.Where(o => !o.IsSuperseded).Select(o => o.SectionId).ToList(),
+                    x.AwaitingTestSelection, x.PendingTargetSectionIds)),
+            QualityLinkTargetType.TestOrder => db.TestOrders.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, FormatId(x.Id), x.TestCode, RecordNavigationTargets.TestOrder(x.SampleId, x.Id), x.SectionId)),
+            QualityLinkTargetType.OosInvestigation => db.OosInvestigations.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Number, x.Number, "/oos-tracking?investigationId=" + FormatId(x.Id), x.SectionId)),
+            QualityLinkTargetType.MonitoringDeviation => db.MonitoringDeviations.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Number, x.Number, "/monitoring-plan?deviationId=" + FormatId(x.Id),
                     x.MonitoringOccurrence == null ? null : x.MonitoringOccurrence.LabSectionId)),
-            QualityLinkTargetType.Equipment => db.Equipment.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Code, x.Name, "/laboratory-configuration/equipment?id=" + number, null)),
-            QualityLinkTargetType.MediaLot => db.Media.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.LotNumber, x.LotNumber, RecordNavigationTargets.MediaLot(), null)),
-            QualityLinkTargetType.StockLot => db.Materials.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.StockId ?? number, x.MaterialName, RecordNavigationTargets.Material(), null)),
-            QualityLinkTargetType.Item => db.Items.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Code, x.Name, RecordNavigationTargets.Item(), null)),
-            QualityLinkTargetType.Specification => db.Specifications.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.TestCode, x.ParameterName, "/laboratory-configuration/specifications?id=" + number, null)),
-            QualityLinkTargetType.TestDefinition => db.TestDefinitions.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Code, x.DisplayName, TestDefinitionRoute(x.PhyschemArea, id), x.SectionId)),
-            QualityLinkTargetType.DocumentMaster => db.DocumentMasters.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.MicroLimsDocumentId, x.Title, "/document-control/documents/" + number, null)),
-            QualityLinkTargetType.DocumentRevision => db.DocumentRevisions.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.DocumentMaster.MicroLimsDocumentId + "/" + x.RevisionNumber, x.DocumentMaster.Title,
-                    "/document-control/documents/" + x.DocumentMasterId + "?revisionId=" + number, x.DocumentMasterId)),
-            QualityLinkTargetType.AuditTrailReviewFinding => db.AuditTrailReviewFindings.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(number, number, "/audit-trail-reviews/" + x.ReviewId, null)),
-            QualityLinkTargetType.QualityRecord => db.QualityRecords.AsNoTracking().Where(x => x.Id == id)
-                .Select(x => new Target(x.Number, x.Title, "/quality/" + number, null)),
+            QualityLinkTargetType.Equipment => db.Equipment.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Code, x.Name, "/laboratory-configuration/equipment?id=" + FormatId(x.Id), x.SectionId)),
+            QualityLinkTargetType.MediaLot => db.Media.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.LotNumber, x.LotNumber, RecordNavigationTargets.MediaLot(), x.Material == null ? null : x.Material.SectionId)),
+            QualityLinkTargetType.StockLot => db.Materials.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.StockId ?? FormatId(x.Id), x.MaterialName, RecordNavigationTargets.Material(), x.SectionId)),
+            QualityLinkTargetType.Item => db.Items.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Code, x.Name, RecordNavigationTargets.Item(), null)),
+            QualityLinkTargetType.Specification => db.Specifications.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.TestCode, x.ParameterName, "/laboratory-configuration/specifications?id=" + FormatId(x.Id), null)),
+            QualityLinkTargetType.TestDefinition => db.TestDefinitions.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Code, x.DisplayName, TestDefinitionRoute(x.PhyschemArea, x.Id), x.SectionId)),
+            QualityLinkTargetType.DocumentMaster => db.DocumentMasters.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.MicroLimsDocumentId, x.Title, "/document-control/documents/" + FormatId(x.Id), null, DocumentStatus: x.RecordStatus)),
+            QualityLinkTargetType.DocumentRevision => db.DocumentRevisions.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.DocumentMaster.MicroLimsDocumentId + "/" + x.RevisionNumber, x.DocumentMaster.Title,
+                    "/document-control/documents/" + x.DocumentMasterId + "?revisionId=" + FormatId(x.Id), x.DocumentMasterId, DocumentStatus: x.DocumentMaster.RecordStatus)),
+            QualityLinkTargetType.AuditTrailReviewFinding => db.AuditTrailReviewFindings.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, FormatId(x.Id), FormatId(x.Id), "/audit-trail-reviews/" + x.ReviewId, null)),
+            QualityLinkTargetType.QualityRecord => db.QualityRecords.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .Select(x => new Target(x.Id, x.Number, x.Title, "/quality/" + FormatId(x.Id), null)),
             _ => throw new BusinessRuleException(MessageCodes.QualityInvalidTarget, "Unknown quality link target type.")
         };
-        return query.SingleOrDefaultAsync(ct);
+        return query.ToListAsync(ct);
     }
 
     private static string TestDefinitionRoute(PhyschemArea? area, int id)

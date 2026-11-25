@@ -40,9 +40,14 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
     {
         var records = await core.ReadableRecordsAsync(userId, ct);
         var attachment = await db.QualityAttachments.AsNoTracking()
-            .Where(a => a.Id == attachmentId && a.RecordId == recordId && a.VoidedAtUtc == null &&
+            .Where(a => a.Id == attachmentId && a.RecordId == recordId &&
                 records.Any(r => r.Id == a.RecordId))
-            .Select(a => new { a.OriginalFileName, a.ContentType, a.StorageKey, a.ContentSha256 }).SingleOrDefaultAsync(ct)
+            .Select(a => new
+            {
+                a.OriginalFileName, a.ContentType, a.StorageKey, a.ContentSha256, a.VoidedAtUtc,
+                a.VoidedByUserId, a.VoidReason,
+                RecordNumber = records.Where(r => r.Id == a.RecordId).Select(r => r.Number).FirstOrDefault()
+            }).SingleOrDefaultAsync(ct)
             ?? throw QualityRecordCore.Missing();
         byte[] bytes;
         try
@@ -51,15 +56,32 @@ public class QualityAttachmentService(IMicroLimsDbContext db, QualityRecordCore 
         }
         catch (StoredFileNotFoundException)
         {
-            throw QualityRecordCore.Missing();
+            throw new BusinessRuleException(MessageCodes.DocumentFileReadFromStorageFailed,
+                $"The document file could not be read from storage: {attachment.OriginalFileName}",
+                new Dictionary<string, string> { ["message"] = attachment.OriginalFileName });
         }
-        if (!string.Equals(Convert.ToHexString(SHA256.HashData(bytes)), attachment.ContentSha256, StringComparison.OrdinalIgnoreCase))
+
+        var fileId = attachmentId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var recordKey = recordId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var computedHash = Convert.ToHexString(SHA256.HashData(bytes));
+        if (!string.Equals(computedHash, attachment.ContentSha256, StringComparison.OrdinalIgnoreCase))
+        {
+            await audit.RecordUserEventAsync("FileIntegrityVerificationFailed", AuditActionCategory.Security,
+                nameof(QualityAttachment),
+                reason: $"INTEGRITY FAILURE: Stored hash {attachment.ContentSha256} does not match computed hash {computedHash}.",
+                changes: [new("StoredHash", attachment.ContentSha256, null), new("ComputedHash", null, computedHash),
+                    new("FileId", fileId, null), new("RecordId", recordKey, null), new("RecordNumber", attachment.RecordNumber, null)],
+                entityId: fileId, cancellationToken: ct);
             throw new BusinessRuleException(MessageCodes.DocumentFileIntegrityDeliveryBlocked,
                 "Document integrity check failed. The file may have been altered or corrupted. Delivery has been blocked.");
+        }
+
         await audit.RecordUserEventAsync("QualityAttachmentDownloaded", AuditActionCategory.Document,
-            nameof(QualityAttachment), entityId: attachmentId.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            cancellationToken: ct);
-        return new(attachment.OriginalFileName, attachment.ContentType, bytes);
+            nameof(QualityAttachment),
+            changes: [new("RecordId", null, recordKey), new("RecordNumber", null, attachment.RecordNumber)],
+            entityId: fileId, cancellationToken: ct);
+        return new(attachment.OriginalFileName, attachment.ContentType, bytes,
+            attachment.VoidedAtUtc, attachment.VoidedByUserId, attachment.VoidReason);
     }
 
     public Task<QualityAttachmentDto> VoidAsync(int recordId, int attachmentId, uint version, string reason,

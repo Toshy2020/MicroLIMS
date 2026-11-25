@@ -82,21 +82,42 @@ public class QualityRecordCore(
         if (!await HoldsAsync(userId, PermissionConstants.QualityView, ct)) throw Missing();
     }
 
-    internal async Task<IQueryable<QualityRecord>> ReadableRecordsAsync(int userId, CancellationToken ct)
+    internal sealed record ReadAccess(RoleType? Role, IReadOnlySet<string> Permissions, IReadOnlyList<int>? Sections)
     {
-        if (!await HoldsAsync(userId, PermissionConstants.QualityView, ct))
-            return db.QualityRecords.AsNoTracking().Where(_ => false);
+        internal bool Holds(string permission) => Permissions.Contains(permission);
+        internal bool ReadsSection(int? section) => section is null || Sections is null || Sections.Contains(section.Value);
+    }
 
+    internal async Task<ReadAccess> GetReadAccessAsync(int userId, CancellationToken ct)
+    {
+        var user = await db.Users.AsNoTracking().Where(u => u.Id == userId && u.IsActive
+            && u.Role != null && u.Role.IsActive)
+            .Select(u => new
+            {
+                Role = u.Role!.Type,
+                Codes = db.RolePermissions.AsNoTracking().Where(p => p.RoleId == u.RoleId && p.Permission != null)
+                    .Select(p => p.Permission!.Code).ToList()
+            }).SingleOrDefaultAsync(ct);
+        var sections = user?.Codes.Contains(PermissionConstants.QualityView) == true
+            ? await scope.GetReadableSectionIdsAsync(userId, ct) : [];
+        return new(user?.Role, (user?.Codes ?? []).ToHashSet(StringComparer.Ordinal), sections);
+    }
+
+    internal async Task<IQueryable<QualityRecord>> ReadableRecordsAsync(int userId, CancellationToken ct) =>
+        ReadableRecords(userId, await GetReadAccessAsync(userId, ct));
+
+    internal IQueryable<QualityRecord> ReadableRecords(int userId, ReadAccess access)
+    {
         var query = db.QualityRecords.AsNoTracking();
-        var sections = await scope.GetReadableSectionIdsAsync(userId, ct);
+        if (!access.Holds(PermissionConstants.QualityView)) return query.Where(_ => false);
+
+        var sections = access.Sections;
         if (sections is not null)
             query = query.Where(r => r.SectionId == null || sections.Contains(r.SectionId.Value));
 
-        var analyst = await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.Role != null &&
-            u.Role.Type == RoleType.Analyst, ct);
-        if (analyst && !await HoldsAsync(userId, PermissionConstants.QualityInvestigate, ct)
-            && !await HoldsAsync(userId, PermissionConstants.QualityLabConclude, ct)
-            && !await HoldsAsync(userId, PermissionConstants.QualityApprove, ct))
+        if (access.Role == RoleType.Analyst && !access.Holds(PermissionConstants.QualityInvestigate)
+            && !access.Holds(PermissionConstants.QualityLabConclude)
+            && !access.Holds(PermissionConstants.QualityApprove))
             query = query.Where(r => r.RaisedByUserId == userId || r.OwnerUserId == userId ||
                 r.Actions.Any(a => a.ResponsibleUserId == userId));
 
@@ -161,15 +182,17 @@ public class QualityRecordCore(
 
         await LockAsync(record.Id, ct);
         var version = await db.QualityRecords.AsNoTracking().Where(r => r.Id == record.Id)
-            .Select(r => r.Version).SingleAsync(ct);
+            .Select(r => (uint?)r.Version).SingleOrDefaultAsync(ct) ?? throw Missing();
         if (version != record.Version) throw Stale();
+        var tracked = await db.QualityRecords.SingleOrDefaultAsync(r => r.Id == record.Id, ct) ?? throw Missing();
+        if (tracked.Version != version) throw Stale();
 
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"""SELECT "Id" FROM "QualityRecordLinks" WHERE "RecordId" = {record.Id} ORDER BY "Id" FOR UPDATE""", ct);
         var data = JsonSerializer.SerializeToElement(snapshot);
         if (comment is not null) comment = RequiredText(comment, 4000);
         var signature = await signatures.SignAsync(userId, password, meaning, nameof(QualityRecord), record.Id, comment, ip, ct);
-        db.ChangeTracker.Entries<QualityRecord>().Single(e => e.Entity == record)
+        db.ChangeTracker.Entries<QualityRecord>().Single(e => e.Entity == tracked)
             .Property(r => r.Title).IsModified = true;
         signature.SignedAt = clock.GetUtcNow().UtcDateTime;
         await db.SaveChangesAsync(ct);
@@ -177,11 +200,15 @@ public class QualityRecordCore(
         {
             RecordId = record.Id, Kind = kind, SignatureId = signature.Id, SignedByUserId = userId,
             SignedAtUtc = signature.SignedAt, Comment = comment,
-            SnapshotJson = JsonSerializer.Serialize(new { record.Version, Data = data })
+            SnapshotJson = JsonSerializer.Serialize(new { tracked.Version, Data = data })
         };
-        record.Steps.Add(step);
         db.QualityRecordSteps.Add(step);
         await db.SaveChangesAsync(ct);
+        if (!ReferenceEquals(record, tracked))
+        {
+            record.Version = tracked.Version;
+            record.Steps.Add(step);
+        }
         return step;
     }
 

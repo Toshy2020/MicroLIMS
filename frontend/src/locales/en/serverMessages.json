@@ -8,6 +8,7 @@
   "Quality.VersionRequired": "An If-Match quality record version is required.",
   "Quality.RaiserOrOwner": "You raised or own this record, so you cannot approve or close it.",
   "Quality.TransactionRequired": "Signing requires a quality record transaction.",
+  "Quality.SelfLink": "A quality record cannot link to itself.",
   "Quality.DuplicateLink": "This target is already linked.",
   "Quality.SignedLink": "Links cannot be removed after the first signed step.",
   "Quality.InvalidAttachment": "Choose an allowed attachment with valid file content and a size between 1 byte and 10 MB.",

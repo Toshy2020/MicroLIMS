@@ -11,6 +11,7 @@ public static partial class MessageCodes
     public const string QualityVersionRequired = "Quality.VersionRequired";
     public const string QualityRaiserOrOwner = "Quality.RaiserOrOwner";
     public const string QualityTransactionRequired = "Quality.TransactionRequired";
+    public const string QualitySelfLink = "Quality.SelfLink";
     public const string QualityDuplicateLink = "Quality.DuplicateLink";
     public const string QualitySignedLink = "Quality.SignedLink";
     public const string QualityInvalidAttachment = "Quality.InvalidAttachment";
@@ -26,6 +27,7 @@ public static partial class MessageCodes
         [QualityVersionRequired] = [],
         [QualityRaiserOrOwner] = [],
         [QualityTransactionRequired] = [],
+        [QualitySelfLink] = [],
         [QualityDuplicateLink] = [],
         [QualitySignedLink] = [],
         [QualityInvalidAttachment] = [],

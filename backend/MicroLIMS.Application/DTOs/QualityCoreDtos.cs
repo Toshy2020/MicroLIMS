@@ -18,8 +18,16 @@ public record QualityRecordDto(int Id, string Number, QualityRecordType Type, st
 }
 
 public record QualityAttachmentDto(int Id, string FileName, string ContentType, long Size, int UploadedByUserId,
-    DateTime UploadedAtUtc, DateTime? VoidedAtUtc, int? VoidedByUserId, string? VoidReason);
-public record QualityAttachmentContent(string FileName, string ContentType, byte[] Bytes);
+    DateTime UploadedAtUtc, DateTime? VoidedAtUtc, int? VoidedByUserId, string? VoidReason)
+{
+    public bool IsVoided => VoidedAtUtc.HasValue;
+}
+
+public record QualityAttachmentContent(string FileName, string ContentType, byte[] Bytes,
+    DateTime? VoidedAtUtc, int? VoidedByUserId, string? VoidReason)
+{
+    public bool IsVoided => VoidedAtUtc.HasValue;
+}
 public record AddQualityCommentRequest(string Text);
 public record VoidQualityAttachmentRequest(string Reason);
 public record QualityCommentDto(int Id, string Text, int AuthorUserId, DateTime CreatedAtUtc);

@@ -16,11 +16,11 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
     private readonly QualityLinkTargets _targets = new(db, permissions, scope, core);
 
     public Task<QualityLinkDto> AddAsync(int recordId, QualityLinkTargetType targetType, int targetId, int userId,
-        CancellationToken ct = default) => AddAsync(recordId, targetType, targetId, userId, ExpectedVersion(), ct);
-
-    public Task<QualityLinkDto> AddAsync(int recordId, QualityLinkTargetType targetType, int targetId, int userId,
         uint version, CancellationToken ct = default) => core.MutateAsync(recordId, version, userId, false, async _ =>
     {
+        if (targetType == QualityLinkTargetType.QualityRecord && targetId == recordId)
+            throw new BusinessRuleException(MessageCodes.QualitySelfLink, "A quality record cannot link to itself.");
+
         var target = await _targets.EnsureReadableAsync(targetType, targetId, userId, ct);
         if (await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.RecordId == recordId &&
             l.TargetType == targetType && l.TargetId == targetId, ct))
@@ -35,9 +35,6 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
         await db.SaveChangesAsync(ct);
         return new QualityLinkDto(link.Id, target.Number, target.Label, target.Route, false);
     }, ct);
-
-    public Task RemoveAsync(int recordId, int linkId, int userId, CancellationToken ct = default) =>
-        RemoveAsync(recordId, linkId, userId, ExpectedVersion(), ct);
 
     public Task RemoveAsync(int recordId, int linkId, int userId, uint version, CancellationToken ct = default) =>
         core.MutateAsync(recordId, version, userId, true, async record =>
@@ -57,33 +54,33 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
     public async Task<IReadOnlyList<QualityLinkDto>> ResolveAsync(int recordId, int userId, int offset, int pageSize,
         CancellationToken ct = default)
     {
-        var readable = await core.ReadableRecordsAsync(userId, ct);
+        var access = await core.GetReadAccessAsync(userId, ct);
+        var readable = core.ReadableRecords(userId, access);
         if (!await readable.AnyAsync(r => r.Id == recordId, ct)) throw QualityRecordCore.Missing();
         var links = await db.QualityRecordLinks.AsNoTracking().Where(l => l.RecordId == recordId)
             .OrderBy(l => l.Id).Skip(Math.Max(0, offset))
             .Take(Paging.Normalize(1, pageSize, 1).PageSize)
             .Select(l => new { l.Id, l.TargetType, l.TargetId, l.NewRecordCode }).ToListAsync(ct);
 
-        var resolved = new List<QualityLinkDto>(links.Count);
-        foreach (var link in links)
+        var targets = new Dictionary<QualityLinkTargetType, Dictionary<int, (QualityLinkTargets.Target Target, bool IsReadable)>>();
+        foreach (var group in links.Where(l => l.TargetId.HasValue).GroupBy(l => l.TargetType))
         {
-            var target = link.TargetId is int id ? await _targets.FindAsync(link.TargetType, id, ct) : null;
-            if (target is not null && link.TargetId is int targetId)
-            {
-                try
-                {
-                    await _targets.EnsureAccessAsync(link.TargetType, targetId, target, userId, ct);
-                    resolved.Add(new(link.Id, target.Number, target.Label, target.Route, false));
-                    continue;
-                }
-                catch (Exception e) when (e is UnauthorizedAccessException or NotFoundException)
-                {
-                    // The target identifier is visible; its metadata and route are restricted.
-                }
-            }
-            resolved.Add(new(link.Id, target?.Number ?? link.NewRecordCode, null, null, true));
+            var ids = group.Select(l => l.TargetId.GetValueOrDefault()).Distinct().ToArray();
+            targets.Add(group.Key, await _targets.ResolveBatchAsync(group.Key, ids, userId, access, ct));
         }
-        return resolved;
+
+        return links.Select(link =>
+        {
+            if (link.TargetId is int id && targets.TryGetValue(link.TargetType, out var batch) &&
+                batch.TryGetValue(id, out var resolved))
+            {
+                var target = resolved.Target;
+                return resolved.IsReadable
+                    ? new QualityLinkDto(link.Id, target.Number, target.Label, target.Route, false)
+                    : new QualityLinkDto(link.Id, target.Number, null, null, true);
+            }
+            return new QualityLinkDto(link.Id, link.NewRecordCode, null, null, true);
+        }).ToList();
     }
 
     public Task<IReadOnlyList<QualityRecordRefDto>> ForTargetAsync(QualityLinkTargetType targetType, int targetId,
@@ -100,7 +97,4 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
             .Take(Paging.Normalize(1, pageSize, 1).PageSize)
             .Select(r => new QualityRecordRefDto(r.Id, r.Number, r.Type, r.Title)).ToListAsync(ct);
     }
-
-    private uint ExpectedVersion() => db.ExpectedVersion ?? throw new BusinessRuleException(
-        MessageCodes.QualityVersionRequired, "An If-Match quality record version is required.");
 }

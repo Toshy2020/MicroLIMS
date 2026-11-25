@@ -1,4 +1,7 @@
+using System.Data.Common;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using MicroLIMS.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using MicroLIMS.Application.Abstractions.Storage;
 using MicroLIMS.Application.Helpers;
@@ -37,7 +40,23 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
             _files.Add(key, content);
             return Task.FromResult(key);
         }
-        public Task<byte[]> ReadAsync(string key) => Task.FromResult(_files[key]);
+        public byte[]? Replacement { get; set; }
+        public bool Missing { get; set; }
+        public Task<byte[]> ReadAsync(string key) => Missing
+            ? throw new StoredFileNotFoundException(key)
+            : Task.FromResult(Replacement ?? _files[key]);
+    }
+
+    private sealed class QueryCounter : DbCommandInterceptor
+    {
+        public int Count { get; private set; }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<DbDataReader> result, CancellationToken cancellationToken = default)
+        {
+            Count++;
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
     }
 
     private MicroLimsDbContext Context(int? actor = null)
@@ -52,7 +71,7 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
     private static QualityLinkService Links(MicroLimsDbContext db) => new(db, Core(db), new PermissionService(db),
         new UserSectionScopeService(db), Clock);
 
-    private async Task<int> ActorAsync(MicroLimsDbContext db, RoleType type, bool investigate = false, bool canRaise = true)
+    private async Task<int> ActorAsync(MicroLimsDbContext db, RoleType type, bool investigate = false, bool canRaise = true, bool oosView = false)
     {
         var key = Guid.NewGuid().ToString("N");
         var role = new Role { Name = key, Type = type, IsActive = true };
@@ -67,6 +86,7 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         var codes = new List<string> { PermissionConstants.QualityView };
         if (canRaise) codes.Add(PermissionConstants.QualityRaise);
         if (investigate) codes.Add(PermissionConstants.QualityInvestigate);
+        if (oosView) codes.Add(PermissionConstants.OosView);
         var permissions = await db.Permissions.AsNoTracking().Where(p => codes.Contains(p.Code)).Select(p => p.Id).ToListAsync();
         Assert.Equal(codes.Count, permissions.Count);
         db.RolePermissions.AddRange(permissions.Select(id => new RolePermission { RoleId = role.Id, PermissionId = id }));
@@ -217,6 +237,12 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         var step = await check.QualityRecordSteps.AsNoTracking().SingleAsync(s => s.RecordId == recordId);
         Assert.Equal(actor, step.SignedByUserId);
         Assert.Equal(Now, step.SignedAtUtc);
+        var signature = await check.ElectronicSignatures.AsNoTracking().SingleAsync(s => s.Id == step.SignatureId);
+        Assert.Equal(step.SignatureId, signature.Id);
+        Assert.Equal(actor, signature.UserId);
+        Assert.Equal(SignatureMeaning.DeviationAssessed, signature.MeaningOfSignature);
+        Assert.Equal("QualityRecord", signature.EntityType);
+        Assert.Equal(recordId, signature.EntityId);
         using var snapshot = JsonDocument.Parse(step.SnapshotJson);
         var signedVersion = await check.QualityRecords.AsNoTracking().Where(r => r.Id == recordId)
             .Select(r => r.Version).SingleAsync();
@@ -286,11 +312,12 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
     [PostgresFact]
     public async Task Attachments_reject_invalid_evidence_and_void_retains_the_row_and_audit()
     {
-        int actor;
+        int actor, reader;
         QualityRecord record;
         await using (var arrange = Context())
         {
             actor = await ActorAsync(arrange, RoleType.Analyst);
+            reader = await ActorAsync(arrange, RoleType.Reviewer, canRaise: false);
             record = Record(actor, owner: actor);
             arrange.Add(record);
             await arrange.SaveChangesAsync();
@@ -318,7 +345,17 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
             var version = header.Version;
             await Assert.ThrowsAsync<BusinessRuleException>(() => service.VoidAsync(record.Id, uploaded.Id, version, " ", actor));
             await service.VoidAsync(record.Id, uploaded.Id, version, "Superseded", actor);
-            await Assert.ThrowsAsync<NotFoundException>(() => service.GetContentAsync(record.Id, uploaded.Id, actor));
+        }
+        await using (var act = Context(reader))
+        {
+            var header = await Core(act).ReadDtoAsync(record.Id, reader);
+            Assert.True(Assert.Single(header.Attachments).IsVoided);
+            var voided = await Attachments(act, storage).GetContentAsync(record.Id, uploaded.Id, reader);
+            Assert.Equal(content, voided.Bytes);
+            Assert.True(voided.IsVoided);
+            Assert.Equal("Superseded", voided.VoidReason);
+            Assert.Equal(actor, voided.VoidedByUserId);
+            Assert.Equal(Now, voided.VoidedAtUtc);
         }
         await using var check = Context();
         var persisted = await check.QualityAttachments.AsNoTracking().SingleAsync(a => a.Id == uploaded.Id);
@@ -335,9 +372,13 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         Assert.Equal(actor, audit.UserId);
         Assert.Contains("\"VoidReason\":null", audit.PreviousValue);
         Assert.Contains("Superseded", audit.NewValue);
-        var download = await AuditAsync<QualityAttachment>(check, uploaded.Id, "QualityAttachmentDownloaded");
-        Assert.Equal(actor, download.UserId);
+        var download = await check.AuditLogs.AsNoTracking().Where(a => a.EntityName == nameof(QualityAttachment) &&
+            a.EntityId == uploaded.Id.ToString() && a.Action == "QualityAttachmentDownloaded").OrderByDescending(a => a.Id).FirstAsync();
+        Assert.Equal(reader, download.UserId);
         Assert.StartsWith("EVT-", download.EventUid);
+        var downloadChanges = await check.AuditEventChanges.AsNoTracking().Where(c => c.AuditLogId == download.Id).ToListAsync();
+        Assert.Equal(record.Id.ToString(), Assert.Single(downloadChanges, c => c.FieldName == "RecordId").NewValue);
+        Assert.Equal(record.Number, Assert.Single(downloadChanges, c => c.FieldName == "RecordNumber").NewValue);
     }
 
     [PostgresFact]
@@ -412,6 +453,209 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         Assert.NotNull(audit.NewValue);
     }
 
+    [PostgresFact]
+    public async Task Download_distinguishes_record_scope_missing_storage_and_integrity_failure()
+    {
+        int actor, other;
+        QualityRecord record, unrelated;
+        await using (var arrange = Context())
+        {
+            actor = await ActorAsync(arrange, RoleType.Analyst);
+            other = await ActorAsync(arrange, RoleType.Analyst);
+            record = Record(actor);
+            unrelated = Record(actor);
+            arrange.AddRange(record, unrelated);
+            await arrange.SaveChangesAsync();
+        }
+
+        var storage = new Storage();
+        var bytes = "%PDF-original"u8.ToArray();
+        var corrupt = "%PDF-corrupt"u8.ToArray();
+        QualityAttachmentDto attachment;
+        await using (var act = Context(actor))
+            attachment = await Attachments(act, storage).UploadAsync(record.Id, record.Version, "evidence.pdf", bytes, actor);
+        await using (var act = Context(actor))
+            await Assert.ThrowsAsync<NotFoundException>(() => Attachments(act, storage).GetContentAsync(unrelated.Id, attachment.Id, actor));
+        await using (var act = Context(other))
+        {
+            await Assert.ThrowsAsync<NotFoundException>(() => Attachments(act, storage).GetContentAsync(record.Id, attachment.Id, other));
+            await Assert.ThrowsAsync<NotFoundException>(() => Links(act).ResolveAsync(record.Id, other));
+            await Assert.ThrowsAsync<NotFoundException>(() => new QualityCommentService(act, Core(act), Clock)
+                .ListAsync(record.Id, other, 0, 25));
+        }
+
+        await using (var act = Context(actor))
+        {
+            var service = Attachments(act, storage);
+            storage.Missing = true;
+            var missing = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetContentAsync(record.Id, attachment.Id, actor));
+            Assert.Equal(MessageCodes.DocumentFileReadFromStorageFailed, missing.Code);
+            storage.Missing = false;
+            storage.Replacement = corrupt;
+            var mismatch = await Assert.ThrowsAsync<BusinessRuleException>(() => service.GetContentAsync(record.Id, attachment.Id, actor));
+            Assert.Equal(MessageCodes.DocumentFileIntegrityDeliveryBlocked, mismatch.Code);
+        }
+
+        await using var check = Context();
+        var entityId = attachment.Id.ToString();
+        var fault = await check.AuditLogs.AsNoTracking().Include(a => a.Changes).SingleAsync(a =>
+            a.EntityName == nameof(QualityAttachment) && a.EntityId == entityId && a.Action == "FileIntegrityVerificationFailed");
+        Assert.Equal(actor, fault.UserId);
+        Assert.Equal(AuditActionCategory.Security, fault.ActionCategory);
+        Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(bytes)).ToLowerInvariant(),
+            Assert.Single(fault.Changes, c => c.FieldName == "StoredHash").PreviousValue);
+        Assert.Equal(Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(corrupt)),
+            Assert.Single(fault.Changes, c => c.FieldName == "ComputedHash").NewValue);
+        Assert.False(await check.AuditLogs.AsNoTracking().AnyAsync(a =>
+            a.EntityName == nameof(QualityAttachment) && a.EntityId == entityId && a.Action == "QualityAttachmentDownloaded"));
+    }
+
+    [PostgresFact]
+    public async Task Resolve_batches_samples_and_oos_while_preserving_target_scope()
+    {
+        int analyst, outside;
+        QualityRecord source;
+        Sample[] samples;
+        Sample unlinked;
+        OosInvestigation owned, unrelated;
+        var createTitle = $"refused-{Guid.NewGuid():N}";
+        await using (var arrange = Context())
+        {
+            analyst = await ActorAsync(arrange, RoleType.Analyst, oosView: true);
+            outside = await OtherSectionAsync(arrange);
+            source = Record(analyst);
+            var cause = new CauseOfTesting { Name = $"Quality link scope {Guid.NewGuid():N}" };
+            samples = Enumerable.Range(0, 24).Select(i => TestSample(analyst,
+                i % 2 == 0 ? fixture.SeededSectionId : outside, cause)).ToArray();
+            unlinked = TestSample(analyst, outside, cause);
+            arrange.Add(source);
+            arrange.AddRange(samples);
+            arrange.Add(unlinked);
+            await arrange.SaveChangesAsync();
+
+            var order = new TestOrder { SampleId = samples[0].Id, SectionId = fixture.SeededSectionId, AssignedAnalystId = analyst };
+            arrange.Add(order);
+            await arrange.SaveChangesAsync();
+
+            owned = Investigation(samples[0].Id, fixture.SeededSectionId, analyst);
+            owned.Results.Add(new OosInvestigationResult { TestOrderId = order.Id, AddedAtUtc = Now });
+            unrelated = Investigation(samples[2].Id, fixture.SeededSectionId, analyst);
+            arrange.AddRange(owned, unrelated);
+            await arrange.SaveChangesAsync();
+            foreach (var sample in samples)
+                arrange.Add(NewLink(source.Id, sample.Id, analyst, QualityLinkTargetType.Sample));
+            foreach (var investigation in new[] { owned, unrelated })
+                arrange.Add(NewLink(source.Id, investigation.Id, analyst, QualityLinkTargetType.OosInvestigation));
+            await arrange.SaveChangesAsync();
+        }
+
+        await using (var act = Context(analyst))
+        {
+            var links = Links(act);
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                links.AddAsync(source.Id, QualityLinkTargetType.Sample, unlinked.Id, analyst, source.Version));
+            await Assert.ThrowsAsync<NotFoundException>(() =>
+                links.AddAsync(source.Id, QualityLinkTargetType.OosInvestigation, unrelated.Id, analyst, source.Version));
+            var self = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                links.AddAsync(source.Id, QualityLinkTargetType.QualityRecord, source.Id, analyst, source.Version));
+            Assert.Equal(MessageCodes.QualitySelfLink, self.Code);
+            await Assert.ThrowsAsync<NotFoundException>(() => Core(act).CreateAsync(QualityRecordType.Deviation,
+                new(createTitle, "Description", null, [new(QualityLinkTargetType.Sample, unlinked.Id)]), analyst));
+            await Assert.ThrowsAsync<CodedAccessDeniedException>(() => Core(act).CreateAsync(QualityRecordType.Deviation,
+                new(createTitle, "Description", outside, []), analyst));
+        }
+
+        var counter = new QueryCounter();
+        await using (var act = fixture.CreateDbContext(counter))
+        {
+            var resolved = await Links(act).ResolveAsync(source.Id, analyst);
+            Assert.Equal(26, resolved.Count);
+            foreach (var (sample, index) in samples.Select((sample, index) => (sample, index)))
+            {
+                var link = Assert.Single(resolved, l => l.Number == sample.ReferenceNumber);
+                Assert.Equal(index % 2 != 0, link.IsRestricted);
+                Assert.Equal(index % 2 == 0 ? sample.ReferenceNumber : null, link.Label);
+                Assert.Equal(index % 2 == 0 ? RecordNavigationTargets.Sample(sample.Id) : null, link.Route);
+            }
+            var restrictedOos = Assert.Single(resolved, l => l.Number == unrelated.Number);
+            Assert.True(restrictedOos.IsRestricted);
+            Assert.Null(restrictedOos.Label);
+            Assert.Null(restrictedOos.Route);
+            var visibleOos = Assert.Single(resolved, l => l.Number == owned.Number);
+            Assert.False(visibleOos.IsRestricted);
+            Assert.Equal(owned.Number, visibleOos.Label);
+            Assert.NotNull(visibleOos.Route);
+            Assert.InRange(counter.Count, 1, 14);
+        }
+
+        await using var check = Context();
+        Assert.False(await check.QualityRecords.AsNoTracking().AnyAsync(r => r.Title == createTitle));
+        Assert.False(await check.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.RecordId == source.Id &&
+            l.TargetType == QualityLinkTargetType.Sample && l.TargetId == unlinked.Id));
+    }
+
+    [PostgresFact]
+    public async Task Sign_requires_a_transaction_and_persists_the_failed_password_audit()
+    {
+        var (actor, recordId, _, version) = await ArrangeLinkAsync();
+        await using (var act = Context(actor))
+        {
+            var core = Core(act);
+            var detached = await core.LoadForReadAsync(recordId, actor);
+            var error = await Assert.ThrowsAsync<BusinessRuleException>(() => core.SignStepAsync(detached,
+                QualityStepKind.DeviationAssessed, SignatureMeaning.DeviationAssessed, new { }, Password, null, actor, null));
+            Assert.Equal(MessageCodes.QualityTransactionRequired, error.Code);
+
+            await Assert.ThrowsAsync<SignatureVerificationException>(() => UnitOfWork.RunAsync(act, () =>
+                core.SignStepAsync(detached, QualityStepKind.DeviationAssessed, SignatureMeaning.DeviationAssessed,
+                    new { }, "wrong password", null, actor, null)));
+        }
+
+        await using (var check = Context())
+        {
+            Assert.False(await check.QualityRecordSteps.AsNoTracking().AnyAsync(s => s.RecordId == recordId));
+            Assert.False(await check.ElectronicSignatures.AsNoTracking()
+                .AnyAsync(s => s.EntityType == "QualityRecord" && s.EntityId == recordId));
+            var audit = await check.AuditLogs.AsNoTracking().SingleAsync(a => a.EntityName == "ElectronicSignature" &&
+                a.EntityId == $"QualityRecord:{recordId}" && a.Action == "SignatureFailed");
+            Assert.Equal(actor, audit.UserId);
+            Assert.Null(audit.PreviousValue);
+            Assert.Contains("DeviationAssessed", audit.NewValue);
+        }
+
+        int stepId;
+        await using (var act = Context(actor))
+        {
+            var core = Core(act);
+            var detached = await core.LoadForReadAsync(recordId, actor);
+            Assert.Equal(version, detached.Version);
+            var step = await UnitOfWork.RunAsync(act, () => core.SignStepAsync(detached, QualityStepKind.DeviationAssessed,
+                SignatureMeaning.DeviationAssessed, new { }, Password, null, actor, null));
+            stepId = step.Id;
+        }
+        await using (var check = Context())
+        {
+            var step = await check.QualityRecordSteps.AsNoTracking().SingleAsync(s => s.Id == stepId);
+            Assert.Equal(recordId, step.RecordId);
+            Assert.Equal(actor, (await AuditAsync<QualityRecordStep>(check, step.Id, "Create")).UserId);
+        }
+    }
+
+    private static Sample TestSample(int userId, int section, CauseOfTesting cause) => new()
+    {
+        ReferenceNumber = $"Q-{Guid.NewGuid():N}"[..18], LabSectionId = section,
+        ReceivedByUserId = userId, ReceivedAt = Now, CauseOfTesting = cause
+    };
+
+    private static OosInvestigation Investigation(int sampleId, int section, int userId) => new()
+    {
+        Number = $"OOS-{Guid.NewGuid():N}"[..20], SampleId = sampleId, SectionId = section,
+        OpenedByUserId = userId, OpenedAtUtc = Now, TemplateSnapshotJson = "{}"
+    };
+
+    private QualityAttachmentService Attachments(MicroLimsDbContext db, Storage storage) =>
+        new(db, Core(db), storage, new AuditEventService(db, fixture.CreateSequenceHelper(db), Clock), Clock);
+
     private async Task<(int Actor, int RecordId, int LinkId, uint Version)> ArrangeLinkAsync()
     {
         await using var arrange = Context();
@@ -426,9 +670,10 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         return (actor, record.Id, link.Id, record.Version);
     }
 
-    private static QualityRecordLink NewLink(int source, int target, int user) => new()
+    private static QualityRecordLink NewLink(int source, int target, int user,
+        QualityLinkTargetType type = QualityLinkTargetType.QualityRecord) => new()
     {
-        RecordId = source, TargetId = target, TargetType = QualityLinkTargetType.QualityRecord,
+        RecordId = source, TargetId = target, TargetType = type,
         AddedByUserId = user, AddedAtUtc = Now
     };
 

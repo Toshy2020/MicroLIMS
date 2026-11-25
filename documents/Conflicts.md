@@ -1183,4 +1183,5 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Status:** Decided
 - **Question:** Who may add or remove quality record links, upload or void attachments, and add comments?
 - **Decision:** A user who can read the record and holds `Quality.Raise` may add links, upload attachments, and add comments. This includes raisers, owners, and action holders who meet both conditions. A user who can read the record may remove a link or void an attachment if they hold `Quality.Investigate` or own the record. Links may be removed only before the first signed step. Voiding an attachment requires a reason and preserves the attachment row. Audit every change.
+- **Availability:** Anyone who can read the record may download a voided attachment. The attachment metadata identifies it as voided and displays the reason, actor, and timestamp.
 - **Date:** 2026-11-25

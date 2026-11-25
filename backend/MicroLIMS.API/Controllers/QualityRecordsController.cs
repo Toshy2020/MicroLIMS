@@ -78,6 +78,7 @@ public class QualityRecordsController(QualityRecordCore core, QualityLinkService
     public async Task<IActionResult> DownloadAttachment(int id, int attachmentId, CancellationToken ct = default)
     {
         var content = await attachments.GetContentAsync(id, attachmentId, Actor, ct);
+        Response.Headers["X-Quality-Attachment-Voided"] = content.IsVoided ? "true" : "false";
         return File(content.Bytes, content.ContentType, content.FileName);
     }
 

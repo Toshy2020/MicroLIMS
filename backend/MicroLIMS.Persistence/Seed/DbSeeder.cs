@@ -41,10 +41,9 @@ public static class DbSeeder
 
         SeedInitialAdministrator(db, initialAdminPassword);
 
-        // "Periodic retest" is also inserted by the AddPeriodicRetestSelection
-        // migration (which runs first), so the basic causes are seeded when
-        // that is the only one.
-        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause))
+        // "Periodic retest" and "Complaint" are also inserted by migrations
+        // (which run first), so the basic causes are seeded when only those exist.
+        if (!db.CausesOfTesting.Any(c => c.Name != PeriodicRetestCause && c.Name != "Complaint"))
         {
             db.CausesOfTesting.AddRange(
                 new CauseOfTesting { Name = "Routine" },
@@ -54,6 +53,8 @@ public static class DbSeeder
         }
         if (!db.CausesOfTesting.Any(c => c.Name == PeriodicRetestCause))
             db.CausesOfTesting.Add(new CauseOfTesting { Name = PeriodicRetestCause, RequiresTestSelection = true });
+        if (!db.CausesOfTesting.Any(c => c.Name == "Complaint"))
+            db.CausesOfTesting.Add(new CauseOfTesting { Name = "Complaint" });
 
         if (!db.Neutralizers.Any())
         {

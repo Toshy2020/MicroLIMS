@@ -27,9 +27,15 @@ public sealed partial class OosInvestigationService
         if (filter.SectionId is int sectionId)
             query = query.Where(i => i.SectionId == sectionId);
         if (filter.From is DateTime from)
-            query = query.Where(i => i.OpenedAtUtc >= from);
+        {
+            var fromUtc = OosReadDates.ToUtc(from);
+            query = query.Where(i => i.OpenedAtUtc >= fromUtc);
+        }
         if (filter.To is DateTime to)
-            query = query.Where(i => i.OpenedAtUtc <= to);
+        {
+            var toUtc = OosReadDates.ToUtc(to);
+            query = query.Where(i => i.OpenedAtUtc <= toUtc);
+        }
 
         var today = clock.LabToday;
         if (filter.Overdue is bool overdue)
@@ -43,7 +49,7 @@ public sealed partial class OosInvestigationService
                      (i.Status != OosInvestigationStatus.PhaseOne || i.PhaseOneDueDate == null || i.PhaseOneDueDate >= today)));
         }
 
-        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 1);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 25);
         var total = await query.CountAsync(ct);
 
         var paged = query
@@ -362,7 +368,41 @@ public sealed partial class OosInvestigationService
              select o.Id).Any());
     }
 
-    private async Task<IQueryable<OosInvestigation>> ScopedReadQueryAsync(int actor, CancellationToken ct)
+    internal async Task EnsureDocumentGroupReadableAsync(string groupCode, int actor, CancellationToken ct)
+    {
+        var scoped = await ScopedReadQueryAsync(actor, ct);
+        var investigation = await db.OosInvestigations.AsNoTracking()
+            .Where(i => i.Number == groupCode)
+            .Select(i => (bool?)scoped.Any(visible => visible.Id == i.Id))
+            .SingleOrDefaultAsync(ct);
+
+        if (investigation == true) return;
+        if (investigation is null)
+        {
+            var readable = await scope.GetReadableSectionIdsAsync(actor, ct);
+            var samples = db.Samples.AsNoTracking().Where(s => s.OosGroupCode == groupCode);
+            if (readable is null)
+            {
+                if (await samples.AnyAsync(ct)) return;
+            }
+            else
+            {
+                // A legacy retest identifies the deciding laboratory. For an
+                // origin-only group, resolve scope from that sample's orders.
+                var retests = samples.Where(s => s.OriginSampleId != null);
+                var scopedSamples = await retests.AnyAsync(ct) ? retests : samples;
+                if (await scopedSamples.AnyAsync(s => s.TestOrders.Any(o => readable.Contains(o.SectionId)), ct))
+                    return;
+            }
+        }
+
+        throw new NotFoundException(
+            MessageCodes.OosGroupNotFound,
+            $"OOS group \"{groupCode}\" not found.",
+            new Dictionary<string, string> { ["oosGroupCode"] = groupCode });
+    }
+
+    internal async Task<IQueryable<OosInvestigation>> ScopedReadQueryAsync(int actor, CancellationToken ct)
     {
         if (!await permissions.UserHasPermissionAsync(actor, PermissionConstants.OosView, ct))
             throw new CodedAccessDeniedException(MessageCodes.OosInvestigationAccessDenied, "You do not have permission for this investigation action.");

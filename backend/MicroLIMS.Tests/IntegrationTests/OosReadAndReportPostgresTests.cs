@@ -1,4 +1,11 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using MicroLIMS.API.Controllers;
+using MicroLIMS.Application.Validators;
 using MicroLIMS.Application.Abstractions.Pdf;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Services;
@@ -178,8 +185,8 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
 
         var clampedLow = await svc.ListAsync(new OosInvestigationFilter(Page: 0, PageSize: 0));
         Assert.Equal(1, clampedLow.Page);
-        Assert.Equal(1, clampedLow.PageSize);
-        Assert.Single(clampedLow.Items);
+        Assert.Equal(25, clampedLow.PageSize);
+        Assert.Equal(3, clampedLow.Items.Count);
 
         var onlyConcluded = await svc.ListAsync(new OosInvestigationFilter(Status: OosInvestigationStatus.Concluded));
         Assert.Equal(concludedOosId, Assert.Single(onlyConcluded.Items).Id);
@@ -194,7 +201,9 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         var onlyOverdue = await svc.ListAsync(new OosInvestigationFilter(Overdue: true));
         Assert.Equal(overdueExcursionId, Assert.Single(onlyOverdue.Items).Id);
 
-        var dateWindow = await svc.ListAsync(new OosInvestigationFilter(From: now.AddDays(-4), To: now.AddDays(-2)));
+        var dateWindow = await svc.ListAsync(new OosInvestigationFilter(
+            From: DateTime.SpecifyKind(now.AddDays(-4), DateTimeKind.Unspecified),
+            To: DateTime.SpecifyKind(now.AddDays(-2), DateTimeKind.Unspecified)));
         Assert.Equal(openOosId, Assert.Single(dateWindow.Items).Id);
     }
 
@@ -234,6 +243,8 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         await Assert.ThrowsAsync<NotFoundException>(() => svc.GetFactsAsync(invBId));
         Assert.Empty((await svc.ListAsync(new OosInvestigationFilter())).Items);
         Assert.Empty(await svc.GetForSampleAsync(sampleBId));
+        await Assert.ThrowsAsync<NotFoundException>(() => ReportBuilder(act, svc).GeneratePdfAsync(invBId));
+        Assert.Empty((await Trends(act).GetTrendsAsync("conclusion", sectionId: labB.Id)).Groups);
     }
 
     [PostgresFact]
@@ -243,11 +254,12 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         var analyst1 = await _seed.UserAsync(RoleType.Analyst, AnalystOosCodes, lab);
         var analyst2 = await _seed.UserAsync(RoleType.Analyst, AnalystOosCodes, lab);
 
-        int inv1Id, inv2Id, sample2Id;
+        int inv1Id, inv2Id, sample1Id, sample2Id;
         await using (var arrange = fixture.CreateDbContext())
         {
             var s1 = await _seed.SampleAsync(lab, SampleStatus.UnderApproval, ApprovalStatus.Reviewed, WorkflowStep.Reviewed, analystId: analyst1.Id);
             var s2 = await _seed.SampleAsync(lab, SampleStatus.UnderApproval, ApprovalStatus.Reviewed, WorkflowStep.Reviewed, analystId: analyst2.Id);
+            sample1Id = s1.Sample.Id;
             sample2Id = s2.Sample.Id;
 
             var inv1 = new OosInvestigation
@@ -287,7 +299,11 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         Assert.Equal(inv1Id, Assert.Single(list.Items).Id);
         Assert.Equal(inv1Id, (await svc.GetByIdAsync(inv1Id)).Id);
         await Assert.ThrowsAsync<NotFoundException>(() => svc.GetByIdAsync(inv2Id));
+        Assert.Equal(inv1Id, Assert.Single(await svc.GetForSampleAsync(sample1Id)).Id);
         Assert.Empty(await svc.GetForSampleAsync(sample2Id));
+        await Assert.ThrowsAsync<NotFoundException>(() => ReportBuilder(act, svc).GeneratePdfAsync(inv2Id));
+        var trend = Assert.Single((await Trends(act).GetTrendsAsync("conclusion", sectionId: lab.Id)).Groups);
+        Assert.Equal(1, trend.TotalCount);
     }
 
     [PostgresFact]
@@ -600,6 +616,10 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
             var newOrigin = await _seed.SampleAsync(lab, SampleStatus.UnderApproval, ApprovalStatus.Reviewed, WorkflowStep.Reviewed);
             var newOriginRow = await arrange.Samples.SingleAsync(s => s.Id == newOrigin.Sample.Id);
             newOriginRow.OosGroupCode = newCode;
+            var newRetest = await _seed.SampleAsync(lab, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+            var newRetestRow = await arrange.Samples.SingleAsync(s => s.Id == newRetest.Sample.Id);
+            newRetestRow.OriginSampleId = newOriginRow.Id;
+            newRetestRow.OosGroupCode = newCode;
             arrange.OosInvestigations.Add(new OosInvestigation
             {
                 Number = newCode,
@@ -638,7 +658,7 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
             arrange.OosCauseCategories.Add(cat);
             await arrange.SaveChangesAsync();
 
-            var s1 = await _seed.SampleAsync(lab, SampleStatus.Rejected, ApprovalStatus.Approved, WorkflowStep.Approved, analystId: analyst.Id, testCode: "TAMC");
+            var s1 = await _seed.SampleAsync(lab, SampleStatus.Rejected, ApprovalStatus.Approved, WorkflowStep.Approved, orders: 2, analystId: analyst.Id, testCode: "TAMC");
             var s2 = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved, analystId: analyst.Id, testCode: "TAMC");
             var s1Row = await arrange.Samples.SingleAsync(s => s.Id == s1.Sample.Id);
             var s2Row = await arrange.Samples.SingleAsync(s => s.Id == s2.Sample.Id);
@@ -683,7 +703,11 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
                     ConcludedAtUtc = mon.AddDays(2), // +2 working days
                     ConcludedByUserId = head.Id,
                     TemplateSnapshotJson = """{"items":[]}""",
-                    Results = { new OosInvestigationResult { TestOrderId = s1.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "OOS", AddedAtUtc = mon } }
+                    Results = s1.Orders.Select(order => new OosInvestigationResult
+                    {
+                        TestOrderId = order.Id, OutcomeAtOpening = OosOutcomeClass.Fails,
+                        ResultSummaryAtOpening = "OOS", AddedAtUtc = mon
+                    }).ToList()
                 },
                 new OosInvestigation
                 {
@@ -706,11 +730,15 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
 
         await using var act = fixture.CreateDbContext();
         act.CurrentUserId = head.Id;
-        var trends = new OosTrendService(act, new UserSectionScopeService(act), new PermissionService(act), LabClock.Default);
+        var trends = Trends(act);
+        var from = DateTime.SpecifyKind(mon.AddDays(-1), DateTimeKind.Unspecified);
+        var to = DateTime.SpecifyKind(mon.AddDays(10), DateTimeKind.Unspecified);
 
         foreach (var groupBy in new[] { "product", "test", "analyst", "instrument", "cause", "conclusion" })
         {
-            var result = await trends.GetTrendsAsync(groupBy, mon.AddDays(-1), mon.AddDays(10));
+            var result = await trends.GetTrendsAsync(groupBy, from, to);
+            Assert.Equal(DateTimeKind.Utc, result.FromUtc?.Kind);
+            Assert.Equal(DateTimeKind.Utc, result.ToUtc?.Kind);
             if (groupBy == "conclusion")
             {
                 Assert.Collection(result.Groups,
@@ -724,6 +752,174 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
                 Assert.Equal(groupBy == "instrument" ? 2.0 : 2.5, group.MedianWorkingDaysToConclude);
             }
         }
+    }
+
+    [PostgresFact]
+    public async Task Document_reads_apply_investigation_scope_and_legacy_group_sections()
+    {
+        var lab = await _seed.SectionAsync();
+        var otherLab = await _seed.SectionAsync();
+        var viewer = await _seed.UserAsync(RoleType.QcManager, ViewCodes, otherLab);
+        var inScope = await _seed.UserAsync(RoleType.QcManager, ViewCodes, lab);
+        var analyst = await _seed.UserAsync(RoleType.Analyst, AnalystOosCodes, lab);
+        var sample = await _seed.SampleAsync(lab, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+        var legacy = await _seed.SampleAsync(lab, SampleStatus.InTesting, ApprovalStatus.Pending, WorkflowStep.Running);
+        var code = $"OOS-N-{Guid.NewGuid():N}"[..16];
+        var legacyCode = $"OOS-L-{Guid.NewGuid():N}"[..16];
+        var bytes = "%PDF-1.4 test document"u8.ToArray();
+        var storage = new InMemoryFileStorageService();
+        var documentIds = new Dictionary<string, int>();
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            (await arrange.Samples.SingleAsync(s => s.Id == sample.Sample.Id)).OosGroupCode = code;
+            (await arrange.Samples.SingleAsync(s => s.Id == legacy.Sample.Id)).OosGroupCode = legacyCode;
+            var opened = Utc(11, 6);
+            arrange.OosInvestigations.Add(new OosInvestigation
+            {
+                Number = code,
+                Kind = OosInvestigationKind.Oos,
+                Status = OosInvestigationStatus.PhaseOne,
+                SampleId = sample.Sample.Id,
+                SectionId = lab.Id,
+                OpenedAtUtc = opened,
+                OpenedByUserId = inScope.Id,
+                TemplateSnapshotJson = """{"items":[]}""",
+                Results = { new OosInvestigationResult { TestOrderId = sample.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "OOS", AddedAtUtc = opened } }
+            });
+            foreach (var group in new[] { code, legacyCode })
+            {
+                var document = new OosInvestigationDocument
+                {
+                    OosGroupCode = group,
+                    OriginalFileName = "Investigation.pdf",
+                    StorageKey = await storage.SaveAsync(group, bytes),
+                    FileExtension = ".pdf",
+                    ContentType = "application/pdf",
+                    FileSizeBytes = bytes.Length,
+                    ContentSha256 = Convert.ToHexString(SHA256.HashData(bytes)),
+                    UploadedByUserId = inScope.Id,
+                    UploadedAt = opened
+                };
+                arrange.OosInvestigationDocuments.Add(document);
+                await arrange.SaveChangesAsync();
+                documentIds[group] = document.Id;
+            }
+        }
+
+        foreach (var (actor, group) in new[] { (viewer, code), (analyst, code), (viewer, legacyCode) })
+        {
+            await using var act = fixture.CreateDbContext();
+            var controller = Documents(act, storage, actor.Id);
+            await Assert.ThrowsAsync<NotFoundException>(() => controller.GetDocuments(group));
+            await Assert.ThrowsAsync<NotFoundException>(() => controller.GetContent(documentIds[group], group));
+        }
+
+        await using var allowed = fixture.CreateDbContext();
+        var allowedController = Documents(allowed, storage, inScope.Id);
+        foreach (var group in documentIds.Keys)
+        {
+            var response = Assert.IsType<OkObjectResult>(await allowedController.GetDocuments(group));
+            var data = Assert.IsType<MicroLIMS.Shared.Responses.ApiResponse<object>>(response.Value);
+            var docs = Assert.IsType<List<OosInvestigationDocumentDto>>(data.Data);
+            Assert.Equal(documentIds[group], Assert.Single(docs).Id);
+            var file = Assert.IsType<FileContentResult>(await allowedController.GetContent(documentIds[group], group));
+            Assert.Equal(bytes, file.FileContents);
+        }
+        await Assert.ThrowsAsync<NotFoundException>(() => allowedController.GetDocuments("missing-group"));
+        storage.Files[code] = [0];
+        await Assert.ThrowsAsync<BusinessRuleException>(() => allowedController.GetContent(documentIds[code], code));
+    }
+
+    [PostgresTheory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Certificate_with_only_a_non_superseded_invalidated_order_has_no_reportable_results(bool locationBased)
+    {
+        var lab = await _seed.SectionAsync();
+        var head = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, lab);
+        var sample = await _seed.SampleAsync(lab, SampleStatus.Approved, ApprovalStatus.Approved, WorkflowStep.Approved,
+            signoff: SectionSignoffStatus.Approved, testCode: "TAMC");
+        var orderId = sample.Orders[0].Id;
+        var measuredAt = Utc(11, 6);
+        const string invalidatedValue = "999 CFU/g";
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            if (locationBased)
+            {
+                arrange.SampleLocations.Add(new SampleLocation
+                {
+                    SampleId = sample.Sample.Id, TestOrderId = orderId, LocationType = LocationType.Room,
+                    ReportedResult = invalidatedValue, Status = ResultStatus.OutOfSpecification,
+                    EnteredByUserId = head.Id, EnteredAt = measuredAt
+                });
+            }
+            else
+            {
+                arrange.CountTestReadings.Add(new CountTestReading
+                {
+                    TestOrderId = orderId, PlateReadings = "999", DilutionFactor = 1,
+                    ReportedResult = invalidatedValue, Status = ResultStatus.OutOfSpecification,
+                    EnteredByUserId = head.Id, EnteredAt = measuredAt
+                });
+            }
+
+            arrange.OosInvestigations.Add(new OosInvestigation
+            {
+                Number = $"OOS-NR-{Guid.NewGuid():N}"[..16],
+                Kind = OosInvestigationKind.Oos,
+                Status = OosInvestigationStatus.Concluded,
+                Conclusion = OosConclusion.Invalidated,
+                SampleId = sample.Sample.Id,
+                SectionId = lab.Id,
+                OpenedAtUtc = measuredAt,
+                OpenedByUserId = head.Id,
+                ConcludedAtUtc = measuredAt,
+                ConcludedByUserId = head.Id,
+                TemplateSnapshotJson = """{"items":[]}""",
+                Results = { new OosInvestigationResult
+                {
+                    TestOrderId = orderId, OutcomeAtOpening = OosOutcomeClass.Fails,
+                    ResultSummaryAtOpening = invalidatedValue, AddedAtUtc = measuredAt,
+                    IsInvalidated = true, InvalidatedAtUtc = measuredAt
+                } }
+            });
+            await arrange.SaveChangesAsync();
+        }
+
+        await using var act = fixture.CreateDbContext();
+        var summary = await TestServiceFactory.SampleSummary(act).GetCertificateSummaryAsync(sample.Sample.Id, [lab.Id]);
+        Assert.NotNull(summary);
+        var order = Assert.Single(summary.TestOrders);
+        Assert.False(order.IsSuperseded);
+        Assert.True(order.IsOosInvalidated);
+        Assert.True(summary.CombinedCoaAvailable);
+        var certificate = summary.Certificate.Sample;
+        Assert.Null(certificate.Matrix);
+        Assert.Null(certificate.Simple);
+        Assert.False(certificate.Complies);
+        Assert.Equal("Cannot certify because no results are recorded.", certificate.ConclusionText);
+    }
+
+    private static OosTrendService Trends(MicroLimsDbContext db) =>
+        new(db, TestServiceFactory.OosInvestigation(db), LabClock.Default);
+
+    private static OosInvestigationReportBuilder ReportBuilder(MicroLimsDbContext db, OosInvestigationService service) =>
+        new(service, new PdfGenerator(), new DataExportAuditService(db), db);
+
+    private static OosInvestigationDocumentController Documents(MicroLimsDbContext db, InMemoryFileStorageService storage, int actor)
+    {
+        var service = new OosInvestigationDocumentService(db, storage, new MaterialDocumentFileValidator(1024),
+            NullLogger<OosInvestigationDocumentService>.Instance, TestServiceFactory.OosInvestigation(db));
+        return new(service, new UserSectionScopeService(db))
+        {
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, actor.ToString())], "Test"))
+                }
+            }
+        };
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow) : TimeProvider

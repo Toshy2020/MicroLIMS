@@ -421,7 +421,7 @@ public sealed class OosQaAndNotificationPostgresTests(PostgresTestFixture fixtur
         var service = Service(db);
         return new(service, OosRetestPlanPostgresTests.Service(db), notifier,
             NullLogger<OosInvestigationsController>.Instance,
-            new OosTrendService(db, new UserSectionScopeService(db), new PermissionService(db), LabClock.Default),
+            new OosTrendService(db, service, LabClock.Default),
             new OosInvestigationReportBuilder(service, new PdfGenerator(), new DataExportAuditService(db), db))
         {
             ControllerContext = Context(actor, version)

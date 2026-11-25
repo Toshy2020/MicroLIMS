@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../../contexts/AuthContext";
+import { PERMISSIONS } from "../../../routes/routes";
 import { oosInvestigationService } from "../../../services/oosInvestigationService";
 import { RecordDetailDialog } from "./RecordDetailDialog";
 import type { ResultRecordItem } from "../types/reportingTypes";
@@ -49,6 +51,7 @@ const sampleRecord: ResultRecordItem = {
 };
 
 beforeEach(() => {
+  localStorage.clear();
   vi.mocked(oosInvestigationService.openManualExcursion).mockReset();
 });
 
@@ -65,12 +68,15 @@ describe("RecordDetailDialog excursion review", () => {
       version: 1
     });
 
+    localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.OOS_CONTRIBUTE]));
     render(
-      <PinnedLightTheme>
-        <MemoryRouter>
-          <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
-        </MemoryRouter>
-      </PinnedLightTheme>
+      <AuthProvider>
+        <PinnedLightTheme>
+          <MemoryRouter>
+            <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
+          </MemoryRouter>
+        </PinnedLightTheme>
+      </AuthProvider>
     );
 
     await user.click(screen.getByRole("button", { name: /Open excursion review/i }));
@@ -97,12 +103,15 @@ describe("RecordDetailDialog excursion review", () => {
       response: { data: { message: "An excursion review is already open for this test order." } }
     });
 
+    localStorage.setItem("microlims_permissions", JSON.stringify([PERMISSIONS.OOS_CONTRIBUTE]));
     render(
-      <PinnedLightTheme>
-        <MemoryRouter>
-          <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
-        </MemoryRouter>
-      </PinnedLightTheme>
+      <AuthProvider>
+        <PinnedLightTheme>
+          <MemoryRouter>
+            <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
+          </MemoryRouter>
+        </PinnedLightTheme>
+      </AuthProvider>
     );
 
     await user.click(screen.getByRole("button", { name: /Open excursion review/i }));
@@ -114,5 +123,29 @@ describe("RecordDetailDialog excursion review", () => {
         screen.getByText("An excursion review is already open for this test order.")
       ).toBeTruthy()
     );
+  });
+
+  it("does not show Open excursion review without an auth context or OOS permission", () => {
+    render(
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
+        </MemoryRouter>
+      </PinnedLightTheme>
+    );
+    expect(screen.queryByRole("button", { name: /Open excursion review/i })).toBeNull();
+
+    cleanup();
+    localStorage.setItem("microlims_permissions", JSON.stringify([]));
+    render(
+      <AuthProvider>
+        <PinnedLightTheme>
+          <MemoryRouter>
+            <RecordDetailDialog open record={sampleRecord} onClose={vi.fn()} />
+          </MemoryRouter>
+        </PinnedLightTheme>
+      </AuthProvider>
+    );
+    expect(screen.queryByRole("button", { name: /Open excursion review/i })).toBeNull();
   });
 });

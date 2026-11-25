@@ -37,10 +37,11 @@ export function RecordDetailDialog({ open, onClose, record }: RecordDetailDialog
   const { t } = useTranslation("reports");
   const theme = useTheme();
   const auth = useOptionalAuth();
-  const canOpenExcursion =
-    !auth ||
-    auth.permissions.includes(PERMISSIONS.OOS_CONTRIBUTE) ||
-    auth.permissions.includes(PERMISSIONS.OOS_MANAGE);
+  const canOpenExcursion = Boolean(
+    auth &&
+      (auth.permissions.includes(PERMISSIONS.OOS_CONTRIBUTE) ||
+        auth.permissions.includes(PERMISSIONS.OOS_MANAGE))
+  );
   const [auditOpen, setAuditOpen] = useState(false);
   const [excursionOpen, setExcursionOpen] = useState(false);
   const [excursionReason, setExcursionReason] = useState("");

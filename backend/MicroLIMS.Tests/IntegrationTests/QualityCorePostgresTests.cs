@@ -150,7 +150,7 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
     public async Task Link_checks_target_access_and_reverse_lookup_filters_its_sources()
     {
         int analyst, investigator;
-        QualityRecord source, target, unreadable, scopedOut;
+        QualityRecord source, target, unreadable, unlinkedUnreadable, scopedOut;
         await using (var arrange = Context())
         {
             analyst = await ActorAsync(arrange, RoleType.Analyst);
@@ -158,8 +158,9 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
             source = Record(analyst);
             target = Record(analyst);
             unreadable = Record();
+            unlinkedUnreadable = Record();
             scopedOut = Record(owner: analyst, section: await OtherSectionAsync(arrange));
-            arrange.AddRange(source, target, unreadable, scopedOut);
+            arrange.AddRange(source, target, unreadable, unlinkedUnreadable, scopedOut);
             await arrange.SaveChangesAsync();
             arrange.QualityRecordLinks.AddRange(NewLink(source.Id, unreadable.Id, investigator),
                 NewLink(scopedOut.Id, target.Id, investigator));
@@ -170,7 +171,7 @@ public class QualityCorePostgresTests(PostgresTestFixture fixture)
         {
             var links = Links(act);
             await Assert.ThrowsAsync<NotFoundException>(() => links.AddAsync(source.Id, QualityLinkTargetType.QualityRecord,
-                unreadable.Id, analyst, source.Version));
+                unlinkedUnreadable.Id, analyst, source.Version));
             await Assert.ThrowsAsync<NotFoundException>(() => links.AddAsync(source.Id, QualityLinkTargetType.QualityRecord,
                 int.MaxValue, analyst, source.Version));
             Assert.Equal(MessageCodes.QualityInvalidTarget, (await Assert.ThrowsAsync<BusinessRuleException>(() =>

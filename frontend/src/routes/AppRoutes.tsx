@@ -89,6 +89,7 @@ const MonitoringPlanPage = lazy(() => import("../modules/monitoringPlan/Monitori
 const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOverviewPage").then((m) => ({ default: m.DatabaseOverviewPage })));
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
+const InvestigationPage = lazy(() => import("../modules/oosTracking/InvestigationPage").then((m) => ({ default: m.InvestigationPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
 const DocumentControlDashboardPage = lazy(() => import("../modules/documentControl/pages/DocumentControlDashboardPage").then((m) => ({ default: m.DocumentControlDashboardPage })));
@@ -264,8 +265,9 @@ export function AppRoutes() {
 
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
-            <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
+            <Route element={<PermissionRoute code={[PERMISSIONS.OOS_VIEW, PERMISSIONS.OOS_MANAGE]} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
+              <Route path="/oos-tracking/:id" element={<InvestigationPage />} />
             </Route>
             <Route element={<PermissionRoute code={PERMISSIONS.AUDIT_VIEW} />}>
               <Route path="/audit-trail-reviews" element={<AuditTrailReviewsPage />} />

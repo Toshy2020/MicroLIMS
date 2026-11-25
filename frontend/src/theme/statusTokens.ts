@@ -168,7 +168,21 @@ const STATUS_TONE: Record<string, StatusTone> = {
   Signed: "notDetected",
   NoFindings: "notDetected",
   FindingsRecorded: "action",
-  Closed: "notDetected"
+  Closed: "notDetected",
+
+  // OOS / Excursion investigation register states.
+  PhaseOne: "info",
+  AwaitingRetest: "action",
+  PhaseTwo: "purple",
+  Concluded: "notDetected",
+  Confirmed: "detected",
+  Invalidated: "notDetected",
+  ExcursionClosed: "notDetected",
+  Oos: "detected",
+  Excursion: "action",
+  Addressed: "notDetected",
+  LaboratoryErrorConfirmed: "action",
+  NoLaboratoryErrorFound: "info"
 };
 
 export function statusTone(status: string): StatusTone {
@@ -300,7 +314,19 @@ const STATUS_LABEL_KEYS: Record<string, string> = {
   Signed: "statuses.Signed",
   NoFindings: "statuses.NoFindings",
   FindingsRecorded: "statuses.FindingsRecorded",
-  Closed: "statuses.Closed"
+  Closed: "statuses.Closed",
+  PhaseOne: "statuses.PhaseOne",
+  AwaitingRetest: "statuses.AwaitingRetest",
+  PhaseTwo: "statuses.PhaseTwo",
+  Concluded: "statuses.Concluded",
+  Confirmed: "statuses.Confirmed",
+  Invalidated: "statuses.Invalidated",
+  ExcursionClosed: "statuses.ExcursionClosed",
+  Oos: "statuses.Oos",
+  Excursion: "statuses.Excursion",
+  Addressed: "statuses.Addressed",
+  LaboratoryErrorConfirmed: "statuses.LaboratoryErrorConfirmed",
+  NoLaboratoryErrorFound: "statuses.NoLaboratoryErrorFound"
 };
 
 export function statusLabel(status: string, t?: TFunction): string {

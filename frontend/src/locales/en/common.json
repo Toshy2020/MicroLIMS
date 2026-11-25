@@ -711,7 +711,19 @@
     "Signed": "Signed",
     "NoFindings": "No Findings",
     "FindingsRecorded": "Findings Recorded",
-    "Closed": "Closed"
+    "Closed": "Closed",
+    "PhaseOne": "Phase I",
+    "AwaitingRetest": "Awaiting Retest",
+    "PhaseTwo": "Phase II",
+    "Concluded": "Concluded",
+    "Confirmed": "OOS Confirmed",
+    "Invalidated": "OOS Invalidated",
+    "ExcursionClosed": "Excursion Closed",
+    "Oos": "OOS",
+    "Excursion": "Excursion",
+    "Addressed": "Addressed",
+    "LaboratoryErrorConfirmed": "Laboratory Error Confirmed",
+    "NoLaboratoryErrorFound": "No Laboratory Error Found"
   },
   "workflowEvents": {
     "SubmittedForReview": "Submitted for Review",

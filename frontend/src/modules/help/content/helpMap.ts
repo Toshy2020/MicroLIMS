@@ -109,6 +109,7 @@ export const HELP_MAP: Record<string, HelpTarget> = {
 
 // Parent sections for locations no key owns.
 const SECTION_FALLBACKS: [string, string][] = [
+  ["/oos-tracking", "20-oos-tracking"],
   ["/laboratory-configuration", "32-laboratory-configuration"],
   ["/sections", "07-navigation"],
   ["/admin", "39-users-roles-administration"],

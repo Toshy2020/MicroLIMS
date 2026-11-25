@@ -622,5 +622,22 @@
       { "key": "createdAt", "label": "Created", "defaultVisible": true }
     ],
     "filters": ["state", "type", "q"]
+  },
+  {
+    "key": "oosTracking.register",
+    "title": "OOS Investigation Register",
+    "idColumn": "number",
+    "columns": [
+      { "key": "number", "label": "Investigation #", "defaultVisible": true },
+      { "key": "kind", "label": "Kind", "defaultVisible": true },
+      { "key": "status", "label": "Status", "defaultVisible": true },
+      { "key": "sampleReferenceNumber", "label": "Sample", "defaultVisible": true },
+      { "key": "sectionName", "label": "Section", "defaultVisible": true },
+      { "key": "testCodes", "label": "Test(s)", "defaultVisible": true },
+      { "key": "openedAtUtc", "label": "Opened", "defaultVisible": true },
+      { "key": "dueDate", "label": "Due Date", "defaultVisible": true },
+      { "key": "conclusion", "label": "Conclusion", "defaultVisible": true }
+    ],
+    "filters": ["sectionId", "status", "from", "to"]
   }
 ]

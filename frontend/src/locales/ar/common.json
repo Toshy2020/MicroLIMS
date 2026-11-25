@@ -759,7 +759,19 @@
     "Signed": "موقَّع",
     "NoFindings": "بلا ملاحظات",
     "FindingsRecorded": "ملاحظات مسجَّلة",
-    "Closed": "مغلق"
+    "Closed": "مغلق",
+    "PhaseOne": "المرحلة الأولى",
+    "AwaitingRetest": "بانتظار إعادة الاختبار",
+    "PhaseTwo": "المرحلة الثانية",
+    "Concluded": "مُختتم",
+    "Confirmed": "خارج المواصفات مؤكد",
+    "Invalidated": "خارج المواصفات مُبطل",
+    "ExcursionClosed": "تجاوز مغلق",
+    "Oos": "خارج المواصفات",
+    "Excursion": "تجاوز",
+    "Addressed": "تمت المعالجة",
+    "LaboratoryErrorConfirmed": "تأكد خطأ المختبر",
+    "NoLaboratoryErrorFound": "لم يُعثر على خطأ مختبري"
   },
   "workflowEvents": {
     "SubmittedForReview": "قُدِّم للمراجعة",

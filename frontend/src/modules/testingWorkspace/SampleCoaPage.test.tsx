@@ -154,9 +154,19 @@ describe("SampleCoaPage supporting rows", () => {
     expect(screen.getAllByText("Not applicable (QC form NA-01)").length).toBe(1);
   });
 
-  it("shows the server block reason and investigation link when certificate is blocked", async () => {
+  it("shows the server block reason verbatim with role=alert and investigation link when certificate is blocked by coded refusal", async () => {
     mockGetSummary.mockRejectedValue({
-      response: { data: { message: "A certificate cannot be issued until the reporting rule for multiple retests is resolved." } }
+      response: {
+        data: {
+          message: "A certificate cannot be issued until the reporting rule for multiple retests is resolved.",
+          errorDetails: [
+            {
+              code: "Oos.CertificateMultipleRetests",
+              message: "A certificate cannot be issued until the reporting rule for multiple retests is resolved."
+            }
+          ]
+        }
+      }
     });
     vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([
       {
@@ -185,12 +195,26 @@ describe("SampleCoaPage supporting rows", () => {
 
     renderPage();
 
-    await waitFor(() =>
-      expect(
-        screen.getByText("A certificate cannot be issued until the reporting rule for multiple retests is resolved.")
-      ).toBeTruthy()
-    );
+    const alerts = await screen.findAllByRole("alert");
+    expect(
+      alerts.some((a) =>
+        a.textContent?.includes(
+          "A certificate cannot be issued until the reporting rule for multiple retests is resolved."
+        )
+      )
+    ).toBe(true);
     const link = screen.getByRole("link", { name: /OOS-2026-0042/i });
     expect(link.getAttribute("href")).toBe("/oos-tracking/42");
+  });
+
+  it("shows a plain translated error with role=alert for non-coded errors and passes AbortSignal to getForSample", async () => {
+    mockGetSummary.mockRejectedValue(new Error("Network Error"));
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([]);
+
+    renderPage();
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("Failed to load the certificate of analysis.");
+    expect(oosInvestigationService.getForSample).toHaveBeenCalledWith(1, expect.any(AbortSignal));
   });
 });

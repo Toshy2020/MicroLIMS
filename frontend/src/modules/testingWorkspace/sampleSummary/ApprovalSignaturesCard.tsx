@@ -172,6 +172,7 @@ export function ApprovalSignaturesCard({
     };
   }, [decision, effectiveApprovalSectionId, approvableSections, summary.certificate]);
 
+  // Follow-up (backend, later): derive retest/new-sample availability from the server instead of sectionHasInvestigation.
   const visibleDecisionOptions = useMemo(
     () =>
       sectionHasInvestigation
@@ -184,10 +185,22 @@ export function ApprovalSignaturesCard({
 
   const approveEntry = approvalAvailability.get("approval.approve");
   const rejectEntry = approvalAvailability.get("approval.reject");
+  const activeEntry =
+    decision === "Approve"
+      ? approveEntry
+      : decision === "Reject"
+      ? rejectEntry
+      : approveEntry && !approveEntry.allowed
+      ? approveEntry
+      : rejectEntry;
   const approvalBlockedReason =
-    (approveEntry && !approveEntry.allowed ? approveEntry.reason : null) ??
-    (rejectEntry && !rejectEntry.allowed ? rejectEntry.reason : null) ??
-    null;
+    activeEntry && !activeEntry.allowed ? (activeEntry.reason ?? null) : null;
+  const approvalBlockedCode =
+    activeEntry && !activeEntry.allowed ? (activeEntry.reasonCode ?? null) : null;
+  const canOpenMissingInvestigation =
+    canOpenInvestigation &&
+    !sectionHasInvestigation &&
+    approvalBlockedCode === "Oos.FailingResultWithoutInvestigation";
 
   return (
     <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", borderRadius: 2, height: "100%", bgcolor: "background.paper" }}>
@@ -427,11 +440,12 @@ export function ApprovalSignaturesCard({
               />
             ))}
           </RadioGroup>
-          {(oosInvestigations.length > 0 || (canOpenInvestigation && !sectionHasInvestigation && approvalBlockedReason)) && (
+          {(oosInvestigations.length > 0 || Boolean(approvalBlockedReason) || canOpenMissingInvestigation) && (
             <Box sx={{ mb: 1.5 }}>
               <OosBanner
                 investigations={oosInvestigations}
-                canOpenManually={canOpenInvestigation && !sectionHasInvestigation && Boolean(approvalBlockedReason)}
+                blockReason={approvalBlockedReason}
+                canOpenManually={canOpenMissingInvestigation}
                 openingInvestigation={openingInvestigation}
                 openError={openInvestigationError}
                 onOpenInvestigation={onOpenInvestigation}

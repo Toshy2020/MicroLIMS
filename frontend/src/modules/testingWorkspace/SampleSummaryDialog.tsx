@@ -152,7 +152,6 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [closingSectionId, setClosingSectionId] = useState<number | "">("");
   const [confirmingClose, setConfirmingClose] = useState(false);
   const [investigations, setInvestigations] = useState<OosInvestigationListItemDto[]>([]);
-  const [sampleVersion, setSampleVersion] = useState<number | null>(null);
   const [openingInvestigation, setOpeningInvestigation] = useState(false);
   const [openInvestigationError, setOpenInvestigationError] = useState<string | null>(null);
 
@@ -202,6 +201,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   useEffect(() => {
     if (open && sampleId) {
+      const controller = new AbortController();
       setSummary(null);
       setLoadError(null);
       setComment("");
@@ -217,14 +217,18 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setRetentionQuantity("");
       setRetentionQuantityUnit("");
       setInvestigations([]);
-      setSampleVersion(null);
       setOpenInvestigationError(null);
       oosInvestigationService
-        .getForSample(sampleId)
-        .then(setInvestigations)
-        .catch(() => setInvestigations([]));
+        .getForSample(sampleId, controller.signal)
+        .then((data) => {
+          if (!controller.signal.aborted) setInvestigations(data);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setInvestigations([]);
+        });
       SampleSummaryService.getSummary(sampleId)
         .then((data) => {
+          if (controller.signal.aborted) return;
           setSummary(data);
           if (data.retentionQuantity != null) {
             setRetentionQuantity(String(data.retentionQuantity));
@@ -247,17 +251,24 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           }
         })
         .catch((e) => {
-          setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
+          if (!controller.signal.aborted) {
+            setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
+          }
         });
       if (canAssignAnalyst) {
         setAnalystsLoadFailed(false);
         UserService.getEligibleAnalysts()
-          .then(setAnalysts)
+          .then((list) => {
+            if (!controller.signal.aborted) setAnalysts(list);
+          })
           .catch(() => {
-            setAnalysts([]);
-            setAnalystsLoadFailed(true);
+            if (!controller.signal.aborted) {
+              setAnalysts([]);
+              setAnalystsLoadFailed(true);
+            }
           });
       }
+      return () => controller.abort();
     }
   }, [open, sampleId, canAssignAnalyst]);
 
@@ -363,6 +374,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     return investigations.filter((i) => i.sectionId === effectiveApprovalSectionId);
   }, [investigations, effectiveApprovalSectionId]);
 
+  // Follow-up (backend, later): derive retest/new-sample availability from the server instead of sectionHasInvestigation.
   const sectionHasInvestigation = useMemo(
     () => sectionInvestigations.some((i) => i.kind === "Oos"),
     [sectionInvestigations]
@@ -379,7 +391,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
     setOpeningInvestigation(true);
     setOpenInvestigationError(null);
     try {
-      const ver = sampleVersion ?? (await SampleSummaryService.getSampleVersion?.(sampleId));
+      const ver = await SampleSummaryService.getSampleVersion(sampleId);
       if (ver == null) {
         setOpenInvestigationError("Unable to determine sample version.");
         return;

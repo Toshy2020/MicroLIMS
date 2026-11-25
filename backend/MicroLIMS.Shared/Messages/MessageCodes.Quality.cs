@@ -15,6 +15,14 @@ public static partial class MessageCodes
     public const string QualityDuplicateLink = "Quality.DuplicateLink";
     public const string QualitySignedLink = "Quality.SignedLink";
     public const string QualityInvalidAttachment = "Quality.InvalidAttachment";
+    public const string QualityDuplicateItem = "Quality.DuplicateItem";
+    public const string QualityDuplicateClassification = "Quality.DuplicateClassification";
+    public const string QualityInvalidWorkingDays = "Quality.InvalidWorkingDays";
+    public const string QualityInvalidAnswer = "Quality.InvalidAnswer";
+    public const string QualityExtensionAlreadyDecided = "Quality.ExtensionAlreadyDecided";
+    public const string QualityExtensionSelfDecision = "Quality.ExtensionSelfDecision";
+    public const string QualityExtensionDate = "Quality.ExtensionDate";
+    public const string QualityExtensionSignatureFailed = "Quality.ExtensionSignatureFailed";
 
     public const string DeviationRaiseRoute = "Deviation.RaiseRoute";
     public const string DeviationOccurrenceUtc = "Deviation.OccurrenceUtc";
@@ -65,5 +73,13 @@ public static partial class MessageCodes
         [QualityDuplicateLink] = [],
         [QualitySignedLink] = [],
         [QualityInvalidAttachment] = [],
+        [QualityDuplicateItem] = [],
+        [QualityDuplicateClassification] = [],
+        [QualityInvalidWorkingDays] = [],
+        [QualityInvalidAnswer] = [],
+        [QualityExtensionAlreadyDecided] = [],
+        [QualityExtensionSelfDecision] = [],
+        [QualityExtensionDate] = [],
+        [QualityExtensionSignatureFailed] = [],
     };
 }

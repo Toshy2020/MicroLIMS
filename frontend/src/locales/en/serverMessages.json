@@ -25,6 +25,7 @@
   "Quality.ExtensionSelfDecision": "You cannot decide your own extension request.",
   "Quality.ExtensionDate": "Enter a date later than the current due date.",
   "Quality.ExtensionSignatureFailed": "The signature could not be verified.",
+  "Quality.RecordTerminal": "This quality record is closed, rejected, or cancelled.",
   "Quality.InvalidType": "Unknown quality record type.",
   "Quality.InvalidTarget": "Unknown quality link target type.",
   "Quality.InvalidText": "Enter between 1 and {{max}} characters.",

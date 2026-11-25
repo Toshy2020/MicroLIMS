@@ -23,6 +23,7 @@ public static partial class MessageCodes
     public const string QualityExtensionSelfDecision = "Quality.ExtensionSelfDecision";
     public const string QualityExtensionDate = "Quality.ExtensionDate";
     public const string QualityExtensionSignatureFailed = "Quality.ExtensionSignatureFailed";
+    public const string QualityRecordTerminal = "Quality.RecordTerminal";
 
     public const string DeviationRaiseRoute = "Deviation.RaiseRoute";
     public const string DeviationOccurrenceUtc = "Deviation.OccurrenceUtc";
@@ -81,5 +82,6 @@ public static partial class MessageCodes
         [QualityExtensionSelfDecision] = [],
         [QualityExtensionDate] = [],
         [QualityExtensionSignatureFailed] = [],
+        [QualityRecordTerminal] = [],
     };
 }

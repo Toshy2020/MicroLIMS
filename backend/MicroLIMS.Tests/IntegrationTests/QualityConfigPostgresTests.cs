@@ -239,6 +239,8 @@ public sealed class QualityConfigPostgresTests(PostgresTestFixture fixture)
         var date = Today.AddDays(4);
         await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
             ActAsync(owner, s => s.RequestAsync(record.Id, actionId, date, "Reason", record.Version, owner)));
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+            ActAsync(responsible, s => s.RequestAsync(record.Id, null, date, "Reason", record.Version, responsible)));
         var pending = await ActAsync(responsible, s => s.RequestAsync(record.Id, actionId, date, "Reason", record.Version, responsible));
         var decided = await ActAsync(qa, s => s.DecideAsync(pending.Id, true, null, Password, pending.Version, qa));
         await Assert.ThrowsAnyAsync<DbUpdateConcurrencyException>(() =>
@@ -301,5 +303,134 @@ public sealed class QualityConfigPostgresTests(PostgresTestFixture fixture)
         Assert.Contains(onRecordDueDate.Actions, r => r.ActionId == action.Id);
         var later = await ActAsync(owner, s => s.ListOverdueAsync(Today, owner));
         Assert.Contains(later.Records, r => r.RecordId == record.Id && r.DueDate == record.DueDate);
+    }
+
+    [PostgresFact]
+    public async Task Overdue_records_and_actions_respect_section_scope_and_analyst_own_filter()
+    {
+        var (ownRecord, owner, _) = await WorldAsync(QualityRecordType.Deviation);
+        int analyst, otherSectionId, otherRecordId, analystRecordId;
+        await using (var arrange = Context())
+        {
+            var analystKey = Guid.NewGuid().ToString("N");
+            var analystUser = new User
+            {
+                FullName = "Overdue analyst", Username = analystKey, IsActive = true,
+                Role = new Role { Name = analystKey, Type = RoleType.Analyst, IsActive = true },
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Password, 4)
+            };
+            arrange.Users.Add(analystUser);
+            await arrange.SaveChangesAsync();
+            var viewId = await arrange.Permissions.AsNoTracking()
+                .Where(p => p.Code == PermissionConstants.QualityView).Select(p => p.Id).SingleAsync();
+            arrange.RolePermissions.Add(new RolePermission { RoleId = analystUser.RoleId, PermissionId = viewId });
+            var seededSection = await arrange.DocumentSections.AsNoTracking()
+                .Where(s => s.Id == fixture.SeededSectionId).Select(s => new { s.Id, s.DepartmentId }).SingleAsync();
+            arrange.UserOrgMemberships.Add(new UserOrgMembership
+            {
+                UserId = analystUser.Id, SectionId = seededSection.Id, DepartmentId = seededSection.DepartmentId
+            });
+            otherSectionId = await arrange.DocumentSections.AsNoTracking()
+                .Where(s => s.IsActive && s.Id != fixture.SeededSectionId).OrderBy(s => s.Id)
+                .Select(s => s.Id).FirstAsync();
+
+            var otherSectionRecord = new QualityRecord
+            {
+                Number = Guid.NewGuid().ToString("N")[..20], Title = "Other section overdue", Description = "Test",
+                Type = QualityRecordType.Deviation, SectionId = otherSectionId, OwnerUserId = owner,
+                DueDate = Today.AddDays(-3), RaisedAtUtc = Clock.GetUtcNow().UtcDateTime
+            };
+            var analystRecord = new QualityRecord
+            {
+                Number = Guid.NewGuid().ToString("N")[..20], Title = "Analyst own overdue", Description = "Test",
+                Type = QualityRecordType.Deviation, SectionId = fixture.SeededSectionId, OwnerUserId = analystUser.Id,
+                DueDate = Today.AddDays(-2), RaisedAtUtc = Clock.GetUtcNow().UtcDateTime,
+                Actions = [new() { ResponsibleUserId = analystUser.Id, Description = "Analyst action", DueDate = Today.AddDays(-2) }]
+            };
+            arrange.QualityRecords.AddRange(otherSectionRecord, analystRecord);
+            await arrange.SaveChangesAsync();
+            analyst = analystUser.Id;
+            otherRecordId = otherSectionRecord.Id;
+            analystRecordId = analystRecord.Id;
+        }
+
+        var ownerOverdue = await ActAsync(owner, s => s.ListOverdueAsync(Today, owner));
+        Assert.Contains(ownerOverdue.Records, r => r.RecordId == ownRecord.Id);
+        Assert.DoesNotContain(ownerOverdue.Records, r => r.RecordId == otherRecordId);
+
+        var analystOverdue = await ActAsync(analyst, s => s.ListOverdueAsync(Today, analyst));
+        Assert.Contains(analystOverdue.Records, r => r.RecordId == analystRecordId);
+        Assert.Contains(analystOverdue.Actions, a => a.RecordId == analystRecordId);
+        Assert.DoesNotContain(analystOverdue.Records, r => r.RecordId == ownRecord.Id);
+        Assert.DoesNotContain(analystOverdue.Records, r => r.RecordId == otherRecordId);
+    }
+
+    [PostgresFact]
+    public async Task Answer_is_refused_on_terminal_or_cancelled_record_without_persisting()
+    {
+        var (record, owner, qa) = await WorldAsync(QualityRecordType.Deviation);
+        await ActAsync(qa, s => s.SaveTemplateAsync(record.Type, null, new([new("check", 1, "Check item", true)]), 0, qa));
+        await using (var arrange = Context())
+        {
+            arrange.DeviationDetails.Add(new DeviationDetail
+            {
+                RecordId = record.Id, Status = QualityDeviationStatus.Closed, OccurredAtUtc = Clock.GetUtcNow().UtcDateTime
+            });
+            await arrange.SaveChangesAsync();
+        }
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ActAsync(owner, s => s.AnswerAsync(record.Id, "check", QualityChecklistAnswerValue.Yes, null, record.Version, owner)));
+        Assert.Equal(MessageCodes.QualityRecordTerminal, error.Code);
+
+        await using var check = Context();
+        Assert.False(await check.QualityChecklistAnswers.AsNoTracking().AnyAsync(a => a.RecordId == record.Id));
+        Assert.Equal(record.Version, await check.QualityRecords.AsNoTracking()
+            .Where(r => r.Id == record.Id).Select(r => r.Version).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Extension_request_is_refused_on_terminal_or_cancelled_record_without_persisting()
+    {
+        var (record, owner, _) = await WorldAsync(QualityRecordType.Capa);
+        await using (var arrange = Context())
+        {
+            arrange.CapaDetails.Add(new CapaDetail { RecordId = record.Id, Status = CapaStatus.Closed });
+            await arrange.SaveChangesAsync();
+        }
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ActAsync(owner, s => s.RequestAsync(record.Id, null, Today.AddDays(5), "Too late", record.Version, owner)));
+        Assert.Equal(MessageCodes.QualityRecordTerminal, error.Code);
+
+        await using var check = Context();
+        Assert.False(await check.QualityExtensionRequests.AsNoTracking().AnyAsync(e => e.RecordId == record.Id));
+        Assert.Equal(record.Version, await check.QualityRecords.AsNoTracking()
+            .Where(r => r.Id == record.Id).Select(r => r.Version).SingleAsync());
+    }
+
+    [PostgresFact]
+    public async Task Extension_decision_is_refused_on_terminal_or_cancelled_record_without_persisting()
+    {
+        var (record, owner, qa) = await WorldAsync(QualityRecordType.ChangeControl);
+        var pending = await ActAsync(owner, s => s.RequestAsync(record.Id, null, Today.AddDays(5), "Before cancel", record.Version, owner));
+        await using (var arrange = Context())
+        {
+            var saved = await arrange.QualityRecords.SingleAsync(r => r.Id == record.Id);
+            saved.IsCancelled = true;
+            await arrange.SaveChangesAsync();
+        }
+
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            ActAsync(qa, s => s.DecideAsync(pending.Id, true, "Approve", Password, pending.Version, qa)));
+        Assert.Equal(MessageCodes.QualityRecordTerminal, error.Code);
+
+        await using var check = Context();
+        var persistedRequest = await check.QualityExtensionRequests.AsNoTracking().SingleAsync(e => e.Id == pending.Id);
+        Assert.Null(persistedRequest.Decision);
+        Assert.Null(persistedRequest.SignatureId);
+        Assert.Equal(record.DueDate, await check.QualityRecords.AsNoTracking()
+            .Where(r => r.Id == record.Id).Select(r => r.DueDate).SingleAsync());
+        Assert.False(await check.QualityRecordSteps.AsNoTracking().AnyAsync(s => s.RecordId == record.Id));
     }
 }

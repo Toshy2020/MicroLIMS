@@ -14,6 +14,23 @@ namespace MicroLIMS.Application.Services.Quality;
 public sealed partial class QualityConfigService(IMicroLimsDbContext db, QualityRecordCore core,
     PermissionService permissions, IUserSectionScopeService scope, TimeProvider clock)
 {
+    internal static readonly System.Linq.Expressions.Expression<Func<QualityRecord, bool>> IsOpenExpression =
+        r => !r.IsCancelled
+            && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected
+                && r.DeviationDetail.Status != QualityDeviationStatus.Closed && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
+            && (r.CapaDetail == null || (r.CapaDetail.Status != CapaStatus.Closed && r.CapaDetail.Status != CapaStatus.Cancelled))
+            && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Closed
+                && r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
+            && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
+                && r.ComplaintDetail.Status != ComplaintStatus.Cancelled));
+
+    private async Task EnsureOpenAsync(int recordId, CancellationToken ct)
+    {
+        if (!await db.QualityRecords.AsNoTracking().Where(r => r.Id == recordId).AnyAsync(IsOpenExpression, ct))
+            throw new BusinessRuleException(MessageCodes.QualityRecordTerminal,
+                "This quality record is closed, rejected, or cancelled.");
+    }
+
     // These existing configuration tables have no mapped version. Use their existing
     // PostgreSQL row versions and serialize writes, including creation of absent keys.
     private sealed record ConfigVersion(int Id, long Version);
@@ -181,6 +198,7 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
         if (record.OwnerUserId != userId && !await permissions.UserHasPermissionAsync(userId, PermissionConstants.QualityInvestigate, ct))
             throw QualityRecordCore.Denied();
         await EnsureMemberAsync(record, userId, ct);
+        await EnsureOpenAsync(recordId, ct);
 
         var key = QualityRecordCore.RequiredText(itemKey, 36);
         if (!Enum.IsDefined(answer))

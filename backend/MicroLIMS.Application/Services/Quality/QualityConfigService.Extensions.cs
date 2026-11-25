@@ -17,6 +17,7 @@ public sealed partial class QualityConfigService
     {
         var record = await core.LockForWriteAsync(recordId, expectedVersion, userId, ct);
         await EnsureMemberAsync(record, userId, ct);
+        await EnsureOpenAsync(recordId, ct);
         var action = await LockActionAsync(recordId, actionId, ct);
         if ((action is null ? record.OwnerUserId : action.ResponsibleUserId) != userId)
             throw QualityRecordCore.Denied();
@@ -42,9 +43,11 @@ public sealed partial class QualityConfigService
         var recordId = await readable.Where(r => r.ExtensionRequests.Any(e => e.Id == requestId))
             .Select(r => (int?)r.Id).SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
         await core.LockAsync(recordId, ct);
+        // Reload the record's current version under the lock; only the extension request If-Match is enforced here.
         var recordVersion = await readable.Where(r => r.Id == recordId).Select(r => (uint?)r.Version)
             .SingleOrDefaultAsync(ct) ?? throw QualityRecordCore.Missing();
         var record = await core.LoadForWriteAsync(recordId, recordVersion, userId, ct);
+        await EnsureOpenAsync(recordId, ct);
         await db.Database.ExecuteSqlInterpolatedAsync(
             $"""SELECT "Id" FROM "QualityExtensionRequests" WHERE "Id" = {requestId} FOR UPDATE""", ct);
         var request = await db.QualityExtensionRequests.SingleAsync(e => e.Id == requestId && e.RecordId == recordId, ct);
@@ -118,14 +121,7 @@ public sealed partial class QualityConfigService
         CancellationToken ct = default)
     {
         await core.EnsureViewAsync(userId, ct);
-        var open = (await core.ReadableRecordsAsync(userId, ct)).Where(r => !r.IsCancelled
-            && (r.DeviationDetail == null || (r.DeviationDetail.Status != QualityDeviationStatus.Rejected
-                && r.DeviationDetail.Status != QualityDeviationStatus.Closed && r.DeviationDetail.Status != QualityDeviationStatus.Cancelled))
-            && (r.CapaDetail == null || (r.CapaDetail.Status != CapaStatus.Closed && r.CapaDetail.Status != CapaStatus.Cancelled))
-            && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Closed
-                && r.ChangeControlDetail.Status != ChangeControlStatus.Rejected && r.ChangeControlDetail.Status != ChangeControlStatus.Cancelled))
-            && (r.ComplaintDetail == null || (r.ComplaintDetail.Status != ComplaintStatus.Closed
-                && r.ComplaintDetail.Status != ComplaintStatus.Cancelled)));
+        var open = (await core.ReadableRecordsAsync(userId, ct)).Where(IsOpenExpression);
         var (skip, take) = PageWindow(page, pageSize);
         var records = await open.Where(r => r.DueDate < labDate).OrderBy(r => r.DueDate).ThenBy(r => r.Id)
             .Skip(skip).Take(take).Select(r => new OverdueQualityRecordDto(r.Id, r.Number, r.Title,

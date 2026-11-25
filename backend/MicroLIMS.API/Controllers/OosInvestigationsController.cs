@@ -29,8 +29,8 @@ public sealed class OosInvestigationsController(
     OosRetestPlanService retestPlans,
     IOosNotifier notifier,
     ILogger<OosInvestigationsController> logger,
-    OosTrendService? trends = null,
-    OosInvestigationReportBuilder? reportBuilder = null) : ControllerBase
+    OosTrendService trends,
+    OosInvestigationReportBuilder reportBuilder) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = PermissionConstants.OosView)]
@@ -56,7 +56,7 @@ public sealed class OosInvestigationsController(
     [Authorize(Policy = PermissionConstants.OosView)]
     public async Task<IActionResult> GetPdf(int id, CancellationToken ct = default)
     {
-        var (fileName, bytes) = await reportBuilder!.GeneratePdfAsync(id, ct);
+        var (fileName, bytes) = await reportBuilder.GeneratePdfAsync(id, ct);
         return File(bytes, "application/pdf", fileName);
     }
 
@@ -69,7 +69,7 @@ public sealed class OosInvestigationsController(
         [FromQuery] OosInvestigationKind? kind = null,
         [FromQuery] int? sectionId = null,
         CancellationToken ct = default) =>
-        Ok(ApiResponse<OosTrendReportDto>.Ok(await trends!.GetTrendsAsync(groupBy, from, to, kind, sectionId, ct)));
+        Ok(ApiResponse<OosTrendReportDto>.Ok(await trends.GetTrendsAsync(groupBy, from, to, kind, sectionId, ct)));
 
     [HttpGet("for-sample/{sampleId:int}")]
     [Authorize(Policy = PermissionConstants.OosView)]

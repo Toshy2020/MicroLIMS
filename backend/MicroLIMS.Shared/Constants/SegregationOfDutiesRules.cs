@@ -44,7 +44,8 @@ public static class SegregationOfDutiesRules
     }
 
     // Quality Assurance independence (B4): the quality unit reads everything and decides on
-    // controlled documents, audit trail reviews and access reviews, and does nothing else.
+    // controlled documents, audit trail reviews, access reviews, and quality record
+    // approvals/closures (Quality.Approve), and does nothing else.
     // A role of type QA, or any role holding a QA-only code, may hold no laboratory execution
     // or approval code (document review and approval excepted), no administration code and no
     // configuration code.

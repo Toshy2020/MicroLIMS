@@ -46,15 +46,7 @@ public class PermissionAuthorizationTests
         Assert.Empty(used.Except(PermissionConstants.Enforced));
     }
 
-    // D2 Task 1 provisions Quality.* as enforced ahead of Tasks 2-7 endpoint checks.
-    private static readonly HashSet<string> ProvisionedAheadOfEnforcement = new()
-    {
-        PermissionConstants.QualityView,
-        PermissionConstants.QualityRaise,
-        PermissionConstants.QualityInvestigate,
-        PermissionConstants.QualityLabConclude,
-        PermissionConstants.QualityApprove
-    };
+    private static readonly HashSet<string> ProvisionedAheadOfEnforcement = new();
 
     [Fact]
     public void EveryEnforcedCode_IsCheckedSomewhere()
@@ -71,7 +63,7 @@ public class PermissionAuthorizationTests
             .ToHashSet();
 
         Assert.Empty(PermissionConstants.Enforced.Except(referenced).Except(ProvisionedAheadOfEnforcement).Order(StringComparer.Ordinal));
-        // Must be emptied as Tasks 2-7 wire up endpoint/service checks for each Quality.* code.
+        // A provisioned code leaves this list when a service or endpoint starts checking it.
         Assert.Empty(ProvisionedAheadOfEnforcement.Intersect(referenced).Order(StringComparer.Ordinal));
     }
 

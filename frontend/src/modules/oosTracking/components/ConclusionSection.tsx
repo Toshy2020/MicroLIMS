@@ -222,6 +222,11 @@ export function ConclusionSection({
               >
                 {t("conclusion.signCloseExcursion")}
               </Button>
+              {!canSubmitExcursion && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                  {t("conclusion.excursionMissingHint")}
+                </Typography>
+              )}
             </Box>
           </Stack>
         ) : !isExcursion &&
@@ -283,14 +288,25 @@ export function ConclusionSection({
                 <FormControlLabel
                   value="Invalidated"
                   disabled={noCauseFoundSelected}
-                  control={<Radio size="small" />}
+                  control={
+                    <Radio
+                      size="small"
+                      slotProps={{
+                        input: {
+                          "aria-describedby": noCauseFoundSelected
+                            ? "no-cause-invalidated-hint"
+                            : undefined
+                        }
+                      }}
+                    />
+                  }
                   label={t("conclusion.invalidated")}
                 />
               </RadioGroup>
             </FormControl>
 
             {noCauseFoundSelected && (
-              <Alert severity="info">
+              <Alert id="no-cause-invalidated-hint" severity="info">
                 {t("conclusion.noCauseFoundBlocksInvalidated")}
               </Alert>
             )}
@@ -312,6 +328,13 @@ export function ConclusionSection({
               >
                 {t("conclusion.signConclude")}
               </Button>
+              {!canSubmitConclude && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                  {awaitingRetest
+                    ? t("conclusion.concludeRetestMissingHint")
+                    : t("conclusion.concludeMissingHint")}
+                </Typography>
+              )}
             </Box>
           </Stack>
         ) : (

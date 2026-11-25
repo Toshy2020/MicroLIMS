@@ -94,7 +94,14 @@ describe("ConclusionSection", () => {
 
     const invalidatedRadio = screen.getByRole("radio", { name: /OOS Invalidated/i }) as HTMLInputElement;
     expect(invalidatedRadio.disabled).toBe(true);
-    expect(screen.getByText(/"No cause found" can only lead to "OOS Confirmed"\./i)).toBeTruthy();
+    const alertEl = screen.getByText(/"No cause found" can only lead to "OOS Confirmed"\./i);
+    expect(alertEl).toBeTruthy();
+    const describedById = invalidatedRadio.getAttribute("aria-describedby");
+    expect(describedById).toBeTruthy();
+    expect(document.getElementById(describedById!)).toBeTruthy();
+    expect(
+      screen.getByText(/Select a root cause category, enter a description when invalidating, and enter a conclusion summary to sign\./i)
+    ).toBeTruthy();
   });
 
   it("shows server refusal and keeps SignatureDialog open when conclude fails", async () => {
@@ -134,5 +141,117 @@ describe("ConclusionSection", () => {
       expect(screen.getByText("You performed a test in this investigation, so you cannot sign it.")).toBeTruthy();
     });
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("closes an excursion with signature", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onCloseExcursion = vi.fn().mockResolvedValue(undefined);
+    const excursionDetail: OosInvestigationDetailDto = {
+      ...baseDetail,
+      kind: "Excursion",
+      status: "PhaseOne",
+      phaseOneAssessment: null,
+      phaseOneSignedAtUtc: null,
+      phaseOneSignedByUserId: null,
+      phaseOneSignedByName: null
+    };
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <ConclusionSection
+            detail={excursionDetail}
+            categories={categories}
+            canManage={true}
+            onConclude={vi.fn()}
+            onReopen={vi.fn()}
+            onCloseExcursion={onCloseExcursion}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    await user.click(screen.getByLabelText("Root Cause Category"));
+    await user.click(await screen.findByRole("option", { name: "Equipment" }));
+    await user.type(screen.getByLabelText("Root Cause Description"), "HVAC filter clogged");
+    await user.type(screen.getByLabelText("Action Taken"), "Replaced HEPA filter");
+    await user.click(screen.getByRole("button", { name: "Sign & Close Excursion" }));
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog.textContent).toContain("Excursion review closed");
+    await user.type(screen.getByLabelText(/Signing Password|Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      expect(onCloseExcursion).toHaveBeenCalledWith(
+        {
+          causeCategoryId: 1,
+          causeDescription: "HVAC filter clogged",
+          actionTaken: "Replaced HEPA filter",
+          password: "Secret123!"
+        },
+        8
+      );
+    });
+  });
+
+  it("reopens a concluded investigation and keeps dialog open on server refusal", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onReopen = vi
+      .fn()
+      .mockRejectedValueOnce({
+        response: { data: { message: "Invalid signing password." } }
+      })
+      .mockResolvedValueOnce(undefined);
+
+    const concludedDetail: OosInvestigationDetailDto = {
+      ...baseDetail,
+      status: "Concluded",
+      conclusion: "Confirmed",
+      rootCauseCategoryId: 1,
+      rootCauseCategoryName: "Equipment",
+      rootCauseDescription: "Sensor drift",
+      conclusionSummary: "Confirmed OOS",
+      concludedAtUtc: "2026-11-22T10:00:00Z",
+      concludedByUserId: 1,
+      concludedByName: "Sam Head"
+    };
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <ConclusionSection
+            detail={concludedDetail}
+            categories={categories}
+            canManage={true}
+            onConclude={vi.fn()}
+            onReopen={onReopen}
+            onCloseExcursion={vi.fn()}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    const reasonInput = screen.getByLabelText("Reason for Reopening") as HTMLInputElement;
+    await user.type(reasonInput, "New stability data received");
+    await user.click(screen.getByRole("button", { name: "Reopen Investigation" }));
+
+    await screen.findByRole("dialog");
+    await user.type(screen.getByLabelText(/Signing Password|Password/i), "WrongPass!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Invalid signing password.")).toBeTruthy();
+    });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    await user.type(screen.getByLabelText(/Signing Password|Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      expect(onReopen).toHaveBeenCalledWith("New stability data received", "Secret123!", 8);
+    });
   });
 });

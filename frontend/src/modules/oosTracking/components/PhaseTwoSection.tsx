@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Button, Divider, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Divider, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useTranslation } from "../../../i18n";
 import { SectionTitle } from "../../../components/SectionTitle";
 import type {
@@ -9,6 +9,7 @@ import type {
   OosInvestigationDetailDto
 } from "../../../services/oosInvestigationService";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { serverMessage } from "../../../utils/errorMessage";
 import { ChecklistPanel } from "./ChecklistPanel";
 
 interface PhaseTwoSectionProps {
@@ -21,13 +22,13 @@ interface PhaseTwoSectionProps {
     text: string,
     parentEntryId: number | null,
     version: number
-  ) => Promise<void>;
+  ) => Promise<string | null | void>;
   onAnswerChecklist: (
     itemKey: string,
     answer: OosChecklistAnswer,
     comment: string | null,
     version: number
-  ) => Promise<void>;
+  ) => Promise<string | null | void>;
 }
 
 export function PhaseTwoSection({
@@ -58,8 +59,16 @@ export function PhaseTwoSection({
   const [outcomeTexts, setOutcomeTexts] = useState<Record<number, string>>({});
   const [noteText, setNoteText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [entryErrors, setEntryErrors] = useState<Record<string, string | null>>({});
+
+  const clearEntryError = (errorKey: string) => {
+    setEntryErrors((prev) => (prev[errorKey] ? { ...prev, [errorKey]: null } : prev));
+  };
+
+  const getOutcomeError = (hypId: number) => entryErrors[`Outcome:${hypId}`] ?? null;
 
   const submitEntry = async (
+    errorKey: string,
     kind: OosEntryKind,
     text: string,
     parentEntryId: number | null,
@@ -67,10 +76,20 @@ export function PhaseTwoSection({
   ) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    setEntryErrors((prev) => ({ ...prev, [errorKey]: null }));
     setBusy(true);
     try {
-      await onAddEntry(kind, trimmed, parentEntryId, detail.version);
+      const err = await onAddEntry(kind, trimmed, parentEntryId, detail.version);
+      if (typeof err === "string") {
+        setEntryErrors((prev) => ({ ...prev, [errorKey]: err }));
+        return;
+      }
       clear();
+    } catch (e: unknown) {
+      setEntryErrors((prev) => ({
+        ...prev,
+        [errorKey]: serverMessage(e) ?? t("investigation.loadError")
+      }));
     } finally {
       setBusy(false);
     }
@@ -111,15 +130,21 @@ export function PhaseTwoSection({
                 rows={2}
                 label={t("phaseTwo.outsideReviewLabel")}
                 value={outsideText}
-                onChange={(e) => setOutsideText(e.target.value)}
+                onChange={(e) => {
+                  setOutsideText(e.target.value);
+                  clearEntryError("OutsideReview");
+                }}
               />
+              {entryErrors.OutsideReview && (
+                <Alert severity="error">{entryErrors.OutsideReview}</Alert>
+              )}
               <Box>
                 <Button
                   size="small"
                   variant="outlined"
                   disabled={!outsideText.trim() || busy}
                   onClick={() =>
-                    void submitEntry("OutsideReview", outsideText, null, () =>
+                    void submitEntry("OutsideReview", "OutsideReview", outsideText, null, () =>
                       setOutsideText("")
                     )
                   }
@@ -145,6 +170,7 @@ export function PhaseTwoSection({
             ) : (
               hypotheses.map((hyp) => {
                 const hypOutcomes = outcomes.filter((o) => o.parentEntryId === hyp.id);
+                const outcomeError = getOutcomeError(hyp.id);
                 return (
                   <Paper key={hyp.id} variant="outlined" sx={{ p: 1.5, bgcolor: "background.default" }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
@@ -168,36 +194,43 @@ export function PhaseTwoSection({
                     )}
 
                     {canEdit && (
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1.25 }}>
-                        <TextField
-                          size="small"
-                          fullWidth
-                          label={t("phaseTwo.outcomeLabel")}
-                          value={outcomeTexts[hyp.id] ?? ""}
-                          onChange={(e) =>
-                            setOutcomeTexts((prev) => ({
-                              ...prev,
-                              [hyp.id]: e.target.value
-                            }))
-                          }
-                        />
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={!(outcomeTexts[hyp.id] ?? "").trim() || busy}
-                          onClick={() =>
-                            void submitEntry(
-                              "HypothesisOutcome",
-                              outcomeTexts[hyp.id] ?? "",
-                              hyp.id,
-                              () =>
-                                setOutcomeTexts((prev) => ({ ...prev, [hyp.id]: "" }))
-                            )
-                          }
-                          sx={{ whiteSpace: "nowrap" }}
-                        >
-                          {t("phaseTwo.addOutcome")}
-                        </Button>
+                      <Stack spacing={1} sx={{ mt: 1.25 }}>
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                          <TextField
+                            size="small"
+                            fullWidth
+                            label={t("phaseTwo.outcomeLabel")}
+                            value={outcomeTexts[hyp.id] ?? ""}
+                            onChange={(e) => {
+                              setOutcomeTexts((prev) => ({
+                                ...prev,
+                                [hyp.id]: e.target.value
+                              }));
+                              clearEntryError(`Outcome:${hyp.id}`);
+                            }}
+                          />
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            disabled={!(outcomeTexts[hyp.id] ?? "").trim() || busy}
+                            onClick={() =>
+                              void submitEntry(
+                                `Outcome:${hyp.id}`,
+                                "HypothesisOutcome",
+                                outcomeTexts[hyp.id] ?? "",
+                                hyp.id,
+                                () =>
+                                  setOutcomeTexts((prev) => ({ ...prev, [hyp.id]: "" }))
+                              )
+                            }
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            {t("phaseTwo.addOutcome")}
+                          </Button>
+                        </Stack>
+                        {outcomeError && (
+                          <Alert severity="error">{outcomeError}</Alert>
+                        )}
                       </Stack>
                     )}
                   </Paper>
@@ -214,15 +247,21 @@ export function PhaseTwoSection({
                 rows={2}
                 label={t("phaseTwo.hypothesisLabel")}
                 value={hypothesisText}
-                onChange={(e) => setHypothesisText(e.target.value)}
+                onChange={(e) => {
+                  setHypothesisText(e.target.value);
+                  clearEntryError("Hypothesis");
+                }}
               />
+              {entryErrors.Hypothesis && (
+                <Alert severity="error">{entryErrors.Hypothesis}</Alert>
+              )}
               <Box>
                 <Button
                   size="small"
                   variant="outlined"
                   disabled={!hypothesisText.trim() || busy}
                   onClick={() =>
-                    void submitEntry("Hypothesis", hypothesisText, null, () =>
+                    void submitEntry("Hypothesis", "Hypothesis", hypothesisText, null, () =>
                       setHypothesisText("")
                     )
                   }
@@ -282,15 +321,19 @@ export function PhaseTwoSection({
                 size="small"
                 label={t("phaseTwo.noteLabel")}
                 value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
+                onChange={(e) => {
+                  setNoteText(e.target.value);
+                  clearEntryError("Note");
+                }}
               />
+              {entryErrors.Note && <Alert severity="error">{entryErrors.Note}</Alert>}
               <Box>
                 <Button
                   size="small"
                   variant="outlined"
                   disabled={!noteText.trim() || busy}
                   onClick={() =>
-                    void submitEntry("Note", noteText, null, () => setNoteText(""))
+                    void submitEntry("Note", "Note", noteText, null, () => setNoteText(""))
                   }
                 >
                   {t("phaseTwo.addNote")}

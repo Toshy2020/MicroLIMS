@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Box,
@@ -138,8 +138,34 @@ export function InvestigationPage() {
     return () => controller.abort();
   }, [loadDetail, loadFacts, canManage]);
 
-  const reloadAll = async () => {
-    await Promise.all([loadDetail(), loadFacts()]);
+  const reloadControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      reloadControllerRef.current?.abort();
+    };
+  }, []);
+
+  const reloadAll = useCallback(async () => {
+    reloadControllerRef.current?.abort();
+    const controller = new AbortController();
+    reloadControllerRef.current = controller;
+    await Promise.all([
+      loadDetail(controller.signal),
+      loadFacts(controller.signal)
+    ]);
+  }, [loadDetail, loadFacts]);
+
+  const runMutation = async (fn: () => Promise<void>): Promise<string | null> => {
+    try {
+      await fn();
+      await reloadAll();
+      return null;
+    } catch (e: unknown) {
+      const msg = serverMessage(e) ?? t("investigation.loadError");
+      toast.error(msg);
+      return msg;
+    }
   };
 
   const handleExportPdf = async () => {
@@ -351,31 +377,23 @@ export function InvestigationPage() {
         categories={categories}
         canContribute={canContribute}
         canManage={canManage}
-        onAddStatement={async (text, version) => {
-          try {
-            await oosInvestigationService.addAnalystStatement(detail.id, text, version);
-            await reloadAll();
-          } catch (e: unknown) {
-            toast.error(serverMessage(e) ?? t("investigation.loadError"));
-            throw e;
-          }
-        }}
-        onAnswerChecklist={async (itemKey, answer, comment, version) => {
-          try {
-            await oosInvestigationService.answerChecklist(
+        onAddStatement={(text, version) =>
+          runMutation(() =>
+            oosInvestigationService.addAnalystStatement(detail.id, text, version)
+          )
+        }
+        onAnswerChecklist={(itemKey, answer, comment, version) =>
+          runMutation(() =>
+            oosInvestigationService.answerChecklist(
               detail.id,
               1,
               itemKey,
               answer,
               comment,
               version
-            );
-            await reloadAll();
-          } catch (e: unknown) {
-            toast.error(serverMessage(e) ?? t("investigation.loadError"));
-            throw e;
-          }
-        }}
+            )
+          )
+        }
         onSignPhaseOne={async (request, version) => {
           await oosInvestigationService.signPhaseOne(detail.id, request, version);
           await reloadAll();
@@ -388,19 +406,11 @@ export function InvestigationPage() {
             detail={detail}
             analysts={analysts}
             canManage={canManage}
-            onSaveDraft={async (request, version) => {
-              try {
-                await oosInvestigationService.saveRetestPlan(
-                  detail.id,
-                  request,
-                  version
-                );
-                await reloadAll();
-              } catch (e: unknown) {
-                toast.error(serverMessage(e) ?? t("investigation.loadError"));
-                throw e;
-              }
-            }}
+            onSaveDraft={(request, version) =>
+              runMutation(async () => {
+                await oosInvestigationService.saveRetestPlan(detail.id, request, version);
+              })
+            }
             onSignPlan={async (planId, password, version) => {
               await oosInvestigationService.signRetestPlan(
                 planId,
@@ -421,37 +431,29 @@ export function InvestigationPage() {
             facts={facts}
             factsLoading={factsLoading}
             canContributeOrManage={canContribute || canManage}
-            onAddEntry={async (kind, text, parentEntryId, version) => {
-              try {
-                await oosInvestigationService.addEntry(
+            onAddEntry={(kind, text, parentEntryId, version) =>
+              runMutation(() =>
+                oosInvestigationService.addEntry(
                   detail.id,
                   kind,
                   text,
                   parentEntryId,
                   version
-                );
-                await reloadAll();
-              } catch (e: unknown) {
-                toast.error(serverMessage(e) ?? t("investigation.loadError"));
-                throw e;
-              }
-            }}
-            onAnswerChecklist={async (itemKey, answer, comment, version) => {
-              try {
-                await oosInvestigationService.answerChecklist(
+                )
+              )
+            }
+            onAnswerChecklist={(itemKey, answer, comment, version) =>
+              runMutation(() =>
+                oosInvestigationService.answerChecklist(
                   detail.id,
                   2,
                   itemKey,
                   answer,
                   comment,
                   version
-                );
-                await reloadAll();
-              } catch (e: unknown) {
-                toast.error(serverMessage(e) ?? t("investigation.loadError"));
-                throw e;
-              }
-            }}
+                )
+              )
+            }
           />
         )}
 
@@ -489,32 +491,24 @@ export function InvestigationPage() {
         investigationVersion={detail.version}
         canRequest={canRequestDeviation}
         canAddress={canManage}
-        onRequest={async (reason, version) => {
-          try {
+        onRequest={(reason, version) =>
+          runMutation(async () => {
             await oosInvestigationService.requestDeviation(
               detail.id,
               reason,
               version
             );
-            await reloadAll();
-          } catch (e: unknown) {
-            toast.error(serverMessage(e) ?? t("investigation.loadError"));
-            throw e;
-          }
-        }}
-        onAddress={async (requestId, comment, version) => {
-          try {
-            await oosInvestigationService.addressDeviationRequest(
+          })
+        }
+        onAddress={(requestId, comment, version) =>
+          runMutation(() =>
+            oosInvestigationService.addressDeviationRequest(
               requestId,
               comment,
               version
-            );
-            await reloadAll();
-          } catch (e: unknown) {
-            toast.error(serverMessage(e) ?? t("investigation.loadError"));
-            throw e;
-          }
-        }}
+            )
+          )
+        }
       />
 
       <SignedTimeline entries={detail.timeline} />

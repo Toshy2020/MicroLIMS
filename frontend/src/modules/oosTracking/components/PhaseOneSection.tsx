@@ -29,6 +29,7 @@ import type {
   SignPhaseOneRequest
 } from "../../../services/oosInvestigationService";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { serverMessage } from "../../../utils/errorMessage";
 import { ChecklistPanel } from "./ChecklistPanel";
 
 interface PhaseOneSectionProps {
@@ -38,13 +39,13 @@ interface PhaseOneSectionProps {
   categories: OosCategoryDto[];
   canContribute: boolean;
   canManage: boolean;
-  onAddStatement: (text: string, version: number) => Promise<void>;
+  onAddStatement: (text: string, version: number) => Promise<string | null | void>;
   onAnswerChecklist: (
     itemKey: string,
     answer: OosChecklistAnswer,
     comment: string | null,
     version: number
-  ) => Promise<void>;
+  ) => Promise<string | null | void>;
   onSignPhaseOne: (request: SignPhaseOneRequest, version: number) => Promise<void>;
 }
 
@@ -68,6 +69,7 @@ export function PhaseOneSection({
   const phaseOneItems = detail.checklistItems.filter((i) => i.phase === 1);
 
   const [statementText, setStatementText] = useState("");
+  const [statementError, setStatementError] = useState<string | null>(null);
   const [submittingStatement, setSubmittingStatement] = useState(false);
 
   const [assessment, setAssessment] = useState<OosPhaseOneAssessment>(
@@ -90,10 +92,17 @@ export function PhaseOneSection({
   const handleAddStatement = async () => {
     const trimmed = statementText.trim();
     if (!trimmed) return;
+    setStatementError(null);
     setSubmittingStatement(true);
     try {
-      await onAddStatement(trimmed, detail.version);
+      const err = await onAddStatement(trimmed, detail.version);
+      if (typeof err === "string") {
+        setStatementError(err);
+        return;
+      }
       setStatementText("");
+    } catch (e: unknown) {
+      setStatementError(serverMessage(e) ?? t("investigation.loadError"));
     } finally {
       setSubmittingStatement(false);
     }
@@ -154,8 +163,14 @@ export function PhaseOneSection({
                   label={t("phaseOne.statementLabel")}
                   placeholder={t("phaseOne.statementPlaceholder")}
                   value={statementText}
-                  onChange={(e) => setStatementText(e.target.value)}
+                  onChange={(e) => {
+                    setStatementText(e.target.value);
+                    if (statementError) setStatementError(null);
+                  }}
                 />
+                {statementError && (
+                  <Alert severity="error">{statementError}</Alert>
+                )}
                 <Box>
                   <Button
                     variant="outlined"

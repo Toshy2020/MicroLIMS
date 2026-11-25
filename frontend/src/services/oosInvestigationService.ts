@@ -39,6 +39,7 @@ export interface OosInvestigationFilter {
   kind?: OosInvestigationKind;
   sectionId?: number;
   overdue?: boolean;
+  openOnly?: boolean;
   from?: string;
   to?: string;
   page?: number;

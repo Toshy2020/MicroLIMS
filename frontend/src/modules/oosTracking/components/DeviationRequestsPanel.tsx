@@ -1,18 +1,19 @@
 import { useState } from "react";
-import { Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
 import { useTranslation } from "../../../i18n";
 import { SectionTitle } from "../../../components/SectionTitle";
 import { StatusBadge } from "../../../components/StatusBadge";
 import type { OosDeviationRequestDetailDto } from "../../../services/oosInvestigationService";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { serverMessage } from "../../../utils/errorMessage";
 
 interface DeviationRequestsPanelProps {
   requests: OosDeviationRequestDetailDto[];
   investigationVersion: number;
   canRequest: boolean;
   canAddress: boolean;
-  onRequest: (reason: string, investigationVersion: number) => Promise<void>;
-  onAddress: (requestId: number, comment: string, requestVersion: number) => Promise<void>;
+  onRequest: (reason: string, investigationVersion: number) => Promise<string | null | void>;
+  onAddress: (requestId: number, comment: string, requestVersion: number) => Promise<string | null | void>;
 }
 
 export function DeviationRequestsPanel({
@@ -25,17 +26,26 @@ export function DeviationRequestsPanel({
 }: DeviationRequestsPanelProps) {
   const { t } = useTranslation("oosTracking");
   const [reason, setReason] = useState("");
+  const [requestError, setRequestError] = useState<string | null>(null);
   const [submittingRequest, setSubmittingRequest] = useState(false);
   const [comments, setComments] = useState<Record<number, string>>({});
+  const [addressErrors, setAddressErrors] = useState<Record<number, string | null>>({});
   const [addressingId, setAddressingId] = useState<number | null>(null);
 
   const handleRequest = async () => {
     const trimmed = reason.trim();
     if (!trimmed) return;
+    setRequestError(null);
     setSubmittingRequest(true);
     try {
-      await onRequest(trimmed, investigationVersion);
+      const err = await onRequest(trimmed, investigationVersion);
+      if (typeof err === "string") {
+        setRequestError(err);
+        return;
+      }
       setReason("");
+    } catch (e: unknown) {
+      setRequestError(serverMessage(e) ?? t("investigation.loadError"));
     } finally {
       setSubmittingRequest(false);
     }
@@ -44,10 +54,20 @@ export function DeviationRequestsPanel({
   const handleAddress = async (req: OosDeviationRequestDetailDto) => {
     const trimmed = (comments[req.id] ?? "").trim();
     if (!trimmed) return;
+    setAddressErrors((prev) => ({ ...prev, [req.id]: null }));
     setAddressingId(req.id);
     try {
-      await onAddress(req.id, trimmed, req.version);
+      const err = await onAddress(req.id, trimmed, req.version);
+      if (typeof err === "string") {
+        setAddressErrors((prev) => ({ ...prev, [req.id]: err }));
+        return;
+      }
       setComments((prev) => ({ ...prev, [req.id]: "" }));
+    } catch (e: unknown) {
+      setAddressErrors((prev) => ({
+        ...prev,
+        [req.id]: serverMessage(e) ?? t("investigation.loadError")
+      }));
     } finally {
       setAddressingId(null);
     }
@@ -104,25 +124,33 @@ export function DeviationRequestsPanel({
               )}
 
               {canAddress && req.status === "Open" && (
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ mt: 1 }}>
-                  <TextField
-                    size="small"
-                    fullWidth
-                    label={t("deviations.addressCommentLabel")}
-                    value={comments[req.id] ?? ""}
-                    onChange={(e) =>
-                      setComments((prev) => ({ ...prev, [req.id]: e.target.value }))
-                    }
-                  />
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    disabled={!(comments[req.id] ?? "").trim() || addressingId === req.id}
-                    onClick={() => void handleAddress(req)}
-                    sx={{ whiteSpace: "nowrap" }}
-                  >
-                    {t("deviations.addressButton")}
-                  </Button>
+                <Stack spacing={1} sx={{ mt: 1 }}>
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <TextField
+                      size="small"
+                      fullWidth
+                      label={t("deviations.addressCommentLabel")}
+                      value={comments[req.id] ?? ""}
+                      onChange={(e) => {
+                        setComments((prev) => ({ ...prev, [req.id]: e.target.value }));
+                        setAddressErrors((prev) =>
+                          prev[req.id] ? { ...prev, [req.id]: null } : prev
+                        );
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      disabled={!(comments[req.id] ?? "").trim() || addressingId === req.id}
+                      onClick={() => void handleAddress(req)}
+                      sx={{ whiteSpace: "nowrap" }}
+                    >
+                      {t("deviations.addressButton")}
+                    </Button>
+                  </Stack>
+                  {addressErrors[req.id] && (
+                    <Alert severity="error">{addressErrors[req.id]}</Alert>
+                  )}
                 </Stack>
               )}
             </Box>
@@ -137,8 +165,12 @@ export function DeviationRequestsPanel({
               rows={2}
               label={t("deviations.reasonLabel")}
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={(e) => {
+                setReason(e.target.value);
+                if (requestError) setRequestError(null);
+              }}
             />
+            {requestError && <Alert severity="error">{requestError}</Alert>}
             <Box>
               <Button
                 variant="contained"

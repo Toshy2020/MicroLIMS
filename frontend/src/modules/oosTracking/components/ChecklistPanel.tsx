@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   FormControl,
@@ -21,6 +22,7 @@ import type {
   OosInvestigationResultDto
 } from "../../../services/oosInvestigationService";
 import { formatDateTimeWithTimeZone } from "../../../utils/formatDate";
+import { serverMessage } from "../../../utils/errorMessage";
 import { FactsPanel } from "./FactsPanel";
 
 const CHECKLIST_ANSWERS: OosChecklistAnswer[] = ["Yes", "No", "NotApplicable"];
@@ -38,13 +40,14 @@ interface ChecklistPanelProps {
     answer: OosChecklistAnswer,
     comment: string | null,
     version: number
-  ) => Promise<void>;
+  ) => Promise<string | null | void>;
 }
 
 interface ItemDraft {
   answer: OosChecklistAnswer | "";
   comment: string;
   saving: boolean;
+  error?: string | null;
 }
 
 export function ChecklistPanel({
@@ -69,34 +72,41 @@ export function ChecklistPanel({
 
   const [drafts, setDrafts] = useState<Record<string, ItemDraft>>({});
 
-  const getDraft = (key: string): ItemDraft => {
-    if (drafts[key]) return drafts[key];
+  const baseDraft = (key: string): ItemDraft => {
     const latest = latestByKey.get(key);
     return {
       answer: latest?.answer ?? "",
       comment: latest?.text ?? "",
-      saving: false
+      saving: false,
+      error: null
     };
   };
+
+  const getDraft = (key: string): ItemDraft => drafts[key] ?? baseDraft(key);
 
   const updateDraft = (key: string, patch: Partial<ItemDraft>) => {
     setDrafts((prev) => ({
       ...prev,
-      [key]: { ...getDraft(key), ...patch }
+      [key]: { ...(prev[key] ?? baseDraft(key)), ...patch }
     }));
   };
 
   const handleSave = async (key: string) => {
     const draft = getDraft(key);
     if (!draft.answer) return;
-    updateDraft(key, { saving: true });
+    updateDraft(key, { saving: true, error: null });
     try {
-      await onAnswer(
+      const err = await onAnswer(
         key,
         draft.answer,
         draft.comment.trim() ? draft.comment.trim() : null,
         version
       );
+      if (typeof err === "string") {
+        updateDraft(key, { error: err });
+      }
+    } catch (e: unknown) {
+      updateDraft(key, { error: serverMessage(e) ?? t("investigation.loadError") });
     } finally {
       updateDraft(key, { saving: false });
     }
@@ -152,9 +162,11 @@ export function ChecklistPanel({
                         value={draft.comment}
                         slotProps={{ htmlInput: { maxLength: 1000 } }}
                         onChange={(e) =>
-                          updateDraft(item.key, { comment: e.target.value })
+                          updateDraft(item.key, { comment: e.target.value, error: null })
                         }
                       />
+
+                      {draft.error && <Alert severity="error">{draft.error}</Alert>}
 
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1 }}>
                         <Box>

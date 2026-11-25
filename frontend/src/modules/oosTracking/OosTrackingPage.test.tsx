@@ -117,7 +117,7 @@ describe("OosTrackingPage register", () => {
 
     expect(await screen.findByText("OOS1126001")).toBeTruthy();
     expect(oosInvestigationService.list).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "Oos" }),
+      expect.objectContaining({ kind: "Oos", openOnly: true }),
       expect.any(AbortSignal)
     );
 
@@ -188,5 +188,77 @@ describe("OosTrackingPage register", () => {
     expect(await screen.findByText("مجموعات تحقيق OOS")).toBeTruthy();
     expect(screen.getByText("تقرير تحقيق المختبر مرفق")).toBeTruthy();
     expect(screen.getByText("OOS-2026-014")).toBeTruthy();
+  });
+
+  it("Open tab uses openOnly and shows the server totalCount", async () => {
+    vi.mocked(oosInvestigationService.list).mockResolvedValue({
+      items: [sampleItem()],
+      totalCount: 42,
+      page: 1,
+      pageSize: 25
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("OOS1126001")).toBeTruthy();
+    expect(oosInvestigationService.list).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "Oos", openOnly: true }),
+      expect.any(AbortSignal)
+    );
+    expect(screen.getByText(/of 42/i)).toBeTruthy();
+  });
+
+  it("applies status, from/to date filters and clears all filters", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(await screen.findByText("OOS1126001")).toBeTruthy();
+
+    await user.click(screen.getByLabelText("Status"));
+    await user.click(await screen.findByRole("option", { name: "Phase II" }));
+    await waitFor(() => {
+      expect(oosInvestigationService.list).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: "Oos", openOnly: true, status: "PhaseTwo" }),
+        expect.any(AbortSignal)
+      );
+    });
+
+    const fromInput = screen.getByLabelText("Opened from");
+    const toInput = screen.getByLabelText("Opened to");
+    await user.type(fromInput, "2026-11-01");
+    await user.type(toInput, "2026-11-25");
+
+    await waitFor(() => {
+      expect(oosInvestigationService.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: "Oos",
+          openOnly: true,
+          status: "PhaseTwo",
+          from: "2026-11-01",
+          to: "2026-11-25"
+        }),
+        expect.any(AbortSignal)
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    await waitFor(() => {
+      const calls = vi.mocked(oosInvestigationService.list).mock.calls;
+      const lastCall = calls[calls.length - 1]?.[0];
+      expect(lastCall).toEqual({
+        kind: "Oos",
+        openOnly: true,
+        page: 1,
+        pageSize: 25
+      });
+    });
+  });
+
+  it("hides Legacy tab for a user without Oos.Manage", async () => {
+    setAuth(["Oos.View"], "Reviewer");
+    renderPage();
+
+    expect(await screen.findByText("OOS1126001")).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Legacy" })).toBeNull();
   });
 });

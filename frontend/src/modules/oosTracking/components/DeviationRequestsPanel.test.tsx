@@ -75,4 +75,29 @@ describe("DeviationRequestsPanel", () => {
       expect(onAddress).toHaveBeenCalledWith(5, "Deviation DEV-2026-01 opened.", 2);
     });
   });
+
+  it("shows inline refusal and keeps comment when addressing fails", async () => {
+    const user = userEvent.setup();
+    const onAddress = vi.fn().mockResolvedValue("Deviation request was already addressed.");
+
+    render(
+      <PinnedLightTheme>
+        <DeviationRequestsPanel
+          requests={[openRequest]}
+          investigationVersion={4}
+          canRequest={false}
+          canAddress={true}
+          onRequest={vi.fn()}
+          onAddress={onAddress}
+        />
+      </PinnedLightTheme>
+    );
+
+    const commentInput = screen.getByLabelText("Addressing Comment") as HTMLInputElement;
+    await user.type(commentInput, "DEV-2026-01");
+    await user.click(screen.getByRole("button", { name: "Address Request" }));
+
+    expect(await screen.findByText("Deviation request was already addressed.")).toBeTruthy();
+    expect(commentInput.value).toBe("DEV-2026-01");
+  });
 });

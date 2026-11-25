@@ -221,4 +221,123 @@ describe("RetestPlanSection", () => {
     expect(screen.getByText(/An amendment reason is required for revision 2/i)).toBeTruthy();
     expect((screen.getByRole("button", { name: "Save Draft Plan" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("shows missing-field hint when draft is incomplete and keeps inputs + shows inline alert on save failure", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onSaveDraft = vi.fn().mockResolvedValue("Retest count exceeds allowed maximum.");
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <RetestPlanSection
+            detail={baseDetail}
+            analysts={analysts}
+            canManage={true}
+            onSaveDraft={onSaveDraft}
+            onSignPlan={vi.fn()}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    expect(
+      screen.getByText(/Select at least one test and analyst, set retests \(1–10\), and enter a judging rule to save\./i)
+    ).toBeTruthy();
+
+    await user.click(screen.getByLabelText("Assigned Analysts"));
+    await user.click(await screen.findByRole("option", { name: "Bob Analyst (analyst2)" }));
+    await user.keyboard("{Escape}");
+    const ruleField = screen.getByLabelText("Judging Rule") as HTMLTextAreaElement;
+    await user.type(ruleField, "All retests must conform.");
+    await user.click(screen.getByRole("button", { name: "Save Draft Plan" }));
+
+    expect(await screen.findByText("Retest count exceeds allowed maximum.")).toBeTruthy();
+    expect(ruleField.value).toBe("All retests must conform.");
+  });
+
+  it("keeps SignatureDialog open on sign refusal and re-initializes form when unsigned draft changes", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onSignPlan = vi.fn().mockRejectedValue({
+      response: { data: { message: "Signer cannot be one of the assigned retest analysts." } }
+    });
+
+    const withDraft: OosInvestigationDetailDto = {
+      ...baseDetail,
+      version: 10,
+      retestPlans: [
+        {
+          id: 77,
+          revision: 1,
+          source: "RetainedSample",
+          retestCount: 2,
+          testOrderIds: [55],
+          analystUserIds: [10],
+          judgingRule: "Initial rule",
+          amendmentReason: null,
+          signedAtUtc: null,
+          signedByUserId: null,
+          signedByName: null,
+          samplesCreatedAtUtc: null,
+          samples: []
+        }
+      ]
+    };
+
+    const { rerender } = render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <RetestPlanSection
+            detail={withDraft}
+            analysts={analysts}
+            canManage={true}
+            onSaveDraft={vi.fn()}
+            onSignPlan={onSignPlan}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    expect((screen.getByLabelText("Judging Rule") as HTMLTextAreaElement).value).toBe("Initial rule");
+
+    await user.click(screen.getByRole("button", { name: "Sign & Create Retest Samples" }));
+    await screen.findByRole("dialog");
+    await user.type(screen.getByLabelText(/Signing Password|Password/i), "Pass123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Signer cannot be one of the assigned retest analysts.")).toBeTruthy();
+    });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+
+    const updatedDraft: OosInvestigationDetailDto = {
+      ...withDraft,
+      version: 11,
+      retestPlans: [
+        {
+          ...withDraft.retestPlans[0],
+          judgingRule: "Updated rule from server"
+        }
+      ]
+    };
+
+    rerender(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <RetestPlanSection
+            detail={updatedDraft}
+            analysts={analysts}
+            canManage={true}
+            onSaveDraft={vi.fn()}
+            onSignPlan={onSignPlan}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    expect((screen.getByLabelText("Judging Rule") as HTMLTextAreaElement).value).toBe(
+      "Updated rule from server"
+    );
+  });
 });

@@ -265,7 +265,7 @@ export function AppRoutes() {
 
             <Route path="/working-standards" element={<WorkingStandardsPage />} />
 
-            <Route element={<PermissionRoute code={[PERMISSIONS.OOS_VIEW, PERMISSIONS.OOS_MANAGE]} />}>
+            <Route element={<PermissionRoute code={PERMISSIONS.OOS_VIEW} />}>
               <Route path="/oos-tracking" element={<OosTrackingPage />} />
               <Route path="/oos-tracking/:id" element={<InvestigationPage />} />
             </Route>

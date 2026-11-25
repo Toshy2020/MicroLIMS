@@ -86,6 +86,7 @@ export function OosTrackingPage() {
 
     if (tab === "open") {
       filter.kind = "Oos";
+      filter.openOnly = true;
       if (statusFilter) filter.status = statusFilter;
     } else if (tab === "overdue") {
       filter.overdue = true;
@@ -103,11 +104,7 @@ export function OosTrackingPage() {
     oosInvestigationService
       .list(filter, controller.signal)
       .then((res) => {
-        const items =
-          tab === "open" && !statusFilter
-            ? res.items.filter((i) => i.status !== "Concluded")
-            : res.items;
-        setRows(items);
+        setRows(res.items);
         setTotalCount(res.totalCount);
         setLoading(false);
       })
@@ -238,15 +235,11 @@ export function OosTrackingPage() {
         <Tab value="overdue" label={t("register.tabs.overdue")} />
         <Tab value="concluded" label={t("register.tabs.concluded")} />
         <Tab value="excursions" label={t("register.tabs.excursions")} />
-        <Tab value="legacy" label={t("register.tabs.legacy")} />
+        {canManage && <Tab value="legacy" label={t("register.tabs.legacy")} />}
       </Tabs>
 
-      {tab === "legacy" ? (
-        canManage ? (
-          <LegacyGroupsView />
-        ) : (
-          <Alert severity="info">{t("register.legacyPermissionNotice")}</Alert>
-        )
+      {tab === "legacy" && canManage ? (
+        <LegacyGroupsView />
       ) : (
         <Stack spacing={2}>
           <Stack

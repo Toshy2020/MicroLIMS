@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
 import { AuthProvider } from "../../contexts/AuthContext";
@@ -15,7 +16,8 @@ vi.mock("../../services/oosInvestigationService", () => ({
     getById: vi.fn(),
     getFacts: vi.fn(),
     listCategories: vi.fn(),
-    downloadPdf: vi.fn()
+    downloadPdf: vi.fn(),
+    addAnalystStatement: vi.fn()
   }
 }));
 
@@ -139,5 +141,51 @@ describe("InvestigationPage", () => {
     expect(screen.queryByRole("button", { name: "Save Answer" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sign Phase I" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Request Deviation" })).toBeNull();
+  });
+
+  it("shows Address Request action to Section Head inside InvestigationPage", async () => {
+    vi.mocked(oosInvestigationService.getFacts).mockResolvedValue({ version: 3, orders: [] });
+    vi.mocked(oosInvestigationService.getById).mockResolvedValue({
+      ...baseDetail,
+      deviationRequests: [
+        {
+          id: 9,
+          reason: "Escalate to deviation",
+          requestedByUserId: 5,
+          requestedByName: "Quinn QA",
+          requestedAtUtc: "2026-11-21T10:00:00Z",
+          status: "Open",
+          addressedComment: null,
+          addressedByUserId: null,
+          addressedByName: null,
+          addressedAtUtc: null,
+          version: 1
+        }
+      ]
+    });
+
+    renderInvestigation(["Oos.View", "Oos.Manage"], "SectionHead");
+
+    expect(await screen.findByText("Escalate to deviation")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Address Request" })).toBeTruthy();
+  });
+
+  it("shows inline refusal and keeps statement input when mutation fails without unhandled rejection", async () => {
+    const user = userEvent.setup();
+    vi.mocked(oosInvestigationService.getFacts).mockResolvedValue({ version: 3, orders: [] });
+    vi.mocked(oosInvestigationService.addAnalystStatement).mockRejectedValue({
+      response: { data: { message: "Investigation version conflict." } }
+    });
+
+    renderInvestigation(["Oos.View", "Oos.Contribute"], "Analyst");
+
+    const input = (await screen.findByLabelText("Analyst statement")) as HTMLTextAreaElement;
+    await user.type(input, "Dilution verified.");
+    await user.click(screen.getByRole("button", { name: "Add Statement" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert").textContent).toContain("Investigation version conflict.");
+    });
+    expect(input.value).toBe("Dilution verified.");
   });
 });

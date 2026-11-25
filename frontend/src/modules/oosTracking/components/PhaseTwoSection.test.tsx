@@ -102,4 +102,29 @@ describe("PhaseTwoSection", () => {
       expect(onAddEntry).toHaveBeenCalledWith("Hypothesis", "Check sampling thief cleanliness", null, 5);
     });
   });
+
+  it("shows inline refusal alert and keeps input when adding an entry fails", async () => {
+    const user = userEvent.setup();
+    const onAddEntry = vi.fn().mockResolvedValue("Investigation is no longer in Phase II.");
+
+    render(
+      <PinnedLightTheme>
+        <PhaseTwoSection
+          detail={baseDetail}
+          facts={emptyFacts}
+          factsLoading={false}
+          canContributeOrManage={true}
+          onAddEntry={onAddEntry}
+          onAnswerChecklist={vi.fn()}
+        />
+      </PinnedLightTheme>
+    );
+
+    const hypField = screen.getByLabelText("New hypothesis") as HTMLTextAreaElement;
+    await user.type(hypField, "Check balance drift");
+    await user.click(screen.getByRole("button", { name: "Add Hypothesis" }));
+
+    expect(await screen.findByText("Investigation is no longer in Phase II.")).toBeTruthy();
+    expect(hypField.value).toBe("Check balance drift");
+  });
 });

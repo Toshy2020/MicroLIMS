@@ -230,4 +230,86 @@ describe("PhaseOneSection", () => {
       );
     });
   });
+
+  it("shows server refusal inline and keeps statement and checklist inputs on failure", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onAddStatement = vi.fn().mockRejectedValue({
+      response: { data: { message: "Only assigned analysts may add statements." } }
+    });
+    const onAnswerChecklist = vi.fn().mockResolvedValue("Checklist item already locked.");
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <PhaseOneSection
+            detail={baseDetail}
+            facts={facts}
+            factsLoading={false}
+            categories={categories}
+            canContribute={true}
+            canManage={true}
+            onAddStatement={onAddStatement}
+            onAnswerChecklist={onAnswerChecklist}
+            onSignPhaseOne={vi.fn()}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    const statementField = screen.getByLabelText("Analyst statement") as HTMLTextAreaElement;
+    await user.type(statementField, "Sample diluted 1:10.");
+    await user.click(screen.getByRole("button", { name: "Add Statement" }));
+
+    expect(await screen.findByText("Only assigned analysts may add statements.")).toBeTruthy();
+    expect(statementField.value).toBe("Sample diluted 1:10.");
+
+    await user.click(screen.getByRole("radio", { name: "Yes" }));
+    const commentField = screen.getByLabelText("Comment (optional)") as HTMLInputElement;
+    await user.type(commentField, "Checked log.");
+    await user.click(screen.getByRole("button", { name: "Save Answer" }));
+
+    expect(await screen.findByText("Checklist item already locked.")).toBeTruthy();
+    expect(commentField.value).toBe("Checked log.");
+  });
+
+  it("keeps SignatureDialog open and shows refusal when Phase I sign fails", async () => {
+    setupAuth();
+    const user = userEvent.setup();
+    const onSignPhaseOne = vi.fn().mockRejectedValue({
+      response: { data: { message: "All checklist items must be answered before signing Phase I." } }
+    });
+
+    render(
+      <PinnedLightTheme>
+        <AuthProvider>
+          <PhaseOneSection
+            detail={baseDetail}
+            facts={facts}
+            factsLoading={false}
+            categories={categories}
+            canContribute={true}
+            canManage={true}
+            onAddStatement={vi.fn()}
+            onAnswerChecklist={vi.fn()}
+            onSignPhaseOne={onSignPhaseOne}
+          />
+        </AuthProvider>
+      </PinnedLightTheme>
+    );
+
+    await user.click(screen.getByRole("radio", { name: /No Laboratory Error Found/i }));
+    await user.click(screen.getByRole("button", { name: "Sign Phase I" }));
+
+    await screen.findByRole("dialog");
+    await user.type(screen.getByLabelText(/Signing Password|Password/i), "Secret123!");
+    await user.click(screen.getByRole("button", { name: "Sign" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("All checklist items must be answered before signing Phase I.")
+      ).toBeTruthy();
+    });
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
 });

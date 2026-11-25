@@ -85,6 +85,7 @@ public sealed class CapaService(
                 throw new BusinessRuleException(MessageCodes.CapaEffectivenessDateOrder,
                     "The effectiveness check planned date must be after the last action due date.");
 
+            // Action rows are positional within a plan before approval; existing rows are updated in place because QualityActions is append-only on DELETE.
             var existing = await db.QualityActions.Where(a => a.RecordId == id).OrderBy(a => a.Id).ToListAsync(ct);
             if (normalized.Count < existing.Count)
                 throw new BusinessRuleException(MessageCodes.CapaActionCannotBeRemoved, "Existing CAPA actions cannot be removed.");
@@ -227,13 +228,17 @@ public sealed class CapaService(
             if (detail.EffectivenessPlannedDate is null || clock.LabToday < detail.EffectivenessPlannedDate.Value)
                 throw new BusinessRuleException(MessageCodes.CapaEffectivenessEarly,
                     "The effectiveness check cannot be signed before its planned date.");
+            if (!Enum.IsDefined(request.Result))
+                throw new BusinessRuleException(MessageCodes.CapaEffectivenessResultInvalid,
+                    "Select whether the CAPA was effective or not effective.");
 
             var findings = QualityRecordCore.RequiredText(request.Findings, 4000);
             int? successorId = null;
             if (request.Result == CapaEffectiveness.NotEffective)
             {
+                var readable = await core.ReadableRecordsAsync(userId, ct);
                 if (request.NewCapaId is not int newCapaId || newCapaId == id ||
-                    !await db.QualityRecords.AsNoTracking().AnyAsync(r => r.Id == newCapaId && r.Type == QualityRecordType.Capa
+                    !await readable.AnyAsync(r => r.Id == newCapaId && r.Type == QualityRecordType.Capa
                         && !r.IsCancelled && r.CapaDetail != null && r.CapaDetail.SourceRecordId == id, ct))
                     throw new BusinessRuleException(MessageCodes.CapaNewCapaRequired,
                         "A not-effective CAPA requires a linked new CAPA created from this record.");

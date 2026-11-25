@@ -54,6 +54,7 @@ public static partial class MessageCodes
     public const string CapaActionEvidenceLinkInvalid = "Capa.ActionEvidenceLinkInvalid";
     public const string CapaUnfinishedActions = "Capa.UnfinishedActions";
     public const string CapaEffectivenessEarly = "Capa.EffectivenessEarly";
+    public const string CapaEffectivenessResultInvalid = "Capa.EffectivenessResultInvalid";
     public const string CapaNewCapaRequired = "Capa.NewCapaRequired";
     public const string CapaInvalidOwner = "Capa.InvalidOwner";
     public const string CapaWrongState = "Capa.WrongState";
@@ -72,6 +73,7 @@ public static partial class MessageCodes
         [CapaActionEvidenceLinkInvalid] = [],
         [CapaUnfinishedActions] = ["action"],
         [CapaEffectivenessEarly] = [],
+        [CapaEffectivenessResultInvalid] = [],
         [CapaNewCapaRequired] = [],
         [CapaInvalidOwner] = [],
         [CapaWrongState] = [],

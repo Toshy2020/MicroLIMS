@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using MicroLIMS.Application.DTOs;
 using MicroLIMS.Application.Interfaces;
 using MicroLIMS.Application.Services;
@@ -191,6 +192,12 @@ public class QualityCapaPostgresTests(PostgresTestFixture fixture)
             Assert.Equal(w.Responsible, persistedAction.DoneByUserId);
             Assert.Equal(BaseNow, persistedAction.DoneAtUtc);
             Assert.Equal("Training record TR-101 signed", persistedAction.Evidence);
+            var actionAudit = await check.AuditLogs.AsNoTracking()
+                .Where(a => a.EntityName == nameof(QualityAction) && a.EntityId == action.Id.ToString() && a.Action == "Update")
+                .OrderByDescending(a => a.Id).FirstAsync();
+            Assert.Equal(w.Responsible, actionAudit.UserId);
+            Assert.Contains($"\"DoneByUserId\":{w.Responsible}", actionAudit.NewValue);
+            Assert.Contains("Training record TR-101 signed", actionAudit.NewValue);
         }
 
         var verified = await VerifyCompletionAsync(clock, w, completed);
@@ -323,6 +330,12 @@ public class QualityCapaPostgresTests(PostgresTestFixture fixture)
         Assert.Equal(MessageCodes.CapaNewCapaRequired, wrongSource.Code);
 
         var linkedSuccessor = await CreateAsync(clock, w, sourceId: verified.Id);
+        var cancelledSuccessor = await CreateAsync(clock, w, sourceId: verified.Id);
+        await ActAsync(clock, w.Qa, s => s.CancelAsync(cancelledSuccessor.Id, "Not needed", Password, cancelledSuccessor.Version, w.Qa));
+        var cancelledEx = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            SignEffectivenessAsync(clock, w, verified, CapaEffectiveness.NotEffective, newCapaId: cancelledSuccessor.Id));
+        Assert.Equal(MessageCodes.CapaNewCapaRequired, cancelledEx.Code);
+
         var closed = await SignEffectivenessAsync(clock, w, verified, CapaEffectiveness.NotEffective, newCapaId: linkedSuccessor.Id);
         Assert.Equal(CapaStatus.Closed, closed.Status);
         Assert.Equal(CapaEffectiveness.NotEffective, closed.EffectivenessResult);
@@ -431,25 +444,50 @@ public class QualityCapaPostgresTests(PostgresTestFixture fixture)
         var planned = await SavePlanAsync(clock, w, created);
         var action = Assert.Single(planned.Actions);
 
+        var auditCountBeforeApprove = await CountAuditLogsAsync(clock);
         await Assert.ThrowsAsync<SignatureVerificationException>(() =>
             ApprovePlanAsync(clock, w, planned, password: "wrong"));
-        await using (var check = Context(clock))
-        {
-            var persisted = await check.QualityRecords.AsNoTracking().Include(r => r.CapaDetail)
-                .SingleAsync(r => r.Id == planned.Id);
-            Assert.Equal(CapaStatus.Plan, persisted.CapaDetail?.Status);
-            Assert.Equal(planned.Version, persisted.Version);
-        }
+        await AssertNoChangeAsync(clock, planned.Id, CapaStatus.Plan, planned.Version, 0, auditCountBeforeApprove);
 
         var approved = await ApprovePlanAsync(clock, w, planned);
         var completed = await CompleteActionAsync(clock, w, approved, action.Id);
+        var auditCountBeforeVerify = await CountAuditLogsAsync(clock);
         await Assert.ThrowsAsync<SignatureVerificationException>(() =>
             VerifyCompletionAsync(clock, w, completed, password: "wrong"));
+        await AssertNoChangeAsync(clock, completed.Id, CapaStatus.PlanApproved, completed.Version, 1, auditCountBeforeVerify);
 
         var verified = await VerifyCompletionAsync(clock, w, completed);
         clock.UtcNow = BaseNow.AddDays(10);
+        var auditCountBeforeEff = await CountAuditLogsAsync(clock);
         await Assert.ThrowsAsync<SignatureVerificationException>(() =>
             SignEffectivenessAsync(clock, w, verified, CapaEffectiveness.Effective, password: "wrong"));
+        await AssertNoChangeAsync(clock, verified.Id, CapaStatus.CompletionVerified, verified.Version, 2, auditCountBeforeEff);
+    }
+
+    private async Task<int> CountAuditLogsAsync(MutableClock clock)
+    {
+        await using var db = Context(clock);
+        return await db.AuditLogs.AsNoTracking().CountAsync(a =>
+            a.EntityName == nameof(QualityRecord) || a.EntityName == nameof(CapaDetail) ||
+            a.EntityName == nameof(QualityRecordStep) ||
+            (a.EntityName == nameof(ElectronicSignature) && a.Action != "SignatureFailed"));
+    }
+
+    private async Task AssertNoChangeAsync(MutableClock clock, int capaId, CapaStatus expectedStatus, uint expectedVersion,
+        int expectedStepCount, int expectedAuditCount)
+    {
+        await using var check = Context(clock);
+        var persisted = await check.QualityRecords.AsNoTracking().Include(r => r.CapaDetail)
+            .SingleAsync(r => r.Id == capaId);
+        Assert.Equal(expectedStatus, persisted.CapaDetail?.Status);
+        Assert.Equal(expectedVersion, persisted.Version);
+        Assert.Equal(expectedStepCount, await check.QualityRecordSteps.AsNoTracking().CountAsync(s => s.RecordId == capaId));
+        Assert.Equal(expectedStepCount, await check.ElectronicSignatures.AsNoTracking()
+            .CountAsync(s => s.EntityType == nameof(QualityRecord) && s.EntityId == capaId));
+        Assert.Equal(expectedAuditCount, await check.AuditLogs.AsNoTracking().CountAsync(a =>
+            a.EntityName == nameof(QualityRecord) || a.EntityName == nameof(CapaDetail) ||
+            a.EntityName == nameof(QualityRecordStep) ||
+            (a.EntityName == nameof(ElectronicSignature) && a.Action != "SignatureFailed")));
     }
 
     [PostgresFact]
@@ -508,5 +546,197 @@ public class QualityCapaPostgresTests(PostgresTestFixture fixture)
         clock.UtcNow = BaseNow.AddDays(10);
         await Assert.ThrowsAsync<NotFoundException>(() =>
             SignEffectivenessAsync(clock, w, verified, CapaEffectiveness.Effective, actor: w.OutsideQa));
+    }
+
+    [PostgresFact]
+    public async Task Undefined_effectiveness_result_refused()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+        var planned = await SavePlanAsync(clock, w, created);
+        var action = Assert.Single(planned.Actions);
+        var approved = await ApprovePlanAsync(clock, w, planned);
+        var completed = await CompleteActionAsync(clock, w, approved, action.Id);
+        var verified = await VerifyCompletionAsync(clock, w, completed);
+
+        clock.UtcNow = BaseNow.AddDays(10);
+        var auditCount = await CountAuditLogsAsync(clock);
+        var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            SignEffectivenessAsync(clock, w, verified, (CapaEffectiveness)99));
+        Assert.Equal(MessageCodes.CapaEffectivenessResultInvalid, ex.Code);
+        await AssertNoChangeAsync(clock, verified.Id, CapaStatus.CompletionVerified, verified.Version, 2, auditCount);
+    }
+
+    [PostgresFact]
+    public async Task SavePlan_by_non_owner_and_shrinking_refused()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+
+        await Assert.ThrowsAsync<CodedAccessDeniedException>(() =>
+            SavePlanAsync(clock, w, created, actor: w.Head));
+
+        var twoActions = await SavePlanAsync(clock, w, created, actions:
+        [
+            new(QualityActionKind.Corrective, "First action", w.Responsible, Today.AddDays(3)),
+            new(QualityActionKind.Preventive, "Second action", w.Responsible, Today.AddDays(5))
+        ]);
+        Assert.Equal(2, twoActions.Actions.Count);
+
+        var shrink = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            SavePlanAsync(clock, w, twoActions, actions:
+            [
+                new(QualityActionKind.Corrective, "Only one action", w.Responsible, Today.AddDays(3))
+            ]));
+        Assert.Equal(MessageCodes.CapaActionCannotBeRemoved, shrink.Code);
+    }
+
+    [PostgresFact]
+    public async Task Return_resave_approve_persists_comment_and_reason()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+        var planned = await SavePlanAsync(clock, w, created);
+
+        var returned = await ActAsync(clock, w.Qa, s => s.ReturnPlanAsync(planned.Id, "Add preventive action", planned.Version, w.Qa));
+        Assert.Equal(CapaStatus.Plan, returned.Status);
+        await using (var check = Context(clock))
+        {
+            var comment = await check.QualityComments.AsNoTracking().SingleAsync(c => c.RecordId == returned.Id);
+            Assert.Equal("Add preventive action", comment.Text);
+            Assert.Equal(w.Qa, comment.AuthorUserId);
+        }
+
+        var reSaved = await SavePlanAsync(clock, w, returned, actions:
+        [
+            new(QualityActionKind.Corrective, "Retrain analysts", w.Responsible, Today.AddDays(4)),
+            new(QualityActionKind.Preventive, "Update SOP", w.Responsible, Today.AddDays(6))
+        ]);
+        var approved = await ApprovePlanAsync(clock, w, reSaved);
+        await AssertSignedAsync(clock, approved, CapaStatus.Plan, CapaStatus.PlanApproved,
+            QualityStepKind.CapaPlanApproved, SignatureMeaning.CapaPlanApproved, w.Qa);
+    }
+
+    [PostgresFact]
+    public async Task CompleteAction_validates_evidence_link_and_single_completion()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var c1 = await CreateAsync(clock, w);
+        var p1 = await SavePlanAsync(clock, w, c1);
+        var action = Assert.Single(p1.Actions);
+        var approved = await ApprovePlanAsync(clock, w, p1);
+
+        var otherCapa = await CreateAsync(clock, w);
+        int foreignLinkId;
+        await using (var arrange = Context(clock))
+        {
+            var link = new QualityRecordLink
+            {
+                RecordId = otherCapa.Id, TargetType = QualityLinkTargetType.Item, TargetId = 1,
+                AddedByUserId = w.Raiser, AddedAtUtc = BaseNow
+            };
+            arrange.QualityRecordLinks.Add(link);
+            await arrange.SaveChangesAsync();
+            foreignLinkId = link.Id;
+        }
+
+        var emptyEvidence = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Responsible,
+            s => s.CompleteActionAsync(action.Id, new("  ", null), approved.Version, w.Responsible)));
+        Assert.Equal(MessageCodes.QualityInvalidText, emptyEvidence.Code);
+
+        var wrongLink = await Assert.ThrowsAsync<BusinessRuleException>(() => ActAsync(clock, w.Responsible,
+            s => s.CompleteActionAsync(action.Id, new("Done", foreignLinkId), approved.Version, w.Responsible)));
+        Assert.Equal(MessageCodes.CapaActionEvidenceLinkInvalid, wrongLink.Code);
+
+        var completed = await CompleteActionAsync(clock, w, approved, action.Id);
+        var repeat = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+            CompleteActionAsync(clock, w, completed, action.Id));
+        Assert.Equal(MessageCodes.CapaActionAlreadyDone, repeat.Code);
+    }
+
+    [PostgresFact]
+    public async Task Cancel_path_records_full_triad()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+        var planned = await SavePlanAsync(clock, w, created);
+        var approved = await ApprovePlanAsync(clock, w, planned);
+
+        var cancelled = await ActAsync(clock, w.Qa, s => s.CancelAsync(approved.Id, "Superseded by site SOP", Password, approved.Version, w.Qa));
+        Assert.Equal(CapaStatus.Cancelled, cancelled.Status);
+        Assert.Equal("Superseded by site SOP", cancelled.CancelReason);
+        await AssertSignedAsync(clock, cancelled, CapaStatus.PlanApproved, CapaStatus.Cancelled,
+            QualityStepKind.QualityCancelled, SignatureMeaning.QualityCancelled, w.Qa);
+
+        await using var check = Context(clock);
+        var persisted = await check.QualityRecords.AsNoTracking().SingleAsync(r => r.Id == cancelled.Id);
+        Assert.True(persisted.IsCancelled);
+        Assert.Equal("Superseded by site SOP", persisted.CancelReason);
+    }
+
+    [PostgresFact]
+    public async Task Approved_capa_action_database_trigger_enforces_immutability()
+    {
+        var clock = new MutableClock(BaseNow);
+        var w = await ArrangeAsync(clock);
+        var created = await CreateAsync(clock, w);
+        var planned = await SavePlanAsync(clock, w, created);
+        var actionId = Assert.Single(planned.Actions).Id;
+
+        // Plan edits before approval are allowed (both via service and raw SQL)
+        var rePlanned = await SavePlanAsync(clock, w, planned, actions:
+        [
+            new(QualityActionKind.Preventive, "Updated before approval", w.Responsible, Today.AddDays(6))
+        ]);
+        await using (var beforeDb = Context(clock))
+        {
+            var updated = await beforeDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"Description\" = 'Edited in Plan' WHERE \"Id\" = {actionId}");
+            Assert.Equal(1, updated);
+        }
+
+        var approved = await ApprovePlanAsync(clock, w, rePlanned);
+        var otherCapa = await CreateAsync(clock, w);
+
+        // Planned fields cannot be modified after approval
+        await using (var afterDb = Context(clock))
+        {
+            foreach (var sql in new FormattableString[]
+            {
+                $"UPDATE \"QualityActions\" SET \"Kind\" = 0 WHERE \"Id\" = {actionId}",
+                $"UPDATE \"QualityActions\" SET \"Description\" = 'Tampered' WHERE \"Id\" = {actionId}",
+                $"UPDATE \"QualityActions\" SET \"ResponsibleUserId\" = {w.Owner} WHERE \"Id\" = {actionId}",
+                $"UPDATE \"QualityActions\" SET \"DueDate\" = {Today.AddDays(30)} WHERE \"Id\" = {actionId}",
+                $"UPDATE \"QualityActions\" SET \"RecordId\" = {otherCapa.Id} WHERE \"Id\" = {actionId}"
+            })
+            {
+                var ex = await Assert.ThrowsAsync<PostgresException>(() => afterDb.Database.ExecuteSqlInterpolatedAsync(sql));
+                Assert.Equal("P0001", ex.SqlState);
+                Assert.Contains("planned fields cannot be modified", ex.Message);
+            }
+        }
+
+        // First completion is allowed
+        var completed = await CompleteActionAsync(clock, w, approved, actionId);
+        Assert.NotNull(Assert.Single(completed.Actions).DoneAtUtc);
+
+        // Second completion / clearing is rejected
+        await using (var tamperDb = Context(clock))
+        {
+            var modifyEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"Evidence\" = 'Tampered evidence' WHERE \"Id\" = {actionId}"));
+            Assert.Equal("P0001", modifyEx.SqlState);
+            Assert.Contains("completion fields cannot be modified or cleared", modifyEx.Message);
+
+            var clearEx = await Assert.ThrowsAsync<PostgresException>(() => tamperDb.Database.ExecuteSqlInterpolatedAsync(
+                $"UPDATE \"QualityActions\" SET \"DoneAtUtc\" = NULL WHERE \"Id\" = {actionId}"));
+            Assert.Equal("P0001", clearEx.SqlState);
+            Assert.Contains("completion fields cannot be modified or cleared", clearEx.Message);
+        }
     }
 }

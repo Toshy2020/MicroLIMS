@@ -100,6 +100,13 @@ ChangeControlsController.Reject(Int32, ChangeControlRejectRequest, CancellationT
 ChangeControlsController.SaveAssessment(Int32, SaveChangeControlAssessmentRequest, CancellationToken): SectionHead
 ChangeControlsController.SignAssessment(Int32, ChangeControlPasswordRequest, CancellationToken): SectionHead
 ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
+ComplaintsController.Cancel(Int32, ComplaintReasonRequest, CancellationToken): Qa
+ComplaintsController.Close(Int32, ComplaintPasswordRequest, CancellationToken): Qa
+ComplaintsController.Conclude(Int32, ConcludeComplaintRequest, CancellationToken): Qa
+ComplaintsController.Receive(ReceiveComplaintRequest, CancellationToken): Qa
+ComplaintsController.RequestInvestigation(Int32, RequestComplaintInvestigationRequest, CancellationToken): Qa
+ComplaintsController.SaveInvestigation(Int32, SaveComplaintInvestigationRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+ComplaintsController.SignLabReport(Int32, ComplaintPasswordRequest, CancellationToken): SectionHead,QcManager
 CompetencyController.GetImpact(Int32, CancellationToken): SectionHead,QcManager
 CompetencyController.GetMatrix(Int32, MatrixFilters, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 CompetencyController.GetMy(CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

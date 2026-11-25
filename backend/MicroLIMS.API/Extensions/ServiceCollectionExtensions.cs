@@ -283,6 +283,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Quality.DeviationService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.CapaService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.ChangeControlService>();
+        services.AddScoped<MicroLIMS.Application.Services.Quality.ComplaintService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityDueDateService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityConfigService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityLinkService>();

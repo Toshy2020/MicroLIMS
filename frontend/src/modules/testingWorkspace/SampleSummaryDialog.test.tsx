@@ -550,7 +550,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
 
     const link = await screen.findByRole("link", { name: /OOS-2026-0042/i });
     expect(link.getAttribute("href")).toBe("/oos-tracking/42");
-    expect(screen.getAllByText("OOS investigation OOS-2026-0042 is open.").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("OOS investigation OOS-2026-0042 is open.")).length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /Submit Decision/i }).getAttribute("aria-disabled")).toBe("true");
     expect(screen.queryByRole("radio", { name: /Retest Retained Sample/i })).toBeNull();
     expect(screen.queryByRole("radio", { name: /New Sample Required/i })).toBeNull();
@@ -593,7 +593,7 @@ describe("SampleSummaryDialog OOS banner and retest options", () => {
     expect(await screen.findByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
 
-    await user.click(screen.getByRole("button", { name: /Open investigation/i }));
+    await user.click(await screen.findByRole("button", { name: /Open investigation/i }));
     await waitFor(() =>
       expect(oosInvestigationService.openManually).toHaveBeenCalledWith(77, 10, 5)
     );

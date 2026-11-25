@@ -1759,5 +1759,8 @@
     "startPlatingIncubation": "Start Plating Incubation",
     "selectMediaAndIncubator": "Please select both a media lot and an incubator.",
     "startFailed": "Failed to start incubation."
+  },
+  "coa": {
+    "loadFailed": "Failed to load the certificate of analysis."
   }
 }

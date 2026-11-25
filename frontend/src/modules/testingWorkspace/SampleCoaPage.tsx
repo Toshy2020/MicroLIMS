@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState, type JSX } from "react";
 import { useParams } from "react-router-dom";
-import { Box, ToggleButtonGroup, ToggleButton, Alert, Typography } from "@mui/material";
+import { Box, ToggleButtonGroup, ToggleButton, Alert, Stack, Typography } from "@mui/material";
+import { useTranslation } from "../../i18n";
 import { SampleSummaryService } from "./services/SampleSummaryService";
 import {
   filterTestOrdersBySection,
@@ -21,6 +22,11 @@ import { reportStyles } from "./reportStyles";
 import { SIGNATURE_STATEMENTS } from "./sampleSummary/summaryFormatting";
 import { dt, d, humanize } from "./SampleReportPage";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { OosBanner } from "../oosTracking/components/OosBanner";
+import {
+  oosInvestigationService,
+  type OosInvestigationListItemDto
+} from "../../services/oosInvestigationService";
 
 // Certificate-only print overrides, deliberately kept out of reportStyles:
 // that stylesheet is shared with the media and cryovial reports, and this
@@ -306,15 +312,45 @@ function CoaSimpleTable({ simple, testOrders, supportingRows = [] }: { simple: C
 
 export function SampleCoaPage() {
   const { id } = useParams();
+  const { t } = useTranslation("testingWorkspace");
   const [summary, setSummary] = useState<SampleSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; isCoded: boolean } | null>(null);
+  const [investigations, setInvestigations] = useState<OosInvestigationListItemDto[]>([]);
   const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
-    SampleSummaryService.getSummary(Number(id), { forCertificate: true })
-      .then(setSummary)
-      .catch((e) => setError(e?.response?.data?.message ?? "Failed to load the certificate of analysis."));
+    const controller = new AbortController();
+    const sampleId = Number(id);
+    setError(null);
+    SampleSummaryService.getSummary(sampleId, { forCertificate: true })
+      .then((data) => {
+        if (!controller.signal.aborted) setSummary(data);
+      })
+      .catch((e: unknown) => {
+        if (controller.signal.aborted) return;
+        const data = (
+          e as {
+            response?: { data?: { message?: unknown; errorDetails?: unknown } };
+          } | null
+        )?.response?.data;
+        const hasCodedDetail = Array.isArray(data?.errorDetails) && data.errorDetails.length > 0;
+        const msg = typeof data?.message === "string" && data.message.trim() ? data.message : "";
+        if (hasCodedDetail && msg) {
+          setError({ message: msg, isCoded: true });
+        } else {
+          setError({ message: "", isCoded: false });
+        }
+      });
+    oosInvestigationService
+      .getForSample(sampleId, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) setInvestigations(data);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setInvestigations([]);
+      });
+    return () => controller.abort();
   }, [id]);
 
   const isMultiSection = Boolean(summary?.sections && summary.sections.length > 1);
@@ -365,9 +401,14 @@ export function SampleCoaPage() {
   if (error) {
     return (
       <PinnedLightTheme>
-        <div style={{ padding: 32, fontFamily: "Segoe UI, sans-serif", color: "#dc2626" }}>
-          {error}
-        </div>
+        <Box sx={{ maxWidth: 800, margin: "40px auto", px: 3 }}>
+          <Stack spacing={1.5}>
+            <Alert severity="error" role="alert">
+              {error.isCoded ? error.message : t("coa.loadFailed")}
+            </Alert>
+            {investigations.length > 0 && <OosBanner investigations={investigations} />}
+          </Stack>
+        </Box>
       </PinnedLightTheme>
     );
   }

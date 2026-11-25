@@ -64,6 +64,7 @@ export const APP_ROUTES = {
   LABEL_FORMATS: "/laboratory-configuration/label-formats",
   WORKING_HOURS: "/laboratory-configuration/working-hours",
   ESCALATION_RULES: "/laboratory-configuration/escalation-rules",
+  OOS_TEMPLATES: "/laboratory-configuration/oos-templates",
 
   // Inventory & Stock
   INVENTORY_MATERIALS: "/inventory/materials",

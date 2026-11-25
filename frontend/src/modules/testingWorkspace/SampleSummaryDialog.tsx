@@ -31,6 +31,13 @@ import { SampleIdentityCard, SamplePreparationCard } from "./sampleSummary/Summa
 import { TestResultsSection } from "./sampleSummary/TestResultsSection";
 import { ApprovalSignaturesCard } from "./sampleSummary/ApprovalSignaturesCard";
 import { PrintLabelButton } from "../../components/labels/PrintLabelButton";
+import { OosBanner } from "../oosTracking/components/OosBanner";
+import {
+  oosInvestigationService,
+  type OosInvestigationListItemDto
+} from "../../services/oosInvestigationService";
+import { serverMessage } from "../../utils/errorMessage";
+import { toast } from "sonner";
 
 interface Props {
   open: boolean;
@@ -144,6 +151,9 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const [approvalSectionId, setApprovalSectionId] = useState<number | "">("");
   const [closingSectionId, setClosingSectionId] = useState<number | "">("");
   const [confirmingClose, setConfirmingClose] = useState(false);
+  const [investigations, setInvestigations] = useState<OosInvestigationListItemDto[]>([]);
+  const [openingInvestigation, setOpeningInvestigation] = useState(false);
+  const [openInvestigationError, setOpenInvestigationError] = useState<string | null>(null);
 
   const reviewableSections = useMemo(
     () => (summary?.sections ?? []).filter((s) => s.canView && s.status === "UnderReview"),
@@ -191,6 +201,7 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
 
   useEffect(() => {
     if (open && sampleId) {
+      const controller = new AbortController();
       setSummary(null);
       setLoadError(null);
       setComment("");
@@ -205,8 +216,19 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
       setClosingSectionId("");
       setRetentionQuantity("");
       setRetentionQuantityUnit("");
+      setInvestigations([]);
+      setOpenInvestigationError(null);
+      oosInvestigationService
+        .getForSample(sampleId, controller.signal)
+        .then((data) => {
+          if (!controller.signal.aborted) setInvestigations(data);
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) setInvestigations([]);
+        });
       SampleSummaryService.getSummary(sampleId)
         .then((data) => {
+          if (controller.signal.aborted) return;
           setSummary(data);
           if (data.retentionQuantity != null) {
             setRetentionQuantity(String(data.retentionQuantity));
@@ -229,17 +251,24 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
           }
         })
         .catch((e) => {
-          setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
+          if (!controller.signal.aborted) {
+            setLoadError(e?.response?.data?.message ?? t("sampleSummary.dialog.loadFailed"));
+          }
         });
       if (canAssignAnalyst) {
         setAnalystsLoadFailed(false);
         UserService.getEligibleAnalysts()
-          .then(setAnalysts)
+          .then((list) => {
+            if (!controller.signal.aborted) setAnalysts(list);
+          })
           .catch(() => {
-            setAnalysts([]);
-            setAnalystsLoadFailed(true);
+            if (!controller.signal.aborted) {
+              setAnalysts([]);
+              setAnalystsLoadFailed(true);
+            }
           });
       }
+      return () => controller.abort();
     }
   }, [open, sampleId, canAssignAnalyst]);
 
@@ -339,6 +368,47 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
   const effectiveClosingSectionId =
     closableSections.length === 1 ? closableSections[0].sectionId : closingSectionId !== "" ? Number(closingSectionId) : undefined;
   const closingSection = closableSections.find((s) => s.sectionId === effectiveClosingSectionId);
+
+  const sectionInvestigations = useMemo(() => {
+    if (effectiveApprovalSectionId == null) return investigations;
+    return investigations.filter((i) => i.sectionId === effectiveApprovalSectionId);
+  }, [investigations, effectiveApprovalSectionId]);
+
+  // Follow-up (backend, later): derive retest/new-sample availability from the server instead of sectionHasInvestigation.
+  const sectionHasInvestigation = useMemo(
+    () => sectionInvestigations.some((i) => i.kind === "Oos"),
+    [sectionInvestigations]
+  );
+
+  useEffect(() => {
+    if (sectionHasInvestigation && (decision === "RetestRetainedSample" || decision === "NewSampleRequest")) {
+      setDecision("Approve");
+    }
+  }, [sectionHasInvestigation, decision]);
+
+  const handleOpenInvestigation = async () => {
+    if (!sampleId || effectiveApprovalSectionId == null) return;
+    setOpeningInvestigation(true);
+    setOpenInvestigationError(null);
+    try {
+      const ver = await SampleSummaryService.getSampleVersion(sampleId);
+      if (ver == null) {
+        setOpenInvestigationError("Unable to determine sample version.");
+        return;
+      }
+      const opened = await oosInvestigationService.openManually(sampleId, effectiveApprovalSectionId, ver);
+      toast.success(opened.number);
+      const updated = await oosInvestigationService.getForSample(sampleId).catch(() => []);
+      setInvestigations(updated);
+      refreshApprovalAvailability();
+    } catch (e) {
+      const msg = serverMessage(e) ?? "Failed to open investigation.";
+      setOpenInvestigationError(msg);
+      toast.error(msg);
+    } finally {
+      setOpeningInvestigation(false);
+    }
+  };
 
   const handleExport = async (format: "pdf") => {
     if (!sampleId || !summary) return;
@@ -553,6 +623,9 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
             )}
 
             {/* 1. Sample Identity */}
+            {!canApprove && investigations.length > 0 && (
+              <OosBanner investigations={investigations} />
+            )}
             <SampleIdentityCard summary={summary} />
 
             {/* Workflow History - horizontal, right under Sample Identity so
@@ -609,6 +682,14 @@ export function SampleSummaryDialog({ open, sampleId, onClose }: Props) {
               closingSectionId={closingSectionId}
               onClosingSectionChange={setClosingSectionId}
               onCloseTestingClick={() => setConfirmingClose(true)}
+              oosInvestigations={sectionInvestigations}
+              sectionHasInvestigation={sectionHasInvestigation}
+              canOpenInvestigation={
+                permissions.includes(PERMISSIONS.OOS_MANAGE) && effectiveApprovalSectionId != null
+              }
+              openingInvestigation={openingInvestigation}
+              openInvestigationError={openInvestigationError}
+              onOpenInvestigation={() => void handleOpenInvestigation()}
             />
 
             {/* 4. Full-Width Open Printable Report / View COA Buttons */}

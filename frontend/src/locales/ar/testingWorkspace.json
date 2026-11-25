@@ -1775,5 +1775,8 @@
     "startPlatingIncubation": "بدء حضانة الأطباق",
     "selectMediaAndIncubator": "يرجى اختيار تشغيلة أوساط زرعية وحاضنة.",
     "startFailed": "تعذّر بدء الحضانة."
+  },
+  "coa": {
+    "loadFailed": "تعذّر تحميل شهادة التحليل."
   }
 }

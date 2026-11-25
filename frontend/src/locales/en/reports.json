@@ -677,7 +677,11 @@
     "sectionAttribution": "Attribution, Timing & Review Chain",
     "enteredByAnalyst": "Result Entered By (Analyst)",
     "approvedBySectionHead": "Approved By (Section Head / Reviewer)",
-    "pendingApproval": "Pending Approval"
+    "pendingApproval": "Pending Approval",
+    "openExcursionReview": "Open excursion review",
+    "excursionReason": "Reason",
+    "confirmExcursionReview": "Confirm Excursion Review",
+    "excursionError": "Failed to open excursion review."
   },
   "compare": {
     "loadError": "Unable to load comparison data for this test code.",

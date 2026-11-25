@@ -9,8 +9,10 @@ import type { SampleSummary } from "./types/sampleSummaryTypes";
 import { PERMISSIONS } from "../../routes/routes";
 import { labelService } from "../../services/labelService";
 import { actionAvailabilityService } from "../../services/actionAvailabilityService";
+import { oosInvestigationService } from "../../services/oosInvestigationService";
 
 const mockGetSummary = vi.fn();
+const mockGetSampleVersion = vi.fn();
 const mockCompleteReview = vi.fn();
 const mockDecideApproval = vi.fn();
 
@@ -19,9 +21,17 @@ vi.mock("../../services/actionAvailabilityService", () => ({
   actionAvailabilityService: { get: vi.fn() }
 }));
 
+vi.mock("../../services/oosInvestigationService", () => ({
+  oosInvestigationService: {
+    getForSample: vi.fn(),
+    openManually: vi.fn()
+  }
+}));
+
 vi.mock("./services/SampleSummaryService", () => ({
   SampleSummaryService: {
     getSummary: (...args: unknown[]) => mockGetSummary(...args),
+    getSampleVersion: (...args: unknown[]) => mockGetSampleVersion(...args),
     completeReview: (...args: unknown[]) => mockCompleteReview(...args),
     exportPdf: vi.fn(),
     returnTestToAnalyst: vi.fn(),
@@ -52,7 +62,8 @@ vi.mock("../../contexts/AuthContext", () => ({
       PERMISSIONS.SAMPLES_REVIEW,
       PERMISSIONS.SAMPLES_APPROVE,
       PERMISSIONS.SAMPLES_RECEIVE_OWN_LAB,
-      PERMISSIONS.LABELS_REPRINT
+      PERMISSIONS.LABELS_REPRINT,
+      PERMISSIONS.OOS_MANAGE
     ],
     fullName: "QC Reviewer",
     username: "qcreviewer",
@@ -83,10 +94,15 @@ afterEach(cleanup);
 
 beforeEach(() => {
   mockGetSummary.mockReset();
+  mockGetSampleVersion.mockReset();
+  mockGetSampleVersion.mockResolvedValue(5);
   mockCompleteReview.mockReset();
   mockDecideApproval.mockReset();
   vi.mocked(actionAvailabilityService.get).mockReset();
   vi.mocked(actionAvailabilityService.get).mockResolvedValue([]);
+  vi.mocked(oosInvestigationService.getForSample).mockReset();
+  vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([]);
+  vi.mocked(oosInvestigationService.openManually).mockReset();
   vi.mocked(labelService.getStatus).mockReset();
   vi.mocked(labelService.getStatus).mockResolvedValue([]);
 });
@@ -350,17 +366,17 @@ describe("SampleSummaryDialog review flow", () => {
   });
 });
 
-describe("SampleSummaryDialog gated actions", () => {
-  function mount() {
-    return render(
-      <MemoryRouter>
-        <PinnedLightTheme>
-          <SampleSummaryDialog open={true} sampleId={77} onClose={vi.fn()} />
-        </PinnedLightTheme>
-      </MemoryRouter>
-    );
-  }
+function mount(sampleId = 77) {
+  return render(
+    <MemoryRouter>
+      <PinnedLightTheme>
+        <SampleSummaryDialog open={true} sampleId={sampleId} onClose={vi.fn()} />
+      </PinnedLightTheme>
+    </MemoryRouter>
+  );
+}
 
+describe("SampleSummaryDialog gated actions", () => {
   it("a reviewer who performed a test sees Complete review disabled with the server's sentence", async () => {
     const sentence = "You performed a test on this sample, so you cannot review it.";
     mockGetSummary.mockResolvedValue(createSample({ category: "FinishedProduct" }));
@@ -368,6 +384,7 @@ describe("SampleSummaryDialog gated actions", () => {
       { action: "review.complete", allowed: false, reason: sentence }
     ]);
     const user = userEvent.setup();
+
     mount();
 
     const reason = await screen.findByText(sentence);
@@ -395,9 +412,10 @@ describe("SampleSummaryDialog gated actions", () => {
       { action: "approval.reject", allowed: true, reason: null }
     ]);
     const user = userEvent.setup();
+
     mount();
 
-    expect(await screen.findByText(sentence)).toBeTruthy();
+    expect((await screen.findAllByText(sentence)).length).toBeGreaterThan(0);
     const button = screen.getByRole("button", { name: /Submit Decision/i });
     expect(button.getAttribute("aria-disabled")).toBe("true");
     await user.click(button);
@@ -424,6 +442,7 @@ describe("SampleSummaryDialog gated actions", () => {
       { action: "approval.reject", allowed: true, reason: null }
     ]);
     const user = userEvent.setup();
+
     mount();
 
     await user.click(await screen.findByRole("button", { name: /Submit Decision/i }));
@@ -453,5 +472,192 @@ describe("SampleSummaryDialog in Arabic RTL", () => {
     expect(await screen.findByText("ملخص العينة")).toBeTruthy();
     const refNodes = await screen.findAllByText("RM0926077");
     expect(refNodes.some((node) => node.closest("bdi")?.getAttribute("dir") === "ltr")).toBe(true);
+  }, 15000);
+});
+
+describe("SampleSummaryDialog OOS banner and retest options", () => {
+  it("shows banner link, disables approval with server reason, and hides retest/new-sample options when investigation exists", async () => {
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
+      })
+    );
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      { action: "approval.approve", allowed: false, reason: "OOS investigation OOS-2026-0042 is open." },
+      { action: "approval.reject", allowed: false, reason: "OOS investigation OOS-2026-0042 is open." }
+    ]);
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([
+      {
+        id: 42,
+        number: "OOS-2026-0042",
+        kind: "Oos",
+        status: "PhaseOne",
+        sampleId: 77,
+        sampleReferenceNumber: "RM0926077",
+        sampleDisplayName: "Microcrystalline Cellulose",
+        batchNumber: null,
+        sectionId: 10,
+        sectionName: "Microbiology",
+        openedAtUtc: "2026-11-20T10:00:00Z",
+        openedByName: "Reviewer",
+        phaseOneDueDate: null,
+        dueDate: null,
+        isOverdue: false,
+        conclusion: null,
+        concludedAtUtc: null,
+        rootCauseCategoryName: null,
+        testCodes: ["TAMC"],
+        version: 1
+      }
+    ]);
+
+    mount();
+
+    const link = await screen.findByRole("link", { name: /OOS-2026-0042/i });
+    expect(link.getAttribute("href")).toBe("/oos-tracking/42");
+    expect((await screen.findAllByText("OOS investigation OOS-2026-0042 is open.")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Submit Decision/i }).getAttribute("aria-disabled")).toBe("true");
+    expect(screen.queryByRole("radio", { name: /Retest Retained Sample/i })).toBeNull();
+    expect(screen.queryByRole("radio", { name: /New Sample Required/i })).toBeNull();
+  }, 15000);
+
+  it("keeps retest and new-sample options present when no investigation exists and allows manual open on blocked approval", async () => {
+    const user = userEvent.setup();
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
+      })
+    );
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "approval.approve",
+        allowed: false,
+        reason: "This sample has an out-of-specification result without an investigation.",
+        reasonCode: "Oos.FailingResultWithoutInvestigation"
+      }
+    ]);
+    vi.mocked(oosInvestigationService.getForSample).mockResolvedValue([]);
+    vi.mocked(oosInvestigationService.openManually).mockResolvedValue({
+      id: 55,
+      number: "OOS-2026-0055",
+      version: 1
+    });
+
+    mount();
+
+    expect(await screen.findByRole("radio", { name: /Retest Retained Sample/i })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: /New Sample Required/i })).toBeTruthy();
+    expect((await screen.findAllByText("This sample has an out-of-specification result without an investigation.")).length).toBeGreaterThan(0);
+
+    await user.click(await screen.findByRole("button", { name: /Open investigation/i }));
+    await waitFor(() =>
+      expect(oosInvestigationService.openManually).toHaveBeenCalledWith(77, 10, 5)
+    );
+  }, 15000);
+
+  it("hides Open investigation for other block codes and shows manual-open server refusal", async () => {
+    const user = userEvent.setup();
+    mockGetSummary.mockResolvedValue(
+      createSample({
+        status: "UnderApproval",
+        certificate: { sample: { matrix: null, simple: null }, sections: [] } as never,
+        sections: (createSample().sections ?? []).map((section) => ({ ...section, status: "UnderApproval" }))
+      })
+    );
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "approval.approve",
+        allowed: false,
+        reason: "This section cannot be approved because OOS was confirmed.",
+        reasonCode: "Oos.ConfirmedCannotBeApproved"
+      }
+    ]);
+
+    const { rerender } = mount();
+    expect((await screen.findAllByText("This section cannot be approved because OOS was confirmed.")).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: /Open investigation/i })).toBeNull();
+
+    vi.mocked(actionAvailabilityService.get).mockResolvedValue([
+      {
+        action: "approval.approve",
+        allowed: false,
+        reason: "This sample has an out-of-specification result without an investigation.",
+        reasonCode: "Oos.FailingResultWithoutInvestigation"
+      }
+    ]);
+    vi.mocked(oosInvestigationService.openManually).mockRejectedValue({
+      response: { data: { message: "Manual opening requires a reviewed failing section without an investigation." } }
+    });
+
+    rerender(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+    await user.click(await screen.findByRole("button", { name: /Open investigation/i }));
+    const refusal = await screen.findByText(
+      "Manual opening requires a reviewed failing section without an investigation."
+    );
+    expect(refusal.closest('[role="alert"]')).toBeTruthy();
+  }, 15000);
+
+  it("passes an AbortSignal to getForSample and ignores stale responses when sampleId changes", async () => {
+    let resolveFirst!: (val: never[]) => void;
+    const firstPromise = new Promise<never[]>((resolve) => {
+      resolveFirst = resolve;
+    });
+    vi.mocked(oosInvestigationService.getForSample)
+      .mockReturnValueOnce(firstPromise as never)
+      .mockResolvedValueOnce([]);
+    mockGetSummary.mockResolvedValue(createSample({ status: "UnderApproval" }));
+
+    const { rerender } = mount(77);
+    expect(oosInvestigationService.getForSample).toHaveBeenCalledWith(77, expect.any(AbortSignal));
+    const firstSignal = vi.mocked(oosInvestigationService.getForSample).mock.calls[0][1] as AbortSignal;
+    expect(firstSignal.aborted).toBe(false);
+
+    rerender(
+      <MemoryRouter>
+        <PinnedLightTheme>
+          <SampleSummaryDialog open={true} sampleId={78} onClose={vi.fn()} />
+        </PinnedLightTheme>
+      </MemoryRouter>
+    );
+    expect(firstSignal.aborted).toBe(true);
+    expect(oosInvestigationService.getForSample).toHaveBeenCalledWith(78, expect.any(AbortSignal));
+
+    resolveFirst([
+      {
+        id: 999,
+        number: "OOS-STALE-001",
+        kind: "Oos",
+        status: "PhaseOne",
+        sampleId: 77,
+        sampleReferenceNumber: "RM0926077",
+        sampleDisplayName: "Stale",
+        batchNumber: null,
+        sectionId: 10,
+        sectionName: "Microbiology",
+        openedAtUtc: "2026-11-20T10:00:00Z",
+        openedByName: "Reviewer",
+        phaseOneDueDate: null,
+        dueDate: null,
+        isOverdue: false,
+        conclusion: null,
+        concludedAtUtc: null,
+        rootCauseCategoryName: null,
+        testCodes: ["TAMC"],
+        version: 1
+      } as never
+    ]);
+
+    await waitFor(() => expect(mockGetSummary).toHaveBeenCalledWith(78));
+    expect(screen.queryByText("OOS-STALE-001")).toBeNull();
   }, 15000);
 });

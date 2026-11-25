@@ -90,6 +90,7 @@ const DatabaseOverviewPage = lazy(() => import("../modules/admin/DatabaseOvervie
 const ErrorMonitoringPage = lazy(() => import("../modules/errorMonitoring/ErrorMonitoringPage").then((m) => ({ default: m.ErrorMonitoringPage })));
 const OosTrackingPage = lazy(() => import("../modules/oosTracking/OosTrackingPage").then((m) => ({ default: m.OosTrackingPage })));
 const InvestigationPage = lazy(() => import("../modules/oosTracking/InvestigationPage").then((m) => ({ default: m.InvestigationPage })));
+const OosTemplatesPage = lazy(() => import("../modules/oosTracking/OosTemplatesPage").then((m) => ({ default: m.OosTemplatesPage })));
 const MaterialsPage = lazy(() => import("../modules/inventory/materials/MaterialsPage").then((m) => ({ default: m.MaterialsPage })));
 const EquipmentInventoryPage = lazy(() => import("../modules/inventory/equipment/EquipmentInventoryPage").then((m) => ({ default: m.EquipmentInventoryPage })));
 const DocumentControlDashboardPage = lazy(() => import("../modules/documentControl/pages/DocumentControlDashboardPage").then((m) => ({ default: m.DocumentControlDashboardPage })));
@@ -305,6 +306,9 @@ export function AppRoutes() {
             <Route element={<PermissionRoute code={PERMISSIONS.NOTIFICATIONS_CONFIGURE} />}>
               <Route path="/laboratory-configuration/working-hours" element={<WorkingHoursPage />} />
               <Route path="/laboratory-configuration/escalation-rules" element={<EscalationRulesPage />} />
+            </Route>
+            <Route element={<PermissionRoute code={PERMISSIONS.OOS_MANAGE} />}>
+              <Route path="/laboratory-configuration/oos-templates" element={<OosTemplatesPage />} />
             </Route>
 
             {/* Document Control Module (Release 1a) */}

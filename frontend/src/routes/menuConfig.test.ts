@@ -288,7 +288,7 @@ describe("Microbiology solutions menu entries", () => {
   it("consolidates Document Control, Reports, Monitoring Plan and OOS Tracking under QUALITY & COMPLIANCE", () => {
     const groups = getGroupedMenu({
       role: "SectionHead",
-      permissions: [PERMISSIONS.OOS_MANAGE, PERMISSIONS.MONITORING_PLAN_VIEW],
+      permissions: [PERMISSIONS.OOS_VIEW, PERMISSIONS.MONITORING_PLAN_VIEW],
       labCodes: []
     });
     const qualityGroup = groups.find((g) => g.groupName === "QUALITY & COMPLIANCE");

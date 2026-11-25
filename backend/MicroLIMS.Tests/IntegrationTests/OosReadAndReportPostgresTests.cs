@@ -208,6 +208,67 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
     }
 
     [PostgresFact]
+    public async Task List_openOnly_filters_concluded_before_paging_and_returns_accurate_totals()
+    {
+        var lab = await _seed.SectionAsync();
+        var viewer = await _seed.UserAsync(RoleType.QcManager, ViewCodes, lab);
+        var now = Utc(11, 12, 10);
+
+        int open1Id, open2Id, open3Id, concluded1Id, concluded2Id;
+        await using (var arrange = fixture.CreateDbContext())
+        {
+            async Task<int> AddInvAsync(OosInvestigationStatus status, int hoursAgo)
+            {
+                var sample = await _seed.SampleAsync(lab, SampleStatus.UnderApproval, ApprovalStatus.Reviewed, WorkflowStep.Reviewed);
+                var inv = new OosInvestigation
+                {
+                    Number = $"OOS-OP-{Guid.NewGuid():N}"[..16],
+                    Kind = OosInvestigationKind.Oos,
+                    Status = status,
+                    Conclusion = status == OosInvestigationStatus.Concluded ? OosConclusion.Confirmed : null,
+                    SampleId = sample.Sample.Id,
+                    SectionId = lab.Id,
+                    OpenedAtUtc = now.AddHours(-hoursAgo),
+                    OpenedByUserId = viewer.Id,
+                    ConcludedAtUtc = status == OosInvestigationStatus.Concluded ? now : null,
+                    ConcludedByUserId = status == OosInvestigationStatus.Concluded ? viewer.Id : null,
+                    TemplateSnapshotJson = """{"items":[]}"""
+                };
+                arrange.OosInvestigations.Add(inv);
+                await arrange.SaveChangesAsync();
+                return inv.Id;
+            }
+
+            // Interleave Concluded rows at the top and middle so SQL-level filtering is required for accurate paging.
+            concluded1Id = await AddInvAsync(OosInvestigationStatus.Concluded, 1);
+            open1Id = await AddInvAsync(OosInvestigationStatus.PhaseOne, 2);
+            concluded2Id = await AddInvAsync(OosInvestigationStatus.Concluded, 3);
+            open2Id = await AddInvAsync(OosInvestigationStatus.AwaitingRetest, 4);
+            open3Id = await AddInvAsync(OosInvestigationStatus.PhaseTwo, 5);
+        }
+
+        await using var act = fixture.CreateDbContext();
+        var svc = TestServiceFactory.OosInvestigation(act, new FixedTimeProvider(now), viewer.Id);
+
+        var page1 = await svc.ListAsync(new OosInvestigationFilter(
+            Kind: OosInvestigationKind.Oos,
+            Page: 1,
+            PageSize: 2,
+            OpenOnly: true));
+        Assert.Equal(3, page1.TotalCount);
+        Assert.Equal([open1Id, open2Id], page1.Items.Select(i => i.Id).ToArray());
+        Assert.DoesNotContain(page1.Items, i => i.Id == concluded1Id || i.Id == concluded2Id);
+
+        var page2 = await svc.ListAsync(new OosInvestigationFilter(
+            Kind: OosInvestigationKind.Oos,
+            Page: 2,
+            PageSize: 2,
+            OpenOnly: true));
+        Assert.Equal(3, page2.TotalCount);
+        Assert.Equal([open3Id], page2.Items.Select(i => i.Id).ToArray());
+    }
+
+    [PostgresFact]
     public async Task Section_scope_other_section_returns_not_found()
     {
         var labA = await _seed.SectionAsync();

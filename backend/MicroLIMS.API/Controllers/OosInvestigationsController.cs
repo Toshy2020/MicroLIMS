@@ -43,9 +43,10 @@ public sealed class OosInvestigationsController(
         [FromQuery] DateTime? to = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25,
+        [FromQuery] bool? openOnly = null,
         CancellationToken ct = default) =>
         Ok(ApiResponse<PagedResult<OosInvestigationListItemDto>>.Ok(
-            await service.ListAsync(new OosInvestigationFilter(status, kind, sectionId, overdue, from, to, page, pageSize), ct)));
+            await service.ListAsync(new OosInvestigationFilter(status, kind, sectionId, overdue, from, to, page, pageSize, openOnly), ct)));
 
     [HttpGet("{id:int}")]
     [Authorize(Policy = PermissionConstants.OosView)]

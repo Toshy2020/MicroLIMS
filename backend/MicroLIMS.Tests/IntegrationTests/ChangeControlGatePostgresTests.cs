@@ -769,97 +769,97 @@ public class ChangeControlGatePostgresTests(PostgresTestFixture fixture)
         }
     }
 
-    [PostgresTheory]
-    [MemberData(nameof(AllGatedMethods))]
-    public async Task Every_gated_write_is_refused_without_change_control(GatedMethod method)
-    {
-        var clock = new MutableClock(BaseNow);
-        var w = await ArrangeGateWorldAsync(clock,
-            gateOn: true,
-            retiredSpec: method == GatedMethod.SpecReinstate,
-            frozenTest: method == GatedMethod.TestDefUnfreeze);
-
-        long watermark;
-        await using (var wmDb = Context(clock))
-            watermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
-
-        await using (var actDb = Context(clock, w.UserId))
+    [PostgresFact]
+    public Task Every_gated_write_is_refused_without_change_control() =>
+        PostgresCases.RunAsync(Enum.GetValues<GatedMethod>(), async method =>
         {
-            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
-                ExecuteGatedMethodAsync(actDb, clock, w, method, ccNumber: null));
-            Assert.Equal(MessageCodes.ChangeControlGateRequired, ex.Code);
-            Assert.Equal("This laboratory requires an approved change control for this change.", ex.Message);
-        }
+            var clock = new MutableClock(BaseNow);
+            var w = await ArrangeGateWorldAsync(clock,
+                gateOn: true,
+                retiredSpec: method == GatedMethod.SpecReinstate,
+                frozenTest: method == GatedMethod.TestDefUnfreeze);
 
-        await using var assertDb = Context(clock);
-        Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a => a.Id > watermark));
-        Assert.Equal("GateParam", (await assertDb.Specifications.AsNoTracking().SingleAsync(s => s.Id == w.SpecId)).ParameterName);
-        Assert.Equal("Gate Test", (await assertDb.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == w.TestDefId)).DisplayName);
-        Assert.Equal(2, await assertDb.TestWorkflowSteps.AsNoTracking().CountAsync(s => s.TestDefinitionId == w.TestDefId));
-        Assert.Equal(1, await assertDb.TestDefinitionStageReplicates.AsNoTracking().CountAsync(r => r.TestDefinitionId == w.TestDefId));
-    }
+            long watermark;
+            await using (var wmDb = Context(clock))
+                watermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
 
-    [PostgresTheory]
-    [MemberData(nameof(AllGatedMethods))]
-    public async Task Approved_change_control_allows_listed_record_and_marks_link_changed(GatedMethod method)
-    {
-        var clock = new MutableClock(BaseNow);
-        var w = await ArrangeGateWorldAsync(clock,
-            gateOn: true,
-            retiredSpec: method == GatedMethod.SpecReinstate,
-            frozenTest: method == GatedMethod.TestDefUnfreeze);
+            await using (var actDb = Context(clock, w.UserId))
+            {
+                var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                    ExecuteGatedMethodAsync(actDb, clock, w, method, ccNumber: null));
+                Assert.Equal(MessageCodes.ChangeControlGateRequired, ex.Code);
+                Assert.Equal("This laboratory requires an approved change control for this change.", ex.Message);
+            }
 
-        var (targetType, targetId, newCode) = method switch
+            await using var assertDb = Context(clock);
+            Assert.False(await assertDb.AuditLogs.AsNoTracking().AnyAsync(a => a.Id > watermark));
+            Assert.Equal("GateParam", (await assertDb.Specifications.AsNoTracking().SingleAsync(s => s.Id == w.SpecId)).ParameterName);
+            Assert.Equal("Gate Test", (await assertDb.TestDefinitions.AsNoTracking().SingleAsync(t => t.Id == w.TestDefId)).DisplayName);
+            Assert.Equal(2, await assertDb.TestWorkflowSteps.AsNoTracking().CountAsync(s => s.TestDefinitionId == w.TestDefId));
+            Assert.Equal(1, await assertDb.TestDefinitionStageReplicates.AsNoTracking().CountAsync(r => r.TestDefinitionId == w.TestDefId));
+        });
+
+    [PostgresFact]
+    public Task Approved_change_control_allows_listed_record_and_marks_link_changed() =>
+        PostgresCases.RunAsync(Enum.GetValues<GatedMethod>(), async method =>
         {
-            GatedMethod.SpecCreate => (QualityLinkTargetType.Item, (int?)w.ItemId, (string?)null),
-            GatedMethod.SpecUpdate or GatedMethod.SpecDelete or GatedMethod.SpecReinstate =>
-                (QualityLinkTargetType.Specification, (int?)w.SpecId, (string?)null),
-            GatedMethod.TestDefCreate =>
-                (QualityLinkTargetType.TestDefinition, (int?)null, (string?)$"  {w.NewTestCode.ToLowerInvariant()}  "),
-            _ => (QualityLinkTargetType.TestDefinition, (int?)w.TestDefId, (string?)null)
-        };
+            var clock = new MutableClock(BaseNow);
+            var w = await ArrangeGateWorldAsync(clock,
+                gateOn: true,
+                retiredSpec: method == GatedMethod.SpecReinstate,
+                frozenTest: method == GatedMethod.TestDefUnfreeze);
 
-        var (_, ccNumber, linkId) = await SeedChangeControlAsync(
-            clock, w.UserId, w.SectionId, ChangeControlStatus.ApprovedForImplementation, targetType, targetId, newCode);
+            var (targetType, targetId, newCode) = method switch
+            {
+                GatedMethod.SpecCreate => (QualityLinkTargetType.Item, (int?)w.ItemId, (string?)null),
+                GatedMethod.SpecUpdate or GatedMethod.SpecDelete or GatedMethod.SpecReinstate =>
+                    (QualityLinkTargetType.Specification, (int?)w.SpecId, (string?)null),
+                GatedMethod.TestDefCreate =>
+                    (QualityLinkTargetType.TestDefinition, (int?)null, (string?)$"  {w.NewTestCode.ToLowerInvariant()}  "),
+                _ => (QualityLinkTargetType.TestDefinition, (int?)w.TestDefId, (string?)null)
+            };
 
-        long watermark;
-        await using (var wmDb = Context(clock))
-            watermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
+            var (_, ccNumber, linkId) = await SeedChangeControlAsync(
+                clock, w.UserId, w.SectionId, ChangeControlStatus.ApprovedForImplementation, targetType, targetId, newCode);
 
-        int? affectedEntityId;
-        await using (var actDb = Context(clock, w.UserId))
-        {
-            affectedEntityId = await ExecuteGatedMethodAsync(actDb, clock, w, method, ccNumber);
-        }
+            long watermark;
+            await using (var wmDb = Context(clock))
+                watermark = await wmDb.AuditLogs.AsNoTracking().Select(a => (long?)a.Id).MaxAsync() ?? 0L;
 
-        await using var assertDb = Context(clock);
-        var link = await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
-        Assert.Equal(BaseNow, link.ChangedAtUtc);
-        Assert.NotNull(link.ChangeAuditLogId);
+            int? affectedEntityId;
+            await using (var actDb = Context(clock, w.UserId))
+            {
+                affectedEntityId = await ExecuteGatedMethodAsync(actDb, clock, w, method, ccNumber);
+            }
 
-        var newAudits = await assertDb.AuditLogs.AsNoTracking()
-            .Where(a => a.Id > watermark)
-            .OrderBy(a => a.Id)
-            .ToListAsync();
+            await using var assertDb = Context(clock);
+            var link = await assertDb.QualityRecordLinks.AsNoTracking().SingleAsync(l => l.Id == linkId);
+            Assert.Equal(BaseNow, link.ChangedAtUtc);
+            Assert.NotNull(link.ChangeAuditLogId);
 
-        var expectedEntityName = method switch
-        {
-            GatedMethod.SpecCreate or GatedMethod.SpecUpdate or GatedMethod.SpecDelete or GatedMethod.SpecReinstate => nameof(Specification),
-            GatedMethod.TestDefCreate or GatedMethod.TestDefUpdate or GatedMethod.TestDefFreeze or GatedMethod.TestDefUnfreeze or GatedMethod.StepUpdateWorkflowType => nameof(TestDefinition),
-            GatedMethod.StepCreate or GatedMethod.StepUpdate or GatedMethod.StepMove or GatedMethod.StepDelete => nameof(TestWorkflowStep),
-            _ => nameof(TestDefinitionStageReplicate)
-        };
+            var newAudits = await assertDb.AuditLogs.AsNoTracking()
+                .Where(a => a.Id > watermark)
+                .OrderBy(a => a.Id)
+                .ToListAsync();
 
-        var primaryAudit = newAudits
-            .Where(a => a.EntityName == expectedEntityName && (affectedEntityId == null || a.EntityId == affectedEntityId.Value.ToString()))
-            .OrderByDescending(a => a.Id)
-            .First();
-        Assert.Equal(primaryAudit.Id, link.ChangeAuditLogId);
-        Assert.Contains($"Change control {ccNumber}", primaryAudit.Reason);
+            var expectedEntityName = method switch
+            {
+                GatedMethod.SpecCreate or GatedMethod.SpecUpdate or GatedMethod.SpecDelete or GatedMethod.SpecReinstate => nameof(Specification),
+                GatedMethod.TestDefCreate or GatedMethod.TestDefUpdate or GatedMethod.TestDefFreeze or GatedMethod.TestDefUnfreeze or GatedMethod.StepUpdateWorkflowType => nameof(TestDefinition),
+                GatedMethod.StepCreate or GatedMethod.StepUpdate or GatedMethod.StepMove or GatedMethod.StepDelete => nameof(TestWorkflowStep),
+                _ => nameof(TestDefinitionStageReplicate)
+            };
 
-        var linkAudit = newAudits.Single(a => a.EntityName == nameof(QualityRecordLink) && a.EntityId == linkId.ToString());
-        Assert.Contains($"Change control {ccNumber}", linkAudit.Reason);
-    }
+            var primaryAudit = newAudits
+                .Where(a => a.EntityName == expectedEntityName && (affectedEntityId == null || a.EntityId == affectedEntityId.Value.ToString()))
+                .OrderByDescending(a => a.Id)
+                .First();
+            Assert.Equal(primaryAudit.Id, link.ChangeAuditLogId);
+            Assert.Contains($"Change control {ccNumber}", primaryAudit.Reason);
+
+            var linkAudit = newAudits.Single(a => a.EntityName == nameof(QualityRecordLink) && a.EntityId == linkId.ToString());
+            Assert.Contains($"Change control {ccNumber}", linkAudit.Reason);
+        });
 
     [PostgresFact]
     public async Task Gate_refusal_messages_match_spec_for_every_rule()

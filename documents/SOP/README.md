@@ -48,3 +48,14 @@ These notes are inputs for the SOP authors. They are not approved procedures. Si
 - **Qualification records and requalification intervals.** Qualifications are recorded and withdrawn under `Competency.Manage` with a basis, evidence, qualified-on date, optional attachments, and an electronic signature (self-qualification is refused). Requalification intervals (`RequalificationMonths`) are configured in Test Master (`MasterData.Manage`); the laboratory SOP should define the required qualification basis, evidence standards, and requalification intervals per test.
 - **SOP acknowledgement and unresolvable SOPs.** When the gate is enabled, analysts must have acknowledged the current effective SOP revision for the sample's item (or hold an open reading assignment within its grace period after acknowledging the immediately superseded revision). When an item has no SOP number, an unknown or ambiguous SOP number, or no effective revision, recording is allowed and the system logs `SopNotChecked` in the audit reason; the SOP should specify how QA and Document Control resolve missing or ambiguous SOP links.
 - **One-time overrides and whole-sample separation.** A competency override (`Competency.Override`) is an exceptional, signed, single-order permission for one analyst on one open test order (never for planned OOS retests). Granting an override bars the granter from reviewing or approving any test on the entire sample, even after the override has ended; the SOP should state who reviews and approves samples when a Section Head grants an override.
+
+### Quality records (package D2) — draft SOP templates
+
+Four SOP templates were drafted from the coded quality-record workflow (FS-QLT, BusinessRules section 15). They are not approved procedures. Square-bracket fields `[SITE: …]` must be completed by the laboratory and approved by QA.
+
+- `SOP-Deviation-Handling.md` — raising, assessment, investigation, laboratory conclusion, QA approval, closure, cancellation and extensions of deviations.
+- `SOP-CAPA.md` — creation, plan approval, action completion, verification and the effectiveness check of a CAPA.
+- `SOP-Change-Control.md` — proposal, impact assessment, approval or rejection, implementation tasks and closure. The interim rule for master-data changes is a site decision, because the master-data change-control gate is not yet built.
+- `SOP-Complaint-Handling.md` — receipt, investigation, laboratory report, conclusion, closure and cancellation of complaints.
+
+Each template lists the conflicts that the site must decide before approval (CONF-228 to CONF-240). A signature in MicroLIMS is the user's identity plus password, with the meaning shown on the signed step. Notifications and e-mails are not evidence that a quality step was done; the signed step is the record.

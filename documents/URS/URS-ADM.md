@@ -4,7 +4,7 @@
 |---|---|
 | Document number | URS-ADM |
 | Title | System administration user requirements |
-| Version | 0.5 |
+| Version | 0.6 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -20,6 +20,7 @@
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts reference, form initial focus, server-paged table sort rule, and last-choice defaults toggle (URS-ADM-013). |
 | 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and server version requirement (URS-ADM-014). |
 | 0.5 | 2026-11-19 | AI coding agent, draft from code | Added interface language (English / Arabic) requirement with English-only records and signatures (URS-ADM-015). |
+| 0.6 | 2026-11-25 | AI coding agent, draft from code | Added analyst competency management, qualification matrix, laboratory gate switch, and signed overrides (URS-ADM-016, URS-ADM-017). Draft — pending approval. |
 
 ## Requirements
 
@@ -113,4 +114,18 @@ Each requirement below is a need that the code as built serves. Gaps found in th
 **Requirement:** The system shall let each signed-in user choose English or Arabic from the account menu and shall save that choice to the user's own interface settings, switching the screen language and direction without signing out; before sign-in it shall use the browser's preferred supported language, and English otherwise. In Arabic the system shall show the screen right to left while keeping identifiers, codes, numbers, units, dates, times, user names and typed data left to right with Latin digits, with the time zone still shown on dates. Printed and exported records (certificate of analysis, sample report, media and cryovial reports, equipment history, CSV and PDF exports) shall always be in English. The electronic-signature dialog shall show the recorded English statement, and in Arabic an Arabic translation below it with a note that the English text is recorded. Server messages sent with a message code shall appear in the user's language.
 **GxP:** Yes
 **Serves:** 21 CFR 11.50 (the signed meaning is the English statement); operational usability for Arabic-speaking users (to be confirmed by QA)
+**Status:** Active
+
+### URS-ADM-016
+*(Draft — pending approval)*
+**Requirement:** The system shall let an authorised laboratory manager record and withdraw signed analyst test qualifications with basis, evidence, optional attachments, and expiry derived from the Test Master's requalification interval, shall provide a laboratory Qualification Matrix and an analyst's own My Qualifications view with expiry reminders, and shall provide a per-laboratory competency gate that ships OFF by default and requires an impact preview, a reason, and an electronic signature to enable or disable.
+**GxP:** Yes
+**Serves:** 21 CFR 211.25; EU GMP Chapter 2 (personnel qualification and training); 21 CFR 11.50, 11.200(a) (to be confirmed by QA)
+**Status:** Active
+
+### URS-ADM-017
+*(Draft — pending approval)*
+**Requirement:** The system shall let an authorised user grant a one-time, electronically signed competency override for a single analyst on a single open test order when the laboratory's competency gate is enabled and the analyst is otherwise refused, shall end the override automatically on review, cancellation, voiding, supersession, or reassignment, and shall prevent the granting user from reviewing or approving any test on that sample, even after the override has ended.
+**GxP:** Yes
+**Serves:** 21 CFR 11.10(d), 11.50, 11.200(a); EU GMP Annex 11 clause 12 & 14 (segregation of duties and signed exceptions, to be confirmed by QA)
 **Status:** Active

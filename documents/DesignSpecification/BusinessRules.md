@@ -310,3 +310,51 @@ Media Preparation → Sterility → Recovery → Release (or Rejected)
 - `severity == "error"` notifications additionally trigger an email
   via `IEmailSender` (no-op if SMTP isn't configured) and a real-time
   push via `INotificationService`.
+
+---
+
+## 13. Analyst Competency Gate *(Draft — pending approval)*
+
+**Files:** `Application/Services/Competency/*`, `Application/Services/ItemSopResolver.cs`, `Application/Services/AnalystAssignmentRules.cs`, `Application/Services/SegregationOfDutiesGuard.cs`, `Tests/ArchitectureTests/RecordingPointCoverageTests.cs`
+
+### 13.1 Per-Laboratory Gate Switch & Impact Preview
+- The competency gate is configured per laboratory section (`CompetencySectionSetting.GateEnabled`) and ships **OFF** by default in every laboratory (an absent row means the gate is off).
+- Enabling or disabling the gate (`CompetencySettingsService.SetGateAsync`) requires `Competency.Manage`, section configure scope, a non-blank reason, optimistic concurrency (`expectedVersion`), and an electronic signature (`SignatureMeaning.CompetencyGateChanged`).
+- `CompetencySettingsService.GetImpactAsync` previews all open, assigned, non-superseded test orders (`Pending`, `InProgress`, `RetestRequested`) in the section as if the gate were enabled, listing per-analyst refused orders and reasons (active overrides count as allowed).
+
+### 13.2 Qualification Records & Requalification Intervals
+- `QualificationService.QualifyAsync` (`Competency.Manage`, section configure scope) records an `AnalystQualification` with `Basis` (`ObservedPractice`, `ProficiencySample`, `PreviousQualification`, `Other`), `Evidence`, optional `EvidenceSampleId`, `QualifiedOn` (no later than `LabToday`), optional attachments (`QualificationAttachment`), and an electronic signature (`SignatureMeaning.AnalystQualified`).
+- Self-qualification is refused; the analyst must be active and a member of the test's laboratory section.
+- Expiry is `QualifiedOn.AddMonths(TestDefinition.RequalificationMonths)` (`DateOnly`), or no expiry when `RequalificationMonths` is null; a qualification is expired when `LabToday > ExpiresOn`.
+- Requalification intervals (`RequalificationMonths`, 1–120 or null) are configured only through the Test Master update (`MasterData.Manage`, CONF-210). Moving a test to another laboratory in Test Master preserves existing qualifications, while assignment and recording still require membership in the test's current section (CONF-211).
+- `QualificationService.WithdrawAsync` (`Competency.Manage`, section configure scope) withdraws a qualification once with a non-blank reason and electronic signature (`SignatureMeaning.AnalystQualificationWithdrawn`). `AnalystQualification` rows are protected against `DELETE` and `UPDATE` (except setting the four withdrawal columns once from null).
+- The **latest** `AnalystQualification` record by `Id` governs each `(UserId, TestDefinitionId)` pair.
+
+### 13.3 Guard Decision & SOP Resolution
+- `CompetencyGuard` evaluates `(userId, testOrderId)` (or `CompetencySubject` for not-yet-created orders):
+  1. **Gate off** for the section → Allowed.
+  2. **Active override** (`CompetencyOverride` for that `(userId, testOrderId)` where `EndedAtUtc == null`, order is not superseded and not `Reviewed`, `Approved`, `Rejected`, `Voided`, or `Cancelled`) → Allowed (`ViaOverrideId`).
+  3. **Qualification check** (latest record by `Id`): missing, withdrawn, or expired (`LabToday > ExpiresOn`) → Refused with coded reason.
+  4. **SOP check** (when the sample has an `ItemId`, via `ItemSopResolver.ResolveManyAsync`):
+     - `Effective` → Allowed if the user has a `DocumentTrainingAssignment` for the current effective revision with status `Acknowledged` or `CompletedPassed`, OR is in the **grace period** (acknowledged the immediately superseded revision AND holds an open assignment in status `Assigned`, `Reading`, or `KafPending` for the current revision with `DueDateUtc >= nowUtc`); otherwise Refused.
+     - `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (more than one active document master matches case-insensitively, CONF-212) → Allowed, with `SopNotChecked` text included in the audit entry's reason field when recording.
+
+### 13.4 Guard Points (Recording & Assignment)
+- **Recording points:** Every result-recording entry point calls `ICompetencyGuard` (`TestWorkflowSupport`, `IncubationStepRecorder`, `PathogenConfirmationRecorder`, `PathogenSessionService`, `GroupedTestActionService`, `SamplePreparationService`, and physicochemical/instrument recorders). `RecordingPointCoverageTests` enforces that every public method in `Application/Workflows` or `Application/Services` that writes a result entity calls `_competency` and `_sopCapture` (with `SopCapture` preceding the first write), unless explicitly exempted. Batch paths (`PathogenSessionService`, `GroupedTestActionService`) skip refused orders with their reasons and record allowed orders.
+- **Assignment points** (`AnalystAssignmentRules.EnsureAssignableAsync` and `ICompetencyGuard`):
+  - **Whole-sample assignment** (`SampleAssignmentService.PrepareSampleAssignmentAsync`): mixed qualification across a sample's tests is refused all-or-nothing (`Competency.AssignmentRefused`) with per-test reasons.
+  - **Per-test and bulk assignment** (`AssignTestsAsync`, `SampleBulkAssignmentService`): refused for unqualified assignees; bulk assignment records failed rows with reasons.
+  - **Self-assignment ("Take"), auto-assignment at workflow start, and new-sample requests at approval** (`TestSelfAssignmentService`, `EMWorkflowEngine`, `WaterWorkflowEngine`, `AfterCleaningWorkflowEngine`, `SamplePreparationService`, `SampleApprovalService`): unqualified users are refused before persisting.
+  - **Automatic analyst carry-over** (sample correction inheritance in `SampleCorrectionService` and retained-sample retest in `SampleApprovalService`): unqualified carried-over analysts are cleared (left unassigned) and the action succeeds.
+  - **Planned OOS retests** (`OosRetestPlanService`): no override is allowed; drafting and signing are refused until the analyst is qualified or replaced.
+  - **Assignment options** (`GetAssignmentOptionsAsync`): lists qualified analysts first and includes per-test `CompetencyRefusals`.
+
+### 13.5 Signed Override & Whole-Sample Separation of Duties
+- `CompetencyOverrideService.GrantAsync` (`Competency.Override`, section write scope) grants a one-time, electronically signed (`SignatureMeaning.CompetencyOverride`) override for one analyst on one open (`Pending` or `InProgress`, not superseded, not outsourced, not an OOS retest plan sample) test order when the gate is on and the analyst is currently refused (refused as not needed if the gate is off or the analyst is already allowed).
+- Self-override is refused, a user who has already reviewed or decided approval for the sample cannot grant an override, and at most one active override may exist per test order (partial unique index). `CompetencyOverride` rows are append-only (except setting `EndedAtUtc` and `EndReason` once).
+- An override ends automatically when the test order is reviewed, cancelled, voided, superseded, or reassigned to a different analyst.
+- **Whole-sample separation:** `SegregationOfDutiesGuard.DidUserOverrideCompetencyAsync` checks *all* overrides on the sample (including ended overrides) and blocks the granting user from reviewing (`Sample.CannotReviewOverrode`) or approving (`Sample.CannotApproveOverrode`) the whole sample, and excludes them from review/approval notifications. Review and approval DTOs carry the override manifestation details.
+
+### 13.6 Qualification Matrix & Expiry Reminders
+- `CompetencyMatrixService` (`Competency.View`) returns analysts × tests with cell statuses (`NotQualified`, `Qualified`, `ExpiringSoon`, `Expired`, `Withdrawn`) and effective item SOP code/revision; analysts see only their own rows even on the laboratory matrix endpoint.
+- `CompetencyReminderService.GetExpiringAsync` returns qualifications expiring within `CompetencySectionSetting.ReminderDaysBeforeExpiry` based on `LabToday` (a withdrawn latest record never reminds).

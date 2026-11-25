@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-ADM |
 | Title | System administration functional specification |
-| Version | 0.5 |
+| Version | 0.6 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -20,6 +20,7 @@
 | 0.3 | 2026-11-14 | AI coding agent, draft from code | Added keyboard shortcuts dialog, form initial focus, server-paged table sorting restriction, and `entry.lastChoiceDefaults.enabled` setting (FS-ADM-013). |
 | 0.4 | 2026-11-17 | AI coding agent, draft from code | Added About dialog and version endpoint specification (FS-ADM-014). |
 | 0.5 | 2026-11-19 | AI coding agent, draft from code | Added interface language selection, direction and English-only record rules (FS-ADM-015). |
+| 0.6 | 2026-11-25 | AI coding agent, draft from code | Added analyst competency qualification, matrix, gate switch, and override specifications (FS-ADM-016, FS-ADM-017). Draft — pending approval. |
 
 ## Scope and reading notes
 
@@ -130,3 +131,18 @@
 **Code:** `frontend/src/i18n/index.ts`; `frontend/src/i18n/LanguageProvider.tsx`; `frontend/src/i18n/EnglishOnly.tsx`; `frontend/src/i18n/serverMessages.ts`; `frontend/src/components/LanguageMenuItems.tsx`; `frontend/src/components/Header.tsx`; `frontend/src/components/SignatureDialog.tsx`; `frontend/src/locales/glossary.json`; `backend/MicroLIMS.API/Controllers/UserUiStateController.cs`
 **Verified by:** reading (not run); tests `frontend/src/components/SignatureDialog.english.test.tsx` and `frontend/src/components/SignatureDialog.rtl.test.tsx` were listed but not run
 **Not verified:** the rendered right-to-left layout and the completeness of the Arabic texts at run time; that every print and export path uses `EnglishOnly` (only two non-test frontend files reference it when read).
+
+### FS-ADM-016
+*(Draft — pending approval)*
+**Satisfies:** URS-ADM-016
+**Function:** Analyst competency qualifications, laboratory gate switch, matrix, and reminders (`CompetencyController`, `QualificationService`, `CompetencySettingsService`, `CompetencyMatrixService`, `CompetencyReminderService`, `ItemSopResolver`). `QualificationService.QualifyAsync` (`Competency.Manage`, section configure scope) records an `AnalystQualification` with `Basis`, `Evidence`, optional `EvidenceSampleId`, `QualifiedOn` (at most `LabToday`), optional attachments (`QualificationAttachment`), and an electronic signature (`AnalystQualified`), refusing self-qualification and inactive or out-of-section users. Expiry is `QualifiedOn.AddMonths(TestDefinition.RequalificationMonths)` (`DateOnly`) or null when `RequalificationMonths` is null. Per CONF-210, `RequalificationMonths` (1–120 or null) is configured only through the Test Master update (`MasterData.Manage`), not `Competency.Manage`. Per CONF-211, moving a test to another laboratory in Test Master preserves existing qualifications while requiring current section membership at assignment and recording. `WithdrawAsync` (`Competency.Manage`, section configure scope) withdraws a qualification once with a reason and signature (`AnalystQualificationWithdrawn`); database triggers reject `DELETE` and any other `UPDATE`. The latest record by `Id` governs each `(UserId, TestDefinitionId)` pair. `CompetencySettingsService` defaults `GateEnabled` to `false` for every laboratory; `GetImpactAsync` previews open, assigned, non-superseded orders (`Pending`, `InProgress`, `RetestRequested`) that would be refused if the gate were enabled; `SetGateAsync` (`Competency.Manage`, section configure scope) requires a non-blank reason, `expectedVersion` concurrency token, and signature (`CompetencyGateChanged`). `CompetencyMatrixService` (`Competency.View`) returns analysts × tests with cell statuses (`NotQualified`, `Qualified`, `ExpiringSoon`, `Expired`, `Withdrawn`) and item SOP code/revision (analysts see only their own rows even on the laboratory matrix endpoint). `ItemSopResolver.ResolveManyAsync` returns `Effective`, `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (when more than one active document master matches case-insensitively, CONF-212); for `Ambiguous` and other non-effective statuses, `CompetencyGuard` allows the action with `SopNotChecked` text recorded in the audit reason. `CompetencyReminderService.GetExpiringAsync` returns qualifications expiring within `ReminderDaysBeforeExpiry` by `LabToday`.
+**Code:** `backend/MicroLIMS.API/Controllers/CompetencyController.cs`; `backend/MicroLIMS.Application/Services/Competency/QualificationService.cs`; `backend/MicroLIMS.Application/Services/Competency/CompetencySettingsService.cs`; `backend/MicroLIMS.Application/Services/Competency/CompetencyMatrixService.cs`; `backend/MicroLIMS.Application/Services/Competency/CompetencyReminderService.cs`; `backend/MicroLIMS.Application/Services/ItemSopResolver.cs`
+**Verified by:** reading (not run); covered by D4 integration tests in `AnalystQualificationPostgresTests` and `CompetencySettingsAndMatrixPostgresTests`
+**Conflicts:** CONF-210, CONF-211, CONF-212
+
+### FS-ADM-017
+*(Draft — pending approval)*
+**Satisfies:** URS-ADM-017
+**Function:** Signed per-test-order competency override and whole-sample separation (`CompetencyOverrideService.GrantAsync`, `SegregationOfDutiesGuard.DidUserOverrideCompetencyAsync`). `GrantAsync` (`Competency.Override`, section write scope) grants a one-time override for one analyst on one open (`Pending` or `InProgress`, not superseded, not outsourced, not an OOS retest plan sample) test order inside `UnitOfWork.RunAsync`, refusing self-override, callers who already reviewed or decided approval on the sample, inactive/ineligible analysts, already-overridden orders, or cases where the gate is off or the analyst is already allowed ("not needed"). It signs with `SignatureMeaning.CompetencyOverride` (1–2000 character reason), bumps `TestOrder` and `Sample` concurrency state, and inserts an append-only `CompetencyOverride` row protected by database triggers. Overrides end automatically on review completion, cancellation, voiding, supersession, or reassignment to another analyst. `SegregationOfDutiesGuard.DidUserOverrideCompetencyAsync` queries all overrides on the sample (including ended overrides) and blocks the granting user from reviewing (`Sample.CannotReviewOverrode`) or approving (`Sample.CannotApproveOverrode`) the whole sample, and excludes them from review/approval notifications.
+**Code:** `backend/MicroLIMS.Application/Services/Competency/CompetencyOverrideService.cs` — `GrantAsync`; `backend/MicroLIMS.Application/Services/SegregationOfDutiesGuard.cs` — `DidUserOverrideCompetencyAsync`; `backend/MicroLIMS.Application/Services/Competency/CompetencyGuard.cs`
+**Verified by:** reading (not run); covered by D4 integration tests in `CompetencyOverridePostgresTests`

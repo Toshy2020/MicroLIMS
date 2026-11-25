@@ -871,29 +871,34 @@ Some Document Control functions run automatically or have no screen:
 
 ### 38.16 Qualification Matrix
 
+*(Draft — pending approval)*
+
 #### Purpose
 View analyst qualifications per test and effective SOP code and revision for a laboratory section, record or withdraw qualifications, and manage the laboratory competency gate.
 
 #### Who can use it
-Users with **Competency View** (Section Head, Reviewer, QC Manager, QA) can view the matrix; users with **Competency Manage** (Section Head, QC Manager) can sign or withdraw qualifications and switch the laboratory competency gate on or off. A Section Head cannot qualify themselves.
+Users with **Competency View** (Section Head, Reviewer, QC Manager, QA, Analyst) can open the matrix; an Analyst sees only their own row even on the laboratory matrix. Users with **Competency Manage** (Section Head, QC Manager) can sign or withdraw qualifications and switch the laboratory competency gate on or off. A user cannot qualify themselves.
 
 #### What you see
-- **Filters and matrix**: Select a laboratory section and filter by analyst, test, or qualification status. Each cell shows the analyst's qualification status (**Qualified** with expiry date, **Expiring soon**, **Expired**, **Withdrawn**, or **Not qualified**) alongside the effective SOP code and revision for the test's item.
-- **Competency gate**: The gate is **off by default** for each laboratory so qualifications can be entered before enforcement starts. Before switching the gate on, an impact preview shows how many open assigned test orders would be blocked and for whom. Switching the gate on or off requires a reason and an electronic signature.
+- **Filters and matrix**: Select a **Laboratory Section** and filter by **Filter by analyst**, **Filter by test**, or **Status** (**All statuses**, **Qualified**, **Expiring Soon**, **Expired**, **Withdrawn**, or **Not Qualified**). Each cell shows the analyst's qualification status (with expiry date or **No expiry**) alongside the effective SOP code and revision for the test's item.
+- **Qualify / Withdraw**: Authorised managers can click **Qualify** to record a qualification (**Qualification Basis**: Observed Practice, Proficiency Sample, Previous Qualification, or Other; **Evidence**; **Qualified On** date; optional **Evidence Sample ID**; optional **Attachments**) and sign with their password, or **Withdraw** an active qualification with a reason and password.
+- **Competency Gate**: The gate is **off by default** (**Gate Disabled**) for each laboratory so qualifications can be entered before enforcement starts. Before switching the gate on, an **Impact Preview Before Enabling** panel shows how many open assigned test orders in that laboratory would be blocked and for whom. Clicking **Turn Gate On** or **Turn Gate Off** requires a reason and an electronic signature.
 
 ---
 
 ### 38.17 My Qualifications
 
+*(Draft — pending approval)*
+
 #### Purpose
 View your own test qualifications, expiry dates, and pending SOP reading assignments.
 
 #### Who can use it
-Signed-in users with **Competency View** (analysts for their own qualifications).
+Signed-in users with **Competency View** (analysts for their own qualifications; non-analysts see a "Not applicable" notice).
 
 #### What you see
-- **Test qualifications**: Your recorded qualifications with their status and expiry dates.
-- **SOPs to read**: Pending SOP reading assignments in Document Control with their due dates. When the laboratory competency gate is enabled, both a valid qualification and acknowledgement of the current effective SOP revision (or an open reading assignment within its grace period) are required at assignment and result entry.
+- **Test Qualifications**: Your recorded qualifications with their **Status**, **Expiry Date**, and **Item SOP**.
+- **SOPs to Read**: Pending or overdue SOP reading assignments in Document Control with their due dates and a link to **Open My Reading List**. When the laboratory competency gate is enabled, both a valid qualification and acknowledgement of the current effective SOP revision (or an open reading assignment within its grace period) are required at assignment and result entry.
 
 <!-- Review log (Sonnet): ~85 corrections; invented items removed: route paths, permission codes (outside admin), enum/class/worker/database names, unverified acknowledgement messages, unsupported example revision numbers, unverified signature-record fields, Inspection Dossier contents, Return for Correction label in technical review; callouts added: GAP-043, GAP-807, GAP-809, GAP-816, GAP-818 (Obsolete filter, void message), GAP-023 (approval and acknowledgement wording), GAP-814 reworded; no Obsolete/retire procedure described -->
 <!-- Phase 13 (agy): applied F-C06, F-C15 -->

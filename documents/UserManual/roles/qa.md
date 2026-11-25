@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Title | Quality Assurance (QA) Role Guide |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft — pending approval |
 | Author | AI coding agent, draft from code |
 | Reviewer | |
@@ -20,6 +20,7 @@
 - **Audit trail reviews:** Start, inspect, record findings on, close findings on, export PDFs for, and electronically sign periodic audit trail reviews (**Audit Trail Reviews**).
 - **Access reviews:** Generate/view periodic user access reviews, record or update findings, and electronically sign reviews (**Access Review**).
 - **Controlled documents:** Read controlled documents, review drafts when assigned, and approve revisions when assigned (**Document Control**).
+- **Analyst competency oversight (`Competency.View`):** *(Draft — pending approval)* View the **Qualification Matrix** across laboratories (`Sections.ViewAll`) to inspect analyst test qualifications, expiry dates, and current effective SOP codes/revisions. QA cannot qualify or withdraw analyst qualifications (`Competency.Manage`), toggle the laboratory competency gate, or grant competency overrides (`Competency.Override`).
 
 ## 2. What QA cannot do (and why)
 

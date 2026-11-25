@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-MIC |
 | Title | Microbiology enumeration and incubation functional specification |
-| Version | 0.2 |
+| Version | 0.3 |
 | Status | Draft |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -17,6 +17,7 @@
 |---|---|---|---|
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-14 | AI coding agent, draft from code | Added server count preview, last-choice defaults with mandatory lot confirmation, and grid navigation/location paste (FS-MIC-012 to FS-MIC-014). |
+| 0.3 | 2026-11-25 | AI coding agent, draft from code | Added competency gate enforcement at microbiology assignment and recording points (FS-MIC-015). Draft — pending approval. |
 
 ## Scope and reading notes
 
@@ -124,3 +125,11 @@
 **Function:** Result-entry grid keyboard navigation and location-count spreadsheet paste. `useGridNavigation` is wired into `UnitEntryGrid` (with `Ctrl+D` `onCopyDown` enabled) and into `PathogenLocationResultGridDialog`, `PrimaryObservationMatrixPanel`, and HPLC `ReplicateEntryTable` with `onCopyDown` deliberately omitted so each pathogen, qualitative/observation, and HPLC replicate reading is entered deliberately without copying down. On `LocationResultGridDialog` (EM / After Cleaning) and `WaterLocationResultGridDialog` (Water), `useLocationPaste` intercepts multi-cell clipboard pastes (excluding single-cell pastes), pairs two-column `(Name, Count)` rows via `pasteMatching.matchRowsByName` (trimmed, case-insensitive name match; whole numbers `>= 0` via `parseCount`; up to 500 rows; refused if only 1 column is pasted or if location names in the session are duplicated; unknown names, duplicate pasted names, and invalid counts block acceptance; omitted locations are listed under `"Left empty (not in the paste)"`), and renders `PastePreviewDialog`. Accepting the preview populates grid fields only; nothing is saved until the user clicks **Submit Results**. SOP note: pasted data must be checked in the preview before accepting.
 **Code:** `frontend/src/components/entry/useGridNavigation.ts`; `frontend/src/components/UnitEntryGrid.tsx`; `frontend/src/modules/testingWorkspace/PathogenLocationResultGridDialog.tsx`; `frontend/src/modules/testingWorkspace/pathogenSteps/PrimaryObservationMatrixPanel.tsx`; `frontend/src/modules/hplcWorkspace/entry/ReplicateEntryTable.tsx`; `frontend/src/modules/testingWorkspace/useLocationPaste.tsx`; `frontend/src/components/entry/pasteMatching.ts`; `frontend/src/components/entry/PastePreviewDialog.tsx`; `frontend/src/modules/testingWorkspace/LocationResultGridDialog.tsx`; `frontend/src/modules/testingWorkspace/WaterLocationResultGridDialog.tsx`
 **Verified by:** reading (not run)
+
+### FS-MIC-015
+*(Draft — pending approval)*
+**Satisfies:** URS-MIC-016
+**Function:** Competency gate enforcement at microbiology assignment and recording points. When the laboratory's competency gate is enabled, `CompetencyGuard` evaluates qualification (latest non-withdrawn `AnalystQualification` not expired by `LabToday`), active `CompetencyOverride`, and item SOP acknowledgement (via `ItemSopResolver`: `Effective` requires `DocumentTrainingAssignment` in `Acknowledged`/`CompletedPassed` or an open `Assigned`/`Reading`/`KafPending` assignment for the current revision with `DueDateUtc >= nowUtc` after acknowledging the immediately superseded revision). If the SOP status is `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (CONF-212), recording is allowed and the `SopNotChecked` text is included in the audit entry's reason field. Assignment: `AnalystAssignmentRules.EnsureAssignableAsync` refuses unqualified assignees (all-or-nothing on whole-sample assignment; failed rows on bulk assignment; no override allowed on planned OOS retests; unqualified carried-over analysts on sample correction or retained-sample retest are left unassigned), and auto-assignment in `EMWorkflowEngine`, `WaterWorkflowEngine`, `AfterCleaningWorkflowEngine`, and `SamplePreparationService` refuses unqualified acting users before persisting. Recording: `IncubationStepRecorder`, `PathogenConfirmationRecorder`, `LocationResultRecorder`, `PathogenSessionService`, and `GroupedTestActionService` call `ICompetencyGuard` (batch paths skip refused orders with their reasons); `RecordingPointCoverageTests` enforces 1:1 coverage with SOP revision capture across public recording methods.
+**Code:** `backend/MicroLIMS.Application/Services/Competency/CompetencyGuard.cs`; `backend/MicroLIMS.Application/Services/AnalystAssignmentRules.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/IncubationStepRecorder.cs`; `backend/MicroLIMS.Application/Workflows/TestWorkflow/PathogenConfirmationRecorder.cs`; `backend/MicroLIMS.Application/Services/PathogenSessionService.cs`; `backend/MicroLIMS.Tests/ArchitectureTests/RecordingPointCoverageTests.cs`
+**Verified by:** reading (not run); covered by D4 integration and architecture tests (`CompetencyRecordingPostgresTests`, `CompetencyAssignmentPostgresTests`, `RecordingPointCoverageTests`)
+**Conflicts:** CONF-212

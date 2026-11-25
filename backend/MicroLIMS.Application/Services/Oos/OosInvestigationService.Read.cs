@@ -194,12 +194,15 @@ public sealed partial class OosInvestigationService
         var planIds = planRows.Select(p => p.Id).ToArray();
         var planSamples = planIds.Length == 0
             ? new Dictionary<int, List<OosRetestPlanSampleDto>>()
-            : (await db.OosRetestPlanSamples.AsNoTracking()
-                .Where(l => planIds.Contains(l.PlanId))
-                .Join(db.Samples.AsNoTracking(), l => l.SampleId, s => s.Id,
-                    (l, s) => new { l.PlanId, Sample = new OosRetestPlanSampleDto(s.Id, s.ReferenceNumber, s.Status) })
-                .OrderBy(x => x.Sample.SampleId)
-                .ToListAsync(ct))
+            : (await (from link in db.OosRetestPlanSamples.AsNoTracking()
+                      where planIds.Contains(link.PlanId)
+                      join sample in db.Samples.AsNoTracking() on link.SampleId equals sample.Id
+                      orderby sample.Id
+                      select new
+                      {
+                          link.PlanId,
+                          Sample = new OosRetestPlanSampleDto(sample.Id, sample.ReferenceNumber, sample.Status)
+                      }).ToListAsync(ct))
                 .GroupBy(x => x.PlanId)
                 .ToDictionary(g => g.Key, g => g.Select(x => x.Sample).ToList());
 

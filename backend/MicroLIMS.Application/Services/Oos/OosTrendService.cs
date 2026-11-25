@@ -158,14 +158,14 @@ public sealed class OosTrendService(
                        join a in db.TestAnalyses.AsNoTracking() on r.TestOrderId equals a.TestOrderId
                        where a.EquipmentId != null
                        join e in db.Equipment.AsNoTracking() on a.EquipmentId equals e.Id
-                       select new TrendRow(i.Id, e.Id.ToString(CultureInfo.InvariantCulture), e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc);
+                       select new { InvestigationId = i.Id, EquipmentId = e.Id, e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc };
 
         var incubations = from i in query
                           join r in db.OosInvestigationResults.AsNoTracking() on i.Id equals r.InvestigationId
                           join inc in db.Incubations.AsNoTracking() on r.TestOrderId equals inc.TestOrderId
                           where inc.IncubatorEquipmentId != null
                           join e in db.Equipment.AsNoTracking() on inc.IncubatorEquipmentId equals e.Id
-                          select new TrendRow(i.Id, e.Id.ToString(CultureInfo.InvariantCulture), e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc);
+                          select new { InvestigationId = i.Id, EquipmentId = e.Id, e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc };
 
         var hplc = from i in query
                    join r in db.OosInvestigationResults.AsNoTracking() on i.Id equals r.InvestigationId
@@ -173,7 +173,7 @@ public sealed class OosTrendService(
                    where hs.RemovedAt == null
                    join hr in db.HplcRuns.AsNoTracking() on hs.HplcRunId equals hr.Id
                    join e in db.Equipment.AsNoTracking() on hr.EquipmentId equals e.Id
-                   select new TrendRow(i.Id, e.Id.ToString(CultureInfo.InvariantCulture), e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc);
+                   select new { InvestigationId = i.Id, EquipmentId = e.Id, e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc };
 
         var icp = from i in query
                   join r in db.OosInvestigationResults.AsNoTracking() on i.Id equals r.InvestigationId
@@ -181,9 +181,13 @@ public sealed class OosTrendService(
                   where isamp.RemovedAt == null
                   join ir in db.IcpRuns.AsNoTracking() on isamp.IcpRunId equals ir.Id
                   join e in db.Equipment.AsNoTracking() on ir.EquipmentId equals e.Id
-                  select new TrendRow(i.Id, e.Id.ToString(CultureInfo.InvariantCulture), e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc);
+                  select new { InvestigationId = i.Id, EquipmentId = e.Id, e.Name, i.Status, i.Conclusion, i.OpenedAtUtc, i.ConcludedAtUtc };
 
-        return analyses.Union(incubations).Union(hplc).Union(icp).ToListAsync(ct);
+        return analyses.Union(incubations).Union(hplc).Union(icp)
+            .Select(row => new TrendRow(
+                row.InvestigationId, row.EquipmentId.ToString(CultureInfo.InvariantCulture), row.Name,
+                row.Status, row.Conclusion, row.OpenedAtUtc, row.ConcludedAtUtc))
+            .ToListAsync(ct);
     }
 
     private Task<List<TrendRow>> QueryByCauseAsync(IQueryable<OosInvestigation> query, CancellationToken ct) =>

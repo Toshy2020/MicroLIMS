@@ -102,8 +102,8 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         var oosRate = await new OosRateKpi(assertDb).ComputeAsync(query, CancellationToken.None);
         var retestRate = await new RetestRateKpi(assertDb).ComputeAsync(query, CancellationToken.None);
 
-        Assert.Equal(50m, oosRate.Value);
-        Assert.Equal(50m, retestRate.Value);
+        Assert.Equal(0.5m, oosRate.Value);
+        Assert.Equal(0.5m, retestRate.Value);
     }
 
     [PostgresFact]
@@ -403,10 +403,14 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         await using (var act = fixture.CreateDbContext())
         {
             var retestSampleId = await act.OosRetestPlanSamples.AsNoTracking().Where(l => l.PlanId == planId).Select(l => l.SampleId).SingleAsync();
-            var retestSample = await act.Samples.Include(s => s.SectionSignoffs).SingleAsync(s => s.Id == retestSampleId);
+            var retestSample = await act.Samples.SingleAsync(s => s.Id == retestSampleId);
             retestSample.Status = SampleStatus.UnderApproval;
-            var so = retestSample.SectionSignoffs.Single();
-            so.Status = SectionSignoffStatus.UnderApproval;
+            act.SampleSectionSignoffs.Add(new SampleSectionSignoff
+            {
+                SampleId = retestSampleId,
+                SectionId = lab.Id,
+                Status = SectionSignoffStatus.UnderApproval
+            });
             await act.SaveChangesAsync();
         }
 
@@ -692,7 +696,7 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
                     SectionId = lab.Id,
                     OpenedAtUtc = mon,
                     OpenedByUserId = head.Id,
-                    ConcludedAtUtc = mon.AddDays(4), // +4 working days -> median = 3
+                    ConcludedAtUtc = mon.AddDays(4), // Friday is non-working, so +3 working days
                     ConcludedByUserId = head.Id,
                     TemplateSnapshotJson = """{"items":[]}""",
                     Results = { new OosInvestigationResult { TestOrderId = s2.Orders[0].Id, OutcomeAtOpening = OosOutcomeClass.Fails, ResultSummaryAtOpening = "OOS", AddedAtUtc = mon } }
@@ -707,9 +711,18 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         foreach (var groupBy in new[] { "product", "test", "analyst", "instrument", "cause", "conclusion" })
         {
             var result = await trends.GetTrendsAsync(groupBy, mon.AddDays(-1), mon.AddDays(10));
-            Assert.NotEmpty(result.Groups);
-            if (groupBy != "instrument" && groupBy != "conclusion")
-                Assert.Contains(result.Groups, g => g.TotalCount == 2 && g.MedianWorkingDaysToConclude == 3.0);
+            if (groupBy == "conclusion")
+            {
+                Assert.Collection(result.Groups,
+                    g => { Assert.Equal(1, g.ConfirmedCount); Assert.Equal(2.0, g.MedianWorkingDaysToConclude); },
+                    g => { Assert.Equal(1, g.InvalidatedCount); Assert.Equal(3.0, g.MedianWorkingDaysToConclude); });
+            }
+            else
+            {
+                var group = Assert.Single(result.Groups);
+                Assert.Equal(groupBy == "instrument" ? 1 : 2, group.TotalCount);
+                Assert.Equal(groupBy == "instrument" ? 2.0 : 2.5, group.MedianWorkingDaysToConclude);
+            }
         }
     }
 

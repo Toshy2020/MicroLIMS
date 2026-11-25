@@ -1177,3 +1177,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** Which results should appear on the origin certificate after invalidation when several signed-plan retest samples exist?
 - **Current behavior:** The certificate gate refuses issuance for that origin while the reporting rule is unresolved.
 - **Date:** 2026-11-24
+
+### CONF-221
+- **Area:** Quality records
+- **Status:** Decided
+- **Question:** Who may add or remove quality record links, upload or void attachments, and add comments?
+- **Decision:** A user who can read the record and holds `Quality.Raise` may add links, upload attachments, and add comments. This includes raisers, owners, and action holders who meet both conditions. A user who can read the record may remove a link or void an attachment if they hold `Quality.Investigate` or own the record. Links may be removed only before the first signed step. Voiding an attachment requires a reason and preserves the attachment row. Audit every change.
+- **Date:** 2026-11-25

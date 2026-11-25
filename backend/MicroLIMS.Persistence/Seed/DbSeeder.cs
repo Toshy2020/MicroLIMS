@@ -542,6 +542,11 @@ public static class DbSeeder
             (PermissionConstants.TableViewsShare, "Share a saved table view with a laboratory section the user belongs to."),
             (PermissionConstants.DataExport, "Export a table to a CSV file (every export is logged)."),
             (PermissionConstants.NotificationsConfigure, "Mark notification types as mandatory and configure escalation rules and laboratory working hours for your section."),
+            (PermissionConstants.QualityView, "View quality records (deviations, CAPAs, change controls, complaints)."),
+            (PermissionConstants.QualityRaise, "Raise a deviation or propose a change control."),
+            (PermissionConstants.QualityInvestigate, "Investigate quality records, write CAPA plans and assess change impacts."),
+            (PermissionConstants.QualityLabConclude, "Sign laboratory conclusions and laboratory reports on deviations and complaints."),
+            (PermissionConstants.QualityApprove, "Approve, verify, check effectiveness, close and cancel quality records and decide due-date extensions."),
         };
 
         // Metadata (Description, IsEnforced) of rows that already exist is
@@ -612,7 +617,8 @@ public static class DbSeeder
                     PermissionConstants.SamplesPrepare,
                     PermissionConstants.LabelsReprint, PermissionConstants.LabelsConfigure,
                     PermissionConstants.TableViewsShare, PermissionConstants.DataExport,
-                    PermissionConstants.NotificationsConfigure
+                    PermissionConstants.NotificationsConfigure,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise, PermissionConstants.QualityInvestigate, PermissionConstants.QualityLabConclude
                 }),
                 (RoleType.Reviewer, new[]
                 {
@@ -630,7 +636,8 @@ public static class DbSeeder
                     PermissionConstants.SolutionsRelease,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord, PermissionConstants.CalendarEventManage,
                     PermissionConstants.SamplesPrepare,
-                    PermissionConstants.DataExport
+                    PermissionConstants.DataExport,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise
                 }),
                 (RoleType.Analyst, new[]
                 {
@@ -650,7 +657,8 @@ public static class DbSeeder
                     PermissionConstants.MediaPrepare, PermissionConstants.SamplesReceiveOwnLab,
                     PermissionConstants.SolutionsPrepare, PermissionConstants.HplcOperate, PermissionConstants.WorkingStandardsQualify,
                     PermissionConstants.MonitoringPlanView, PermissionConstants.EquipmentWorkRecord,
-                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign
+                    PermissionConstants.SamplesPrepare, PermissionConstants.TestsSelfAssign,
+                    PermissionConstants.QualityView, PermissionConstants.QualityRaise
                 })
             };
 
@@ -660,7 +668,8 @@ public static class DbSeeder
                 .Where(c => c.EndsWith(".View", StringComparison.OrdinalIgnoreCase) || c.EndsWith(".Read", StringComparison.OrdinalIgnoreCase));
             grants = grants.Append((RoleType.QcManager, reviewerReadOnly.Append(PermissionConstants.NotApplicableTestsFinalApprove)
                 .Append(PermissionConstants.TableViewsShare).Append(PermissionConstants.DataExport)
-                .Append(PermissionConstants.NotificationsConfigure).Append(PermissionConstants.CompetencyManage).ToArray())).ToArray();
+                .Append(PermissionConstants.NotificationsConfigure).Append(PermissionConstants.CompetencyManage)
+                .Append(PermissionConstants.QualityRaise).Append(PermissionConstants.QualityLabConclude).ToArray())).ToArray();
             grants = grants.Append((RoleType.Qa, PermissionConstants.QaGrants.ToArray())).ToArray();
 
             foreach (var (roleType, codes) in grants)

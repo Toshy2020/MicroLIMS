@@ -1,4 +1,5 @@
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Entities.Quality;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -214,6 +215,23 @@ public interface IMicroLimsDbContext
     DbSet<OosInvestigationTemplate> OosInvestigationTemplates { get; }
     DbSet<OosChecklistItem> OosChecklistItems { get; }
     DbSet<OosCauseCategory> OosCauseCategories { get; }
+    DbSet<QualityRecord> QualityRecords { get; }
+    DbSet<DeviationDetail> DeviationDetails { get; }
+    DbSet<CapaDetail> CapaDetails { get; }
+    DbSet<ChangeControlDetail> ChangeControlDetails { get; }
+    DbSet<ComplaintDetail> ComplaintDetails { get; }
+    DbSet<QualityRecordStep> QualityRecordSteps { get; }
+    DbSet<QualityAction> QualityActions { get; }
+    DbSet<QualityRecordLink> QualityRecordLinks { get; }
+    DbSet<QualityAttachment> QualityAttachments { get; }
+    DbSet<QualityComment> QualityComments { get; }
+    DbSet<QualityExtensionRequest> QualityExtensionRequests { get; }
+    DbSet<QualityChecklistAnswer> QualityChecklistAnswers { get; }
+    DbSet<QualityChecklistTemplate> QualityChecklistTemplates { get; }
+    DbSet<QualityChecklistItem> QualityChecklistItems { get; }
+    DbSet<QualityClassification> QualityClassifications { get; }
+    DbSet<QualityDueRule> QualityDueRules { get; }
+    DbSet<QualitySectionSetting> QualitySectionSettings { get; }
     DbSet<CompetencyOverride> CompetencyOverrides { get; }
     DbSet<AnalystQualification> AnalystQualifications { get; }
     DbSet<QualificationAttachment> QualificationAttachments { get; }

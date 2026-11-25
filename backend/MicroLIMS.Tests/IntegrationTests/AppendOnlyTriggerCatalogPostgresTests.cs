@@ -55,6 +55,13 @@ public class AppendOnlyTriggerCatalogPostgresTests
         ["CompetencyOverrides"] = Insert | Update | Delete,
         ["AnalystQualifications"] = Insert | Update | Delete,
         ["QualificationAttachments"] = Insert | Update | Delete,
+        ["QualityRecordSteps"] = Update | Delete,
+        ["QualityChecklistAnswers"] = Update | Delete,
+        ["QualityRecords"] = Delete,
+        ["QualityActions"] = Delete,
+        ["QualityRecordLinks"] = Delete,
+        ["QualityAttachments"] = Delete,
+        ["QualityExtensionRequests"] = Update | Delete,
     };
 
     // Non-append-only column guards: the table stays mutable, but these exact
@@ -62,7 +69,8 @@ public class AppendOnlyTriggerCatalogPostgresTests
     private static readonly IReadOnlyDictionary<string, (string Table, int RowEvents)> ColumnGuards =
         new Dictionary<string, (string, int)>
         {
-            ["test_orders_sop_capture_immutable"] = ("TestOrders", Update)
+            ["test_orders_sop_capture_immutable"] = ("TestOrders", Update),
+            ["trg_qualityrecordlinks_columns_immutable"] = ("QualityRecordLinks", Update)
         };
 
     private sealed record TriggerRow(string Table, string Name, int Type, char Enabled);

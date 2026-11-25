@@ -46,6 +46,16 @@ public class PermissionAuthorizationTests
         Assert.Empty(used.Except(PermissionConstants.Enforced));
     }
 
+    // D2 Task 1 provisions Quality.* as enforced ahead of Tasks 2-7 endpoint checks.
+    private static readonly HashSet<string> ProvisionedAheadOfEnforcement = new()
+    {
+        PermissionConstants.QualityView,
+        PermissionConstants.QualityRaise,
+        PermissionConstants.QualityInvestigate,
+        PermissionConstants.QualityLabConclude,
+        PermissionConstants.QualityApprove
+    };
+
     [Fact]
     public void EveryEnforcedCode_IsCheckedSomewhere()
     {
@@ -60,7 +70,9 @@ public class PermissionAuthorizationTests
             .Select(f => (string)f.GetRawConstantValue()!)
             .ToHashSet();
 
-        Assert.Empty(PermissionConstants.Enforced.Except(referenced).Order(StringComparer.Ordinal));
+        Assert.Empty(PermissionConstants.Enforced.Except(referenced).Except(ProvisionedAheadOfEnforcement).Order(StringComparer.Ordinal));
+        // Must be emptied as Tasks 2-7 wire up endpoint/service checks for each Quality.* code.
+        Assert.Empty(ProvisionedAheadOfEnforcement.Intersect(referenced).Order(StringComparer.Ordinal));
     }
 
     [Fact]

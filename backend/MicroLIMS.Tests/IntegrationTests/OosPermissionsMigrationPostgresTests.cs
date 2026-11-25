@@ -66,7 +66,7 @@ public class OosPermissionsMigrationPostgresTests
             var lastAuditId = await beforeDb.AuditLogs.AsNoTracking().MaxAsync(log => (int?)log.Id) ?? 0;
 
             await using (var migrateDb = ScratchPostgresDatabase.NewContext(connection))
-                await migrateDb.Database.MigrateAsync();
+                await migrateDb.Database.MigrateAsync("20261120131800_AddOosInvestigationPermissions");
 
             await using var afterDb = ScratchPostgresDatabase.NewContext(connection);
             var catalog = await CatalogAsync(afterDb);

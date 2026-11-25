@@ -5,6 +5,7 @@ using MicroLIMS.Application.Abstractions.Live;
 using MicroLIMS.Application.Abstractions.Persistence;
 using MicroLIMS.Domain.Attributes;
 using MicroLIMS.Domain.Entities;
+using MicroLIMS.Domain.Entities.Quality;
 using MicroLIMS.Persistence.Helpers;
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -259,6 +260,25 @@ public class MicroLimsDbContext : Microsoft.EntityFrameworkCore.DbContext, IMicr
     public DbSet<OosInvestigationTemplate> OosInvestigationTemplates => Set<OosInvestigationTemplate>();
     public DbSet<OosChecklistItem> OosChecklistItems => Set<OosChecklistItem>();
     public DbSet<OosCauseCategory> OosCauseCategories => Set<OosCauseCategory>();
+
+    // Quality Events (D2)
+    public DbSet<QualityRecord> QualityRecords => Set<QualityRecord>();
+    public DbSet<DeviationDetail> DeviationDetails => Set<DeviationDetail>();
+    public DbSet<CapaDetail> CapaDetails => Set<CapaDetail>();
+    public DbSet<ChangeControlDetail> ChangeControlDetails => Set<ChangeControlDetail>();
+    public DbSet<ComplaintDetail> ComplaintDetails => Set<ComplaintDetail>();
+    public DbSet<QualityRecordStep> QualityRecordSteps => Set<QualityRecordStep>();
+    public DbSet<QualityAction> QualityActions => Set<QualityAction>();
+    public DbSet<QualityRecordLink> QualityRecordLinks => Set<QualityRecordLink>();
+    public DbSet<QualityAttachment> QualityAttachments => Set<QualityAttachment>();
+    public DbSet<QualityComment> QualityComments => Set<QualityComment>();
+    public DbSet<QualityExtensionRequest> QualityExtensionRequests => Set<QualityExtensionRequest>();
+    public DbSet<QualityChecklistAnswer> QualityChecklistAnswers => Set<QualityChecklistAnswer>();
+    public DbSet<QualityChecklistTemplate> QualityChecklistTemplates => Set<QualityChecklistTemplate>();
+    public DbSet<QualityChecklistItem> QualityChecklistItems => Set<QualityChecklistItem>();
+    public DbSet<QualityClassification> QualityClassifications => Set<QualityClassification>();
+    public DbSet<QualityDueRule> QualityDueRules => Set<QualityDueRule>();
+    public DbSet<QualitySectionSetting> QualitySectionSettings => Set<QualitySectionSetting>();
 
     // Test Master
     public DbSet<CompetencyOverride> CompetencyOverrides => Set<CompetencyOverride>();

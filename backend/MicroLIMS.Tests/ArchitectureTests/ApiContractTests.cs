@@ -23,7 +23,8 @@ public class ApiContractTests
     private static readonly Assembly Application = typeof(MicroLIMS.Application.Services.SampleSummaryService).Assembly;
     private static readonly Assembly Api = typeof(MicroLIMS.API.Controllers.SampleController).Assembly;
 
-    private static bool IsEntity(Type t) => t.Assembly == Domain && t.Namespace == "MicroLIMS.Domain.Entities";
+    private static bool IsEntity(Type t) =>
+        t.Assembly == Domain && (t.Namespace?.StartsWith("MicroLIMS.Domain.Entities", StringComparison.Ordinal) ?? false);
 
     private static bool IsOrContainsEntity(Type t) =>
         IsEntity(t)

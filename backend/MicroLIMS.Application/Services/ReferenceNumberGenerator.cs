@@ -117,4 +117,61 @@ public class ReferenceNumberGenerator
         await _db.Database.ExecuteSqlAsync(
             $"SELECT pg_advisory_xact_lock({AdvisoryLockKeys.OosNumber})", cancellationToken);
     }
+
+    public async Task<string> GenerateQualityNumberAsync(QualityRecordType type, CancellationToken cancellationToken = default)
+    {
+        await AcquireQualityNumberLockAsync(type, cancellationToken);
+
+        var typeCode = type switch
+        {
+            QualityRecordType.Deviation => "DEV",
+            QualityRecordType.Capa => "CAPA",
+            QualityRecordType.ChangeControl => "CC",
+            QualityRecordType.Complaint => "CMP",
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+
+        var labNow = _labClock.ToLabLocal(_time.GetUtcNow().UtcDateTime);
+        var prefix = FormattableString.Invariant($"{typeCode}-{labNow.Year:D4}-");
+
+        var numbers = await _db.QualityRecords
+            .Where(r => r.Type == type && r.Number.StartsWith(prefix))
+            .Select(r => r.Number)
+            .ToListAsync(cancellationToken);
+
+        numbers.AddRange(_db.QualityRecords.Local
+            .Where(r => r.Type == type && r.Number.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(r => r.Number));
+
+        long highest = 0;
+        foreach (var number in numbers)
+        {
+            if (number is not null &&
+                long.TryParse(number.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var suffix))
+                highest = Math.Max(highest, suffix);
+        }
+
+        return FormattableString.Invariant($"{prefix}{highest + 1:D4}");
+    }
+
+    internal async Task AcquireQualityNumberLockAsync(QualityRecordType type, CancellationToken cancellationToken = default)
+    {
+        if (!_db.Database.IsRelational()) return;
+
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException(
+                "A quality record number can only be generated inside a database transaction that also saves the record.");
+
+        var lockKey = type switch
+        {
+            QualityRecordType.Deviation => AdvisoryLockKeys.QualityDeviation,
+            QualityRecordType.Capa => AdvisoryLockKeys.QualityCapa,
+            QualityRecordType.ChangeControl => AdvisoryLockKeys.QualityChangeControl,
+            QualityRecordType.Complaint => AdvisoryLockKeys.QualityComplaint,
+            _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+        };
+
+        await _db.Database.ExecuteSqlAsync(
+            $"SELECT pg_advisory_xact_lock({lockKey})", cancellationToken);
+    }
 }

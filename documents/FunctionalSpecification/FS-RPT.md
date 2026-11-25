@@ -4,7 +4,7 @@
 |---|---|
 | Document number | FS-RPT |
 | Title | Reporting, Certificate of Analysis and trending functional specification |
-| Version | 0.3 |
+| Version | 0.4 |
 | Status | Draft — pending approval |
 | Author | Claude (AI agent), draft from code |
 | Reviewer | To be assigned by QA |
@@ -18,6 +18,7 @@
 | 0.1 | 2026-11-12 | Claude (AI agent), draft from code | First draft, written from the code as built. |
 | 0.2 | 2026-11-17 | AI coding agent, draft from code | Added row selection and audited CSV export specification (FS-RPT-009). |
 | 0.3 | 2026-11-25 | AI coding agent, draft from code | Added `OosGate.EnsureCertificateAllowedAsync` and OOS reporting fields (FS-RPT-010; Draft — pending approval). |
+| 0.4 | 2026-11-25 | AI coding agent, draft from code | Added captured SOP method documents and newer-revision notices on sample reports and Certificates of Analysis (FS-RPT-011; Draft — pending approval). |
 
 ## Scope and reading notes
 
@@ -100,3 +101,12 @@
 **Code:** `backend/MicroLIMS.Application/Services/Oos/OosGate.cs` — `EnsureCertificateAllowedAsync`; `backend/MicroLIMS.Application/Services/SampleSummaryService.cs` — `GetCertificateSummaryAsync`, `GenerateSummaryPdfAsync`; `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs`
 **Verified by:** reading (not run)
 **Conflicts:** CONF-220
+
+### FS-RPT-011
+*(Draft — pending approval)*
+**Satisfies:** URS-RPT-012
+**Tags:** sop-revision, sample-report, certificate-of-analysis, method-documents
+**Function:** Captured SOP method documents on sample reports and Certificates of Analysis. `CertificateOfAnalysisBuilder.BuildScope` populates `CoaScopeDto.MethodDocuments` from non-superseded, non-OOS-invalidated test orders whose `SopCapture` has `Status == Captured` and non-null `RevisionId`, `DocumentCode`, `Title`, and `RevisionNumber`, deduplicated by `RevisionId`, ordered by `DocumentCode` then `RevisionNumber` (`StringComparer.Ordinal`), and projected to `CoaMethodDocumentDto`. `ReportDocumentMapper.ForSample` adds a `"methods"` `ListBlock` when `s.Certificate.Sample.MethodDocuments.Count > 0` (formatting each effective date in `labZone ?? TimeZoneInfo.Utc` with `dd-MMM-yyyy HH:mm zzz` via `SopMethodText`) and adds `SopCaptureText(t.SopCapture, labZone)` to each test card's `MetaLines` whenever `t.SopCapture is not null || s.ItemId.HasValue` (rendering the captured method, the unresolved reason for `NoSopNumber`/`NotFound`/`NoEffectiveRevision`/`Ambiguous`, or `"SOP not recorded"` for pre-capture item orders). In the browser, `TestResultCard` renders `SopMethodDetails` (including `SopRevisionNotice`) on the sample report, and `SampleCoaPage` renders `SopMethodLine` for each entry in the active scope's `methodDocuments` plus `SopRevisionNotice` for non-superseded, non-OOS-invalidated orders in scope that have `newerSopRevision` (per CONF-222).
+**Code:** `backend/MicroLIMS.Application/Services/CertificateOfAnalysisBuilder.cs` — `BuildScope`; `backend/MicroLIMS.Application/Services/ReportDocumentMapper.cs` — `ForSample`, `SopMethodText`, `SopCaptureText`; `frontend/src/modules/testingWorkspace/TestResultCards.tsx`; `frontend/src/modules/testingWorkspace/SampleCoaPage.tsx`; `frontend/src/modules/testingWorkspace/components/SopMethodDetails.tsx`
+**Verified by:** reading (not run); tests present: `CertificateOfAnalysisBuilderTests`, `SampleCoaPage.test.tsx`
+**Conflicts:** CONF-222

@@ -358,3 +358,13 @@ Media Preparation → Sterility → Recovery → Release (or Rejected)
 ### 13.6 Qualification Matrix & Expiry Reminders
 - `CompetencyMatrixService` (`Competency.View`) returns analysts × tests with cell statuses (`NotQualified`, `Qualified`, `ExpiringSoon`, `Expired`, `Withdrawn`) and effective item SOP code/revision; analysts see only their own rows even on the laboratory matrix endpoint.
 - `CompetencyReminderService.GetExpiringAsync` returns qualifications expiring within `CompetencySectionSetting.ReminderDaysBeforeExpiry` based on `LabToday` (a withdrawn latest record never reminds).
+
+---
+
+## 14. SOP Revision Capture on Test Orders (Rule 3.1 Note) *(Draft — pending approval)*
+
+**Files:** `Application/Services/SopRevisionCapture.cs`, `Application/Services/ItemSopResolver.cs`, `Application/Services/TestOrderSopDisplay.cs`, `Application/Services/CertificateOfAnalysisBuilder.cs`, `Application/Services/ReportDocumentMapper.cs`, `Tests/ArchitectureTests/RecordingPointCoverageTests.cs`
+
+- **Immutable evaluation context (Rule 3.1):** When a sample has an `ItemId`, the item's effective SOP revision is captured once on each `TestOrder` (`SopRevisionCapture.CaptureIfNeededAsync`) at its first recorded step and never changes afterward. The PostgreSQL trigger `test_orders_sop_capture_immutable` rejects any modification to the eight capture columns once `SopCaptureStatus` is set; concurrent first-step writers lock the `TestOrders` row (`FOR UPDATE` on Npgsql) and adopt the already-stored capture (`AdoptStoredCaptureAsync`).
+- **Ambiguous / unresolved SOPs:** If `ItemSopResolver` returns `NoSopNumber`, `NotFound`, `NoEffectiveRevision`, or `Ambiguous` (case-variant active document masters, CONF-212), the status and capture timestamp are recorded without blocking testing, and displays show `"SOP not recorded: {reason}"`.
+- **Newer-revision notice (CONF-222):** Later effective revisions on the captured `DocumentMasterId` (with higher `RevisionSequence`, effective date after `SopCapturedAtUtc` and on or before `nowUtc`, while the test is open or before its `Ready` transition) never alter the captured test-order record; they only surface a non-blocking notice on the test workflow dialog, review screen, sample report, and Certificate of Analysis. Reassigning the item to a different SOP does not trigger a notice.

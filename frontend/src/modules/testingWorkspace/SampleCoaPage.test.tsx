@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SampleCoaPage } from "./SampleCoaPage";
 
@@ -73,6 +74,39 @@ const renderPage = () =>
   );
 
 afterEach(() => cleanup());
+
+it("prints the stored method revisions and changes the header with the certificate scope", async () => {
+  const date = "2026-10-01T00:00:00Z";
+  const firstMethod = { documentCode: "SOP-A", title: "Assay", revisionNumber: "03", effectiveDateUtc: date };
+  const otherMethod = { documentCode: "SOP-B", title: "Appearance", revisionNumber: "01", effectiveDateUtc: date };
+  mockGetSummary.mockResolvedValue({
+    ...base,
+    sections: [section(1, "Microbiology"), section(2, "Chemistry")],
+    testOrders: [
+      { ...testOrder(1, 1, "Assay"), newerSopRevision: { revisionNumber: "04", effectiveDateUtc: date } },
+      testOrder(2, 2, "Appearance")
+    ],
+    certificate: {
+      sample: { ...scope("Assay", []), methodDocuments: [firstMethod, otherMethod] },
+      sections: [
+        { sectionId: 1, scope: { ...scope("Assay", []), methodDocuments: [firstMethod] } },
+        { sectionId: 2, scope: { ...scope("Appearance", []), methodDocuments: [otherMethod] } }
+      ]
+    }
+  });
+  const user = userEvent.setup();
+  renderPage();
+
+  expect(await screen.findByText(/SOP-A rev\. 03/)).toBeTruthy();
+  expect(screen.getByText(/SOP-B rev\. 01/)).toBeTruthy();
+  expect(screen.getByText(/A newer revision \(rev\. 04\)/)).toBeTruthy();
+
+  await user.click(screen.getByRole("button", { name: "Chemistry" }));
+
+  expect(screen.getByText(/SOP-B rev\. 01/)).toBeTruthy();
+  expect(screen.queryByText(/SOP-A rev\. 03/)).toBeNull();
+  expect(screen.queryByText(/A newer revision \(rev\. 04\)/)).toBeNull();
+});
 
 describe("SampleCoaPage supporting rows", () => {
   it("prints not-applicable and supplier-stated rows below the tested results", async () => {

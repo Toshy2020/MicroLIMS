@@ -1,3 +1,4 @@
+import type { TestOrderSop } from "./sopCaptureTypes";
 // Mirrors backend/MicroLIMS.API/Controllers/TestWorkflowController.cs and
 // TestWorkflowEngine.cs record types. StepType/GrowthObservation/WorkflowType
 // are sent and received as their C# enum's string name, never an ordinal.
@@ -155,7 +156,7 @@ export interface CurrentStepLocationItem {
   text: string | null;
 }
 
-export interface CurrentStepResponse {
+export interface CurrentStepResponse extends TestOrderSop {
   testOrderId: number;
   step: TestWorkflowStepDto | null;
   stepNumber: number | null;

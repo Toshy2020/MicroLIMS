@@ -1,6 +1,7 @@
 // Mirrors backend MicroLIMS.Application.DTOs.SampleSummaryDto and friends.
 
 import type { CertificateOfAnalysis } from "../coaAggregation";
+import type { TestOrderSop } from "./sopCaptureTypes";
 
 export interface IncubationDetail {
   stepName: string;
@@ -105,7 +106,8 @@ export interface CompetencyOverrideManifestation {
   endedAtUtc: string | null;
 }
 
-export interface TestOrderSummaryDetail {
+export interface TestOrderSummaryDetail extends TestOrderSop {
+  isOosInvalidated?: boolean;
   competencyOverrides?: CompetencyOverrideManifestation[];
   testOrderId: number;
   testCode: string;
@@ -235,6 +237,7 @@ export type OverallSampleStatus =
   | "Cancelled";
 
 export interface SampleSummary {
+  labTimeZoneId?: string;
   sampleId: number;
   referenceNumber: string;
   category: string;
@@ -275,6 +278,7 @@ export interface SampleSummary {
   certificateRemarks: string | null;
   previousProductName?: string | null;
   previousProductBatchNumber?: string | null;
+  itemId?: number | null;
   previousProductItemId?: number | null;
   cleaningTechniques?: string[] | null;
   preparation: SamplePreparationSummary | null;

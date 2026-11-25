@@ -1,4 +1,17 @@
 {
+  "sopCapture": {
+    "method": "Method: {{code}} rev. {{revision}}",
+    "effective": "Effective {{date}}",
+    "notRecorded": "SOP not recorded",
+    "unresolved": "SOP not recorded: {{reason}}",
+    "newer": "A newer revision (rev. {{revision}}) became effective on {{date}} while this test was running.",
+    "reasons": {
+      "NoSopNumber": "No SOP number on this item",
+      "NotFound": "SOP not found in Document Control",
+      "NoEffectiveRevision": "No effective revision",
+      "Ambiguous": "Multiple documents match the SOP number"
+    }
+  },
   "qualitative": {
     "chooseEveryRow": "Choose Complies or Does not comply for every row.",
     "noSpecsConfigured": "No specifications configured for test {{testCode}}.",

@@ -1,3 +1,4 @@
+import { SopMethodDetails } from "../components/SopMethodDetails";
 import { useEffect, useRef } from "react";
 import { Box, Typography, Stack, Button, Accordion, AccordionSummary, AccordionDetails, Chip, useTheme } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -62,10 +63,14 @@ function ReturnToAnalystAction({
 export function TestResultsSection({
   testOrders,
   overallStatus,
+  showSop,
+  labTimeZoneId,
   onReturnTest
 }: {
   testOrders: TestOrderSummaryDetail[];
   overallStatus: string;
+  showSop?: boolean;
+  labTimeZoneId?: string;
   onReturnTest?: (order: TestOrderSummaryDetail) => void;
 }) {
   const { t } = useTranslation("testingWorkspace");
@@ -150,6 +155,9 @@ export function TestResultsSection({
               </AccordionSummary>
               <AccordionDetails sx={{ p: 2.5 }}>
                 <Stack spacing={2}>
+                  {(showSop || order.sopCapture) && (
+                    <SopMethodDetails sopCapture={order.sopCapture} newerSopRevision={order.newerSopRevision} timeZone={labTimeZoneId} />
+                  )}
                   {order.competencyOverrides?.map((override, index) => (
                     <Box key={index} sx={{ borderInlineStart: "2px solid", borderColor: "divider", paddingInlineStart: 2 }}>
                       <Typography variant="subtitle2">{t("sampleSummary.testResults.competencyOverride")}</Typography>

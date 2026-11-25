@@ -55,7 +55,13 @@ public class QcManagerRoleTests
         var reviewerViews = (await CodesOf(db, RoleType.Reviewer)).Where(IsViewOrRead).OrderBy(c => c).ToList();
         Assert.Equal(reviewerViews, codes.Where(c => c != PermissionConstants.NotApplicableTestsFinalApprove
             && c != PermissionConstants.TableViewsShare && c != PermissionConstants.DataExport
-            && c != PermissionConstants.NotificationsConfigure && c != PermissionConstants.CompetencyManage).OrderBy(c => c));
+            && c != PermissionConstants.NotificationsConfigure && c != PermissionConstants.CompetencyManage
+            // Quality events plan (D2 Task 1): QC Manager raises quality records and concludes them for the laboratory.
+            && c != PermissionConstants.QualityRaise && c != PermissionConstants.QualityLabConclude).OrderBy(c => c));
+        Assert.Contains(PermissionConstants.QualityRaise, codes);
+        Assert.Contains(PermissionConstants.QualityLabConclude, codes);
+        Assert.DoesNotContain(PermissionConstants.QualityInvestigate, codes);
+        Assert.DoesNotContain(PermissionConstants.QualityApprove, codes);
     }
 
     [Fact]

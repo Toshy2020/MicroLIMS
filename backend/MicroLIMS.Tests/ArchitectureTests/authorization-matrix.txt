@@ -227,10 +227,6 @@ EnvironmentalMonitoringMasterDataController.GetRooms(): SystemAdministrator,Sect
 EnvironmentalMonitoringMasterDataController.UpdateDepartment(Int32, UpdateDepartmentRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoom(Int32, UpdateRoomRequest): SystemAdministrator,SectionHead
 EnvironmentalMonitoringMasterDataController.UpdateRoomTestConfiguration(Int32, UpdateRoomTestConfigRequest): SystemAdministrator,SectionHead
-EscalationRulesController.Create(CreateEscalationRuleRequest, CancellationToken): SectionHead,QcManager
-EscalationRulesController.List(Nullable`1, Boolean, CancellationToken): SectionHead,QcManager
-EscalationRulesController.Replace(Int32, ReplaceEscalationRuleRequest, CancellationToken): SectionHead,QcManager
-EscalationRulesController.Retire(Int32, CancellationToken): SectionHead,QcManager
 EquipmentCalendarController.GetCalendar(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentCalendarController.GetInstrumentHistory(Int32, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 EquipmentCalendarController.GetPlannedVsDone(Int32, EquipmentTaskType): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
@@ -285,6 +281,10 @@ ErrorMonitoringController.OverrideSeverity(Guid, SeverityOverrideRequest, Cancel
 ErrorMonitoringController.Reopen(Guid, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Resolve(Guid, ResolveIncidentRequest, CancellationToken): SystemAdministrator
 ErrorMonitoringController.Search(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, String, Int32, Int32, CancellationToken): SystemAdministrator
+EscalationRulesController.Create(CreateEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.List(Nullable`1, Boolean, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Replace(Int32, ReplaceEscalationRuleRequest, CancellationToken): SectionHead,QcManager
+EscalationRulesController.Retire(Int32, CancellationToken): SectionHead,QcManager
 ExportsController.Log(LogListExportRequest, CancellationToken): SectionHead,Reviewer,QcManager
 GlobalSearchController.Search(String, String, Int32): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 HplcMethodController.Create(SaveHplcMethodRequest): SystemAdministrator,SectionHead
@@ -495,8 +495,8 @@ NotificationsController.List(String, String, Nullable`1, String, Int32, Int32, C
 NotificationsController.MarkAllRead(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotificationsController.MarkRead(Int32, CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 NotificationsController.Summary(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
-OosInvestigationDocumentController.GetContent(Int32, String): SectionHead
-OosInvestigationDocumentController.GetDocuments(String): SectionHead
+OosInvestigationDocumentController.GetContent(Int32, String, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationDocumentController.GetDocuments(String, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationDocumentController.Supersede(Int32, String, IFormFile, String): SectionHead
 OosInvestigationDocumentController.Upload(String, IFormFile): SectionHead
 OosInvestigationDocumentController.Void(Int32, String, VoidOosInvestigationDocumentRequest): SectionHead
@@ -506,7 +506,12 @@ OosInvestigationsController.AddressDeviationRequest(Int32, OosDeviationAddressRe
 OosInvestigationsController.AnswerChecklist(Int32, Int32, String, OosChecklistAnswerRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.CloseExcursion(Int32, CloseExcursionRequest, CancellationToken): SectionHead
 OosInvestigationsController.Conclude(Int32, ConcludeRequest, CancellationToken): SectionHead
+OosInvestigationsController.GetById(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.GetFacts(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.GetForSample(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.GetPdf(Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.GetTrends(String, Nullable`1, Nullable`1, Nullable`1, Nullable`1, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+OosInvestigationsController.List(Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Nullable`1, Int32, Int32, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 OosInvestigationsController.OpenManualExcursion(OpenManualExcursionRequest, CancellationToken): SectionHead,Analyst
 OosInvestigationsController.OpenManually(Int32, Int32, CancellationToken): SectionHead
 OosInvestigationsController.Reopen(Int32, OosReopenRequest, CancellationToken): SectionHead

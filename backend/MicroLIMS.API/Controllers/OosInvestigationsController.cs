@@ -24,9 +24,58 @@ public sealed record OpenManualExcursionRequest(int TestOrderId, string Reason);
 
 [ApiController]
 [Route("api/oos-investigations")]
-public sealed class OosInvestigationsController(OosInvestigationService service, OosRetestPlanService retestPlans,
-    IOosNotifier notifier, ILogger<OosInvestigationsController> logger) : ControllerBase
+public sealed class OosInvestigationsController(
+    OosInvestigationService service,
+    OosRetestPlanService retestPlans,
+    IOosNotifier notifier,
+    ILogger<OosInvestigationsController> logger,
+    OosTrendService trends,
+    OosInvestigationReportBuilder reportBuilder) : ControllerBase
 {
+    [HttpGet]
+    [Authorize(Policy = PermissionConstants.OosView)]
+    public async Task<IActionResult> List(
+        [FromQuery] OosInvestigationStatus? status = null,
+        [FromQuery] OosInvestigationKind? kind = null,
+        [FromQuery] int? sectionId = null,
+        [FromQuery] bool? overdue = null,
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25,
+        CancellationToken ct = default) =>
+        Ok(ApiResponse<PagedResult<OosInvestigationListItemDto>>.Ok(
+            await service.ListAsync(new OosInvestigationFilter(status, kind, sectionId, overdue, from, to, page, pageSize), ct)));
+
+    [HttpGet("{id:int}")]
+    [Authorize(Policy = PermissionConstants.OosView)]
+    public async Task<IActionResult> GetById(int id, CancellationToken ct = default) =>
+        Ok(ApiResponse<OosInvestigationDetailDto>.Ok(await service.GetByIdAsync(id, ct)));
+
+    [HttpGet("{id:int}/pdf")]
+    [Authorize(Policy = PermissionConstants.OosView)]
+    public async Task<IActionResult> GetPdf(int id, CancellationToken ct = default)
+    {
+        var (fileName, bytes) = await reportBuilder.GeneratePdfAsync(id, ct);
+        return File(bytes, "application/pdf", fileName);
+    }
+
+    [HttpGet("trends")]
+    [Authorize(Policy = PermissionConstants.OosView)]
+    public async Task<IActionResult> GetTrends(
+        [FromQuery] string groupBy = "cause",
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        [FromQuery] OosInvestigationKind? kind = null,
+        [FromQuery] int? sectionId = null,
+        CancellationToken ct = default) =>
+        Ok(ApiResponse<OosTrendReportDto>.Ok(await trends.GetTrendsAsync(groupBy, from, to, kind, sectionId, ct)));
+
+    [HttpGet("for-sample/{sampleId:int}")]
+    [Authorize(Policy = PermissionConstants.OosView)]
+    public async Task<IActionResult> GetForSample(int sampleId, CancellationToken ct = default) =>
+        Ok(ApiResponse<IReadOnlyList<OosInvestigationListItemDto>>.Ok(await service.GetForSampleAsync(sampleId, ct)));
+
     [HttpGet("{id:int}/facts")]
     [Authorize(Policy = PermissionConstants.OosView)]
     public async Task<IActionResult> GetFacts(int id, CancellationToken ct = default) =>

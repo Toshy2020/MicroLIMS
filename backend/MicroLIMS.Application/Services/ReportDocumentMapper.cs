@@ -404,7 +404,8 @@ public static class ReportDocumentMapper
             ?? t.Locations.LastOrDefault()?.EnteredAt;
 
         card.FooterLeft = enteredBy is null ? "No result recorded yet" : $"Entered by {enteredBy} · {Dt(enteredAt)}";
-        card.FooterRight = t.IsSuperseded ? "Superseded"
+        card.FooterRight = t.IsOosInvalidated ? "Invalidated"
+            : t.IsSuperseded ? "Superseded"
             : t.Locations.Count > 0 ? TestOrderConformance.Overall(t) switch
             {
                 ResultConformance.Conforms => "All locations within spec",
@@ -419,7 +420,7 @@ public static class ReportDocumentMapper
     // The same verdict as the Certificate of Analysis: a failure is red,
     // and a missing result or one with no limits cannot be shown as a pass.
     private static ReportTone CardTone(TestOrderSummaryDetailDto t) =>
-        t.IsSuperseded ? ReportTone.Neutral
+        t.IsSuperseded || t.IsOosInvalidated ? ReportTone.Neutral
             : TestOrderConformance.Overall(t) switch
             {
                 ResultConformance.Conforms => ReportTone.Positive,
@@ -433,7 +434,9 @@ public static class ReportDocumentMapper
     private static string CardSubtitle(TestOrderSummaryDetailDto t, string rest) =>
         string.Join(" · ", new[]
         {
+            t.IsOosInvalidated ? "INVALIDATED (OOS)" : null,
             t.IsSuperseded ? "SUPERSEDED BY RETEST" : null,
+            t.OosInvestigationNumber is null ? null : $"Investigation {t.OosInvestigationNumber}",
             t.SourceSampleReferenceNumber is null ? null : $"Result from retest sample {t.SourceSampleReferenceNumber}",
             t.CancelledAtStep is null ? null : $"Closed at {Humanize(t.CancelledAtStep)}{(t.CancelledAtStage is null ? "" : $" (stage {t.CancelledAtStage})")}",
             rest
@@ -496,7 +499,7 @@ public static class ReportDocumentMapper
     {
         var exception = a.ParameterResults.Any(p => !ConformingStatuses.Contains(p.ComparisonStatus));
         var single = a.ParameterResults.Count == 1 ? a.ParameterResults[0] : null;
-        var verdict = t.IsSuperseded ? "Superseded" : exception ? "Out of limits" : "Within limits";
+        var verdict = t.IsOosInvalidated ? "Invalidated" : t.IsSuperseded ? "Superseded" : exception ? "Out of limits" : "Within limits";
 
         var card = new CardBlock
         {

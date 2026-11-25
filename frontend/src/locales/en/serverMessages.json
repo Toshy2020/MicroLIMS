@@ -1170,6 +1170,7 @@
   "Oos.CategoryFixed": "The No cause found category cannot be renamed or deactivated.",
   "Oos.CategoryNotFound": "The OOS cause category was not found.",
   "Oos.InvestigationNotFound": "The OOS investigation was not found.",
+  "Oos.TrendGroupByInvalid": "Choose a valid trend grouping: product, test, analyst, instrument, cause, or conclusion.",
   "Oos.InvestigationAccessDenied": "You do not have permission for this investigation action.",
   "Oos.StatementPerformerRequired": "Only an analyst who performed a test in this investigation can add a statement.",
   "Oos.StatementInvalid": "Enter an analyst statement of 1 to 4000 characters.",

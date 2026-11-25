@@ -32,15 +32,18 @@ public sealed partial class OosInvestigationService
 
         var investigation = await db.OosInvestigations.AsNoTracking().Where(i => i.Id == investigationId)
             .Select(i => new { i.SectionId, i.Version }).SingleOrDefaultAsync(ct)
-            ?? throw new NotFoundException(MessageCodes.OosInvestigationNotFound, "The OOS investigation was not found.");
-        await EnsureScopeAsync(actor, investigation.SectionId, SectionAccess.Read, ct);
+            ?? throw InvestigationNotFound();
+        var readable = await scope.GetReadableSectionIdsAsync(actor, ct);
+        if (readable is not null && !readable.Contains(investigation.SectionId))
+            throw InvestigationNotFound();
 
         var orders = await db.OosInvestigationResults.AsNoTracking().Where(r => r.InvestigationId == investigationId)
             .Join(db.TestOrders.AsNoTracking(), r => r.TestOrderId, o => o.Id, (_, order) => new { order.Id, order.TestCode })
             .OrderBy(o => o.Id).ToListAsync(ct);
         var analyst = await db.Users.AsNoTracking().AnyAsync(u => u.Id == actor && u.Role != null && u.Role.Type == RoleType.Analyst, ct);
-        if (analyst && (await duties.GetTestOrderIdsPerformedByAsync(actor, orders.Select(o => o.Id).ToArray(), ct)).Count == 0)
-            throw new CodedAccessDeniedException(MessageCodes.OosInvestigationAccessDenied, "You do not have permission for this investigation action.");
+        if (analyst && !await permissions.UserHasPermissionAsync(actor, PermissionConstants.OosManage, ct) &&
+            (await duties.GetTestOrderIdsPerformedByAsync(actor, orders.Select(o => o.Id).ToArray(), ct)).Count == 0)
+            throw InvestigationNotFound();
 
         var facts = new List<OosOrderFactsDto>(orders.Count);
         foreach (var order in orders)

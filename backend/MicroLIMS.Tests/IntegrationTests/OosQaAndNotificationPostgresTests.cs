@@ -12,6 +12,7 @@ using MicroLIMS.Application.Services.Notifications;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Domain.Entities;
 using MicroLIMS.Domain.Enums;
+using MicroLIMS.Infrastructure.Pdf;
 using MicroLIMS.Persistence.DbContext;
 using MicroLIMS.Shared.Constants;
 using MicroLIMS.Shared.Exceptions;
@@ -417,8 +418,14 @@ public sealed class OosQaAndNotificationPostgresTests(PostgresTestFixture fixtur
     private static OosInvestigationsController Controller(MicroLimsDbContext db, int actor, IOosNotifier notifier, uint version)
     {
         db.ExpectedVersion = version;
-        return new(Service(db), OosRetestPlanPostgresTests.Service(db), notifier,
-            NullLogger<OosInvestigationsController>.Instance) { ControllerContext = Context(actor, version) };
+        var service = Service(db);
+        return new(service, OosRetestPlanPostgresTests.Service(db), notifier,
+            NullLogger<OosInvestigationsController>.Instance,
+            new OosTrendService(db, service, LabClock.Default),
+            new OosInvestigationReportBuilder(service, new PdfGenerator(), new DataExportAuditService(db), db))
+        {
+            ControllerContext = Context(actor, version)
+        };
     }
 
     private static ControllerContext Context(int actor, uint? version = null)

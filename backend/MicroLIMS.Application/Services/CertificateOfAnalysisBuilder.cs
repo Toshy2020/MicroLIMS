@@ -83,7 +83,7 @@ public static class CertificateOfAnalysisBuilder
         var testCodeOrder = new List<string>();
         foreach (var t in testOrders)
         {
-            if (t.Locations.Count == 0 || t.IsSuperseded) continue;
+            if (t.Locations.Count == 0 || t.IsSuperseded || t.IsOosInvalidated) continue;
             if (!byTestCode.TryGetValue(t.TestCode, out var existing))
             {
                 byTestCode[t.TestCode] = t;
@@ -106,7 +106,8 @@ public static class CertificateOfAnalysisBuilder
             TestCode = t.TestCode,
             TestDisplayName = t.TestDisplayName,
             IsQuantitative = IsQuantitative(t),
-            Unit = IsQuantitative(t) ? t.Locations.FirstOrDefault(l => !string.IsNullOrEmpty(l.Unit))?.Unit : null
+            Unit = IsQuantitative(t) ? t.Locations.FirstOrDefault(l => !string.IsNullOrEmpty(l.Unit))?.Unit : null,
+            OosInvestigationNumber = t.OosInvestigationNumber
         }).ToList();
 
         // Rows = distinct physical locations, first seen across tests.
@@ -121,7 +122,8 @@ public static class CertificateOfAnalysisBuilder
         {
             TestOrderId = t.TestOrderId,
             TestCode = t.TestCode,
-            TestDisplayName = t.TestDisplayName
+            TestDisplayName = t.TestDisplayName,
+            OosInvestigationNumber = t.OosInvestigationNumber
         });
         var overallComplies = true;
 
@@ -221,7 +223,7 @@ public static class CertificateOfAnalysisBuilder
     {
         // Physicochemical (qualitative, assays, other) then microbiology
         // (counts, pathogens), each ordered by its Test Master CoA order.
-        var tests = CoaTestOrdering.Order(testOrders.Where(t => t.Locations.Count == 0 && !t.IsSuperseded)).ToList();
+        var tests = CoaTestOrdering.Order(testOrders.Where(t => t.Locations.Count == 0 && !t.IsSuperseded && !t.IsOosInvalidated)).ToList();
         if (tests.Count == 0) return null;
 
         var rows = tests.SelectMany(SimpleRowsFor).ToList();
@@ -282,6 +284,7 @@ public static class CertificateOfAnalysisBuilder
         TestCode = testCode,
         TestDisplayName = displayName,
         Specification = specification,
+        OosInvestigationNumber = t.OosInvestigationNumber,
         Result = result,
         AnalystName = !string.IsNullOrEmpty(t.OutsourcedToLab) ? $"External lab: {t.OutsourcedToLab}" : (string.IsNullOrEmpty(analystName) ? null : analystName),
         AnalystAt = analystAt,

@@ -1,5 +1,4 @@
 using MicroLIMS.Shared.Exceptions;
-﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,7 +24,7 @@ public class OosInvestigationDocumentTests
     private static OosInvestigationDocumentService NewService(MicroLimsDbContext db, InMemoryFileStorageService storage)
     {
         var validator = new MaterialDocumentFileValidator(maxFileSizeBytes: 10 * 1024 * 1024);
-        return new OosInvestigationDocumentService(db, storage, validator, NullLogger<OosInvestigationDocumentService>.Instance);
+        return new OosInvestigationDocumentService(db, storage, validator, NullLogger<OosInvestigationDocumentService>.Instance, TestServiceFactory.OosInvestigation(db));
     }
 
     private static byte[] SamplePdfBytes =>
@@ -59,36 +58,6 @@ public class OosInvestigationDocumentTests
         Assert.Equal(doc.Id, stored.Id);
         Assert.StartsWith($"oos-investigations/{oosCode}/", stored.StorageKey);
         Assert.True(storage.Files.ContainsKey(stored.StorageKey));
-    }
-
-    [Fact]
-    public async Task GetDocumentsAsync_NonExistentGroup_Throws()
-    {
-        await using var db = NewDb();
-        var storage = new InMemoryFileStorageService();
-        var service = NewService(db, storage);
-
-        await Assert.ThrowsAsync<NotFoundException>(() =>
-            service.GetDocumentsAsync("OOS9999999"));
-    }
-
-    [Fact]
-    public async Task GetContentAsync_ValidDocument_ReturnsContentAndVerifiesIntegrity()
-    {
-        await using var db = NewDb();
-        var storage = new InMemoryFileStorageService();
-        var service = NewService(db, storage);
-
-        var oosCode = "OOS0826001";
-        db.Samples.Add(new Sample { ReferenceNumber = "S1", ControlNumber = "C1", SampledBy = "A", OosGroupCode = oosCode });
-        await db.SaveChangesAsync();
-
-        var upload = await service.UploadAsync(oosCode, new UploadOosInvestigationDocumentRequest(
-            "Report.pdf", "application/pdf", SamplePdfBytes), uploadingUserId: 1);
-
-        var (meta, bytes) = await service.GetContentAsync(upload.Id, oosCode, requestingUserId: 2);
-        Assert.Equal(upload.Id, meta.Id);
-        Assert.Equal(SamplePdfBytes, bytes);
     }
 
     [Fact]

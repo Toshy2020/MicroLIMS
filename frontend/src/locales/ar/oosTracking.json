@@ -308,6 +308,12 @@
     "inactive": "غير نشط",
     "moveUp": "تحريك البند للأعلى",
     "moveDown": "تحريك البند للأسفل",
+    "moveUpItem": "تحريك {{item}} للأعلى",
+    "moveDownItem": "تحريك {{item}} للأسفل",
+    "activeItem": "نشط: {{item}}",
+    "untitledItem": "بلا عنوان",
+    "itemMoved": "تم نقل البند إلى الموضع {{position}}",
+    "reorderHint": "استخدم أزرار الأسهم أو اضغط Alt+Up / Alt+Down لإعادة ترتيب البنود.",
     "newItemText": "نص بند قائمة تحقق جديد",
     "addItem": "إضافة بند",
     "saveTemplate": "حفظ القالب",
@@ -320,11 +326,14 @@
       "add": "إضافة فئة",
       "save": "حفظ الفئة",
       "edit": "تعديل",
+      "editItem": "تعديل {{name}}",
       "status": "الحالة",
       "actions": "الإجراءات",
       "locked": "مقفلة",
       "added": "تمت إضافة فئة السبب.",
-      "updated": "تم تحديث فئة السبب."
+      "updated": "تم تحديث فئة السبب.",
+      "permissionRequired": "تتطلب إضافة فئات الأسباب أو تعديلها صلاحية MasterData.Manage.",
+      "showingFirst": "عرض أول {{count}} من أصل {{total}} فئة سبب."
     },
     "errors": {
       "loadSections": "تعذّر تحميل الأقسام.",

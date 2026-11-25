@@ -3,6 +3,8 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { PinnedLightTheme } from "../../theme/PinnedLightTheme";
+import { AuthProvider } from "../../contexts/AuthContext";
+import { PERMISSIONS } from "../../routes/routes";
 import { laboratorySectionService } from "../../services/laboratorySectionService";
 import { oosInvestigationService } from "../../services/oosInvestigationService";
 import { OosTemplatesPage } from "./OosTemplatesPage";
@@ -23,17 +25,21 @@ vi.mock("../../services/oosInvestigationService", () => ({
   }
 }));
 
-function renderPage() {
+function renderPage(permissions: string[] = [PERMISSIONS.OOS_MANAGE, PERMISSIONS.MASTER_DATA_MANAGE]) {
+  localStorage.setItem("microlims_permissions", JSON.stringify(permissions));
   return render(
-    <PinnedLightTheme>
-      <MemoryRouter>
-        <OosTemplatesPage />
-      </MemoryRouter>
-    </PinnedLightTheme>
+    <AuthProvider>
+      <PinnedLightTheme>
+        <MemoryRouter>
+          <OosTemplatesPage />
+        </MemoryRouter>
+      </PinnedLightTheme>
+    </AuthProvider>
   );
 }
 
 beforeEach(() => {
+  localStorage.clear();
   vi.mocked(laboratorySectionService.getMySections).mockResolvedValue([
     {
       sectionId: 1,
@@ -95,13 +101,13 @@ describe("OosTemplatesPage", () => {
     expect(screen.getByDisplayValue("Inspect glassware")).toBeTruthy();
 
     // Reorder second item up by keyboard
-    const moveUpButtons = screen.getAllByRole("button", { name: /Move item up/i });
-    moveUpButtons[1].focus();
+    const moveUpBtn = screen.getByRole("button", { name: /Move Verify media lot GPT up/i });
+    moveUpBtn.focus();
     await user.keyboard("{Enter}");
 
-    // Deactivate the first item (now Check equipment calibration is at index 1, or deactivate by button/switch)
-    const activeSwitches = screen.getAllByRole("switch", { name: /Active/i });
-    await user.click(activeSwitches[1]);
+    // Deactivate Check equipment calibration (now at index 1)
+    const activeSwitch = screen.getByRole("switch", { name: /Active: Check equipment calibration/i });
+    await user.click(activeSwitch);
 
     // Save with expected version 3
     await user.click(screen.getByRole("button", { name: /Save Template/i }));
@@ -159,7 +165,7 @@ describe("OosTemplatesPage", () => {
 
     const editableRow = screen.getByText("Analyst error").closest("tr");
     expect(editableRow).toBeTruthy();
-    await user.click(within(editableRow!).getByRole("button", { name: /Edit/i }));
+    await user.click(within(editableRow!).getByRole("button", { name: /Edit Analyst error/i }));
 
     const dialog = screen.getByRole("dialog");
     const nameField = within(dialog).getByLabelText(/Category name/i);
@@ -175,5 +181,78 @@ describe("OosTemplatesPage", () => {
         2
       )
     );
+  });
+
+  it("keeps focus on the moved row control across three consecutive keyboard moves including top boundary and announces position", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByDisplayValue("Check equipment calibration")).toBeTruthy());
+
+    // Add two new items so we have 4 rows and can move a new item up 3 times to index 0
+    const newItemInput = screen.getByLabelText(/New checklist item text/i);
+    await user.type(newItemInput, "Inspect glassware");
+    await user.click(screen.getByRole("button", { name: /Add item/i }));
+    await user.type(newItemInput, "Verify balance");
+    await user.click(screen.getByRole("button", { name: /Add item/i }));
+
+    expect(screen.getByText(/Alt\+Up \/ Alt\+Down/i)).toBeTruthy();
+
+    const moveUpBtn = screen.getByRole("button", { name: /Move Verify balance up/i });
+    expect(moveUpBtn.getAttribute("aria-keyshortcuts")).toBe("Alt+ArrowUp");
+    moveUpBtn.focus();
+
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(moveUpBtn);
+    expect(screen.getByRole("status").textContent).toContain("Item moved to position 3");
+
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(moveUpBtn);
+    expect(screen.getByRole("status").textContent).toContain("Item moved to position 2");
+
+    await user.keyboard("{Enter}");
+    expect(document.activeElement).toBe(moveUpBtn);
+    expect(moveUpBtn.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByRole("status").textContent).toContain("Item moved to position 1");
+
+    await user.click(screen.getByRole("button", { name: /Save Template/i }));
+    await waitFor(() => expect(oosInvestigationService.saveTemplate).toHaveBeenCalledTimes(1));
+    const [, , payload] = vi.mocked(oosInvestigationService.saveTemplate).mock.calls[0];
+    expect(payload.items.map((i) => i.text)).toEqual([
+      "Verify balance",
+      "Check equipment calibration",
+      "Verify media lot GPT",
+      "Inspect glassware"
+    ]);
+  });
+
+  it("gates add/edit category actions on MasterData.Manage and shows edit error once inside dialog", async () => {
+    const user = userEvent.setup();
+
+    renderPage([PERMISSIONS.OOS_MANAGE]);
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Cause Categories/i })).toBeTruthy());
+    await user.click(screen.getByRole("tab", { name: /Cause Categories/i }));
+
+    await waitFor(() => expect(screen.getByText("Analyst error")).toBeTruthy());
+    expect(screen.getByText(/MasterData\.Manage/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Add Category/i }).hasAttribute("disabled")).toBe(true);
+    expect(screen.getByRole("button", { name: /Edit Analyst error/i }).hasAttribute("disabled")).toBe(true);
+
+    cleanup();
+    vi.mocked(oosInvestigationService.saveCategory).mockRejectedValue({
+      response: { data: { message: "Category name already exists." } }
+    });
+
+    renderPage([PERMISSIONS.OOS_MANAGE, PERMISSIONS.MASTER_DATA_MANAGE]);
+    await waitFor(() => expect(screen.getByRole("tab", { name: /Cause Categories/i })).toBeTruthy());
+    await user.click(screen.getByRole("tab", { name: /Cause Categories/i }));
+    await waitFor(() => expect(screen.getByText("Analyst error")).toBeTruthy());
+
+    await user.click(screen.getByRole("button", { name: /Edit Analyst error/i }));
+    const dialog = screen.getByRole("dialog");
+    await user.type(within(dialog).getByLabelText(/Reason for change/i), "Fix typo");
+    await user.click(within(dialog).getByRole("button", { name: /Save Category/i }));
+
+    await waitFor(() => expect(screen.getAllByText("Category name already exists.")).toHaveLength(1));
   });
 });

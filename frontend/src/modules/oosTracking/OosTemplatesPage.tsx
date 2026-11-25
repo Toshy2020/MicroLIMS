@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {
   Alert,
   Box,
@@ -25,10 +25,12 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography
 } from "@mui/material";
+import { visuallyHidden } from "@mui/utils";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
@@ -37,7 +39,9 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { toast } from "sonner";
 import { PageHeader } from "../../components/PageHeader";
+import { useOptionalAuth } from "../../contexts/AuthContext";
 import { useTranslation } from "../../i18n";
+import { PERMISSIONS } from "../../routes/routes";
 import {
   laboratorySectionService,
   type LaboratorySection
@@ -53,8 +57,18 @@ import { serverMessage } from "../../utils/errorMessage";
 
 type TemplatesTab = "templates" | "categories";
 
+interface LocalChecklistItem extends OosTemplateItem {
+  clientId: string;
+}
+
 export function OosTemplatesPage() {
   const { t } = useTranslation("oosTracking");
+  const auth = useOptionalAuth();
+  const canManageCategories = Boolean(
+    auth &&
+      auth.permissions.includes(PERMISSIONS.OOS_MANAGE) &&
+      auth.permissions.includes(PERMISSIONS.MASTER_DATA_MANAGE)
+  );
 
   const [tab, setTab] = useState<TemplatesTab>("templates");
 
@@ -74,24 +88,32 @@ export function OosTemplatesPage() {
   const [phaseOneDays, setPhaseOneDays] = useState<string>("");
   const [totalDays, setTotalDays] = useState<string>("");
   const [alertOpensExcursion, setAlertOpensExcursion] = useState(false);
-  const [items, setItems] = useState<OosTemplateItem[]>([]);
+  const [items, setItems] = useState<LocalChecklistItem[]>([]);
+  const [moveAnnouncement, setMoveAnnouncement] = useState("");
+  const nextClientIdRef = useRef(0);
+  const makeClientId = useCallback(() => `row-${++nextClientIdRef.current}`, []);
+  const controlRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
+  const pendingFocusRef = useRef<{ clientId: string; direction: "up" | "down" } | null>(null);
 
   const [newItemPhase, setNewItemPhase] = useState<number>(1);
   const [newItemText, setNewItemText] = useState("");
 
   // Categories state
   const [categories, setCategories] = useState<OosCategoryDto[]>([]);
+  const [categoriesTotalCount, setCategoriesTotalCount] = useState(0);
+  const [categoriesPage, setCategoriesPage] = useState(1);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatReason, setNewCatReason] = useState("");
-  const [catActionError, setCatActionError] = useState<string | null>(null);
+  const [addCatError, setAddCatError] = useState<string | null>(null);
   const [addingCat, setAddingCat] = useState(false);
 
   const [editingCat, setEditingCat] = useState<OosCategoryDto | null>(null);
   const [editCatName, setEditCatName] = useState("");
   const [editCatActive, setEditCatActive] = useState(true);
   const [editCatReason, setEditCatReason] = useState("");
+  const [editCatError, setEditCatError] = useState<string | null>(null);
   const [savingCat, setSavingCat] = useState(false);
 
   useEffect(() => {
@@ -117,13 +139,16 @@ export function OosTemplatesPage() {
     return () => controller.abort();
   }, [t]);
 
-  const applyTemplateDto = useCallback((dto: OosTemplateDto) => {
-    setTemplate(dto);
-    setPhaseOneDays(dto.phaseOneDueWorkingDays != null ? String(dto.phaseOneDueWorkingDays) : "");
-    setTotalDays(dto.totalDueWorkingDays != null ? String(dto.totalDueWorkingDays) : "");
-    setAlertOpensExcursion(dto.alertOpensExcursionReview);
-    setItems(dto.items);
-  }, []);
+  const applyTemplateDto = useCallback(
+    (dto: OosTemplateDto) => {
+      setTemplate(dto);
+      setPhaseOneDays(dto.phaseOneDueWorkingDays != null ? String(dto.phaseOneDueWorkingDays) : "");
+      setTotalDays(dto.totalDueWorkingDays != null ? String(dto.totalDueWorkingDays) : "");
+      setAlertOpensExcursion(dto.alertOpensExcursionReview);
+      setItems(dto.items.map((it) => ({ ...it, clientId: it.key ?? makeClientId() })));
+    },
+    [makeClientId]
+  );
 
   useEffect(() => {
     if (sectionId === "") return;
@@ -148,13 +173,16 @@ export function OosTemplatesPage() {
   }, [sectionId, kind, applyTemplateDto, t]);
 
   const loadCategories = useCallback(
-    (signal?: AbortSignal) => {
+    (page = categoriesPage, signal?: AbortSignal) => {
       setCategoriesLoading(true);
       setCategoriesError(null);
       oosInvestigationService
-        .listCategories(1, 100, signal)
+        .listCategories(page, 100, signal)
         .then((res) => {
-          if (!signal?.aborted) setCategories(res.items);
+          if (!signal?.aborted) {
+            setCategories(res.items);
+            setCategoriesTotalCount(res.totalCount);
+          }
         })
         .catch((e) => {
           if (!signal?.aborted) {
@@ -167,32 +195,48 @@ export function OosTemplatesPage() {
           if (!signal?.aborted) setCategoriesLoading(false);
         });
     },
-    [t]
+    [categoriesPage, t]
   );
 
   useEffect(() => {
     if (tab !== "categories") return;
     const controller = new AbortController();
-    loadCategories(controller.signal);
+    loadCategories(categoriesPage, controller.signal);
     return () => controller.abort();
-  }, [tab, loadCategories]);
+  }, [tab, categoriesPage, loadCategories]);
 
-  const moveItem = (index: number, delta: -1 | 1) => {
+  useEffect(() => {
+    const pending = pendingFocusRef.current;
+    if (!pending) return;
+    pendingFocusRef.current = null;
+    controlRefs.current.get(`${pending.clientId}:${pending.direction}`)?.focus();
+  }, [items]);
+
+  const moveItem = (index: number, delta: -1 | 1, focusDirection?: "up" | "down") => {
     const target = index + delta;
     if (target < 0 || target >= items.length) return;
     const next = [...items];
     const [moved] = next.splice(index, 1);
     next.splice(target, 0, moved);
+    if (focusDirection) {
+      pendingFocusRef.current = { clientId: moved.clientId, direction: focusDirection };
+    }
     setItems(next.map((it, idx) => ({ ...it, order: idx + 1 })));
+    setMoveAnnouncement(
+      t("templates.itemMoved", {
+        position: target + 1,
+        defaultValue: "Item moved to position {{position}}"
+      })
+    );
   };
 
   const handleItemKeyDown = (index: number, e: KeyboardEvent<HTMLElement>) => {
     if (e.altKey && e.key === "ArrowUp") {
       e.preventDefault();
-      moveItem(index, -1);
+      moveItem(index, -1, "up");
     } else if (e.altKey && e.key === "ArrowDown") {
       e.preventDefault();
-      moveItem(index, 1);
+      moveItem(index, 1, "down");
     }
   };
 
@@ -202,6 +246,7 @@ export function OosTemplatesPage() {
     setItems((prev) => [
       ...prev,
       {
+        clientId: makeClientId(),
         key: null,
         phase: newItemPhase,
         order: prev.length + 1,
@@ -224,7 +269,7 @@ export function OosTemplatesPage() {
           phaseOneDueWorkingDays: phaseOneDays.trim() === "" ? null : Number(phaseOneDays),
           totalDueWorkingDays: totalDays.trim() === "" ? null : Number(totalDays),
           alertOpensExcursionReview: alertOpensExcursion,
-          items: items.map((it, idx) => ({ ...it, order: idx + 1 }))
+          items: items.map(({ clientId: _clientId, ...it }, idx) => ({ ...it, order: idx + 1 }))
         },
         template.version
       );
@@ -240,20 +285,21 @@ export function OosTemplatesPage() {
   };
 
   const handleAddCategory = async () => {
+    if (!canManageCategories) return;
     const name = newCatName.trim();
     const reason = newCatReason.trim();
     if (!name || !reason) return;
     setAddingCat(true);
-    setCatActionError(null);
+    setAddCatError(null);
     try {
       await oosInvestigationService.addCategory({ name, isActive: true, reason });
       setNewCatName("");
       setNewCatReason("");
       toast.success(t("templates.categories.added", { defaultValue: "Cause category added." }));
-      loadCategories();
+      loadCategories(categoriesPage);
     } catch (e) {
       const msg = serverMessage(e) ?? t("templates.errors.saveCategory", { defaultValue: "Failed to save category." });
-      setCatActionError(msg);
+      setAddCatError(msg);
       toast.error(msg);
     } finally {
       setAddingCat(false);
@@ -261,21 +307,21 @@ export function OosTemplatesPage() {
   };
 
   const openEditCategory = (cat: OosCategoryDto) => {
-    if (cat.isNoCauseFound) return;
+    if (!canManageCategories || cat.isNoCauseFound) return;
     setEditingCat(cat);
     setEditCatName(cat.name);
     setEditCatActive(cat.isActive);
     setEditCatReason("");
-    setCatActionError(null);
+    setEditCatError(null);
   };
 
   const handleSaveCategory = async () => {
-    if (!editingCat) return;
+    if (!editingCat || !canManageCategories) return;
     const name = editCatName.trim();
     const reason = editCatReason.trim();
     if (!name || !reason) return;
     setSavingCat(true);
-    setCatActionError(null);
+    setEditCatError(null);
     try {
       await oosInvestigationService.saveCategory(
         editingCat.id,
@@ -284,10 +330,10 @@ export function OosTemplatesPage() {
       );
       setEditingCat(null);
       toast.success(t("templates.categories.updated", { defaultValue: "Cause category updated." }));
-      loadCategories();
+      loadCategories(categoriesPage);
     } catch (e) {
       const msg = serverMessage(e) ?? t("templates.errors.saveCategory", { defaultValue: "Failed to save category." });
-      setCatActionError(msg);
+      setEditCatError(msg);
       toast.error(msg);
     } finally {
       setSavingCat(false);
@@ -407,9 +453,20 @@ export function OosTemplatesPage() {
                     />
                   </Stack>
 
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                    {t("templates.itemsHeading", { defaultValue: "Checklist Items" })}
-                  </Typography>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                      {t("templates.itemsHeading", { defaultValue: "Checklist Items" })}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {t("templates.reorderHint", {
+                        defaultValue: "Use the arrow buttons or press Alt+Up / Alt+Down to reorder items."
+                      })}
+                    </Typography>
+                  </Box>
+
+                  <Box role="status" aria-live="polite" sx={visuallyHidden}>
+                    {moveAnnouncement}
+                  </Box>
 
                   {items.length === 0 ? (
                     <Alert severity="info">
@@ -419,88 +476,120 @@ export function OosTemplatesPage() {
                     </Alert>
                   ) : (
                     <Stack spacing={1}>
-                      {items.map((item, idx) => (
-                        <Box
-                          key={item.key ?? `new-${idx}`}
-                          onKeyDown={(e) => handleItemKeyDown(idx, e)}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1.5,
-                            p: 1.5,
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 1,
-                            opacity: item.isActive ? 1 : 0.65
-                          }}
-                        >
-                          <FormControl size="small" sx={{ minWidth: 110 }}>
-                            <InputLabel id={`item-phase-${idx}`}>
-                              {t("templates.phase", { defaultValue: "Phase" })}
-                            </InputLabel>
-                            <Select
-                              labelId={`item-phase-${idx}`}
-                              label={t("templates.phase", { defaultValue: "Phase" })}
-                              value={item.phase}
-                              onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setItems((prev) =>
-                                  prev.map((p, i) => (i === idx ? { ...p, phase: val } : p))
-                                );
-                              }}
-                            >
-                              <MenuItem value={1}>{t("templates.phaseN", { phase: 1, defaultValue: "Phase 1" })}</MenuItem>
-                              <MenuItem value={2}>{t("templates.phaseN", { phase: 2, defaultValue: "Phase 2" })}</MenuItem>
-                            </Select>
-                          </FormControl>
-
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label={t("templates.itemText", { defaultValue: "Checklist item text" })}
-                            value={item.text}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setItems((prev) =>
-                                prev.map((p, i) => (i === idx ? { ...p, text: val } : p))
-                              );
+                      {items.map((item, idx) => {
+                        const itemLabel =
+                          item.text.trim() || t("templates.untitledItem", { defaultValue: "Untitled" });
+                        return (
+                          <Box
+                            key={item.clientId}
+                            aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                            onKeyDown={(e) => handleItemKeyDown(idx, e)}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.5,
+                              p: 1.5,
+                              border: "1px solid",
+                              borderColor: "divider",
+                              borderRadius: 1,
+                              opacity: item.isActive ? 1 : 0.65
                             }}
-                          />
-
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={item.isActive}
+                          >
+                            <FormControl size="small" sx={{ minWidth: 110 }}>
+                              <InputLabel id={`item-phase-${item.clientId}`}>
+                                {t("templates.phase", { defaultValue: "Phase" })}
+                              </InputLabel>
+                              <Select
+                                labelId={`item-phase-${item.clientId}`}
+                                label={t("templates.phase", { defaultValue: "Phase" })}
+                                value={item.phase}
                                 onChange={(e) => {
-                                  const checked = e.target.checked;
+                                  const val = Number(e.target.value);
                                   setItems((prev) =>
-                                    prev.map((p, i) => (i === idx ? { ...p, isActive: checked } : p))
+                                    prev.map((p, i) => (i === idx ? { ...p, phase: val } : p))
                                   );
                                 }}
-                                slotProps={{ input: { "aria-label": t("templates.active", { defaultValue: "Active" }) } }}
-                              />
-                            }
-                            label={t("templates.active", { defaultValue: "Active" })}
-                          />
+                              >
+                                <MenuItem value={1}>{t("templates.phaseN", { phase: 1, defaultValue: "Phase 1" })}</MenuItem>
+                                <MenuItem value={2}>{t("templates.phaseN", { phase: 2, defaultValue: "Phase 2" })}</MenuItem>
+                              </Select>
+                            </FormControl>
 
-                          <IconButton
-                            size="small"
-                            aria-label={t("templates.moveUp", { defaultValue: "Move item up" })}
-                            disabled={idx === 0}
-                            onClick={() => moveItem(idx, -1)}
-                          >
-                            <ArrowUpwardIcon fontSize="small" />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            aria-label={t("templates.moveDown", { defaultValue: "Move item down" })}
-                            disabled={idx === items.length - 1}
-                            onClick={() => moveItem(idx, 1)}
-                          >
-                            <ArrowDownwardIcon fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ))}
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label={t("templates.itemText", { defaultValue: "Checklist item text" })}
+                              value={item.text}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setItems((prev) =>
+                                  prev.map((p, i) => (i === idx ? { ...p, text: val } : p))
+                                );
+                              }}
+                            />
+
+                            <FormControlLabel
+                              control={
+                                <Switch
+                                  checked={item.isActive}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setItems((prev) =>
+                                      prev.map((p, i) => (i === idx ? { ...p, isActive: checked } : p))
+                                    );
+                                  }}
+                                  slotProps={{
+                                    input: {
+                                      "aria-label": t("templates.activeItem", {
+                                        item: itemLabel,
+                                        defaultValue: "Active: {{item}}"
+                                      })
+                                    }
+                                  }}
+                                />
+                              }
+                              label={t("templates.active", { defaultValue: "Active" })}
+                            />
+
+                            <IconButton
+                              ref={(el) => {
+                                const k = `${item.clientId}:up`;
+                                if (el) controlRefs.current.set(k, el);
+                                else controlRefs.current.delete(k);
+                              }}
+                              size="small"
+                              aria-label={t("templates.moveUpItem", {
+                                item: itemLabel,
+                                defaultValue: "Move {{item}} up"
+                              })}
+                              aria-disabled={idx === 0}
+                              aria-keyshortcuts="Alt+ArrowUp"
+                              sx={{ opacity: idx === 0 ? 0.38 : 1 }}
+                              onClick={() => moveItem(idx, -1, "up")}
+                            >
+                              <ArrowUpwardIcon fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              ref={(el) => {
+                                const k = `${item.clientId}:down`;
+                                if (el) controlRefs.current.set(k, el);
+                                else controlRefs.current.delete(k);
+                              }}
+                              size="small"
+                              aria-label={t("templates.moveDownItem", {
+                                item: itemLabel,
+                                defaultValue: "Move {{item}} down"
+                              })}
+                              aria-disabled={idx === items.length - 1}
+                              aria-keyshortcuts="Alt+ArrowDown"
+                              sx={{ opacity: idx === items.length - 1 ? 0.38 : 1 }}
+                              onClick={() => moveItem(idx, 1, "down")}
+                            >
+                              <ArrowDownwardIcon fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        );
+                      })}
                     </Stack>
                   )}
 
@@ -560,9 +649,16 @@ export function OosTemplatesPage() {
               {categoriesError}
             </Alert>
           )}
-          {catActionError && (
+          {!canManageCategories && (
+            <Alert severity="info">
+              {t("templates.categories.permissionRequired", {
+                defaultValue: "Adding or editing cause categories requires MasterData.Manage permission."
+              })}
+            </Alert>
+          )}
+          {addCatError && (
             <Alert severity="error" role="alert">
-              {catActionError}
+              {addCatError}
             </Alert>
           )}
 
@@ -575,6 +671,7 @@ export function OosTemplatesPage() {
                 size="small"
                 label={t("templates.categories.name", { defaultValue: "Category name" })}
                 value={newCatName}
+                disabled={!canManageCategories}
                 onChange={(e) => setNewCatName(e.target.value)}
               />
               <TextField
@@ -582,12 +679,13 @@ export function OosTemplatesPage() {
                 size="small"
                 label={t("templates.categories.reason", { defaultValue: "Reason for change" })}
                 value={newCatReason}
+                disabled={!canManageCategories}
                 onChange={(e) => setNewCatReason(e.target.value)}
               />
               <Button
                 variant="contained"
                 startIcon={<AddOutlinedIcon />}
-                disabled={addingCat || !newCatName.trim() || !newCatReason.trim()}
+                disabled={!canManageCategories || addingCat || !newCatName.trim() || !newCatReason.trim()}
                 onClick={() => void handleAddCategory()}
               >
                 {t("templates.categories.add", { defaultValue: "Add Category" })}
@@ -600,60 +698,76 @@ export function OosTemplatesPage() {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer component={Paper} sx={{ border: "1px solid", borderColor: "divider" }}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t("templates.categories.name", { defaultValue: "Category name" })}</TableCell>
-                    <TableCell>{t("templates.categories.status", { defaultValue: "Status" })}</TableCell>
-                    <TableCell>{t("templates.categories.actions", { defaultValue: "Actions" })}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {categories.map((cat) => (
-                    <TableRow key={cat.id}>
-                      <TableCell>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                            {cat.name}
-                          </Typography>
-                          {cat.isNoCauseFound && (
-                            <Chip
-                              size="small"
-                              icon={<LockOutlinedIcon />}
-                              label={t("templates.categories.locked", { defaultValue: "Locked" })}
-                              variant="outlined"
-                            />
-                          )}
-                        </Stack>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          label={
-                            cat.isActive
-                              ? t("templates.active", { defaultValue: "Active" })
-                              : t("templates.inactive", { defaultValue: "Inactive" })
-                          }
-                          color={cat.isActive ? "success" : "default"}
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="small"
-                          startIcon={<EditOutlinedIcon />}
-                          disabled={cat.isNoCauseFound}
-                          onClick={() => openEditCategory(cat)}
-                        >
-                          {t("templates.categories.edit", { defaultValue: "Edit" })}
-                        </Button>
-                      </TableCell>
+            <Paper sx={{ border: "1px solid", borderColor: "divider" }}>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{t("templates.categories.name", { defaultValue: "Category name" })}</TableCell>
+                      <TableCell>{t("templates.categories.status", { defaultValue: "Status" })}</TableCell>
+                      <TableCell>{t("templates.categories.actions", { defaultValue: "Actions" })}</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {categories.map((cat) => (
+                      <TableRow key={cat.id}>
+                        <TableCell>
+                          <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                              {cat.name}
+                            </Typography>
+                            {cat.isNoCauseFound && (
+                              <Chip
+                                size="small"
+                                icon={<LockOutlinedIcon />}
+                                label={t("templates.categories.locked", { defaultValue: "Locked" })}
+                                variant="outlined"
+                              />
+                            )}
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={
+                              cat.isActive
+                                ? t("templates.active", { defaultValue: "Active" })
+                                : t("templates.inactive", { defaultValue: "Inactive" })
+                            }
+                            color={cat.isActive ? "success" : "default"}
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            size="small"
+                            startIcon={<EditOutlinedIcon />}
+                            aria-label={t("templates.categories.editItem", {
+                              name: cat.name,
+                              defaultValue: "Edit {{name}}"
+                            })}
+                            disabled={!canManageCategories || cat.isNoCauseFound}
+                            onClick={() => openEditCategory(cat)}
+                          >
+                            {t("templates.categories.edit", { defaultValue: "Edit" })}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              {categoriesTotalCount > 100 && (
+                <TablePagination
+                  component="div"
+                  count={categoriesTotalCount}
+                  page={categoriesPage - 1}
+                  rowsPerPage={100}
+                  rowsPerPageOptions={[100]}
+                  onPageChange={(_, nextPage) => setCategoriesPage(nextPage + 1)}
+                />
+              )}
+            </Paper>
           )}
         </Stack>
       )}
@@ -666,9 +780,9 @@ export function OosTemplatesPage() {
         </DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ mt: 1 }}>
-            {catActionError && (
+            {editCatError && (
               <Alert severity="error" role="alert">
-                {catActionError}
+                {editCatError}
               </Alert>
             )}
             <TextField
@@ -697,9 +811,7 @@ export function OosTemplatesPage() {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setEditingCat(null)}>
-            {t("common.cancel", { defaultValue: "Cancel" })}
-          </Button>
+          <Button onClick={() => setEditingCat(null)}>{t("actions.cancel", { ns: "common" })}</Button>
           <Button
             variant="contained"
             disabled={savingCat || !editCatName.trim() || !editCatReason.trim()}

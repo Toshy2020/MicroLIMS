@@ -73,6 +73,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -233,6 +235,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -445,6 +449,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -551,6 +557,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -619,6 +627,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": "Incubating",
       "CancelledAtStage": 1,
@@ -672,6 +682,8 @@
       "IsResultEntryAllowed": false,
       "ResultLockReason": null,
       "IsSuperseded": true,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -743,6 +755,8 @@
       "IsResultEntryAllowed": true,
       "ResultLockReason": null,
       "IsSuperseded": false,
+      "OosInvestigationNumber": null,
+      "IsOosInvalidated": false,
       "OutsourcedToLab": null,
       "CancelledAtStep": null,
       "CancelledAtStage": null,
@@ -884,7 +898,8 @@
             "TestCode": "ECOLI",
             "TestDisplayName": "E. coli",
             "IsQuantitative": false,
-            "Unit": null
+            "Unit": null,
+            "OosInvestigationNumber": null
           }
         ],
         "Rows": [
@@ -1020,6 +1035,7 @@
             "TestOrderId": 2,
             "TestCode": "ECOLI",
             "TestDisplayName": "E. coli",
+            "OosInvestigationNumber": null,
             "Conforms": false,
             "FailingLocationNames": [
               "Room 101",
@@ -1055,7 +1071,8 @@
                 "TestCode": "ECOLI",
                 "TestDisplayName": "E. coli",
                 "IsQuantitative": false,
-                "Unit": null
+                "Unit": null,
+                "OosInvestigationNumber": null
               }
             ],
             "Rows": [
@@ -1191,6 +1208,7 @@
                 "TestOrderId": 2,
                 "TestCode": "ECOLI",
                 "TestDisplayName": "E. coli",
+                "OosInvestigationNumber": null,
                 "Conforms": false,
                 "FailingLocationNames": [
                   "Room 101",

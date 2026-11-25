@@ -43,8 +43,7 @@ public sealed partial class OosInvestigationService
                      (i.Status != OosInvestigationStatus.PhaseOne || i.PhaseOneDueDate == null || i.PhaseOneDueDate >= today)));
         }
 
-        var page = Math.Max(1, filter.Page);
-        var pageSize = Math.Clamp(filter.PageSize, 1, 100);
+        var (page, pageSize) = Paging.Normalize(filter.Page, filter.PageSize, defaultPageSize: 1);
         var total = await query.CountAsync(ct);
 
         var paged = query

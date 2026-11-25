@@ -46,6 +46,8 @@
   "ChangeControl.UnchangedJustificationRequired": "Record a justification for affected specifications or test definitions that were not changed.",
   "ChangeControl.WrongState": "This step is unavailable in the change control's current state.",
   "ChangeControl.FinalCancellation": "A closed, rejected, or cancelled change control cannot be cancelled.",
+  "ChangeControl.InvalidOwner": "Select an active Section Head or QC Manager in the change control's section as the owner.",
+  "ChangeControl.AssessmentAlreadySigned": "Checklist answers cannot be changed after the impact assessment is signed.",
   "Quality.NotFound": "Quality record or related resource was not found.",
   "Quality.AccessDenied": "You do not have permission for this quality record operation.",
   "Quality.DuplicateItem": "Checklist item keys must be unique.",

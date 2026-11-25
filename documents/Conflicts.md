@@ -1193,3 +1193,10 @@ Locations for CONF-001 to CONF-008 were added on 2026-11-12 from the area worker
 - **Question:** When does the test record show a newer SOP revision notice?
 - **Decision:** The current effective revision must belong to the captured document master and follow the captured revision. Its effective date must precede test completion, or the test must still be open. Reassigning an item to a different SOP does not trigger the notice.
 - **Date:** 2026-11-25
+
+### CONF-223
+- **Area:** Quality records
+- **Status:** Decided
+- **Question:** Which linked CAPA states satisfy the closure requirement for a deviation that requires a CAPA?
+- **Decision:** A linked CAPA qualifies when it is not cancelled and its status is PlanApproved, CompletionVerified, or Closed. A cancelled CAPA never qualifies, even when its plan was signed before cancellation (user, 2026-11-25).
+- **Date:** 2026-11-25

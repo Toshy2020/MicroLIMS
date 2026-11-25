@@ -830,10 +830,15 @@ public sealed class OosReadAndReportPostgresTests(PostgresTestFixture fixture) :
         await Assert.ThrowsAsync<BusinessRuleException>(() => allowedController.GetContent(documentIds[code], code));
     }
 
-    [PostgresTheory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task Certificate_with_only_a_non_superseded_invalidated_order_has_no_reportable_results(bool locationBased)
+    [PostgresFact]
+    public Task Certificate_omits_a_non_superseded_invalidated_simple_result_without_a_replacement() =>
+        AssertCertificateHasNoReportableResultsAsync(locationBased: false);
+
+    [PostgresFact]
+    public Task Certificate_omits_a_non_superseded_invalidated_location_result_without_a_replacement() =>
+        AssertCertificateHasNoReportableResultsAsync(locationBased: true);
+
+    private async Task AssertCertificateHasNoReportableResultsAsync(bool locationBased)
     {
         var lab = await _seed.SectionAsync();
         var head = await _seed.UserAsync(RoleType.SectionHead, HeadOosCodes, lab);

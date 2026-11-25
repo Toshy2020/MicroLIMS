@@ -82,6 +82,14 @@ CalendarEventsController.GetDocumentContent(Int32): SystemAdministrator,SectionH
 CalendarEventsController.GetEvents(DateOnly, DateOnly): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CalendarEventsController.Update(Int32, UpdateCalendarEventRequest): SectionHead,Reviewer
 CalendarEventsController.UploadDocument(Int32, IFormFile): SectionHead,Reviewer
+CapasController.ApprovePlan(Int32, CapaPasswordRequest, CancellationToken): Qa
+CapasController.Cancel(Int32, CapaReasonRequest, CancellationToken): Qa
+CapasController.CompleteAction(Int32, CompleteCapaActionRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+CapasController.Create(CreateCapaRequest, CancellationToken): SectionHead,Qa
+CapasController.ReturnPlan(Int32, ReturnCapaPlanRequest, CancellationToken): Qa
+CapasController.SavePlan(Int32, SaveCapaPlanRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+CapasController.SignEffectiveness(Int32, SignCapaEffectivenessRequest, CancellationToken): Qa
+CapasController.VerifyCompletion(Int32, CapaPasswordRequest, CancellationToken): Qa
 ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CompetencyController.GetImpact(Int32, CancellationToken): SectionHead,QcManager
 CompetencyController.GetMatrix(Int32, MatrixFilters, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

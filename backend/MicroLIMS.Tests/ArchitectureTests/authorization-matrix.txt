@@ -90,6 +90,15 @@ CapasController.ReturnPlan(Int32, ReturnCapaPlanRequest, CancellationToken): Qa
 CapasController.SavePlan(Int32, SaveCapaPlanRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
 CapasController.SignEffectiveness(Int32, SignCapaEffectivenessRequest, CancellationToken): Qa
 CapasController.VerifyCompletion(Int32, CapaPasswordRequest, CancellationToken): Qa
+ChangeControlsController.AddAffected(Int32, ChangeControlAffectedInput, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+ChangeControlsController.Approve(Int32, ChangeControlPasswordRequest, CancellationToken): Qa
+ChangeControlsController.Cancel(Int32, ChangeControlRejectRequest, CancellationToken): Qa
+ChangeControlsController.Close(Int32, CloseChangeControlRequest, CancellationToken): Qa
+ChangeControlsController.CompleteTask(Int32, CompleteChangeControlTaskRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+ChangeControlsController.Propose(ProposeChangeControlRequest, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa
+ChangeControlsController.Reject(Int32, ChangeControlRejectRequest, CancellationToken): Qa
+ChangeControlsController.SaveAssessment(Int32, SaveChangeControlAssessmentRequest, CancellationToken): SectionHead
+ChangeControlsController.SignAssessment(Int32, ChangeControlPasswordRequest, CancellationToken): SectionHead
 ClientSettingsController.Get(CancellationToken): SystemAdministrator,SectionHead,Reviewer,Analyst,QcManager,Qa
 CompetencyController.GetImpact(Int32, CancellationToken): SectionHead,QcManager
 CompetencyController.GetMatrix(Int32, MatrixFilters, CancellationToken): SectionHead,Reviewer,Analyst,QcManager,Qa

@@ -60,8 +60,39 @@ public static partial class MessageCodes
     public const string CapaWrongState = "Capa.WrongState";
     public const string CapaFinalCancellation = "Capa.FinalCancellation";
 
+    public const string ChangeControlInvalidAffectedType = "ChangeControl.InvalidAffectedType";
+    public const string ChangeControlInvalidAffectedTarget = "ChangeControl.InvalidAffectedTarget";
+    public const string ChangeControlDuplicateAffected = "ChangeControl.DuplicateAffected";
+    public const string ChangeControlAffectedFrozen = "ChangeControl.AffectedFrozen";
+    public const string ChangeControlTaskResponsibleInvalid = "ChangeControl.TaskResponsibleInvalid";
+    public const string ChangeControlTaskPastDueDate = "ChangeControl.TaskPastDueDate";
+    public const string ChangeControlTaskCannotBeRemoved = "ChangeControl.TaskCannotBeRemoved";
+    public const string ChangeControlAssessmentIncomplete = "ChangeControl.AssessmentIncomplete";
+    public const string ChangeControlChecklistIncomplete = "ChangeControl.ChecklistIncomplete";
+    public const string ChangeControlTaskAlreadyDone = "ChangeControl.TaskAlreadyDone";
+    public const string ChangeControlTaskEvidenceLinkInvalid = "ChangeControl.TaskEvidenceLinkInvalid";
+    public const string ChangeControlUnfinishedTasks = "ChangeControl.UnfinishedTasks";
+    public const string ChangeControlUnchangedJustificationRequired = "ChangeControl.UnchangedJustificationRequired";
+    public const string ChangeControlWrongState = "ChangeControl.WrongState";
+    public const string ChangeControlFinalCancellation = "ChangeControl.FinalCancellation";
+
     private static Dictionary<string, string[]> QualityParameters() => new()
     {
+        [ChangeControlInvalidAffectedType] = [],
+        [ChangeControlInvalidAffectedTarget] = [],
+        [ChangeControlDuplicateAffected] = [],
+        [ChangeControlAffectedFrozen] = [],
+        [ChangeControlTaskResponsibleInvalid] = [],
+        [ChangeControlTaskPastDueDate] = [],
+        [ChangeControlTaskCannotBeRemoved] = [],
+        [ChangeControlAssessmentIncomplete] = [],
+        [ChangeControlChecklistIncomplete] = [],
+        [ChangeControlTaskAlreadyDone] = [],
+        [ChangeControlTaskEvidenceLinkInvalid] = [],
+        [ChangeControlUnfinishedTasks] = ["task"],
+        [ChangeControlUnchangedJustificationRequired] = [],
+        [ChangeControlWrongState] = [],
+        [ChangeControlFinalCancellation] = [],
         [CapaPlanEmpty] = [],
         [CapaActionKindInvalid] = [],
         [CapaActionResponsibleInvalid] = [],

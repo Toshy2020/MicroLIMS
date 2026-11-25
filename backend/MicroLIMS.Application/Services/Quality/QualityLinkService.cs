@@ -16,10 +16,25 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
     private readonly QualityLinkTargets _targets = new(db, permissions, scope, core);
 
     public Task<QualityLinkDto> AddAsync(int recordId, QualityLinkTargetType targetType, int targetId, int userId,
-        uint version, CancellationToken ct = default) => core.MutateAsync(recordId, version, userId, false, async _ =>
+        uint version, CancellationToken ct = default, bool isAffectedByChange = false) =>
+        core.MutateAsync(recordId, version, userId, false, async record =>
     {
         if (targetType == QualityLinkTargetType.QualityRecord && targetId == recordId)
             throw new BusinessRuleException(MessageCodes.QualitySelfLink, "A quality record cannot link to itself.");
+
+        if (isAffectedByChange)
+        {
+            if (record.Type != QualityRecordType.ChangeControl)
+                throw new BusinessRuleException(MessageCodes.QualityInvalidType, "Only change controls can have affected records.");
+            if (!ChangeControlService.IsAllowedAffectedType(targetType))
+                throw new BusinessRuleException(MessageCodes.ChangeControlInvalidAffectedType,
+                    "Affected records must be an item, specification, test definition, equipment, or controlled document.");
+            var detail = await db.ChangeControlDetails.AsNoTracking().SingleOrDefaultAsync(d => d.RecordId == recordId, ct)
+                ?? throw QualityRecordCore.Missing();
+            if (detail.Status is not (ChangeControlStatus.Proposed or ChangeControlStatus.Assessed))
+                throw new BusinessRuleException(MessageCodes.ChangeControlAffectedFrozen,
+                    "Affected records cannot be added after change control approval.");
+        }
 
         var target = await _targets.EnsureReadableAsync(targetType, targetId, userId, ct);
         if (await db.QualityRecordLinks.AsNoTracking().AnyAsync(l => l.RecordId == recordId &&
@@ -28,7 +43,8 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
 
         var link = new QualityRecordLink
         {
-            RecordId = recordId, TargetType = targetType, TargetId = targetId, AddedByUserId = userId,
+            RecordId = recordId, TargetType = targetType, TargetId = targetId,
+            IsAffectedByChange = isAffectedByChange, AddedByUserId = userId,
             AddedAtUtc = clock.GetUtcNow().UtcDateTime
         };
         db.QualityRecordLinks.Add(link);

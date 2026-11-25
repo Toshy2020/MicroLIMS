@@ -512,6 +512,21 @@ public class QualityComplaintPostgresTests(PostgresTestFixture fixture)
         int taskId;
         int cancelledTaskId;
 
+        // Other classes in this collection share the database and may leave active change-control checklist
+        // items on the seeded section; this test is about the task trigger, so it starts with no active items.
+        await using (var setupDb = Context(clock, w.Head))
+        {
+            var activeItems = await setupDb.QualityChecklistTemplates
+                .Where(t => t.Type == QualityRecordType.ChangeControl
+                    && (t.SectionId == null || t.SectionId == fixture.SeededSectionId))
+                .SelectMany(t => t.Items)
+                .Where(i => i.IsActive)
+                .ToListAsync();
+            foreach (var item in activeItems)
+                item.IsActive = false;
+            await setupDb.SaveChangesAsync();
+        }
+
         await using (var ccDb = Context(clock, w.Head))
         {
             var svc = ChangeControls(ccDb, clock);

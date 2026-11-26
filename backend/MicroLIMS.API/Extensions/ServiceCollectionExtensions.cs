@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MicroLIMS.Application.Services.Oos;
 using MicroLIMS.Application.Services.MasterData;
 using MicroLIMS.Persistence.DbContext;
@@ -38,6 +39,16 @@ namespace MicroLIMS.API.Extensions;
 // just calls builder.Services.AddApplicationServices(config).
 public static class ServiceCollectionExtensions
 {
+    /// <summary>
+    /// Services the middleware registered by <c>UseMicroLimsAuditPipeline</c> resolves per request. Registered in one
+    /// place so the application host and any host that mounts the pipeline stay in step.
+    /// </summary>
+    public static IServiceCollection AddMicroLimsAuditPipelineServices(this IServiceCollection services)
+    {
+        services.TryAddScoped<IChangeControlContext, ChangeControlContext>();
+        return services;
+    }
+
     // The DbContext, and the interface the Application layer asks for. Both
     // resolve to the same request-scoped instance, which AuditMiddleware
     // stamps with the current user.
@@ -286,7 +297,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<MicroLIMS.Application.Services.Quality.DeviationService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.CapaService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.ChangeControlService>();
-        services.AddScoped<IChangeControlContext, ChangeControlContext>();
+        services.AddMicroLimsAuditPipelineServices();
         services.AddScoped<MicroLIMS.Application.Services.Quality.ChangeControlGate>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.ComplaintService>();
         services.AddScoped<MicroLIMS.Application.Services.Quality.QualityDueDateService>();

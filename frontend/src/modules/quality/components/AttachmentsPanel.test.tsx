@@ -53,23 +53,40 @@ describe("AttachmentsPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("lists each attachment with its size and upload time with the time zone", () => {
-    renderPanel({ attachments: [attachment({ fileName: "temperature-log.pdf", size: 2048, uploadedAtUtc: "2026-11-21T09:00:00Z" })] });
+  it("lists each attachment with its size, uploader and upload time with the time zone", () => {
+    renderPanel({
+      attachments: [
+        attachment({
+          fileName: "temperature-log.pdf",
+          size: 2048,
+          uploadedByName: "Ann Analyst",
+          uploadedAtUtc: "2026-11-21T09:00:00Z"
+        })
+      ]
+    });
 
     const item = screen.getByRole("listitem");
     expect(within(item).getByText("temperature-log.pdf")).toBeTruthy();
-    expect(within(item).getByText(/2\.0 KB · uploaded .*21 Nov 2026.*\d{2}:\d{2}\s+\S+/)).toBeTruthy();
+    expect(within(item).getByText(/2\.0 KB · uploaded by Ann Analyst · .*21 Nov 2026.*\d{2}:\d{2}\s+\S+/)).toBeTruthy();
   });
 
-  it("shows a voided attachment as voided with its reason, and cannot be voided again", () => {
+  it("shows a voided attachment as voided with its voider and reason, and cannot be voided again", () => {
     renderPanel({
       attachments: [
-        attachment({ id: 22, fileName: "wrong.pdf", isVoided: true, voidedAtUtc: "2026-11-22T10:00:00Z", voidedByUserId: 8, voidReason: "Wrong batch" })
+        attachment({
+          id: 22,
+          fileName: "wrong.pdf",
+          isVoided: true,
+          voidedAtUtc: "2026-11-22T10:00:00Z",
+          voidedByUserId: 8,
+          voidedByName: "Sam Head",
+          voidReason: "Wrong batch"
+        })
       ]
     });
 
     expect(screen.getByText("Voided")).toBeTruthy();
-    expect(screen.getByText(/Voided .*22 Nov 2026.*: Wrong batch/)).toBeTruthy();
+    expect(screen.getByText(/Voided by Sam Head · .*22 Nov 2026.*: Wrong batch/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Void wrong.pdf" })).toBeNull();
     expect(screen.getByRole("button", { name: "Download wrong.pdf" })).toBeTruthy();
   });

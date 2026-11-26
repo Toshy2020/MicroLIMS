@@ -38,15 +38,20 @@ describe("qualityService reads", () => {
   });
 
   it("reads the record detail, links, comments, extensions and classifications with the abort signal", async () => {
-    http.get.mockResolvedValue(envelope([]));
+    http.get.mockImplementation((url: string) =>
+      url === "/quality/5/links"
+        ? Promise.resolve(envelope({ items: [], totalCount: 3, page: 1, pageSize: 100 }))
+        : Promise.resolve(envelope([]))
+    );
     const { signal } = new AbortController();
 
     await qualityService.getRecordDetail(5, signal);
-    await qualityService.listLinks(5, 0, 100, signal);
+    const linksPage = await qualityService.listLinks(5, 0, 100, signal);
     await qualityService.listComments(5, 0, 100, signal);
     await qualityService.listExtensions(5, 1, 100, signal);
     await qualityService.listClassifications(1, 100, signal);
 
+    expect(linksPage.totalCount).toBe(3);
     expect(http.get).toHaveBeenNthCalledWith(1, "/quality/records/5", { signal });
     expect(http.get).toHaveBeenNthCalledWith(2, "/quality/5/links", { params: { offset: 0, pageSize: 100 }, signal });
     expect(http.get).toHaveBeenNthCalledWith(3, "/quality/5/comments", { params: { offset: 0, pageSize: 100 }, signal });

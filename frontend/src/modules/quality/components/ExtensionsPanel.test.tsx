@@ -38,9 +38,9 @@ describe("ExtensionsPanel", () => {
     cleanup();
   });
 
-  it("lists a pending request with its date, scope and reason, and says it awaits a decision", () => {
+  it("lists a pending request with its date, scope, requester and reason, and says it awaits a decision", () => {
     renderPanel({
-      extensions: [extension({ requestedDueDate: "2026-12-20", reason: "Supplier delivers the probe late", actionId: null })],
+      extensions: [extension({ requestedDueDate: "2026-12-20", requestedByName: "Sam Head", reason: "Supplier delivers the probe late", actionId: null })],
       canDecide: false
     });
 
@@ -49,6 +49,7 @@ describe("ExtensionsPanel", () => {
     expect(within(item).getByText("New due date requested: 2026-12-20")).toBeTruthy();
     expect(within(item).getByText("For the record")).toBeTruthy();
     expect(within(item).getByText("Supplier delivers the probe late")).toBeTruthy();
+    expect(within(item).getByText(/^Requested by Sam Head · /)).toBeTruthy();
   });
 
   it("names the action a request is for", () => {
@@ -60,15 +61,21 @@ describe("ExtensionsPanel", () => {
     expect(screen.getByText("For action: Recalibrate the incubator probe")).toBeTruthy();
   });
 
-  it("shows a decided request with its decision, time with the time zone and comment", () => {
+  it("shows a decided request with its decision, decider, time with the time zone and comment", () => {
     renderPanel({
       extensions: [
-        extension({ decision: "Refused", decidedByUserId: 9, decidedAtUtc: "2026-11-23T14:00:00Z", decisionComment: "No more delay allowed." })
+        extension({
+          decision: "Refused",
+          decidedByUserId: 9,
+          decidedByName: "Omar Approver",
+          decidedAtUtc: "2026-11-23T14:00:00Z",
+          decisionComment: "No more delay allowed."
+        })
       ]
     });
 
     const item = screen.getByRole("listitem");
-    expect(within(item).getByText(/^Refused · .*23 Nov 2026.*\d{2}:\d{2}\s+\S+/)).toBeTruthy();
+    expect(within(item).getByText(/^Refused by Omar Approver · .*23 Nov 2026.*\d{2}:\d{2}\s+\S+/)).toBeTruthy();
     expect(within(item).getByText("No more delay allowed.")).toBeTruthy();
     expect(within(item).queryByRole("button", { name: /Decide/ })).toBeNull();
   });

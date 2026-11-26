@@ -48,14 +48,15 @@ describe("CommentsPanel", () => {
   it("lists comments with their author and time with the time zone, marking the signed-in user's own", () => {
     renderPanel({
       comments: [
-        comment({ id: 1, text: "Probe replaced on the night shift.", authorUserId: 7, createdAtUtc: "2026-11-21T11:00:00Z" }),
-        comment({ id: 2, text: "Please attach the certificate.", authorUserId: 12, createdAtUtc: "2026-11-22T08:30:00Z" })
+        comment({ id: 1, text: "Probe replaced on the night shift.", authorUserId: 7, authorName: "Ann Analyst", createdAtUtc: "2026-11-21T11:00:00Z" }),
+        comment({ id: 2, text: "Please attach the certificate.", authorUserId: 12, authorName: "Maya QA", createdAtUtc: "2026-11-22T08:30:00Z" })
       ]
     });
 
     expect(screen.getByText("Probe replaced on the night shift.")).toBeTruthy();
     expect(screen.getByText(/^You · .*21 Nov 2026.*\d{2}:\d{2}\s+\S+/)).toBeTruthy();
-    expect(screen.getByText(/^User 12 · .*22 Nov 2026/)).toBeTruthy();
+    expect(screen.getByText(/^Maya QA · .*22 Nov 2026/)).toBeTruthy();
+    expect(screen.queryByText(/User 12/)).toBeNull();
   });
 
   it("posts a comment with the record version, clears the field and reloads", async () => {

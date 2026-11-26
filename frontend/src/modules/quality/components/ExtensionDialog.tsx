@@ -153,6 +153,7 @@ function DecideDialog({ extension, recordNumber, recordVersion, onClose, onDone 
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
           {recordNumber}
         </Typography>
+        <Typography variant="body2">{t("extensionDialog.requestedBy", { name: extension.requestedByName })}</Typography>
         <Typography variant="body2">{t("extensionDialog.requestedDate", { date: extension.requestedDueDate })}</Typography>
         <Typography variant="body2">{t("extensionDialog.requestedReason", { reason: extension.reason })}</Typography>
         <FormControl component="fieldset">

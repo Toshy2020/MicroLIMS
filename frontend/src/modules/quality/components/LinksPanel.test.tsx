@@ -82,7 +82,7 @@ const searchResult = {
   }
 };
 
-function renderPanel(props: { links?: QualityLinkDto[] | null; canEdit?: boolean; onChanged?: () => Promise<void> } = {}) {
+function renderPanel(props: { links?: QualityLinkDto[] | null; totalCount?: number | null; canEdit?: boolean; onChanged?: () => Promise<void> } = {}) {
   const onChanged = props.onChanged ?? vi.fn().mockResolvedValue(undefined);
   render(
     <PinnedLightTheme>
@@ -91,6 +91,7 @@ function renderPanel(props: { links?: QualityLinkDto[] | null; canEdit?: boolean
           recordId={5}
           recordVersion={4}
           links={props.links === undefined ? [] : props.links}
+          totalCount={props.totalCount}
           canEdit={props.canEdit ?? true}
           onChanged={onChanged}
         />
@@ -228,5 +229,17 @@ describe("LinksPanel", () => {
 
     renderPanel({ links: null });
     expect(screen.getByText("Links could not be loaded.")).toBeTruthy();
+  });
+
+  it("shows how many more links exist when totalCount exceeds loaded links", () => {
+    renderPanel({
+      links: [link({ id: 31 }), link({ id: 32, number: "S-2026-0011" })],
+      totalCount: 5
+    });
+    expect(screen.getByText("Showing 2 of 5 (3 more)")).toBeTruthy();
+    cleanup();
+
+    renderPanel({ links: [link({ id: 31 })], totalCount: 1 });
+    expect(screen.queryByText(/more/)).toBeNull();
   });
 });

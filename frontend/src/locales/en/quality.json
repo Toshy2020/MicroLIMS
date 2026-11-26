@@ -166,6 +166,7 @@
     "linkThis": "Link {{title}}",
     "remove": "Remove link {{number}}",
     "close": "Close search",
+    "moreAvailable": "Showing {{shown}} of {{total}} ({{more}} more)",
     "targetTypes": {
       "Sample": "Sample",
       "TestOrder": "Test",
@@ -202,12 +203,13 @@
     "submit": "Complete action",
     "pending": "Open",
     "done": "Completed",
+    "overdue": "Overdue",
     "completeFailed": "The action could not be completed."
   },
   "attachments": {
     "title": "Attachments",
     "empty": "No attachments yet.",
-    "uploadedLine": "{{size}} · uploaded {{date}}",
+    "uploadedLine": "{{size}} · uploaded by {{name}} · {{date}}",
     "upload": "Upload",
     "uploading": "Uploading...",
     "formats": "PDF, images, Office files, TXT or CSV; up to 10 MB each",
@@ -224,6 +226,7 @@
     "voidSubmit": "Void attachment",
     "voided": "Voided",
     "voidedLine": "Voided {{date}}: {{reason}}",
+    "voidedLineWithName": "Voided by {{name}} · {{date}}: {{reason}}",
     "voidFailed": "The attachment could not be voided."
   },
   "comments": {
@@ -248,11 +251,12 @@
     "forAction": "For action: {{description}}",
     "forActionId": "For action {{id}}",
     "requestedFor": "New due date requested: {{date}}",
-    "requestedAt": "Requested {{date}}",
+    "requestedAt": "Requested by {{name}} · {{date}}",
     "pending": "Pending decision",
     "Approved": "Approved",
     "Refused": "Refused",
-    "decidedLine": "{{decision}} · {{date}}",
+    "decidedLine": "{{decision}} by {{name}} · {{date}}",
+    "decidedLineNoName": "{{decision}} · {{date}}",
     "decide": "Decide",
     "decideAria": "Decide the extension request to {{date}}"
   },
@@ -265,6 +269,7 @@
     "newDate": "New due date",
     "reason": "Reason",
     "submitRequest": "Send request",
+    "requestedBy": "Requested by: {{name}}",
     "requestedDate": "Requested due date: {{date}}",
     "requestedReason": "Reason given: {{reason}}",
     "decision": "Decision",

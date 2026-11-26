@@ -35,6 +35,10 @@ public sealed partial class QualityConfigService(IMicroLimsDbContext db, Quality
             && (r.ChangeControlDetail == null || (r.ChangeControlDetail.Status != ChangeControlStatus.Proposed
                 && r.ChangeControlDetail.Status != ChangeControlStatus.Assessed));
 
+    internal static bool IsActionExecutionActive(CapaStatus? capa, ChangeControlStatus? cc) =>
+        capa is not CapaStatus.Plan
+        && cc is not ChangeControlStatus.Proposed and not ChangeControlStatus.Assessed;
+
     internal static bool IsOpenStatus(bool isCancelled, QualityDeviationStatus? dev, CapaStatus? capa,
         ChangeControlStatus? cc, ComplaintStatus? cmp)
     {

@@ -56,7 +56,7 @@ export function CommentsPanel({ recordId, recordVersion, comments, currentUserId
               <ListItem key={entry.id} divider sx={{ display: "block", px: 0 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontVariantNumeric: "tabular-nums" }}>
                   {t("comments.line", {
-                    author: entry.authorUserId === currentUserId ? t("comments.you") : t("comments.author", { id: entry.authorUserId }),
+                    author: entry.authorUserId === currentUserId ? t("comments.you") : entry.authorName,
                     date: formatDateTimeWithTimeZone(entry.createdAtUtc)
                   })}
                 </Typography>

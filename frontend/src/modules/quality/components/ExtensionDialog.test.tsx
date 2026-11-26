@@ -121,13 +121,14 @@ describe("ExtensionDialog decision", () => {
     vi.clearAllMocks();
   });
 
-  const pending = extension({ id: 51, requestedDueDate: "2026-12-20", reason: "Supplier delivers the probe late" });
+  const pending = extension({ id: 51, requestedDueDate: "2026-12-20", requestedByName: "Sam Head", reason: "Supplier delivers the probe late" });
 
   it("shows the request and asks for a signature that states the meaning and names the signer", async () => {
     const user = userEvent.setup();
     renderDialog({ kind: "decide", extension: pending });
 
     const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Requested by: Sam Head")).toBeTruthy();
     expect(within(dialog).getByText("Requested due date: 2026-12-20")).toBeTruthy();
     expect(within(dialog).getByText("Reason given: Supplier delivers the probe late")).toBeTruthy();
 

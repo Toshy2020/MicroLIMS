@@ -166,6 +166,7 @@
     "linkThis": "ربط {{title}}",
     "remove": "إزالة الرابط {{number}}",
     "close": "إغلاق البحث",
+    "moreAvailable": "عرض {{shown}} من أصل {{total}} ({{more}} إضافية)",
     "changeFailed": "تعذّر تغيير الرابط.",
     "targetTypes": {
       "Sample": "عينة",
@@ -202,12 +203,13 @@
     "submit": "إنجاز الإجراء",
     "pending": "مفتوح",
     "done": "مكتمل",
+    "overdue": "متأخر",
     "completeFailed": "تعذّر إنجاز الإجراء."
   },
   "attachments": {
     "title": "المرفقات",
     "empty": "لا توجد مرفقات بعد.",
-    "uploadedLine": "{{size}} · رُفع {{date}}",
+    "uploadedLine": "{{size}} · رُفع بواسطة {{name}} · {{date}}",
     "upload": "رفع",
     "uploading": "جارٍ الرفع...",
     "formats": "PDF والصور وملفات Office وTXT وCSV؛ حتى 10 ميغابايت لكل ملف",
@@ -224,6 +226,7 @@
     "voidSubmit": "إبطال المرفق",
     "voided": "مُبطَل",
     "voidedLine": "أُبطل {{date}}: {{reason}}",
+    "voidedLineWithName": "أُبطل بواسطة {{name}} · {{date}}: {{reason}}",
     "voidFailed": "تعذّر إبطال المرفق."
   },
   "comments": {
@@ -248,11 +251,12 @@
     "forAction": "للإجراء: {{description}}",
     "forActionId": "للإجراء {{id}}",
     "requestedFor": "تاريخ الاستحقاق الجديد المطلوب: {{date}}",
-    "requestedAt": "طُلب {{date}}",
+    "requestedAt": "طُلب بواسطة {{name}} · {{date}}",
     "pending": "بانتظار القرار",
     "Approved": "موافق عليه",
     "Refused": "مرفوض",
-    "decidedLine": "{{decision}} · {{date}}",
+    "decidedLine": "{{decision}} بواسطة {{name}} · {{date}}",
+    "decidedLineNoName": "{{decision}} · {{date}}",
     "decide": "اتخاذ القرار",
     "decideAria": "اتخاذ القرار بشأن طلب التمديد إلى {{date}}"
   },
@@ -265,6 +269,7 @@
     "newDate": "تاريخ الاستحقاق الجديد",
     "reason": "السبب",
     "submitRequest": "إرسال الطلب",
+    "requestedBy": "طُلب بواسطة: {{name}}",
     "requestedDate": "تاريخ الاستحقاق المطلوب: {{date}}",
     "requestedReason": "السبب المذكور: {{reason}}",
     "decision": "القرار",

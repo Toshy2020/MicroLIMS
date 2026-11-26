@@ -194,6 +194,13 @@ public sealed class QualityQueryService(
             ReportVocabulary.SignatureMeaning(s.Meaning),
             s.Comment)).ToList();
 
+        var status = ResolveStatusString(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
+            row.ChangeControl?.Status, row.Complaint?.Status);
+        var isOpen = QualityConfigService.IsOpenStatus(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
+            row.ChangeControl?.Status, row.Complaint?.Status);
+        var actionExecutionActive = isOpen && QualityConfigService.IsActionExecutionActive(
+            row.Capa?.Status, row.ChangeControl?.Status);
+
         var actions = await db.QualityActions.AsNoTracking()
             .Where(a => a.RecordId == id)
             .OrderBy(a => a.Id)
@@ -209,7 +216,8 @@ public sealed class QualityQueryService(
                 a.DoneByUserId == null ? null : db.Users.Where(u => u.Id == a.DoneByUserId).Select(u => u.FullName).FirstOrDefault(),
                 a.Evidence,
                 a.EvidenceLinkId,
-                a.Version))
+                a.Version,
+                actionExecutionActive && a.DoneAtUtc == null && a.DueDate < today))
             .ToListAsync(ct);
 
         var attachments = await db.QualityAttachments.AsNoTracking()
@@ -217,13 +225,10 @@ public sealed class QualityQueryService(
             .OrderBy(a => a.Id)
             .Select(a => new QualityAttachmentDto(
                 a.Id, a.OriginalFileName, a.ContentType, a.FileSizeBytes,
-                a.UploadedByUserId, a.UploadedAtUtc, a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason))
+                a.UploadedByUserId, a.UploadedAtUtc, a.VoidedAtUtc, a.VoidedByUserId, a.VoidReason,
+                db.Users.Where(u => u.Id == a.UploadedByUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
+                a.VoidedByUserId == null ? null : db.Users.Where(u => u.Id == a.VoidedByUserId).Select(u => u.FullName).FirstOrDefault()))
             .ToListAsync(ct);
-
-        var status = ResolveStatusString(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
-            row.ChangeControl?.Status, row.Complaint?.Status);
-        var isOpen = QualityConfigService.IsOpenStatus(row.IsCancelled, row.Deviation?.Status, row.Capa?.Status,
-            row.ChangeControl?.Status, row.Complaint?.Status);
 
         var pathSteps = BuildPathSteps(row.Type, status, row.RaisedAtUtc, row.RaisedByName, timeline);
 

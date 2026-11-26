@@ -32,7 +32,9 @@ public sealed partial class QualityConfigService
         db.QualityExtensionRequests.Add(request);
         core.AdvanceVersion(record);
         await db.SaveChangesAsync(ct);
-        return ToExtensionDto(request, record.Version);
+        var requestedByName = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? string.Empty;
+        return ToExtensionDto(request, record.Version, requestedByName, null);
     }, ct);
 
     public Task<QualityExtensionDto> DecideAsync(int requestId, bool approve, string? comment, string password,
@@ -100,7 +102,11 @@ public sealed partial class QualityConfigService
         request.SignatureId = step.SignatureId;
         db.SetNextAuditReason(request, comment ?? request.Reason);
         await db.SaveChangesAsync(ct);
-        return ToExtensionDto(request, record.Version);
+        var requestedByName = await db.Users.AsNoTracking()
+            .Where(u => u.Id == request.RequestedByUserId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? string.Empty;
+        var decidedByName = await db.Users.AsNoTracking()
+            .Where(u => u.Id == userId).Select(u => u.FullName).FirstOrDefaultAsync(ct) ?? string.Empty;
+        return ToExtensionDto(request, record.Version, requestedByName, decidedByName);
     }, ct);
 
     public async Task<IReadOnlyList<QualityExtensionDto>> ListExtensionsAsync(int recordId, int page, int pageSize,
@@ -113,7 +119,9 @@ public sealed partial class QualityConfigService
             .OrderByDescending(x => x.e.Id).Skip(skip).Take(take)
             .Select(x => new QualityExtensionDto(x.e.Id, x.e.RecordId, x.e.ActionId, x.e.RequestedDueDate, x.e.Reason,
                 x.e.RequestedByUserId, x.e.RequestedAtUtc, x.e.Decision, x.e.DecidedByUserId, x.e.DecidedAtUtc,
-                x.e.DecisionComment, x.e.SignatureId, x.e.Version, x.Version))
+                x.e.DecisionComment, x.e.SignatureId, x.e.Version, x.Version,
+                db.Users.Where(u => u.Id == x.e.RequestedByUserId).Select(u => u.FullName).FirstOrDefault() ?? string.Empty,
+                x.e.DecidedByUserId == null ? null : db.Users.Where(u => u.Id == x.e.DecidedByUserId).Select(u => u.FullName).FirstOrDefault()))
             .ToListAsync(ct);
     }
 
@@ -150,7 +158,9 @@ public sealed partial class QualityConfigService
             throw new BusinessRuleException(MessageCodes.QualityExtensionDate, "Enter a date later than the current due date.");
     }
 
-    private static QualityExtensionDto ToExtensionDto(QualityExtensionRequest e, uint version) =>
+    private static QualityExtensionDto ToExtensionDto(QualityExtensionRequest e, uint version,
+        string requestedByName, string? decidedByName) =>
         new(e.Id, e.RecordId, e.ActionId, e.RequestedDueDate, e.Reason, e.RequestedByUserId, e.RequestedAtUtc,
-            e.Decision, e.DecidedByUserId, e.DecidedAtUtc, e.DecisionComment, e.SignatureId, e.Version, version);
+            e.Decision, e.DecidedByUserId, e.DecidedAtUtc, e.DecisionComment, e.SignatureId, e.Version, version,
+            requestedByName, decidedByName);
 }

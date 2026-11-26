@@ -39,7 +39,8 @@ interface Backend {
 function serve(backend: Backend = {}) {
   http.get.mockImplementation((url: string) => {
     if (url === "/quality/records/1") return (backend.detail ?? (() => ok(recordDetail())))();
-    if (url === "/quality/1/links") return (backend.links ?? (() => ok<QualityLinkDto[]>([link()])))();
+    if (url === "/quality/1/links")
+      return (backend.links ?? (() => ok({ items: [link()], totalCount: 1, page: 1, pageSize: 100 })))();
     if (url === "/quality/1/comments") return (backend.comments ?? (() => ok<QualityCommentDto[]>([comment()])))();
     if (url === "/quality/1/extensions") return (backend.extensions ?? (() => ok<QualityExtensionDto[]>([])))();
     if (url === "/quality/records/1/pdf") return Promise.resolve({ data: new Blob(["%PDF"]) });

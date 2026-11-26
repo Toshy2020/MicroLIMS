@@ -7,6 +7,7 @@ using MicroLIMS.Domain.Entities.Quality;
 using MicroLIMS.Domain.Enums;
 using MicroLIMS.Shared.Exceptions;
 using MicroLIMS.Shared.Messages;
+using MicroLIMS.Shared.Responses;
 
 namespace MicroLIMS.Application.Services.Quality;
 
@@ -68,14 +69,24 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
         ResolveAsync(recordId, userId, 0, 100, ct);
 
     public async Task<IReadOnlyList<QualityLinkDto>> ResolveAsync(int recordId, int userId, int offset, int pageSize,
+        CancellationToken ct = default) =>
+        (await ResolvePagedAsync(recordId, userId, offset, pageSize, ct)).Items;
+
+    public async Task<PagedResult<QualityLinkDto>> ResolvePagedAsync(int recordId, int userId, int offset, int pageSize,
         CancellationToken ct = default)
     {
         var access = await core.GetReadAccessAsync(userId, ct);
         var readable = core.ReadableRecords(userId, access);
         if (!await readable.AnyAsync(r => r.Id == recordId, ct)) throw QualityRecordCore.Missing();
-        var links = await db.QualityRecordLinks.AsNoTracking().Where(l => l.RecordId == recordId)
-            .OrderBy(l => l.Id).Skip(Math.Max(0, offset))
-            .Take(Paging.Normalize(1, pageSize, 1).PageSize)
+
+        var safeOffset = Math.Max(0, offset);
+        var normalizedSize = Paging.Normalize(1, pageSize, 1).PageSize;
+        var baseQuery = db.QualityRecordLinks.AsNoTracking().Where(l => l.RecordId == recordId);
+        var total = await baseQuery.CountAsync(ct);
+
+        var links = await baseQuery
+            .OrderBy(l => l.Id).Skip(safeOffset)
+            .Take(normalizedSize)
             .Select(l => new { l.Id, l.TargetType, l.TargetId, l.NewRecordCode }).ToListAsync(ct);
 
         var targets = new Dictionary<QualityLinkTargetType, Dictionary<int, (QualityLinkTargets.Target Target, bool IsReadable)>>();
@@ -85,7 +96,7 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
             targets.Add(group.Key, await _targets.ResolveBatchAsync(group.Key, ids, userId, access, ct));
         }
 
-        return links.Select(link =>
+        var items = links.Select(link =>
         {
             if (link.TargetId is int id && targets.TryGetValue(link.TargetType, out var batch) &&
                 batch.TryGetValue(id, out var resolved))
@@ -97,6 +108,14 @@ public class QualityLinkService(IMicroLimsDbContext db, QualityRecordCore core, 
             }
             return new QualityLinkDto(link.Id, link.NewRecordCode, null, null, true);
         }).ToList();
+
+        return new PagedResult<QualityLinkDto>
+        {
+            Items = items,
+            TotalCount = total,
+            Page = (safeOffset / normalizedSize) + 1,
+            PageSize = normalizedSize
+        };
     }
 
     public Task<IReadOnlyList<QualityRecordRefDto>> ForTargetAsync(QualityLinkTargetType targetType, int targetId,

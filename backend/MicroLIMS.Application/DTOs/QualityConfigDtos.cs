@@ -17,7 +17,8 @@ public sealed record RequestQualityExtensionRequest(int? ActionId, DateOnly Requ
 public sealed record DecideQualityExtensionRequest(bool Approve, string? Comment, string Password);
 public sealed record QualityExtensionDto(int Id, int RecordId, int? ActionId, DateOnly RequestedDueDate, string Reason,
     int RequestedByUserId, DateTime RequestedAtUtc, QualityExtensionDecision? Decision, int? DecidedByUserId,
-    DateTime? DecidedAtUtc, string? DecisionComment, int? SignatureId, uint Version, uint RecordVersion);
+    DateTime? DecidedAtUtc, string? DecisionComment, int? SignatureId, uint Version, uint RecordVersion,
+    string RequestedByName, string? DecidedByName);
 public sealed record OverdueQualityRecordDto(int RecordId, string Number, string Title, DateOnly DueDate, int? OwnerUserId);
 public sealed record OverdueQualityActionDto(int RecordId, string Number, int ActionId, string Description,
     DateOnly DueDate, int ResponsibleUserId);

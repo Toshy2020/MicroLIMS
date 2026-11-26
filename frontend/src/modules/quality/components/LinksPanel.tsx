@@ -41,12 +41,13 @@ interface LinksPanelProps {
   recordVersion: number;
   // null when the links could not be loaded (the page shows the partial-outage banner).
   links: QualityLinkDto[] | null;
+  totalCount?: number | null;
   // Quality.Raise: add and remove links. Without it the panel only lists them.
   canEdit: boolean;
   onChanged: () => Promise<void>;
 }
 
-export function LinksPanel({ recordId, recordVersion, links, canEdit, onChanged }: LinksPanelProps) {
+export function LinksPanel({ recordId, recordVersion, links, totalCount, canEdit, onChanged }: LinksPanelProps) {
   const { t } = useTranslation("quality");
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -266,6 +267,11 @@ export function LinksPanel({ recordId, recordVersion, links, canEdit, onChanged 
               );
             })}
           </List>
+        )}
+        {links !== null && totalCount !== undefined && totalCount !== null && links.length < totalCount && (
+          <Typography variant="caption" color="text.secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
+            {t("links.moreAvailable", { shown: links.length, total: totalCount, more: totalCount - links.length })}
+          </Typography>
         )}
       </Stack>
     </PanelFrame>
